@@ -18,7 +18,12 @@ func libraryProject(t testing.TB) *Reader {
 	t.Helper()
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"lib/layers.tr": `TR_struct TR_Linear {
+		"lib/layers.tr": `TR_enum TR_Role {
+    TR_System
+    TR_User
+}
+
+TR_struct TR_Linear {
     TR_weight: TR_Int = 1
     TR_func TR_forward(TR_x: TR_Int) -> TR_Int {
         TR_return TR_x * TR_self.TR_weight
@@ -35,6 +40,7 @@ TR_test "doğrusal" {
     TR_var d = TR_Linear()
     TR_assert(d.TR_forward(2) == 2)
     TR_assert(TR_lr_schedule(1, 2) == 0.5)
+    TR_assert(TR_Role.TR_User == TR_Role.TR_User)
 }
 `,
 		"examples/a.tr": `TR_import "tr/layers"
@@ -53,6 +59,7 @@ TR_func ileri(x: TR_Int) -> TR_Int {
 }
 
 TR_var d = TR_Linear()
+TR_var r = TR_Role.TR_User
 TR_var l = [1, 2].TR_map((x) => x)
 l.TR_append(3)
 TR_var sh = TR_Tensor([1.0]).TR_shape
@@ -77,6 +84,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	for want, spellings := range map[string][]string{
 		"struct:lib/layers.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "layers.Linear", "layers.TR_Linear", "layers.TR_type_Linear", "katman.TR_Linear"},
 		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"TR_forward", "x.TR_forward", "l.TR_forward", "uzun_alici.TR_forward", "TR_self.TR_forward", ".TR_forward", "TR_Linear.TR_forward", "tr_linear.TR_forward", "Linear.TR_forward", "Doğrusal.TR_forward", "doğrusal.TR_forward", "layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
+		"field:lib/layers.tr#TR_type_Role." + "TR_mem_User":          {"TR_User", "TR_mem_User", "Kullanıcı", "User", "TR_Role.TR_User", "Rol." + "TR_User", "Role." + "TR_User", "Rol.Kullanıcı", "Role.User"},
 		"function:lib/layers.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
 		"parameter:lib/layers.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "layers.öğrenme_oranı_planı.adım_sayısı"},
 	} {

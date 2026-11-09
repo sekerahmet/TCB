@@ -188,9 +188,6 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 	reader := codeindex.NewReader(idx)
 	checked := 0
 	for _, k := range codes.Codes() {
-		if enumStateCodes[k.String()] {
-			continue
-		}
 		id := "name:" + k.String()
 		want := []string{id}
 		if k.IsLibrary() {
@@ -225,6 +222,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
 		"layers.TR_Linear.TR_forward", "layers.TR_Linear", "layers.TR_GPT", "katman.TR_GPT", "k.TR_Linear", "iyileştirici.TR_lr_schedule", "eğitim.TR_SpikeGuard",
 		"metin.TR_length", "layers.TR_map", "layers.TR_append",
+		"TR_Role.TR_User", "Rol." + "TR_User", "TR_WordKind.TR_Noun", "SözcükTürü." + "TR_Noun",
 		"l.TR_map", "k.TR_length", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
 		".TR_map", ".TR_forward", "TR_self.TR_map", "TR_self.TR_forward",
 	} {
@@ -283,22 +281,10 @@ func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.
 	}
 }
 
-// enumStateCodes kitaplıktaki durumlu tipin durumlarıdır: codeindex durumları indekslemiyor, kodun kullanım kenarı
-// yok (T1 kök). İndeks durumları görünce bu liste silinir.
-var enumStateCodes = map[string]bool{"TR_mem_Noun": true, "TR_mem_UnknownKind": true, "TR_mem_Verb": true,
-	"TR_mem_Assistant": true, "TR_mem_System": true, "TR_mem_Tool": true, "TR_mem_User": true}
-
 // memberSpellingExceptions depodaki .tr dosyalarında yazılmış ama dilde üye ya da kitaplık bildirimi karşılığı
 // gerçekten bulunmayan `<alıcı>.TR_<ad>` yazımlarıdır; her istisna gerekçesiyle yazılır.
 var memberSpellingExceptions = map[string]string{
-	"l.TR_print":                 "tests/negative/kimlik_yeri.tr:4 (# ERROR H0029): TR_fn_print genel yerleşiktir, nokta sonrasında üye yeri hatasını sınar",
-	"TR_WordKind.TR_Noun":        "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
-	"TR_WordKind.TR_UnknownKind": "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
-	"TR_WordKind.TR_Verb":        "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
-	"TR_Role.TR_Assistant":       "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
-	"TR_Role.TR_System":          "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
-	"TR_Role.TR_Tool":            "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
-	"TR_Role.TR_User":            "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
+	"l.TR_print": "tests/negative/kimlik_yeri.tr:4 (# ERROR H0029): TR_fn_print genel yerleşiktir, nokta sonrasında üye yeri hatasını sınar",
 }
 
 // Kural (DENETİM istek 48, 55): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) zincir başı ve rakamla

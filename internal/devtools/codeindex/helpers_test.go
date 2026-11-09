@@ -114,6 +114,9 @@ func declaredIDs(rel string, p *parsed) []string {
 			for _, f := range s.Fields {
 				ids = append(ids, NodeID(KindField, rel, s.Name+"."+f.Name))
 			}
+			for _, v := range s.Variants {
+				ids = append(ids, NodeID(KindField, rel, s.Name+"."+v.Name))
+			}
 			for name := range s.Methods {
 				ids = append(ids, NodeID(KindMethod, rel, s.Name+"."+name))
 			}

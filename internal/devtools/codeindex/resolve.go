@@ -192,6 +192,8 @@ func (x *indexer) scan(f *file, o owner, root any) {
 			x.storeParam(f, o, sc, n)
 		case *ast.MemberExpression:
 			x.member(f, o, sc, n)
+		case *ast.EnumPattern:
+			x.member(f, o, sc, &ast.MemberExpression{Token: n.Token, Object: n.Enum, Property: n.Variant, NameToken: n.VariantToken})
 		case *ast.Identifier:
 			x.ident(f, o, sc, n)
 		case *ast.StringLiteral:

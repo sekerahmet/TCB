@@ -69,10 +69,16 @@ func (x *indexer) valueNode(f *file, name string, isConst bool, line, col int) {
 
 func (x *indexer) structNodes(f *file, s *ast.StructStatement) {
 	sid := x.def(f, NodeID(KindModule, f.rel, ""), KindStruct, s.Name, s.Name, f.base+"."+s.Name, s.Token.Literal+" "+s.Name, s.Token.Line, s.Token.Column)
+	addField := func(name string) {
+		line, col := fieldLine(f, written(name), s.Token.Line)
+		fieldID := x.def(f, sid, KindField, s.Name+"."+name, s.Name+"."+name, f.base+"."+s.Name+"."+name, name, line, col)
+		f.fields[name] = append(f.fields[name], fieldID)
+	}
 	for _, fld := range s.Fields {
-		line, col := fieldLine(f, written(fld.Name), s.Token.Line)
-		fieldID := x.def(f, sid, KindField, s.Name+"."+fld.Name, s.Name+"."+fld.Name, f.base+"."+s.Name+"."+fld.Name, fld.Name, line, col)
-		f.fields[fld.Name] = append(f.fields[fld.Name], fieldID)
+		addField(fld.Name)
+	}
+	for _, v := range s.Variants {
+		addField(v.Name)
 	}
 	names := make([]string, 0, len(s.Methods))
 	for n := range s.Methods {

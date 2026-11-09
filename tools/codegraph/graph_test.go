@@ -241,7 +241,7 @@ func TestEveryNameCodeHasAUse(t *testing.T) {
 	for i := range g.Nodes {
 		if n := &g.Nodes[i]; n.Kind == kindName {
 			names++
-			if !used[n.ID] && !enumStateCodes[strings.TrimPrefix(n.ID, "name:")] {
+			if !used[n.ID] {
 				unused = append(unused, n.ID)
 			}
 		}

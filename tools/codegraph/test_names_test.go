@@ -46,7 +46,7 @@ func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
 	live := map[string]bool{}
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
-		if !implementable(n) || enumStateCodes[n.Name] {
+		if !implementable(n) {
 			continue
 		}
 		live[n.Name] = true

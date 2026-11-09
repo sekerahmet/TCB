@@ -64,6 +64,9 @@ func (x *indexer) calleeStruct(f *file, sc *scope, fn ast.Expression) (string, s
 // receiver `x.üye` ifadesindeki x'in yapısını bilinen yoldan verir: `kendi` (metodun yapısı, kesin) ya da
 // yapıcıdan tek atamayla kurulan yerel (çıkarım). Bilinmiyorsa "".
 func (x *indexer) receiver(f *file, o owner, sc *scope, obj ast.Expression) (structID string, conf Confidence, basis Basis) {
+	if sid, _ := x.calleeStruct(f, sc, obj); sid != "" {
+		return sid, Extracted, BasisSelf
+	}
 	id, ok := obj.(*ast.Identifier)
 	if !ok {
 		return "", "", ""
