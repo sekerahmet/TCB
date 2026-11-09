@@ -509,7 +509,6 @@
 "H2768": { "param": ["variant", "max", "fields", "given"] },
 "H2769": { "param": ["variant", "field", "order"] },
 "H2770": { "param": ["struct", "field", "kind", "other"] },
-"H2771": { "param": ["struct", "other"] },
 "H2772": { "param": ["op", "index", "a", "b"] },
 "H2773": { "param": ["index", "why"] },
 "H2774": { "param": ["index", "count", "last"] },

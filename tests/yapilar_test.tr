@@ -224,7 +224,7 @@ TR_test "7.6 aynı nesne de alanlarıyla karşılaştırılır; durumlu tipte de
     TR_assert(Durum.Bekliyor == Durum.Bekliyor)
 }
 
-TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa hatadır" {
+TR_test "7.6 '==' kendine bağlanan nesneleri de karşılaştırır ve biter" {
     TR_struct Düğüm {
         ad: TR_String
         ebeveyn: Düğüm? = TR_none
@@ -234,9 +234,16 @@ TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa h
     a.çocuklar = [Düğüm("yaprak", a)]
     TR_var b = Düğüm("kök")
     b.çocuklar = [Düğüm("yaprak", b)]
-    TR_assert_equal("H2771", TR_error_code { TR_var s = a == b })
+    # ebeveynine bağlı iki ağaç: açılmış ağaçlar aynı (4.5)
+    TR_assert(a == b)
     # aynı nesnede de: kısa devre yok, alanlar gezilir
-    TR_assert_equal("H2771", TR_error_code { TR_var s = a == a })
+    TR_assert(a == a)
+    TR_var c = Düğüm("kök")
+    c.çocuklar = [Düğüm("yaprak", c), Düğüm("yaprak2", c)]
+    TR_assert(a != c)
+    TR_var e = Düğüm("kök")
+    e.çocuklar = [Düğüm("yaprak", Düğüm("kök"))]
+    TR_assert(a != e)
 }
 
 TR_enum Durum {

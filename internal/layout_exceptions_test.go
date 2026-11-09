@@ -32,7 +32,6 @@ var longFuncReasons = map[string]string{
 	"internal/lang/interp/compiler_expr.go:compiler.expression": reasonDispatch,
 	"internal/lang/interp/compiler_op.go:compiler.binary":       reasonHotPath + " (işleç başına tam sayı/ondalık hızlı yolları)",
 	"internal/lang/interp/compiler_call.go:compiler.call":       reasonHotPath + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)",
-	"internal/lang/interp/operators.go:valuesEqual":             reasonDispatch + " (değer tipi başına eşitlik)",
 	"internal/lang/interp/methods.go:setupListMethods":          reasonTable,
 	"internal/lang/checker/checker.go:Checker.checkStatement":   reasonDispatch,
 	"internal/lang/codes/language.go:load":                      reasonRead + " (dil dosyası)",

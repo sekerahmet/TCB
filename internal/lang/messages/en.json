@@ -509,7 +509,6 @@
 "H2768": "the state '{variant}' takes at most {max} {max, plural, one {argument} other {arguments}} (fields: {fields}), {given} given",
 "H2769": "the field '{field}' of the state '{variant}' was given both by position (argument {order}) and by name",
 "H2770": "'==' cannot compare {struct} values: the field '{field}' holds a {kind, select, tensor {tensor (a tensor's == is element by element)} other {function (two functions are never equal)}}; {other, select, empty {keep it out of the data you compare} other {compare the fields you need one by one: a.{other} == b.{other}}}",
-"H2771": "'==' reached again a pair of {struct} values it is already comparing: the values link back to themselves and the comparison would not end; {other, select, empty {compare the parts you need one by one} other {compare the fields you need one by one: a.{other} == b.{other}}}",
 "H2772": "'{op}' compares tuples element by element in order, but element {index} is {a} on one side and {b} on the other: only numbers, strings and tuples of them are ordered (4.4)",
 "H2773": "a tuple can be a dictionary key only when all its elements can: element {index} cannot ({why})",
 "H2774": "the tuple has {count} elements: .{index} does not exist; its elements are .0 to .{last}",
