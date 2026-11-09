@@ -11,8 +11,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
-// walkFiles root altında adı suffix ile biten dosyaların köke göre yollarını verir ('/' ile, sıralı): depo araçlarının
-// tek listesi (codeindex.ListFiles: git'in gördüğü dosyalar, izlenmeyen yeni dosyalar dahil; tek atlama listesi).
+// walkFiles root altında adı suffix ile biten izlenen dosyaların köke göre yollarını verir ('/' ile, sıralı): depo
+// araçlarının tek listesi (codeindex.ListFiles: git'in izlediği dosyalar, git yoksa klasör gezintisi; tek atlama listesi).
 func walkFiles(root, suffix string) []string {
 	return codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, codeindex.TrackedFiles, func(rel string) bool { return strings.HasSuffix(rel, suffix) })
 }

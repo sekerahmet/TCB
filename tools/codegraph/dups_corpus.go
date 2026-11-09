@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -54,11 +55,12 @@ const sentinelBase = 1 << 31
 // kümeleri) veri sayılır, tek yaprak olur; test dosyalarında her bileşik sabit yapraktır.
 const tableElements = 8
 
-// loadCorpus root altındaki Go dosyalarını ayrıştırıp düğüm dizisine çevirir. Üretilmiş dosyalar
-// ("Code generated ... DO NOT EDIT.") alınmaz; ayrıştırılamayan dosya atlanır ve adı skipped'e yazılır.
+// loadCorpus root altındaki Go dosyalarını (izlenmeyen yeni kaynak dosyaları dahil) ayrıştırıp düğüm dizisine çevirir.
+// Üretilmiş dosyalar ("Code generated ... DO NOT EDIT.") alınmaz; ayrıştırılamayan dosya atlanır ve adı skipped'e yazılır.
 func loadCorpus(root string) (co *dupCorpus, skipped []string, err error) {
 	co = &dupCorpus{kinds: map[string]uint32{}}
-	rels := walkFiles(root, ".go")
+	rels := append(walkFiles(root, ".go"), untrackedGoFiles(root)...)
+	sort.Strings(rels)
 	fset := token.NewFileSet()
 	for _, rel := range rels {
 		src, rerr := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))

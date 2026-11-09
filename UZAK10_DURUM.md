@@ -3,7 +3,7 @@
 - **Dal:** `gemini/uzak-10`
 - **Taban commit:** `6311e11acdfb1cad05521aede8b76ceced563769`
 - **Başlama saati:** `2026-11-09 11:03:34 +0300` (`2026-11-09 08:03:34 UTC`)
-- **Bağlam sıkıştırması:** Yok
+- **Bağlam sıkıştırması:** 1 kez (`2026-11-09 11:29:34 +0300` / `2026-11-09 08:29:34 UTC`, Adım 1 tamamlandıktan sonra, Adım 2a'ya başlamadan önce; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu)
 
 ## İlerleme
 
@@ -38,11 +38,21 @@
   - `go run ./tools/codegraph tests-for docs/status.md` → `docs/status.md [doc] docs/status.md:1`, `run:` satırı yok (`<- tests (3):` altında `testrunner.TestIdentityExceptionsAreNotStale`, `testrunner.TestReviewedSectionsHoldOnlyRules`, `testrunner.TestReviewedSectionsWriteIdentities`).
   - `go run ./tools/codegraph tests-for internal/lang/interp/equality.go` → iki `run:` satırı veriyor.
 - **1.4 Eksik tanımlı kodda iç hata:**
-  - `internal/lang/codes/tr.json`'a geçici `"TR_fn_gecici_deneme_10": {"name": "gecici_deneme_10"}` eklendiğinde `tests-for internal/lang/codes/tr.json`:
+  - `internal/lang/codes/tr.json`'a geçici `"<gecici_kod>": {"name": "gecici_deneme_10"}` eklendiğinde `tests-for internal/lang/codes/tr.json`:
     - `codegraph: warning: answers about .tr code are missing (tr sources skipped: TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: code list tr:)`
   - `go generate ./internal/lang/codes`:
-    - `error: definitions are inconsistent: TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: TR_fn_gecici_deneme_10 (gecici_deneme_10) is in the language file but has no definition in definitions.json`
+    - `error: definitions are inconsistent: TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: <gecici_kod> (gecici_deneme_10) is in the language file but has no definition in definitions.json`
 - **1.5 Atası olan commit:**
   - `go run ./tools/codegraph changed --go-tests dcbe037` (`dcbe037` `main~1` atası) → 0 satır, sessiz boş çıktı (`exit=0`).
 - **1.6 Uzak 8'in iki kuralı fikstürsüz:**
   - `tools/codegraph/query_names_test.go:127-197`'de Uzak 9 (`5e913a9`) `unit(codes.FnE, box.exprUnit, fnTwo)`, `regMath(codes.FnE, math.Floor)` ve `unitMath(codes.FnF, box.exprMath, math.Floor)` eklemiş; ancak gösterici alıcılı metot ifadesiyle `unit(v, codes.X, (*T).M, f)` (ayrı `f` ve alıcı argümanı `v` ile), modül dışı işlevin paket işleviyle birlikte (`fnMath, math.Floor`) ve tablo satırında (`noteRowNameImpl`) davranışı fikstürde sabitlenmemiş.
+
+## Adım 2a: İzlenmeyen Yeni Dosya `--changed`'e Girer
+
+- **Seçim ve gerekçe:**
+  - `tools/codegraph/dups_changed.go:55-76`'da `untrackedGoFiles(root)` (`untrackedWorkingFiles(root)` içindeki `.go` dosyaları) eklendi; canlı kolda (`changedGoLines`) her izlenmeyen `.go` dosyasının tam satır aralığı (`[1, math.MaxInt]`) değişen satırlara eklendi ve `rng` etiketine `" + " + countOf(len(untracked), "untracked file")` eklendi. `changeHunks` değiştirilmedi.
+  - `tools/codegraph/dups_corpus.go:60`'ta `loadCorpus` yalnız `walkFiles(root, ".go")` (`codeindex.TrackedFiles`, yani `git ls-files -z`) çağırdığı için git deposundaki izlenmeyen `.go` dosyaları derleme hiç girmiyordu; `loadCorpus`'a da `untrackedGoFiles(root)` eklendi.
+  - **Eskimiş belge bulgusu:** `tools/codegraph/docs.go:15` yorumu `codeindex.ListFiles` için `"izlenmeyen yeni dosyalar dahil"` diyordu; oysa `internal/devtools/codeindex/text.go:313-316` (`TrackedFiles`) yalnız `git ls-files -z` ile izlenen dosyaları döndürür. Yorum düzeltildi.
+- **Üretim satırı:** +20 net satır (18 kod satırı, 2 yorum satırı; bütçe 15–40 / 5–20).
+- **Koruyan test:** `tools/codegraph/changed_test.go:277` (`TestDupsChangedAndChangedSeeUntrackedGoFile`).
+

@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
 // Bu dosya `dups --changed`: yalnızca bir dalın eklediği ya da değiştirdiği satırlara dokunan tekrar
 // adaylarını bırakır. Asıl soru "bu dalda yazılan kod, depoda zaten var olan koda benziyor mu"dur:
 // kümenin bir konumu değişen satırlarda, öbürleri nerede olursa olsun. Değişen satırlar `changed`
-// komutununkiyle aynı yerden gelir (changeHunks): dal çıkış yapılmış (HEAD) olmalıdır ve fark çalışma
-// ağacına kadardır, commit'lenmemiş değişiklik dahil; satır numaraları çalışma ağacınındır.
+// komutununkiyle aynı yerden gelir (changeHunks ve untrackedWorkingFiles): dal çıkış yapılmış (HEAD)
+// olmalıdır ve fark çalışma ağacına kadardır, commit'lenmemiş değişiklik ve izlenmeyen yeni dosya dahil;
+// satır numaraları çalışma ağacınındır.
 
 // changedLines dosya başına değişen (eklenen ya da değişen) satır aralıklarıdır.
 type changedLines map[string][][2]int
@@ -54,7 +56,24 @@ func changedGoLines(root, base, ref string) (changedLines, string, error) {
 			out[h.file] = append(out[h.file], [2]int{h.newStart, h.newStart + h.newCount - 1})
 		}
 	}
+	untracked := untrackedGoFiles(root)
+	for _, f := range untracked {
+		out[f] = append(out[f], [2]int{1, math.MaxInt})
+	}
+	if len(untracked) > 0 {
+		rng += " + " + countOf(len(untracked), "untracked file")
+	}
 	return out, rng, nil
+}
+
+func untrackedGoFiles(root string) []string {
+	var out []string
+	for _, f := range untrackedWorkingFiles(root) {
+		if strings.HasSuffix(f, ".go") {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 // touches [from, to] aralığı değişen satırlardan birine dokunuyor mu.
