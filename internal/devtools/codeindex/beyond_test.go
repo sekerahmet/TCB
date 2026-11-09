@@ -52,6 +52,9 @@ func TestATestBeyondTheStepLimitIsCountedNotListed(t *testing.T) {
 	if e.Entry.Name != "f3" || e.Tests != 1 || e.Steps != 11 {
 		t.Errorf("the entry is f3, 11-8 steps from f0: %+v", e)
 	}
+	if imp := r.Impact("f0", QueryOptions{}); imp.Counts.Tests != 1 || len(imp.Affected.Tests) != 1 {
+		t.Errorf("impact's tests keep the step limit: %+v", imp.Counts)
+	}
 	from := r.TestedBy("m.f3", QueryOptions{}) // satırın önerdiği sorgu
 	if !slices.ContainsFunc(from.Tests, func(u Use) bool { return u.In.Name == "derin" && u.Steps == TestMaxSteps }) {
 		t.Errorf("tested_by of the entry lists the test within the limit: %+v", from.Tests)

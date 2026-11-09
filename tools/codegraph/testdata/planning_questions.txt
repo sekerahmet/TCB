@@ -318,3 +318,6 @@ codegraph query TR_Role.TR_User | exit: 0 | contains: chat.TR_type_Role.TR_mem_U
 trlang index definition Rol.Kullanıcı | exit: 0 | contains: chat.Rol.Kullanıcı | not: bulunamadı | src: uzak-11 2d, 2026-11-09 (durumlu tipin Türkçe görünüm adı alıcı olunca da çözülür)
 codegraph query TR_arg_env | exit: 0 | contains: TR_arg_env [name] | not: not found | src: uzak-11 2e, 2026-11-09 (.tr dosyasında geçmeyen katalog kodu her iki araçta da kimliğine çözülür)
 trlang index definition TR_arg_env | exit: 0 | contains: TR_arg_env | not: bulunamadı | src: uzak-11 2e, 2026-11-09 (trlang index hiçbir .tr dosyasında geçmeyen katalog kodunu ve üye yazımını da çözer)
+
+# codegraph B1a: yanlış "test yok" (K1, 2026-11-09)
+codegraph tests-for codegraph.argCallable | contains: beyond the 8-step limit, inside its folder: | contains: through codegraph.goExtractor.scan | not: no tests found | src: codegraph B1a B1.6, 2026-11-09 (klasör içi 10 adımlık zincirle ulaşan test listeye girmez, tek satırda girişiyle yazılır; B0 tasarımı K1, 49 yanlış "test yok"un ilki)
