@@ -86,11 +86,13 @@ func (cl changedLines) touches(file string, from, to int) bool {
 	return false
 }
 
-// filterChanged değişen satırlara dokunan kümeleri bırakır, o konumları işaretler ve kurulan git aralığını verir.
-func filterChanged(clusters []*dupCluster, root string, o *dupOpts) ([]*dupCluster, string, error) {
+// filterChanged değişen satırlara dokunan kümeleri bırakır, o konumları işaretler ve kurulan git aralığını verir; none
+// farkta eklenen ya da değişen Go satırı olmadığını söyler (D1 15.5 devri: "0 duplicate candidate(s)" taranacak bir şey
+// olmadığını demiyordu).
+func filterChanged(clusters []*dupCluster, root string, o *dupOpts) (_ []*dupCluster, rng string, none bool, err error) {
 	cl, rng, err := changedGoLines(root, o.base, o.changed)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 	var out []*dupCluster
 	for _, c := range clusters {
@@ -105,5 +107,5 @@ func filterChanged(clusters []*dupCluster, root string, o *dupOpts) ([]*dupClust
 			out = append(out, c)
 		}
 	}
-	return out, rng, nil
+	return out, rng, len(cl) == 0, nil
 }

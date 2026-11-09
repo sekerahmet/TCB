@@ -33,7 +33,7 @@ func TestDupsChangedSaysWhenThereIsNothingToScan(t *testing.T) {
 			continue
 		}
 		var res map[string]any
-		if err := json.Unmarshal(out.Bytes(), &res); err != nil || res["changed"] != "main...main" || len(res) != 6 {
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil || res["changed"] != "main...main" || len(res) != 7 { // schema, min_nodes, files, nodes, changed, total, clusters
 			t.Errorf("the JSON keeps its fields (%v): %v", err, res)
 		}
 	}

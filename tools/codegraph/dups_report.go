@@ -78,6 +78,7 @@ type dupResult struct {
 	Silenced      map[string]int `json:"silenced,omitempty"`
 	SkippedGroups int            `json:"skipped_boilerplate_groups,omitempty"`
 	Unparsed      []string       `json:"unparsed_files,omitempty"`
+	noChanges     bool           // --changed: farkta eklenen ya da değişen Go satırı yok (JSON biçimi değişmez)
 }
 
 const dupSchema = "codegraph-dups/1"
@@ -149,7 +150,7 @@ func runDups(args []string, stdout, stderr io.Writer) int {
 	}
 	if o.changed != "" {
 		var cerr error
-		if clusters, res.Changed, cerr = filterChanged(clusters, root, o); cerr != nil {
+		if clusters, res.Changed, res.noChanges, cerr = filterChanged(clusters, root, o); cerr != nil {
 			fmt.Fprintln(stderr, "codegraph:", cerr)
 			return exitFail
 		}
@@ -204,6 +205,9 @@ func printDups(w io.Writer, res *dupResult, took time.Duration) {
 	}
 	fmt.Fprintf(w, "%d duplicate candidate(s)%s (%d shown; >= %d nodes; %d files, %d nodes, %.1fs)\n",
 		res.Total, scope, len(res.Clusters), res.Min, res.Files, res.Nodes, took.Seconds())
+	if res.noChanges {
+		fmt.Fprintf(w, "no changes to scan: %s adds or changes no Go line, so 0 says nothing about this branch's code\n", res.Changed)
+	}
 	for i, c := range res.Clusters {
 		fmt.Fprintf(w, "\n#%d  %s\n    %d nodes, %d locations, %s\n", i+1, c.ID, c.Nodes, len(c.Locs), diffSummary(c.Diff))
 		for _, l := range c.Locs {
