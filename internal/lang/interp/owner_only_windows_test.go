@@ -36,9 +36,28 @@ func checkOwnerOnly(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	// Bayraklar "(" öncesindedir: P (miras kapalı) olmalı; AI (kendiliğinden miras bilgisi) zararsız.
-	// Girdilerde ID (miras alınmış) yok: liste tam bu iki girdidir.
+	// Girdilerde ID (miras alınmış) yok: liste tam bu iki girdidir. Beklenen girdiler de aynı
+	// çeviriden geçer: SDDL bilinen SID'leri kısaltır (CI'ın yerleşik yönetici hesabı "LA" olur).
 	flags, aces, _ := strings.Cut(strings.TrimPrefix(got, "D:"), "(")
-	if !strings.Contains(flags, "P") || "("+aces != "(A;;FA;;;"+sid+")(A;;FA;;;BA)" {
-		t.Fatalf("erişim listesi %s; miras kapalı, yalnız kullanıcı ve Administrators bekleniyordu", got)
+	_, want, _ := strings.Cut(strings.TrimPrefix(sddlRoundTrip(t, "D:P(A;;FA;;;"+sid+")(A;;FA;;;BA)"), "D:"), "(")
+	if !strings.Contains(flags, "P") || aces != want {
+		t.Fatalf("erişim listesi %s; miras kapalı, yalnız kullanıcı ve Administrators bekleniyordu (%s)", got, "("+want)
 	}
+}
+
+// sddlRoundTrip SDDL metnini güvenlik tanımına çevirip geri yazar: SID'ler Windows'un kısaltmasıyla gelir.
+func sddlRoundTrip(t *testing.T, sddl string) string {
+	t.Helper()
+	in, _ := syscall.UTF16PtrFromString(sddl)
+	var sd uintptr
+	if r, _, e := procConvertStringSDToSD.Call(uintptr(unsafe.Pointer(in)), sddlRevision1, uintptr(unsafe.Pointer(&sd)), 0); r == 0 {
+		t.Fatalf("SDDL okunamadı: %v", e)
+	}
+	defer syscall.LocalFree(syscall.Handle(sd))
+	var text *uint16
+	if r, _, e := procSDToStringSD.Call(sd, sddlRevision1, daclSecurityInformation, uintptr(unsafe.Pointer(&text)), 0); r == 0 {
+		t.Fatalf("SDDL'e çevrilemedi: %v", e)
+	}
+	defer syscall.LocalFree(syscall.Handle(unsafe.Pointer(text)))
+	return syscall.UTF16ToString(unsafe.Slice(text, 512))
 }
