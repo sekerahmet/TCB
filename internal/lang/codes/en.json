@@ -124,6 +124,7 @@
   "TR_fn_error_code": { "name": "error_code" },
   "TR_fn_exit": { "name": "exit" },
   "TR_fn_eye": { "name": "eye" },
+  "TR_fn_file_response": { "name": "file_response" },
   "TR_fn_float_to_bytes": { "name": "float_to_bytes" },
   "TR_fn_floor": { "name": "floor" },
   "TR_fn_from_bytes": { "name": "from_bytes" },

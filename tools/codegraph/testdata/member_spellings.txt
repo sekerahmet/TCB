@@ -575,6 +575,7 @@ d.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 d.TR_reset_state	ok	0	tr:method:lib/vad.tr:TR_type_VoiceDetector.TR_mem_reset_state
 d.TR_reverse	ok	0	name:TR_mem_reverse
 d.TR_slice	ok	0	name:TR_mem_slice
+d.TR_status	ok	0	name:TR_mem_status
 d.TR_step	ok	0	name:TR_mem_step
 d.TR_stop	ok	0	name:TR_mem_stop
 d.TR_tolist	ok	0	name:TR_mem_tolist

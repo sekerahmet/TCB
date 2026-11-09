@@ -1803,6 +1803,7 @@
 "H7627": "{fn}: the port number must be between 0 and 65535, {port} given",
 "H7628": "{fn}: {name} must be a positive integer, {given} given",
 "H7629": "HTTP server: {text|q}",
+"H7630": "Not found",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
 "H7902": "{fn} takes no parameter named '{given}' (it takes no named arguments)",

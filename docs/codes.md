@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 727 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 64 tip, 159 fonksiyon, 11 sabit, 86 metot, 131 özellik, 189 adlı argüman.
+Toplam 728 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 64 tip, 160 fonksiyon, 11 sabit, 86 metot, 131 özellik, 189 adlı argüman.
 
 ## İçindekiler
 
@@ -1089,7 +1089,7 @@ en: var c = Response(status: 201, json: {"tamam": true}); print(c.status, c.head
 tr: değişken c = HTTPCevabı(durum_kodu: 201, json: {"tamam": doğru}); yazdır(c.durum_kodu, c.başlıklar["Content-Type"], Metin(c.gövde))
 ```
 
-Üyeleri: `.TR_body`, `.TR_headers`, `.TR_status` · İlişkili: `TR_serve_http(...)`, `TR_Request`, `.TR_status`, `.TR_body`, `.TR_headers`
+Üyeleri: `.TR_body`, `.TR_headers`, `.TR_status` · İlişkili: `TR_serve_http(...)`, `TR_Request`, `.TR_status`, `.TR_body`, `.TR_headers`, `TR_file_response(...)`
 
 #### `TR_Role` (`TR_type_Role`, `Rol`)
 
@@ -2052,6 +2052,25 @@ tr: yazdır(birim_matris(3).değer)
 ```
 
 İlişkili: `TR_Tensor`
+
+#### `TR_file_response(...)` (`TR_fn_file_response`, `dosya_cevabı`)
+
+    dosya_cevabı(Metin | Yol, Metin) → HTTPCevabı
+
+Kök klasördeki dosyayı HTTPCevabı olarak verir: yol isteğin yoludur, baştaki / atılır, dosya kökün içinde açılır. Kökten çıkan yol ve bağlantı, aygıt adı (CON, NUL ...), sonu nokta ya da boşluk olan ve : taşıyan bileşen, harf büyüklüğü klasördeki addan farklı yol, bulunmayan dosya ve klasör 404'tür; klasör listelenmez. Tür uzantıdan, sabit tabloyla bulunur.
+
+```tr
+TR_make_dir("ekran"); TR_write_file(TR_Path("ekran", "index.html"), "<p>merhaba</p>"); TR_var c = TR_file_response("ekran", "/index.html"); TR_print(c.TR_status, c.TR_headers["Content-Type"], TR_file_response("ekran", "/Index.html").TR_status)
+```
+
+Görünümü:
+
+```text
+en: make_dir("ekran"); write_file(Path("ekran", "index.html"), "<p>merhaba</p>"); var c = file_response("ekran", "/index.html"); print(c.status, c.headers["Content-Type"], file_response("ekran", "/Index.html").status)
+tr: klasör_oluştur("ekran"); dosya_yaz(Yol("ekran", "index.html"), "<p>merhaba</p>"); değişken c = dosya_cevabı("ekran", "/index.html"); yazdır(c.durum_kodu, c.başlıklar["Content-Type"], dosya_cevabı("ekran", "/Index.html").durum_kodu)
+```
+
+İlişkili: `TR_serve_http(...)`, `TR_Response`, `.TR_path`
 
 #### `TR_float_to_bytes(...)` (`TR_fn_float_to_bytes`, `ondalık_baytları`)
 
@@ -3297,7 +3316,7 @@ en: func cevapla(i: Request) -> Response { return Response(body: "merhaba") }; v
 tr: fonksiyon cevapla(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla, kapı_numarası: 0); yazdır(s.kapı_numarası > 0, s.kapat())
 ```
 
-İlişkili: `TR_HTTPServer`, `TR_Request`, `TR_Response`, `TR_secret_token(...)`
+İlişkili: `TR_HTTPServer`, `TR_Request`, `TR_Response`, `TR_file_response(...)`, `TR_secret_token(...)`
 
 #### `TR_shape_groups(...)` (`TR_fn_shape_groups`, `şekil_grupları`)
 
@@ -6791,7 +6810,7 @@ en: print(Request(path: "/saglik").path)
 tr: yazdır(HTTPİsteği(yol: "/saglik").yol)
 ```
 
-İlişkili: `TR_path:`, `.TR_method`
+İlişkili: `TR_path:`, `.TR_method`, `TR_file_response(...)`
 
 #### `.TR_permute(...)` (`TR_mem_permute`, `eksenleri_sırala`)
 

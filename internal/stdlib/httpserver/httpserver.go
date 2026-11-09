@@ -1,6 +1,6 @@
 // Package httpserver, TR programının bir modeli hizmet olarak açtığı HTTP sunucusudur (dil tanımı
-// 28): TR_serve_http, istek ve cevap değerleri (TR_Request, TR_Response, TR_Headers) ve belirteç
-// (TR_secret_token). HTTP'yi Go'nun net/http'si ayrıştırır; geldiği
+// 28): TR_serve_http, istek ve cevap değerleri (TR_Request, TR_Response, TR_Headers), dosya sunmak
+// (TR_file_response) ve belirteç (TR_secret_token). HTTP'yi Go'nun net/http'si ayrıştırır; geldiği
 // yerin, belirtecin, yolun, eşzamanlı istek sınırının ve gövde sınırının denetimleri kilit alınmadan,
 // görev açılmadan yapılır (28.4); geçen istek interp.TaskHost'tan açılan bir TR görevinde işlenir.
 //
@@ -48,6 +48,7 @@ func Register(v *interp.VM) {
 	st := &state{}
 	v.RegisterBuiltinCode(codes.FnServeHttp, bind.SafeBuiltin(interp.CallPrefix(codes.FnServeHttp), st.serve))
 	v.RegisterNoNamed(codes.FnSecretToken, secretToken)
+	v.RegisterBuiltinCode(codes.FnFileResponse, bind.SafeBuiltin(interp.CallPrefix(codes.FnFileResponse), fileResponse))
 	v.RegisterTypeCall(codes.TypeRequest, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeRequest), newRequest)})
 	v.RegisterTypeCall(codes.TypeResponse, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeResponse), newResponse)})
 	v.AddMainEnd(func(y *interp.VM) {

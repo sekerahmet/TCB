@@ -1808,6 +1808,7 @@ const (
 	H7627 Code = 7627 // {fn}: kapı numarası 0 ile 65535 arasında olmalı, {port} verildi
 	H7628 Code = 7628 // {fn}: {name} pozitif bir tam sayı olmalı, {given} verildi
 	H7629 Code = 7629 // HTTP sunucusu: {text|q}
+	H7630 Code = 7630 // Bulunamadı
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

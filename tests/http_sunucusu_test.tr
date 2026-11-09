@@ -100,3 +100,16 @@ TR_test "28.5 en_çok_gövde_baytı pozitif bir tam sayıdır" {
     TR_var s = TR_serve_http(cevapla, TR_max_concurrent: 2, TR_max_body_bytes: 4096)
     TR_assert(s.TR_close())
 }
+
+TR_test "28.3a dosya_cevabı kökün içindeki dosyayı verir, öbür yolları 404 yapar" {
+    TR_var kök = TR_temp_dir()
+    TR_make_dir(TR_Path(kök, "lang"))
+    TR_write_file(TR_Path(kök, "index.html"), "<p>")
+    TR_write_file(TR_Path(TR_Path(kök, "lang"), "tr.js"), "x")
+    TR_var c = TR_file_response(kök, "/index.html")
+    TR_assert_equal([200, "<p>", "text/html; charset=utf-8"], [c.TR_status, TR_String(c.TR_body), c.TR_headers["Content-Type"]])
+    TR_assert_equal("text/javascript; charset=utf-8", TR_file_response(kök, "/lang/tr.js").TR_headers["Content-Type"])
+    TR_for istenen TR_in ["/", "/lang", "/Index.html", "/con", "/CON .js", "/index.html.", "/a:b", "/../index.html", "/yok.txt"] {
+        TR_assert_equal(404, TR_file_response(kök, istenen).TR_status)
+    }
+}

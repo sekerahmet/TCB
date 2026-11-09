@@ -33,3 +33,8 @@ TR_print("belirteç dosyada:", TR_read_file(dosya).TR_length, "karakter; görün
 TR_var s = TR_serve_http(cevapla, TR_host: "127.0.0.1", TR_port: 0, TR_token: belirteç, TR_max_concurrent: 8, TR_max_body_bytes: 65536)
 TR_print("adres hazır:", s.TR_port > 0, TR_Type(s) == TR_HTTPServer)
 TR_print("kapandı:", s.TR_close())
+
+# Dosya sunmak: ekranın dosyaları bir klasörden verilir; yolu program kurmaz, kökten çıkan yol 404'tür.
+TR_var ekran = TR_temp_dir()
+TR_write_file(TR_Path(ekran, "index.html"), "<p>merhaba</p>")
+TR_print(TR_file_response(ekran, "/index.html").TR_status, TR_file_response(ekran, "/../belirtec.txt").TR_status)

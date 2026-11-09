@@ -1,7 +1,8 @@
 # httpserver
 
 TR'nin HTTP sunucusu (dil tanımı 28): `TR_fn_serve_http(işleyici)`, istek ve cevap değerleri
-(`TR_type_Request`, `TR_type_Response`, `TR_type_Headers`) ve belirteç (`TR_fn_secret_token`). HTTP'yi Go'nun `net/http`'si ayrıştırır; TR programı değerlerle çalışır.
+(`TR_type_Request`, `TR_type_Response`, `TR_type_Headers`), dosya sunmak (`TR_fn_file_response`) ve
+belirteç (`TR_fn_secret_token`). HTTP'yi Go'nun `net/http`'si ayrıştırır; TR programı değerlerle çalışır.
 
 ## Standartlar
 
@@ -29,7 +30,17 @@ adres belirteç ister; belirteç gizli değerdir (19.4). İletiler işletim sist
 Denetim: `TestServeArgumentErrors`, `TestServeSuggestionsWork`, `TestPortInUse`, `TestSecretToken`,
 `TestSecretTokenNeedsOwnerOnly`, `TestServerLogIsCoded`.
 
+**Dosya sunmak her makinede aynı cevabı verir.** `TR_file_response(kök, yol)` yolu bileşen bileşen kökün
+içinde arar: aygıt adı, sonu nokta ya da boşluk, `:` her işletim sisteminde reddedilir; her bileşen klasörün
+gerçek adıyla harf büyüklüğü dahil aynı olmalıdır (Windows'un kısa adı da böyle düşer); kökten çıkan
+bağlantı reddedilir. Tür 28.3a'nın sabit tablosundandır (28.3a).
+Denetim: `TestFileResponseServesInsideTheRoot`, `TestFileComponentRules`, `TestFileCaseMustMatch` (harfe
+duyarsız sahte dosya sistemi), `TestFileShortNameIsRefused` (Windows), `TestFileLinksStayInsideTheRoot`,
+`TestFileResponseCall`, `FuzzFileComponent`.
+
 ## Testler
 
 Her `*_test.go` aynı adlı kaynağın testidir; `helpers_test.go` gerçek bağlantıyla sınanan sunucuyu kurar
 (Go'da yazılmış, çağrı sayan bir işleyiciyle ya da TR koduyla).
+
+- `behavior_short_name_windows_test.go`: Windows'un kısa adıyla (`INDEX~1.HTM`) istenen dosya 404 alır (28.3a); kısa ad birimde oluşmuyorsa test nedenini yazıp atlanır.
