@@ -1773,6 +1773,7 @@
 "H7561": "{@qwen3_format}: `{#enable_thinking}:` only applies with `{#add_generation_prompt}: {#true}`; got {given}. Remove it when formatting for training: `{#add_generation_prompt}: {#false}` (24.2)",
 "H7562": "the tokenizer has no {tag|q} token: the Qwen3 chat format needs the tokenizer of a Qwen3 model (24.2)",
 "H7563": "{@qwen3_reply}: the {field|q} field of a valid tool call was not found in the model's text; this is an error in tr/chat, please report it (24.3)",
+"H7601": "The task host is closed: no new task opens",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
 "H7902": "{fn} takes no parameter named '{given}' (it takes no named arguments)",

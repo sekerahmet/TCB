@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -141,6 +140,8 @@ type vmShared struct {
 	// forkHooks, görev açılırken çağrılan motor kancalarıdır (bkz. AddForkHook). Yalnızca kayıt
 	// sırasında yazılır.
 	forkHooks []func(parent, task *VM)
+	// mainEnds program bitince, görevler beklenmeden önce çalışan motor işleridir (AddMainEnd).
+	mainEnds []func(y *VM)
 
 	// arguments betiğe komut satırında verilen argümanlardır (bkz. program_args.go).
 	arguments []string
@@ -340,10 +341,7 @@ func New() *VM {
 // inherits the call stack of the place it was started from (which keeps the debugger's stack
 // meaningful).
 func (v *VM) NewTaskVM() *VM {
-	// Görev başlatıldığı yerin dosyasında ve aktarım zincirinde başlar (modül yüklenirken
-	// başlatılan görev o modülü aktarırsa bu döngüdür, beklemek kilitlenirdi).
-	task := &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
-		source: v.source, loading: slices.Clip(v.loading)}
+	task := v.forkView()
 	for _, f := range v.forkHooks {
 		f(v, task)
 	}
@@ -462,6 +460,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 	if _, main := splitProgramErrors(err); main != nil && !v.interactive {
 		v.Interrupt()
 	}
+	v.runMainEnds() // açık sunucular kapanır (28.8): görevleri yeni istek beslemez
 	// Görevlere durma emri gittiyse (durdurma, TR_exit, hata) ya da program hatasız bittiyse görevler
 	// beklenir. Görevleri bekleyen bu bekleme bir temizlik işidir: bir istek onu kesmez.
 	if err == nil || v.interrupted.Load() {

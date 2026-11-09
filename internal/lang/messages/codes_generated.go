@@ -1778,6 +1778,7 @@ const (
 	H7561 Code = 7561 // {@qwen3_format}: `{#enable_thinking}:` yalnız `{#add_generation_prompt}: {#true}` ile geçerlidir; {given} verildi. Eğitim için biçimlerken kaldırın: `{#add_generation_prompt}: {#false}` (24.2)
 	H7562 Code = 7562 // parçalayıcıda {tag|q} parçası yok: Qwen3'ün sohbet biçimi bir Qwen3 modelinin parçalayıcısını ister (24.2)
 	H7563 Code = 7563 // {@qwen3_reply}: geçerli bir araç çağrısının {field|q} alanı modelin metninde bulunamadı; bu tr/chat'in hatasıdır, lütfen bildirin (24.3)
+	H7601 Code = 7601 // Görev kaynağı kapandı: yeni görev açılmaz
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)
