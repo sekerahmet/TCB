@@ -429,65 +429,43 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md).
 
 ## 11. Modüller
 
-Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM; kararlar Gemini Koşu 5'ten geçti (DENETİM doğruladı, `d31c9226`). Kitaplık modüllerinin İngilizce yolları (11.6) onaylandı (2026-10-29): `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`.
+Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md).
 
 ### 11.1
 
-- **Mevcut durum (D1, `7e7706dc`; A ve D kapandı):** göreli aktarma yalnız aktaranın klasöründe çözülür, harf büyüklüğü her sistemde diskteki adla aynı olmalı: H2721 diskteki adı, H2722 programın klasöründeki dosya için açık yolu önerir [test: `TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase`, Windows; Linux tam denetimde].
 - **Yapılacaklar (F, Ö3; sahip D1; DENETİM 281):** `TR_import "ortak.TR"` `ortak.TR.tr`'yi arıyor; ileti doğru yazımı (`"ortak"`) önermiyor [ölçüldü: D1]. Mutlak yolun harf büyüklüğü kuralda yazılı değil (`pending.md`).
-- **Mevcut durum:** modülün en dışındaki deyim denetim hatası (H1107, 1.1); olumsuz fikstür `tests/negative/modul_en_dis.tr` [ölçüldü: `TestModuleTopLevelHoldsOnlyDefinitions`, 4a1 ilk dilim].
-- **Yapılacaklar:** yok (1.1'e bağlı kalanlar 1.1'in maddesinde).
 
 ### 11.2
 
-- **Mevcut durum:** köşeli ayraçla okuma ve atama (`m["PI"]`, `m["PI"] = 9`) takma adda denetimde, çalışma anının koduyla (H2904), ileti `m.PI`'yi öneriyor; indeks ad gibi yazılmış bir metin değilse (`m[k]`) ve tipi bilinmeyen kopyada çalışma anında [ölçüldü: `TestModuleValueRules`, `tests/negative/modul_koseli_ayrac.tr`, `tests/moduller_test.tr`'nin 11.2 testi].
-- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 81 Ş2, 125 N4):** modülde olmayan ad (`m.x`) denetimden geçiyor (D, aşağıda), çalışırken `TR_none` yerine H7014 veriyor, ileti modülün en yakın adını öneriyor. Sözlüğün üyeleri de aynı hata: `TR_var k = m` ile `k.TR_remove("f")` modülün adını siliyor, sonraki `m.f` hatasız `TR_none` veriyordu [ölçüldü: `25e76eae`]; `k.TR_keys()`, `k.TR_get(...)`, `k.TR_length` de sözlük gibi okunuyordu [test: `tests/moduller_test.tr`'nin 11.2 testi, `TestAMissingModuleNameSuggestsTheClosest`].
+- **Mevcut durum:** köşeli ayraçla erişim (H2904) indeks ad gibi yazılmış bir metin değilse (`m[k]`) ve tipi bilinmeyen kopyada çalışma anında [ölçüldü: `TestModuleValueRules`].
 - **Yapılacaklar (D, Ö1, 4a5; DENETİM istek 81 Ş2):** modül değeri; adların tipi denetimde; köşeli ayraçla erişim (çalışma anının kodu H2904), olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı. Modül değeri okurken de sözlük gibi görünüyor: `TR_for a TR_in m` adları dönüyor, `TR_print(m)` ve `TR_String(m)` sözlük yazımı veriyor; salt okuma, sessiz yanlış değil, 11.2 sözlük olmadığını söylüyor [ölçüldü: DENETİM istek 138 N2, `6fa66f5a` ikilisi].
 
 ### 11.3
 
 - **Mevcut durum:** modüller program çalışmadan yükleniyor; `TR_import` yalnız dosya başında yazılabilir (H0024, `tests/negative/aktarma_yeri.tr`), görevlerin modül yüklemesi yok [ölçüldü: main `85a19c36`, fonksiyon içinde `TR_import`].
-- **Mevcut durum (paylaşılan değer):** modül değerinin adı (`m.sayaç`) modülün değişkeninin bugünkü değerini veriyor; modülün kendi fonksiyonu değişkeni değiştirince her takma ad yeni değeri görüyor, eskiden yüklemedeki kopyayı veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestModuleValueReadsTheModulesVariable`, `tests/moduller_test.tr`'nin 11.3 testi]. Takma adsız aktarılan ad (`TR_import "m"` sonra `sayaç`) da modülün değişkenine bağlı: `say()` iki kez çağrılınca `sayaç` 2 (en dışta, fonksiyonda ve adı aktaran bir modülden geçince de); eskiden yüklemedeki kopyaydı, 0 veriyordu. Bu ada aktarandan atama çalışma anında H2901 [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestImportedNameReadsTheModulesVariable`, `tests/moduller_test.tr`'nin 11.3 testi].
-
-### 11.4
-
-- **Mevcut durum:** aktarılan modülün tip hatası program çalışmadan önce verilir, hiçbir satır çalışmaz; fikstür `tests/negative/hatali_modul_aktar.tr` (RUN-ERROR H1001 etiketiyle; fikstür sınaması modülü çalışmadan önce denetler ve hatadan önce çıktı yazılmadığına bakar) [ölçüldü: main `85a19c36`, denetim ve çalıştırma; `TestNegativeFixtures`].
 
 ### 11.5
 
 - **Mevcut durum (Faz 1, 2026-11-01):** görevden çağrılan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okuyor (`tests/moduller_test.tr`: "11.5 görevde çalışan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur"); bu test çağrının dosya bilgisini (`callInSource`) sınıyor, görevin kendi dosya bilgisini sınamıyor: `NewTaskVM`'in `source` alanı boşaltılınca da 12 testin 12'si geçiyor [ölçüldü: DENETİM, 2026-11-01, `kol-denetim-gemini-faz1-paralel-sonuc.md`].
 - **Yapılacaklar:** görev bloğu modülün içinde göreli okuma yapınca kendi modülünün klasörünü kullanmalı; TR testi, görevin dosya bilgisi bozulunca düşen.
 
-### 11.6
-
-- **Mevcut durum (Faz 0.2, 2026-10-29):** kitaplığın dört modülü İngilizce yollarda: `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training` (`lib/`); eski Türkçe yol H2478 verir (`tests/negative/kitaplik_turkce_harf.tr`). Eski yollar göçten önce 90 dosyada 976 satırda geçiyordu; şimdi `docs/archive/` ve o negatif test dışında yalnız gerekçenin tarihçe cümlesinde (`docs/spec/rationale/11_modules.md:34`) ve iki Go testinin yapay `tr/katmanx` adlarında (`internal/devtools/codeindex/snippet_test.go:106,111`, `tools/codegraph/library_imports_test.go:25,27,29`) geçiyor [ölçüldü: `git grep -nE 'tr/(katman|iyilestirici|egitim|hazir_modeller)' -- ':!docs/archive/*'`, main `c39e0b56`].
-
 ### 11.8
 
-- **Mevcut durum:** iki aktarım aynı adı getirince sonraki sessizce kazanıyor; dosyanın kendi tanımı aktarılan adı sessizce gölgeliyor [ölçüldü: main `a9a1ba14`]. Depodaki 135 dosyanın 50 aktarmasında çakışma yok; kural göçsüz girer [ölçüldü: DENETİM 11-1].
-- **Mevcut durum (atama):** takma adsız aktarılan ada atama (`DEGER = 7`) artık çalışırken hata veriyor, yerel kopya kurulmuyor [ölçüldü: DENETİM istek 61, `30b44b01`; önceden sessiz yerel kopya, DENETİM 11-1]; denetimde hata değil (D). Modül değerinin adına atama (`m.PI = 7`, `m.sayaç += 1`, fonksiyondan gelen modül değerinde de) çalışma anında H2901, modülün değeri değişmiyor; değerin içi (`m.yer.x = 1`, `m.kayıt.TR_append(x)`) ve modülün kendi fonksiyonunun kendi değişkenini değiştirmesi geçerli [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/moduller_test.tr`'nin 11.8 testi, `TestModuleNameIsNotReboundFromTheImporter`, `tests/negative/modul_adina_atama.tr`]. Köşeli ayraçla atama (`m["PI"] = 9`) 11.2'nin kuralıyla H2904.
-- **4a2 (ikinci dilim):** takma adın modül değerinin adına atama (`m.PI = 7`, `m.sayaç += 1`) denetimde, çalışma anının koduyla (H2901); değerin içi (`m.yer.x = 1`) geçerli; fonksiyondan gelen ya da kopyalanan modül değeri çalışma anında [ölçüldü: `TestModuleValueRules`, `tests/negative/modul_adina_atama.tr`].
+- **Mevcut durum:** iki aktarım aynı adı getirince sonraki sessizce kazanıyor; dosyanın kendi tanımı aktarılan adı sessizce gölgeliyor [ölçüldü: main `a9a1ba14`]. Depodaki 135 dosyanın 50 aktarmasında çakışma yok; kural göçsüz girer [ölçüldü: DENETİM 11-1]. Takma adsız aktarılan ada atama denetimde hata değil, çalışırken hata (D) [ölçüldü: DENETİM istek 61, `30b44b01`].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** denetim hataları (çakışma, aktarılan ada atama), iki yeri gösteren ve `TR_as`'ı öneren ileti; olumsuz fikstürler.
 
 ## 12. Testler
 
-Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; metin DENETİM 12-1'den geçti, bulguları işlendi (`913fd2a6`); kararlar Gemini Koşu 7'den (`59efe468`) ve 12.4a Koşu 3'ten (`0edb6f20`) geçti. Kapanış turu (işlenmiş metnin yeniden okunması) yapılmadı. Yeni ad `TR_assert_close`'un gösterim adı onaylandı (yakın_olmalı); kodu uygulandığı gün kayda girer (17.4).
+Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md).
 
 ### 12.1
 
-- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 125 N1):** test komutuna iki dosya verilince yalnız ilki koşuyordu, ikincinin kalan testi bile geçmiş görünüyordu ("1 test, 1 geçti", çıkış 0). Artık verilen bütün dosya ve klasörler koşuyor, biri düşerse çıkış 1; olmayan hedef hata, hiçbir test koşmuyor; ilk dosyadan sonraki seçenek de sessizce atlanmıyor [test: `TestEveryTargetRuns`, `TestAMissingTargetStopsTheRun`, `TestTestCommand`].
-- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 81, 132 Ş1):** test dosyası `TR_test` içeren dosya: klasör taraması bütün `.tr`'lere bakıyor, `testdata` adlı klasöre inmiyor; aktarılan modülün testleri de koşuyor, her dosya bir kez, kendi makinesinde. Test bloğu olmayan verilen dosya, yanında testli dosya olsa da, ve testi olmayan klasör H8503; hiçbir test koşmuyor. Eskiden testli modül ve aktarılan modülün kalan testi koşmadan "1 test, 1 geçti", çıkış 0 veriyordu [test: `TestDirScan`, `TestImportedModuleTestsRun`, `TestATargetWithoutTestsIsAnError`, `TestFixtureDirIsOnlyRunWhenGiven`].
-- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 138 Ş1):** adı `_test.tr` ile biten dosya taramadan elenmiyor. Sözcük birimlerinden testi görünmeyen bozuk dosya (kapanmayan metin, adsız `TR_test`, kimliksiz yazım) "yüklenemedi", çıkış 1; `c131d68e`'de klasörde elenip ✅, çıkış 0 veriyordu. Testi olmayan böyle dosya raporda H8503, çıkış 1, klasörde de; yanındaki testler koşmuş olur. Düz adlı dosya da aynı (139 Ş2): `TR_test` sözcüğü ardındaki yazıma bakılmadan sayılıyor, sözcükleri bozuk dosyada ham metin aranıyor, dosya "yüklenemedi" [test: `TestABrokenNamedTestFileIsNotDropped`, `TestANamedTestFileWithoutTestsFailsTheRun`, `TestHasTestBlock`].
-- **Mevcut durum (sınır, iş yok; DENETİM istek 141 N1, 142 Ş3):** düz adlı dosyada kimliksiz yazılan test taramada görünmüyor, dosya test sayılmaz. Kimliksiz yazım kod değildir: 12.1 `TR_test`'e bakar.
 - **Yapılacaklar:** testin hangi cihazda koştuğu ve cihazlar arası tolerans 15'in E parçasında.
-- **Gemini Koşu 7 (2026-10-29), uygulanacak:** test dosyası tanımı (göç işi bitti: en dışta deyim içeren dosya kalmadı, 4a1 ilk dilim) [ölçüldü: main `85a19c36`, iki dosyanın denetimi].
 
 ### 12.2
 
-- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 138 Ş2):** `TR_test` en dışta değilse (`TR_if`, fonksiyon, başka test) denetim hatası, H7015; eskiden test koşmadan "✅ 0 test", çıkış 0 veriyordu [test: `TestATestIsOnlyAtTheTopLevel`, `TestANestedTestFailsTheRun`, `tests/negative/testdata/test_ic_ice.tr`].
 - **Mevcut durum:** aynı dosyada aynı adlı iki test ikisi de çalışıyor [ölçüldü: main `e6392066`].
 - **Yapılacaklar:** sözdizimi hatası ve olumsuz fikstür.
-- **Mevcut durum (2026-11-05; F1, Ö3 kapandı; DENETİM istek 141 N3):** `TR_test`, `TR_as` ve `TR_init` bağlamının dışında sözdizimi hatası, H7017: ileti kimliği ve kopyalanınca çalışan yazımı veriyor; eskiden bilinmeyen ad iletisi görünüm adını yazıyordu [test: `TestMessageSuggestionsRunCleanly`, `tests/negative/kimlik_yeri.tr`].
 
 ### 12.3
 
@@ -507,8 +485,6 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.5
 
-- **Mevcut durum:** her test kendi makinesinde koşar: en dıştaki tanımlar, aktarılan modüller ve paylaşılan üreteç her testte baştan kurulur; iki testin `TR_randn([2])`'si aynı [ölçüldü: D1, DENETİM 207; TR testi `tests/testler_test.tr`].
-- **4a1 ilk dilim (2026-10-30):** test dosyasının en dışındaki deyim ve sabit olmayan ilk değer denetim hatası (H1107, H1108); depodaki yerler (1 deyim, geçici klasör ve komut satırı ayarı) kurulum fonksiyonuna alındı [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`].
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** hatalı test bitmemiş görevlerini önce iptal eder (10.9); bugün sonsuz işçiyle asılı kalıyor.
 
 ## 13. Yerleşikler

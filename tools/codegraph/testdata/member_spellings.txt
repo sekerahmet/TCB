@@ -871,7 +871,6 @@ k.TR_end	ok	0	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_end
 k.TR_exists	ok	0	name:TR_mem_exists
 k.TR_flush	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_flush
 k.TR_forward	ok	0	tr:method:tests/negative/kod_uye.tr:K.TR_mem_forward
-k.TR_get	ok	0	name:TR_mem_get
 k.TR_grad	ok	0	name:TR_mem_grad
 k.TR_is_dir	ok	0	name:TR_mem_is_dir
 k.TR_k_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_k_proj
@@ -884,7 +883,6 @@ k.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
 k.TR_pi	not_found	4	-
 k.TR_push	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_push
 k.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
-k.TR_remove	ok	0	name:TR_mem_remove
 k.TR_remove_at	ok	0	name:TR_mem_remove_at
 k.TR_sampler	ok	0	name:TR_mem_sampler
 k.TR_sequential	ok	0	name:TR_mem_sequential
