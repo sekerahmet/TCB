@@ -125,6 +125,31 @@ func TestQuantMatMulSameBitsAsOpened(t *testing.T) {
 	}
 }
 
+// TestQuantPanelsKeepTheirOwnPool: az satırlı nicem çarpımı (quantGemmPanels) gemm'in paketleme
+// yığınlarına tampon koymaz ve onlardan almaz; koysaydı yığınların toplam sınırı dolar, parça yolunun
+// büyük tamponları her çarpımda yeniden ayrılırdı (H1 sabit bedel: 630 satırlık okumada tepe bellek).
+func TestQuantPanelsKeepTheirOwnPool(t *testing.T) {
+	r := rand.New(rand.NewSource(12))
+	M, N, K := 21, 4*quantTileRows, 2048
+	w := FromQuantized(Q4K, smallScaleQuant(Q4K, 7, N*K/256), N, K)
+	x := New(randomData(r, M*K), M, K)
+	// Yığınlar boşaltılır (paketin testleri koşut değildir): çarpımdan sonra gemm'inkilerde tampon olmamalı.
+	for _, y := range []*bufStack{&packPoolA, &packPoolB} {
+		y.mu.Lock()
+		y.t, y.total = nil, 0
+		y.mu.Unlock()
+	}
+	for range 3 {
+		MatMul(x, w.T())
+	}
+	if n := len(packPoolA.t) + len(packPoolB.t); n != 0 {
+		t.Fatalf("gemm yığınlarında %d tampon var (A %d, B %d): az satırlı yol onlara koydu", n, len(packPoolA.t), len(packPoolB.t))
+	}
+	if quantPanelPool.total == 0 {
+		t.Fatal("quantPanelPool boş: tamponlar kendi yığınına konmadı")
+	}
+}
+
 // TestQuantMatMulDependsOnlyOnShape: aynı girdi her koşuda aynı bitleri verir; satır dilimi ağırlığın
 // kendi satırlarını okur.
 func TestQuantMatMulDependsOnlyOnShape(t *testing.T) {

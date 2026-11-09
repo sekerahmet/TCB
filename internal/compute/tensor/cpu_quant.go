@@ -84,8 +84,14 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 
 // quantPanelMaxM bu kadar satıra kadar çok satırlı çarpım quantGemmPanels'tedir. Sınır gemm'in en
 // büyük satır bloğudur (rowB); paketli A en geniş ağırlıkta (K = 9728) 96 × 9728 float32, packPoolA'nın
-// sakladığı boyun (bufMax) altında kalır [hesap].
+// sakladığı boyun (bufMax) altında kalır [hesap]; tamponlar quantPanelPool'dadır.
 const quantPanelMaxM = rowB
+
+// quantPanelPool quantGemmPanels'in tamponlarıdır (paketli A; panel, satır ve çıktı parçası tek
+// tamponda). Ortak packPoolA ve packPoolB'den alınsalar yığınların toplam sınırını (bufTotalMax)
+// doldururlardı; parça yolunun 16 MB'lık tamponları o zaman geri konmaz, her çarpımda yeniden ayrılırdı.
+// Ortak yığınla 630 satırlık okumada tepe özel bellek tabanınkinden ~3,9 GiB yüksekti (H1 sabit bedel).
+var quantPanelPool = bufStack{largest: bufMax}
 
 // quantGemmPanels az satırlı çarpımdır (sohbet turunun yeni parçaları). Parça yolunda (quantGemm) her
 // 256 satırlık ağırlık önce tampona açılıyor, sonra gemm onu sütun sütun panellere yeniden yazıyor ve
@@ -97,8 +103,8 @@ const quantPanelMaxM = rowB
 func quantGemmPanels(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	rowBytes := quantRowBytes(dt, K)
 	mPad := (M + mr - 1) / mr * mr
-	apBuf := takePack(&packPoolA, mPad*K)
-	defer packPoolA.Put(apBuf)
+	apBuf := takePack(&quantPanelPool, mPad*K)
+	defer quantPanelPool.Put(apBuf)
 	ap := *apBuf
 	// kc bloğu p0'ın panelleri ap[p0*mPad:]'dedir: önceki blokların hepsi kcBlock derinliğindedir.
 	for p0 := 0; p0 < K; p0 += kcBlock {
@@ -107,11 +113,9 @@ func quantGemmPanels(M, N, K int, a []float32, w []byte, dt DType, c []float32) 
 	}
 	np := (N + nr - 1) / nr
 	parallelFor(np, K*(nr+mPad), func(lo, hi int) {
-		bb := takePack(&packPoolB, K*nr+K)
-		pb := takePack(&packPoolA, mPad*nr)
-		defer packPoolB.Put(bb)
-		defer packPoolA.Put(pb)
-		pan, row, part := (*bb)[:K*nr], (*bb)[K*nr:K*nr+K], (*pb)[:mPad*nr]
+		bb := takePack(&quantPanelPool, K*nr+K+mPad*nr)
+		defer quantPanelPool.Put(bb)
+		pan, row, part := (*bb)[:K*nr], (*bb)[K*nr:K*nr+K], (*bb)[K*nr+K:K*nr+K+mPad*nr]
 		for jp := lo; jp < hi; jp++ {
 			j0 := jp * nr
 			nn := min(nr, N-j0)
