@@ -236,115 +236,108 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 ## 6. Fonksiyonlar
 
-Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). 6.1, 6.6, 6.7 ve 6.9'un sonraki kararları Gemini'nin araştırmasını bekliyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 6.7 ve 6.11 kurala uyuyor, maddeleri yok. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, sırayla verilen argümanın tipi tutmazsa çalışmadan önce bulunuyor, varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 [ölçüldü: küçük programlar; denetim ve çalıştırma].
+Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md).
 
-`tests/fonksiyonlar_test.tr` yeni yazımla yazılmış, 20 testi geçiyor; depoda `TR_it`, `TR_acc`, adsız `TR_func` ve parantezsiz ok kalmadı (yalnız olumsuz fikstürde) [ölçüldü: dosyanın testleri koşuldu; `.tr` dosyalarında git grep]. Eski kurala dayanan testler: eksik, fazla, iki kez verilen argümanı ve varsayılandaki ileri başvuruyu çalışırken yakalayan 6.4 ve 6.5 testleri (denetim hatası olunca `tests/negative/` fikstürlerine taşınır).
+Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yalnız olumsuz fikstürde kalıyor. Eski kurala dayanan testler: eksik, fazla, iki kez verilen argümanı ve varsayılandaki ileri başvuruyu çalışırken yakalayan 6.4 ve 6.5 testleri (`tests/fonksiyonlar_test.tr`; denetim hatası olunca `tests/negative/` fikstürlerine taşınır).
 
 ### 6.1
 
 - **Yapılacaklar (D, Ö3; sahip D1, Kol A; TCB 2026-11-09, tur 4):** `TR_func` adına atama denetimden geçiyor: `f = g`, `f = (x) => ...`, `f, x = g, 1` `f`'yi değiştiriyor, `f += 1` çalışırken düşüyor [ölçüldü: DENETİM 167 `s1`–`s5`, `e65e6850`]. Aynı fonksiyonda iç blokta `TR_var f = g` ve ters yönü (`TR_var f = 1`, içeride `TR_func f()`) geçiyor (`s6`, `s7`); 5.12'nin genel uygulaması ayrı satırda.
-- **Mevcut durum:** dönüş tipinin `:` ile yazımı, `-> TR_NoneType`, `def f(x):`, satır başındaki `@f` ve aynı blokta aynı adla ikinci tanım sözdizimi hatası, iletiler TR'deki yazımı söylüyor. Tipsiz parametre (fonksiyon, metot, kurucu) ve değer döndürüp `->` yazmayan `TR_func` denetim hatası (H1109–H1113, 4a1): ileti düzeltilmiş satırı veriyor; tip varsayılandan ya da `TR_return`'lerin ortak tipinden çıkınca düzeltme uygulanabilir, dosyadaki çağrıların ortak tipinden tahmin edilince uygulanamaz (ileti tahmin olduğunu söylüyor), bulunamazsa `x: <tip>` ve nedeni. Depodaki programlar tipli. Tek istisna gömülü kitaplığın 4c'yi bekleyen 29 yeri (genel ve birleşim tipi: birden çok tip alan parametre, alan ve dönüş): adla tutuluyor (dosya, sahip, ad), yalnız kitaplığın kendi dosyası denetlenirken tanı vermiyor, aynı yazım kullanıcının programında hata; liste yalnız küçülür, 4c'de kalkar (`internal/lang/checker/library_exceptions.go`, nedenleri `internal/testdata/typed_code_known.txt`) [ölçüldü: `TestUntypedFunctionParameter`, `TestUntypedMethodParameter`, `TestMissingReturnType`, `TestTypedSignatureSuggestionRuns`, `TestCheckJSONTypedSignatureFixesMakeTheFileClean`, `TestLibraryExceptionsAreUsed`, `TestRepoProgramsAreTyped`, dal `claude/charming-pasteur-q1vsvo`].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** kitaplığın 29 istisnası 4c'de (tip parametresi ve birleşim tipi) kalkar; argümanın parametre tipine göre denetimi metotta, kurucuda ve adlı argümanda.
-- **Dil tanımı düzeldi (2026-10-29):** aynı adla ikinci tanım artık tanımda da sözdizimi hatası (1.3); motor zaten öyle.
 
 ### 6.2
 
-- **Mevcut durum:** gövdenin son ifadesi dönüş değeri değil (örtük dönüş kalktı), programın en dışında `TR_return` sözdizimi hatası; eksik dönüş denetlenmiyor: dönüş tipi `TR_Int` olan fonksiyonda `TR_return`'süz yol denetimden geçiyor, çalışınca yokluk veriyor; fonksiyon tipi beklenen fonksiyon ifadesinin blok gövdesinde de [ölçüldü: dalı biten ve bitmeyen fonksiyonlar, `TR_throw`, sonsuz döngü, `TR_match` ve `TR_exit` ile biten yollar; denetim ve çalıştırma].
+- **Mevcut durum:** eksik dönüş denetlenmiyor: dönüş tipi `TR_Int` olan fonksiyonda `TR_return`'süz yol denetimden geçiyor, çalışınca yokluk veriyor; fonksiyon tipi beklenen fonksiyon ifadesinin blok gövdesinde de [ölçüldü: dalı biten ve bitmeyen fonksiyonlar, `TR_throw`, sonsuz döngü, `TR_match` ve `TR_exit` ile biten yollar; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** bitmeyen yol denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler: `TR_return`, `TR_throw`, `TR_exit`, çıkışı olmayan sonsuz döngü, bütün dalları biten `TR_if` ve bütün kolları biten `TR_match`; denetleyicinin testi.
 
 ### 6.3
 
-- **Mevcut durum (Faz 0.6b, 2026-10-29):** `TR_return a, b` bir demet döndürüyor: sonuç açılıyor, tutuluyor, argüman oluyor, listeye konuyor, `t.0` ile okunuyor (`t.0`'ın tipi biliniyor); H2708 kalktı. Açmada sayı tutmazsa dönüşü `-> (A, B)` diye yazılmış fonksiyonun doğrudan çağrısında denetim hatası (H1026), fonksiyon değerinde çalışma hatası (H2709); iki ileti de örneğini deyimin adlarından ve sağ yanından kuruyor. Dönüş tipi yazılmayan fonksiyon denetim hatası (6.1). Açılan adlar tipsiz kalıyor: `TR_var a, b = f()` sonrası `b`'nin tipi denetlenmiyor [ölçüldü: main `85a19c36`, `tests/tipler_test.tr`'nin 3.6a testi, `tests/fonksiyonlar_test.tr`'nin 6.3 testleri, `checker/unpack_test.go`, `interp/compiler_test.go`; küçük programlar].
+- **Mevcut durum:** açılan adlar tipsiz kalıyor: `TR_var a, b = f()` sonrası `b`'nin tipi denetlenmiyor [ölçüldü: main `85a19c36`, küçük programlar].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** dönüş tipinin öğe tipleriyle açılan adların tipi.
 
 ### 6.4
 
-- **Mevcut durum:** varsayılansız parametrenin varsayılanlıdan sonra gelmesi sözdizimi hatası; varsayılan her çağrıda soldan sağa hesaplanıyor, önceki parametreleri görüyor, `[]` varsayılanı her çağrıda yeni liste; varsayılanda parametrenin kendisi ya da sonraki parametre ancak çalışırken bulunuyor (H2440) [ölçüldü: sıralama hatası, ileri başvuru, sayaçlı varsayılan ve liste varsayılanı; denetim ve çalıştırma].
+- **Mevcut durum:** varsayılanda parametrenin kendisi ya da sonraki parametre ancak çalışırken bulunuyor (H2440) [ölçüldü: ileri başvuru; denetim ve çalıştırma].
 - **Yapılacaklar:** varsayılanda parametrenin kendisi ve sonraki parametreler denetim hatası; denetleyicinin testi.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** varsayılanın tipi parametrenin tipine uymazsa denetim hatası: bugün `TR_func f(x: TR_Int = "a") -> TR_Int`'te `f()` `"a"` (`TR_String`) veriyor, denetim ve çalışma hatasız [ölçüldü: DENETİM istek 68].
 
 ### 6.5
 
-- **Mevcut durum:** adlı argümanlar her sırada veriliyor; `k=2` sözdizimi hatası, ileti `k: 2`'yi öneriyor; Python'un `*args`'ı genel bir sözdizimi hatası veriyor; sırayla verilen argümanın tipi tutmazsa denetim hatası. Eksik, fazla, bilinmeyen adlı ve hem sırayla hem adla verilen argüman ancak çalışırken bulunuyor (H2414, H2412, H2415, H2413); adlı argümanın tipi hiç denetlenmiyor (`b: "x"` hata ancak gövdedeki işlemde veriyor); parametre bekleyen yerleşiğe verilen sondaki blok çalışırken H2711 [ölçüldü: iki parametreli fonksiyona sekiz çağrı, liste ve sayı parametresine atama; denetim ve çalıştırma].
+- **Mevcut durum:** eksik, fazla, bilinmeyen adlı ve hem sırayla hem adla verilen argüman ancak çalışırken bulunuyor (H2414, H2412, H2415, H2413); adlı argümanın tipi hiç denetlenmiyor (`b: "x"` hata ancak gövdedeki işlemde veriyor); parametre bekleyen yerleşiğe verilen sondaki blok çalışırken H2711 [ölçüldü: iki parametreli fonksiyona sekiz çağrı; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** eksik, fazla, bilinmeyen ve iki kez verilen argüman ile tipi tutmayan adlı argüman denetim hatası, ileti parametrenin adını söyler; denetleyicinin testi.
 
 ### 6.6
 
-- **Mevcut durum (Kol A teslim 2b, 2026-11-04):** beklenen dönüş tipi bilinmeyen blok gövdesinde karışık dönüş, bitmeyen yol ve `TR_return TR_none` denetim hatası (H1145); yerleşiğin argümanı da girer, `T?` dönen fonksiyon tipi yazılmış yerde karışım geçerli [test: `TestArrowBlockWithAValueEndsEveryPath`, `TestArrowBlockWithAKnownReturnMayMix`, `TestArrowBlockGivenToABuiltinEndsEveryPath`, `tests/negative/ok_blok_donus.tr`]. Adı üzerinden gelen yokluk görülmüyor: `TR_var n = TR_none`, `(x: TR_Bool) => { TR_return n }` geçiyor [ölçüldü: 2b].
+- **Mevcut durum:** adı üzerinden gelen yokluk görülmüyor: `TR_var n = TR_none`, `(x: TR_Bool) => { TR_return n }` geçiyor [ölçüldü: Kol A teslim 2b].
 - **Yapılacaklar (E ve D, Ö3; sahip D1, 4a5 ile; TCB 2026-11-09, tur 4):** 6.6 artık tip tabanlı: bir yol `T`, öbürü `TR_none` döndürüyorsa dönüş `T?` (bugün H1145, DENETİM 167 `r1`); yalnız `TR_none` dönen gövde hata. `TR_return n` kaçağı (yukarıda) 3.13'ün işidir: tipsiz `TR_var n = TR_none` 3.5'e göre hata. Ortak tipin birleştirmesi (`T` ile `TR_NoneType` → `T?`) 4a5'e bağlı.
-- **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken (tipi açıklanmamış değişkenin ilk değeri, doğrudan ya da liste, sözlük, demet değişmezinde) tipsiz parametre denetim hatası (H1111); denetleyici yerleşik imzalarını bilmediği için her çağrı argümanı, tipli değişken ve dönüş beklenen tipi olan yer sayılıyor, parametrenin tipi oradan çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`, dal `claude/charming-pasteur-q1vsvo`]. Blok gövdesinin eksik dönüşü 6.2'de.
+- **Mevcut durum:** denetleyici yerleşik imzalarını bilmediği için fonksiyon ifadesinin parametre tipi beklenen tipten çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9); denetleyicinin testi.
 
-- **Mevcut durum (Kol A 13 yerleşikler 4, 2026-11-04):** yerleşik fonksiyonun dönüşünde yazılı öğe tipi denetime giriyor: `TR_var n: TR_Int = TR_parse_csv("1,2")[0][0]` H1001, `TR_parse_csv` ve `TR_read_csv`'nin hücresi `TR_String` [test: `TestBuiltinReturnTypes`, `tests/negative/csv_hucre_tipi.tr`].
 
 ### 6.8
 
-- **Mevcut durum:** kapanış dıştaki değişkeni okuyor ve atıyor, değişiklik iki yanda görünüyor, özyineleme serbest; dıştaki değişkene okumadan önce atayan fonksiyon uyarı vermiyor [ölçüldü: dıştaki sayaca okumadan atayan fonksiyon; denetim ve çalıştırma].
+- **Mevcut durum:** dıştaki değişkene okumadan önce atayan fonksiyon uyarı vermiyor [ölçüldü: dıştaki sayaca okumadan atayan fonksiyon; denetim ve çalıştırma].
 - **Yapılacaklar:** dıştaki değişkene bu fonksiyonda okumadan önce atama uyarısı, ileti `TR_var`'ı önerir; TR testi.
 
 ### 6.9
 
 - **Mevcut durum:** fonksiyon tipinin yazımı ayrışıyor (`(TR_Int) -> TR_Bool`, sağdan birleşen `->`, `() -> (TR_Int, TR_Int)`), ama denetlenmiyor: `(TR_Int) -> TR_Bool` tipli değişkene sayı döndüren ok atanabiliyor; fonksiyon değeri adlı argümanla ya da eksik argümanla çağrılınca H2710 (bugünkü 6.9 testi); metin tipin metni değil: adlı fonksiyon "<function f>", ok "<lambda>"; `TR_Type(f)` genel tip "Function" veriyor (3.11) [ölçüldü: main 1073aeab]. Fonksiyonların karşılaştırması 4.5'te.
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** fonksiyonun metni tipinin metni ("(Int) -> Bool"), `TR_Type(f)` fonksiyon tipi; parametre ve dönüş tiplerinin denetimi (4a); kimlik listesindeki genel fonksiyon tipi kalkar (3.11); TR testi.
-- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `(T) -> R`, `() -> R`, `-> (A, B) -> C` ayrıştırılıyor; denetleyici `TR_Function`'a indirgiyor, parametre ve dönüşü denetlemiyor (4a2).
 
 ### 6.10
 
 - **Mevcut durum:** tip parametresi yok: `TR_func baştaki[T](l: TR_List[T]) -> T?` sözdizimi hatası ("'(' bekleniyordu"); çağrıda tip yazımı (`f[TR_Int]([3])`) denetimden geçiyor, çalışırken "Fonksiyon tipi indekslenemez" veriyor [ölçüldü: main 1073aeab].
 - **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı, tip yazımının listenin öğesinin çağrısından ayrılması; kısıtsız `T`'de yalnız her tipte geçerli işler, öbürleri kısıt ister (13.10, 7.8); TR testi.
-- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** tip yerinde `Kutu[TR_Int]` ve `T` ayrıştırılıyor, `Kutu`'ya indirgeniyor; tanımdaki tip parametresi (`TR_func f[T](...)`) hâlâ sözdizimi hatası (4c).
+- **Mevcut durum (Faz 0.6a):** tip yerinde `Kutu[TR_Int]` ve `T` ayrıştırılıyor, `Kutu`'ya indirgeniyor; tanımdaki tip parametresi (`TR_func f[T](...)`) hâlâ sözdizimi hatası (4c).
 
 ## 7. Yapılar
 
-Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). 7.1, 7.3, 7.4 ve 7.8'in sonraki kararları Gemini'nin araştırmasını bekliyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`); her kuralda bir ayrılık kaldı. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor, eşitlik alanlardan, metin kurma yazımıyla ve döngüde "...", çağrısız metot nesneye bağlı bir fonksiyon; yapı tanımının sözdizimi hataları (kalıtım ve Python sınıfı iletileri, yinelenen alan ve metot, alan sırası), metotta düz alan adı, parametre olarak `TR_self`, kurucunun değerli dönüşü ve dönüş tipi, durumlu tipin ve arayüzün tanım ve desen hataları çalışmadan önce bulunuyor [ölçüldü: küçük programlar ve `tests/negative/` yapı, durumlu tip ve arayüz fikstürleri; denetim ve çalıştırma]. `tests/yapilar_test.tr` 24 testi geçiyor; alanları tipli (Faz 0.9); verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). `tests/yapilar_test.tr`'nin verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
 
 Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
 
-Kütüphanenin bedeli: `.tr` dosyalarında satır başında 47 yapı tanımı (`lib/`'de 16; girintili tanımlar da sayılırsa 67) [ölçüldü: `git grep -nE '^TR_struct' -- '*.tr'` ve `git grep -nE '^\s*TR_struct\b' -- '*.tr'`, main `c39e0b56`]; alanlar ve kurucu parametreleri tipli yazıma çevrildi (Faz 0.9, 6.1 ve 7.1'e bakın). Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/layers.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
-
-JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde'si, Python'un pydantic'i gibi) henüz hiçbir bölümde yok; sonraki bölümlerde tasarlanır.
+Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır.
 
 ### 7.1
 
-- **Mevcut durum:** tipsiz alan (yapının alanı ve durumlu tipin durum alanı) denetim hatası (H1109–H1111, 4a1): ileti tipi varsayılandan (uygulanabilir düzeltme) ya da kurucusuz yapının kurma çağrılarından (tahmin, uygulanamaz) öneriyor, bulunamazsa `ad: <tip>` ve nedeni; varsayılanlı alandan sonra varsayılansız alan, yinelenen alan ve metot, kalıtım yazımları sözdizimi hatası; yinelenen metot tek ileti veriyor; yapının tip parametresi yok: `TR_struct Kutu[T]` sözdizimi hatası. Kitaplığın 4c'yi bekleyen iki alanı (GPT'nin karışık değerli ayar sözlüğü, Muon ya da NorMuon tutan alan) 6.1'in istisnası [ölçüldü: `TestUntypedStructField`, `TestUntypedEnumField`, `tests/negative/tipsiz_imza.tr`, dal `claude/charming-pasteur-q1vsvo`].
+- **Mevcut durum:** yapının tip parametresi yok: `TR_struct Kutu[T]` sözdizimi hatası. Kitaplığın 4c'yi bekleyen iki alanı (GPT'nin karışık değerli ayar sözlüğü, Muon ya da NorMuon tutan alan) 6.1'in istisnası.
 - **Yapılacaklar:** kitaplığın iki alanının istisnası 4c'de kalkar; yapının tip parametresi (6.10 ile); TR testi.
 
 ### 7.2
 
-- **Mevcut durum:** sırayla ve adla kurma, her kurmada yeniden hesaplanan varsayılan kurala uyuyor; varsayılanı olmayan alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda ancak çalışırken hata (H2750, H2419, H2418, H2420); alanın tipi kurmada denetimde (4a2 ikinci dilim, H1125; kurucusu olmayan yapıda konumlu ve adlı argüman), çalışma anı alanın tipini denetlemiyor [ölçüldü: `TestConstructionFieldTypes`, `tests/negative/alan_tipi.tr`].
+- **Mevcut durum:** varsayılanı olmayan alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda ancak çalışırken hata (H2750, H2419, H2418, H2420); çalışma anı alanın tipini denetlemiyor [ölçüldü: `TestConstructionFieldTypes`].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** zorunlu alanın verilmemesi ve 6.5'in argüman hataları denetim hatası; kurucusu olan yapıda kurucunun parametre tipleri (7.4); denetleyicinin testi.
 
 ### 7.3
 
-- **Mevcut durum:** alan `TR_self.x` ile, metot `TR_self.m()` ile; metotta düz alan ya da metot adı dıştaki ada çözülse de çözülmese de denetim hatası, ileti `TR_self.x`'i öneriyor; `TR_self` parametre yazılınca sözdizimi hatası; nesnesiz metot çalışırken H2751. Python alışkanlığıyla ilk parametreye düz self sözcüğü yazılınca tipsiz parametre hatası (H1111) çıkıyor; önerisi Python'un self'ine `TR_Int` tipi yazmak; bu, `TR_self` yerine self'i tiplemeyi öğretiyor ve kopyalanınca çağrı eksik argüman hatası veriyor (F1) [ölçüldü: DENETİM istek 68, `30b44b01`]. Eski ölçüm: o sıradan bir parametre sayılıyordu [ölçüldü: dışta aynı adlı değişkenli metot, `TR_self` ve düz self parametreli metot, `tests/negative/yapi_metotta_duz_alan.tr`; denetim ve çalıştırma].
+- **Mevcut durum:** Python alışkanlığıyla ilk parametreye düz self sözcüğü yazılınca tipsiz parametre hatası (H1111) çıkıyor; önerisi Python'un self'ine `TR_Int` tipi yazmak; bu, `TR_self` yerine self'i tiplemeyi öğretiyor ve kopyalanınca çağrı eksik argüman hatası veriyor (F1) [ölçüldü: DENETİM istek 68, `30b44b01`].
 - **Yapılacaklar (D ve F1, Ö3; ölçüldü 30b44b01):** metodun ilk parametresi Python'un self'iyse sözdizimi hatası, ileti `TR_self`'i önerir; TR testi.
 
 ### 7.4
 
-- **Mevcut durum:** kurucu varken kurma onun imzasıyla, varsayılanlı alanlar gövdeden önce tanım sırasıyla, değerli `TR_return` ve dönüş tipi sözdizimi hatası; kurucunun imzasına uymayan kurma ancak çalışırken bulunuyor (H2410, H2414); kurucunun atamadığı varsayılansız alan yokluk kalıyor, atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı hata vermiyor [ölçüldü: varsayılansız alanı atamayan, onu okuyan ve metot çağıran kurucu; denetim ve çalıştırma].
+- **Mevcut durum:** kurucunun imzasına uymayan kurma ancak çalışırken bulunuyor (H2410, H2414); kurucunun atamadığı varsayılansız alan yokluk kalıyor, atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı hata vermiyor [ölçüldü: varsayılansız alanı atamayan, onu okuyan ve metot çağıran kurucu; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** kurucunun sonunda her yolda varsayılansız her alanın atanması, atanmadan okuma ve önceden metot çağrısı denetim hatası; kurucunun imzasıyla kurma 6.5'in denetim hatalarıyla; denetleyicinin testi.
 
 ### 7.5
 
-- **Mevcut durum:** alan okunuyor ve atanıyor, `TR_const` nesnenin alanı atanabiliyor; olmayan alan ve metoda atama ancak çalışırken bulunuyor (H2468, H2405, H2404); ileti en yakın adı öneriyor ama alanla eşit uzaklıktaki metodu da seçebiliyor (`p.y` için `m`), yakın ad yoksa alanı eklemeyi öneriyor; alanın tipi denetimde (4a2 ikinci dilim, H1124: tipi bilinen ad ya da `TR_self` üzerinden atama, bileşik atama da) [ölçüldü: `TestFieldAssignType`, `tests/negative/alan_tipi.tr`].
+- **Mevcut durum:** olmayan alan ve metoda atama ancak çalışırken bulunuyor (H2468, H2405, H2404); ileti en yakın adı öneriyor ama alanla eşit uzaklıktaki metodu da seçebiliyor (`p.y` için `m`) [ölçüldü: `TestFieldAssignType`, küçük programlar].
 - **Yapılacaklar (D ve F1, Ö3; ölçüldü 30b44b01):** olmayan alan ve metoda atama denetim hatası, ileti en yakın alanı önerir; denetleyicinin testi.
 
 ### 7.6
 
-- **Mevcut durum:** paylaşım, alanlardan eşitlik, kurma yazımıyla metin ("Nokta(x: 9.0, y: 4.0)"), kendine bağlanan nesnede "...", `TR_Type(p) == Nokta` ve döngüde `==`'nin sonucu (D1, 2026-11-09: kendine bağlanan nesneler açılmış ağaçlarıyla karşılaştırılıyor, 4.5) kurala uyuyor; yapının tipi StructType; fonksiyon ya da tensör alanlı yapının `==`'si tipi bilinen değerde denetim hatası (H1152, H1148; D1 15.5 dilimi, 2026-11-09), tipi bilinmeyen değerde çalışma hatası (H2770) [ölçüldü: paylaşılan nesne, kendine bağlı nesne, fonksiyon alanlı nesnenin kendisiyle karşılaştırması; denetim ve çalıştırma]. Aynı nesne de alanlarıyla karşılaştırılıyor, özdeşlik kısa devresi yok: `TR_nan` alanlı nesne kendisine eşit değil, fonksiyon ya da tensör alanlı aynı nesne H2770 (eşleme deseninde de), kendine bağlanan aynı nesne ve kendini içeren liste ya da sözlük kendisine eşit [test: yapilar_test "7.6 aynı nesne de alanlarıyla karşılaştırılır", yapilar_test "7.6 '==' kendine bağlanan nesneleri de karşılaştırır ve biter", operatorler_test "4.5 aynı kap da öğe öğe karşılaştırılır", TestSelfContainingContainers].
+- **Mevcut durum:** yapının tipi StructType [ölçüldü: denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** yapının tipi `TR_Type` (3.11); denetleyicinin testi.
 - **Yapılacaklar (sınıfsız: test kapsamı, Ö3; sahip TCB, 7.6'nın kimlik işlemiyle; D1 15.5 devri, birleşik 65):** `lib/optimizers_test.tr`'nin 14 yeri parametrenin grupta olduğunu kimlikle değil değerle sınıyor (değerle arayan bir yardımcı fonksiyon ve her parametreye ayrı sabit ekleyen bir hazırlık); aynı değerde iki parametre testi düşürür, sessiz geçirmez; hazırlık her parametreye ayrı sabit eklediği için ikiz kalmaz. Sıradaki adım: 7.6'nın kimlik işlemi gelince ona geçer.
 
 ### 7.7
 
-- **Mevcut durum:** `TR_enum`, durumların kurulması, çağrısız alanlı ve çağrılı alansız durumun hatası, kurucunun yokluğu, değişmezlik, eşlemede konumlu desen ve alan bağlama, adlı alan ve koşullu kol hatası, eşitlik ve metin uygulandı (bugünkü 7.7 testleri ve fikstürleri). Kalanlar: tip parametresi yok (`TR_enum Cevap[T]` sözdizimi hatası); kapsama denetimi yok (`_`'siz, eksik durumlu eşleme çalışırken H2702); dıştaki adla aynı bağlanan ad hata vermiyor, dıştakini gizliyor (5.12); alanın tipi denetlenmiyor (`TR_Int` alana metin); tensör alanlı durumun `==`'si tipi bilinen değerde denetim hatası (H1148, 15.5 dilimi), tipi bilinmeyende H2770; durum deseni (`C.Var(x) =>`, parantezsiz `C.Yok =>`) karşılaştırmaz, parantezli `(C.Yok) =>` değer desenidir (H1150) [ölçüldü: dört durumlu tip programı; denetim ve çalıştırma]. Aynı durum değeri de alanlarıyla karşılaştırılıyor: `Durum.Bitti(TR_nan)` kendisine eşit değil [test: yapilar_test "7.6 aynı nesne de alanlarıyla karşılaştırılır; durumlu tipte de (7.7)"].
+- **Mevcut durum:** tip parametresi yok (`TR_enum Cevap[T]` sözdizimi hatası); kapsama denetimi yok (`_`'siz, eksik durumlu eşleme çalışırken H2702); dıştaki adla aynı bağlanan ad hata vermiyor, dıştakini gizliyor (5.12); alanın tipi denetlenmiyor (`TR_Int` alana metin) [ölçüldü: dört durumlu tip programı; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** tip parametresi (6.10 ile); kapsama denetimi (5.6); bağlanan adın 5.12 hatası; alan tipinin denetimi; TR testi.
 
 ### 7.8
 
-- **Mevcut durum:** `TR_interface`, boş arayüzün ve alanlı ya da gövdeli arayüzün sözdizimi hatası, yapının ve durumlu tipin yapısal karşılaması, nesnenin kendi metoduna giden çağrı, arayüz tipli parametre ve alan, `TR_Type` sınamasıyla dalda asıl tipin alanı çalışıyor. Denetim yok: metodu eksik değer ancak çağrıda "alanı ya da metodu yok" çalışma hatası veriyor, imzası tutmayan değer (`TR_String` parametreli metot) hatasız geçiyor; arayüz değerinin `==`'si hata vermiyor; arayüz kısıtlı tip parametresi (`TR_func g[T: Katman]`) sözdizimi hatası [ölçüldü: bir arayüz, üç yapı ve bir durumlu tiple karşılama, daraltma ve karşılaştırma; denetim ve çalıştırma].
+- **Mevcut durum:** arayüzün denetimi yok: metodu eksik değer ancak çağrıda "alanı ya da metodu yok" çalışma hatası veriyor, imzası tutmayan değer (`TR_String` parametreli metot) hatasız geçiyor; arayüz değerinin `==`'si hata vermiyor; arayüz kısıtlı tip parametresi (`TR_func g[T: Katman]`) sözdizimi hatası [ölçüldü: bir arayüz, üç yapı ve bir durumlu tiple; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5, tip parametresinin kısıtı 4c ile; ölçüldü 30b44b01 ve 16c7d0ef):** karşılamayan değer denetim hatası, ileti eksik ya da imzası tutmayan metotları söyler; tip parametresinde kısıt (6.10 ile); daraltmanın denetleyicide 3.5'in koşullarıyla yapılması; denetleyicinin testi.
-- **Karar (2026-10-29):** yapısal karşılama kalır; açık bildirimle karşılaştırması gerekçede (7.8). Eski gerekçe "kütüphanenin bugünkü yapılarını değiştirmeden" motora dayanıyordu, çıkarıldı.
 
 ## 8. Hata yönetimi
 
