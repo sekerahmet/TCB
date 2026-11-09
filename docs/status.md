@@ -182,56 +182,52 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: metin
 
 ## 5. Deyimler ve kontrol yapıları
 
-Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`), 5.4 Gemini Koşu 4'ten (`23e7be25`). 5.7 ve 5.11'in sonraki kararları Gemini'nin araştırmasını bekliyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 5.2, 5.8, 5.9, 5.10 ve 5.13 kurala uyuyor, maddeleri yok. `tests/deyimler_test.tr` yeni kurallara göre yazılmış, 23 testi geçiyor [ölçüldü: dosyanın testleri koşuldu]; eski kuraldan kalan iki yer Faz 0.9'da kalktı: 5.6 testinin `TR_Any` parametresi tipsiz bırakıldı (sayıyı ve metni alır, 4c'yi bekler), 5.14 testindeki yapının alanı tipli.
+Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 `TR_elif` bilerek kimliği olmayan addır; kimlik kapısı düzelince bilerek yanlış örnekler listesine girer (2. bölümün girişi). Yeni denetim hataları (5.1'in uyarısı, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır.
 
 ### 5.1
 
-- **Mevcut durum:** `x := 5` sözdizimi hatası, ileti `TR_var`'ı öneriyor; ilk değersiz `TR_var y` sözdizimi hatası; fonksiyonun içinde hiç yeniden atanmayan yerel `TR_var` uyarı vermiyor [ölçüldü: `x := 5`, tek başına `TR_var y` ve yerelinde `TR_var a = 3` olan fonksiyon; denetim ve çalıştırma].
+- **Mevcut durum:** fonksiyonun içinde hiç yeniden atanmayan yerel `TR_var` uyarı vermiyor [ölçüldü: yerelinde `TR_var a = 3` olan fonksiyon; denetim ve çalıştırma].
 - **Yapılacaklar:** fonksiyonun içinde yeniden atanmayan yerel `TR_var` uyarısı, ileti `TR_const`'u önerir (programın en dışı girmez); TR testi.
 
 ### 5.3
 
-- **Mevcut durum:** takas, listeden ve demetten açma ve `_` kurala uyuyor; öğe sayısı tutmazsa H2700, H2701 ya da (demette) H2709 çalışma hatası, sağ yan demet yazımıysa denetim hatası (H1026), H1026 ve H2709 örneğini deyimin adlarından ve kaynaktaki sağ yanından kuruyor (eksikte `_` ekler, fazlada sondaki adları siler); `_` okunamıyor (sözdizimi hatası) [ölçüldü: takas, `TR_var p, q = [1, 2, 3]`, okunan `_`, `TR_var x, y = (7, 8)`; `tests/negative/demet_acma.tr`, `checker/unpack_test.go`, `interp/compiler_test.go`; Faz 0.6b].
-- **Mevcut durum (4a3, 2026-11-01):** tipi bilinen demeti (değişken, tipli parametre) yanlış sayıda ada açmak da denetim hatası (H1026, öneri programın yazımıyla); fonksiyon değerinin çağrısı, isteğe bağlı ve tipi bilinmeyen demet çalışırken (H2709). Listede sayı hatası çalışma hatası kalır [test: `TestUnpackCountOfAKnownTuple`, `tests/negative/demet_acma.tr`].
+- **Mevcut durum:** fonksiyon değerinin çağrısında, isteğe bağlı ve tipi bilinmeyen demette öğe sayısının tutmaması çalışırken bulunuyor (H2709); kural demette denetim hatası diyor [test: `TestUnpackCountOfAKnownTuple`].
 
 ### 5.4
 
-- **Mevcut durum (D1, `c897bf86`; A kapandı):** bileşik atamada hedefin yeri (indeks, alanın sahibi) sağ yandan önce bir kez hesaplanır, yazma o yere gider: `l[k] += sag()` `[15, 20]` verir; on iki işleç, liste, sözlük ve alan [test: TR testi "5.4 bileşik atamada önce hedefin yeri, sonra sağ yan hesaplanır"]. Düz `=`'nin sırası yazılı değil (`pending.md`).
-- **Mevcut durum:** on iki bileşik atama, listede yerinde `+=` ve `*=`, hedefin bir kez hesaplanması, alan hedefi, tanımsız ada atamanın `TR_var`'ı öneren denetim hatası ve sonucun tipi kurala uyuyor: tam sayı değişkende `x /= 2` ve `x += 1.5` denetim hatası (H1005). `/=`'nin iletisi `//=`'yi değil `//`'yi öneriyor. İşlenenlerin tipi `+` ve `+=`'da denetimde (4a2 ikinci dilim): `s += 1` ve `s + 1` (`s` metin) H2609 [ölçüldü: main `85a19c36`, on iki işleç, `l[f()] += 1`, `p.x += 4`, `x /= 2`, `x += 1.5`, `s += 1`; denetim ve çalıştırma; `TestCompoundAssignment`]. Tensörde indeksle biriktirme 15.6d'de.
 - **Yapılacaklar:** `/=` iletisi `//=`'yi önerir.
 
 ### 5.5
 
-- **Mevcut durum:** değer veren `TR_if`'in `TR_else`'i zorunlu (sözdizimi hatası); Python'un koşullu ifadesinin iletisi `TR_if c { a } TR_else { b }`'yi öneriyor; `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor [ölçüldü: main `85a19c36`, dört küçük program; denetim ve çalıştırma]. Koşulun `TR_Bool` olması tipi bilinen koşulda denetim hatası (H2600, 3.10): `TR_if n { }` (n `TR_Int`) denetimden geçmiyor [ölçüldü: main `85a19c36`; `TestConditionMustBeBool`].
+- **Mevcut durum:** `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor [ölçüldü: main `85a19c36`, dört küçük program; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
 
 ### 5.6
 
-- **Mevcut durum:** değer, çoklu desen, aralık, parantezli ifade, sabit adı ve `_` desenleri ile `TR_return` kolu çalışıyor; `TR_default` iletisi `_`'yi öneriyor. Kapsama denetimi yok: `_`'siz eşleme denetimden geçiyor, eşleşmeyince çalışırken H2702 veriyor. Düz adla yazılan değişken deseni hata vermiyor, değeri karşılaştırıyor. Kolların tipi denetlenmiyor (bir kol metin, öbürü sayı veriyor). Tensör içeren desen denetim hatası vermiyor, bütün tensörü karşılaştırıyor [ölçüldü: altı küçük eşleme programı; denetim ve çalıştırma].
+- **Mevcut durum:** kapsama denetimi yok: `_`'siz eşleme denetimden geçiyor, eşleşmeyince çalışırken H2702 veriyor. Düz adla yazılan değişken deseni hata vermiyor, değeri karşılaştırıyor. Kolların tipi denetlenmiyor (bir kol metin, öbürü sayı veriyor). Tensör içeren desen denetim hatası vermiyor, bütün tensörü karşılaştırıyor [ölçüldü: altı küçük eşleme programı; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** kapsama denetimi (`TR_Bool`'da iki değer, öbür tiplerde `_`); düz adla yazılan değişken deseni denetim hatası, ileti `(x)`'i ya da `_`'yi önerir; ifade olarak kullanılınca kolların tipi aynı; tensör içeren desenin denetim hatası (15.5 ile); denetleyicinin testi.
 
 ### 5.7
 
-- **Mevcut durum:** liste, aralık, metin, bayt dizisi (öğeler `TR_Int`), sözlük ve `TR_JSON` dizisi ve nesnesi dolaşılıyor; iki adlı biçim ve `_` kurala uyuyor; metin, sayı ve yokluk türündeki `TR_JSON` H2664 veriyor; dolaşılan listeye ve sözlüğe ekleme H2703 ve H2704, var olan öğeye atama serbest (bugünkü 5.7 testi). Yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor (dönüş tipi `T?` artık yazılıyor) [ölçüldü: main `85a19c36`, her kaynak türü (okuyucu hariç), JSON'un metin türü, `TR_next()` metotlu yapı; denetim ve çalıştırma]. Akışlı okuyucunun iki kez dolaşılması bu turda yeniden ölçülmedi. Çıkarma da aynı hatalar: `.TR_pop`, `.TR_remove_at` ve `.TR_remove` dolaşılan kapta H2703 ve H2704 veriyor; denetim boya değil çıkarma sayısına da baktığı için aynı turda çıkarıp eklemek de yakalanıyor [test: `tests/deyimler_test.tr`'nin 5.7 testi]. Başka bir görevin sildiği anahtar turun başında görülüyor [test: `TestAnotherTaskRemovingFromADictUnderIteration`].
+- **Mevcut durum:** yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor [ölçüldü: main `85a19c36`]. Akışlı okuyucunun iki kez dolaşılması yeniden ölçülmedi.
 - **Yapılacaklar (E, Ö3; sahip D1; DENETİM istek 163):** `TR_next() -> T?` taşıyan yapının dolaşılması: denetimden geçiyor, çalışırken açık hata [ölçüldü: DENETİM 163], tek seferlik dolaşıcı, `T` isteğe bağlıysa denetim hatası (ileti öğeyi sarmayı önerir); TR testi.
-- **Mevcut durum (2026-11-04; A, Ö0 kapandı; DENETİM istek 125 Ş1):** üretecin koşulu dolaşılan listeyi ya da sözlüğü değiştirip yanlış çıkınca 5.7'nin hatası gelmiyordu: öğe atlanıyor, `TR_Int` parametresine `TR_none` düşüyordu. Denetim artık koşuldan hemen sonra [test: TR testi "5.7 üretecin yanlış çıkan koşulu"].
 
 ### 5.11
 
-- **Mevcut durum:** liste üreteci koşullu ve koşulsuz çalışıyor, değişkeni dıştaki aynı adlı değişkeni değiştirmiyor; sözlük üreteci yok: `{k: k * 2 TR_for k TR_in 0..3}` sözdizimi hatası veriyor ("burada bir değer ya da ifade bekleniyordu") [ölçüldü: iki liste ve iki sözlük üreteci; denetim ve çalıştırma].
+- **Mevcut durum:** sözlük üreteci yok: `{k: k * 2 TR_for k TR_in 0..3}` sözdizimi hatası veriyor ("burada bir değer ya da ifade bekleniyordu") [ölçüldü: iki sözlük üreteci; denetim ve çalıştırma].
 - **Yapılacaklar:** sözlük üreteci, yinelenen anahtarda son değer; TR testi.
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** üreteçte iki değişkenli biçim (`{x: i TR_for i, x TR_in l}`); `fd6a84d3`'de sözdizimi hatası [ölçüldü: tur 2'nin yazımı, `[i TR_for i, x TR_in l]`].
+
 ### 5.12
 
-- **Mevcut durum:** blok kapsamı, iç adın dışarıda görünmemesi (denetim hatası), turun kendi kapsamı ve fonksiyon sınırında gizleme kurala uyuyor. Yasak yeniden tanım hata vermiyor: iç bloktaki `TR_var t = 5` dıştaki `t`'yi gizliyor, dıştaki 0 kalıyor; aynı kapsamda ikinci `TR_var b` ve parametreyle aynı adlı gövde değişkeni de geçiyor [ölçüldü: iç blokta, aynı kapsamda ve parametreyle yeniden tanım; denetim ve çalıştırma].
+- **Mevcut durum:** yasak yeniden tanım hata vermiyor: iç bloktaki `TR_var t = 5` dıştaki `t`'yi gizliyor, dıştaki 0 kalıyor; aynı kapsamda ikinci `TR_var b` ve parametreyle aynı adlı gövde değişkeni de geçiyor [ölçüldü: iç blokta, aynı kapsamda ve parametreyle yeniden tanım; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** kapsayan ya da aynı kapsamdaki yerel adla yeniden tanım denetim hatası (programın en dışı ve parametreler dahil, sondaki blok sıradan blok); denetleyicinin testi.
 
 ### 5.14
 
-- **Mevcut durum (D1, `9632d4b2`; A kapandı):** modül kendisini aktaranın adlarını görmez: denetimde H1106, çalışırken modül yalnız yerleşikleri görür [test: `TestAModuleDoesNotSeeItsImportersNames`, TR testi "5.14 modül kendisini aktaranın adlarını görmez ...", `tests/negative/aktaran_adi.tr`]. `tools/gpu/measurement_model.tr` boyutları `Boyutlar` yapısıyla alıyor (`6ce33565`).
-- **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor, ileti en yakın adı öneriyor. Tanımından önce kullanılan değişken, fonksiyon ve yapı denetimden geçiyor, çalışırken "böyle bir ad yok" hatası veriyor; sonra tanımlanan değişkeni okuyan fonksiyon, değişkenden önce çağrılınca da. Modülün en dışı sıraya bağlı: önündeki sabiti okuyan sabit modül çalışırken düşüyor; birbirine döngüyle bağlı iki sabit denetimden geçiyor. Aktarılan modülün fonksiyonu aktaranın en dış adını okuyor: modülde tanımsız ad aktaranda tanımlıyken denetim geçiyor, çağrı aktaranın değerini veriyor; modül tek başına denetlenince aynı ad hata [ölçüldü: tanımsız ad, öne alınmayan değişken, fonksiyon ve yapı, iki modül dosyası; denetim ve çalıştırma]. Takma adsız aktarmadaki tanımsız ad 1.3'te.
+- **Mevcut durum:** tanımından önce kullanılan değişken, fonksiyon ve yapı denetimden geçiyor, çalışırken "böyle bir ad yok" hatası veriyor; sonra tanımlanan değişkeni okuyan fonksiyon, değişkenden önce çağrılınca da. Modülün en dışı sıraya bağlı: önündeki sabiti okuyan sabit modül çalışırken düşüyor; birbirine döngüyle bağlı iki sabit denetimden geçiyor [ölçüldü: öne alınmayan değişken, fonksiyon ve yapı, iki modül dosyası; denetim ve çalıştırma]. Takma adsız aktarmadaki tanımsız ad 1.3'te.
 - **Yapılacaklar:** tanımından önce kullanma denetim hatası; fonksiyon ve tip tanımları bloğun her yerinden görünür; fonksiyonu çağıran ya da değer olarak alan ifade, fonksiyonun doğrudan ya da dolaylı kullandığı değişkenlerin tanımından sonra gelir (ileti tanımı yukarı almayı önerir); modülün en dışı sıradan bağımsız, sabitler arasında döngü denetim hatası; denetleyicinin testi.
 
 ## 6. Fonksiyonlar
