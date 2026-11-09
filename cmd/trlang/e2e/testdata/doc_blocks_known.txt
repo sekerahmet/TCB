@@ -2,3 +2,5 @@
 # Kuralı uygulayan katman kendi satırlarını siler; liste yalnızca küçülür (-update).
 docs/spec/16_veri_parcalayici.md:38
 docs/spec/24_sohbet_bicimi.md:79
+docs/spec/28_ag.md:15
+docs/spec/28_ag.md:103
