@@ -3,14 +3,16 @@
 - **Dal:** `gemini/uzak-10`
 - **Taban commit:** `6311e11acdfb1cad05521aede8b76ceced563769`
 - **Başlama saati:** `2026-11-09 11:03:34 +0300` (`2026-11-09 08:03:34 UTC`)
-- **Bağlam sıkıştırması:** 1 kez (`2026-11-09 11:29:34 +0300` / `2026-11-09 08:29:34 UTC`, Adım 1 tamamlandıktan sonra, Adım 2a'ya başlamadan önce; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu)
+- **Bağlam sıkıştırması:** 2 kez:
+  1. `2026-11-09 11:29:34 +0300` (`2026-11-09 08:29:34 UTC`), Adım 1 tamamlandıktan sonra, Adım 2a'ya başlamadan önce; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
+  2. `2026-11-09 12:04:29 +0300` (`2026-11-09 09:04:29 UTC`), Adım 2b çalışması sırasında (uVM duraklatılıp yeniden başlatıldı); `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
 
 ## İlerleme
 
 - [x] `CLAUDE.md`, `GEMINI_KURALLARI.md` ve `UZAK_YONERGE_10.md` okundu.
 - [x] `gemini/uzak-10` dalı `main` (`6311e11acdfb1cad05521aede8b76ceced563769`) ucundan açıldı ve `UZAK10_DURUM.md` oluşturuldu.
 - [x] Adım 1: Yeniden üret (1.1–1.6) ve taban ölçümleri (`untested`, graf kurulum süresi)
-- [ ] Adım 2a: İzlenmeyen yeni dosya `--changed`'e girer
+- [x] Adım 2a: İzlenmeyen yeni dosya `--changed`'e girer (`2d23efc`)
 - [ ] Adım 2b: Modül dışı arayüzün uygulaması
 - [ ] Adım 2c: Belge dosyasının `run:` satırı
 - [ ] Adım 2d: Eksik tanımlı kodun iletisi
@@ -55,4 +57,25 @@
   - **Eskimiş belge bulgusu:** `tools/codegraph/docs.go:15` yorumu `codeindex.ListFiles` için `"izlenmeyen yeni dosyalar dahil"` diyordu; oysa `internal/devtools/codeindex/text.go:313-316` (`TrackedFiles`) yalnız `git ls-files -z` ile izlenen dosyaları döndürür. Yorum düzeltildi.
 - **Üretim satırı:** +20 net satır (18 kod satırı, 2 yorum satırı; bütçe 15–40 / 5–20).
 - **Koruyan test:** `tools/codegraph/changed_test.go:277` (`TestDupsChangedAndChangedSeeUntrackedGoFile`).
+
+## Adım 2b: Modül Dışı Arayüzün Uygulaması (Dur ve Sor Eşiği)
+
+- **Uygulama (`tools/codegraph/stdlib_dispatch.go`, `gocode_scan.go`, `test_reach.go`, ~55 üretim satırı):**
+  - Yapı alanı (`CompositeLit`), çağrı argümanı (`CallExpr`, açık tip dönüşümleri hariç) ve atama (`AssignStmt`, `_` olmayan `ValueSpec`) yerlerinde modülün somut tiplerinin modül dışı adlı ve boş olmayan arayüz yerine verildiği noktalar `stdlib_calls` (`INFERRED`) kenarı olarak kaydedildi; `return` ifadeleri dışarıda bırakıldı. `test_reach.go:26` `reachEdge`'e `edgeStdlibCalls` eklendi.
+  - `goload.importerFunc.Import` için `goload.Load` (`internal/devtools/goload/goload.go:117`, `m.check(..., imp, ...)`) ve `goload.Module.checkTests` (`internal/devtools/goload/goload.go:187`, `m.check(..., withTests, ...)`) üzerinden 2 kenar kuruluyor (`check` içinde `:218`'deki `types.Config{Importer: imp}`'de `imp` zaten `types.Importer` arayüz tipindedir).
+- **Kenar sayıları ve "Dur ve sor" eşiği:**
+  - Tabanda `stdlib_calls` kenar sayısı: **10** (`container/heap.Interface`: 5, `math/rand.Source`: 2, `io.Writer`: 2, `error`: 1).
+  - **Seçenek A (`error` dahil edildiğinde; `named.Obj().Pkg() == nil` evren kapsamındaki `error` arayüzü sayılırsa):**
+    - Toplam `stdlib_calls`: **279** (**+269 eklenen kenar**, > 200 eşiği).
+    - Arayüz dağılımı (eklenen 269 kenar):
+      - `error`: **230** kenar (%85.5 > 1/4 eşiği; `messages.Error.Error`: 210, `messages.PosError.Error`: 16, `turkish.Reason.Error`: 2, `tokenize.StepLimitError.Error`: 1, `interp.thrownError.Error`: 1 — `c.addErrorAt(..., messages.New(...))`, `recordOf(messages.New(...))`, `err = messages.New(...)` vb. çağrı argümanı ve atamalardan).
+      - `testing.TB`: **22** kenar (`testkit.recorder`: 16, `testkit.panickingTB`: 4, `testkit.fatalRecorder`: 2).
+      - `io.Writer`: **14** kenar (`testkit.TeeWriter.Write`: 10, `process.stderrTail.Write`: 2, `debugger.dapOutput.Write`: 1, `process.boundedOutput.Write`: 1).
+      - `go/types.Importer`: **2** kenar (`goload.importerFunc.Import`, `goload.go:117` ve `goload.go:187`).
+      - `io.Reader`: **1** kenar (`debugger.dapNoStdin.Read`, `dap_launch.go:65`).
+      - `fmt.Stringer`: **0** kenar.
+  - **Seçenek B (`error` dışarıda bırakıldığında — kuraldaki `"modülün içe aldığı bir paketin (standart kitaplık dahil) adlı arayüzünü sağlıyorsa"` lafzına göre `named.Obj().Pkg() != nil && !x.inModule(named.Obj().Pkg().Path())` koşuluyla evren kapsamındaki `error` hariç tutulduğunda):**
+    - Toplam eklenen kenar: **39** (< 200 eşiği; `testing.TB`: 22, `io.Writer`: 14, `go/types.Importer`: 2, `io.Reader`: 1).
+    - `error` + `fmt.Stringer` eklenen kenar: **0 / 39 (%0 < 1/4)**.
+  - Yönergedeki bağlayıcı kural gereği commit'ten önce kullanıcıya soruluyor.
 
