@@ -1,6 +1,6 @@
 # Durum
 
-Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. **Mevcut durum** yalnız kuraldan farkı yazar: eksik, yanlış, sınır ve ölçülmemiş olan. Kurala uyan davranış ve kapanan parça yazılmaz; kapanan parça kapandığı commit'te silinir. Kaynak olarak açık iddianın etiketi kalır, geçmişi git ve DENETİM dosyaları tutar. İşlerin sırası [yol haritasındadır](roadmap.md). Bu belgede kimlikler dil tanımının yazımıyla anılır (`TR_if`, 2.3a).
+Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. **Mevcut durum** yalnız kuraldan farkı yazar: eksik, yanlış, sınır ve ölçülmemiş olan. Kurala uyan davranış ve kapanan parça yazılmaz; kapanan parça kapandığı commit'te silinir. Kaynak olarak açık iddianın etiketi kalır, geçmişi git tutar. Kural bir yerde "denetim hatası" diyorsa hatanın çalışma anında gelmesi de farktır. İşlerin sırası [yol haritasındadır](roadmap.md). Bu belgede kimlikler dil tanımının yazımıyla anılır (`TR_if`, 2.3a).
 
 ## Önem ve öncelik
 
@@ -629,13 +629,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.1
 
 - **Mevcut durum:** `TR_AnyTensor` ve `.TR_narrow[E]()` yok; `TR_Tensor[E]` ayrıştırılıyor ama `TR_Tensor`'a indirgeniyor [ölçüldü: bulut 0.6a]. GPU'da kapsam dışı cinsli işlemler H6969 [ölçüldü: Gemini 4, benzetici, `TestTypedPathsOnGPU`; kartta koşmadı]; tam sayı içinde `.TR_to_dtype` ve tam sayıya tip çağrısı konakta yapılıp cihaza döner, `TR_replay` kaydında çalışmaz. Veri kümesi kimlikleri float32 kurulup "int64"e çevriliyor (`dataset.go` → `ml.NewInt`): 2²⁴'ün üstündeki kimlik açık hata veriyor, H5536 (E; sessiz bozulma yok [ölçüldü: DENETİM 231]) ve 32K öğe başına ~0,3 ms konak işi var (T1 bulgu 12) [ölçüldü: T1, benzetimde profil; 2²⁴ sınırı kanıtlı: float32'nin anlamlı bitleri].
+- **Mevcut durum (sınıf, DENETİM 360 Ş1):** kuralın cins ve imza denetim hataları bugün çalışmada geliyor ya da hiç gelmiyor, çünkü denetleyici tensörün cinsini bilmiyor (yukarıdaki indirgeme, 15.24): 15.2'nin `TR_Tensor[TR_Int]([1.5])`'i, 15.6'nın cinsli işleç tablosu (`@` dahil) ve karışık cinsli işlem, 15.6a'nın sığmayan sayısı ve liste işleneni, 15.18'in konumlu ekseni, 15.18a'nın cins farkı, 15.49'un cinsleri.
 - **Açık küçükler (DENETİM istek 54 ve 56):** cinsli GPU testlerinin listesi 2026-11-02'deki iki düzeltmeden sonra kartta yeniden koşulacak; cinsli çekirdek bileşimlerinin (`gpuTypedOK`'un açtığı hepsi) ad, benzersizlik ve ayrışma testi; benzetimin `.target` denetimi (`mma.sync`, `cvt.rn.*x2.f32`); Colab'da bir kez ptxas karşılaştırması; `checkKernelNames` yalnız bütün testler geçince basıyor; benzetimde ns/op güvenilmez, `BenchmarkIDBatchToHost`'un ölçütü `eşzamanlama/op`.
 - **Yapılacaklar (A, Ö1, 4c; DENETİM 231: `TR_Tensor[TR_Int] = TR_Tensor([1.5])` float32 kuruyor, tipli yerin dokuzuncu yolu [ölçüldü: DENETİM 231]):** öğe cinsli tip (`TR_Tensor[E]`, tip denetimi 4c), `TR_AnyTensor` ve daraltma; GPU'da cinsli tensörün genel çekirdekleri (2b); `TR_replay` kaydında tam sayı tensörünün kopyası ve tam sayı tensörünün sayıyla işlemi (sayı bugün konaktan yükleniyor).
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM 278, 280):** CPU'da float64 hesabı 15.1'e göre var olmalı, motorda çoğu işlem yok: `@`, `TR_conv1d`, `TR_exp`, `TR_log`, `TR_tanh`, `TR_sigmoid`, `TR_sqrt`, `TR_gelu`, `TR_relu`, `TR_softmax`, `TR_layer_norm`, `TR_ceil`, `TR_embedding_lookup` H6960 veriyor; çalışanlar `TR_where`, `TR_cumsum`, `TR_sum`, `TR_concat`, `**`, `TR_clamp`, tensör indeksi [ölçüldü: S1, `f64.tr`]. `tests/conv1d_test.tr:64` bu eksikliği bekliyor; uygulanınca ters döner. F1: H6960'ın metni CPU'daki float64'te "bu hesap float32, bf16 ya da fp16 ister" diyerek yanlış kuralı öğretiyor.
 
 ### 15.2
 
-- **Mevcut durum (sınır):** cins çalışırken değerden çıkıyor, tip denetiminden değil: `TR_Float` parametresine verilen tam sayı yazımı ondalık geliyor ve ondan kurulan tensör `TR_Float` (`p(2)` → `[2.0000]`) [ölçüldü: main `d24b95ea`]; tipi ilk değerinden çıkan değişken (`TR_var i = 1`) `TR_Int` kalıyor. Tip denetiminin önerisi (`TR_Tensor[TR_Float](kimlikler)`) 4c'de. `TR_randn` yalnız `TR_Float`.
+- **Mevcut durum (sınır):** cins çalışırken değerden çıkıyor, tip denetiminden değil: `TR_Float` parametresine verilen tam sayı yazımı ondalık geliyor ve ondan kurulan tensör `TR_Float` (`p(2)` → `[2.0000]`) [ölçüldü: main `d24b95ea`]; tipi ilk değerinden çıkan değişken (`TR_var i = 1`) `TR_Int` kalıyor. Tip denetiminin önerisi (`TR_Tensor[TR_Float](kimlikler)`) 4c'de.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_zeros(..., TR_dtype: "q4")` gibi nicemlenmiş sıfır kurucu (T3).
 
@@ -658,15 +659,15 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.5
 
-- **Mevcut durum:** `TR_fuse` kaydında karşılaştırma 0/1 ondalık maskedir, `==`/`!=` orada H3107 (kaynaşmış çekirdekte mantık cinsi yok). Karşılaştırmanın sonucunda `.TR_item()` denetimden geçiyor [ölçüldü: Gemini 4, DENETİM 166]. Metin dört basamaklı ve bütün öğeler yazılıyor [ölçüldü].
+- **Mevcut durum:** `TR_fuse` kaydında karşılaştırma 0/1 ondalık maskedir, `==`/`!=` orada H3107 (kaynaşmış çekirdekte mantık cinsi yok). Tensörün metni kurma yazımı değil: dört basamaklı (`[2.0000]`) ve bütün öğeler yazılıyor [ölçüldü]; kural metni kurma yazımı sayıyor (`Tensor([[1.5, 2.0], …])`), "bütün öğeler"in fark olup olmadığı belirsiz [hipotez: DENETİM 360].
 - **Yapılacaklar (A, Ö1; DENETİM istek 100 N1):** kaynaştır kaydında `TR_Bool` maske: fuse içinde karşılaştırma ve `TR_is_finite` `float32` kalıyor, `(t > 1.5) * t` fuse içinde çalışıyor, dışında hata veriyor, 15.44'ün "bit bit aynı" sözüne aykırı [ölçüldü: DENETİM, `c15dc932`]; eşitlenemeyen değerlerin denetim hatası, metin.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** gösterimde cinsin varsayılanı dışındaki hassasiyet.
 - **Yapılacaklar (E, Ö3; sahip D1, sonraki eşitlik dilimi; D1 15.5 devri Bulgu 2):** kitaplığın ve aktarılan modülün tipleri denetleyiciye bilinmeyen addır (`equatable.go`'nun `typeDefs`'i yalnız denetlenen programın kendi tanımlarından dolar): tensör alanlı böyle bir tipin (`TR_Sound`) `==`'si denetimden geçer, çalışırken H2770 verir [hipotez: aktarmalı program kurulmadı]. Sıradaki adım: ölç; doğruysa aktarılan modülün tanımları `typeDefs`'e.
 
 ### 15.6
 
-- **Mevcut durum:** `@` yalnız ondalık [ölçüldü]. Kitaplıkta pencerenin sınırı konumların float32 kopyasıyla karşılaştırılır (GPU'da tam sayı çıkarması yok; konum < 2²⁴ kesin).
-- **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi. Göç: kesirli aritmetiğe giren argmax sonucu (`tools/gpu/ss_exam.tr:58`) [kanıtlı: `tools/gpu/ss_exam.tr:58`].
+- **Mevcut durum:** kitaplıkta pencerenin sınırı konumların float32 kopyasıyla karşılaştırılır (GPU'da tam sayı çıkarması yok; konum < 2²⁴ kesin).
+- **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi.
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
 
 ### 15.6a
@@ -691,7 +692,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
   - `%=` ve bit işleçli bileşik atama yeniden ölçülmedi;
   - `.TR_select`, `.TR_unsqueeze` ve `.TR_fill` yok; `.TR_slice` 31 yerde kullanılıyor [ölçüldü: grep]; `m[:, None, :]` en az 4 yerde `m.TR_reshape([B, 1, T])` diye yazılıyor [ölçüldü: DENETİM].
 - **Yapılacaklar:**
-  - tensörle indekse atama, maskeyle indeks, `.TR_select`, `.TR_unsqueeze`, `.TR_fill` (üçü de türevin yazma kurallarıyla), tensörle indekste biriktirme, `//=` ve `%=` (cinsli tensörle); TR testi;
+  - tensörle indekse atama, maskeyle indeks, `.TR_select`, `.TR_unsqueeze`, `.TR_fill` (üçü de türevin yazma kurallarıyla), tensörle indekste biriktirme, `%=` (cinsli tensörle; `//=` çalışıyor [ölçüldü: Gemini 4]); TR testi;
   - kitaplığın `TR_Tensor(TR_no_grad(...), TR_requires_grad: TR_true)` dolambacı (lib/layers.tr:20) yaprağın tanımıyla sadeleşir;
   - indeksli hedefte yerinde olmayan bir biriktirme (index_add türü) yok; açık soru;
   - liste değeri cinsli hedefe atanınca (`t[0..2] = [1, 2]`) H6966 veriyor; 15.6d'nin önerdiği `TR_Tensor(...)` yazımını öneren ileti değil (T1 dilim 2, DENETİM istek 49 Y3) [ölçüldü: DENETİM istek 57].
@@ -732,14 +733,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (C, Ö3; sahip D1; D1 devri):** gömülü kitaplık denetlenmiyor, çağrıdaki öğe tipi kitaplığa ulaşmıyor; bugün kitaplıkta boş listeyi toplayan yer yok [ölçüldü: `grep -n "TR_sum(\|TR_mean(" lib/*.tr`]. Kitaplığa liste toplayan bir `TR_sum` eklenirse işaret olmaz.
 - **Yapılacaklar (ölçü, sahip D1; D1 devri):** kabuğun (REPL) aktardığı modülün denetimden geçip geçmediği ölçülmedi; geçmiyorsa modülde boş ondalık listenin toplamı `0` kalır [hipotez].
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM 280):** `TR_dim:` listesi (`TR_sum(x, TR_dim: [1, 2])`) H6106 veriyor [ölçüldü: S1].
-- **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor [ölçüldü]. Maskenin ve `TR_argmax` sonucunun toplamı "int64" tensör [ölçüldü: Gemini 4, DENETİM 166]; maskenin ortalaması float32 [ölçüldü: DENETİM 170]. `TR_std` tensörde H2423 veriyor [ölçüldü]; `TR_logsumexp` GPU'da yok (15.4). bf16 toplamın sonucu bf16 [ölçüldü].
-- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:366`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:366`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, GPU'da `TR_logsumexp`, liste eksen; TR testleri.
+- **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor [ölçüldü]; `TR_max`/`TR_min`'de konumlu ikinci argüman çalışmada H6205 (kural denetim hatası diyor) [kanıtlı: DENETİM 360, `builtin_reduce.go:35`–`:38`]. Maskenin ve `TR_argmax` sonucunun toplamı "int64" tensör [ölçüldü: Gemini 4, DENETİM 166]; maskenin ortalaması float32 [ölçüldü: DENETİM 170]. `TR_std` tensörde H2423 veriyor [ölçüldü]; `TR_logsumexp` GPU'da yok (15.4).
+- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:366`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:366`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:59`'un konumlu ekseni (`TR_sum(isabet, 0)`) de bu göçte. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, GPU'da `TR_logsumexp`, liste eksen; TR testleri.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş eksen ile boş tensörün ayrımı, boş tensör listesinde hata, `TR_std`'nin sıfır sapmadaki türevi 0.
 
 ### 15.18a
 
 - **Mevcut durum:** tensör olmayan argümanı (`TR_equal`'da H6979) denetleyici yakalamıyor, çalışmada hata.
-- **Yapılacaklar:** `TR_any`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979).
+- **Yapılacaklar:** `TR_any`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979); cins farkının denetim hatası (bugün çalışmada H6966).
 
 ### 15.19
 
@@ -770,7 +771,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.22a
 
-- **Mevcut durum:** CPU float64'te telafisiz, GPU float32 girdiyi float32'de telafili (Neumaier) biriktiriyor (float64 girdi float64'te).
 - **Yapılacaklar (D, Ö3; en son bakılacaklar, H1 hız kuyruğu):** CPU'da eksen 0 toplamının 28 baytlık iç döngüsü 64 baytlık sınırı geçince `BenchmarkSpeedSumAxis0` ~%26 yavaşlıyor; buyruklar aynı, yalnız döngünün yeri değişiyor, kaydırınca fark tersine dönüyor [ölçüldü: AMD EPYC 7B12, `e27cdff0` +%26,0, kaydırılmış uç −%1,8, kopya farkı %2,9]. `karakter_modeli` etkilenmedi.
 - **Yapılacaklar (C, Ö2; ölçülmedi):** `TestReductionsIndependentOfThreadCount` Go testi bölümün commit'inde yazılır (bugün yok); 15.22a başlıklı TR testi.
 - **Bulgu (T1, 2026-11-04, D, Ö3; TCB kararı):** sayı yerleşikleri `internal/detmath`'te, tensör yolu `math.*`'ta ve float32'de. Sayıyı float32'ye yuvarlayıp tensörle kıyasta `TR_log` ailesi, `TR_tan` ve ters trigonometri ayrılmıyor; `TR_sin`, `TR_cos`, `TR_tanh`, `TR_exp` en çok 1 float32 ulp, `TR_sigmoid` 2, `TR_silu` 3 ayrılıyor [ölçüldü: DENETİM istek 126, 200 000 girdi]. Sebep çoğunlukla `TR_exp`, `TR_sigmoid`, `TR_silu`'nun kendi float32 yolu [kanıtlı: DENETİM, `cpu_elementwise_wide.go`]. Bu tek algoritmanın sonucu değil [hipotez: DENETİM, eski ikiliyle ölçülmedi]. 15.22a sayı ile tensörü anmıyor: aynı cihaz türünü ve cihazlar arasını anlatıyor.
@@ -831,8 +831,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.32
 
-- **Mevcut durum:** `TR_grad_check` değer vermiyor (13.10) [test: `TestNoValueBuiltinsGiveNone`].
-- **Yapılacaklar:** değer döndürmez; `girdiler` demet; göç `.tr` dosyalarında 40 satır, 34'ü dönüşünü kullanıyor (`31` `TR_assert(TR_grad_check(...))`, `1` `TR_assert_equal(TR_true, ...)` `tests/matematik_test.tr:114`, `2` `TR_print(...)` `examples/tr/27_ozel_turev.tr:23-24`; kalan `6`'sı `tests/ozel_turev_test.tr:170, 172, 183, 186, 188, 189`'da `TR_error_code`/`TR_try` bloğunda deyim; ayrıca Go testinde 2 `TR_print` satırı `internal/stdlib/ml/custom_grad_test.go:30, 272`) [ölçüldü: `git grep -n 'TR_grad_check(' -- '*.tr' '*.go'`, main `c39e0b56`].
+- **Yapılacaklar:** `girdiler` demet.
 
 ### 15.33
 
@@ -953,7 +952,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (F, Ö3; sahip T1, önce ölç; DENETİM istek 161):** GGUF yüklemesinde tablo iki kez kuruluyor; süresi ölçülmedi. Repoda uçtan uca dış kanıt yok: küçük fikstürün llama.cpp logitleri altın dosya olabilir.
 - **Sınır (A, sınır; T1, 2026-11-05; DENETİM istek 149 Ş1, 161):** llama.cpp de aynı; tensörü yazılmadan dönüştürülmüş eski Llama 3.1 GGUF'u tanınamaz: üstveriden "tensör olmalıydı" bilinmez, bölen 1 kurulur, uzun bağlamda sessiz yanlış olur [hipotez].
 - **Yapılacaklar (D, Ö3; sahip H1, hız kuyruğu; H1 CPU kıyası):** prompt işlemede TR transformers'ın 0,50–0,54 katı, 16 bit float32'den hızlı değil (0,94 ve 0,96) [ölçüldü: H1, AMD EPYC]. Çok satırlı çarpımda ağırlık hâlâ float32 tampona açılıyor [kanıtlı: `Gemm`]; sebep bu mu [hipotez: profil çıkmadı].
-- **Yapılacaklar (D, Ö2; sahip H1; H2 devri):** eşik modeli Qwen3-0.6B `Q8_0`'da 0,5 eşiği geçilmedi: `04914ce6`'da 0,477 [ölçüldü: `h1k2e`]; önce üç Xeon koşusunda 0,460, 0,484, 0,487; eşiğe parça başına 1,2–3,8 ms kaldı [hesap: `h3k7`, `h3k6`, DENETİM 180]. Qwen3-0.6B `Q8_0`'da parça 48,6 ms, llama.cpp'nin bütün parçası 23,7 ms; çarpım 36,7 ms, çarpım dışı yaklaşık 12 ms (önce 29,6) [ölçüldü: H2, `h3k7`; çarpım dışı hesap]. `sdotq8` tek iş parçacığında hesap sınırlı (6,3 GB/sn, düz okuma 9,8), 8 iş parçacığında okumanın %82'si (29,4 ve 35,8) [ölçüldü: H2, `h3k4`]. Kaynaştırılmış işlerin dağıtımı prompt'u +%20 verdi, üretimi değiştirmedi; ürünler arası önden getirme kazançsız, çıktı [ölçüldü: `h1k2e`, `h1k2a`]. İş parçacığı ayarı ve yerleşim TR'nin hızını değiştirmedi: 4 ve 8, serbest ve sabitli ortanca 21,93–23,25 parça/sn; llama.cpp 4 iş parçacığında 37,08–38,08, 8'de ortanca 43–44 ama tekrarların dördü 21–23'te kaldı, yani 0,477'nin paydası iki kümeli; büyük sayfa sınanamadı [ölçüldü: `h1k2g`]. Bu kıyas katman çarpımlarında 8 katılımcıyı sınamadı: 2^22 birimin altındaki çarpım 8 iş parçacığında da en çok 4 katılımcıyla koşuyor [kanıtlı: `parallel.go:107`, `:322`]; 0.6B'nin en büyük katman çarpımı 3 145 728 birim, çıkış başı 155 582 464 birimle eşiğin üstünde [hesap: DENETİM 215]. Kalan, yönergeye yazılmadan koşulmaz: taze sayfa, katmanlarda 8 katılımcı; etkinleştirme nicemleme varsayılan yol değildir (15.53); deneme aşağıdaki satırda.
+- **Yapılacaklar (D, Ö2; sahip H1; H2 devri):** eşik modeli Qwen3-0.6B `Q8_0`'da 0,5 eşiği geçilmedi: `04914ce6`'da 0,477 [ölçüldü: `h1k2e`, yalnız Xeon; başka işlemcide ölçülmedi]; önce üç Xeon koşusunda 0,460, 0,484, 0,487; eşiğe parça başına 1,2–3,8 ms kaldı [hesap: `h3k7`, `h3k6`, DENETİM 180]. Qwen3-0.6B `Q8_0`'da parça 48,6 ms, llama.cpp'nin bütün parçası 23,7 ms; çarpım 36,7 ms, çarpım dışı yaklaşık 12 ms (önce 29,6) [ölçüldü: H2, `h3k7`; çarpım dışı hesap]. `sdotq8` tek iş parçacığında hesap sınırlı (6,3 GB/sn, düz okuma 9,8), 8 iş parçacığında okumanın %82'si (29,4 ve 35,8) [ölçüldü: H2, `h3k4`]. Kaynaştırılmış işlerin dağıtımı prompt'u +%20 verdi, üretimi değiştirmedi; ürünler arası önden getirme kazançsız, çıktı [ölçüldü: `h1k2e`, `h1k2a`]. İş parçacığı ayarı ve yerleşim TR'nin hızını değiştirmedi: 4 ve 8, serbest ve sabitli ortanca 21,93–23,25 parça/sn; llama.cpp 4 iş parçacığında 37,08–38,08, 8'de ortanca 43–44 ama tekrarların dördü 21–23'te kaldı, yani 0,477'nin paydası iki kümeli; büyük sayfa sınanamadı [ölçüldü: `h1k2g`]. Bu kıyas katman çarpımlarında 8 katılımcıyı sınamadı: 2^22 birimin altındaki çarpım 8 iş parçacığında da en çok 4 katılımcıyla koşuyor [kanıtlı: `parallel.go:107`, `:322`]; 0.6B'nin en büyük katman çarpımı 3 145 728 birim, çıkış başı 155 582 464 birimle eşiğin üstünde [hesap: DENETİM 215]. Kalan, yönergeye yazılmadan koşulmaz: taze sayfa, katmanlarda 8 katılımcı; etkinleştirme nicemleme varsayılan yol değildir (15.53); deneme aşağıdaki satırda.
 - **Yapılacaklar (E, Ö3; sahip H1, bit değiştirmeyen işlerden sonra; Ahmet 2026-11-06):** etkinleştirme nicemleme denemesi. 15.53 bugünkü davranışıyla kalır. DENETİM 181'in gerekçesi yanlıştı: kullanıcının seçtiği yaklaşıklık dilin doğruluğuna dokunmaz, `Q4_K` gibi; kalma sebebi sadelik ve doğrulanabilirlik. Önce `Q4_K`'da tek çekirdek, hız kazancı ve kalite bedeli ölçülür; anlamlıysa 15.53'e açık seçim gelir (varsayılan kapalı, belirlenimci), değilse satır kapanır. Llama 3'te nicemli dosyalarla llama.cpp'nin F32'den ayrışması llama.cpp'nin kendi iki yolu arasında, TR'de nicemli ve F32 logitleri aynı [ölçüldü: DENETİM 161, 12 çift]; ayrışma kalite değildir.
 
 ## 16. Veri ve parçalayıcı
