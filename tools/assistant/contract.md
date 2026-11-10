@@ -17,7 +17,7 @@ Bütün örnekler uydurmadır.
 
 ## Kaynak
 
-Ekranın kaynağı sayfanın kendi köküdür: TR'nin sunduğu `http://127.0.0.1:<kapı>/` sayfası olayları ve komutları aynı köke gönderir. Parametre yoktur: sayfanın adresi sorgusuzdur, çünkü sorgulu istek belirteç ister (dil tanımı, 28.2) ve tarayıcı adres çubuğundan açılan sayfaya belirteç ekleyemez.
+Ekranın kaynağı sayfanın kendi köküdür: TR'nin sunduğu `http://127.0.0.1:<kapı>/` sayfası olayları ve komutları aynı köke gönderir. Parametre yoktur: sayfanın adresi sorgusuzdur, çünkü sorgulu istek belirteç ister (dil tanımı, 28.2) ve tarayıcı adres çubuğundan açılan sayfaya belirteç ekleyemez. Eski `source` parametresi gerçek kipte zaten sayfanın köküne eşit olmak zorundaydı, bilgi katmıyordu; kalkınca dışarıdan verilen bir girdi de kalktı.
 
 - `file://` ile açılan sayfa sahte akışla çalışır ve üstte "sahte kip" sürekli yazılıdır (`Origin` `null` olur, sunucu ona izin vermez). Gerçek kipte sayfayı TR sunar.
 - Gerçek kipe yalnız `http://127.0.0.1:<kapı>` kökünden açılan sayfa geçer. `localhost`, başka adres ve `https` reddedilir: ekran sahte akışa düşmez, bağlantı yok der ve reddedilen kökü gösterir.
