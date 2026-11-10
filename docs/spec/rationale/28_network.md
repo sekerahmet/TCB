@@ -165,6 +165,8 @@ Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
 
 ### 28.7
 
+- *`Cache-Control: no-store` (TCB, 2026-11-10; ekran diliminin sorusu):* motor `no-cache` yazıyordu, ekranın sözleşmesi `no-store` istiyordu. `no-cache` saklamaya izin verir, yalnız yeniden kullanmadan önce doğrulama ister; akış hiç yeniden kullanılmadığı için saklamanın faydası yok, olayın verisi (kullanıcının içeriği) ortak bir makinede diske kalırdı. Emsal araştırması turda [görüş: bu cümle geçici].
+
 - *Emsal:*
   - **WHATWG HTML 9.2:** `Last-Event-ID` ve yeniden bağlanma (9.2.4); `id` alanı olmayan olay son kimliği değiştirmez (9.2.6).
   - **MCP:** SSE `id` ve sürdürme (`transports.mdx:154`–`:155`).
