@@ -1,0 +1,36 @@
+# TR 4
+# 57 — Olay yayını: bir asistanın olaylarını ekranlara yaymak (28.7). Yayıncı her olayı bütün
+# dinleyicilere gönderir ve son kapasite kadarını saklar. Yeni açılan ekran önce anlık görüntüyü alır
+# (bugüne kadarki olayların katlanmış hâli), sonra yeni olayları; arada olay kaybolmaz, iki kez gelmez.
+# Ekran kapanınca üretim sürer: bu, istek akışından (56) ayrıldığı yer.
+# Önceki örnekten: akış cevabı (56), HTTP sunucusu (54), JSON (3.7a).
+# Çalıştırma (proje kökünden): trlang examples/tr/57_olay_yayini.tr
+#
+# Kendin dene: s.TR_close() yerine s.TR_wait() yaz, programı çalıştır ve başka bir terminalde
+# curl -N http://127.0.0.1:<kapı>/olaylar ile görüntüyü ve olayları izle; kesilen bağlantıyı
+# curl -N -H "Last-Event-ID: 2" ile açarsan 2'den sonraki olaylar gelir. Ctrl+C sunucuyu kapatır.
+
+# Görüntü ekranın durumudur: son durum ve kaç olay geldiği. Katlama her olayı ona ekler; olay
+# gönderilen verinin maskeli JSON'udur.
+TR_func katla(görüntü: TR_JSON, olay: TR_JSON) -> TR_JSON {
+    TR_return TR_JSON({"durum": olay["durum"], "olay_sayısı": TR_Int(görüntü["olay_sayısı"]) + 1})
+}
+
+TR_var başta = TR_JSON({"durum": "boşta", "olay_sayısı": 0})
+TR_var yayın = TR_EventBroadcast(TR_capacity: 100, TR_snapshot: başta, TR_reduce: katla)
+
+# Ekran /olaylar'ı dinler; öbür yollar düz bir cevaptır. Dinleyici eşzamanlı istek sınırına sayılmaz.
+TR_func cevapla(istek: TR_Request) -> TR_Response {
+    TR_if istek.TR_path == "/olaylar" { TR_return yayın.TR_subscribe(istek) }
+    TR_return TR_Response(TR_body: "ekran: /olaylar'ı dinleyin")
+}
+
+TR_var s = TR_serve_http(cevapla)
+TR_for durum TR_in ["dinliyor", "düşünüyor", "konuşuyor", "boşta"] {
+    yayın.TR_send_event({"durum": durum})
+}
+
+# Abonelik bir cevaptır: ağ olmadan da kurulur, olayları sunucu yazar.
+TR_var c = yayın.TR_subscribe(TR_Request(TR_path: "/olaylar"))
+TR_print(c.TR_status, c.TR_headers["Content-Type"], "| sunucu açık:", s.TR_port > 0)
+s.TR_close()

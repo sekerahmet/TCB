@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -19,6 +20,9 @@ import (
 // ServeHTTP bir isteği işler (28.4). Geldiği yerin (28.1a), belirtecin (28.2), yolun (28.3), eşzamanlı
 // istek sınırının (28.4) ve gövde sınırının (28.5) denetimleri Go'nun goroutine'inde, kilit alınmadan
 // ve görev açılmadan yapılır: kimliksiz bir istek seli TR görevi açamaz. Geçen istek için görev açılır.
+// İşleyici akışlı cevap (28.7) döndürürse blok aynı görevde çalışır; görev ancak akış başladıktan sonra
+// istemci koparsa ya da yazma hata verirse iptal edilir (stop). Yayın akışının dinleyicisi görev bittikten
+// sonra kilitsiz yazar ve eşzamanlı istek sınırına sayılmaz.
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.local {
 		if code, text := s.originError(r); code != 0 {
@@ -42,23 +46,50 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		deny(w, http.StatusRequestEntityTooLarge, messages.Text(messages.H7619, s.maxBody))
 		return
 	}
+	release := func() {}
 	if s.maxConcurrent > 0 {
 		if s.active.Add(1) > s.maxConcurrent {
 			s.active.Add(-1)
 			deny(w, http.StatusServiceUnavailable, messages.Text(messages.H7620, s.maxConcurrent))
 			return
 		}
-		defer s.active.Add(-1)
+		var counted sync.Once
+		release = func() { counted.Do(func() { s.active.Add(-1) }) }
+		defer release()
 	}
 	req := requestOf(r, body)
-	val, err := s.host.Run(func(task *interp.VM) (interp.Value, error) {
-		return task.ApplyFunction(s.handler, []interp.Value{req}, nil, s.line)
+	stop := make(chan struct{})
+	var once sync.Once
+	cancel := func() { once.Do(func() { close(stop) }) }
+	streamed := false
+	var listener *Response
+	val, err := s.host.RunUntil(stop, func(task *interp.VM) (interp.Value, error) {
+		v, err := task.ApplyFunction(s.handler, []interp.Value{req}, nil, s.line)
+		if res, ok := v.(*Response); err == nil && ok && res.stream != nil && res.stream.sub != nil {
+			listener = res // yayın akışının dinleyicisi: görev biter, dinleyici kilitsiz yazar
+			return nil, nil
+		}
+		if res, ok := v.(*Response); err == nil && ok && res.stream != nil {
+			streamed = true
+			return nil, s.stream(task, w, r, res, cancel)
+		}
+		return v, err
 	})
 	switch {
 	case errors.Is(err, interp.ErrInterrupted) || errors.Is(err, interp.ErrHostClosed):
 		panic(http.ErrAbortHandler) // iptal ya da kapanış: cevap gönderilmez (28.8)
+	case err != nil && streamed:
+		// Başlıklar gitti, 500 yazılamaz: akış düzgün bitirilmeden kesilir, istemci bozuk biten akışı görür (28.7).
+		s.stderrLine(messages.Text(messages.H7613, req.method, req.path, err))
+		panic(http.ErrAbortHandler)
 	case err != nil:
 		s.handlerFailed(w, req, err)
+		return
+	case streamed:
+		return
+	case listener != nil:
+		release() // dinleyici TR_max_concurrent:'a sayılmaz; aboneliğin süresi sayıldı (28.4, 28.7)
+		s.listen(w, r, listener)
 		return
 	}
 	res, ok := val.(*Response)

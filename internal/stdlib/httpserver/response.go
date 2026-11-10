@@ -22,6 +22,7 @@ type Response struct {
 	status  int
 	body    []byte
 	headers *Headers
+	stream  *streamSpec // TR_stream_response'un cevabı: gövdeyi blok yazar (28.7)
 }
 
 func (r *Response) Type() interp.ValueType { return ResponseType }
@@ -181,14 +182,8 @@ func hasControl(s string) bool {
 // gövde; HEAD'de gövde gönderilmez (RFC 9110, 9.3.2). Adlar Go'nun anahtar biçimine çevrilir: Go
 // Content-Type'ı o biçimle arar, bulamazsa gövdeyi koklayıp ikinci bir Content-Type ekler.
 func (r *Response) write(w http.ResponseWriter, head bool) {
+	r.writeHeaders(w)
 	out := w.Header()
-	for _, n := range r.headers.names {
-		v, _ := r.headers.get(n)
-		out[textproto.CanonicalMIMEHeaderKey(n)] = []string{v}
-	}
-	if _, given := r.headers.get("X-Content-Type-Options"); !given {
-		out["X-Content-Type-Options"] = []string{"nosniff"}
-	}
 	allowed := r.status != http.StatusNoContent && r.status != http.StatusNotModified
 	if allowed {
 		out["Content-Length"] = []string{strconv.Itoa(len(r.body))}
@@ -196,6 +191,18 @@ func (r *Response) write(w http.ResponseWriter, head bool) {
 	w.WriteHeader(r.status)
 	if allowed && !head {
 		_, _ = w.Write(r.body) // kopan istemci işleyicinin hatası değildir (28.9)
+	}
+}
+
+// writeHeaders cevabın başlıklarını yazar; X-Content-Type-Options verilmediyse nosniff'tir.
+func (r *Response) writeHeaders(w http.ResponseWriter) {
+	out := w.Header()
+	for _, n := range r.headers.names {
+		v, _ := r.headers.get(n)
+		out[textproto.CanonicalMIMEHeaderKey(n)] = []string{v}
+	}
+	if _, given := r.headers.get("X-Content-Type-Options"); !given {
+		out["X-Content-Type-Options"] = []string{"nosniff"}
 	}
 }
 

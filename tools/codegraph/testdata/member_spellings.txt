@@ -334,6 +334,7 @@ a.TR_sample_rate	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_sample_rate
 a.TR_sampler	ok	0	name:TR_mem_sampler
 a.TR_samples	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_samples
 a.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
+a.TR_send_event	ok	0	name:TR_mem_send_event
 a.TR_shape	ok	0	name:TR_mem_shape
 a.TR_slice	ok	0	name:TR_mem_slice
 a.TR_state	ok	0	name:TR_mem_state
@@ -367,6 +368,7 @@ adlar.TR_length	ok	0	name:TR_mem_length
 adımlar.TR_length	ok	0	name:TR_mem_length
 ak.TR_length	ok	0	name:TR_mem_length
 akış.TR_finish	ok	0	name:TR_mem_finish
+akış.TR_send_event	ok	0	name:TR_mem_send_event
 akış.TR_step	ok	0	name:TR_mem_step
 akışlar.TR_append	ok	0	name:TR_mem_append
 alanlar.TR_append	ok	0	name:TR_mem_append
@@ -888,6 +890,7 @@ j.TR_path	ok	0	name:TR_mem_path
 j.TR_query	ok	0	name:TR_mem_query
 j.TR_status	ok	0	name:TR_mem_status
 json_mismatches.TR_append	ok	0	name:TR_mem_append
+jsonsuz.TR_send_event	ok	0	name:TR_mem_send_event
 k.TR_Linear	ok	0	tr:struct:lib/layers.tr:TR_type_Linear
 k.TR_absolute	ok	0	name:TR_mem_absolute
 k.TR_append	ok	0	name:TR_mem_append
@@ -1353,6 +1356,7 @@ sabit_t.TR_grad	ok	0	name:TR_mem_grad
 sabit_çıktı.TR_append	ok	0	name:TR_mem_append
 sabit_önbellek.TR_advance	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_advance
 sabit_önbellek.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
+saklanan.TR_send_event	ok	0	name:TR_mem_send_event
 sanal.TR_append	ok	0	name:TR_mem_append
 sanal.TR_shape	ok	0	name:TR_mem_shape
 sanal.TR_slice	ok	0	name:TR_mem_slice
@@ -1582,14 +1586,18 @@ y.TR_parent	ok	0	name:TR_mem_parent
 y.TR_permute	ok	0	name:TR_mem_permute
 y.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 y.TR_reshape	ok	0	name:TR_mem_reshape
+y.TR_send_event	ok	0	name:TR_mem_send_event
 y.TR_shape	ok	0	name:TR_mem_shape
 y.TR_slice	ok	0	name:TR_mem_slice
 y.TR_starts_with	ok	0	name:TR_mem_starts_with
 y.TR_stem	ok	0	name:TR_mem_stem
+y.TR_subscribe	ok	0	name:TR_mem_subscribe
 y.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 y.TR_tolist	ok	0	name:TR_mem_tolist
 y.TR_transpose	ok	0	name:TR_mem_transpose
+y1.TR_send_event	ok	0	name:TR_mem_send_event
 y1.TR_tolist	ok	0	name:TR_mem_tolist
+y2.TR_send_event	ok	0	name:TR_mem_send_event
 y2.TR_tolist	ok	0	name:TR_mem_tolist
 yakalanan.TR_contains	ok	0	name:TR_mem_contains
 yalnız.TR_length	ok	0	name:TR_mem_length
@@ -1597,6 +1605,8 @@ yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
 yarım.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 yavaş.TR_wait	ok	0	name:TR_mem_wait
+yayın.TR_send_event	ok	0	name:TR_mem_send_event
+yayın.TR_subscribe	ok	0	name:TR_mem_subscribe
 yazı.TR_contains	ok	0	name:TR_mem_contains
 yazı.TR_length	ok	0	name:TR_mem_length
 yazı.TR_replace	ok	0	name:TR_mem_replace

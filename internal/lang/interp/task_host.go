@@ -43,7 +43,11 @@ func (v *VM) forkView() *VM {
 // Run fn'i yeni bir görevde, kilidi tutarak çalıştırır ve bitmesini bekler; kilidi tutmayan bir
 // goroutine'den çağrılır. Görev iptal edildiyse ya da program durdurulduysa hata ErrInterrupted'dır
 // (cevap gönderilmez); host kapandıysa ErrHostClosed.
-func (h *TaskHost) Run(fn func(task *VM) (Value, error)) (Value, error) {
+func (h *TaskHost) Run(fn func(task *VM) (Value, error)) (Value, error) { return h.RunUntil(nil, fn) }
+
+// RunUntil Run gibidir; stop kapanırsa görev iptal edilir (10.9): istemcisi kopan akışın bloğu
+// (28.7). stop nil ise Run'dır. İptali kilidi alan bir izleyici goroutine yapar; görev bitince çıkar.
+func (h *TaskHost) RunUntil(stop <-chan struct{}, fn func(task *VM) (Value, error)) (Value, error) {
 	h.mu.Lock()
 	if h.closed {
 		h.mu.Unlock()
@@ -64,6 +68,11 @@ func (h *TaskHost) Run(fn func(task *VM) (Value, error)) (Value, error) {
 	t := newTask(h.owner.line, true)
 	task.task = t
 	h.owner.addChild(task, t)
+	if stop != nil {
+		ended := make(chan struct{})
+		defer close(ended)
+		go cancelOnStop(p, t, stop, ended)
+	}
 	task.runHosted(t, fn)
 	if t.cancelled.Load() || task.interrupted.Load() {
 		return nil, ErrInterrupted
@@ -75,6 +84,20 @@ func (h *TaskHost) Run(fn func(task *VM) (Value, error)) (Value, error) {
 		return nil, ErrInterrupted // TR_exit: görevin hatası değil, cevap da yok
 	}
 	return t.result, nil
+}
+
+// cancelOnStop stop kapanınca, görev bitmediyse, kilidi alıp görevi iptal eder (10.9). Görev o arada
+// bittiyse iptal etkisizdir (cancel bitmiş göreve bakmaz).
+func cancelOnStop(p *VM, t *TaskVal, stop, ended <-chan struct{}) {
+	select {
+	case <-stop:
+	case <-ended:
+		return
+	}
+	y := p.forkView()
+	y.acquireGIL()
+	defer y.releaseGIL()
+	t.cancel(y)
 }
 
 // runHosted görevin gövdesidir (taskStart'ın goroutine'i gibi): alt görevleri beklenir, panik iç

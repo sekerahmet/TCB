@@ -124,3 +124,36 @@ TR_test "28.3a dosya_cevabı kökün içindeki dosyayı verir, öbür yolları 4
         TR_assert_equal(404, TR_file_response(kök, istenen).TR_status)
     }
 }
+
+TR_test "28.7 akış cevabı tek parametreli blokla kurulur, text/event-stream'dir; blok yanlışsa çağrı hatasıdır" {
+    TR_var c = TR_stream_response((a: TR_EventStream) => { a.TR_send_event({"parça": "mer"}) })
+    TR_assert_equal(TR_Response, TR_Type(c))
+    TR_assert_equal(200, c.TR_status)
+    TR_assert_equal("text/event-stream; charset=utf-8", c.TR_headers["Content-Type"])
+    TR_assert_equal("no-cache", c.TR_headers["Cache-Control"])
+    TR_assert_equal(200, TR_stream_response((a) => { a.TR_send_event(1) }, TR_heartbeat: {"tür": "nabız"}).TR_status)
+    TR_assert_equal("H7635", TR_error_code { TR_stream_response { TR_print(1) } })
+    TR_assert_equal("H7635", TR_error_code { TR_stream_response((a, b) => { TR_print(1) }) })
+    TR_assert_equal("H2423", TR_error_code { TR_stream_response(5) })
+    TR_assert_equal("H7010", TR_error_code { TR_stream_response((a) => { a.TR_send_event(1) }, TR_heartbeat: TR_print) })
+    TR_assert_equal("H7901", TR_error_code { TR_stream_response((a) => { a.TR_send_event(1) }, TR_port: 1) })
+}
+
+TR_test "28.7 yayıncı olayları katlar; kapasite, anlık görüntü ve indirge zorunludur; katlamanın hatası gönderimin hatasıdır" {
+    TR_var y = TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g, olay) => TR_JSON(TR_Int(g) + TR_Int(olay)))
+    TR_assert_equal(TR_EventBroadcast, TR_Type(y))
+    y.TR_send_event(2)
+    y.TR_send_event(3)
+    TR_var c = y.TR_subscribe(TR_Request())
+    TR_assert_equal(200, c.TR_status)
+    TR_assert_equal("text/event-stream; charset=utf-8", c.TR_headers["Content-Type"])
+    TR_assert_equal("H7639", TR_error_code { y.TR_send_event("sayı değil") })
+    TR_assert_equal("H2423", TR_error_code { y.TR_subscribe(5) })
+    TR_var jsonsuz = TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g, olay) => "JSON değil")
+    TR_assert_equal("H7640", TR_error_code { jsonsuz.TR_send_event(1) })
+    TR_assert_equal("H7637", TR_error_code { TR_EventBroadcast(TR_capacity: 2, TR_reduce: (g, _) => g) })
+    TR_assert_equal("H7637", TR_error_code { TR_EventBroadcast(TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g) })
+    TR_assert_equal("H7638", TR_error_code { TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g) => g) })
+    TR_assert_equal("H7628", TR_error_code { TR_EventBroadcast(TR_capacity: 0, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g) })
+    TR_assert_equal("H7604", TR_error_code { TR_EventBroadcast(TR_capacity: 2, TR_snapshot: {"a": 1}, TR_reduce: (g, _) => g) })
+}

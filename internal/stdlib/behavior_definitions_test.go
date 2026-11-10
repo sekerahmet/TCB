@@ -262,6 +262,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 	m := interp.New()
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = filepath.Join(repoRoot(t), "ornek.tr")
+	defineEventStream(m)
 	examples := []struct {
 		typ   codes.Code
 		setup string
@@ -284,7 +285,8 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeTask, `TR_async TR_sum([1, 2])`},
 		{codes.TypeProcess, `TR_spawn_process("go", ["version"])`},
 		{codes.TypeRequest, `TR_Request()`}, {codes.TypeResponse, `TR_Response()`}, {codes.TypeHTTPServer, `TR_serve_http(TR_print)`},
-		{codes.TypeMaskStream, `TR_mask_stream()`},
+		{codes.TypeMaskStream, `TR_mask_stream()`}, {codes.TypeEventStream, `olay_akisi_go`},
+		{codes.TypeEventBroadcast, `TR_EventBroadcast(TR_capacity: 1, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`},
 		{codes.TypeHeaders, `TR_Request().TR_headers`},
 		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}

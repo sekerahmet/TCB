@@ -1,0 +1,38 @@
+# TR 4
+# 56 — Akış cevabı: bir modelin cevabını üretildikçe göndermek (28.7). İşleyici akış_cevabı ile bir
+# cevap döndürür; blok isteğin görevinde çalışır ve her olay_gönder bir olayı hemen istemciye yazar
+# (text/event-stream). İstemci giderse blok durur: kimsenin okumadığı cevap üretilmez.
+# Önceki örnekten: HTTP sunucusu (54), maskeli akış (55), ok fonksiyonları (10).
+# Çalıştırma (proje kökünden): trlang examples/tr/56_akis_cevabi.tr
+#
+# Kendin dene: s.TR_close() yerine s.TR_wait() yaz, programı çalıştır ve başka bir terminalde
+# curl -N http://127.0.0.1:<kapı>/ ile cevabı parça parça izle; Ctrl+C sunucuyu kapatır.
+
+# Adı gizli bir şey söyleyen ayarın değeri gizlidir (19.4): olayda da *** görünür.
+TR_var ayar = TR_command_line({"api_anahtarı": "örnek-anahtar-42"})
+
+# Bir dil modelinin parça parça ürettiği cevabın yerine sabit parçalar; ikincisi gizli değeri böler.
+TR_var parçalar = ["Anahtarınız: örnek-an", "ahtar-42", ", iyi çalışmalar."]
+
+# Blok tek parametreli bir fonksiyondur, OlayAkışı'nı alır. Her olay ayrı maskelenir: bölünen gizli değer
+# için parçalar önce maskeli akıştan geçer, sondaki bitir() de gönderilir (19.4a).
+TR_func cevabı_akıt(akış: TR_EventStream) {
+    TR_var m = TR_mask_stream()
+    TR_for parça TR_in parçalar {
+        akış.TR_send_event({"parça": m.TR_step(parça)})
+    }
+    akış.TR_send_event({"parça": m.TR_finish(), "bitti": TR_true})
+}
+
+TR_func cevapla(istek: TR_Request) -> TR_Response {
+    # Nabız açık akışa 15 saniyede bir gider; TR_heartbeat: onu yorum satırı yerine bir olay yapar.
+    TR_return TR_stream_response(cevabı_akıt, TR_heartbeat: {"tür": "nabız"})
+}
+
+# İşleyici ağ olmadan sınanır: cevap bir değerdir, blok ancak sunucu onu yazarken çalışır.
+TR_var c = cevapla(TR_Request())
+TR_print(c.TR_status, c.TR_headers["Content-Type"], TR_Type(c) == TR_Response)
+
+TR_var s = TR_serve_http(cevapla)
+TR_print("sunucu açık:", s.TR_port > 0, "| ayar:", ayar["api_anahtarı"].TR_length, "karakter")
+s.TR_close()
