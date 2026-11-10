@@ -62,7 +62,8 @@ func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel)
 	if actQuant {
 		var ok bool
 		if aq, ok = be.(ActQuantGemmer); !ok || !QuantActSupported(b.dtyp) || len(b.shape) != 2 {
-			panic("tensor: etkinleştirmesi nicemlenen çarpım bu arka uçta ya da bu ağırlıkta yok")
+			// İç hata: kapı stdlib'dedir (checkActQuant, H6723 ve H6724); buraya uygun olmayan girdi gelmez.
+			panic("tensor: int8 activation product is not available for this backend or weight")
 		}
 	}
 	if len(a.shape) < 2 || len(b.shape) < 2 {
