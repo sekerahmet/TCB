@@ -63,6 +63,12 @@ Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
   - Adresin ayrıştırılmış hâliyle denetlenmesi `::1`, `[::1]` ve `127.0.0.2` gibi yazımların belirteçsiz dışarı ya da yanlış yerel köke açılmasını önler.
   - TLS'nin bedeli (sertifika, yerel kök) ilk sürümün kazancından büyük [görüş]. `127.0.0.1` tarayıcıda zaten güvenli bağlamdır (W3C Secure Contexts).
 
+- *`TR_public_paths:` (TCB, 2026-11-10; kritik, işi durduruyordu, ekran dilimi):*
+  - Tarayıcı adres çubuğundan açılan sayfaya ve `<script src>`'nin isteğine `Authorization` başlığı ekleyemez; 28.2'nin "her istekte" kuralıyla 28.2a'nın ekranı yüklenemiyordu. Belirteci adreste taşımak 28.2a'nın reddettiği yoldur (`Referer` sızıntısı).
+  - Belirteci işleyicide karşılaştırmak 28.2'nin iki güvencesini kaybettirirdi: sabit sürede karşılaştırma ve denetimin gövde okunmadan, işleyiciden önce yapılması.
+  - Tam yol, yalnız `GET` ve `HEAD`: önek ya da klasör, listeye bir dosya eklemeyi unutan ya da bir API yolunu klasörün altına koyan ajanı sessizce açığa düşürürdü. Belirteçsiz sunucuda listenin hata olması, korumanın var sanılmasını önler.
+  - Emsal araştırması (statik dosyaları kimliksiz sunan Jupyter Server gibi sunucular, sürümlü kaynakla) turda yapılacak [görüş: bu madde geçici].
+
 ### 28.2a
 
 - *Emsal:*
