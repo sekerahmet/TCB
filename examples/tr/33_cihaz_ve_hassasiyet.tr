@@ -28,6 +28,12 @@ TR_print(y.TR_tolist)
 # çarpımlar okuyan bir normu doğrudan o türde yazmak için: rms_normu(x, w, tür: hesap_türü()).
 TR_print(TR_compute_dtype(), TR_mixed_precision("bf16") { TR_compute_dtype() })
 
+# nicemli_etkinleştirme { ... }: hazır modelin "q4_k" ve "q6_k" ağırlıklarıyla çarpımda girdi de 8 bitlik
+# tamsayıya çevrilir; hız ve bellek kazanılır, sonuç biraz değişir. Bloğun dışında hiçbir şey değişmez.
+TR_var qw = TR_zeros([2, 256], TR_dtype: "q4_k")
+TR_var qy = TR_quantized_activations { TR_ones([1, 256]) @ qw.TR_transpose() }
+TR_print(qy.TR_shape, TR_activations_quantized(), TR_quantized_activations { TR_activations_quantized() })
+
 # 16 bitlik parametreyi AdamW ile eğitirken ana_kopya: doğru (varsayılan) float32 bir ana kopya tutar;
 # güncelleme orada yapılıp parametreye yuvarlanır, böylece küçük adımlar kaybolmaz.
 TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true, TR_dtype: "bf16")
