@@ -97,23 +97,20 @@ func onCPU(ts []*tensor.Tensor) bool {
 
 // matMulOn a @ b'dir; iş büyükse ve CPU'daysa kilit bırakılarak.
 func matMulOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
-	return matMulWith(m, a, b, outType, tensor.MatMulKernel)
+	if m == nil || a.Device() != tensor.CPU || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
+		return tensor.MatMulOut(a, b, outType)
+	}
+	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.MatMulKernel(a, b, outType) })
 }
 
 // matMulActQuantOn matMulOn'un etkinleştirmesi nicemlenen eşidir (TR_quantized_activations bloğu, 15.53a; ağırlık
-// CPU'da, checkActQuant geçmiştir).
+// CPU'da, checkActQuant geçmiştir). matMulOn'la tek fonksiyon değil: codegraph'ın `@` → MatMulOut yolu doğrudan
+// çağrıdır (planlama sınavı).
 func matMulActQuantOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
-	return matMulWith(m, a, b, outType, tensor.MatMulActQuantKernel)
-}
-
-// matMulWith çekirdeği kernel kurar; iş büyükse ve CPU'daysa kilit bırakılarak koşar.
-func matMulWith(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType, kernel func(a, b *tensor.Tensor, outType tensor.DType) (*tensor.Tensor, *tensor.Kernel)) *tensor.Tensor {
-	if m == nil || a.Device() != tensor.CPU || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
-		r, k := kernel(a, b, outType)
-		k.RunLocked()
-		return r
+	if m == nil || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
+		return tensor.MatMulActQuant(a, b, outType)
 	}
-	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return kernel(a, b, outType) })
+	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.MatMulActQuantKernel(a, b, outType) })
 }
 
 // matMulWork çarpımın M·N·K'sidir (en az iki boyutlu, denetlenmiş şekiller).

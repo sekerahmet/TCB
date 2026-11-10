@@ -44,7 +44,7 @@ func Register(v *interp.VM) {
 	// --- Veri türleri (veri_turu.go) ---
 	wrap(v, codes.FnMixedPrecision, newBuiltin(mixedPrecision))
 	wrap(v, codes.FnComputeDtype, newBuiltin(computeDType))
-	wrap(v, codes.FnQuantizedActivations, newBuiltin(quantizedActivations)) // quant_activations.go (15.53)
+	wrap(v, codes.FnQuantizedActivations, newBuiltin(quantizedActivations)) // quant_activations.go (15.53a)
 	wrap(v, codes.FnQuantizedActivationsOn, newBuiltin(quantizedActivationsOn))
 
 	// --- Cihazlar (cihaz.go) ---
