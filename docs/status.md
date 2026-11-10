@@ -486,8 +486,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 
 ### 13.2
 
-- **Mevcut durum (Tur 6A):** `.TR_strip(".")` "0 argüman bekler" diyor; `.TR_is_alpha()`, `.TR_is_digit()`, `.TR_is_space()` yok [ölçüldü: TCB, `70b1575b`, küçük program].
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `.TR_strip(karakterler)` (katalogdaki açıklaması da); üç sınıf metodu (kataloğa üç kod); TR testi.
+- **Mevcut durum (T1, Tur 6A):** `.TR_strip(karakterler)` iki uçtan kümedeki karakterleri kırpıyor (boş küme kırpmaz); `.TR_is_alpha()` (L), `.TR_is_digit()` (Nd), `.TR_is_space()` (`.TR_split()`'in boşluğu) var, boş metinde `TR_false`; katalogda üç kod ve `.TR_strip`'in açıklaması [test: `tests/yerlesikler_test.tr`, "13.2 ..." testleri]. Argüman sayısı iletisinin kullanım satırı (`internal/lang/hint`) `.TR_strip(karakterler)` biçimini bilmiyor.
 
 ### 13.3
 

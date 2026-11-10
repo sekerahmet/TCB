@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 741 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 165 fonksiyon, 11 sabit, 89 metot, 130 özellik, 192 adlı argüman.
+Toplam 744 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 165 fonksiyon, 11 sabit, 92 metot, 130 özellik, 192 adlı argüman.
 
 ## İçindekiler
 
@@ -1219,7 +1219,7 @@ en: var ad: String = "şeker"; print(Type(ad), ad[-1], String(12) + "a", String(
 tr: değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", Metin([1, 2]))
 ```
 
-Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
+Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_is_alpha(...)`, `.TR_is_digit(...)`, `.TR_is_space(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
 
 #### `TR_StructType` (`TR_type_StructType`, `YapıTanımı`)
 
@@ -6582,6 +6582,44 @@ tr: yazdır("merhaba".konumu("ha"), [10, 20].konumu(20), [10].konumu(30) ?? -1)
 
 
 
+#### `.TR_is_alpha(...)` (`TR_mem_is_alpha`, `harf_mı`)
+
+    Metin.harf_mı() → Mantık
+
+Metin boş değilse ve her karakteri Unicode harfiyse (genel kategori L) doğru verir; boş metinde yanlış. Sınıf her yazıda aynıdır: ğ ve 字 harftir.
+
+```tr
+TR_print("ğ字".TR_is_alpha(), "a1".TR_is_alpha(), "".TR_is_alpha())
+```
+
+Görünümü:
+
+```text
+en: print("ğ字".is_alpha(), "a1".is_alpha(), "".is_alpha())
+tr: yazdır("ğ字".harf_mı(), "a1".harf_mı(), "".harf_mı())
+```
+
+İlişkili: `.TR_is_digit(...)`, `.TR_is_space(...)`
+
+#### `.TR_is_digit(...)` (`TR_mem_is_digit`, `rakam_mı`)
+
+    Metin.rakam_mı() → Mantık
+
+Metin boş değilse ve her karakteri Unicode ondalık rakamıysa (Nd) doğru verir; boş metinde yanlış. ² rakam değildir, Arapça ٣ rakamdır; eksi işareti ve nokta rakam değildir.
+
+```tr
+TR_print("2026".TR_is_digit(), "²".TR_is_digit(), "-1".TR_is_digit())
+```
+
+Görünümü:
+
+```text
+en: print("2026".is_digit(), "²".is_digit(), "-1".is_digit())
+tr: yazdır("2026".rakam_mı(), "²".rakam_mı(), "-1".rakam_mı())
+```
+
+İlişkili: `.TR_is_alpha(...)`, `.TR_is_space(...)`
+
 #### `.TR_is_dir` (`TR_mem_is_dir`, `klasör_mü`)
 
     Yol.klasör_mü → Mantık
@@ -6619,6 +6657,25 @@ tr: klasör_oluştur("bir_klasör"); yazdır(Yol("bir_klasör").dosya_mı)
 ```
 
 İlişkili: `.TR_exists`, `.TR_is_dir`
+
+#### `.TR_is_space(...)` (`TR_mem_is_space`, `boşluk_mu`)
+
+    Metin.boşluk_mu() → Mantık
+
+Metin boş değilse ve her karakteri böl()'ün böldüğü Unicode boşluğuysa (sekme ve satır sonu dahil) doğru verir; boş metinde yanlış.
+
+```tr
+TR_print(" \t".TR_is_space(), "a b".TR_is_space())
+```
+
+Görünümü:
+
+```text
+en: print(" \t".is_space(), "a b".is_space())
+tr: yazdır(" \t".boşluk_mu(), "a b".boşluk_mu())
+```
+
+İlişkili: `.TR_is_alpha(...)`, `.TR_is_digit(...)`, `.TR_strip(...)`
 
 #### `.TR_item(...)` (`TR_mem_item`, `tek_değer`)
 
@@ -7761,20 +7818,22 @@ tr: değişken ç = İlerleme(); ç.güncelle(); yazdır(ç.durdur())
 
 #### `.TR_strip(...)` (`TR_mem_strip`, `kırp`)
 
-    Metin.kırp() → Metin
+    Metin.kırp([Metin]) → Metin
 
-Metnin başındaki ve sonundaki boşlukları (satır sonları dahil) atar. Yeni bir metin verir.
+Argümansız, metnin başındaki ve sonundaki Unicode boşlukları (satır sonları dahil) atar; argümanla iki uçtan argümanda geçen her karakteri atar: argüman bir karakter kümesidir, önek ya da sonek değil; boş argüman bir şey kırpmaz. Yeni bir metin verir.
 
 ```tr
-TR_print("  merhaba  ".TR_strip())
+TR_print("  merhaba  ".TR_strip(), "..a.".TR_strip("."))
 ```
 
 Görünümü:
 
 ```text
-en: print("  merhaba  ".strip())
-tr: yazdır("  merhaba  ".kırp())
+en: print("  merhaba  ".strip(), "..a.".strip("."))
+tr: yazdır("  merhaba  ".kırp(), "..a.".kırp("."))
 ```
+
+İlişkili: `.TR_split(...)`, `.TR_is_space(...)`
 
 #### `.TR_subscribe(...)` (`TR_mem_subscribe`, `abone_et`)
 

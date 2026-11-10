@@ -722,3 +722,33 @@ TR_test "13.1 anahtarlı biçimde boş liste, iki parametreli fonksiyon ve sıra
     TR_assert_equal("H2556", TR_error_code { TR_max([1, 2], (x) => [x]) })
     TR_assert_equal("H2557", TR_error_code { TR_min([1, 2], (x) => TR_if x == 1 { (1, 2) } TR_else { ("a", 2) }) })
 }
+
+TR_test "13.2 TR_strip(karakterler) iki uçtan kümedeki her karakteri kırpar; küme önek değildir, boş küme kırpmaz" {
+    TR_assert_equal("a", "..a.".TR_strip("."))
+    TR_assert_equal("a.b", "-.a.b.-".TR_strip(".-"))
+    TR_assert_equal("a.b", "-.a.b.-".TR_strip("-."))
+    TR_assert_equal("..a.", "..a.".TR_strip(""))
+    TR_assert_equal("", "...".TR_strip("."))
+    TR_assert_equal("", "".TR_strip("."))
+    TR_assert_equal(" a ", "ş a ş".TR_strip("ş"))
+    TR_assert_equal("a", " \t\na\u{3000}".TR_strip())
+    TR_assert_equal("\ta", "  \ta".TR_strip(" "))
+}
+
+TR_test "13.2 harf_mı, rakam_mı, boşluk_mu: her karakter sınıfında olmalı; boş metin yanlış" {
+    TR_assert("ğ字Ω".TR_is_alpha())
+    TR_assert_equal(TR_false, "a1".TR_is_alpha())
+    TR_assert_equal(TR_false, "a b".TR_is_alpha())
+    TR_assert_equal(TR_false, "".TR_is_alpha())
+    TR_assert("2026".TR_is_digit())
+    TR_assert("٣".TR_is_digit())
+    TR_assert_equal(TR_false, "²".TR_is_digit())
+    TR_assert_equal(TR_false, "-1".TR_is_digit())
+    TR_assert_equal(TR_false, "1.5".TR_is_digit())
+    TR_assert_equal(TR_false, "".TR_is_digit())
+    TR_assert(" \t\n".TR_is_space())
+    TR_assert("\u{3000}".TR_is_space())
+    TR_assert_equal(TR_false, "a b".TR_is_space())
+    TR_assert_equal(TR_false, "".TR_is_space())
+    TR_assert_equal(" \t\n\u{3000}".TR_is_space(), " \t\n\u{3000}".TR_split().TR_length == 0)
+}
