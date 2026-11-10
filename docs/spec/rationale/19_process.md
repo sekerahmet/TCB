@@ -30,9 +30,12 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
   - **GitHub Actions Runner:** maske satır başınadır; birden çok satıra yayılan gizli değer satır satır kaydedilmezse maskelenmez [kanıtsız: bu tur açılmadı].
   - **Ekranın sözleşmesi** (`tools/assistant/contract.md`, "Parçalı akış"): sunucu metnin sonundan en uzun gizli değer kadarını geri tutar. TR programına bu boyu veren bir araç yoktu (`VM.LongestSecret` yalnız Go'da).
 - *Gerekçe:*
-  - Dil modelinin cevabı token token gider; 20 karakterlik bir anahtar hemen her zaman iki ya da daha çok parçaya bölünür. Olay başına maske bu yüzden asıl kullanımda hiç çalışmazdı (DENETİM 356 Ş4, kritik).
+  - Dil modelinin cevabı token token gider; 20 karakterlik bir anahtar hemen her zaman iki ya da daha çok parçaya bölünür [tahmin: parçalayıcının ortalama parça boyu birkaç karakter; ölçülmedi]. Olay başına maske bu yüzden asıl kullanımda hiç çalışmazdı (DENETİM 356 Ş4, kritik).
   - Programa yalnız en uzun gizli değerin boyunu vermek geri tutmayı her programa yeniden yazdırırdı: ajan tutma ile maskenin sırasını ya da sonu göndermeyi kaçırır, kaçırması sessizdir. Akış nesnesi işi tek yerde yapar, sözü testle sabitlenir.
   - Tutulan, en uzun gizli değerin tamamı değil, bir gizli değerin başı olabilecek en uzun sondur: gizli değer yoksa ya da metnin sonu hiçbir gizli değerle başlamıyorsa gecikme olmaz.
+  - Tutma kuralı toplu maskenin kararından çıkar, "sonu bir gizli değerin başı olan kısım" sezgisinden değil: önce maskeleyip sonu tutmak kısa bir gizli değeri uzun olanın içinde erken maskeler; ham sonu tutup öncesini maskelemek sonu öbür değerin başı olan bir gizli değeri hiç maskelemez. İki sezgisel okunuş 200 000 rastgele denemede 28 ve 32 879 kez toplu maskeden ayrıldı, ikincisi 32 743 kez bütün bir gizli değeri açıkta bıraktı; 19.4a'nın kuralı hiç ayrılmadı [ölçüldü: DENETİM 373, Go `strings.Replacer` benzetimi]. Örtüşme kuralı bu yüzden 19.4'e yazıldı.
+  - Maske 16.3a'nın çözme akışına konmadı: `.TR_step`'in sonucu programın verisidir (araç çağrısının argümanındaki anahtar gerçek kalmalı, 19.4 "veri değişmez"), uzaktaki modelin API akışı da 16.3a'dan geçmez.
+  - Terminalde de kendiliğinden tutulmaz: `TR_print` her çağrıyı satır olarak yazar, iki satıra bölünen değer bir metin değildir; parçayı satır sonu olmadan yazan programın tutmasını VM bilemez.
   - Kendiliğinden (olay akışının içinde) geri tutmak olmazdı: iki olayın hangi metinlerinin birleşeceğini (`append`) yalnız program bilir; motorun olayın verisini bölmesi 19.4'ün "veri değişmez"iyle çatışırdı.
   - Akış sürerken eklenen gizli değerin önceden verilmiş başını hiçbir yol geri alamaz; söz bunu açıkça dışarıda bırakır.
 

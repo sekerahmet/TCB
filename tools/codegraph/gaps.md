@@ -83,6 +83,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 - **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi. Denetim: onay (satırlar bir kaymış: `other_os.go:43`). **Bekliyor: çekirdek değişikliği** (işleç alanlarının `lexer.TokenType` olması); CODEGRAPH'a gitmedi.
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu. Beklenen: yalnız işleci kastedenler; tip süzgeci, AST'nin işleç alanları `TokenType` olduktan sonra.
+- **Tipi bilinmeyen alıcının üyesi adla başka bir kitaplık tipine çözülüyor (2026-11-10, DENETİM 373 N5).** Altın dosyada 19.4a'nın örneğindeki `TR_MaskStream` alıcısı `tr/training`'in `TR_type_Run`'ının bitirme metoduna çözülüyor; 16.3a'nın çözme akışı da aynı [kanıtlı: `member_spellings.txt`]. Sınıf ince ayar; çare tipi bilinmeyen alıcıda aday listesi.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 

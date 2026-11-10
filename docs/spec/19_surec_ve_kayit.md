@@ -44,12 +44,13 @@ TR_print(ayar.adım)
 - `TR_secret_token()`'ın değeri ve `TR_token:`'a verilen değer de gizlidir (28.2, 28.2a).
 - Yalnız sayı ya da mantık değeri olan değer (`--max_tokens 131072`) gizli sayılmaz, belirteç dışında (28.2): maskelemek bütün sayı çıktılarını bozardı.
 - En az 6 karakterli gizli değer **insanın göreceği çıktılarda** `***` olarak görünür: `TR_print`'in çıktısı, hata iletileri ve kod çerçevesi, uyarılar, ilerleme çubuğu, günlük dosyası (başlangıç kaydındaki ayarlar dahil), iş durumu dosyası (19.11), yardım çıktısı, hata ayıklayıcının değişken görünümü, düzenleyicinin İzleme Masası ve HTTP sunucusunun olay akışı (28.7).
+- Gizli değerler örtüşürse metin soldan taranır; bir konumda eşleşen en uzun gizli değer bütünüyle maskelenir, içi yeniden taranmaz.
 - **Veri değişmez:** değişkenin değeri, `TR_json_string` ve dosya yazıcıları (`TR_write_file`, `TR_write_lines`) gerçek değeri taşır; dosyaya yazılan gizli değer `TR_owner_only: TR_true` ister (18.13). Eşleşme maskeyle aynıdır, güvence değildir. Düz HTTP cevabının gövdesi de veridir (28.3).
 - Bu, sızıntıyı azaltır ama güvence değildir: değer dönüştürülünce (dilim, ters çevirme) eşleşme kaybolur. Gizli değer argümanla değil ortam değişkeniyle verilir.
 - *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; `TR_owner_only:` (18.13) `TestWriteFileSecretNeedsOwnerOnly`; belirteç (28.2, 28.2a) `TestTokenIsChecked`, `TestSecretToken`; olay akışı (28.7) gerekmez, henüz uygulanmadı.
 
-**19.4a** `TR_mask_stream()` bir `TR_MaskStream` verir: parça parça gelen metni insanın göreceği çıktıya maskeli verir. Olay başına maske (28.7) iki parçaya bölünen gizli değeri görmez; dil modelinin parça parça ürettiği metin böyle bölünür.
-- `.TR_step(parça)` gösterilebilecek metni verir: tuttuğu metinle parçayı birleştirir, gizli değerleri `***` yapar ve sonunda bir gizli değerin başı olabilecek en uzun kısmı tutar. Tutulan, en uzun gizli değerden kısadır; gizli değer yoksa hiçbir şey tutulmaz.
+**19.4a** `TR_mask_stream()` bir `TR_MaskStream` verir: parça parça gelen metni insanın göreceği çıktıya maskeli verir. Maske her çıktıya ayrı uygulanır: iki `TR_print` çağrısına ya da iki olaya (28.7) bölünen gizli değeri görmez; dil modelinin parça parça ürettiği metin böyle bölünür. Parçaları `TR_print`'le, olay akışıyla ya da başka bir insan çıktısıyla gösteren program onları önce bu akıştan geçirir.
+- `.TR_step(parça)` tuttuğu metinle parçayı birleştirir ve 19.4'ün maskesinin kararı kesinleşen başını maskeli verir. Tutulan, metin soldan taranırken maskelenmemiş ilk konumdan başlayan ve daha uzun bir gizli değerin eksik başı olan sondur. Tutulan, en uzun gizli değerden kısadır; gizli değer yoksa hiçbir şey tutulmaz.
 - `.TR_finish()` tutulanı maskeleyip verir. Sonra `.TR_step` hatadır.
 - `parça` bir `TR_String`'dir; başka tip çağrı hatasıdır.
 - **Söz:** bir akıştaki bütün `.TR_step` ve `.TR_finish` sonuçlarının birleşimi, parçaların birleşiminin 19.4'e göre maskesidir. Söz, akış açıkken yeni gizli değer eklenmezse geçerlidir; sonradan eklenen değerin daha önce verilmiş başı geri alınamaz.
@@ -57,6 +58,7 @@ TR_print(ayar.adım)
 
 ```tr
 # TR 4
+# ortamda ANAHTAR=abcdef12 varsa gösterilen "anahtar: *** bitti" olur
 TR_var m = TR_mask_stream()
 TR_var gösterilen = ""
 TR_for parça TR_in ["anahtar: ab", "cdef12", " bitti"] {

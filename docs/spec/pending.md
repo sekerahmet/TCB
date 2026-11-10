@@ -11,11 +11,13 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
+(şu an yok)
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 
 - **19.4a ve 28.7, parça parça giden metnin maskesi (2026-11-10, TCB; kritik, DENETİM 356 Ş4):** olay başına maske iki olaya bölünen gizli değeri görmüyordu. Karar: `TR_mask_stream()` bir `TR_MaskStream` verir; `.TR_step(parça)` maskeli ve gösterilebilir metni verir, bir gizli değerin başı olabilecek en uzun sonu tutar; `.TR_finish()` kalanı verir; sözü birleşimin toplu maskeyle aynı olması (16.3a'nın kalıbı). 28.7 parça parça metin gönderen programı ona yönlendirir. Turda denetlenecek: ad, sözün sınırı (akış açıkken eklenen gizli değer).
-- **28.3, `204`/`304` gövdesi ve sunucunun başlıkları (2026-11-10, TCB; ara, DENETİM 371 S5):** `204`/`304` ile boş olmayan gövde, `Content-Length`, `Transfer-Encoding` ve `Connection` başlığı cevap kurulurken çalışma hatası. Turda denetlenecek: `Connection: close`'u isteyen meşru bir işleyici var mı.
+- **28.3, `204`/`304` gövdesi ve sunucunun başlıkları (2026-11-10, TCB; ara, DENETİM 371 S5):** `204`/`304` ile boş olmayan gövde, `Content-Length`, `Transfer-Encoding` ve `Connection` başlığı cevap kurulurken çalışma hatası. Turda denetlenecek: `Connection: close`'u isteyen meşru bir işleyici var mı: DENETİM 373 "evet" dedi, `Connection: close` geçerli, öbür değerler hata; `205` de listeye girdi.
+
 **Tur 1 bitti (2026-11-01):** 2026-10-28'in 24 geçici kararı ve dört bulgu Gemini'nin araştırmasından (`TUR1_RAPORU.md`, 23 kabul, 5 değiştir) ve DENETİM'in kaynak denetiminden (14/14 alıntı birebir) geçti. Kabul edilenler ve yazılanlar (3.7a karşılaştırması, 18.2'nin örneği, 6.3'ün gerekçesi; 2026-11-01 20:1x'te 3.6a ile 5.3 ve 6.3'ün demet açması, 3.14'ün kaçış ve bayt dizisi şablonu) bu listeden silindi; 8.5 ve 16.5 uygulama işi olarak status'a geçti. Kalan 13.8 aşağıda.
 
 **Tur 2 bitti (2026-11-01):** beş kritik geçici satır (10.2'nin ikisi, 15.47a, 20.5 ve 20.17, 3.14 ve 8.3) ve yedi olağan bulgu Gemini'nin araştırmasından (`TUR2_RAPORU.md`: 4 kabul, 6 öneri kabul, 20.5/20.17 değiştir, 8.5 öneri değiştir) ve DENETİM'in kaynak denetiminden (`kol-denetim-tur2-rapor-sonuc.md`: yerel 13/13, dış 16/16 alıntı birebir; 20.5'i genişletti) geçti; kararlar dil tanımına yazıldı, satırlar silindi, uygulama işleri status'ta. Kalan 13.8 aşağıda.
@@ -39,6 +41,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 
+- **19.4a ve 28.7, unutulan maskeyi yakalamak (2026-11-10, DENETİM 373 S1):** program parçaları `TR_mask_stream()`'den geçirmeyi unutursa sızıntı sessiz kalır. Öneri: olay akışı ardışık iki olayın aynı JSON yolundaki metin yapraklarının sonunu tutar; birleşimde gizli değer çıkarsa yeni olaydaki kalanı maskeler ve standart hataya kodlu uyarı yazar (OpenAI biçiminde yol sabit: `choices[0].delta.content`). Başı gitmiştir ama sızıntı sessiz kalmaz. Turda tartılır.
+- **28.3, sunucunun öbür başlıkları (2026-11-10, DENETİM 373 N3):** `Trailer`, `Upgrade`, `Keep-Alive` aynı soruyu taşıyor [hipotez: sınanmadı]; TR `Content-Length` yazdığı için bildirilen trailer hiç gitmez [hipotez].
 - **28.2, 28.4, 28.5, 28.9, HTTP aşama 1'in olağan dört sorusu (2026-11-10, HTTP aşama 1 devri, DENETİM 371):** (1) 28.2 IP olmayan adı söylemiyor; uygulama reddediyor (H7622), adın çözümü döngü adresine varabilir. (2) 28.4 ve 28.9: Go'nun sunucu günlüğü kodlu iletiye çevrilirken işletim sisteminin metnini taşıyabilir; "yazarken kopan istemci" kodlu hata mı, yalnız görevin sonu mu, metin ikisini birden söylüyor. (3) 28.3: başlık değerinde yatay sekme (HTAB) denetim karakteri sayılıp reddediliyor; RFC 9110 alan değerinde kabul ediyor. (4) 28.5: gövde belleği bağlantı başınadır, toplamı sınırlamak programın işidir (`TR_max_concurrent:` gövde yüklemesini saymaz) cümlesi.
 - **8.5 ile 8.6, kodsuz hatanın gösterimi (2026-11-09, DENETİM 361 S1):** 8.5 "düz metin hatanın kodu yoktur" diyor; 8.6 gösterilen hatanın kodu ve iletisiyle bittiğini söylüyor, kodsuz hatayı söylemiyor. Motor yakalanmayan düz metin hatayı H2441 ile gösteriyor (`internal/lang/interp/error_value.go:87`), örnek testi bunu sınıyor [kanıtlı: DENETİM 361]. Turun sorusu: kodsuz hata kodsuz satırla mı, H2441'le mi gösterilir.
 - **28.8 ile 10.9, sunucuyu açan görevin iptali (2026-11-09, DENETİM 356 kapanışı K-N2):** sunucuyu `TR_async` içinde açan görev iptal edilirse ya da gövdesi biterse sunucuya ne olacağını 28.8 de 10.9 da söylemiyor. 10.9 "iptal edilen görevden kimsenin beklemediği görev kalmaz" der; 28.8 yalnız `s.TR_close()`'u, durdurmayı ve program sonunu sayar. Uygulamanın bir adımı buna bağlı değil [hipotez: DENETİM 356]; uygulayıcı karşılaşırsa "Dil tanımına düşenler"e yazar.
