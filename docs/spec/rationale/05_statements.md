@@ -16,6 +16,7 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 - *Emsal:* Python ve Go virgüllü atamada sağ yanı önce hesaplar (`a, b = b, a`); Python liste açarken öğe sayısı tutmazsa hata verir. ([Python 3.15](https://docs.python.org/3/reference/simple_stmts.html#assignment-statements), [Go 1.27](https://go.dev/ref/spec#Assignment_statements))
 - *Gerekçe:* takas ve çoklu ilk değer tek satırda okunur; eksik ya da fazla öğe sessizce kaybolmaz. Gerekmeyen değer için `_` Python alışkanlığıdır (`_, b = f()`, `for _ in range(n)`); `_` okunamadığı için yanlışlıkla kullanılamaz.
+- *Hedeflerin yeri (Tur 6A uygulaması, T1'in sorusu, TCB kararı 2026-11-10):* 5.4'ün "önce hedefin yeri" kuralı her hedefe uygulanır; Go'nun iki evresiyle aynıdır (5.4'ün emsali). Bugünkü motor Python gibi yazarken yeri hesaplıyor: `i, l[i] = 1, 5` `l[1]`'e yazıyor [ölçüldü: TCB, `trlang run` ve Python 3, 2026-11-10]. Python'dan gelen ajan bu yazımda yeni `i`'yi bekler; kural tek başına onu sessizce eski yere yazdırırdı. Fark yalnız yer solda atanan bir adı ya da yolu okuyunca çıkar; o yazım denetimde bilinir ve hata olur. Sağda atanan adda iki sıra aynıdır, bağlı listeyi çeviren deyim geçerli kalır. Ad bilinmeyen takma adla (iki ad aynı nesne) gelen fark denetimde görülemez; kural orada Go'nunkidir.
 
 ### 5.4
 
