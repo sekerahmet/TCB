@@ -1045,6 +1045,7 @@ liste.TR_filter	ok	0	name:TR_mem_filter
 liste.TR_length	ok	0	name:TR_mem_length
 liste.TR_map	ok	0	name:TR_mem_map
 liste.TR_mem_append	not_found	4	-
+liste.TR_reduce	ok	0	name:TR_mem_reduce
 ll.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 ll.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 ll.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
