@@ -1,9 +1,12 @@
 package httpserver
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +26,8 @@ import (
 // görevi bittikten sonra Go'nun goroutine'inde, kilitsiz yazar (listen): halkadan imlecinden sonrakileri
 // okur. Kaçırdığı olay halkadan düşerse ya da bir yazma slowWrite'ı aşarsa yalnız onun bağlantısı
 // kapanır (olay atlanmaz; istemci Last-Event-ID ile yeniden bağlanır). Gönderim ağı beklemez.
+// Olay kimliği yayıncıya özgüdür: "<ön ek>-<sıra>"; ön eki tutmayan Last-Event-ID (başka yayıncının ya da
+// yeniden başlamadan önceki sunucunun kimliği) geri oynatmaz, görüntü verir.
 
 var (
 	nameCapacity = bind.NamedArg(codes.ArgCapacity)
@@ -45,6 +50,7 @@ type EventBroadcast struct {
 	reduce   *interp.FuncVal
 	beat     []byte
 	every    time.Duration
+	prefix   string // kimliklerin ön eki (newPrefix)
 
 	sem  chan struct{} // yayıncının dışlaması: gönderim ve abonelik
 	snap *interp.JSONVal
@@ -111,7 +117,7 @@ func newBroadcast(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, messages.New(messages.H7638, fn, len(reduce.Parameters))
 	}
 	b := &EventBroadcast{capacity: int(n), reduce: reduce, beat: dataFrame(broadcastBeat), every: heartbeatInterval,
-		sem: make(chan struct{}, 1), snap: snap, listeners: map[chan struct{}]struct{}{}}
+		prefix: newPrefix(), sem: make(chan struct{}, 1), snap: snap, listeners: map[chan struct{}]struct{}{}}
 	if v, ok := bind.GetNamed(named, nameHeartbeat); ok {
 		data, err := eventData(m, v)
 		if err != nil {
@@ -196,7 +202,7 @@ func (b *EventBroadcast) sendEvent(m *interp.VM, args []interp.Value, _ map[stri
 	b.snap = snap
 	b.mu.Lock()
 	b.last++
-	b.ring = append(b.ring, event{id: b.last, frame: idFrame(b.last, data)})
+	b.ring = append(b.ring, event{id: b.last, frame: idFrame(b.prefix, b.last, data)})
 	if len(b.ring) > b.capacity {
 		b.ring = append(b.ring[:0:0], b.ring[len(b.ring)-b.capacity:]...)
 	}
@@ -210,10 +216,21 @@ func (b *EventBroadcast) sendEvent(m *interp.VM, args []interp.Value, _ map[stri
 	return interp.Null, nil
 }
 
-// idFrame kimlikli bir SSE olayıdır: id ve data satırları.
-func idFrame(id int64, data []byte) []byte {
-	f := make([]byte, 0, len(data)+32)
+// newPrefix yayıncının kimlik ön ekidir: kurulurken rastgele 8 bayt, 16 onaltılık karakter. Yeniden
+// üretilemez; yeniden başlayan sunucunun yayıncısı eski kimlikleri kendi aralığında saymaz (sayaç her
+// yayıncıda 1'den başlar, ön eksiz kimlik yeni olayları eski durumun üstüne geri oynatırdı).
+func newPrefix() string {
+	var p [8]byte
+	_, _ = rand.Read(p[:]) // crypto/rand.Read hata dönmez (Go 1.24)
+	return hex.EncodeToString(p[:])
+}
+
+// idFrame kimlikli bir SSE olayıdır: id ("<ön ek>-<sıra>") ve data satırları.
+func idFrame(prefix string, id int64, data []byte) []byte {
+	f := make([]byte, 0, len(data)+len(prefix)+32)
 	f = append(f, "id: "...)
+	f = append(f, prefix...)
+	f = append(f, '-')
 	f = strconv.AppendInt(f, id, 10)
 	f = append(f, "\ndata: "...)
 	f = append(f, data...)
@@ -259,7 +276,7 @@ func (b *EventBroadcast) subscribe(m *interp.VM, args []interp.Value, _ map[stri
 		if err != nil {
 			return nil, err
 		}
-		sub.frames = [][]byte{idFrame(sub.cursor, data)}
+		sub.frames = [][]byte{idFrame(b.prefix, sub.cursor, data)}
 	}
 	h := newHeaders()
 	h.add("Content-Type", "text/event-stream; charset=utf-8")
@@ -267,19 +284,21 @@ func (b *EventBroadcast) subscribe(m *interp.VM, args []interp.Value, _ map[stri
 	return &Response{status: http.StatusOK, headers: h, stream: &streamSpec{sub: sub, beat: b.beat, every: b.every}}, nil
 }
 
-// replayFrom Last-Event-ID'yi okur (b.mu tutulurken): pozitif bir tam sayıysa ve saklananların bir
-// öncesinden son kimliğe kadarsa geri oynatılır. Yoksa, sayı değilse ya da dışındaysa görüntü.
+// replayFrom Last-Event-ID'yi okur (b.mu tutulurken): bu yayıncının ön ekini ve pozitif bir sırayı
+// taşıyorsa ve sıra saklananların bir öncesinden son kimliğe kadarsa geri oynatılır. Yoksa, ön ek
+// başkasınınsa, sıra sayı değilse ya da dışındaysa görüntü.
 func (b *EventBroadcast) replayFrom(req *Request) (int64, bool) {
 	s, ok := req.headers.get("Last-Event-ID")
-	if !ok || s == "" || len(s) > 18 {
+	n, found := strings.CutPrefix(s, b.prefix+"-")
+	if !ok || !found || n == "" || len(n) > 18 {
 		return 0, false
 	}
-	for _, c := range s {
+	for _, c := range n {
 		if c < '0' || c > '9' {
 			return 0, false
 		}
 	}
-	id, _ := strconv.ParseInt(s, 10, 64)
+	id, _ := strconv.ParseInt(n, 10, 64)
 	oldest := b.last + 1
 	if len(b.ring) > 0 {
 		oldest = b.ring[0].id

@@ -64,20 +64,42 @@ func subscribeRaw(t *testing.T, ts *testServer, method, header string) (*http.Re
 	return res, bufio.NewReader(res.Body), c
 }
 
-// frame bir SSE olayını okur (boş satıra kadar, sonu dahil).
+// frame bir SSE olayını okur (boş satıra kadar, sonu dahil); kimliğin yayıncı ön eki readFrame'de atılır.
 func frame(t *testing.T, br *bufio.Reader) string {
 	t.Helper()
+	f, err := readFrame(br)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+// rawFrame bir SSE olayını olduğu gibi okur.
+func rawFrame(br *bufio.Reader) (string, error) {
 	var b strings.Builder
 	for {
 		line, err := br.ReadString('\n')
 		b.WriteString(line)
 		if err != nil {
-			t.Fatalf("olay okunamadı (%q): %v", b.String(), err)
+			return b.String(), fmt.Errorf("olay okunamadı (%q): %v", b.String(), err)
 		}
 		if line == "\n" {
-			return b.String()
+			return b.String(), nil
 		}
 	}
+}
+
+// stripPrefix kimlik satırının ön ekini (16 onaltılık karakter ve "-") denetler ve atar: beklentiler
+// "id: 3" yazar; ön ekin kendisini TestBroadcastIDsBelongToTheirBroadcaster sınar. Kimliksiz olay aynen döner.
+func stripPrefix(f string) (string, error) {
+	rest, ok := strings.CutPrefix(f, "id: ")
+	if !ok {
+		return f, nil
+	}
+	if len(rest) < 17 || rest[16] != '-' || strings.Trim(rest[:16], "0123456789abcdef") != "" {
+		return f, fmt.Errorf("kimliğin ön eki yok ya da biçimi yanlış: %.60q", f)
+	}
+	return "id: " + rest[17:], nil
 }
 
 // frameID olayın kimliğidir; yoksa -1.
@@ -98,9 +120,9 @@ func frameData(f string) string {
 const counting = `TR_var y = TR_EventBroadcast(TR_capacity: %d, TR_snapshot: TR_JSON(0), TR_reduce: (g, olay) => TR_JSON(TR_Int(g) + 1))`
 
 // TestBroadcastWireFormat: yayın olayı id ve data satırıdır, veri maskeli JSON'dur (sözlük anahtarı da);
-// görüntü tek olaydır, kimliği son kimlik, olay yoksa 0; Last-Event-ID: 0 yine görüntü verir (28.7 (f)).
+// görüntü tek olaydır, kimliği son kimlik, olay yoksa 0; Last-Event-ID: <ön ek>-0 yine görüntü verir (28.7 (f)).
 func TestBroadcastWireFormat(t *testing.T) {
-	ts, _ := broadcastServer(t, fmt.Sprintf(counting, 10), "")
+	ts, b := broadcastServer(t, fmt.Sprintf(counting, 10), "")
 	ts.vm.AddSecret("gizli-deger-123")
 	res, br, _ := subscribeRaw(t, ts, "GET", "")
 	if res.Header.Get("Content-Type") != "text/event-stream; charset=utf-8" || res.Header.Get("Cache-Control") != "no-cache" {
@@ -118,7 +140,7 @@ y.TR_send_event({"gizli-deger-123": "x gizli-deger-123"})`); err != nil {
 			t.Fatalf("olay %q, beklenen %q", f, want)
 		}
 	}
-	for _, h := range []string{"", "Last-Event-ID: 0\r\n"} {
+	for _, h := range []string{"", "Last-Event-ID: " + b.prefix + "-0\r\n"} {
 		_, br2, _ := subscribeRaw(t, ts, "GET", h)
 		if f := frame(t, br2); f != "id: 2\ndata: 2\n\n" {
 			t.Fatalf("%q ile görüntü: %q", h, f)
@@ -127,9 +149,10 @@ y.TR_send_event({"gizli-deger-123": "x gizli-deger-123"})`); err != nil {
 }
 
 // TestBroadcastReplayBounds: Last-Event-ID son kimlikse hiçbir şey gelmez; en eski saklananın bir
-// eksiğiyse hepsi; ondan bir eksikse, son kimlikten büyükse ya da sayı değilse görüntü (28.7).
+// eksiğiyse hepsi; ondan bir eksikse, son kimlikten büyükse, sıra sayı değilse ya da ön ek yoksa görüntü (28.7).
 func TestBroadcastReplayBounds(t *testing.T) {
-	ts, _ := broadcastServer(t, fmt.Sprintf(counting, 3), "")
+	ts, b := broadcastServer(t, fmt.Sprintf(counting, 3), "")
+	p := b.prefix + "-"
 	if err := send(t, ts, `TR_for k TR_in 1..6 { y.TR_send_event({"k": k}) }`); err != nil {
 		t.Fatal(err)
 	}
@@ -140,8 +163,9 @@ func TestBroadcastReplayBounds(t *testing.T) {
 		last string
 		want []string
 	}{
-		{"5", nil}, {"2", []string{ev(3), ev(4), ev(5)}}, {"4", []string{ev(5)}},
-		{"1", []string{snapshot}}, {"9", []string{snapshot}}, {"+3", []string{snapshot}}, {"x", []string{snapshot}},
+		{p + "5", nil}, {p + "2", []string{ev(3), ev(4), ev(5)}}, {p + "4", []string{ev(5)}},
+		{p + "1", []string{snapshot}}, {p + "9", []string{snapshot}}, {p + "+3", []string{snapshot}}, {p + "x", []string{snapshot}},
+		{"2", []string{snapshot}}, {p, []string{snapshot}},
 	}
 	var conns []*bufio.Reader
 	for _, c := range cases {
@@ -159,6 +183,48 @@ func TestBroadcastReplayBounds(t *testing.T) {
 				break
 			}
 			got = append(got, f)
+		}
+		if fmt.Sprintf("%q", got) != fmt.Sprintf("%q", c.want) {
+			t.Errorf("Last-Event-ID %s: %q geldi, beklenen %q", c.last, got, c.want)
+		}
+	}
+}
+
+// TestBroadcastIDsBelongToTheirBroadcaster: olay kimliği yayıncının ön ekini taşır; yeniden başlayan
+// sunucunun yeni yayıncısı (sayacı yine 1'den) eski yayıncının kimliğiyle dönen istemciye geri oynatmaz,
+// görüntü verir. Kendi kimliğiyle dönen kaçırdıklarını alır (28.7; DENETİM 387 N2).
+func TestBroadcastIDsBelongToTheirBroadcaster(t *testing.T) {
+	old, ob := broadcastServer(t, fmt.Sprintf(counting, 10), "")
+	cur, cb := broadcastServer(t, fmt.Sprintf(counting, 10), "")
+	if ob.prefix == cb.prefix {
+		t.Fatalf("iki yayıncının ön eki aynı: %q", ob.prefix)
+	}
+	for _, ts := range []*testServer{old, cur} {
+		if err := send(t, ts, `TR_for k TR_in 1..4 { y.TR_send_event({"k": k}) }`); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, c := range []struct {
+		ts     *testServer
+		prefix string
+	}{{old, ob.prefix}, {cur, cb.prefix}} {
+		_, br, _ := subscribeRaw(t, c.ts, "GET", "")
+		if f, err := rawFrame(br); err != nil || !strings.HasPrefix(f, "id: "+c.prefix+"-3\n") {
+			t.Fatalf("görüntünün kimliği yayıncının ön ekini taşımalı (%q): %q %v", c.prefix, f, err)
+		}
+	}
+	cases := []struct {
+		last string
+		want []string
+	}{
+		{ob.prefix + "-1", []string{"id: 3\ndata: 3\n\n"}},
+		{cb.prefix + "-1", []string{"id: 2\ndata: {\"k\":2}\n\n", "id: 3\ndata: {\"k\":3}\n\n"}},
+	}
+	for _, c := range cases {
+		_, br, _ := subscribeRaw(t, cur, "GET", "Last-Event-ID: "+c.last+"\r\n")
+		var got []string
+		for range c.want {
+			got = append(got, frame(t, br))
 		}
 		if fmt.Sprintf("%q", got) != fmt.Sprintf("%q", c.want) {
 			t.Errorf("Last-Event-ID %s: %q geldi, beklenen %q", c.last, got, c.want)
@@ -220,17 +286,11 @@ TR_sleep(0.001) }`, total+1))
 
 // readFrame frame'in hata dönen biçimidir (goroutine'de t.Fatal yok).
 func readFrame(br *bufio.Reader) (string, error) {
-	var b strings.Builder
-	for {
-		line, err := br.ReadString('\n')
-		b.WriteString(line)
-		if err != nil {
-			return b.String(), fmt.Errorf("olay okunamadı (%q): %v", b.String(), err)
-		}
-		if line == "\n" {
-			return b.String(), nil
-		}
+	f, err := rawFrame(br)
+	if err != nil {
+		return f, err
 	}
+	return stripPrefix(f)
 }
 
 // TestBroadcastFoldSleepMakesOthersWait: katlama kilidi bırakırsa (TR_sleep) öbür gönderen ve abone
@@ -363,7 +423,7 @@ func TestSlowListenerOnlyItsConnectionCloses(t *testing.T) {
 	old := slowWrite
 	slowWrite = 200 * time.Millisecond
 	t.Cleanup(func() { slowWrite = old })
-	ts, _ := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 1000, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)
+	ts, b := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 1000, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)
 TR_var parça = "a" * 262144`, "")
 	_, slow, sc := subscribeRaw(t, ts, "GET", "")
 	_ = sc.(*net.TCPConn).SetReadBuffer(4096)
@@ -411,7 +471,7 @@ TR_var parça = "a" * 262144`, "")
 	if last >= total {
 		t.Fatalf("yavaş dinleyicinin bağlantısı kapanmalıydı, %d olayın hepsini aldı", total)
 	}
-	_, back, _ := subscribeRaw(t, ts, "GET", "Last-Event-ID: "+strconv.FormatInt(last, 10)+"\r\n")
+	_, back, _ := subscribeRaw(t, ts, "GET", "Last-Event-ID: "+b.prefix+"-"+strconv.FormatInt(last, 10)+"\r\n")
 	for k := last + 1; k <= total; k++ {
 		if f := frame(t, back); frameID(f) != k {
 			t.Fatalf("geri dönen dinleyici %d bekliyordu (son aldığı %d): %.40q", k, last, f)

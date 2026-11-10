@@ -11,7 +11,7 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
-(şu an yok)
+- **28.7, yeniden başlayan yayıncıda `Last-Event-ID` (2026-11-10, DENETİM 387 sorusu):** yeni yayıncının kimlikleri 1'den başlıyor; eski kimlikle dönen istemci yeni olayları eski durumun üstüne oynatıyor (sessiz yanlış). Karar (TCB, aynı gün): olay kimliği yayıncıya özgüdür, kimliğin başında yayıncı kurulurken üretilen bir ön ek; ön eki tutmayan `Last-Event-ID` geri oynatmaz, görüntü verir. Uygulama HTTP aşama 2'nin dalında (Dost Interface), 28.7'nin cümlesi birleşmeyle birlikte TCB'den. Ön ek koşudan koşuya değişir ama yalnız telde: TR programı kimliği görmez (gönderim boş değer döner), programın sonucu aynı kalır; yeniden üretilebilen bir ön ek sessiz yanlışı geri getirirdi.
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 

@@ -120,32 +120,50 @@ func TestTimeoutsCloseTheConnection(t *testing.T) {
 	headerTimeout, idleTimeout, bodyReadGap = 200*time.Millisecond, 200*time.Millisecond, 200*time.Millisecond
 	t.Cleanup(func() { headerTimeout, idleTimeout, bodyReadGap = oldH, oldI, oldB })
 	ts := serveGo(t, "", ok200)
-	cases := map[string]string{
-		"başlık": "GET / HTTP/1.1\r\nHost: " + ts.addr() + "\r\n",
-		"gövde":  "POST / HTTP/1.1\r\nHost: " + ts.addr() + "\r\nContent-Length: 10\r\n\r\nab",
-		"boşta":  "GET / HTTP/1.1\r\nHost: " + ts.addr() + "\r\n\r\n",
+	limited := serveGo(t, ", TR_max_body_bytes: 10", ok200)
+	tokened := serveGo(t, `, TR_token: "abcdefghijklmnop"`, ok200)
+	head := func(s *testServer, method, path, rest string) string {
+		return method + " " + path + " HTTP/1.1\r\nHost: " + s.addr() + "\r\n" + rest
 	}
-	for name, req := range cases {
-		c, err := net.DialTimeout("tcp", ts.addr(), 5*time.Second)
+	// Süreyle kapananlar ~200 ms bekler; gövdesi okunmadan reddedilenler cevaptan hemen sonra kapanır,
+	// istemci gövdeyi göndermeden sussa da (öncesinde 5 saniyelik istemci sınırına kadar asılı kalıyordu).
+	cases := []struct {
+		name  string
+		s     *testServer
+		req   string
+		first string // cevabın ilk satırı; boşsa cevap yok
+		timed bool
+	}{
+		{"başlık", ts, head(ts, "GET", "/", ""), "", true},
+		{"gövde", ts, head(ts, "POST", "/", "Content-Length: 10\r\n\r\nab"), "", true},
+		{"boşta", ts, head(ts, "GET", "/", "\r\n"), "HTTP/1.1 200", true},
+		{"413, Content-Length sınırı aşıyor, gövde yok", limited, head(limited, "POST", "/", "Content-Length: 100\r\n\r\n"), "HTTP/1.1 413", false},
+		{"413, chunked sınırı aşıp susuyor", limited, head(limited, "POST", "/", "Transfer-Encoding: chunked\r\n\r\n14\r\n"+strings.Repeat("a", 20)+"\r\n"), "HTTP/1.1 413", false},
+		{"401, belirteçsiz, gövde yok", tokened, head(tokened, "POST", "/", "Content-Length: 100\r\n\r\n"), "HTTP/1.1 401", false},
+		{"400, geçersiz yol, gövde yok", ts, head(ts, "POST", "/a/../b", "Content-Length: 100\r\n\r\n"), "HTTP/1.1 400", false},
+		{"403, başka Host, gövde yok", ts, "POST / HTTP/1.1\r\nHost: example.com\r\nContent-Length: 100\r\n\r\n", "HTTP/1.1 403", false},
+	}
+	for _, tc := range cases {
+		c, err := net.DialTimeout("tcp", tc.s.addr(), 5*time.Second)
 		if err != nil {
 			t.Fatal(err)
 		}
 		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 		start := time.Now()
-		if _, err := io.WriteString(c, req); err != nil {
+		if _, err := io.WriteString(c, tc.req); err != nil {
 			t.Fatal(err)
 		}
 		got, _ := io.ReadAll(bufio.NewReader(c)) // bağlantı kapanınca biter; 5 saniyede kapanmazsa süre hatası
 		d := time.Since(start)
 		c.Close()
-		if d > 3*time.Second || d < 150*time.Millisecond {
-			t.Errorf("%s: bağlantı %v sonra kapandı, ~200 ms bekleniyordu", name, d)
+		if d > 3*time.Second || (tc.timed && d < 150*time.Millisecond) {
+			t.Errorf("%s: bağlantı %v sonra kapandı", tc.name, d)
 		}
-		if answered := strings.HasPrefix(string(got), "HTTP/1.1 200"); answered != (name == "boşta") {
-			t.Errorf("%s: cevap %q", name, got)
+		if line, _, _ := strings.Cut(string(got), "\r\n"); !strings.HasPrefix(line, tc.first) || (tc.first == "") != (len(got) == 0) {
+			t.Errorf("%s: cevap %q, ilk satır %q bekleniyordu", tc.name, got, tc.first)
 		}
 	}
-	if ts.calls.Load() != 1 {
-		t.Fatalf("işleyici yalnız tam gelen istekte çağrılmalı: %d", ts.calls.Load())
+	if ts.calls.Load() != 1 || limited.calls.Load() != 0 || tokened.calls.Load() != 0 {
+		t.Fatalf("işleyici yalnız tam gelen istekte çağrılmalı: %d %d %d", ts.calls.Load(), limited.calls.Load(), tokened.calls.Load())
 	}
 }
