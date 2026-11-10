@@ -26,6 +26,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 **Ö0, sırayla:**
 1. 13'ün yerleşiklerinin sessiz yanlışları (DENETİM istek 81, önem taraması teslim 3): 2a (`654c2459`) ve 2b birleşti; modülün içinden yazılan göreli yolun modül klasörüne düşmesi (13.1a, diskte veri eziyor) iki teslimin listesinde yok.
 2. 15.6d, yerinde yazma kopyadan geçmez (A; T1; DENETİM 342 Ş4): hedef zincirinde kopya veren adımın hatası, denetleyici ve çalışma anı. İletinin önerisi `.TR_select` ve tensörle indekse yazmaya (15.6d'nin E satırları) bağlı; o gelene kadar H7042'nin çalışan döngüsü.
+3. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
 Sonra Ö2: 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14, 15.1'in öğe cinsi. Kol A: 8.5'in işletim sistemi hatası (DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı.
@@ -614,7 +615,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.6d
 
-- **Yapılacaklar (D, Ö3; sahip T1; Tur 6B, 2026-11-10):** cinsli hedefe liste değer (`t[0..2] = [1, 2]`) denetim hatası olur, ileti `TR_Tensor(...)`'ı önerir; bugün çalışırken H6966 [ölçüldü: DENETİM istek 57]. Tensörle indekste eksi indeks motorda zaten H6694 [ölçüldü: TCB, 14:34].
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 168, 393 Ş1):** atamada değer hedefe yayınlanır (15.6d): `t[0..2] = TR_Tensor([7.0])` bugün H6719, `t` değişmiyor; sayı değer yayınlanıyor (`[4.0, 4.0, 30.0]`) [ölçüldü: DENETİM 393].
+- **Yapılacaklar (D, Ö3; sahip T1; Tur 6B, 2026-11-10):** cinsli hedefe liste değer denetim hatası olur, ileti `TR_Tensor(...)`'ı önerir. Bugün ondalık tensörde `t[0..2] = [8.0, 9.0]` hatasız yazıyor (`[8.0, 9.0, 30.0]`), tam sayıda `u[0..2] = [7, 8]` H6966 [ölçüldü: DENETİM 393]. Tensörle indekste eksi indeks motorda zaten H6694 [ölçüldü: TCB, 14:34].
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM istek 172):** kural var, motorda açık hata: tensörle indekse yazma. Satır yazan tensör işlemi, yinelenen indeks denetimi, 16 bitte birikim, `t[m]`, kart yolu.
 - **Yapılacaklar (A, Ö0; sahip T1; DENETİM istek 172, 340 Ş4):** `t[idx][0] = 9.0` ve `t[idx][0] += 5.0` kopyaya yazıyor, `t` değişmiyor, çıkış 0 [ölçüldü: T1, DENETİM 172; TCB, `0a8073a4`, 2026-11-09]. Aynı kayıp `(t * 2.0)[0] = 9.0`, hassasiyet dönüşümünün (`.TR_to_dtype`) sonucunda ve `TR_Tensor(t)[0] = 9.0`'da [ölçüldü: DENETİM 342, `072d84ee`]. 15.6d 2026-11-09'da bunu yasakladı (kritik; Tur 5'te kesinleşti): hedef zincirinde kopya veren adım denetim hatası, tip bilinmiyorsa çalışma anında. İleti anlamı koruyan çalışan yazımı önerir; `.TR_select` ve tensörle indekse yazma (H7042, aşağıda) gelene kadar H7042'nin döngüsü. Tur 5 (DENETİM 352) aynı kurala `TR_write_slice`'ın hedefini kattı: `TR_write_slice(t[idx], …)` `f312d906`'da 15.8'in yalnız bitişiklik denetiminden (`internal/stdlib/ml/builtin_replay.go`, `IsContiguous`) geçiyor, yazılan kopyada kalıyor [kanıtlı: DENETİM 352].
 - **Mevcut durum:**
@@ -721,7 +723,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.23a
 
-- **Yapılacaklar (A, Ö0; sahip T1, Tur 6A'dan sonraki dilim; Tur 6B, 2026-11-10):** sınıf hedefinin şekli tam denetlenir, `TR_linear_cross_entropy`'de de; bugün yalnız öğe sayısı: `[2, 3, 4]` logite devrik `[3, 2]` hedef hatasız, kayıp 1.3893125, doğrusu 1.751252 [ölçüldü: DENETİM 388]. Göç: örnek 35 ve 36 hedefi düz kuruyor; öbür çağrılar (`.tr`'de 44, Go'da 25 satır [ölçüldü: DENETİM 388, `git grep -c`]) kuraldan önce sayılır. H3045 beklenen şekli söyler.
+- **Yapılacaklar (A, Ö0, 3. sıra; sahip T1, Tur 6A'dan sonraki dilim; Tur 6B, 2026-11-10):** sınıf hedefinin şekli tam denetlenir, `TR_linear_cross_entropy`'de de; bugün yalnız öğe sayısı: `[2, 3, 4]` logite devrik `[3, 2]` hedef hatasız, kayıp 1.3893125, doğrusu 1.751252 [ölçüldü: DENETİM 388]. Göç: örnek 35 ve 36 hedefi düz kuruyor; öbür çağrılar (`.tr`'de 44, Go'da 25 satır [ölçüldü: DENETİM 388, `git grep -c`]) kuraldan önce sayılır. İleti beklenen şekli söyler: H3045'in metni ve parametreleri (bugün `rows` ve `n`) şekle döner ya da yeni kod. Aynı işte belge: `TR_cross_entropy`'nin katalog açıklaması "negatif hedefler yok sayılır" diyor, 15.23a'ya döner (yalnız `-100`, şekil) [kanıtlı: DENETİM 393, F1'e yakın]; kılavuzun hedef satırı (`docs/guide/04_yapay_zeka_ve_veri.md`, "Sinir ağı") şekli de söyler.
 - **Yapılacaklar:** iki denetim hedefi konağa okuyarak yapılıyor (GPU'da bekler); `TR_replay` kaydındaki cihaz içi bayrak 15.6'nın bayrağıyla gelir (bugün kayıtta cihazdan okuma H4065 [hipotez: `internal/compute/gpu/backend_memory.go:181`; GPU'suz ölçülmedi]).
 
 ### 15.23b
@@ -731,7 +733,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.23c
 
-- **Yapılacaklar (A, Ö1; sahip T1; Tur 6B, 2026-11-10):** `TR_conv1d`'de sapma 15.6c'yle birleşir: `x`, `w` bf16 ve `b` float32 iken sapma bugün bf16'ya iniyor, sonuç bf16 [ölçüldü: DENETİM 186]; kural sonra float32. Bu türü bekleyen test kuraldan önce aranır (`tests/conv1d_test.tr`).
+- **Yapılacaklar (A, Ö1; sahip T1, Tur 6A'dan sonraki dilim, 15.23a ile; Tur 6B, 2026-11-10):** `TR_conv1d`'de sapma 15.6c'yle birleşir: `x`, `w` bf16 ve `b` float32 iken sapma bugün bf16'ya iniyor, sonuç bf16 [ölçüldü: DENETİM 186]; kural sonra float32. Bu türü bekleyen test kuraldan önce aranır (`tests/conv1d_test.tr`). Belge: `TR_conv1d`'in katalog açıklaması sapmanın türünü söyler.
 - **Mevcut durum:** `TR_conv2d` yok. `TR_conv1d`'in gradyan ölçütü (TCB kararı, DENETİM 186): mutlak sınır en büyük gradyan öğesinin 1e-5 katı; öğe öğe göreli sınırı float64 doğrusu bile geçmiyor.
 - **Yapılacaklar:** `TR_conv2d`; TR testi. Gösterim adları onaylı (Ahmet, 2026-10-29).
 
@@ -1192,12 +1194,12 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 - **Mevcut durum:** hız, 8 iş parçacığı, çevirme süresi: TR özgünün 0,95–1,19 katı, whisper.cpp'nin 2,0–3,9 katı [ölçüldü: S1, üç tur, sıra dönüşümlü]; tek iş parçacığında özgünün 1,31–1,60, whisper.cpp'nin 1,20–1,87 katı [ölçüldü: S1]; `small`'da kodlayıcı 8 iş parçacığında whisper.cpp'nin %11–13 gerisinde, çözücü adımı yaklaşık 5 ve 3 kat yavaş [hesap: S1, DENETİM 199]. Tepe bellek `small` 4,2 GB, özgün 2,0 GB, whisper.cpp 0,66 GB; sebep çöp hızı, canlı bellek pencereyle büyümüyor, çare 15.53 [ölçüldü: S1]. Ölçüt özgünle aynılıktır, doğruluk değil (TCB): kodlayıcıda `TR_rtol: 1e-3`, `TR_atol: 1e-3`, çözücüde 1e-4, ortalama mutlak fark 1e-5'in altında.
 - **Yapılacaklar (E, Ö2; sahip H1):** kodlayıcı ve çözücü adımı. Skaler GELU kodlayıcıda (`small`'da %12) [ölçüldü: S1; çağrı payı hesap: DENETİM 202], adımlı kopya ve matris çarpımı çözücüde; whisper.cpp aynı koşuda ölçülür.
 - **Yapılacaklar (E, Ö3; sahip S1):** dilim dilim, DENETİM istek 178'den geçen yönergeyle.
-- **Yapılacaklar (A [hipotez: gerçek klasörde görülmedi], Ö1; sahip S1; Tur 6B, 2026-11-10):** 25.3'ün çok dillilik kuralı: `is_multilingual` varsa o, yoksa `lang_to_id`; bayrak doğruyken liste yoksa ve ikisi de yokken dağarcık 51865 ya da büyükse açılışta hata. Bugün liste yoksa model tek dilli sayılıyor [kanıtlı: `lib/whisper.tr:339`–`:342`]. Sentetik klasörler (küçük dağarcık) değişmez.
+- **Yapılacaklar (A [hipotez: gerçek klasörde görülmedi], Ö1; sahip S1; Tur 6B, 2026-11-10):** 25.3'ün çok dillilik kuralı: `is_multilingual` varsa o, yoksa `lang_to_id`; bayrak doğruyken liste yoksa ve ikisi de yokken dağarcık 51865 ya da büyükse açılışta hata. Bugün liste yoksa model tek dilli sayılıyor [kanıtlı: `lib/whisper.tr:339`–`:342`]. Sentetik klasörler (küçük dağarcık) değişmez. İleti bayrakla birlikte listeyi de (ya da güncel üretim ayarını) söyler (DENETİM 393 N3). Belge: `lib/README.md`'nin `tr/whisper` "Dosyalar" ve "Kapılar"ı.
 - **Yapılacaklar (D, Ö3; sahip S1; Tur 6B):** 25.1'in dört özel parçası açılışta aranır; bugün ilk çeviride düşüyor (H7099'un öneki `TR_transcribe`) [kanıtlı: `lib/whisper.tr:322`]. TR testi.
 
 ### 25.10–25.17
 
-- **Yapılacaklar (E, Ö2; sahip S1; Jarvis'in söz kesmesi; Tur 6B, 2026-11-10):** 25.13'ün yeni salt okunur özelliği (yeni üye kodu, Türkçe adı konuşmada, tanıdık adı triggered); kesicinin `_tetik`'ini okur [kanıtlı: `lib/vad.tr:148`]. TR testi: tetik açılınca `TR_true`, kesit bitince, bölünüp süren kesitte ve `TR_flush`'tan sonra kuralın değerleri.
+- **Yapılacaklar (E, Ö2; sahip S1; Jarvis'in söz kesmesi; Tur 6B, 2026-11-10):** 25.13'ün yeni salt okunur özelliği (yeni üye kodu, Türkçe adı konuşmada, tanıdık adı triggered); kesicinin `_tetik`'ini okur [kanıtlı: `lib/vad.tr:148`]. 25.12'nin alt sınırı katılaşır: üst sınır baş tamponu artı sessizlikten büyük olmalı (eşitse de H7539). TR testi: tetik açılınca `TR_true`, kesit bitince, bölünüp süren kesitte ve `TR_flush`'tan sonra kuralın değerleri, eşit sınırın hatası. Belge: `lib/README.md`'nin `tr/vad` "Kesit"i.
 - **Yapılacaklar (hız; sahip H1; canlı dinleme):** kısa sözde de Whisper yaklaşık 2,2 saniyeden aşağı inmiyor [ölçüldü]; sebep tam pencere olabilir [hipotez]. Sıradaki adım: profil.
 - **Yapılacaklar (F, Ö3; sahip T1):** çok büyük sessizlik süresi genel taşma iletisi veriyor (H2484) [ölçüldü: T1, DENETİM 245].
 

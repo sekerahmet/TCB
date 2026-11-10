@@ -42,7 +42,7 @@ TR_for k TR_in yazı.TR_segments { TR_print(k.TR_start, k.TR_end, k.TR_text) }
 **25.3** `TR_language:` zorunludur: varsayılan dil, unutulunca sessizce yanlış dilde metin üretirdi.
 - Değer modelin küçük harfli kısa kodudur: `"tr"`, `"en"`, `"yue"`. `<|ad|>` parçası modelin `generation_config.json`'unda yoksa hatadır; `"turkish"` ve `"TR"` de böyledir, ileti küçük harfli kısa kodu önerir.
 - Başlangıç dizisi `<|startoftranscript|>`, dil parçası, `<|transcribe|>`'dır.
-- **Tek dilli mi çok dilli mi, `generation_config.json` söyler:** `is_multilingual` varsa o; yoksa `lang_to_id`'nin varlığı. `is_multilingual` `true` iken `lang_to_id` yoksa açılışta hatadır. İkisi de yokken `vocab_size` 51865 ya da büyükse (özgünün çok dilli dağarcığı) de açılışta hatadır, ileti `is_multilingual`'ı yazmayı söyler: çok dilli bir model sessizce tek dilli sayılırdı.
+- **Tek dilli mi çok dilli mi, `generation_config.json` söyler:** `is_multilingual` varsa o; yoksa `lang_to_id`'nin varlığı. `is_multilingual` `true` iken `lang_to_id` yoksa açılışta hatadır. İkisi de yokken `vocab_size` 51865 ya da büyükse (özgünün çok dilli dağarcığı) de açılışta hatadır, ileti `is_multilingual`'ı ve çok dilliyse `lang_to_id`'yi yazmayı ya da modelin güncel `generation_config.json`'unu almayı söyler: çok dilli bir model sessizce tek dilli sayılırdı.
 - Tek dilli modelde yalnız `"en"` geçerlidir; öbür kod hatadır, sessizce yutulmaz. Başlangıç dizisine dil ve görev parçası girmez.
 - *Test:* TR testi.
 
@@ -122,7 +122,7 @@ TR_for i TR_in 0..ses.TR_shape[1] // 512 {
 - `TR_end_threshold:` verilmezse `min(başlangıç, max(başlangıç - 0.15, 0.01))`;
 - `TR_pre_roll: 0.32`, `TR_silence: 0.6`, `TR_max_speech: 29.0`.
 
-Eşik 0–1 dışında, bitiş eşiği başlangıçtan büyük, süre sıfır, eksi ya da sonlu değilse hatadır. Çerçeveye yuvarlanmış üst sınır, baş tamponu artı sessizlikten küçükse de hatadır (25.13).
+Eşik 0–1 dışında, bitiş eşiği başlangıçtan büyük, süre sıfır, eksi ya da sonlu değilse hatadır. Çerçeveye yuvarlanmış üst sınır baş tamponu artı sessizlikten büyük olmalıdır (25.13): eşit ya da küçükse hatadır, yoksa tetiği açan çerçeve kesiti aynı çağrıda bitirebilirdi.
 - *Test:* TR testi.
 
 **25.13** `k.TR_push(x)` 512 örnek alır; bir kesit bittiyse onu `TR_Tensor` olarak, bitmediyse `TR_none` verir. Örnekler 25.11'den geçer; hata varsa kesitleyici de değişmez.
