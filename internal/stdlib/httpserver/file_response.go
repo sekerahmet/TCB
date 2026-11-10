@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
@@ -41,24 +42,111 @@ func fileResponse(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	return res, nil
 }
 
+// afterResolve yalnız testler içindir: boş değilse yol çözüldükten sonra, dosya açılmadan önce
+// çalışır (28.3a'nın yarış testi arada bir bileşeni bağlantıyla değiştirir).
+var afterResolve func()
+
 // serveFile yolu bileşen bileşen kökün içinde arar; readDir bir klasörün gerçek adlarını verir.
+// Bağlantılar kendi çözücüyle çözülür, çözülmüş yolun kökün içinde olduğuna bakılır ve dosya köke
+// göre göreli hâliyle os.Root'ta açılır: çözme ile açma arasında bir bileşen dışarıyı gösteren bir
+// bağlantıyla değiştirilirse os.Root onu açmaz.
 func serveFile(readDir func(string) ([]fs.DirEntry, error), root, reqPath string) *Response {
 	full, ok := lookup(readDir, root, reqPath)
-	if !ok || !inside(root, full) {
+	if !ok {
 		return notFound()
 	}
-	info, err := os.Stat(full)
-	if err != nil || !info.Mode().IsRegular() {
+	realRoot, ok1 := resolveLinks(root)
+	realFile, ok2 := resolveLinks(full)
+	rel, ok3 := within(realRoot, realFile)
+	if !ok1 || !ok2 || !ok3 {
 		return notFound()
 	}
-	data, err := os.ReadFile(full)
-	if err != nil {
+	if afterResolve != nil {
+		afterResolve()
+	}
+	data, ok := readInRoot(realRoot, rel)
+	if !ok {
 		return notFound()
 	}
 	h := newHeaders()
 	h.add("Content-Type", contentTypeOf(full))
 	return &Response{status: http.StatusOK, body: data, headers: h}
 }
+
+// readInRoot dosyayı kökün içinde os.Root ile açar; boyut ve tür açılan dosyanın Stat'ından okunur.
+func readInRoot(root, rel string) ([]byte, bool) {
+	dir, err := os.OpenRoot(root)
+	if err != nil {
+		return nil, false
+	}
+	defer dir.Close()
+	f, err := dir.Open(rel)
+	if err != nil {
+		return nil, false
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		return nil, false
+	}
+	data := make([]byte, info.Size())
+	if _, err := io.ReadFull(f, data); err != nil {
+		return nil, false
+	}
+	return data, true
+}
+
+// maxLinks bir yolu çözerken izlenen en çok bağlantıdır (Linux'un MAXSYMLINKS'i); aşılırsa 404.
+const maxLinks = 40
+
+// resolveLinks mutlak bir yolun bağlantılarını bileşen bileşen çözer: kipi ModeSymlink ya da
+// ModeIrregular olan bileşen (Windows'ta junction, Go 1.23'ten beri ModeIrregular) os.Readlink'in
+// hedefiyle değiştirilir. filepath.EvalSymlinks junction'dan geçen yolda hata verdiği, os.Root da
+// junction'ı ve mutlak hedefli bağlantıyı hiç açmadığı için kendi çözücüdür (DENETİM 374).
+func resolveLinks(p string) (string, bool) {
+	cur := filepath.VolumeName(p) + string(filepath.Separator)
+	todo := splitPath(p[len(filepath.VolumeName(p)):])
+	links := 0
+	for len(todo) > 0 {
+		c := todo[0]
+		todo = todo[1:]
+		switch c {
+		case ".":
+			continue
+		case "..":
+			cur = filepath.Dir(cur)
+			continue
+		}
+		next := filepath.Join(cur, c)
+		info, err := os.Lstat(next)
+		if err != nil {
+			return "", false
+		}
+		if info.Mode()&(fs.ModeSymlink|fs.ModeIrregular) == 0 {
+			cur = next
+			continue
+		}
+		if links++; links > maxLinks {
+			return "", false
+		}
+		target, err := os.Readlink(next)
+		if err != nil {
+			return "", false
+		}
+		if v := filepath.VolumeName(target); v != "" {
+			cur, target = v+string(filepath.Separator), target[len(v):]
+		} else if target != "" && isSeparator(rune(target[0])) {
+			cur = filepath.VolumeName(cur) + string(filepath.Separator)
+		}
+		todo = append(splitPath(target), todo...)
+	}
+	return cur, true
+}
+
+// splitPath yolu ayırıcılardan böler, boş bileşenleri atar.
+func splitPath(p string) []string { return strings.FieldsFunc(p, isSeparator) }
+
+func isSeparator(r rune) bool { return r == '/' || r == filepath.Separator }
 
 // lookup yolun her bileşenini denetler ve klasördeki gerçek adla, harf büyüklüğü dahil aynı olmasını
 // ister (28.3a): Windows ve macOS'un büyük-küçük harf duyarsız açması geçmez, kısa ad (INDEX~1.HTM)
@@ -135,16 +223,14 @@ func asciiUpper(s string) string {
 	return string(b)
 }
 
-// inside dosyanın gerçek yeri (bağlantılar çözülünce) kökün gerçek yerinin içinde mi? Kökten çıkan
-// bağlantı reddedilir, kökün içindeki izlenir (28.3a; 18.16'nın tek istisnası).
-func inside(root, full string) bool {
-	r, err1 := filepath.EvalSymlinks(root)
-	f, err2 := filepath.EvalSymlinks(full)
-	if err1 != nil || err2 != nil {
-		return false
+// within dosyanın çözülmüş yeri kökün çözülmüş yerinin içinde mi; içindeyse köke göre göreli yolu
+// verir. Kökten çıkan bağlantı reddedilir, kökün içindeki izlenir (28.3a; 18.16'nın tek istisnası).
+func within(root, file string) (string, bool) {
+	rel, err := filepath.Rel(root, file)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+		return "", false
 	}
-	rel, err := filepath.Rel(r, f)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
+	return rel, true
 }
 
 // notFound 404'tür; gövde insan içindir.
