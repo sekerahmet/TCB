@@ -988,6 +988,12 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
 
+### 19.4a
+
+- **Mevcut durum (2026-11-10; HTTP aşama 2'nin 3. commit'i):** maskeli akış uygulandı: parçaların çıktılarının birleşimi birleşimin 19.4 maskesidir, iki parçaya bölünen gizli değer `***` görünür; bittikten sonra adım H7634, ikinci bitirme boş metin [test: `tests/surec_ve_kayit_test.tr`, `TestMaskStreamFollowsTheBatchMask`, `FuzzMaskStream`]. Olay akışında kullanımı 28.7'yle gelir.
+
+- **Mevcut durum (2026-11-10; HTTP aşama 2'nin 3. commit'i):** `TestNoValueBuiltinsGiveNone` metodu yalnız dönüşü değersiz alıcıda sınar (örneğin alıcısı; `TR_wait` istisnası kalktı) [test: `TestNoValueBuiltinsGiveNone`].
+
 ### 19.5, 19.7
 
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok.
@@ -1173,7 +1179,7 @@ Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 - **Mevcut durum (2026-11-10; HTTP aşama 2'nin 2. commit'i):** 28.3'ün `204`/`205`/`304` gövdesi, `Content-Length` ve `Transfer-Encoding` başlıkları ve değeri close olmayan `Connection` cevap kurulurken hata (H7631–H7633); `Connection` başlığının close değeri her harf büyüklüğüyle küçük harfle yazılır, bağlantı cevaptan sonra kapanır [test: `TestNoBodyStatusesAndServerHeaders`, `TestConnectionCloseClosesTheConnection`, `TestGoClosesOnlyOnLowercaseClose`].
 - **Mevcut durum (2026-11-10; HTTP aşama 2'nin 1. commit'i):** 28.3a'nın bağlantıları Windows'ta kendi çözücüyle, Linux'ta ve macOS'ta `filepath.EvalSymlinks` ile çözülür, dosya köke göre göreli hâliyle `os.Root`'ta açılır; çözme ile açma arasında dışarıyı gösteren bağlantıya çevrilen bileşen açılmaz; Windows'ta içteki junction 200, dıştaki 404 [test: `TestFileSwapAfterResolveIsRefused`, `TestFileJunctionsStayInsideTheRoot`, `TestFileLinksStayInsideTheRoot`, `TestRealPathFollowsThePlatform`].
 - **Yapılacaklar (B, DENETİM 371 S3; dil turu):** dosyanın boyut sınırı yok (açılan dosya bütünüyle okunur); metin `pending.md` "Ara"da.
-- **Yapılacaklar (sınıfsız: test; Ö3; sahip aşama 2'nin dilimi; HTTP aşama 1 devri, DENETİM 371):** 28.5'in süre sınırlarının testi yok (`serve.go`'nun sabitleri, `bodyReadGap`); `TestNoValueBuiltinsGiveNone`'ın `givesNoValue`'su yorumunun aksine herhangi bir alıcıya bakıyor, `TR_wait` istisnası bütün kodu atlıyor (`internal/stdlib/behavior_returns_test.go`), çare örneğin alıcısına daraltmak; `TaskHost.Close`'un yorumuna görev bitişinin kilitsiz güvenli olduğunun nedeni, `guard.go`'nun baş yorumu kodun sırasına (N1, N3).
+- **Yapılacaklar (sınıfsız: test; Ö3; sahip aşama 2'nin dilimi; HTTP aşama 1 devri, DENETİM 371):** 28.5'in süre sınırlarının testi yok (`serve.go`'nun sabitleri, `bodyReadGap`); `TaskHost.Close`'un yorumuna görev bitişinin kilitsiz güvenli olduğunun nedeni, `guard.go`'nun baş yorumu kodun sırasına (N1, N3).
 - **Yapılacaklar (sınıfsız: araç; Ö3; sahip TCB; HTTP aşama 1 devri Bulgu 1, DENETİM 371 S6):** `TestNoFixedNamesInMessages` alıcısı bilinmeyen çağrıyı yalnız metodun adıyla eşliyor (`tools/gen/msgconsts/fixed_names_test.go`, `"." + s.Sel.Name`): başka tipin aynı adlı metodu yanlış uyarı veriyor; çare alıcının tipini anahtara katmak.
 - **Yapılacaklar (sınıfsız: belge; Ö3; sahip TCB; DENETİM 371 S4):** `noIdentity`'nin tek başına `yol` satırı yalnız `docs/spec/16_veri_parcalayici.md:71`'i örtüyor; 16.6'nın yer tutucusu kod olmayan bir biçimde yazılınca satır silinir (`internal/devtools/testrunner/behavior_language_spec_test.go`).
 - **Yapılacaklar (sınıfsız: sözleşme; Ö3; sahip ekran kolu, HTTP'nin uygulama dilimiyle):** `tools/assistant/contract.md` olay verisindeki `seq`'i bırakır, ekran SSE'nin `id` satırını okur ve nabızda son kimliği tutar (28.7).

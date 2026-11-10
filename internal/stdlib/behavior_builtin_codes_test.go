@@ -103,13 +103,14 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`TR_var u_istek = TR_Request()`,
 		`TR_var u_cevap = TR_Response()`,
 		`TR_var u_sunucu = TR_serve_http(TR_print)`,
+		`TR_var u_maske = TR_mask_stream()`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)
 	}
 	// Sözlüğe nokta ile okuma anahtar okumadığı için (3.7) her nesnenin üyesi kendi nesnesinde denenir.
 	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme",
-		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu", "u_hata", "u_gorev", "u_bayt", "u_surec", "u_istek", "u_cevap", "u_sunucu"}
+		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu", "u_hata", "u_gorev", "u_bayt", "u_surec", "u_istek", "u_cevap", "u_sunucu", "u_maske"}
 	for _, k := range codes.Codes() {
 		// Kitaplığın üyesi çekirdek tiplerde değil, kitaplığın yapılarında karşılanır.
 		if k.Namespace() != codes.NamespaceMember || k.IsLibrary() || (k >= codes.MemSampler && k <= codes.MemNext) {

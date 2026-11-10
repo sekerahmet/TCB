@@ -1807,6 +1807,7 @@
 "H7631": { "param": ["fn", "status"], "slots": {"body": "TR_arg_body", "json": "TR_arg_json", "status": "TR_arg_status"} },
 "H7632": { "param": ["fn", "name"], "slots": {"headers": "TR_arg_headers"} },
 "H7633": { "param": ["fn", "value"], "slots": {"headers": "TR_arg_headers"} },
+"H7634": { "param": ["fn"], "slots": {"finish": "TR_mem_finish", "step": "TR_mem_step", "mask_stream": "TR_fn_mask_stream"} },
 "H7900": { "param": ["fn", "given", "suggestion"] },
 "H7901": { "param": ["fn", "given", "names"] },
 "H7902": { "param": ["fn", "given"] },

@@ -1,6 +1,5 @@
 # Dil tanımının henüz uygulanmamış kurallarını gösteren kod blokları (TestDocTRCodeBlocks): belge:satır.
 # Kuralı uygulayan katman kendi satırlarını siler; liste yalnızca küçülür (-update).
 docs/spec/16_veri_parcalayici.md:42
-docs/spec/19_surec_ve_kayit.md:59
 docs/spec/24_sohbet_bicimi.md:79
 docs/spec/28_ag.md:104

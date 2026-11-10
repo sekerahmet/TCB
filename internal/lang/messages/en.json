@@ -1807,6 +1807,7 @@
 "H7631": "{fn}: a {status} response has no body (RFC 9110); remove `{#body}:` and `{#json}:`, or write `{#status}: 200` for a response with a body",
 "H7632": "{fn}: the server writes header {name|q} from the body; remove it from `{#headers}:`",
 "H7633": "{fn}: the value of the `Connection` header is {value|q}; the only value that can be given is `close`: write `{#headers}: {{\"Connection\": \"close\"}}` or remove the header",
+"H7634": "{fn}: the stream ended with `.{#finish}()`, so `.{#step}` cannot be called after it; start a new `{#mask_stream}()` for new pieces",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
 "H7902": "{fn} takes no parameter named '{given}' (it takes no named arguments)",

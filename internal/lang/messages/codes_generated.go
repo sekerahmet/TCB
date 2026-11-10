@@ -1812,6 +1812,7 @@ const (
 	H7631 Code = 7631 // {fn}: {status} cevabının gövdesi olmaz (RFC 9110); `{#body}:` ve `{#json}:`'ı kaldırın, gövdeli cevap için `{#status}: 200` yazın
 	H7632 Code = 7632 // {fn}: {name|q} başlığını sunucu gövdeden yazar; onu `{#headers}:`'tan kaldırın
 	H7633 Code = 7633 // {fn}: `Connection` başlığının değeri {value|q}; verilebilen tek değer `close`'dur: `{#headers}: {{"Connection": "close"}}` yazın ya da başlığı kaldırın
+	H7634 Code = 7634 // {fn}: akış `.{#finish}()` ile bitti, ondan sonra `.{#step}` çağrılmaz; yeni parçalar için yeni bir `{#mask_stream}()` kurun
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

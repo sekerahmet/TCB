@@ -69,6 +69,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 52 | [`52_turkce_sozcuk.tr`](tr/52_turkce_sozcuk.tr) | Türkçe sözcük: sözlük biçimi, ekler, kendi sözlüğün (`tr/turkish`) |
 | 53 | [`53_sohbet_bicimi.tr`](tr/53_sohbet_bicimi.tr) | Sohbet biçimi: iletileri Qwen3'ün parça dizisine çevirmek (`TR_fn_qwen3_format`) ve cevabı iletiye ayırmak (`TR_fn_qwen3_reply`; `tr/chat`) |
 | 54 | [`54_http_sunucusu.tr`](tr/54_http_sunucusu.tr) | HTTP sunucusu: işleyiciyi ağsız sınamak, belirteci yalnız sahibine açık dosyaya yazmak, sunucuyu açıp kapatmak, klasörden dosya sunmak (`TR_fn_serve_http`, `TR_fn_secret_token`, `TR_arg_owner_only`, `TR_fn_file_response`) |
+| 55 | [`55_maskeli_akis.tr`](tr/55_maskeli_akis.tr) | Maskeli akış: parça parça gelen metni (dil modelinin cevabı) gizli değeri açık etmeden göstermek; iki parçaya bölünen gizli değer de `***` görünür (`TR_fn_mask_stream`, `TR_type_MaskStream`) |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

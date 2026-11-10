@@ -67,7 +67,7 @@ TR_for parça TR_in ["anahtar: ab", "cdef12", " bitti"] {
 gösterilen = gösterilen + m.TR_finish()
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi; Go: `TestMaskStreamFollowsTheBatchMask`, `TestMaskStreamHoldsOnlyAnIncompleteSecret`, `TestMaskStreamAfterFinish`, `FuzzMaskStream`.
 
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.

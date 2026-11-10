@@ -1807,6 +1807,7 @@
 "H7631": "{fn}: {status} cevabının gövdesi olmaz (RFC 9110); `{#body}:` ve `{#json}:`'ı kaldırın, gövdeli cevap için `{#status}: 200` yazın",
 "H7632": "{fn}: {name|q} başlığını sunucu gövdeden yazar; onu `{#headers}:`'tan kaldırın",
 "H7633": "{fn}: `Connection` başlığının değeri {value|q}; verilebilen tek değer `close`'dur: `{#headers}: {{\"Connection\": \"close\"}}` yazın ya da başlığı kaldırın",
+"H7634": "{fn}: akış `.{#finish}()` ile bitti, ondan sonra `.{#step}` çağrılmaz; yeni parçalar için yeni bir `{#mask_stream}()` kurun",
 "H7900": "{fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?",
 "H7901": "{fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})",
 "H7902": "{fn} '{given}' adında bir parametre almaz (adlı argüman almaz)",

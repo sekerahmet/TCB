@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 728 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 64 tip, 160 fonksiyon, 11 sabit, 86 metot, 131 özellik, 189 adlı argüman.
+Toplam 730 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 65 tip, 161 fonksiyon, 11 sabit, 86 metot, 131 özellik, 189 adlı argüman.
 
 ## İçindekiler
 
@@ -896,6 +896,23 @@ tr: değişken g = Günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğ
 ```
 
 Üyeleri: `.TR_append(...)`, `.TR_close(...)` · İlişkili: `.TR_append(...)`, `.TR_close(...)`, `TR_Progress`
+
+#### `TR_MaskStream` (`TR_type_MaskStream`, `MaskeAkışı`)
+
+maskeli_akış() ile kurulan akışın tipidir: parça parça gelen metni (dil modelinin ürettiği metin gibi) insana gösterilmeden önce maskeler; iki parçaya bölünen gizli değer de *** görünür. m.adım(parça) kararı kesinleşen başı, m.bitir() kalanı verir.
+
+```tr
+TR_var m = TR_mask_stream(); TR_print(TR_Type(m) == TR_MaskStream, m)
+```
+
+Görünümü:
+
+```text
+en: var m = mask_stream(); print(Type(m) == MaskStream, m)
+tr: değişken m = maskeli_akış(); yazdır(Tip(m) == MaskeAkışı, m)
+```
+
+Üyeleri: `.TR_finish(...)`, `.TR_step(...)` · İlişkili: `TR_mask_stream(...)`, `.TR_step(...)`, `.TR_finish(...)`
 
 #### `TR_Message` (`TR_type_Message`, `İleti`)
 
@@ -2620,6 +2637,25 @@ tr: değişken k = klasör_oluştur("çıktı/kontrol_noktaları"); yazdır(k, k
     hugging_face_eşle()
 
 
+
+#### `TR_mask_stream(...)` (`TR_fn_mask_stream`, `maskeli_akış`)
+
+    maskeli_akış() → MaskeAkışı
+
+Parça parça gelen metin için bir MaskeAkışı verir. yazdır ve olay akışı her çıktıyı ayrı maskeler, iki parçaya bölünen gizli değeri görmez; parçalar önce akıştan geçer: m = maskeli_akış(), sonra her parça için yazdır(m.adım(parça)), en sonda yazdır(m.bitir()).
+
+```tr
+TR_var b = TR_secret_token(); TR_var m = TR_mask_stream(); TR_var a = m.TR_step("anahtar: "); TR_print(a + m.TR_step(b) + m.TR_step(" bitti") + m.TR_finish())
+```
+
+Görünümü:
+
+```text
+en: var b = secret_token(); var m = mask_stream(); var a = m.step("anahtar: "); print(a + m.step(b) + m.step(" bitti") + m.finish())
+tr: değişken b = gizli_belirteç(); değişken m = maskeli_akış(); değişken a = m.adım("anahtar: "); yazdır(a + m.adım(b) + m.adım(" bitti") + m.bitir())
+```
+
+İlişkili: `TR_MaskStream`, `.TR_step(...)`, `.TR_finish(...)`, `TR_secret_token(...)`
 
 #### `TR_max(...)` (`TR_fn_max`, `max`)
 
@@ -6207,7 +6243,22 @@ tr: yazdır([1, 2, 3, 4].filtrele((x) => x > 2))
 
 #### `.TR_finish(...)` (`TR_mem_finish`, `bitir`)
 
+    MaskeAkışı.bitir() → Metin
 
+MaskeAkışı'nda tutulan son parçayı maskeleyip Metin olarak verir ve akışı bitirir; sonra adım(...) hatadır, ikinci bitir() boş metin verir: m.adım("merhaba") + m.bitir(). tr/training'de koşuyu bitirir: koşu.bitir(model).
+
+```tr
+TR_var m = TR_mask_stream(); TR_print(m.TR_step("merhaba"), m.TR_finish(), m.TR_finish())
+```
+
+Görünümü:
+
+```text
+en: var m = mask_stream(); print(m.step("merhaba"), m.finish(), m.finish())
+tr: değişken m = maskeli_akış(); yazdır(m.adım("merhaba"), m.bitir(), m.bitir())
+```
+
+İlişkili: `.TR_step(...)`, `TR_mask_stream(...)`
 
 #### `.TR_first` (`TR_mem_first`, `ilk`)
 
@@ -7469,22 +7520,23 @@ tr: yazdır(Yol("veri/derlem.tar.gz").uzantısız_ad)
 
 #### `.TR_step(...)` (`TR_mem_step`, `adım`)
 
+    MaskeAkışı.adım(Metin) → Metin
     İyileştirici.adım() → YokTipi
 
-İyileştiricinin (AdamW, SGD) bir güncelleme adımını yapar: parametreleri gradyanlarına göre yerinde günceller. Argüman almaz, yok döner.
+İyileştiricinin (AdamW, SGD) bir güncelleme adımını yapar: parametreleri gradyanlarına göre yerinde günceller. Argüman almaz, yok döner. MaskeAkışı'nda bir Metin parçası alır, tutulanla birleştirir ve kararı kesinleşen başı maskeli Metin olarak verir; bir gizli değerin eksik başı olan son, sonraki parçaya kadar tutulur: m.adım("anahtar: ab").
 
 ```tr
-TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_SGD([w], TR_lr: 0.1); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_print(w.TR_tolist)
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_SGD([w], TR_lr: 0.1); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_print(w.TR_tolist, TR_mask_stream().TR_step("metin"))
 ```
 
 Görünümü:
 
 ```text
-en: var w = Tensor([1.0], requires_grad: true); var op = SGD([w], lr: 0.1); backward(sum(w * 2)); op.step(); print(w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer)
+en: var w = Tensor([1.0], requires_grad: true); var op = SGD([w], lr: 0.1); backward(sum(w * 2)); op.step(); print(w.tolist, mask_stream().step("metin"))
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer, maskeli_akış().adım("metin"))
 ```
 
-İlişkili: `.TR_zero_grad(...)`, `TR_backward(...)`
+İlişkili: `.TR_zero_grad(...)`, `TR_backward(...)`, `.TR_finish(...)`
 
 #### `.TR_step_done(...)` (`TR_mem_step_done`, `adım_bitti`)
 

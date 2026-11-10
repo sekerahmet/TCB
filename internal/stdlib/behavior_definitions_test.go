@@ -284,6 +284,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeTask, `TR_async TR_sum([1, 2])`},
 		{codes.TypeProcess, `TR_spawn_process("go", ["version"])`},
 		{codes.TypeRequest, `TR_Request()`}, {codes.TypeResponse, `TR_Response()`}, {codes.TypeHTTPServer, `TR_serve_http(TR_print)`},
+		{codes.TypeMaskStream, `TR_mask_stream()`},
 		{codes.TypeHeaders, `TR_Request().TR_headers`},
 		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}

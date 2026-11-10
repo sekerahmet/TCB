@@ -9,6 +9,12 @@ satırı seçenekleri (`TR_fn_command_line`) ve dış programlar (`TR_fn_run_pro
 (anahtar, belirteç, parola ...) değerleri, insanın göreceği her çıktıda `***` olarak görünür.
 Denetim: `TestIsSecretName`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`, `TestEnvVar`; ayrı süreçte `cmd/trlang/e2e` `TestSecretValuesMaskedInOutput`.
 
+**Parça parça metnin maskesi akıştadır.** Maske her çıktıya ayrı uygulanır, iki parçaya bölünen gizli
+değeri görmez. `TR_fn_mask_stream()`'in değeri (`mask_stream.go`) parçaları `interp.MaskStream`'e verir:
+algoritma gizli değer listesinin yanında, `interp`'tedir (19.4a). Bittikten sonra `.TR_step` H7634'tür,
+ikinci `.TR_finish()` boş metin verir.
+Denetim: `TestMaskStreamFollowsTheBatchMask`, `FuzzMaskStream` (interp), `tests/surec_ve_kayit_test.tr`'nin 19.4a testi.
+
 **Tek yazım.** Komut satırı seçeneği tek biçimde yazılır (`--ad değer` ya da `--ad=değer`);
 konumlu argüman ya da başka yazımlar kabul edilmez, en yakın doğru ad önerilir.
 Denetim: `TestCommandLineUsageErrors`, `TestParseErrorCodes`.
