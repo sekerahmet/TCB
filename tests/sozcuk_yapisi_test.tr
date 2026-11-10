@@ -217,6 +217,32 @@ TR_test "2.8 parantez içinde satır sonu ifadeyi bitirmez; zincir işleçleri s
     # Satır başındaki işleç ve kullanılmayan değer: tests/negative/satir_basi.tr, satir_basi_ikili.tr
 }
 
+TR_func topla_virgullu(a: TR_Int, b: TR_Int,) -> TR_Int {
+    TR_return a + b
+}
+
+TR_func cift_virgullu() -> (TR_Int, TR_String,) {
+    TR_return 1, "a"
+}
+
+TR_test "2.8 virgülle ayrılan listede son öğeden sonra bir virgül yazılabilir; (x,) ve (T,) sözdizimi hatasıdır" {
+    TR_assert_equal(3, topla_virgullu(1, 2,))
+    TR_assert_equal([1, 2], [1, 2,])
+    TR_assert_equal({"a": 1}, {"a": 1,})
+    TR_var t: (TR_Int, TR_String,) = (1, "a",)
+    TR_assert_equal((1, "a"), t)
+    TR_assert_equal((1, "a"), cift_virgullu())
+    TR_var g: (TR_Int, TR_Int,) -> TR_Int = topla_virgullu
+    TR_assert_equal(7, g(3, 4))
+    TR_var h: (TR_Int,) -> TR_Int = (x: TR_Int,) => x * 2
+    TR_assert_equal(10, h(5))
+    TR_var u = (1,
+        2,
+    )
+    TR_assert_equal((1, 2), u)
+    # Tek öğeli demet ve demet tipi: tests/negative/tek_ogeli_demet.tr
+}
+
 TR_test "2.9 koşullu döngü TR_for ve bir koşulla, varsayılan kol _ ile yazılır" {
     TR_var i = 0
     TR_for i < 3 {

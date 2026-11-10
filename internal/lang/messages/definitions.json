@@ -136,6 +136,8 @@
 "H0300": { "param": ["call"], "slots": {"defer": "TR_kw_defer"} },
 "H0301": { "param": ["name"] },
 "H0302": { "param": ["written", "example"] },
+"H0310": { "param": [] },
+"H0311": { "param": [], "slots": {"List": "TR_type_List"} },
 "H1001": { "param": ["name", "declared", "given", "hint"] },
 "H1002": { "param": ["name", "keyword"] },
 "H1003": { "param": ["expected", "given", "hint"] },

@@ -136,6 +136,8 @@
 "H0300": "`{#defer}` is written only with a block; there is no call form: `{#defer} {{ {call} }}`",
 "H0301": "'{name}' is not a method but a function, and the path comes first: `{name}(y, x)` (`y` is the path, `x` the content)",
 "H0302": " ('{written}' does not exist in TR; write '{example}' instead)",
+"H0310": "TR has no one-element tuple: a tuple has at least two elements (`(x, y)`); for one value delete the comma (`(x)` is the value itself), for a one-element sequence write a list: `[x]`",
+"H0311": "TR has no one-element tuple type: a tuple type has at least two elements (`(A, B)`); for one type delete the comma (`(T)` is the type itself), for a one-element sequence write a list type: `{#List}[T]`",
 "H1001": "Type mismatch — the variable {name|q} was declared with type {declared|q} but a value of type {given|q} was assigned{hint}",
 "H1002": "Constant error — {name|q} is a constant ('{keyword}') and its value cannot be changed",
 "H1003": "Return type mismatch — the function must return {expected|q} but returns a value of type {given|q}{hint}",

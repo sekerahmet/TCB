@@ -141,6 +141,8 @@ const (
 	H0300 Code = 300  // `{#defer}` yalnız blokla yazılır, çağrı yazımı yoktur: `{#defer} {{ {call} }}`
 	H0301 Code = 301  // '{name}' metot değil, fonksiyondur ve önce yol yazılır: `{name}(y, x)` (`y` yol, `x` içeriktir)
 	H0302 Code = 302  //  ('{written}' TR'de yok; yerine '{example}' yazılır)
+	H0310 Code = 310  // TR'de tek öğeli demet yok: demetin en az iki öğesi vardır (`(x, y)`); tek değer için virgülü silin (`(x)` değerin kendisidir), tek öğeli bir dizi için liste yazın: `[x]`
+	H0311 Code = 311  // TR'de tek öğeli demet tipi yok: demet tipinin en az iki öğesi vardır (`(A, B)`); tek tip için virgülü silin (`(T)` tipin kendisidir), tek öğeli bir dizi için liste tipi yazın: `{#List}[T]`
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

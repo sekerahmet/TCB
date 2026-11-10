@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // named, opt, tuple ve fn beklenen tipleri kurar (konumsuz: Dump belirteçleri atlar). Ad, kodlu
@@ -146,6 +147,51 @@ func TestMalformedTypesAreErrors(t *testing.T) {
 		if errs := parseErrors(src); len(errs) == 0 {
 			t.Errorf("%q hata vermeli", src)
 		}
+	}
+}
+
+// Kural (2.8, 3.6a, 6.1): parantezli listede (demet, demet tipi, parametre listesi, fonksiyon tipi,
+// fonksiyon ifadesi) son öğeden sonra bir virgül yazılabilir; tip argümanlarında yazılamaz. '(x,)'
+// H0310, '(T,)' H0311: tek öğeli demet yoktur; hata virgüldedir.
+func TestTrailingCommaInParenthesisedLists(t *testing.T) {
+	for _, src := range []string{
+		"TR_var t = (1, 2,)",
+		"TR_var t: (TR_Int, TR_String,) = (1, \"a\")",
+		"TR_func f(a: TR_Int, b: TR_Int,) -> TR_Int { TR_return a }",
+		"TR_func f() -> (TR_Int, TR_Int,) { TR_return 1, 2 }",
+		"TR_var g: (TR_Int, TR_Int,) -> TR_Int = f",
+		"TR_var g: (TR_Int,) -> TR_Int = f",
+		"TR_var h = (x: TR_Int,) => x",
+		"TR_var u = (1,\n    2,\n)",
+	} {
+		if errs := parseErrors(src); len(errs) > 0 {
+			t.Errorf("%q hatasız ayrışmalı: %v", src, errs)
+		}
+	}
+	for _, d := range []struct {
+		src      string
+		line     int
+		col      int
+		code     messages.Code
+		wantText string
+	}{
+		{"TR_var t = (1,)", 1, 14, messages.H0310, "tek öğeli demet yok"},
+		{"TR_var t = ((1, 2),)", 1, 19, messages.H0310, "`[x]`"},
+		{"TR_var t: (TR_Int,) = 1", 1, 18, messages.H0311, "TR_List[T]"},
+		{"TR_func f() -> (TR_Int,) { TR_return 1 }", 1, 23, messages.H0311, "tek öğeli demet tipi yok"},
+	} {
+		errs := parseErrs(d.src)
+		if !hasErrAt(errs, d.line, d.col, d.code) {
+			t.Errorf("%q: %d:%d'de %s bekleniyordu, gelen %v", d.src, d.line, d.col, d.code, errs)
+			continue
+		}
+		if text := strings.Join(messages.Texts(errs), "\n"); !strings.Contains(text, d.wantText) {
+			t.Errorf("%q: ileti %q içermeli: %s", d.src, d.wantText, text)
+		}
+	}
+	// Tip argümanlarında sondaki virgül yoktur (2.8'in listesinde değil).
+	if errs := parseErrors("TR_var l: TR_List[TR_Int,] = [1]"); len(errs) == 0 {
+		t.Error("TR_List[TR_Int,] hata vermeli")
 	}
 }
 

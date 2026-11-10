@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // arrowType dönüş okunun '->' yazımıdır: sözcük çözümleyici onu '-' ve '>' olarak verir, iletide tek
@@ -31,6 +32,7 @@ func (p *Parser) typeAfter() (*ast.TypeRef, bool) {
 		if !ok {
 			return nil, false
 		}
+		trailingComma := p.pos > 0 && p.tokens[p.pos-1].Type == lexer.TokComma // imleç ')'de
 		if p.arrowAhead() {
 			p.nextToken() // '-'
 			p.nextToken() // '>'
@@ -40,6 +42,11 @@ func (p *Parser) typeAfter() (*ast.TypeRef, bool) {
 			}
 			t.Params, t.Return = list, ret
 			return t, true
+		}
+		if len(list) == 1 && trailingComma {
+			// (T,): tek öğeli demet tipi yoktur (3.6a)
+			p.syntaxError(p.tokens[p.pos-1], messages.H0311) // virgülde
+			return nil, false
 		}
 		if len(list) == 1 {
 			// (T) gruplamadır, T'nin kendisi: ((T) -> R)? isteğe bağlı fonksiyon tipidir (3.6a)
@@ -103,6 +110,9 @@ func (p *Parser) typeList(close lexer.TokenType) ([]ast.TypeRef, bool) {
 			break
 		}
 		p.nextToken() // ','
+		if close == lexer.TokRParen && p.peekTokenIs(close) {
+			break // demet ve fonksiyon tipinde sondaki virgül (2.8); tip argümanlarında yok
+		}
 	}
 	if !p.expectPeek(close) {
 		return nil, false

@@ -1,0 +1,5 @@
+# TR 4
+# TEST 3.6a tek öğeli demet ve demet tipi yoktur: (x,) ve (T,) sözdizimi hatasıdır, ileti virgülü silmeyi ya da listeyi önerir (2.8)
+TR_var a = (1,) # ERROR H0310
+TR_var b: (TR_Int,) = 1 # ERROR H0311
+TR_print(a, b)

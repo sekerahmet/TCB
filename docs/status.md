@@ -117,8 +117,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.6a
 
-- **Mevcut durum (Tur 6A):** demette sondaki virgül (`(1, 2,)`) ve parametre listesinde sondaki virgül sözdizimi hatası [ölçüldü: TCB, `70b1575b`, küçük program].
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** demette, demet tipinde, parametre listesinde, fonksiyon tipinde ve fonksiyon ifadesinde sondaki virgül; `(x,)`'in iletisi; ayrıştırıcının testi.
+- **Mevcut durum (T1, Tur 6A):** demette, demet tipinde, parametre listesinde, fonksiyon tipinde ve fonksiyon ifadesinde sondaki virgül geçerli; `(x,)` H0310, `(T,)` H0311, tip argümanında (`TR_List[TR_Int,]`) sondaki virgül hata [test: `TestTrailingCommaInParenthesisedLists`, `tests/negative/tek_ogeli_demet.tr`].
 - **Yapılacaklar:** `TR_json_parse[T]` (13.8) motorda yok, demet tipli alanın diziden kurulması onunla gelir.
 - **Yapılacaklar (D, Ö3; sahip D1; DENETİM 244):** tipi bilinen liste öğesi demetse `l[0][0]` denetimde değil çalışma anında hata veriyor; ileti `l[0].0`'ı öneriyor [ölçüldü: `74d38399`].
 
