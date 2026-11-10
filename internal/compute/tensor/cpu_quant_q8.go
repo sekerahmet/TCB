@@ -23,10 +23,11 @@ func newQ8KRow(K int) *q8kRow {
 	return &q8kRow{q: make([]int8, K), d: make([]float32, K/kBlock), bs: make([]int16, K/16)}
 }
 
-// quantizeQ8K x'i nicemler: blokta d = max|x| / 127, kod = yuvarla(x · 127 / max|x|) (eşitte çifte), ±127.
-// x sonludur (quantQ8Ready). max|x| < 127 / float32'nin en büyüğü (~3,7e−37) iken 127 / max|x| float32'de
-// sonsuza taşar: kodlar işarete inerdi, sıfır öğe 0·∞ = NaN olurdu (int8(NaN) Go'da uygulamaya bağlıdır).
-// O blokta oran float64'te hesaplanır (en küçük alt normalde bile sonludur); öbür bloklarda yol değişmez.
+// quantizeQ8K x'i nicemler (15.53 taslağının formülü): blokta a = max|x|; a = 0 ise ya da 127 / a float32'de
+// sonlu değilse (a < ~3,7e−37) bloğun kodları 0, ölçeği 0; değilse kod = x · float32(127 / a)'nın float32
+// sonucu, eşitte çifte yuvarlanır, ±127'ye kırpılır; ölçek = float32(a / 127). x sonludur (q8Finite). Taşan
+// ölçekte blok sıfıra iner: katkısı ~1e−37 mertebesindedir; oran taşsaydı kodlar işarete inerdi, sıfır öğe
+// 0·∞ = NaN olurdu (int8(NaN) Go'da uygulamaya bağlıdır).
 func quantizeQ8K(x []float32, r *q8kRow) {
 	for b := 0; b < len(x)/kBlock; b++ {
 		blk := x[b*kBlock : (b+1)*kBlock]
@@ -38,15 +39,9 @@ func quantizeQ8K(x []float32, r *q8kRow) {
 			}
 		}
 		switch id := float32(127 / amax); {
-		case !(amax > 0):
+		case !(amax > 0) || id-id != 0:
 			clear(q)
 			r.d[b] = 0
-		case id-id != 0:
-			r.d[b] = float32(amax / 127)
-			id64 := 127 / float64(amax)
-			for j, v := range blk {
-				q[j] = int8(max(-127, min(127, math.RoundToEven(float64(v)*id64))))
-			}
 		default:
 			r.d[b] = float32(amax / 127)
 			for j, v := range blk {
@@ -93,11 +88,12 @@ func dotQ4KQ8Go(blocks int, w []byte, r *q8kRow) float32 {
 	return acc
 }
 
-// quantQ8Ready dt'nin nicemli yolu bu girdide kullanılır mı: prototip açık, Q4_K ya da Q6_K ve girdinin hepsi
-// sonlu. NaN ya da sonsuz varsa float yolu kullanılır: nicemleme onları sessizce bir sayıya çevirirdi (int8(NaN)
-// tanımsızdır, sonsuz ölçeği 0 yapar); float yolu onları sonuca taşır.
-func quantQ8Ready(dt DType, a []float32) bool {
-	return actQuant && (dt == Q4K || dt == Q6K) && q8Finite(a)
+// quantQ8Ready dt'nin nicemli yolu açık mı: prototip açık, Q4_K ya da Q6_K. Sonlu olmayan değer içeren satırın
+// kararı satır satır verilir (quantGemvQ8, quantGemmQ8): o satır float yoluyla (quantGemv) hesaplanır, NaN ve
+// sonsuz sonuca taşınır; nicemleme onları sessizce bir sayıya çevirirdi. Başka satırın verisi bir satırın
+// sonucunu değiştirmez.
+func quantQ8Ready(dt DType) bool {
+	return actQuant && (dt == Q4K || dt == Q6K)
 }
 
 // q8Finite a'nın hepsi sonlu mu (v − v NaN'da ve sonsuzda NaN'dır).
@@ -118,8 +114,13 @@ func dotQ8(dt DType, blocks int, w []byte, r *q8kRow, tmp []byte) float32 {
 	return dotQ4KQ8(blocks, w, r, tmp)
 }
 
-// quantGemvQ8 quantGemv'in nicemli yoludur: x bir kez nicemlenir, her ağırlık satırı tamsayı çarpılır.
+// quantGemvQ8 quantGemv'in nicemli yoludur: x bir kez nicemlenir, her ağırlık satırı tamsayı çarpılır. x'te
+// sonlu olmayan değer varsa float yolu (quantGemv).
 func quantGemvQ8(N, K int, a []float32, w []byte, dt DType, c []float32) {
+	if !q8Finite(a[:K]) {
+		quantGemv(N, K, a, w, dt, c)
+		return
+	}
 	r := newQ8KRow(K)
 	quantizeQ8K(a, r)
 	rowBytes := quantRowBytes(dt, K)
@@ -137,19 +138,33 @@ const q8Tmp = 48
 
 // quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; her ağırlık satırı dört etkinleştirme
 // satırıyla birlikte çarpılır (dotQ4KQ8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her
-// satırın sonucu tek satırlı yolunkiyle (quantGemvQ8) bit bit aynıdır.
+// satırın sonucu tek satırlı yolunkiyle (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
+// yoluyla (quantGemv) tek başına hesaplanır; sonlu satırlar bitişik bir tampona toplanır (idx: tampondaki satırın
+// a'daki yeri). Satırın sonucu yanındaki satırların verisinden bağımsızdır.
 func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
-	nb := K / kBlock
-	all := &q8kRow{q: make([]int8, M*K), d: make([]float32, M*nb), bs: make([]int16, M*K/16)}
-	rows := make([]*q8kRow, M)
+	idx := make([]int, 0, M)
 	for m := range M {
-		rows[m] = &q8kRow{q: all.q[m*K : (m+1)*K], d: all.d[m*nb : (m+1)*nb], bs: all.bs[m*K/16 : (m+1)*K/16]}
+		if q8Finite(a[m*K : (m+1)*K]) {
+			idx = append(idx, m)
+		} else {
+			quantGemv(N, K, a[m*K:(m+1)*K], w, dt, c[m*N:(m+1)*N])
+		}
+	}
+	F := len(idx)
+	if F == 0 {
+		return
+	}
+	nb := K / kBlock
+	all := &q8kRow{q: make([]int8, F*K), d: make([]float32, F*nb), bs: make([]int16, F*K/16)}
+	rows := make([]*q8kRow, F)
+	for i := range F {
+		rows[i] = &q8kRow{q: all.q[i*K : (i+1)*K], d: all.d[i*nb : (i+1)*nb], bs: all.bs[i*K/16 : (i+1)*K/16]}
 	}
 	// Satırlar birbirinden bağımsız nicemlenir: paralel nicemleme bitleri değiştirmez. Tek iş parçacığında 512
 	// satırlık okumada duvar süresinin ~%14'üydü (profil, 2026-11-10, Qwen3-4B Q4_K_M, i7-13700H: 5 CPU-sn, seri).
-	parallelFor(M, 4*K, func(lo, hi int) {
-		for m := lo; m < hi; m++ {
-			quantizeQ8K(a[m*K:(m+1)*K], rows[m])
+	parallelFor(F, 4*K, func(lo, hi int) {
+		for i := lo; i < hi; i++ {
+			quantizeQ8K(a[idx[i]*K:(idx[i]+1)*K], rows[i])
 		}
 	})
 	rowBytes := quantRowBytes(dt, K)
@@ -161,23 +176,23 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	// i7-13700H: süre çekirdeklerde, ~17 GOPS). Her c öğesi yine tek bir çekirdek çağrısının sonucunu bir kez
 	// alır: bitler bloksuz sürümle aynıdır.
 	nBlocks := (N + q8BlockN - 1) / q8BlockN
-	parallelFor(nBlocks, q8BlockN*M*K, func(lo, hi int) {
+	parallelFor(nBlocks, q8BlockN*F*K, func(lo, hi int) {
 		var tmp [q8Tmp]byte
 		var out [4]float32
 		for jb := lo; jb < hi; jb++ {
 			n0, n1 := jb*q8BlockN, min(N, (jb+1)*q8BlockN)
-			m := 0
-			for ; m+4 <= M; m += 4 {
+			i := 0
+			for ; i+4 <= F; i += 4 {
 				for n := n0; n < n1; n++ {
-					four(nb, w[n*rowBytes:(n+1)*rowBytes], rows[m], K, tmp[:], out[:])
+					four(nb, w[n*rowBytes:(n+1)*rowBytes], rows[i], K, tmp[:], out[:])
 					for r := range 4 {
-						c[(m+r)*N+n] += out[r]
+						c[idx[i+r]*N+n] += out[r]
 					}
 				}
 			}
-			for ; m < M; m++ {
+			for ; i < F; i++ {
 				for n := n0; n < n1; n++ {
-					c[m*N+n] += dotQ8(dt, nb, w[n*rowBytes:(n+1)*rowBytes], rows[m], tmp[:])
+					c[idx[i]*N+n] += dotQ8(dt, nb, w[n*rowBytes:(n+1)*rowBytes], rows[i], tmp[:])
 				}
 			}
 		}

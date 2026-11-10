@@ -134,8 +134,8 @@ func TestQ8FourRowsChecksBounds(t *testing.T) {
 
 // TestQuantizeQ8KEdgeBlocks: nicemlemenin kenar blokları: tamamı sıfır (kod 0, ölçek 0), ±127'ye doyan (bütün
 // öğeler ±max), tek büyük öğe (öbürleri 0'a iner), en büyüğü ~3,7e−37'nin altında olan blok (127 / max float32'de
-// taşar; kodlar oranla, sıfır sıfır kalır). Her blokta çekirdek her yolda Go eşiyle aynıdır, sonuç açılmış
-// float çarpımına yakındır.
+// taşar: 15.53 taslağının formülüyle kodlar 0, ölçek 0, katkı tam 0). Her blokta çekirdek her yolda Go eşiyle
+// aynıdır; sıfıra inmeyen blokta sonuç açılmış float çarpımına yakındır.
 func TestQuantizeQ8KEdgeBlocks(t *testing.T) {
 	tiny := math.Float32frombits(0x00400000) // 2^−127, alt normal: yarısı ve çeyreği tam
 	cases := []struct {
@@ -159,7 +159,7 @@ func TestQuantizeQ8KEdgeBlocks(t *testing.T) {
 			}
 			x[5] = 1000
 		}, map[int]int8{5: 127}, float32(1000) / 127},
-		{"küçük", func(x []float32) { x[0], x[1], x[2] = tiny, -tiny/2, tiny/4 }, map[int]int8{0: 127, 1: -64, 2: 32}, tiny / 127},
+		{"küçük", func(x []float32) { x[0], x[1], x[2] = tiny, -tiny/2, tiny/4 }, nil, 0},
 	}
 	oldAVX, oldF16C := hasAVX2, hasF16C
 	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
@@ -211,31 +211,46 @@ func TestQuantizeQ8KEdgeBlocks(t *testing.T) {
 					t.Fatalf("%s %s %s: yol sonucu %v, ilk yol %v", c.name, path.name, dt.Name(), got, first)
 				}
 			}
-			if f, n2 := openedDot(dt, x, w); math.Abs(float64(first)-f) > 0.02*n2 {
+			if c.name == "küçük" {
+				if first != 0 {
+					t.Fatalf("küçük %s: taşan ölçekli blok %v verdi, beklenen 0", dt.Name(), first)
+				}
+			} else if f, n2 := openedDot(dt, x, w); math.Abs(float64(first)-f) > 0.02*n2 {
 				t.Fatalf("%s %s: nicemli %v, float %v (ölçek %v)", c.name, dt.Name(), first, f, n2)
 			}
 		}
 	}
 }
 
-// TestQ8PathKeepsNonFinite: prototip açıkken de girdide NaN ya da sonsuz varsa sonuç float yolununkiyle bit bit
-// aynıdır (nicemli yol kullanılmaz); sonlu girdide nicemli yol gerçekten kullanılır (sonuç farklıdır).
+// TestQ8PathKeepsNonFinite: prototip açıkken sonlu olmayan değer (NaN, ±∞) içeren satır float yoluyla
+// hesaplanır: sonucu o satırın tek başına float yolundaki sonucuyla bit bit aynıdır. Karar satır satır: öbür
+// satırların sonucu, yanlarındaki satır sonlu olsa da olmasa da bit bit aynıdır. Sonlu girdide nicemli yol
+// gerçekten kullanılır (sonuç farklıdır).
 func TestQ8PathKeepsNonFinite(t *testing.T) {
 	prev := actQuant
 	defer func() { actQuant = prev }()
 	r := rand.New(rand.NewSource(34))
 	for _, dt := range []DType{Q4K, Q6K} {
-		for _, M := range []int{1, 5} {
+		for _, M := range []int{1, 5, 9} {
 			N, K := 9, 512
 			w := FromQuantized(dt, smallScaleQuant(dt, uint32(M+N), N*K/kBlock), N, K)
 			for _, bad := range []float32{float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
-				data := randomData(r, M*K)
-				data[K/2] = bad
-				x := New(data, M, K)
-				actQuant = false
-				want := MatMul(x, w.T()).Data()
+				clean := randomData(r, M*K)
+				data := append([]float32(nil), clean...)
+				badRow := M / 2
+				data[badRow*K+K/2] = bad
 				actQuant = true
-				sameFloatBits(t, dt.Name()+" sonlu olmayan", MatMul(x, w.T()).Data(), want)
+				got := MatMul(New(data, M, K), w.T()).Data()
+				wantClean := MatMul(New(clean, M, K), w.T()).Data()
+				actQuant = false
+				wantBad := MatMul(New(data[badRow*K:(badRow+1)*K], 1, K), w.T()).Data()
+				for m := range M {
+					if m == badRow {
+						sameFloatBits(t, dt.Name()+" sonlu olmayan satır", got[m*N:(m+1)*N], wantBad)
+					} else {
+						sameFloatBits(t, dt.Name()+" komşusu sonlu olmayan satır", got[m*N:(m+1)*N], wantClean[m*N:(m+1)*N])
+					}
+				}
 			}
 			x := New(randomData(r, M*K), M, K)
 			actQuant = false
