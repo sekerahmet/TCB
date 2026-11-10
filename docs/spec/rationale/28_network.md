@@ -63,11 +63,15 @@ Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
   - Adresin ayrıştırılmış hâliyle denetlenmesi `::1`, `[::1]` ve `127.0.0.2` gibi yazımların belirteçsiz dışarı ya da yanlış yerel köke açılmasını önler.
   - TLS'nin bedeli (sertifika, yerel kök) ilk sürümün kazancından büyük [görüş]. `127.0.0.1` tarayıcıda zaten güvenli bağlamdır (W3C Secure Contexts).
 
-- *`TR_public_paths:` (TCB, 2026-11-10; kritik, işi durduruyordu, ekran dilimi):*
+- *`TR_tokenless_paths:` (TCB, 2026-11-10; kritik, işi durduruyordu, ekran dilimi; DENETİM 392):*
   - Tarayıcı adres çubuğundan açılan sayfaya ve `<script src>`'nin isteğine `Authorization` başlığı ekleyemez; 28.2'nin "her istekte" kuralıyla 28.2a'nın ekranı yüklenemiyordu. Belirteci adreste taşımak 28.2a'nın reddettiği yoldur (`Referer` sızıntısı).
   - Belirteci işleyicide karşılaştırmak 28.2'nin iki güvencesini kaybettirirdi: sabit sürede karşılaştırma ve denetimin gövde okunmadan, işleyiciden önce yapılması.
   - Tam yol, yalnız `GET` ve `HEAD`: önek ya da klasör, listeye bir dosya eklemeyi unutan ya da bir API yolunu klasörün altına koyan ajanı sessizce açığa düşürürdü. Belirteçsiz sunucuda listenin hata olması, korumanın var sanılmasını önler.
-  - Emsal araştırması (statik dosyaları kimliksiz sunan Jupyter Server gibi sunucular, sürümlü kaynakla) turda yapılacak [görüş: bu madde geçici].
+  - Çerez reddedildi: kullanıcı belirteci bir kez girip sunucu çerez yazsaydı tarayıcı onu adres çubuğundaki isteğe kendiliğinden eklerdi, ama başka bir sayfanın isteğine de ekler; 28.1a'nın kaynak denetimi yalnız `127.0.0.1`'de olduğu için dış adreste istek sahteciliği açılırdı (28.1a'nın son maddesi `Authorization`'ın kendiliğinden eklenmemesine dayanıyor).
+  - Çözülmüş yol ve `%` yasağı: ham yol karşılaştırılsaydı listedeki `"/a%2Fb"` `/a%2Fb` isteğini açar, işleyici onu `/a/b` diye görürdü; liste ile işleyici ayrışırdı. Go `//`, `/./`, sondaki `/` ve harf büyüklüğünü değiştirmiyor, bunlar belirteç istemeye düşüyor [ölçüldü: DENETİM 392, Go'nun `r.URL.Path`'i].
+  - Sorgulu istek belirteç ister: `GET /`'ü sorguya göre yönlendiren bir işleyici veriyi belirteçsiz açardı; önbellek kırmak için sorgu yazan sayfa `401` alır, yüksek sesli.
+  - Ad: `TR_tokenless_paths:` kuralın yaptığını ve `TR_token:`'la bağını söylüyor; "public" `public/` klasörünü (Rails, Express, Next.js) ve "internete açık"ı çağrıştırırdı, oysa `127.0.0.1`'de 28.1a sürer (DENETİM 392).
+  - **Jupyter Server** (`v2.14.2`, `jupyter_server/base/handlers.py`): statik dosya işleyicisinin (`FileFindHandler`) yalnız `get` ve `head`'i `@allow_unauthenticated`; yorumu "access is allowed as this class is used to serve static assets on login page" [kanıtlı: DENETİM 392]. Jupyter önekle (`/static/...`) bağlıyor, TR tam yolla.
 
 ### 28.2a
 
@@ -165,7 +169,7 @@ Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
 
 ### 28.7
 
-- *`Cache-Control: no-store` (TCB, 2026-11-10; ekran diliminin sorusu):* motor `no-cache` yazıyordu, ekranın sözleşmesi `no-store` istiyordu. `no-cache` saklamaya izin verir, yalnız yeniden kullanmadan önce doğrulama ister; akış hiç yeniden kullanılmadığı için saklamanın faydası yok, olayın verisi (kullanıcının içeriği) ortak bir makinede diske kalırdı. Emsal araştırması turda [görüş: bu cümle geçici].
+- *`Cache-Control: no-store` (TCB, 2026-11-10; ekran diliminin sorusu):* motor `no-cache` yazıyordu, ekranın sözleşmesi `no-store` istiyordu. `no-cache` saklamaya izin verir, yalnız yeniden kullanmadan önce doğrulama ister; akış hiç yeniden kullanılmadığı için saklamanın faydası yok, olayın verisi (kullanıcının içeriği) ortak bir makinede diske kalırdı. Emsal: RFC 9111 5.2.2.5 (`no-store` saklamayı yasaklar), 5.2.2.4 (`no-cache` yalnız doğrulamasız kullanımı); sse-starlette `v2.2.1` `no-store`, r3labs/sse `v2.10.0` `no-cache` yazıyor [kanıtlı: DENETİM 392].
 
 - *Emsal:*
   - **WHATWG HTML 9.2:** `Last-Event-ID` ve yeniden bağlanma (9.2.4); `id` alanı olmayan olay son kimliği değiştirmez (9.2.6).
