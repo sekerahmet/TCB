@@ -1,16 +1,12 @@
 package tensor
 
-import (
-	"math"
-	"os"
-)
+import "math"
 
-// H1 hız prototipi (15.53, etkinleştirmenin nicemlenmesi; öntanımlı kapalı). TR_NICEM_ETKIN=1 iken Q4_K ve Q6_K
-// ağırlıklı çarpım ağırlığı açmaz: x'in her satırı 256'lık bloklarla int8'e nicemlenir (quantizeQ8K), nokta
-// çarpımı tamsayıdadır, blok başına bir kez float32'ye geçilir (Go eşleri dotQ4KQ8Go ve dotQ6KQ8Go; AVX2 eşleri
-// cpu_quant_q8_amd64.s'de). Bitler float yolundan farklıdır; sonuç iş parçacığı sayısından ve satırların
-// gruplanmasından bağımsızdır (her çıktı öğesi tek bir çekirdek çağrısıdır, blok sırası sabittir).
-var actQuant = os.Getenv("TR_NICEM_ETKIN") == "1"
+// Etkinleştirmenin nicemlendiği çarpım (15.53'ün TR_quantized_activations bloğu): Q4_K ve Q6_K ağırlıklı çarpım
+// ağırlığı açmaz: x'in her satırı 256'lık bloklarla int8'e nicemlenir (quantizeQ8K), nokta çarpımı tamsayıdadır,
+// blok başına bir kez float32'ye geçilir (Go eşleri dotQ4KQ8Go ve dotQ6KQ8Go; AVX2 eşleri cpu_quant_q8_amd64.s'de).
+// Bitler float yolundan farklıdır; sonuç iş parçacığı sayısından ve satırların gruplanmasından bağımsızdır (her
+// çıktı öğesi tek bir çekirdek çağrısıdır, blok sırası sabittir). Yolu yalnız blok seçer (MatMulActQuant).
 
 // q8kRow bir satırın nicemlenmiş hâli: q kodlar, d blok ölçekleri, bs 16'lık alt blokların kod toplamları.
 type q8kRow struct {
@@ -88,12 +84,22 @@ func dotQ4KQ8Go(blocks int, w []byte, r *q8kRow) float32 {
 	return acc
 }
 
-// quantQ8Ready dt'nin nicemli yolu açık mı: prototip açık, Q4_K ya da Q6_K. Sonlu olmayan değer içeren satırın
-// kararı satır satır verilir (quantGemvQ8, quantGemmQ8): o satır float yoluyla (quantGemv) hesaplanır, NaN ve
-// sonsuz sonuca taşınır; nicemleme onları sessizce bir sayıya çevirirdi. Başka satırın verisi bir satırın
-// sonucunu değiştirmez.
-func quantQ8Ready(dt DType) bool {
-	return actQuant && (dt == Q4K || dt == Q6K)
+// QuantActSupported dt'nin ağırlığı etkinleştirmesi nicemlenen çarpıma girer mi (15.53'ün biçim tablosu: q4_k ve
+// q6_k). Sonlu olmayan değer içeren satırın kararı satır satır verilir (quantGemvQ8, quantGemmQ8): o satır float
+// yoluyla (quantGemv) hesaplanır, NaN ve sonsuz sonuca taşınır; nicemleme onları sessizce bir sayıya çevirirdi.
+// Başka satırın verisi bir satırın sonucunu değiştirmez.
+func QuantActSupported(dt DType) bool { return dt == Q4K || dt == Q6K }
+
+// quantGemmAct quantGemm'in etkinleştirmesi nicemlenen eşidir: c[m, n] += Σ_k nicem(a)[m, k]·aç(w)[n, k].
+func quantGemmAct(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
+	if K == 0 {
+		return // boş toplam: c olduğu gibi kalır
+	}
+	if M == 1 {
+		quantGemvQ8(N, K, a, w, dt, c)
+		return
+	}
+	quantGemmQ8(M, N, K, a, w, dt, c)
 }
 
 // q8Finite a'nın hepsi sonlu mu (v − v NaN'da ve sonsuzda NaN'dır).

@@ -103,6 +103,17 @@ func matMulOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.T
 	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.MatMulKernel(a, b, outType) })
 }
 
+// matMulActQuantOn matMulOn'un etkinleştirmesi nicemlenen eşidir (TR_quantized_activations bloğu; ağırlık CPU'da,
+// checkActQuant geçmiştir).
+func matMulActQuantOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
+	if m == nil || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
+		r, k := tensor.MatMulActQuantKernel(a, b, outType)
+		k.RunLocked()
+		return r
+	}
+	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.MatMulActQuantKernel(a, b, outType) })
+}
+
 // matMulWork çarpımın M·N·K'sidir (en az iki boyutlu, denetlenmiş şekiller).
 func matMulWork(as, bs []int) int {
 	work := bs[len(bs)-1]

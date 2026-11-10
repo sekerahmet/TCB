@@ -432,6 +432,19 @@ func (b cpuBackend) SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logMode
 	last()
 }
 
+// GemmActQuant c += nicem(a) · aç(bv)'dir (15.53'ün TR_quantized_activations bloğu): bv q4_k ya da q6_k ağırlığın
+// devrik görünümüdür (rightView). 16 bitlik a önce float32'ye kesin açılır (gt.read), sonuç c'nin türüne bir kez
+// yuvarlanır (gt.write): bloğun karışık hassasiyetle sırası (15.53).
+func (b cpuBackend) GemmActQuant(M, N, K int, a View, bv View, c Storage) {
+	var gt temp
+	defer gt.finish()
+	o, last := gt.write(c, true)
+	av := gt.read(a)
+	w := cpuStore(bv.S)
+	quantGemmAct(M, N, K, cd(av.S)[av.Offset:av.Offset+M*K], quantBytes(w, bv.Offset, N*K), w.dtyp, cd(o)[:M*N])
+	last()
+}
+
 func (b cpuBackend) Gemm(batch, M, N, K int, a View, transA bool, bv View, transB bool, c Storage) {
 	var gt temp
 	defer gt.finish()

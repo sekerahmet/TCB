@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 745 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 165 fonksiyon, 11 sabit, 92 metot, 130 özellik, 193 adlı argüman.
+Toplam 747 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 167 fonksiyon, 11 sabit, 92 metot, 130 özellik, 193 adlı argüman.
 
 ## İçindekiler
 
@@ -1421,6 +1421,25 @@ tr: yazdır(acos(0.0), acos(Tensör([1.0, -1.0])).değer)
 ```
 
 İlişkili: `TR_asin(...)`, `TR_cos(...)`
+
+#### `TR_activations_quantized(...)` (`TR_fn_activations_quantized`, `etkinleştirme_nicemli_mi`)
+
+    etkinleştirme_nicemli_mi() → Mantık
+
+Görev nicemli_etkinleştirme bloğunun içindeyse doğru, dışındaysa yanlış verir.
+
+```tr
+TR_print(TR_activations_quantized(), TR_quantized_activations { TR_activations_quantized() })
+```
+
+Görünümü:
+
+```text
+en: print(activations_quantized(), quantized_activations { activations_quantized() })
+tr: yazdır(etkinleştirme_nicemli_mi(), nicemli_etkinleştirme { etkinleştirme_nicemli_mi() })
+```
+
+İlişkili: `TR_quantized_activations(...)`
 
 #### `TR_all(...)` (`TR_fn_all`, `hepsi`)
 
@@ -3110,6 +3129,25 @@ tr: yazdır("Toplam:", 2 + 3)
 ```
 
 İlişkili: `TR_input(...)`
+
+#### `TR_quantized_activations(...)` (`TR_fn_quantized_activations`, `nicemli_etkinleştirme`)
+
+    nicemli_etkinleştirme(Fonksiyon | YerleşikFonksiyon) → Herhangi
+
+nicemli_etkinleştirme { ... } bloğunda "q4_k" ve "q6_k" ağırlıkla çarpımda girdi 256'lık bloklarla int8'e nicemlenir, tamsayıyla çarpılır (15.53); sonuç bloğun dışındakinden biraz farklıdır, iş parçacığı sayısından bağımsızdır. Başka nicemlenmiş ağırlık türü ve GPU hatadır.
+
+```tr
+TR_var y = TR_quantized_activations { TR_Tensor([[1.0, 2.0]]) @ TR_Tensor([[3.0], [4.0]]) }; TR_print(y.TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var y = quantized_activations { Tensor([[1.0, 2.0]]) @ Tensor([[3.0], [4.0]]) }; print(y.tolist)
+tr: değişken y = nicemli_etkinleştirme { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.değer)
+```
+
+İlişkili: `TR_activations_quantized(...)`, `TR_mixed_precision(...)`, `TR_no_grad(...)`
 
 #### `TR_qwen3_format(...)` (`TR_fn_qwen3_format`, `qwen3_biçimi`)
 

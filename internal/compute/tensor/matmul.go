@@ -37,9 +37,33 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 // ve hesap çizgesine kayıt); çarpımın kendisi dönen çekirdektir. Çekirdek çalışmadan çıktı
 // okunmamalıdır: k.Run (izinler alınmışsa, kilitsiz) ya da k.RunLocked.
 func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
+	return matMulKernel(a, b, outType, false)
+}
+
+// ActQuantGemmer etkinleştirmesi nicemlenen çarpımı yapan arka uçtur (15.53'ün TR_quantized_activations bloğu):
+// c += nicem(a) · aç(bv); bv nicemlenmiş ağırlığın devrik görünümüdür. Yalnız CPU'da vardır.
+type ActQuantGemmer interface {
+	GemmActQuant(M, N, K int, a View, bv View, c Storage)
+}
+
+// MatMulActQuantKernel MatMulKernel'in etkinleştirmesi nicemlenen eşidir: b q4_k ya da q6_k ağırlığın devriğidir
+// (QuantActSupported), arka uç ActQuantGemmer'dır. Türün ve cihazın uygunluğunu çağıran denetler (iletiler
+// stdlib'de); burada uymazsa iç hatadır.
+func MatMulActQuantKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
+	return matMulKernel(a, b, outType, true)
+}
+
+func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel) {
 	be := sameDevice("matmul", a, b)
 	if b.dtyp.IsQuantized() {
 		CheckQuantWeight(a, b)
+	}
+	var aq ActQuantGemmer
+	if actQuant {
+		var ok bool
+		if aq, ok = be.(ActQuantGemmer); !ok || !QuantActSupported(b.dtyp) || len(b.shape) != 2 {
+			panic("tensor: etkinleştirmesi nicemlenen çarpım bu arka uçta ya da bu ağırlıkta yok")
+		}
 	}
 	if len(a.shape) < 2 || len(b.shape) < 2 {
 		panic(messages.New(messages.H3050, a.shape, b.shape))
@@ -74,6 +98,7 @@ func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	ra, rb := copyRelease(a, av), copyRelease(b, bv)
 	release := func() { ra(); rb() }
 	gs, writer := be.(GemmSetter)
+	writer = writer && !actQuant // nicemli yol c'ye ekler: çıktı sıfırla başlar
 	var out *Tensor
 	if writer {
 		out = emptyOf(isMatMul, be, outShape, outType)
@@ -82,7 +107,9 @@ func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	}
 	c := out.storage // gövde yalnız hazırlıkta kopyalanan görünüm ve depolarla çalışır
 	k := newKernel(be, []Storage{c}, []Storage{av.S, bv.S}, []*Tensor{a, b, out}, func() {
-		if writer {
+		if actQuant {
+			aq.GemmActQuant(M, N, K, av, bv, c)
+		} else if writer {
 			gs.GemmSet(batch, M, N, K, av, false, bv, tb, c)
 		} else {
 			be.Gemm(batch, M, N, K, av, false, bv, tb, c)

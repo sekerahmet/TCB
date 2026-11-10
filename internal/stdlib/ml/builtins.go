@@ -44,6 +44,8 @@ func Register(v *interp.VM) {
 	// --- Veri türleri (veri_turu.go) ---
 	wrap(v, codes.FnMixedPrecision, newBuiltin(mixedPrecision))
 	wrap(v, codes.FnComputeDtype, newBuiltin(computeDType))
+	wrap(v, codes.FnQuantizedActivations, newBuiltin(quantizedActivations)) // quant_activations.go (15.53)
+	wrap(v, codes.FnActivationsQuantized, newBuiltin(activationsQuantized))
 
 	// --- Cihazlar (cihaz.go) ---
 	wrap(v, codes.FnDefaultDevice, newBuiltin(defaultDeviceBuiltin))
@@ -196,6 +198,7 @@ var gradFree = map[codes.Code]bool{
 	codes.FnLoadParameters: true, codes.FnLoadTensors: true, codes.FnLoadMetadata: true, codes.FnSaveTensors: true,
 	codes.FnFloatToBytes: true, codes.FnIntToBytes: true, codes.FnFromBytes: true,
 	codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnComputeDtype: true,
+	codes.FnQuantizedActivations: true, codes.FnActivationsQuantized: true,
 	codes.FnDefaultDevice: true, codes.FnDevices: true,
 	codes.FnCustomGrad: true, codes.FnFuse: true, codes.FnReplay: true,
 	// Yazma: türevi izlenen kaynağı checkWrite reddeder (H6956).
@@ -274,15 +277,16 @@ func trackedFloat64(v interp.Value, depth int) *tensor.Tensor {
 // çağrıları yapan yerleşiklerdir; argümanları kaçar. Diğer tensör yerleşikleri saftır:
 // argümanlarını saklamaz, sonucunda döndürmez (interp.BuiltinVal.Pure).
 var retaining = map[codes.Code]bool{
-	codes.FnBackward:       true, // geri_yayılım: özel türevlerin geri çağrıları
-	codes.FnNoGrad:         true, // türevsiz
-	codes.FnCustomGrad:     true, // özel_türev: ileri ve geri fonksiyonlarını saklar
-	codes.FnGradCheck:      true, // türev_denetle
-	codes.FnFuse:           true, // kaynaştır: fonksiyonu saklar
-	codes.FnReplay:         true, // tekrar_oynat: fonksiyonu saklar, TR geri çağrısı yapar
-	codes.FnAdamW:          true, // AdamW: parametre listesini saklar
-	codes.FnSGD:            true, // SGD
-	codes.FnMixedPrecision: true, // karışık_hassasiyet: blok
+	codes.FnBackward:             true, // geri_yayılım: özel türevlerin geri çağrıları
+	codes.FnNoGrad:               true, // türevsiz
+	codes.FnCustomGrad:           true, // özel_türev: ileri ve geri fonksiyonlarını saklar
+	codes.FnGradCheck:            true, // türev_denetle
+	codes.FnFuse:                 true, // kaynaştır: fonksiyonu saklar
+	codes.FnReplay:               true, // tekrar_oynat: fonksiyonu saklar, TR geri çağrısı yapar
+	codes.FnAdamW:                true, // AdamW: parametre listesini saklar
+	codes.FnSGD:                  true, // SGD
+	codes.FnMixedPrecision:       true, // karışık_hassasiyet: blok
+	codes.FnQuantizedActivations: true, // nicemli_etkinleştirme: blok
 }
 
 // guarded fn'i safe içinde çağırır: çekirdeğin paniği (ör. GPU belleği yetmedi) dene/yakala ile

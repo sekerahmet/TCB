@@ -222,13 +222,18 @@ func TestQuantizeQ8KEdgeBlocks(t *testing.T) {
 	}
 }
 
-// TestQ8PathKeepsNonFinite: prototip açıkken sonlu olmayan değer (NaN, ±∞) içeren satır float yoluyla
+// actMatMul etkinleştirmesi nicemlenen çarpımdır (TR_quantized_activations bloğunun yolu).
+func actMatMul(x, w *Tensor) *Tensor {
+	r, k := MatMulActQuantKernel(x, w, MatMulType(x, w))
+	k.RunLocked()
+	return r
+}
+
+// TestQ8PathKeepsNonFinite: nicemli yolda sonlu olmayan değer (NaN, ±∞) içeren satır float yoluyla
 // hesaplanır: sonucu o satırın tek başına float yolundaki sonucuyla bit bit aynıdır. Karar satır satır: öbür
 // satırların sonucu, yanlarındaki satır sonlu olsa da olmasa da bit bit aynıdır. Sonlu girdide nicemli yol
 // gerçekten kullanılır (sonuç farklıdır).
 func TestQ8PathKeepsNonFinite(t *testing.T) {
-	prev := actQuant
-	defer func() { actQuant = prev }()
 	r := rand.New(rand.NewSource(34))
 	for _, dt := range []DType{Q4K, Q6K} {
 		for _, M := range []int{1, 5, 9} {
@@ -239,10 +244,8 @@ func TestQ8PathKeepsNonFinite(t *testing.T) {
 				data := append([]float32(nil), clean...)
 				badRow := M / 2
 				data[badRow*K+K/2] = bad
-				actQuant = true
-				got := MatMul(New(data, M, K), w.T()).Data()
-				wantClean := MatMul(New(clean, M, K), w.T()).Data()
-				actQuant = false
+				got := actMatMul(New(data, M, K), w.T()).Data()
+				wantClean := actMatMul(New(clean, M, K), w.T()).Data()
 				wantBad := MatMul(New(data[badRow*K:(badRow+1)*K], 1, K), w.T()).Data()
 				for m := range M {
 					if m == badRow {
@@ -253,10 +256,8 @@ func TestQ8PathKeepsNonFinite(t *testing.T) {
 				}
 			}
 			x := New(randomData(r, M*K), M, K)
-			actQuant = false
 			float := MatMul(x, w.T()).Data()
-			actQuant = true
-			quant := MatMul(x, w.T()).Data()
+			quant := actMatMul(x, w.T()).Data()
 			same := true
 			for i := range float {
 				if math.Float32bits(float[i]) != math.Float32bits(quant[i]) {

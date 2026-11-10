@@ -1,0 +1,63 @@
+# TR 4
+# docs/spec/15_tensorler.md 15.53a — TR_quantized_activations bloğu. Nicemli yolun bitleri Go testlerindedir
+# (internal/compute/tensor/cpu_quant_q8_test.go, internal/stdlib/ml/quant_activations_test.go): sıfır
+# olmayan nicemlenmiş ağırlık TR'de kurulmaz (15.52).
+
+TR_test "15.53a blok değerini verir, durum yalnız blokta açıktır" {
+    TR_assert_equal(TR_false, TR_activations_quantized())
+    TR_assert_equal(TR_true, TR_quantized_activations { TR_activations_quantized() })
+    TR_assert_equal(TR_false, TR_activations_quantized())
+    TR_assert_equal(3, TR_quantized_activations { 1 + 2 })
+}
+
+TR_test "15.53a iç içe blok tek durumdur, hatayla bitince önceki durum gelir" {
+    TR_assert_equal(TR_true, TR_quantized_activations { TR_quantized_activations { TR_activations_quantized() } })
+    TR_var w = TR_zeros([2, 32], TR_dtype: "q8")
+    TR_assert_equal("H6723", TR_error_code { TR_quantized_activations { TR_zeros([1, 32]) @ w.TR_transpose() } })
+    TR_assert_equal(TR_false, TR_activations_quantized())
+}
+
+TR_test "15.53a q4_k ve q6_k ağırlıkla blokta çarpım" {
+    TR_var w4 = TR_zeros([3, 256], TR_dtype: "q4_k")
+    TR_var y = TR_quantized_activations { TR_ones([2, 256]) @ w4.TR_transpose() }
+    TR_assert_equal([2, 3], y.TR_shape)
+    TR_assert_equal("float32", y.TR_dtype)
+    TR_assert_equal(0.0, TR_sum(y).TR_item())
+    TR_var w6 = TR_zeros([2, 256], TR_dtype: "q6_k")
+    TR_var z = TR_quantized_activations { TR_ones([256]) @ w6.TR_transpose() }
+    TR_assert_equal([2], z.TR_shape)
+}
+
+TR_test "15.53a karışık hassasiyetle sonuç bloğun türünde" {
+    TR_var w = TR_zeros([3, 256], TR_dtype: "q4_k")
+    TR_var y = TR_mixed_precision("bf16") { TR_quantized_activations { TR_ones([2, 256]) @ w.TR_transpose() } }
+    TR_assert_equal("bf16", y.TR_dtype)
+}
+
+TR_test "15.53a blokta float ağırlıklı çarpım bloğun dışındaki gibi" {
+    TR_var a = TR_Tensor([[1.0, 2.0]])
+    TR_var b = TR_Tensor([[3.0], [4.0]])
+    TR_var içeride = TR_quantized_activations { a @ b }
+    TR_assert_equal((a @ b).TR_tolist, içeride.TR_tolist)
+}
+
+TR_test "15.53a türev izleyen girdi blokta da hatadır" {
+    TR_var x = TR_ones([1, 256], TR_requires_grad: TR_true)
+    TR_var w = TR_zeros([2, 256], TR_dtype: "q4_k")
+    TR_assert_equal("H6696", TR_error_code { TR_quantized_activations { x @ w.TR_transpose() } })
+    TR_var y = TR_quantized_activations { TR_no_grad { x @ w.TR_transpose() } }
+    TR_assert_equal([1, 2], y.TR_shape)
+}
+
+TR_test "15.53a eşzamanlı görev açıldığı yerin durumunu alır" {
+    TR_var görevde = TR_false
+    TR_var a = []
+    TR_quantized_activations {
+        a.TR_append(TR_async { görevde = TR_activations_quantized() })
+    }
+    TR_wait_all(a)
+    TR_assert_equal(TR_true, görevde)
+    TR_var h = TR_async { görevde = TR_activations_quantized() }
+    h.TR_wait()
+    TR_assert_equal(TR_false, görevde)
+}

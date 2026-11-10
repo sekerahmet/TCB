@@ -31,6 +31,7 @@ func taskGradContext(m *interp.VM) *tensor.GradContext {
 func taskFork(parent, task *interp.VM) {
 	task.SetTaskValue(gradKey{}, taskGradContext(parent).Fork())
 	task.SetTaskValue(mixedKey{}, parent.TaskValue(mixedKey{}))
+	task.SetTaskValue(actQuantKey{}, parent.TaskValue(actQuantKey{}))
 }
 
 // taskHook, kilidi alan görevin türev bağlamını çekirdekte etkin yapar.
