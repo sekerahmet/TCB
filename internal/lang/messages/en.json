@@ -204,6 +204,7 @@
 "H1151": "'{op}' compares a {type} value only with the `{#none}` literal: a value holding a tensor is not equatable, nor is its optional (3.5, 15.5); test both against `{#none}` to open them, then compare the tensors with `{#equal}(a, b)`",
 "H1152": "'{op}' cannot compare {type} values: a function and a value holding a function are not equatable, even two functions that look the same are not equal (4.5); compare the functions' results: f(x) == g(x)",
 "H1153": "'{op}' cannot compare {type} values: an interface value and a value holding one cannot be compared (7.8); compare the fields of the actual values",
+"H1160": "the place of the target `{target}` reads `{name}`, which the same assignment assigns to its left (5.3): the place is computed before the assignment, with the old value (Python uses the new one); {split, select, empty {first take the values into separate variables and split the assignment in two} other {split the assignment in two: `{split}`}}",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

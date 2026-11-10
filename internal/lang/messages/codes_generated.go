@@ -209,6 +209,7 @@ const (
 	H1151 Code = 1151 // '{op}' {type} değerini yalnız `{#none}` değişmeziyle karşılaştırır: tensör tutan değer eşitlenemez, isteğe bağlısı da (3.5, 15.5); ikisini önce `{#none}`'la sınayıp açın, sonra tensörü `{#equal}(a, b)` ile karşılaştırın
 	H1152 Code = 1152 // '{op}' {type} değerlerini karşılaştıramaz: fonksiyon ve fonksiyon tutan değer eşitlenemez, görünüşü aynı iki fonksiyon da eşit sayılmaz (4.5); fonksiyonların sonuçlarını karşılaştırın: f(x) == g(x)
 	H1153 Code = 1153 // '{op}' {type} değerlerini karşılaştıramaz: arayüz değeri ve onu tutan değer karşılaştırılamaz (7.8); asıl değerlerin alanlarını karşılaştırın
+	H1160 Code = 1160 // `{target}` hedefinin yeri aynı atamada solunda atanan `{name}`'i okuyor (5.3): yer atamadan önce, eski değerle hesaplanır (Python'da yeni değerle); {split, select, empty {değerleri önce ayrı değişkenlere alıp atamayı ikiye ayırın} other {atamayı ikiye ayırın: `{split}`}}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

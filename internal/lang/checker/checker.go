@@ -306,6 +306,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.itemType(v)
 		}
 		c.checkUnpackCount(s, s.Values, len(s.Targets))
+		c.checkTargetOrder(s) // 5.3 (assign_order.go)
 		for _, t := range s.Targets {
 			ident, ok := t.(*ast.Identifier)
 			if !ok {

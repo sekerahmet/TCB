@@ -204,6 +204,7 @@
 "H1151": { "param": ["op", "type"], "slots": {"none": "TR_kw_none", "equal": "TR_fn_equal"} },
 "H1152": { "param": ["op", "type"] },
 "H1153": { "param": ["op", "type"] },
+"H1160": { "param": ["target", "name", "split"] },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

@@ -115,8 +115,8 @@ type placeFunc func(v *VM, env *Environment) (owner, key Value, err error)
 // writeFunc yeri hesaplanmış hedefe sağ yanın değerini yazar (bileşik atamada önce işlem yapar).
 type writeFunc func(v *VM, owner, key, rhs Value) error
 
-// assignPlace indeks ve alan hedefinin yerini ve yazmasını ayrı derler: bileşik atamada yer sağ
-// yandan önce, bir kez hesaplanır (5.4). A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır
+// assignPlace indeks ve alan hedefinin yerini ve yazmasını ayrı derler: düz ve bileşik atamada yer
+// sağ yandan önce, bir kez hesaplanır (5.4). A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır
 // (tensör satırı veriyi paylaşan bir görünümdür; bkz. IndeksAtanabilir). Modül değerine köşeli
 // ayraçla atanmaz (11.2). Ad hedefinin yeri yoktur: place nil.
 func (c *compiler) assignPlace(k *compilerScope, target ast.Expression, codeVal uint8, line int) (placeFunc, writeFunc) {
