@@ -27,24 +27,22 @@ import (
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.local {
 		if code, text := s.originError(r); code != 0 {
-			deny(w, code, text)
+			refuseUnread(w, r, code, text)
 			return
 		}
 	}
 	if s.token != "" && !s.tokenMatches(r) {
 		w.Header()["Www-Authenticate"] = []string{"Bearer"}
-		deny(w, http.StatusUnauthorized, messages.Text(messages.H7617))
+		refuseUnread(w, r, http.StatusUnauthorized, messages.Text(messages.H7617))
 		return
 	}
 	if !validPath(r.URL.Path) || !validQuery(r.URL.RawQuery) {
-		deny(w, http.StatusBadRequest, messages.Text(messages.H7618))
+		refuseUnread(w, r, http.StatusBadRequest, messages.Text(messages.H7618))
 		return
 	}
 	body, ok := s.readBody(w, r)
 	if !ok {
-		// Okunmamış gövde kalır: Go onu cevaptan önce boşaltmaya çalışır, bağlantı kapanmalı.
-		w.Header()["Connection"] = []string{"close"}
-		deny(w, http.StatusRequestEntityTooLarge, messages.Text(messages.H7619, s.maxBody))
+		refuseUnread(w, r, http.StatusRequestEntityTooLarge, messages.Text(messages.H7619, s.maxBody))
 		return
 	}
 	release := func() {}
@@ -190,9 +188,22 @@ func (s *HTTPServer) readBody(w http.ResponseWriter, r *http.Request) ([]byte, b
 	}
 	_ = rc.SetReadDeadline(time.Time{})
 	if int64(len(body)) > s.maxBody {
-		return nil, false
+		return nil, false // gövde yarım kaldı: refuseUnread bağlantıyı kapatır
 	}
 	return body, true
+}
+
+// refuseUnread gövdesi okunmamış ya da yarım kalmış isteği işleyiciyi çağırmadan cevaplar ve bağlantıyı
+// kapatır (28.5). Go, işleyici gövdeyi bitirmeden dönünce kalanını cevaptan önce ya da bağlantıyı kapatırken
+// okumaya çalışır ve bu okumanın süresi yoktur: susan bir istemci bağlantıyı süresiz tutardı, belirteçsiz
+// bir istekle de (TestTimeoutsCloseTheConnection). Connection: close boşaltmayı, geçmiş okuma süresi
+// kapanıştaki okumayı keser. Gövdesiz istekte bağlantı açık kalır.
+func refuseUnread(w http.ResponseWriter, r *http.Request, code int, text string) {
+	if r.ContentLength != 0 { // gövdesi var ya da boyu bilinmiyor (chunked)
+		w.Header()["Connection"] = []string{"close"}
+		_ = http.NewResponseController(w).SetReadDeadline(time.Now())
+	}
+	deny(w, code, text)
 }
 
 // bodyReadGap iki gövde okuması arasında beklenen en uzun süredir (28.5); testler kısaltır.

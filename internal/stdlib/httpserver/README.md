@@ -27,7 +27,9 @@ maskeli bir satırdır, sunucu sürer (28.4). Kapanış (`s.TR_close()`, durdurm
 iptal eder, en çok 2 saniye bekler (28.8). Açık akışlar kapanır: yayın dinleyicisinin cevabı düzgün biter
 (istemci `Last-Event-ID` ile döner), istek akışının bloğu iptal edilir ve akış düzgün bitirilmeden kesilir.
 Gövde okuması 60 saniye susarsa bağlantı kapanır; Go'nun kapanışta gövdenin kalanını okuması da bu süreyle
-biter (`readBody`, süre geçmiş bırakılır). Denetim: `TestCloseEndsOpenStreams`, `TestTimeoutsCloseTheConnection`.
+biter (`readBody`, süre geçmiş bırakılır). Gövdesi okunmadan ya da yarım reddedilen istek (403, 401, 400, 413)
+`Connection: close` ve geçmiş okuma süresiyle cevaplanır (`refuseUnread`): Go kalan gövdeyi süresiz okumaz,
+susan istemci bağlantıyı tutamaz. Denetim: `TestCloseEndsOpenStreams`, `TestTimeoutsCloseTheConnection`.
 Denetim: `TestHandlerFailureIs500`, `TestCloseCancelsRunningHandlers`, `TestCloseFinishesAWrittenResponse`,
 `TestProgramEndClosesTheServer`, `TestWaitReturnsStopRequested`.
 
