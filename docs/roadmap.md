@@ -76,7 +76,7 @@ Kapsam ve kaynak kararları.
 Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi için gereken konular. Her biri kendi bölümü olarak, öbür bölümlerin yöntemiyle yazılır: dokuz iş tartısı, kaynaklı emsal, iki denetim.
 
 **Sunmak ve uzaktaki model:**
-- **Ağ istemcisi:** HTTP istemcisi, akışlı cevabı (metin üretiminin parça parça gönderilmesi) okumak, zaman aşımı ve yeniden deneme. Olmadan "uzaktaki modeli kullanmak" yazılamaz. (Sunucunun bölümü artık var: [28. bölüm](spec/28_ag.md); uygulaması iki aşamada, durumu [status](status.md)'ta.)
+- **Ağ istemcisi:** HTTP istemcisi, akışlı cevabı (metin üretiminin parça parça gönderilmesi) okumak, zaman aşımı ve yeniden deneme. Olmadan "uzaktaki modeli kullanmak" yazılamaz. (Sunucunun bölümü artık var: [28. bölüm](spec/28_ag.md); iki aşaması da uygulandı, durumu [status](status.md)'ta.)
 - **Toplu sunum:** sürekli toplu işleme ve sayfalı KV önbelleği (arşiv).
 - **Hizmet günlüğü:** istek kayıtları (düzeyler, istek kimliği), uzun çalışan programın günlüğünün döndürülmesi. 19'un `TR_Logger`'ı eğitim günlüğüdür.
 - **Belgelerden bilgi bulma:** gömme modeli ve benzerlik araması. CLAUDE.md "belgelerden bilgi bulan sistemler" der; Jarvis araştırması da eksik buldu.
@@ -297,7 +297,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     5. belgeler ve hafıza; ilk ipucu: beş ajanın arama programı yarışında kök bulan program öne geçti ([`agent_trials.md`](agent_trials.md));
     6. yerli ses giriş ve çıkışı ile CPU nicemleme; dış süreçte kaynağın kendi kaybını TR görmez (21.2), yerli giriş bunu kapatır.
   - Asistan araçları: modelin çağırdığı dosya ve süreç araçları. Modelin verdiği dosya adı dış girdidir: `TR_Path`'in denetiminden geçmeyen yollar (status 18.1) bu dilimde kapanır, dilim onlarsız bitmez (DENETİM 230).
-  - Ekran (Ahmet, 2026-11-05): Jarvis TR'de; ekran ince kalır, tek dosya HTML ve düz JavaScript, derleme yok, TR'ye HTTP ile bağlanır. Önce ekransız sürüm (komut satırı, sonra Whisper); HTTP sunucusu dile girince ekran gerçek akışa bağlanır: aşama 1 (sunucu) bitti, aşama 2 (akış) sürüyor (status 28); sonra ekranı zincire bağlayan dilim. Ahmet ekranı öne aldı (2026-11-06): `tools/assistant/` sahte akışla ve `contract.md` sözleşmesiyle hazır, TR'nin sunucusu gelince entegrasyon noktası orası. Pencere çizmek TR'nin işi değildir.
+  - Ekran (Ahmet, 2026-11-05): Jarvis TR'de; ekran ince kalır, tek dosya HTML ve düz JavaScript, derleme yok, TR'ye HTTP ile bağlanır. Önce ekransız sürüm (komut satırı, sonra Whisper); HTTP sunucusu dile girince ekran gerçek akışa bağlanır: aşama 1 (sunucu) ve aşama 2 (akış) bitti (status 28); ekranı zincire bağlayan dilim sürüyor (sahibi ekran kolu, 2026-11-10). Ahmet ekranı öne aldı (2026-11-06): `tools/assistant/` sahte akışla ve `contract.md` sözleşmesiyle hazır, TR'nin sunucusu gelince entegrasyon noktası orası. Pencere çizmek TR'nin işi değildir.
   - **Taban ölçümü (2026-11-01, Colab CPU, hazır parçalarla: llama.cpp, whisper.cpp, Piper):** sayılar `measurements.md`'nin motordan bağımsız listesinde. Sıradaki: dizüstünde aynı ölçüm, sonra bitiş ölçütünün önerisi.
   - **Yol (2026-11-02):**
     - Küçük bir modelin profili (DENETİM, 2026-11-02) yükün çoğunu tensör yerleşiklerinde, azını yorumlayıcıda gösterdi; sayılar `measurements.md`'nin eski listesinde, gerçek modelin profili yok. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
