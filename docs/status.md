@@ -110,7 +110,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 - **Mevcut durum (DENETİM 229, 237):** `TR_Any` yazılmadan da dokuz yol açık: yedisi 4a5'in satırlarında, biri 13.10'da, biri 4c'de. Sınırda çalışma denetimi yazılmaz (1.2; TCB kararı).
 - **Yapılacaklar (A, Ö1, 4a5; DENETİM 229):** tipli yerde başka tip duran üç yolun satırı yoktu, denetim ve çalışma hatası yok [ölçüldü: DENETİM 229, `e8545745`]: `TR_catch e` (`TR_var y: TR_Int = e`), demet açma (`TR_var a, b = (1, "a")`, sonra `y: TR_Int = b`), öğesiz kap yazımı (`l: TR_List = ["a"]`, sonra `TR_List[TR_Int]`; `TR_Dict` de). Sahip D1.
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** adın açılmamış kullanımı denetim hatası; daraltma (4b) yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz; ilk değeri `TR_none` olan açıklamasız değişkenin hatası (3.13).
-- **Yapılacaklar (E, Ö2; sahip D1; DENETİM 400 N2):** `T?` asıl tipin yerinde denetlenmiyor: `TR_input()`'un değeriyle `TR_Int(m)`, `.TR_length` ve metnin içinde `\(m)` denetimden geçiyor, boş girdide çalışma hatası [ölçüldü: DENETİM 400]. `TR_input` artık her programda `T?` verdiği için öncelik yükseldi.
+- **Yapılacaklar (D, Ö3; sahip D1; DENETİM 400 N2, sınıf DENETİM 403 N1):** `T?` asıl tipin yerinde denetlenmiyor: `TR_input()`'un değeriyle `TR_Int(m)`, `.TR_length` ve metnin içinde `\(m)` denetimden geçiyor, boş girdide çalışma hatası [ölçüldü: DENETİM 400]. `TR_input` artık her programda `T?` verdiği için sıranın önünde.
 - **Yapılacaklar (A, Ö1, 4a5; sahip T1; DENETİM 400 kapanış 2, K2-N1):** `TR_none`, düz de dalları hepsi `TR_none` veren ifade de, `TR_Int` bekleyen üç yere denetimsiz giriyor: `(TR_Bool) -> TR_Int` tipli fonksiyon ifadesinin gövdesi, `TR_List[TR_Int]` tipli değişkene verilen `[TR_none]` değişmezi, `x: TR_Int = TR_none` varsayılanı [ölçüldü: DENETİM 400 kapanış 2]. Tur 6A'dan önce de vardı.
 
 ### 3.6
@@ -206,7 +206,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 - **Mevcut durum (T1, Tur 6A):** dalları hepsi `TR_none` veren `TR_if` ve `TR_match` beklenen tip yoksa ya da her tipi alıyorsa H1161; tipli yer (değişken, atama, dönüş, kullanıcı fonksiyonunun parametresi, tipli fonksiyon ifadesi, tipli liste) tipi verir; `T` ile `T?` dalı `T?` [test: `TestAllNoneBranchesNeedAnExpectedType`, `TestIfAndMatchValueTypes`, `tests/negative/hepsi_yok_dallar.tr`].
 - **Mevcut durum:** `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor [ölçüldü: main `85a19c36`, dört küçük program; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
-- **Yapılacaklar (E, Ö2; sahip T1; DENETİM 400 kapanış 2, K2-N2):** `TR_Dict[TR_String, TR_Int?]` sözlük değişmezinde dalları hepsi `TR_none` veren değer yanlışlıkla H1161 alıyor [ölçüldü: DENETİM 400 kapanış 2].
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 400 kapanış 2, K2-N2):** `TR_Dict[TR_String, TR_Int?]` sözlük değişmezinde dalları hepsi `TR_none` veren değer yanlışlıkla H1161 alıyor [ölçüldü: DENETİM 400 kapanış 2].
 - **Yapılacaklar (test, Ö3; sahip T1; DENETİM 400 kapanış 2, K2-N3):** öbür dalı `TR_return` ile biten, tek dalı değer veren biçimin testi yok: bozma hayatta kaldı; davranış doğru [ölçüldü: DENETİM 400 kapanış 2].
 
 ### 5.6
@@ -361,7 +361,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 - **Mevcut durum:** `e == f` çalışma anında H2913; kural denetim hatası diyor (aşağıdaki satır) [ölçüldü: `tests/hatalar_ertele_test.tr`'nin 8.3 testi].
 - **Yapılacaklar (A, Ö1, 4a5; DENETİM 231: `x: TR_Int` içinde metin [ölçüldü: DENETİM 231]; `TR_catch e`'nin tipiyle kapanmaz):** `TR_value`'nun kapalı birleşim tipi ve `e == f`'nin denetim hatası (denetleyici, 4a); kopyanın daraltılması (4b), `_`'siz eşlemenin kapsaması (4c).
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** kapalı birleşimin yerel kopyası; hatayla biten kol eşlemenin tipine katılmaz (denetimi 4a2).
-- **Yapılacaklar (F1, Ö3; sahip T1; DENETİM 400 N2, yeniden üretilmedi):** kayıt alanını çağıran yazımda (`.TR_text("tr")`) H2421 alanın adını ve parantezsiz yazımı söylemiyor, öneri boş [kanıtlı: T1 devri, `internal/lang/interp/calls.go:223`].
+- **Yapılacaklar (F, Ö3; sahip T1; DENETİM 400 N2, yeniden üretilmedi):** kayıt alanını çağıran yazımda (`.TR_text("tr")`) H2421 alanın adını ve parantezsiz yazımı söylemiyor, öneri boş [kanıtlı: T1 devri, `internal/lang/interp/calls.go:223`].
 
 ### 8.5
 
@@ -377,7 +377,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 - **Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü].
 - **Yapılacaklar:** çağrı yığını, en son çağrı en altta.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** yakalanmayan hatada nedenler zinciri.
-- **Yapılacaklar (E, Ö2; sahip D1; DENETİM 400 N2, N4):** terminalde gösterilen kodlu hatada kod yazılmıyor: hatalar örneği 11 yalnız satırı ve metni basıyor, 8.6 en sonda hatanın kodunu ister [ölçüldü: DENETİM 400].
+- **Yapılacaklar (F, Ö3; sahip D1; DENETİM 400 N2, N4; sınıf DENETİM 403 N1):** terminalde gösterilen kodlu hatada kod yazılmıyor: hatalar örneği 11 yalnız satırı ve metni basıyor, 8.6 en sonda hatanın kodunu ister [ölçüldü: DENETİM 400].
 
 ## 9. Ertele
 
@@ -496,6 +496,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 - **Mevcut durum (T1, Tur 6A, DENETİM 400):** girdi sonunda `TR_none` bir kez gelir, sonraki `TR_input` H2561 [test: `TestInputAfterTheEndIsAnError`]; H1162'nin önerisi `(TR_input() ?? x) != x`, iki dilin iletisinden kopyalanıp koşuluyor [test: `TestInputLoopSuggestionEnds`]; `examples/tr/06_girdi.tr` girdi bitince ikinci soruyu sormuyor.
 - **Yapılacaklar (E, Ö3; sahip D1; DENETİM 400 N2):** `TR_max` ve `TR_min` metin almıyor: `TR_max("a", "b")` ve metin listesi çalışma hatası, 13.1 metni sayıyor [ölçüldü: DENETİM 400].
 - **Yapılacaklar (F, Ö3; sahip T1; DENETİM 400 kapanış K-N5):** H2561 istemle yapılan çağrıda da istemsiz yazımı gösteriyor.
+- **Yapılacaklar (F, Ö3; sahip T1; DENETİM 403 N7):** `internal/lang/checker/input_loop.go:10` ve `:15`'in yorumları TR'de olmayan `TR_while` ile yazıyor.
 
 ### 13.2
 
@@ -1061,8 +1062,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **Mevcut durum (2026-11-10; ekran-zincir dilimi):** asistanın ekranı gerçek TR sunucusuyla konuşuyor: `asistan.tr` ekranlı kipte (zincirle) ve `screen_demo.tr` (modelsiz) sayfayı belirteçsiz yollardan sunar, olayları yayar (görüntü olaylardan katlanır), komutları ana döngüde karara bağlar; olay kimliği metindir (`<ön ek>-<sıra>`), kaynak sayfanın kendi köküdür (`contract.md` sürüm 1) [ölçüldü: yerleşik tarayıcı (Chromium), `screen_demo.tr`'de tur, yenileme, durdurma, mikrofon; test: `TestScreenServerEndToEnd`]. Gerçek mikrofonla ve sesle doğrulama Ahmet'in.
 - **Mevcut durum (2026-11-10; deneme kaydı, Dost, `7093d011`):** `--deneme_klasörü` her turu bir JSONL satırına, sözün WAV'ına ve özet tablosuna yazar; seçenek yoksa hiçbir şey yazılmaz. Klasör mutlak yol olmalı, git ağacının ve bulut klasörlerinin (OneDrive, Google Drive, Dropbox, iCloud) dışında; durdurulan tur ilk parçanın süresini ve o ana kadarki metni tutar [test: `tools/assistant/deneme_test.tr`; DENETİM 396, 399 kapanış ONAY].
 - **Mevcut durum (2026-11-10, Ahmet'in canlı denemeleri):** iki deneme; kayıtlı olanında (18:07, profilli, tek tur, durduruldu) tur 30 785 ms, yazıya çevirme 6 892 ms sürdü; sahte seste aynı aşamanın ortancası 2 099,5 ms (Dost'un ölçüsü, `measurements.md`) [ölçüldü: deneme kaydı]. Cevap bir cümleyi dört kez yineledi, yanlış bilgi verdi. Profilde `layers.tr:40` %24, `vits.tr:71`'in `TR_conv1d`'si %15.
-- **Mevcut durum (2026-11-10, H1 emsal kıyası):** aynı modeller aynı makinede (G4, İngilizce): TR yazıya çevirmede faster-whisper float32'nin 2,07, int8'in 2,99 katı; dil modelinin ilk token'ında llama.cpp'nin 3,75, token başına 2,10 katı; konuşmada aynı modelin transformers'ının 5,61 katı sürüyor. Whisper metinleri 5/5, dil modelinin cevapları 4/5 aynı [ölçüldü: H1, `measurements.md`]. Profilde token seçimi (`TR_topk`) adımın ~%22'si, konuşmada konvolüsyonun açma tamponu tensör süresinin %44,7'si [ölçüldü: H1 profili].
-- **Yapılacaklar (sınıfsız: hız; Ö3; sahip H1, hız işi; Ahmet'in canlı denemesi):** gerçek seste yazıya çevirme sahte sesin ~3,3 katı sürdü [hesap: 6 892 / 2 099,5]; nedeni ölçülmedi. Dizüstünde bütün zincirin profiliyle bakılır.
+- **Mevcut durum (2026-11-10, H1 emsal kıyası):** aynı modeller aynı makinede (G4, İngilizce): TR yazıya çevirmede faster-whisper float32'nin 2,07, int8'in 2,99 katı; dil modelinin ilk token'ında llama.cpp'nin 3,75, token başına 2,10 katı; konuşmada aynı modelin transformers'ının 5,61 katı sürüyor. Whisper metinleri 5/5, dil modelinin cevapları 4/5 aynı [ölçüldü: H1, `measurements.md`]. Profilde token seçimi (`TR_topk`) token başına ~10 ms [ölçüldü: H1 profili], adımın ~%22'si [hesap: 10,0 / 45,5]; konuşmada konvolüsyonun açma tamponu tensör süresinin %44,7'si [ölçüldü: H1 profili].
+- **Yapılacaklar (sınıfsız: hız; Ö3; sahip H1, hız işi; Ahmet'in canlı denemesi):** gerçek seste yazıya çevirme sahte sesin ~2,9 katı sürdü [hesap: 6 892 / 2 415, Dost'un profilli ortancası; tek tur, ses uzunluğu farklı]; nedeni ölçülmedi. Dizüstünde bütün zincirin profiliyle bakılır.
 - **Yapılacaklar (E, Ö3; sahip TCB tasarım; Ahmet'in canlı denemesi):** zincirin açgözlü seçimi tekrara düşüyor, tekrar cezası yok: cevap bir cümleyi dört kez yineledi.
 - **Yapılacaklar (F, Ö3; sahip TCB; deneme kaydı):** kaydın başlığında motorun commit'i yok; denemenin hangi motorla alındığı sonradan bilinmiyor.
 - **Yapılacaklar (A, Ö1, canlı doğrulama; sahip S1; canlı deneme, 2026-11-08; DENETİM 309):** gerçek mikrofonda sözün başı hata vermeden kayboluyor (araçta, `tools/assistant`; dilin 21.2 sınırı yol haritasının 6. adımında): çalmadan sonra mikrofonun yeniden açılması 804–912 ms (sahte mikrofonda 23–36 ms); bir cümlede kesit 1 024 ms'ye indi, Whisper beş sözcüğün beşini yanlış yazdı [ölçüldü: S1, canlı 2. deneme; sebebin baştaki kayıp olduğu hipotez]. Kod düzeldi (S1 mimari dilimi, `6588de1a`). **Canlı doğrulama bekliyor:** Whisper hatalarının sebebinin baştaki kayıp olduğu hipotez; doğrulaması Ahmet'in sesiyle canlı deneme ister. Satır o zamana kadar açık.
