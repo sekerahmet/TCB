@@ -13,6 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/stdlib/httpserver"
 )
 
 // Kural: tüm motorlar yüklüyken genel kapsamdaki her yerleşik bir yerleşik kodunun (fn) kimliğiyle
@@ -76,6 +77,12 @@ func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 	return m.Run(prog)
 }
 
+// defineEventStream olay_akisi_go adında bir TR_EventStream tanımlar: akış yalnız akış_cevabı'nın
+// bloğunda oluşur (28.7), TR kodu onu bloğun dışında kuramaz. Üye okunur, çağrılmaz; alanları gerekmez.
+func defineEventStream(m *interp.VM) {
+	m.GlobalEnv.Define("olay_akisi_go", &httpserver.EventStream{}, false)
+}
+
 // Kural: kod listesindeki her üye kodu (mem) en az bir tipte çalışır: kodu olup da hiçbir
 // switch'te karşılanmayan üye kalmaz. Üyeye kimliğiyle erişilir (kodlu gövde). Veri kümesi ve
 // okuyucu üyeleri dizin gerektirdiği için internal/stdlib/dataset testlerinde denenir. Dilde
@@ -83,6 +90,7 @@ func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 func TestMembersMatchDictionary(t *testing.T) {
 	m := interp.New()
 	m.Err = io.Discard // açılan ilerleme çubuğu test çıktısına yazmasın
+	defineEventStream(m)
 	setup := strings.Join([]string{
 		`TR_var u_metin = "abc"`,
 		`TR_var u_liste = [1, 2]`,
@@ -103,13 +111,16 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`TR_var u_istek = TR_Request()`,
 		`TR_var u_cevap = TR_Response()`,
 		`TR_var u_sunucu = TR_serve_http(TR_print)`,
+		`TR_var u_maske = TR_mask_stream()`,
+		`TR_var u_akis = olay_akisi_go`,
+		`TR_var u_yayin = TR_EventBroadcast(TR_capacity: 1, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)
 	}
 	// Sözlüğe nokta ile okuma anahtar okumadığı için (3.7) her nesnenin üyesi kendi nesnesinde denenir.
 	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme",
-		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu", "u_hata", "u_gorev", "u_bayt", "u_surec", "u_istek", "u_cevap", "u_sunucu"}
+		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu", "u_hata", "u_gorev", "u_bayt", "u_surec", "u_istek", "u_cevap", "u_sunucu", "u_maske", "u_akis", "u_yayin"}
 	for _, k := range codes.Codes() {
 		// Kitaplığın üyesi çekirdek tiplerde değil, kitaplığın yapılarında karşılanır.
 		if k.Namespace() != codes.NamespaceMember || k.IsLibrary() || (k >= codes.MemSampler && k <= codes.MemNext) {

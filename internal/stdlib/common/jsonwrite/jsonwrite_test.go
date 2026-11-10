@@ -198,3 +198,23 @@ func TestNonDataValueIsAnError(t *testing.T) {
 		}
 	}
 }
+
+// Süzgeç (TextFilter) TR_JSON değerinin içindeki metinlere ve anahtarlara da uygulanır (19.4: olayın
+// ve kaydın içindeki gizli değer TR_JSON'da da ***); sayının tam ya da ondalık yazımı aynı kalır.
+// Süzgeçsiz yazım TR_JSON'un kendi metnidir.
+func TestTextFilterReachesInsideJSON(t *testing.T) {
+	inner, err := interp.JSONToTR([]byte(`{"gizli": ["gizli", 2, 2.0, null, true]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := dict("j", interp.NewJSON(inner))
+	mask := func(s string) string { return strings.ReplaceAll(s, "gizli", "***") }
+	b, err := WriteOptions(v, Options{TextFilter: mask})
+	if want := `{"j":{"***":["***",2,2.0,null,true]}}`; err != nil || string(b) != want {
+		t.Fatalf("süzgeçle: %s %v, beklenen %s", b, err, want)
+	}
+	b, err = Write(v)
+	if want := `{"j":{"gizli":["gizli",2,2.0,null,true]}}`; err != nil || string(b) != want {
+		t.Fatalf("süzgeçsiz: %s %v, beklenen %s", b, err, want)
+	}
+}

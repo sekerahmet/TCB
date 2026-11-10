@@ -1,0 +1,32 @@
+# TR 4
+# 55 — Maskeli akış: parça parça gelen metni gizli değeri açık etmeden göstermek (19.4a).
+# Ne öğretir: gizli değerler insanın göreceği çıktıda *** görünür (19.4), ama maske her çıktıya ayrı
+# uygulanır. Dil modelinin parça parça ürettiği bir cevap gizli değeri iki parçaya bölebilir; parçaları
+# ayrı ayrı yazdıran program onu tanımaz. TR_mask_stream() parçaları birleştirip maskeler.
+# Önceki örnekten: komut satırından ayar (37), döngüler (07), metin (04).
+# Çalıştırma (proje kökünden): trlang examples/tr/55_maskeli_akis.tr
+
+# Adı gizli bir şey söyleyen ayarın değeri gizlidir (19.4): "api_anahtarı"nın değeri *** görünür.
+TR_var ayar = TR_command_line({"api_anahtarı": "örnek-anahtar-42"})
+
+# Bir dil modelinin cevabı parça parça gelir; ikinci parça gizli değerin ortasından başlıyor.
+TR_var parçalar = ["Anahtarınız: örnek-an", "ahtar-42", ", iyi çalışmalar."]
+
+# Her parça akıştan geçer: adım(parça) kararı kesinleşen başı verir, gizli değerin eksik başını bir
+# sonraki parçaya kadar tutar; bitir() tutulanı verir. Gösterilen metin bütünün maskesidir.
+TR_var m = TR_mask_stream()
+TR_var gösterilen = ""
+TR_for parça TR_in parçalar {
+    gösterilen = gösterilen + m.TR_step(parça)
+}
+gösterilen = gösterilen + m.TR_finish()
+TR_print(gösterilen)
+TR_print("akışın tipi:", TR_Type(m) == TR_MaskStream)
+
+# Parçaların kendisi değişmez: akış yalnız gösterilecek metni verir.
+TR_print("ilk parçanın uzunluğu:", parçalar[0].TR_length, "| ayar programda:", ayar["api_anahtarı"].TR_length, "karakter")
+
+# --- Kendin dene ---
+# 1. Parçaları başka yerlerden böl ("Anahtarınız: ö", "rnek-anahtar-4", "2."): sonuç aynı kalır.
+# 2. Bir parçayı akıştan geçirmeden yazdırırsan (TR_print(parçalar[0])) gizli değerin başı görünür:
+#    parça parça gelen metni gösteren her program onu önce akıştan geçirir.

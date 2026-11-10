@@ -77,12 +77,101 @@ func TestResponseRejectsWhatGoChanges(t *testing.T) {
 		{`TR_Response(TR_body: "a", TR_json: 1)`, messages.H7608},
 		{`TR_Response(TR_body: 1)`, messages.H7604},
 		{`TR_Response(TR_status: "200")`, messages.H7604},
+		{`TR_Response(TR_status: 204, TR_body: "a")`, messages.H7631},
+		{`TR_Response(TR_status: 205, TR_body: TR_Bytes([1]))`, messages.H7631},
+		{`TR_Response(TR_status: 304, TR_json: {})`, messages.H7631},
+		{`TR_Response(TR_status: 204, TR_json: TR_none)`, messages.H7631},
+		{`TR_Response(TR_headers: {"Content-Length": "3"})`, messages.H7632},
+		{`TR_Response(TR_headers: {"transfer-encoding": "chunked"})`, messages.H7632},
+		{`TR_Response(TR_headers: {"Connection": "keep-alive"})`, messages.H7633},
+		{`TR_Response(TR_headers: {"Connection": "close, upgrade"})`, messages.H7633},
+		{`TR_Response(TR_headers: {"connection": ""})`, messages.H7633},
 	}
 	for _, c := range cases {
 		o := trrun.Exec(t, c.code)
 		if !messages.Has(o.Err, c.want) {
 			t.Fatalf("%s: %s bekleniyordu, alınan %v", c.code, c.want, o.Err)
 		}
+	}
+}
+
+// TestNoBodyStatusesAndServerHeaders: 204, 205 ve 304 gövdesiz kurulur; boş metin gövde değildir;
+// iletilerin önerdiği yazımlar (gövdeli cevap için 200, Connection: close) çalışır; Connection: close
+// harf büyüklüğüne bakılmadan geçer ve close olarak okunur (28.3).
+func TestNoBodyStatusesAndServerHeaders(t *testing.T) {
+	o := trrun.MustExec(t, `TR_var a = TR_Response(TR_status: 204)
+TR_var b = TR_Response(TR_status: 205, TR_body: "")
+TR_var c = TR_Response(TR_status: 304, TR_headers: {"ETag": "\"x\""})
+TR_var d = TR_Response(TR_status: 200, TR_body: "a")
+TR_var e = TR_Response(TR_headers: {"Connection": "close"})
+TR_var f = TR_Response(TR_headers: {"connection": "Close"})
+TR_var result = [a.TR_status, b.TR_body.TR_length, c.TR_headers["ETag"], d.TR_status, e.TR_headers["Connection"], f.TR_headers["Connection"]]`)
+	if got := o.Value.Inspect(); got != `[204, 0, "\"x\"", 200, "close", "close"]` {
+		t.Fatalf("gövdesiz cevaplar ve Connection: %s", got)
+	}
+}
+
+// exchange bağlantıyı kapatmayı istemeden (HTTP/1.1, Connection'sız) bir GET yazar; cevabı ve sunucunun
+// cevaptan sonra bağlantıyı kapatıp kapatmadığını verir.
+func exchange(t *testing.T, addr, path string) (*http.Response, string, bool) {
+	t.Helper()
+	c, err := net.DialTimeout("tcp", addr, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	_ = c.SetDeadline(time.Now().Add(10 * time.Second))
+	_, _ = io.WriteString(c, "GET "+path+" HTTP/1.1\r\nHost: "+addr+"\r\n\r\n")
+	br := bufio.NewReader(c)
+	res, err := http.ReadResponse(br, nil)
+	if err != nil {
+		t.Fatalf("cevap okunamadı: %v", err)
+	}
+	b, _ := io.ReadAll(res.Body)
+	_ = c.SetReadDeadline(time.Now().Add(time.Second))
+	_, err = br.ReadByte()
+	return res, string(b), err == io.EOF
+}
+
+// TestGoClosesOnlyOnLowercaseClose Go'nun davranışını sabitler (28.3): işleyicinin yazdığı
+// Connection: close cevaptan sonra bağlantıyı kapatır, Connection: Close kapatmaz. TR bu yüzden close
+// yazar (TestConnectionCloseClosesTheConnection).
+func TestGoClosesOnlyOnLowercaseClose(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header()["Connection"] = []string{strings.TrimPrefix(r.URL.Path, "/")}
+	}))
+	defer srv.Close()
+	addr := srv.Listener.Addr().String()
+	if _, _, closed := exchange(t, addr, "/close"); !closed {
+		t.Fatal("Go Connection: close'da bağlantıyı kapatmalı")
+	}
+	if _, _, closed := exchange(t, addr, "/Close"); closed {
+		t.Fatal("Go Connection: Close'da bağlantıyı açık tutuyordu; değiştiyse TR'nin close yazması gereksizleşir")
+	}
+}
+
+// TestConnectionCloseClosesTheConnection: Connection: close (harf büyüklüğü ne olursa olsun) cevapta
+// close yazılır ve sunucu cevaptan sonra bağlantıyı kapatır; 204 gövdesiz ve Content-Length'siz gider (28.3).
+func TestConnectionCloseClosesTheConnection(t *testing.T) {
+	ts := serveTR(t, `TR_func f(i: TR_Request) -> TR_Response {
+    TR_if i.TR_path == "/bos" { TR_return TR_Response(TR_status: 204) }
+    TR_if i.TR_path == "/acik" { TR_return TR_Response(TR_body: "x") }
+    TR_return TR_Response(TR_body: "x", TR_headers: {"connection": i.TR_query["c"][0]})
+}
+TR_var s = TR_serve_http(f)`, nil)
+	for _, p := range []string{"/?c=close", "/?c=Close", "/?c=CLOSE"} {
+		res, body, closed := exchange(t, ts.addr(), p)
+		// Go'nun istemcisi Connection: close'u başlıktan silip res.Close'a koyar.
+		if body != "x" || !res.Close || !closed {
+			t.Fatalf("%s: Close %v, gövde %q, kapandı %v", p, res.Close, body, closed)
+		}
+	}
+	if _, _, closed := exchange(t, ts.addr(), "/acik"); closed {
+		t.Fatal("Connection verilmeyen cevapta bağlantı açık kalmalı")
+	}
+	res, body, _ := exchange(t, ts.addr(), "/bos")
+	if res.StatusCode != 204 || body != "" || res.Header.Get("Content-Length") != "" {
+		t.Fatalf("204: %d %q Content-Length %q", res.StatusCode, body, res.Header.Get("Content-Length"))
 	}
 }
 

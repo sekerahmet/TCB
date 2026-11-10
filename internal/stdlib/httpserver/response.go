@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"strconv"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -21,6 +22,7 @@ type Response struct {
 	status  int
 	body    []byte
 	headers *Headers
+	stream  *streamSpec // TR_stream_response'un cevabı: gövdeyi blok yazar (28.7)
 }
 
 func (r *Response) Type() interp.ValueType { return ResponseType }
@@ -97,15 +99,27 @@ func newResponse(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 			return nil, err
 		}
 	}
+	if noBody(r.status) && len(r.body) > 0 {
+		return nil, messages.New(messages.H7631, fn, r.status)
+	}
 	if _, given := r.headers.get("Content-Type"); !given && contentType != "" {
 		r.headers.add("Content-Type", contentType)
 	}
 	return r, nil
 }
 
+// noBody durum kodunun cevabı içerik taşımaz mı (RFC 9110: 204, 205, 304)? Gövdesi sunucuda sessizce
+// düşer ya da kurala aykırı giderdi; TR onu cevap kurulurken hata yapar (28.3).
+func noBody(status int) bool {
+	return status == http.StatusNoContent || status == http.StatusResetContent || status == http.StatusNotModified
+}
+
 // headersArg TR_headers: argümanıdır: metin anahtarlı, metin değerli sözlük. Go'nun sessizce sildiği
 // ya da değiştirdiği her başlık burada hatadır (28.3): geçersiz ad, harf büyüklüğü farklı aynı ad,
-// satır sonu ya da denetim karakteri taşıyan değer.
+// satır sonu ya da denetim karakteri taşıyan değer; sunucunun gövdeden yazdığı Content-Length ve
+// Transfer-Encoding; close dışında değerli Connection. Connection: close harf büyüklüğüne bakılmadan
+// geçer ve close yazılır: Go cevaptan sonra bağlantıyı yalnız tam bu yazımla kapatır
+// (net/http/server.go, header.get("Connection") == "close").
 func headersArg(fn any, v interp.Value) (*Headers, error) {
 	d, ok := v.(*interp.DictVal)
 	if !ok {
@@ -127,8 +141,16 @@ func headersArg(fn any, v interp.Value) (*Headers, error) {
 			return nil, messages.New(messages.H7610, fn, first, k)
 		case hasControl(s.Val):
 			return nil, messages.New(messages.H7611, fn, k)
+		case strings.EqualFold(k, "Content-Length") || strings.EqualFold(k, "Transfer-Encoding"):
+			return nil, messages.New(messages.H7632, fn, k)
+		case strings.EqualFold(k, "Connection") && !strings.EqualFold(s.Val, "close"):
+			return nil, messages.New(messages.H7633, fn, s.Val)
 		}
-		h.add(k, s.Val)
+		value := s.Val
+		if strings.EqualFold(k, "Connection") {
+			value = "close"
+		}
+		h.add(k, value)
 	}
 	return h, nil
 }
@@ -160,14 +182,8 @@ func hasControl(s string) bool {
 // gövde; HEAD'de gövde gönderilmez (RFC 9110, 9.3.2). Adlar Go'nun anahtar biçimine çevrilir: Go
 // Content-Type'ı o biçimle arar, bulamazsa gövdeyi koklayıp ikinci bir Content-Type ekler.
 func (r *Response) write(w http.ResponseWriter, head bool) {
+	r.writeHeaders(w)
 	out := w.Header()
-	for _, n := range r.headers.names {
-		v, _ := r.headers.get(n)
-		out[textproto.CanonicalMIMEHeaderKey(n)] = []string{v}
-	}
-	if _, given := r.headers.get("X-Content-Type-Options"); !given {
-		out["X-Content-Type-Options"] = []string{"nosniff"}
-	}
 	allowed := r.status != http.StatusNoContent && r.status != http.StatusNotModified
 	if allowed {
 		out["Content-Length"] = []string{strconv.Itoa(len(r.body))}
@@ -175,6 +191,18 @@ func (r *Response) write(w http.ResponseWriter, head bool) {
 	w.WriteHeader(r.status)
 	if allowed && !head {
 		_, _ = w.Write(r.body) // kopan istemci işleyicinin hatası değildir (28.9)
+	}
+}
+
+// writeHeaders cevabın başlıklarını yazar; X-Content-Type-Options verilmediyse nosniff'tir.
+func (r *Response) writeHeaders(w http.ResponseWriter) {
+	out := w.Header()
+	for _, n := range r.headers.names {
+		v, _ := r.headers.get(n)
+		out[textproto.CanonicalMIMEHeaderKey(n)] = []string{v}
+	}
+	if _, given := r.headers.get("X-Content-Type-Options"); !given {
+		out["X-Content-Type-Options"] = []string{"nosniff"}
 	}
 }
 

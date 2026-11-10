@@ -81,6 +81,7 @@ var (
 func Register(v *interp.VM) *State {
 	d := &State{}
 	v.RegisterNoNamed(codes.FnEnv, envVar)
+	v.RegisterNoNamed(codes.FnMaskStream, maskStream)
 	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
 	v.RegisterBuiltinCode(codes.FnRunProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnRunProcess), d.runProcess))
 	v.RegisterBuiltinCode(codes.FnSpawnProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnSpawnProcess), d.spawnProcess))

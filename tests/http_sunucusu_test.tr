@@ -86,6 +86,17 @@ TR_test "28.3 cevap bir değerdir; Go'nun sessizce değiştirdiği cevap hatadı
     TR_assert_equal("H7611", TR_error_code { TR_Response(TR_headers: {"X-A": "a\nb"}) })
 }
 
+TR_test "28.3 204, 205 ve 304 gövdesizdir; sunucunun yazdığı başlıklar verilmez" {
+    TR_assert_equal("H7631", TR_error_code { TR_Response(TR_status: 204, TR_body: "a") })
+    TR_assert_equal("H7631", TR_error_code { TR_Response(TR_status: 205, TR_json: {}) })
+    TR_assert_equal("H7631", TR_error_code { TR_Response(TR_status: 304, TR_body: TR_Bytes([1])) })
+    TR_assert_equal([204, 0], [TR_Response(TR_status: 204).TR_status, TR_Response(TR_status: 304, TR_body: "").TR_body.TR_length])
+    TR_assert_equal("H7632", TR_error_code { TR_Response(TR_headers: {"Content-Length": "1"}) })
+    TR_assert_equal("H7632", TR_error_code { TR_Response(TR_headers: {"Transfer-Encoding": "chunked"}) })
+    TR_assert_equal("H7633", TR_error_code { TR_Response(TR_headers: {"Connection": "keep-alive"}) })
+    TR_assert_equal("close", TR_Response(TR_headers: {"Connection": "Close"}).TR_headers["Connection"])
+}
+
 TR_test "28.6 yönlendirme işleyicinin TR_match'idir" {
     TR_assert_equal(404, cevapla(TR_Request(TR_path: "/yok")).TR_status)
     TR_assert_equal(404, cevapla(TR_Request(TR_method: "DELETE", TR_path: "/saglik")).TR_status)
@@ -112,4 +123,37 @@ TR_test "28.3a dosya_cevabı kökün içindeki dosyayı verir, öbür yolları 4
     TR_for istenen TR_in ["/", "/lang", "/Index.html", "/con", "/CON .js", "/index.html.", "/a:b", "/../index.html", "/yok.txt"] {
         TR_assert_equal(404, TR_file_response(kök, istenen).TR_status)
     }
+}
+
+TR_test "28.7 akış cevabı tek parametreli blokla kurulur, text/event-stream'dir; blok yanlışsa çağrı hatasıdır" {
+    TR_var c = TR_stream_response((a: TR_EventStream) => { a.TR_send_event({"parça": "mer"}) })
+    TR_assert_equal(TR_Response, TR_Type(c))
+    TR_assert_equal(200, c.TR_status)
+    TR_assert_equal("text/event-stream; charset=utf-8", c.TR_headers["Content-Type"])
+    TR_assert_equal("no-cache", c.TR_headers["Cache-Control"])
+    TR_assert_equal(200, TR_stream_response((a) => { a.TR_send_event(1) }, TR_heartbeat: {"tür": "nabız"}).TR_status)
+    TR_assert_equal("H7635", TR_error_code { TR_stream_response { TR_print(1) } })
+    TR_assert_equal("H7635", TR_error_code { TR_stream_response((a, b) => { TR_print(1) }) })
+    TR_assert_equal("H2423", TR_error_code { TR_stream_response(5) })
+    TR_assert_equal("H7010", TR_error_code { TR_stream_response((a) => { a.TR_send_event(1) }, TR_heartbeat: TR_print) })
+    TR_assert_equal("H7901", TR_error_code { TR_stream_response((a) => { a.TR_send_event(1) }, TR_port: 1) })
+}
+
+TR_test "28.7 yayıncı olayları katlar; kapasite, anlık görüntü ve indirge zorunludur; katlamanın hatası gönderimin hatasıdır" {
+    TR_var y = TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g, olay) => TR_JSON(TR_Int(g) + TR_Int(olay)))
+    TR_assert_equal(TR_EventBroadcast, TR_Type(y))
+    y.TR_send_event(2)
+    y.TR_send_event(3)
+    TR_var c = y.TR_subscribe(TR_Request())
+    TR_assert_equal(200, c.TR_status)
+    TR_assert_equal("text/event-stream; charset=utf-8", c.TR_headers["Content-Type"])
+    TR_assert_equal("H7639", TR_error_code { y.TR_send_event("sayı değil") })
+    TR_assert_equal("H2423", TR_error_code { y.TR_subscribe(5) })
+    TR_var jsonsuz = TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g, olay) => "JSON değil")
+    TR_assert_equal("H7640", TR_error_code { jsonsuz.TR_send_event(1) })
+    TR_assert_equal("H7637", TR_error_code { TR_EventBroadcast(TR_capacity: 2, TR_reduce: (g, _) => g) })
+    TR_assert_equal("H7637", TR_error_code { TR_EventBroadcast(TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g) })
+    TR_assert_equal("H7638", TR_error_code { TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g) => g) })
+    TR_assert_equal("H7628", TR_error_code { TR_EventBroadcast(TR_capacity: 0, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g) })
+    TR_assert_equal("H7604", TR_error_code { TR_EventBroadcast(TR_capacity: 2, TR_snapshot: {"a": 1}, TR_reduce: (g, _) => g) })
 }

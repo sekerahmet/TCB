@@ -1809,6 +1809,17 @@ const (
 	H7628 Code = 7628 // {fn}: {name} pozitif bir tam sayı olmalı, {given} verildi
 	H7629 Code = 7629 // HTTP sunucusu: {text|q}
 	H7630 Code = 7630 // Bulunamadı
+	H7631 Code = 7631 // {fn}: {status} cevabının gövdesi olmaz (RFC 9110); `{#body}:` ve `{#json}:`'ı kaldırın, gövdeli cevap için `{#status}: 200` yazın
+	H7632 Code = 7632 // {fn}: {name|q} başlığını sunucu gövdeden yazar; onu `{#headers}:`'tan kaldırın
+	H7633 Code = 7633 // {fn}: `Connection` başlığının değeri {value|q}; verilebilen tek değer `close`'dur: `{#headers}: {{"Connection": "close"}}` yazın ya da başlığı kaldırın
+	H7634 Code = 7634 // {fn}: akış `.{#finish}()` ile bitti, ondan sonra `.{#step}` çağrılmaz; yeni parçalar için yeni bir `{#mask_stream}()` kurun
+	H7635 Code = 7635 // {fn}: blok tek parametreli bir fonksiyon olmalı, akışı alır; verilen fonksiyonun {given} parametresi var: `{#stream_response}((akış) => {{ akış.{#send_event}("merhaba") }})` yazın
+	H7636 Code = 7636 // {fn}: akışın bloğu bitti, akış kapandı; olayları bloğun içinde gönderin: `{#stream_response}((akış) => {{ akış.{#send_event}("merhaba") }})`
+	H7637 Code = 7637 // {fn}: `{name}:` zorunludur: `{#EventBroadcast}({#capacity}: 100, {#snapshot}: {#JSON}({{}}), {#reduce}: (g, olay) => olay)` yazın
+	H7638 Code = 7638 // {fn}: `{#reduce}:` iki parametreli bir fonksiyon olmalı, görüntüyü ve olayı alır; verilen fonksiyonun {given} parametresi var: `{#reduce}: (g, olay) => olay` yazın
+	H7639 Code = 7639 // {fn}: `{#reduce}:` hatayla bitti; olay gönderilmedi, görüntü değişmedi: {err}
+	H7640 Code = 7640 // {fn}: `{#reduce}:` yeni görüntüyü {@JSON} olarak vermeli, {given} verdi: `{#reduce}: (g, olay) => {#JSON}({{"son": olay}})` yazın
+	H7641 Code = 7641 // {fn}: `{#reduce}:` aynı yayıncıya gönderemez, katlama sürerken yayıncı kendini beklerdi; olayı katlamanın dışında gönderin
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

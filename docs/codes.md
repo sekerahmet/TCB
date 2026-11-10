@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 728 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 64 tip, 160 fonksiyon, 11 sabit, 86 metot, 131 özellik, 189 adlı argüman.
+Toplam 738 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 88 metot, 131 özellik, 192 adlı argüman.
 
 ## İçindekiler
 
@@ -728,6 +728,40 @@ tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden:
 
 Üyeleri: `.TR_cause`, `.TR_code`, `.TR_suppressed`, `.TR_value` · İlişkili: `TR_catch`, `TR_throw`, `TR_Message`
 
+#### `TR_EventBroadcast` (`TR_type_EventBroadcast`, `OlayYayını`)
+
+Aynı olayları birden çok dinleyiciye gönderen yayıncıdır: son kapasite kadar olayı saklar, her olaya 1'den artan bir kimlik verir. anlık_görüntü: başlangıç görüntüsüdür (bir JSON), indirge: her olayı görüntüye katlar: OlayYayını(kapasite: 100, anlık_görüntü: JSON({}), indirge: (g, olay) => olay). y.olay_gönder(veri) yayınlar, y.abone_et(istek) dinleyici cevabını verir.
+
+```tr
+TR_var y = TR_EventBroadcast(TR_capacity: 100, TR_snapshot: TR_JSON({"son": TR_none}), TR_reduce: (g, olay) => TR_JSON({"son": olay})); y.TR_send_event("hazır"); TR_print(TR_Type(y) == TR_EventBroadcast)
+```
+
+Görünümü:
+
+```text
+en: var y = EventBroadcast(capacity: 100, snapshot: JSON({"son": none}), reduce: (g, olay) => JSON({"son": olay})); y.send_event("hazır"); print(Type(y) == EventBroadcast)
+tr: değişken y = OlayYayını(kapasite: 100, anlık_görüntü: JSON({"son": yok}), indirge: (g, olay) => JSON({"son": olay})); y.olay_gönder("hazır"); yazdır(Tip(y) == OlayYayını)
+```
+
+Üyeleri: `.TR_send_event(...)`, `.TR_subscribe(...)` · İlişkili: `.TR_send_event(...)`, `.TR_subscribe(...)`, `TR_snapshot:`, `TR_reduce:`, `TR_stream_response(...)`, `TR_serve_http(...)`
+
+#### `TR_EventStream` (`TR_type_EventStream`, `OlayAkışı`)
+
+akış_cevabı'nın bloğunun aldığı akıştır: a.olay_gönder(veri) bir olayı hemen istemciye yazar. Blok bitince akış kapanır; ondan sonra olay_gönder hatadır.
+
+```tr
+TR_var c = TR_stream_response((a: TR_EventStream) => { a.TR_send_event({"parça": "mer"}) }); TR_print(c.TR_status)
+```
+
+Görünümü:
+
+```text
+en: var c = stream_response((a: EventStream) => { a.send_event({"parça": "mer"}) }); print(c.status)
+tr: değişken c = akış_cevabı((a: OlayAkışı) => { a.olay_gönder({"parça": "mer"}) }); yazdır(c.durum_kodu)
+```
+
+Üyeleri: `.TR_send_event(...)` · İlişkili: `TR_stream_response(...)`, `.TR_send_event(...)`
+
 #### `TR_Float` (`TR_type_Float`, `Ondalık`)
 
 64 bit kayan noktalı sayı tipidir; Tam bir değer Ondalık açıklamalı bir ada da atanabilir. Ondalık(x) Tam'ı ya da metni Ondalık'a çevirir; metin programdaki yazımla okunur ("3.14", "2e-3", "inf"), yerel ayar yoktur.
@@ -896,6 +930,23 @@ tr: değişken g = Günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğ
 ```
 
 Üyeleri: `.TR_append(...)`, `.TR_close(...)` · İlişkili: `.TR_append(...)`, `.TR_close(...)`, `TR_Progress`
+
+#### `TR_MaskStream` (`TR_type_MaskStream`, `MaskeAkışı`)
+
+maskeli_akış() ile kurulan akışın tipidir: parça parça gelen metni (dil modelinin ürettiği metin gibi) insana gösterilmeden önce maskeler; iki parçaya bölünen gizli değer de *** görünür. m.adım(parça) kararı kesinleşen başı, m.bitir() kalanı verir.
+
+```tr
+TR_var m = TR_mask_stream(); TR_print(TR_Type(m) == TR_MaskStream, m)
+```
+
+Görünümü:
+
+```text
+en: var m = mask_stream(); print(Type(m) == MaskStream, m)
+tr: değişken m = maskeli_akış(); yazdır(Tip(m) == MaskeAkışı, m)
+```
+
+Üyeleri: `.TR_finish(...)`, `.TR_step(...)` · İlişkili: `TR_mask_stream(...)`, `.TR_step(...)`, `.TR_finish(...)`
 
 #### `TR_Message` (`TR_type_Message`, `İleti`)
 
@@ -2621,6 +2672,25 @@ tr: değişken k = klasör_oluştur("çıktı/kontrol_noktaları"); yazdır(k, k
 
 
 
+#### `TR_mask_stream(...)` (`TR_fn_mask_stream`, `maskeli_akış`)
+
+    maskeli_akış() → MaskeAkışı
+
+Parça parça gelen metin için bir MaskeAkışı verir. yazdır ve olay akışı her çıktıyı ayrı maskeler, iki parçaya bölünen gizli değeri görmez; parçalar önce akıştan geçer: m = maskeli_akış(), sonra her parça için yazdır(m.adım(parça)), en sonda yazdır(m.bitir()).
+
+```tr
+TR_var b = TR_secret_token(); TR_var m = TR_mask_stream(); TR_var a = m.TR_step("anahtar: "); TR_print(a + m.TR_step(b) + m.TR_step(" bitti") + m.TR_finish())
+```
+
+Görünümü:
+
+```text
+en: var b = secret_token(); var m = mask_stream(); var a = m.step("anahtar: "); print(a + m.step(b) + m.step(" bitti") + m.finish())
+tr: değişken b = gizli_belirteç(); değişken m = maskeli_akış(); değişken a = m.adım("anahtar: "); yazdır(a + m.adım(b) + m.adım(" bitti") + m.bitir())
+```
+
+İlişkili: `TR_MaskStream`, `.TR_step(...)`, `.TR_finish(...)`, `TR_secret_token(...)`
+
 #### `TR_max(...)` (`TR_fn_max`, `max`)
 
     max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
@@ -3558,6 +3628,25 @@ tr: durdurma_istendi()
 
 İlişkili: `TR_handle_stop(...)`
 
+#### `TR_stream_response(...)` (`TR_fn_stream_response`, `akış_cevabı`)
+
+    akış_cevabı(Fonksiyon, nabız: Herhangi = yok) → HTTPCevabı
+
+Gövdesi parça parça yazılan bir HTTPCevabı verir (text/event-stream): blok tek parametreli bir fonksiyondur, OlayAkışı'nı alır ve isteğin görevinde çalışır: akış_cevabı((a) => { a.olay_gönder({"parça": "merhaba"}) }). İstemci koparsa blok iptal edilir; blok hatayla biterse akış düzgün bitirilmeden kesilir. Açık akışa 15 saniyede bir nabız gider.
+
+```tr
+TR_func cevapla(i: TR_Request) -> TR_Response { TR_return TR_stream_response((a) => { a.TR_send_event({"parça": "merhaba"}) }) }; TR_var c = cevapla(TR_Request()); TR_print(c.TR_status, c.TR_headers["Content-Type"])
+```
+
+Görünümü:
+
+```text
+en: func cevapla(i: Request) -> Response { return stream_response((a) => { a.send_event({"parça": "merhaba"}) }) }; var c = cevapla(Request()); print(c.status, c.headers["Content-Type"])
+tr: fonksiyon cevapla(i: HTTPİsteği) -> HTTPCevabı { sonuç akış_cevabı((a) => { a.olay_gönder({"parça": "merhaba"}) }) }; değişken c = cevapla(HTTPİsteği()); yazdır(c.durum_kodu, c.başlıklar["Content-Type"])
+```
+
+İlişkili: `TR_EventStream`, `.TR_send_event(...)`, `TR_mask_stream(...)`, `TR_serve_http(...)`
+
 #### `TR_sum(...)` (`TR_fn_sum`, `toplam`)
 
     toplam(Liste | Tensör, [Tam], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
@@ -4119,7 +4208,20 @@ Kullananlar: `TR_Dataset` · İlişkili: `TR_quota_gb:`
 
 #### `TR_capacity:` (`TR_arg_capacity`, `kapasite`)
 
+OlayYayını'nda saklanan son olayların sayısıdır, pozitif bir Tam: OlayYayını(kapasite: 100, ...); geri bağlanan dinleyici kaçırdıklarını bunlardan alır. tr/layers'ta önbelleğin kapasitesidir.
 
+```tr
+TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g); y.TR_send_event(1); TR_print(TR_Type(y) == TR_EventBroadcast)
+```
+
+Görünümü:
+
+```text
+en: var y = EventBroadcast(capacity: 10, snapshot: JSON(0), reduce: (g, _) => g); y.send_event(1); print(Type(y) == EventBroadcast)
+tr: değişken y = OlayYayını(kapasite: 10, anlık_görüntü: JSON(0), indirge: (g, _) => g); y.olay_gönder(1); yazdır(Tip(y) == OlayYayını)
+```
+
+Kullananlar: `TR_EventBroadcast` · İlişkili: `TR_EventBroadcast`, `.TR_subscribe(...)`
 
 #### `TR_causal:` (`TR_arg_causal`, `nedensel`)
 
@@ -4523,6 +4625,23 @@ tr: yazdır(HTTPCevabı(başlıklar: {"Cache-Control": "no-store"}).başlıklar[
 ```
 
 Kullananlar: `TR_Request`, `TR_Response` · İlişkili: `TR_Request`, `TR_Response`, `.TR_headers`
+
+#### `TR_heartbeat:` (`TR_arg_heartbeat`, `nabız`)
+
+Akışın nabzının verisidir. akış_cevabı'nda verilmezse nabız bir yorum satırıdır (:), verilirse yalnız data: satırı olan bir olaydır; OlayYayını'nda nabız her zaman bir olaydır, verisi verilmezse {"type": "heartbeat"}. Değer olayın verisi gibi JSON'a yazılır ve maskelenir.
+
+```tr
+TR_print(TR_stream_response((a) => { a.TR_send_event(1) }, TR_heartbeat: {"tür": "nabız"}).TR_status)
+```
+
+Görünümü:
+
+```text
+en: print(stream_response((a) => { a.send_event(1) }, heartbeat: {"tür": "nabız"}).status)
+tr: yazdır(akış_cevabı((a) => { a.olay_gönder(1) }, nabız: {"tür": "nabız"}).durum_kodu)
+```
+
+Kullananlar: `TR_EventBroadcast`, `TR_stream_response(...)` · İlişkili: `TR_stream_response(...)`, `TR_EventBroadcast`
 
 #### `TR_history:` (`TR_arg_history`, `geçmiş`)
 
@@ -5268,6 +5387,23 @@ tr: klasör_oluştur("çöp/alt"); dosya_yaz("çöp/alt/a.txt", "x"); yazdır(si
 
 Kullananlar: `TR_remove(...)` · İlişkili: `TR_remove(...)`
 
+#### `TR_reduce:` (`TR_arg_reduce`, `indirge`)
+
+Olayı görüntüye katlayan fonksiyondur: (görüntü, olay) alır, yeni görüntüyü JSON olarak verir; olay gönderilen verinin maskeli JSON'udur: indirge: (g, olay) => olay. Hata verirse gönderim hatadır, olay gitmez, görüntü değişmez. Durumu olmayan yayın: indirge: (g, _) => g.
+
+```tr
+TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, olay) => TR_JSON(TR_Int(g) + TR_Int(olay))); y.TR_send_event(2); y.TR_send_event(3); TR_print(TR_Type(y) == TR_EventBroadcast)
+```
+
+Görünümü:
+
+```text
+en: var y = EventBroadcast(capacity: 10, snapshot: JSON(0), reduce: (g, olay) => JSON(Int(g) + Int(olay))); y.send_event(2); y.send_event(3); print(Type(y) == EventBroadcast)
+tr: değişken y = OlayYayını(kapasite: 10, anlık_görüntü: JSON(0), indirge: (g, olay) => JSON(Tam(g) + Tam(olay))); y.olay_gönder(2); y.olay_gönder(3); yazdır(Tip(y) == OlayYayını)
+```
+
+Kullananlar: `TR_EventBroadcast` · İlişkili: `TR_EventBroadcast`, `TR_snapshot:`, `.TR_reduce(...)`
+
 #### `TR_requires_grad:` (`TR_arg_requires_grad`, `türev_izle`)
 
 Oluşturulan tensörün türevinin izlenip izlenmeyeceğini belirler; varsayılan yanlıştır. Parametreler ve gradyanı istenen girdiler türev_izle: doğru ile oluşturulmalıdır.
@@ -5360,6 +5496,23 @@ Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
 #### `TR_sin_table:` (`TR_arg_sin_table`, `sin_tablosu`)
 
 
+
+#### `TR_snapshot:` (`TR_arg_snapshot`, `anlık_görüntü`)
+
+Yayıncının başlangıç görüntüsüdür, bir JSON: anlık_görüntü: JSON({"satırlar": []}). Her olay indirge: ile ona katlanır; yeni dinleyici önce görüntüyü alır, maskelenmiş olarak.
+
+```tr
+TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON({"satırlar": []}), TR_reduce: (g, _) => g); TR_print(y.TR_subscribe(TR_Request()).TR_status)
+```
+
+Görünümü:
+
+```text
+en: var y = EventBroadcast(capacity: 10, snapshot: JSON({"satırlar": []}), reduce: (g, _) => g); print(y.subscribe(Request()).status)
+tr: değişken y = OlayYayını(kapasite: 10, anlık_görüntü: JSON({"satırlar": []}), indirge: (g, _) => g); yazdır(y.abone_et(HTTPİsteği()).durum_kodu)
+```
+
+Kullananlar: `TR_EventBroadcast` · İlişkili: `TR_EventBroadcast`, `TR_reduce:`, `.TR_subscribe(...)`
 
 #### `TR_sparse:` (`TR_arg_sparse`, `seyrek`)
 
@@ -6207,7 +6360,22 @@ tr: yazdır([1, 2, 3, 4].filtrele((x) => x > 2))
 
 #### `.TR_finish(...)` (`TR_mem_finish`, `bitir`)
 
+    MaskeAkışı.bitir() → Metin
 
+MaskeAkışı'nda tutulan son parçayı maskeleyip Metin olarak verir ve akışı bitirir; sonra adım(...) hatadır, ikinci bitir() boş metin verir: m.adım("merhaba") + m.bitir(). tr/training'de koşuyu bitirir: koşu.bitir(model).
+
+```tr
+TR_var m = TR_mask_stream(); TR_print(m.TR_step("merhaba"), m.TR_finish(), m.TR_finish())
+```
+
+Görünümü:
+
+```text
+en: var m = mask_stream(); print(m.step("merhaba"), m.finish(), m.finish())
+tr: değişken m = maskeli_akış(); yazdır(m.adım("merhaba"), m.bitir(), m.bitir())
+```
+
+İlişkili: `.TR_step(...)`, `TR_mask_stream(...)`
 
 #### `.TR_first` (`TR_mem_first`, `ilk`)
 
@@ -7234,6 +7402,26 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 
 
 
+#### `.TR_send_event(...)` (`TR_mem_send_event`, `olay_gönder`)
+
+    OlayAkışı.olay_gönder(Herhangi) → YokTipi
+    OlayYayını.olay_gönder(Herhangi) → YokTipi
+
+Veriyi JSON'a çevirip (13.8; metinlerdeki gizli değerler *** olur) bir olay olarak gönderir, değer vermez: a.olay_gönder({"parça": "merhaba"}). OlayAkışı'nda olay hemen istemciye yazılır, blok bittikten sonra çağrı hatadır; OlayYayını'nda olay bir kimlik alır, saklanır, görüntüye katlanır ve bütün dinleyicilere gider. Parça parça metni önce maskeli_akış'tan geçirin.
+
+```tr
+TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g); y.TR_send_event({"parça": "merhaba"}); TR_print(TR_stream_response((a) => { a.TR_send_event(1) }).TR_status)
+```
+
+Görünümü:
+
+```text
+en: var y = EventBroadcast(capacity: 10, snapshot: JSON(0), reduce: (g, _) => g); y.send_event({"parça": "merhaba"}); print(stream_response((a) => { a.send_event(1) }).status)
+tr: değişken y = OlayYayını(kapasite: 10, anlık_görüntü: JSON(0), indirge: (g, _) => g); y.olay_gönder({"parça": "merhaba"}); yazdır(akış_cevabı((a) => { a.olay_gönder(1) }).durum_kodu)
+```
+
+İlişkili: `TR_stream_response(...)`, `TR_EventBroadcast`, `TR_mask_stream(...)`
+
 #### `.TR_sequential(...)` (`TR_mem_sequential`, `sıralı`)
 
     VeriKümesi.sıralı([Tam], [Tam], toplu: Tam, bağlam: Tam) → SıralıOkuyucu
@@ -7469,22 +7657,23 @@ tr: yazdır(Yol("veri/derlem.tar.gz").uzantısız_ad)
 
 #### `.TR_step(...)` (`TR_mem_step`, `adım`)
 
+    MaskeAkışı.adım(Metin) → Metin
     İyileştirici.adım() → YokTipi
 
-İyileştiricinin (AdamW, SGD) bir güncelleme adımını yapar: parametreleri gradyanlarına göre yerinde günceller. Argüman almaz, yok döner.
+İyileştiricinin (AdamW, SGD) bir güncelleme adımını yapar: parametreleri gradyanlarına göre yerinde günceller. Argüman almaz, yok döner. MaskeAkışı'nda bir Metin parçası alır, tutulanla birleştirir ve kararı kesinleşen başı maskeli Metin olarak verir; bir gizli değerin eksik başı olan son, sonraki parçaya kadar tutulur: m.adım("anahtar: ab").
 
 ```tr
-TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_SGD([w], TR_lr: 0.1); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_print(w.TR_tolist)
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_SGD([w], TR_lr: 0.1); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_print(w.TR_tolist, TR_mask_stream().TR_step("metin"))
 ```
 
 Görünümü:
 
 ```text
-en: var w = Tensor([1.0], requires_grad: true); var op = SGD([w], lr: 0.1); backward(sum(w * 2)); op.step(); print(w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer)
+en: var w = Tensor([1.0], requires_grad: true); var op = SGD([w], lr: 0.1); backward(sum(w * 2)); op.step(); print(w.tolist, mask_stream().step("metin"))
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer, maskeli_akış().adım("metin"))
 ```
 
-İlişkili: `.TR_zero_grad(...)`, `TR_backward(...)`
+İlişkili: `.TR_zero_grad(...)`, `TR_backward(...)`, `.TR_finish(...)`
 
 #### `.TR_step_done(...)` (`TR_mem_step_done`, `adım_bitti`)
 
@@ -7529,6 +7718,25 @@ Görünümü:
 en: print("  merhaba  ".strip())
 tr: yazdır("  merhaba  ".kırp())
 ```
+
+#### `.TR_subscribe(...)` (`TR_mem_subscribe`, `abone_et`)
+
+    OlayYayını.abone_et(HTTPİsteği) → HTTPCevabı
+
+İsteğe bir dinleyici cevabı (text/event-stream) verir; işleyici onu döndürür: y.abone_et(istek). Last-Event-ID saklanan bir olayınsa ondan sonrakiler, değilse önce anlık görüntü (son kimlikle), sonra yeni olaylar gider: arada olay kaybolmaz ve iki kez gelmez. Dinleyici eşzamanlı istek sınırına sayılmaz; yavaş okuyanın yalnız bağlantısı kapanır.
+
+```tr
+TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g); TR_print(y.TR_subscribe(TR_Request()).TR_headers["Content-Type"])
+```
+
+Görünümü:
+
+```text
+en: var y = EventBroadcast(capacity: 10, snapshot: JSON(0), reduce: (g, _) => g); print(y.subscribe(Request()).headers["Content-Type"])
+tr: değişken y = OlayYayını(kapasite: 10, anlık_görüntü: JSON(0), indirge: (g, _) => g); yazdır(y.abone_et(HTTPİsteği()).başlıklar["Content-Type"])
+```
+
+İlişkili: `TR_EventBroadcast`, `.TR_send_event(...)`, `TR_snapshot:`, `TR_serve_http(...)`
 
 #### `.TR_suffixes` (`TR_mem_suffixes`, `ekler`)
 

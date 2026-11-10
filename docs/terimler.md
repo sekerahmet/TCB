@@ -49,6 +49,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | değer | TR_arg_value, TR_mem_tolist | aynı anlam: düz sayı değeri (`TR_SpikeGuard.TR_exceeds(değer, geçmiş)` izlenen sayıyı, tensörün `.TR_tolist`i tensörün düz değerini verir) |
 | dikkat | TR_fn_attention, TR_mem_attention | aynı anlam: dikkat hesabı (`TR_attention(q, k, v)` yerleşiği ve bloğun onu çalıştıran `.TR_attention` katmanı; PyTorch `scaled_dot_product_attention` ve `self_attn`) |
 | ileri | TR_arg_forward, TR_mem_forward | aynı anlam: ileri hesap (`TR_custom_grad(TR_forward:, TR_backward:)` ve katmanın `.TR_forward` metodu; PyTorch `forward`) |
+| indirge | TR_arg_reduce, TR_mem_reduce | aynı anlam: soldan katlamak (`liste.TR_reduce(f)` listeyi bir birikimle tek değere indirger, `TR_EventBroadcast(TR_reduce: f)` her olayı görüntüye katlar; JavaScript `reduce`, Redux `reducer`) |
 | kapı | TR_arg_gate, TR_mem_gate_proj | aynı anlam: kapı (`TR_ple_mix`'teki kapı değeri ve onu üreten `kapı` katmanı; SwiGLU ve PLE kapısı) |
 | kayıp | TR_arg_loss, TR_mem_loss | aynı anlam: eğitim kaybı (`TR_SpikeGuard.TR_observe(kayıp, norm)` ve kaybı hesaplayan `model.TR_loss(...)`) |
 | maske | TR_arg_mask, TR_mem_mask | aynı anlam: dikkat maskesi (`TR_attention(..., TR_mask:)` ve `TR_KVCache.TR_mask()` ile kurulan maske) |

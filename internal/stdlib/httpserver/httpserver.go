@@ -49,7 +49,9 @@ func Register(v *interp.VM) {
 	v.RegisterBuiltinCode(codes.FnServeHttp, bind.SafeBuiltin(interp.CallPrefix(codes.FnServeHttp), st.serve))
 	v.RegisterNoNamed(codes.FnSecretToken, secretToken)
 	v.RegisterBuiltinCode(codes.FnFileResponse, bind.SafeBuiltin(interp.CallPrefix(codes.FnFileResponse), fileResponse))
+	v.RegisterBuiltinCode(codes.FnStreamResponse, bind.SafeBuiltin(interp.CallPrefix(codes.FnStreamResponse), streamResponse))
 	v.RegisterTypeCall(codes.TypeRequest, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeRequest), newRequest)})
+	v.RegisterTypeCall(codes.TypeEventBroadcast, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeEventBroadcast), newBroadcast)})
 	v.RegisterTypeCall(codes.TypeResponse, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeResponse), newResponse)})
 	v.AddMainEnd(func(y *interp.VM) {
 		for _, s := range st.list() {

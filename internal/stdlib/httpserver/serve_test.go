@@ -1,10 +1,13 @@
 package httpserver
 
 import (
+	"bufio"
+	"io"
 	"net"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
@@ -93,5 +96,56 @@ func TestServerLogIsCoded(t *testing.T) {
 	out := ts.errOut.String()
 	if !strings.Contains(out, messages.Text(messages.H7629, "")[:10]) || strings.Contains(out, "\x1b") {
 		t.Fatalf("günlük satırı kodlu ve kaçışlı olmalı: %q", out)
+	}
+}
+
+// TestTimeoutDefaults 28.5'in süre sınırlarını sabitler: başlık 60 saniye, iki gövde okuması arası 60
+// saniye, boşta bağlantı 5 saniye; cevap yazmanın ve isteğin bütününün süre sınırı yoktur (akış kesilmez).
+func TestTimeoutDefaults(t *testing.T) {
+	if headerTimeout != 60*time.Second || bodyReadGap != 60*time.Second || idleTimeout != 5*time.Second {
+		t.Fatalf("süre sınırları %v, %v, %v; 28.5 60, 60 ve 5 saniye diyor", headerTimeout, bodyReadGap, idleTimeout)
+	}
+	ts := serveGo(t, "", ok200)
+	srv := ts.s.srv
+	if srv.ReadHeaderTimeout != headerTimeout || srv.IdleTimeout != idleTimeout || srv.ReadTimeout != 0 || srv.WriteTimeout != 0 {
+		t.Fatalf("sunucunun süreleri: başlık %v, boşta %v, okuma %v, yazma %v", srv.ReadHeaderTimeout, srv.IdleTimeout, srv.ReadTimeout, srv.WriteTimeout)
+	}
+}
+
+// TestTimeoutsCloseTheConnection: başlık süresinde gelmezse, iki gövde okuması arası süreyi geçerse ya da
+// bağlantı boşta süreyi aşarsa bağlantı kapanır; işleyici yalnız tam gelen istekte çağrılır (28.5).
+// Süreler testte kısaltılır.
+func TestTimeoutsCloseTheConnection(t *testing.T) {
+	oldH, oldI, oldB := headerTimeout, idleTimeout, bodyReadGap
+	headerTimeout, idleTimeout, bodyReadGap = 200*time.Millisecond, 200*time.Millisecond, 200*time.Millisecond
+	t.Cleanup(func() { headerTimeout, idleTimeout, bodyReadGap = oldH, oldI, oldB })
+	ts := serveGo(t, "", ok200)
+	cases := map[string]string{
+		"başlık": "GET / HTTP/1.1\r\nHost: " + ts.addr() + "\r\n",
+		"gövde":  "POST / HTTP/1.1\r\nHost: " + ts.addr() + "\r\nContent-Length: 10\r\n\r\nab",
+		"boşta":  "GET / HTTP/1.1\r\nHost: " + ts.addr() + "\r\n\r\n",
+	}
+	for name, req := range cases {
+		c, err := net.DialTimeout("tcp", ts.addr(), 5*time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
+		start := time.Now()
+		if _, err := io.WriteString(c, req); err != nil {
+			t.Fatal(err)
+		}
+		got, _ := io.ReadAll(bufio.NewReader(c)) // bağlantı kapanınca biter; 5 saniyede kapanmazsa süre hatası
+		d := time.Since(start)
+		c.Close()
+		if d > 3*time.Second || d < 150*time.Millisecond {
+			t.Errorf("%s: bağlantı %v sonra kapandı, ~200 ms bekleniyordu", name, d)
+		}
+		if answered := strings.HasPrefix(string(got), "HTTP/1.1 200"); answered != (name == "boşta") {
+			t.Errorf("%s: cevap %q", name, got)
+		}
+	}
+	if ts.calls.Load() != 1 {
+		t.Fatalf("işleyici yalnız tam gelen istekte çağrılmalı: %d", ts.calls.Load())
 	}
 }

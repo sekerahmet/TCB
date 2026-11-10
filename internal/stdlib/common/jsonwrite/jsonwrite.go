@@ -132,7 +132,12 @@ func (y *writer) value(val interp.Value, depth int) error {
 	case *interp.StringVal:
 		y.text(v.Val)
 	case *interp.JSONVal:
-		// TR_JSON (3.7a): sayının tam ya da ondalık yazımı korunur.
+		// TR_JSON (3.7a): sayının tam ya da ondalık yazımı korunur. Süzgeç varsa içindeki metinler de
+		// ondan geçer (19.4: gizli değer TR_JSON'un içinde de ***); öğeler çekirdeğin değerleridir, yazım
+		// aynıdır (FloatText).
+		if y.textFilter != nil {
+			return y.value(v.Unwrap(), depth)
+		}
 		y.b = append(y.b, v.JSONText()...)
 	case *interp.ListVal:
 		return y.array(v, v.Elements, depth)

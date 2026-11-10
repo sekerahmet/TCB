@@ -110,6 +110,36 @@ func TestTaskHostCloseCancelsRunningTasks(t *testing.T) {
 	}
 }
 
+// TestTaskHostRunUntilCancelsOnStop: stop kapanınca görev iptal edilir ve güvenli noktada durur
+// (istemcisi kopan akış, 28.7); stop kapanmazsa görev olağan biter, host sürer.
+func TestTaskHostRunUntilCancelsOnStop(t *testing.T) {
+	v, h := hostVM(t)
+	v.releaseGIL()
+	started, release, stop := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var after bool
+	out := make(chan [2]any, 1)
+	go func() {
+		val, err := h.RunUntil(stop, func(task *VM) (Value, error) {
+			close(started)
+			task.Blocking(func() { <-release }) // geri dönüşte iptal denetlenir
+			after = true
+			return Null, nil
+		})
+		out <- [2]any{val, err}
+	}()
+	<-started
+	close(stop)
+	time.Sleep(50 * time.Millisecond) // izleyici kilidi alıp iptal etsin
+	close(release)
+	if r := <-out; r[1] != ErrInterrupted || after {
+		t.Fatalf("stop kapanınca görev güvenli noktada durmalı: %v, sürdü %v", r[1], after)
+	}
+	if val, err := h.RunUntil(make(chan struct{}), func(*VM) (Value, error) { return NewInt(3), nil }); err != nil || val.Inspect() != "3" {
+		t.Fatalf("stop kapanmayan görev olağan bitmeli: %v %v", val, err)
+	}
+	v.acquireGIL()
+}
+
 // TestMainEndRunsBeforeTasksAreAwaited: AddMainEnd'in işi program bitince, görevler beklenmeden
 // önce çalışır; etkileşimli kabukta çalışmaz.
 func TestMainEndRunsBeforeTasksAreAwaited(t *testing.T) {

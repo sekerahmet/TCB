@@ -68,6 +68,23 @@ TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda mas
     TR_assert(TR_not içerik.TR_contains("anahtar-varsayılan-1"))
 }
 
+TR_test "19.4a maskeli akış iki parçaya bölünen gizli değeri maskeler; bittikten sonra adım hatadır" {
+    # Gizli değer 19.4'ün seçeneğinden gelir (api_anahtarı); parçalar onu ortasından böler.
+    ayar()
+    TR_var m = TR_mask_stream()
+    TR_assert_equal(TR_MaskStream, TR_Type(m))
+    TR_var parçalar = ["anahtar: anahtar-var", "sayılan-1", " bitti"]
+    TR_var ilk = m.TR_step(parçalar[0])
+    TR_assert_equal("anahtar: ", ilk)
+    TR_var gösterilen = ilk + m.TR_step(parçalar[1]) + m.TR_step(parçalar[2]) + m.TR_finish()
+    TR_assert_equal("anahtar: *** bitti", gösterilen)
+    TR_assert_equal("anahtar-var", parçalar[0].TR_split(": ")[1])
+    TR_assert_equal("", m.TR_finish())
+    TR_assert_equal("H7634", TR_error_code { m.TR_step("x") })
+    TR_assert_equal("H2423", TR_error_code { TR_mask_stream().TR_step(5) })
+    TR_assert_equal("H2012", TR_error_code { TR_mask_stream(1) })
+}
+
 TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
     ayar()
     TR_var dosya_yolu = "\(TR_temp_dir())/kayit/egitim.jsonl"

@@ -21,3 +21,8 @@ Denetim: `TestCycleAndDepthError`, `TestNaNAndInfError`, `TestNonTextKeyIsAnErro
 **Okuma ile tutarlıdır.** Yazılan metin dilin JSON okuyucusuyla geri okunup yeniden yazıldığında
 aynı kalır; bu, bulanıklaştırma testiyle sınanır.
 Denetim: `FuzzJSONRoundTrip`.
+
+**Süzgeç TR_JSON'un içine de girer.** `TextFilter` (gizli değer süzgeci, 19.4) yazılan her metne ve sözlük
+anahtarına uygulanır, `TR_JSON` değerinin içindekiler dahil; süzgeç yokken `TR_JSON` kendi metniyle yazılır.
+Olay akışı (28.7) ve kayıtlar (19.4) bunu kullanır.
+Denetim: `TestTextFilterReachesInsideJSON`.

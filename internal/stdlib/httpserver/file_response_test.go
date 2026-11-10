@@ -3,7 +3,9 @@ package httpserver
 import (
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -120,22 +122,147 @@ func TestFileCaseMustMatch(t *testing.T) {
 	}
 }
 
-// TestFileLinksStayInsideTheRoot: kökün içindeki bağlantı izlenir, kökün dışını gösteren reddedilir (28.3a).
+// TestFileLinksStayInsideTheRoot: kökün içindeki bağlantı izlenir, kökün dışını gösteren reddedilir;
+// hedef mutlak da göreli de olabilir, dosya da klasör de (28.3a).
 func TestFileLinksStayInsideTheRoot(t *testing.T) {
 	root, outside := screenDir(t)
 	if err := os.Symlink(outside, filepath.Join(root, "dis.txt")); err != nil {
 		t.Skipf("bağlantı kurulamadı (Windows'ta geliştirici kipi ya da yönetici gerekir; Linux'ta koşar): %v", err)
 	}
-	if err := os.Symlink(filepath.Join(root, "app.js"), filepath.Join(root, "ic.js")); err != nil {
-		t.Fatal(err)
+	// Göreli hedefler bağlantının klasörüne göredir (geçici klasörde; depo yolu değil).
+	up := ".." + string(filepath.Separator)
+	links := map[string]string{
+		"ic.js":     filepath.Join(root, "app.js"), // mutlak, içeride
+		"ic2.js":    "app.js",                      // göreli, içeride
+		"dil":       filepath.Join(root, "lang"),   // mutlak, içerideki klasör
+		"dil2":      "lang",                        // göreli, içerideki klasör
+		"ust":       filepath.Dir(outside),         // mutlak, dışarıdaki klasör
+		"ust2":      up,                            // göreli, dışarıdaki klasör
+		"dis2.txt":  up + "gizli.txt",
+		"lang/k.js": up + "app.js", // göreli, alt klasörden köke
 	}
-	if err := os.Symlink(filepath.Dir(outside), filepath.Join(root, "ust")); err != nil {
-		t.Fatal(err)
+	for name, target := range links {
+		if err := os.Symlink(target, filepath.Join(root, filepath.FromSlash(name))); err != nil {
+			t.Fatal(err)
+		}
 	}
-	for p, want := range map[string]int{"/ic.js": 200, "/dis.txt": 404, "/ust/gizli.txt": 404} {
+	for p, want := range map[string]int{"/ic.js": 200, "/ic2.js": 200, "/dil/tr.js": 200, "/dil2/tr.js": 200, "/lang/k.js": 200,
+		"/dis.txt": 404, "/dis2.txt": 404, "/ust/gizli.txt": 404, "/ust2/gizli.txt": 404, "/ust2/ekran/app.js": 200} {
 		if r := serveFile(os.ReadDir, root, p); r.status != want {
 			t.Fatalf("%s: %d, beklenen %d", p, r.status, want)
 		}
+	}
+}
+
+// TestFileLinkLoopIs404: kendini gösteren bağlantı sonsuza kadar çözülmez; sınır aşılınca 404 (28.3a).
+func TestFileLinkLoopIs404(t *testing.T) {
+	root, _ := screenDir(t)
+	if err := os.Symlink("dongu", filepath.Join(root, "dongu")); err != nil {
+		t.Skipf("bağlantı kurulamadı (Windows'ta geliştirici kipi ya da yönetici gerekir; Linux'ta koşar): %v", err)
+	}
+	if r := serveFile(os.ReadDir, root, "/dongu"); r.status != 404 {
+		t.Fatalf("döngü: %d, beklenen 404", r.status)
+	}
+}
+
+// TestRealPathFollowsThePlatform: bağlantılar Windows'ta kendi çözücüyle (resolveLinks), öbür sistemlerde
+// filepath.EvalSymlinks ile çözülür (28.3a; TCB'nin kararı, 2026-11-10). Windows'ta EvalSymlinks'in
+// junction'dan geçen yolda hata verdiği de sabitlenir: Go bunu düzeltirse kendi çözücünün nedeni kalkar.
+func TestRealPathFollowsThePlatform(t *testing.T) {
+	base := t.TempDir()
+	target := filepath.Join(base, "hedef")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "a.txt"), []byte("a"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "bag")
+	if runtime.GOOS == "windows" {
+		junction(t, link, target)
+	} else if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(link, "a.txt")
+	got, ok := realPath(p)
+	if !ok {
+		t.Fatalf("realPath(%q) çözülmedi", p)
+	}
+	if runtime.GOOS != "windows" {
+		want, err := filepath.EvalSymlinks(p)
+		if err != nil || got != want {
+			t.Fatalf("realPath = %q, EvalSymlinks = %q (%v): öbür sistemlerde ikisi aynı olmalı", got, want, err)
+		}
+		return
+	}
+	realTarget, _ := resolveLinks(target)
+	if want := filepath.Join(realTarget, "a.txt"); !strings.EqualFold(got, want) {
+		t.Fatalf("realPath = %q, beklenen %q", got, want)
+	}
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		t.Fatalf("EvalSymlinks junction'dan geçen yolu çözdü (%q): Go değişti, kendi çözücünün gerekçesine yeniden bakılmalı", r)
+	}
+}
+
+// junction Windows'ta bir junction kurar (mklink /J yönetici istemez); başka sistemde test atlanır.
+func junction(t *testing.T, link, target string) {
+	t.Helper()
+	if runtime.GOOS != "windows" {
+		t.Skip("junction yalnız Windows'ta var; öbür sistemlerde bağlantıyı TestFileLinksStayInsideTheRoot sınar")
+	}
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+		t.Skipf("junction kurulamadı: %v %s", err, out)
+	}
+}
+
+// TestFileJunctionsStayInsideTheRoot: Windows'ta kökün içini gösteren junction izlenir (200), dışarıyı
+// gösteren reddedilir (404). Go 1.23'ten beri junction'ın kipi ModeIrregular'dır, EvalSymlinks ondan
+// geçen yolda hata verir; 28.3a'nın "içteki bağlantı izlenir"i kendi çözücüyle kalır (DENETİM 374).
+func TestFileJunctionsStayInsideTheRoot(t *testing.T) {
+	root, outside := screenDir(t)
+	junction(t, filepath.Join(root, "dil"), filepath.Join(root, "lang"))
+	junction(t, filepath.Join(root, "ust"), filepath.Dir(outside))
+	for p, want := range map[string]int{"/dil/tr.js": 200, "/ust/gizli.txt": 404, "/ust/ekran/app.js": 200} {
+		if r := serveFile(os.ReadDir, root, p); r.status != want {
+			t.Fatalf("%s: %d, beklenen %d", p, r.status, want)
+		}
+	}
+}
+
+// TestFileSwapAfterResolveIsRefused: yol çözüldükten sonra, dosya açılmadan önce bir klasör dışarıyı
+// gösteren bir bağlantıyla değiştirilirse dosya açılmaz (28.3a'nın yarışı; os.Root). Windows'ta
+// bağlantı junction'dır (yönetici istemez), öbür sistemlerde symlink.
+func TestFileSwapAfterResolveIsRefused(t *testing.T) {
+	root, outside := screenDir(t)
+	base := filepath.Dir(outside)
+	if err := os.WriteFile(filepath.Join(base, "tr.js"), []byte("dışarıda"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lang := filepath.Join(root, "lang")
+	swapped := false
+	afterResolve = func() {
+		if err := os.Rename(lang, lang+".eski"); err != nil {
+			t.Error(err)
+			return
+		}
+		if runtime.GOOS == "windows" {
+			if out, err := exec.Command("cmd", "/c", "mklink", "/J", lang, base).CombinedOutput(); err != nil {
+				t.Errorf("junction kurulamadı: %v %s", err, out)
+				return
+			}
+		} else if err := os.Symlink(base, lang); err != nil {
+			t.Error(err)
+			return
+		}
+		swapped = true
+	}
+	t.Cleanup(func() { afterResolve = nil })
+	r := serveFile(os.ReadDir, root, "/lang/tr.js")
+	if !swapped {
+		t.Skip("bağlantı kurulamadı; yarış denenemedi")
+	}
+	if r.status != 404 {
+		t.Fatalf("değiştirilen klasörden: %d %q, beklenen 404", r.status, r.body)
 	}
 }
 

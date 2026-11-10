@@ -47,7 +47,7 @@ TR_print(ayar.adım)
 - Gizli değerler örtüşürse metin soldan taranır; bir konumda eşleşen en uzun gizli değer bütünüyle maskelenir, içi yeniden taranmaz.
 - **Veri değişmez:** değişkenin değeri, `TR_json_string` ve dosya yazıcıları (`TR_write_file`, `TR_write_lines`) gerçek değeri taşır; dosyaya yazılan gizli değer `TR_owner_only: TR_true` ister (18.13). Eşleşme maskeyle aynıdır, güvence değildir. Düz HTTP cevabının gövdesi de veridir (28.3).
 - Bu, sızıntıyı azaltır ama güvence değildir: değer dönüştürülünce (dilim, ters çevirme) eşleşme kaybolur. Gizli değer argümanla değil ortam değişkeniyle verilir.
-- *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; `TR_owner_only:` (18.13) `TestWriteFileSecretNeedsOwnerOnly`; belirteç (28.2, 28.2a) `TestTokenIsChecked`, `TestSecretToken`; olay akışı (28.7) gerekmez, henüz uygulanmadı.
+- *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; `TR_owner_only:` (18.13) `TestWriteFileSecretNeedsOwnerOnly`; belirteç (28.2, 28.2a) `TestTokenIsChecked`, `TestSecretToken`; olay akışı (28.7) `TestRequestStreamWritesEvents`, `TestBroadcastWireFormat`, `TestBroadcastSnapshotIsMaskedAgain`, `TestBroadcastHeartbeat`, TR_JSON'un içi `TestTextFilterReachesInsideJSON`.
 
 **19.4a** `TR_mask_stream()` bir `TR_MaskStream` verir: parça parça gelen metni insanın göreceği çıktıya maskeli verir. Maske her çıktıya ayrı uygulanır: iki `TR_print` çağrısına ya da iki olaya (28.7) bölünen gizli değeri görmez; dil modelinin parça parça ürettiği metin böyle bölünür. Parçaları `TR_print`'le, olay akışıyla ya da başka bir insan çıktısıyla gösteren program onları önce bu akıştan geçirir.
 - `.TR_step(parça)` tuttuğu metinle parçayı birleştirir ve 19.4'ün maskesinin kararı kesinleşen başını maskeli verir. Tutulan, metin soldan taranırken maskelenmemiş ilk konumdan başlayan ve daha uzun bir gizli değerin eksik başı olan sondur. Tutulan, en uzun gizli değerden kısadır; gizli değer yoksa hiçbir şey tutulmaz.
@@ -67,7 +67,7 @@ TR_for parça TR_in ["anahtar: ab", "cdef12", " bitti"] {
 gösterilen = gösterilen + m.TR_finish()
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi; Go: `TestMaskStreamFollowsTheBatchMask`, `TestMaskStreamHoldsOnlyAnIncompleteSecret`, `TestMaskStreamAfterFinish`, `FuzzMaskStream`.
 
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.

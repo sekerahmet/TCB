@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,8 +24,26 @@ func init() { interp.AddEngine(Register) }
 type testServer struct {
 	s      *HTTPServer
 	vm     *interp.VM
-	errOut *bytes.Buffer
+	errOut *syncBuffer
 	calls  *atomic.Int64 // Go işleyicisinin çağrı sayısı
+}
+
+// syncBuffer standart hatanın test kopyasıdır: sunucunun goroutine'leri yazarken test okur (-race).
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
 }
 
 // serveGo Go'da yazılmış bir işleyiciyle sunucu açar; args TR_serve_http'in adlı argümanlarıdır
@@ -46,7 +65,7 @@ func serveTR(t *testing.T, code string, globals map[string]interp.Value) *testSe
 	t.Helper()
 	v := interp.New()
 	v.SetInteractive()
-	errOut := &bytes.Buffer{}
+	errOut := &syncBuffer{}
 	v.Out, v.Err = io.Discard, errOut
 	for k, g := range globals {
 		v.GlobalEnv.Define(k, g, false)
