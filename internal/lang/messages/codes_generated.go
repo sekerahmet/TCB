@@ -425,6 +425,8 @@ const (
 	H2535 Code = 2535 // {type} tipinde {prop|q} metodu yok; listeden öğe konumuyla çıkarılır: `l.{#remove_at}(i)`
 	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'trlang {show}' ile yazılır)
+	H2550 Code = 2550 // {lang|q} dilinde ileti kataloğu yok (8.3): `.{#text}`'in dil kodu {langs|list} olur: `e.{#text}("en")`
+	H2551 Code = 2551 // `.{#text}` tek argüman alır, dil kodunu (8.3): `e.{#text}("tr")`; {given} argüman verildi
 	H2600 Code = 2600 // koşul bir mantık değeri ({@Bool}) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
 	H2601 Code = 2601 // `{#and}`, `{#or}` ve `{#not}` yalnız mantık değeri ({@Bool}) alır; {type} verildi. Açık bir sınama yazın: `x.{#length} > 0`, `x != {#none}`, `x != 0`
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın

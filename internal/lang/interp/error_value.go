@@ -3,6 +3,7 @@ package interp
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -40,7 +41,8 @@ func (e *ErrorVal) code() Value {
 	return Null
 }
 
-// GetProperty gives the members of 8.3: TR_code, TR_value, TR_cause, TR_suppressed.
+// GetProperty gives the members of 8.3: TR_code, TR_value, TR_cause, TR_suppressed and the method
+// TR_text.
 func (e *ErrorVal) GetProperty(kd codes.Code, name string) (Value, error) {
 	switch kd {
 	case codes.MemCode:
@@ -58,8 +60,39 @@ func (e *ErrorVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			list[i] = s
 		}
 		return &ListVal{Elements: list}, nil
+	case codes.MemText:
+		return textMethod(codes.TypeError, func(lang string) string {
+			if m, ok := e.thrown.(*MessageVal); ok {
+				return m.textIn(lang)
+			}
+			return e.Inspect() // düz metin ve durumlu tip değeri: TR_String(e)
+		}), nil
 	}
 	return nil, messages.New(messages.H2407, ValError, name)
+}
+
+// textMethod is .TR_text("tr") of an error or a message (8.3, 8.5): the readable text in the language
+// whose code is given; a language without a message catalog is H2550.
+func textMethod(owner codes.Code, text func(lang string) string) *BuiltinVal {
+	fullName := codes.MemberRef(owner, codes.MemText)
+	return &BuiltinVal{Name: codes.Name(codes.MemText), NoNamedArgs: true, Fn: func(_ *VM, args []Value, _ map[string]Value) (Value, error) {
+		if len(args) != 1 {
+			return nil, messages.New(messages.H2551, len(args))
+		}
+		lang, ok := args[0].(*StringVal)
+		if !ok {
+			return nil, argTypeErrorByName(fullName, 1, TypeNames(codes.TypeString), args[0])
+		}
+		langs := messages.CatalogLanguages()
+		if !slices.Contains(langs, lang.Val) {
+			list := make([]Value, len(langs))
+			for i, l := range langs {
+				list[i] = &StringVal{Val: l}
+			}
+			return nil, messages.New(messages.H2550, lang.Val, Shown(&ListVal{Elements: list}))
+		}
+		return &StringVal{Val: text(lang.Val)}, nil
+	}}
 }
 
 // throwable reports whether v may be thrown (8.2): a text, a message, a value of a type with

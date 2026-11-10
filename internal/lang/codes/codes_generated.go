@@ -1795,7 +1795,6 @@ var libraryModules = map[Code]string{
 	MemSuffixes:                 "tr/turkish",
 	MemSynthesize:               "tr/vits",
 	MemTable:                    "tr/layers",
-	MemText:                     "tr/whisper",
 	MemThreshold:                "tr/training",
 	MemToolCalls:                "tr/chat",
 	MemTranscribe:               "tr/whisper",

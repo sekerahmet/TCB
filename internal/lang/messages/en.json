@@ -420,6 +420,8 @@
 "H2535": "a {type} has no method {prop|q}; an item leaves a list by its position: `l.{#remove_at}(i)`",
 "H2540": "the file's first line is not the '{header}' header: a TR file starts with it (on its second line if the first starts with '#!') and writes the language's words as identities ({identity})",
 "H2541": "this file is a '{lang}' view (its header has view={lang}): a view is only read, it does not run and is not converted back to code; run the coded file the view was written from (a view is written from it with 'trlang {show}')",
+"H2550": "there is no message catalog in the language {lang|q} (8.3): the language code of `.{#text}` is {langs|list}: `e.{#text}(\"en\")`",
+"H2551": "`.{#text}` takes one argument, the language code (8.3): `e.{#text}(\"tr\")`; {given, plural, one {# argument was} other {# arguments were}} given",
 "H2600": "a condition must be a truth value ({@Bool}); {type} was given. Write an explicit test: `x.{#length} == 0` for emptiness, `x != {#none}` for absence, `x != 0` for a number",
 "H2601": "`{#and}`, `{#or}` and `{#not}` take only truth values ({@Bool}); {type} was given. Write an explicit test: `x.{#length} > 0`, `x != {#none}`, `x != 0`",
 "H2602": "the '{op}' in a comparison chain did not give a truth value ({type}): a chain ('a < b < c') compares only numbers and strings; write the comparisons separately",

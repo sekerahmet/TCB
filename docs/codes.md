@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 738 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 88 metot, 131 özellik, 192 adlı argüman.
+Toplam 738 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 89 metot, 130 özellik, 192 adlı argüman.
 
 ## İçindekiler
 
@@ -726,7 +726,7 @@ en: try { throw "okunamadı" } catch e { print(Error("yüklenemedi", cause: e).c
 tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden: e).neden) }
 ```
 
-Üyeleri: `.TR_cause`, `.TR_code`, `.TR_suppressed`, `.TR_value` · İlişkili: `TR_catch`, `TR_throw`, `TR_Message`
+Üyeleri: `.TR_cause`, `.TR_code`, `.TR_suppressed`, `.TR_text(...)`, `.TR_value` · İlişkili: `TR_catch`, `TR_throw`, `TR_Message`
 
 #### `TR_EventBroadcast` (`TR_type_EventBroadcast`, `OlayYayını`)
 
@@ -963,7 +963,7 @@ en: var i = Message("H6903", -1); print(Type(i), i)
 tr: değişken i = İleti("H6903", -1); yazdır(Tip(i), i)
 ```
 
-İlişkili: `TR_error_code(...)`, `TR_assert(...)`, `TR_throw`
+Üyeleri: `.TR_text(...)` · İlişkili: `TR_error_code(...)`, `TR_assert(...)`, `TR_throw`
 
 #### `TR_Muon` (`TR_type_Muon`, `Muon`)
 
@@ -7769,9 +7769,25 @@ tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlat�
 
 
 
-#### `.TR_text` (`TR_mem_text`, `metin`)
+#### `.TR_text(...)` (`TR_mem_text`, `metin`)
 
+    Hata.metin(Metin) → Metin
+    İleti.metin(Metin) → Metin
 
+Hatanın ya da iletinin verilen dildeki okunur metnidir; dil kodu zorunludur ("tr", "en"). Katalog iletisi o dilin kataloğundan kurulur; düz metinde ve durumlu tip değerinde hatanın metni verilir. Kataloğun dilleri dışındaki kod çalışma hatasıdır (8.3, 8.5).
+
+```tr
+TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_print(e.TR_text("en")) }
+```
+
+Görünümü:
+
+```text
+en: try { throw Message("H6903", -1) } catch e { print(e.text("en")) }
+tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e.metin("en")) }
+```
+
+İlişkili: `.TR_code`, `TR_Message`
 
 #### `.TR_threshold` (`TR_mem_threshold`, `eşik`)
 

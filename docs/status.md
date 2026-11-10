@@ -349,8 +349,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.3
 
-- **Mevcut durum (Tur 6A):** `.TR_text("tr")` yok. `TR_text` kataloğda yalnız `tr/whisper`'ın özelliği olarak kayıtlı (türü property); argümanlı metot ayrı bir kod ya da bu kodun türünün değişmesini ister [kanıtlı: DENETİM 382, `definitions.json`].
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** hatada ve iletide `.TR_text("tr")`; kataloğun dilleri dışındaki kodun çalışma hatası; TR testi.
+- **Mevcut durum (T1, Tur 6A):** `.TR_text` yerleşik metot (`TR_Error` ve `TR_Message`, dil kodu `TR_String`, dönüş `TR_String`; TCB kararı); kataloğun dilleri dışındaki kod H2550, argüman sayısı H2551; `tr/whisper` kaydının `.TR_text`'i alan olarak kaldı, çağrılırsa H2421 [test: `tests/hatalar_ertele_test.tr` "8.3 .TR_text hatanın dil koduyla", `tests/whisper_model_test.tr` "25.2 kaydın .TR_text'i"].
 - **Mevcut durum:** `e == f` çalışma anında H2913; kural denetim hatası diyor (aşağıdaki satır) [ölçüldü: `tests/hatalar_ertele_test.tr`'nin 8.3 testi].
 - **Yapılacaklar (A, Ö1, 4a5; DENETİM 231: `x: TR_Int` içinde metin [ölçüldü: DENETİM 231]; `TR_catch e`'nin tipiyle kapanmaz):** `TR_value`'nun kapalı birleşim tipi ve `e == f`'nin denetim hatası (denetleyici, 4a); kopyanın daraltılması (4b), `_`'siz eşlemenin kapsaması (4c).
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** kapalı birleşimin yerel kopyası; hatayla biten kol eşlemenin tipine katılmaz (denetimi 4a2).

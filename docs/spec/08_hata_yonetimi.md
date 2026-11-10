@@ -20,7 +20,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/08_errors.md`](rationale/08_error
 Hatanın metni `TR_String(e)`'dir: fırlatılan değerin metni (3.14; iletide onu kuran çağrı, `Message("H6903", -1)`; düz metinde metnin kendisi); okuyana göre değişmez. Okunur metin `.TR_text("tr")` gibi zorunlu bir dil koduyla (`TR_String`) alınır. Katalog iletisinde metin o dilde katalogdan kurulur (iletinin kendi `.TR_text`'iyle aynı, 8.5); düz metinde ve durumlu tip değerinde `TR_String(e)` verilir; kataloğun dilleri dışındaki kod çalışma hatasıdır.
 
 Hatanın türüne göre ayırma koda ya da değere göre yapılır, metne göre değil: metin bir gösterimdir, iletinin değerleri ya da yazımı değişince değişir (8.5). Tek `TR_catch` vardır; ayırma onun içinde `TR_match` ile yapılır, yakalanmayacak hata yeniden fırlatılır. Çalışma hataları (sıfıra bölme, olmayan anahtar ...) ve `TR_assert`'in başarısızlığı da yakalanır, kodlarıyla. Hata değerinin metni fırlatılan değerin metnidir (3.14); okuyanın dili yalnız gösterilen hatada kullanılır (8.5, 8.6); hata değerinin kendisi karşılaştırılamaz, kodu ya da değeri karşılaştırılır. Yakalanmayan hata fonksiyon çağrılarından yukarı yayılır.
-- *Test:* TR testi; `TR_Error` değeri ve üyeleri uygulanınca TR testi.
+- *Test:* TR testi; `TR_Error` değeri ve üyeleri uygulanınca TR testi; `.TR_text("tr")`: TR testi (`tests/hatalar_ertele_test.tr`).
 
 ```tr
 # TR 4

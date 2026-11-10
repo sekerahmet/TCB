@@ -41,6 +41,20 @@ func (m *MessageVal) Inspect() string {
 	return sb.String()
 }
 
+var _ PropertyGetter = (*MessageVal)(nil)
+
+// GetProperty gives the message's method TR_text (8.5): its text in a given language.
+func (m *MessageVal) GetProperty(kd codes.Code, name string) (Value, error) {
+	if kd == codes.MemText {
+		return textMethod(codes.TypeMessage, m.textIn), nil
+	}
+	return nil, messages.New(messages.H2407, ValMessage, name)
+}
+
+// textIn is the message's text in lang, built from that language's catalog with the names of the
+// language (8.5).
+func (m *MessageVal) textIn(lang string) string { return messages.ErrorIn(m.Error(), lang) }
+
 // Error is the message as an error: the catalog code with its values.
 func (m *MessageVal) Error() *messages.Error {
 	if m.source != nil {

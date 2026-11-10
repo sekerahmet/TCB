@@ -656,7 +656,7 @@
   "TR_mem_suppressed": { "name": "bastırılanlar", "family": "Hata", "description": "Hata kapsamdan çıkarken ertelenen işlerin verdiği öbür hatalardır, çalışma sırasıyla (9.4); çoğunlukla boş liste. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_synthesize": { "name": "sese_çevir", "family": "kitaplık: tr/vits", "description": "" },
   "TR_mem_table": { "name": "tablo", "family": "kitaplık: tr/layers", "description": "" },
-  "TR_mem_text": { "name": "metin", "family": "kitaplık: tr/whisper", "description": "" },
+  "TR_mem_text": { "name": "metin", "family": "Hata", "description": "Hatanın ya da iletinin verilen dildeki okunur metnidir; dil kodu zorunludur (\"tr\", \"en\"). Katalog iletisi o dilin kataloğundan kurulur; düz metinde ve durumlu tip değerinde hatanın metni verilir. Kataloğun dilleri dışındaki kod çalışma hatasıdır (8.3, 8.5)." },
   "TR_mem_threshold": { "name": "eşik", "family": "kitaplık: tr/training", "description": "" },
   "TR_mem_to_bytes": { "name": "baytlara", "family": "Bayt", "description": "Tensörün öğelerini kendi hassasiyetinde ve satır sırasıyla Bayt'a yazar. Sonuç türevlenmez; nicemlenmiş tensör önce açılır." },
   "TR_mem_to_device": { "name": "cihaza", "family": "Tensör", "description": "Tensörü verilen cihaza (\"cpu\", \"gpu\", \"gpu:1\") taşınmış olarak verir; kullanılabilir cihazlar cihazlar() ile görülür, olmayan cihaz hatadır. Türev izleyen bir yaprak taşınınca sonuç, hedef cihazda türev izleyen yeni bir yapraktır (gradyanı kendi .gradyan'ında birikir); bir işlemin sonucu taşınınca türev kaynağa geri akar." },

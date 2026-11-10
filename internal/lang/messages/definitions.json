@@ -420,6 +420,8 @@
 "H2535": { "param": ["type", "prop"], "slots": {"remove_at": "TR_mem_remove_at"} },
 "H2540": { "param": ["header", "identity"] },
 "H2541": { "param": ["lang", "show"] },
+"H2550": { "param": ["lang", "langs"], "slots": {"text": "TR_mem_text"} },
+"H2551": { "param": ["given"], "slots": {"text": "TR_mem_text"} },
 "H2600": { "param": ["type"], "slots": {"Bool": "TR_type_Bool", "length": "TR_mem_length", "none": "TR_kw_none"} },
 "H2601": { "param": ["type"], "slots": {"Bool": "TR_type_Bool", "and": "TR_kw_and", "or": "TR_kw_or", "not": "TR_kw_not", "length": "TR_mem_length", "none": "TR_kw_none"} },
 "H2602": { "param": ["op", "type"] },

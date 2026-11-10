@@ -656,7 +656,7 @@
   "TR_mem_suppressed": { "kind": "property", "types": ["TR_Error"], "returns": "TR_List[TR_Error]", "related": ["TR_kw_defer"], "familiar": ["getSuppressed"], "example": "TR_try { TR_throw TR_Message(\"H6903\", -1) } TR_catch e { TR_print(e, e.TR_code, e.TR_value, e.TR_cause, e.TR_suppressed) }" },
   "TR_mem_synthesize": { "kind": "method", "module": "tr/vits" },
   "TR_mem_table": { "kind": "property", "module": "tr/layers" },
-  "TR_mem_text": { "kind": "property", "module": "tr/whisper" },
+  "TR_mem_text": { "kind": "method", "types": ["TR_Error", "TR_Message"], "params": ["TR_String"], "returns": "TR_String", "related": ["TR_mem_code", "TR_type_Message"], "example": "TR_try { TR_throw TR_Message(\"H6903\", -1) } TR_catch e { TR_print(e.TR_text(\"en\")) }" },
   "TR_mem_threshold": { "kind": "property", "module": "tr/training" },
   "TR_mem_to_bytes": { "kind": "method", "types": ["TR_Tensor"], "params": [], "named": [["TR_arg_byte_order", "TR_String", null]], "returns": "TR_Bytes", "related": ["TR_fn_from_bytes"], "familiar": ["tobytes"], "example": "TR_print(TR_Tensor([1, 2], TR_dtype: \"uint8\").TR_to_bytes())" },
   "TR_mem_to_device": { "kind": "method", "types": ["TR_Tensor"], "params": ["TR_String"], "returns": "TR_Tensor", "related": ["TR_mem_device", "TR_fn_default_device", "TR_fn_devices"], "example": "TR_print(TR_Tensor([1, 2]).TR_to_device(\"cpu\").TR_device)" },
