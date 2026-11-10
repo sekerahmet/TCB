@@ -271,7 +271,7 @@ func TestScreenServerEndToEnd(t *testing.T) {
 		t.Fatalf("send_text: %s", got)
 	}
 	var types []string
-	last := first.ID
+	var last string
 	for {
 		e := next(t, events)
 		view.apply(e)
