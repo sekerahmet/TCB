@@ -125,7 +125,7 @@ func TestBroadcastWireFormat(t *testing.T) {
 	ts, b := broadcastServer(t, fmt.Sprintf(counting, 10), "")
 	ts.vm.AddSecret("gizli-deger-123")
 	res, br, _ := subscribeRaw(t, ts, "GET", "")
-	if res.Header.Get("Content-Type") != "text/event-stream; charset=utf-8" || res.Header.Get("Cache-Control") != "no-cache" {
+	if res.Header.Get("Content-Type") != "text/event-stream; charset=utf-8" || res.Header.Get("Cache-Control") != "no-store" {
 		t.Fatalf("başlıklar: %v", res.Header)
 	}
 	if f := frame(t, br); f != "id: 0\ndata: 0\n\n" {

@@ -67,7 +67,7 @@ func streamResponse(m *interp.VM, args []interp.Value, named map[string]interp.V
 	}
 	h := newHeaders()
 	h.add("Content-Type", "text/event-stream; charset=utf-8")
-	h.add("Cache-Control", "no-cache")
+	h.add("Cache-Control", "no-store") // 28.7: akış saklanmaz
 	return &Response{status: http.StatusOK, headers: h, stream: spec}, nil
 }
 

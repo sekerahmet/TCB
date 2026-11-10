@@ -60,7 +60,7 @@ TR_var s = TR_serve_http(f)`, nil)
 	if err != nil {
 		t.Fatalf("akış düzgün bitmeli: %v", err)
 	}
-	if got := res.Header.Get("Content-Type"); got != "text/event-stream; charset=utf-8" || res.Header.Get("Cache-Control") != "no-cache" {
+	if got := res.Header.Get("Content-Type"); got != "text/event-stream; charset=utf-8" || res.Header.Get("Cache-Control") != "no-store" {
 		t.Fatalf("başlıklar: %v", res.Header)
 	}
 	want := "data: {\"parça\":\"mer\"}\n\n" + "data: \"satır\\nsonu ***\"\n\n" + "data: {\"***\":[1,2]}\n\n"
@@ -217,4 +217,36 @@ TR_var s = TR_serve_http(f)`, map[string]interp.Value{"say": say})
 	if n.Load() != 0 {
 		t.Fatal("HEAD'de blok başlamamalı")
 	}
+}
+
+// TestStreamsAreNotStored: iki akış kipinin cevabı da `Cache-Control: no-store`'dur, GET'te ve HEAD'de (28.7): akış
+// belirteçli ve kişiseldir, ara bellek ya da tarayıcı onu saklamaz (no-cache yalnız yeniden doğrulatır).
+func TestStreamsAreNotStored(t *testing.T) {
+	ts := serveTR(t, `TR_var y = TR_EventBroadcast(TR_capacity: 4, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)
+TR_func f(i: TR_Request) -> TR_Response {
+    TR_if i.TR_path == "/yayin" { TR_return y.TR_subscribe(i) }
+    TR_return TR_stream_response((akış) => { akış.TR_send_event(1) })
+}
+TR_var s = TR_serve_http(f)`, nil)
+	for _, path := range []string{"/istek", "/yayin"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			res, err := http.DefaultClient.Do(mustRequest(t, method, "http://"+ts.addr()+path))
+			if err != nil {
+				t.Fatal(err)
+			}
+			res.Body.Close()
+			if got := res.Header.Get("Cache-Control"); got != "no-store" {
+				t.Fatalf("%s %s: Cache-Control %q, beklenen no-store", method, path, got)
+			}
+		}
+	}
+}
+
+func mustRequest(t *testing.T, method, url string) *http.Request {
+	t.Helper()
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return req
 }

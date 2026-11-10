@@ -280,7 +280,7 @@ func (b *EventBroadcast) subscribe(m *interp.VM, args []interp.Value, _ map[stri
 	}
 	h := newHeaders()
 	h.add("Content-Type", "text/event-stream; charset=utf-8")
-	h.add("Cache-Control", "no-cache")
+	h.add("Cache-Control", "no-store") // 28.7: akış saklanmaz
 	return &Response{status: http.StatusOK, headers: h, stream: &streamSpec{sub: sub, beat: b.beat, every: b.every}}, nil
 }
 
