@@ -31,6 +31,8 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 **Tur 5 bitti (2026-11-09):** 12 geçici karar Gemini'nin araştırmasından (`TUR5_RAPORU.md`: 8 kabul, 4 değiştir) ve DENETİM 352'den (KOŞULLU, kapanışıyla) geçti. Değişenler metne yazıldı: 15.6d ve 15.8 (`TR_write_slice`'ın hedefi, en dıştaki indeksin sınırı, `.TR_to_dtype` ve `.TR_to_device`), 16.1 (tekrar kayıtların bayrakları, normalleşen parçalar), 16.2 (`TR_boundary_tokens:` ayrı; `TR_special_tokens:` verilmezse metin içi yazım hata; çift sınır parçası hata), 18.11 (hatadan sonra sıradaki satır), 24.4. Bu başlıkta bekleyen geçici karar yok.
 
+**Tur 6B bitti (2026-11-10):** 24 olağan satır (15, 16, 20, 25) Gemini'nin araştırmasından (`TUR6B_RAPORU.md`) ve DENETİM 388'den (KOŞULLU: alıntılar, göç bedelleri, disk biçimi) geçti; metin DENETİM 393'ten (KOŞULLU, kapanışıyla ONAY; 18 dış alıntı birebir). 23 satır metne ya da status'a geçti; 15.46'nın nicemli tür kodları Olağan'da tasarım satırı. Aynı turda 5.3'ün çoklu ataması (T1'in sorusu, geçici karar). Uygulama satırları status'ta sahipleriyle (T1, S1).
+
 Uygulama sırasında verilip aynı gün dil tanımına yazılan kararlar. DENETİM'den geçtiler; Gemini'nin karar araştırmasından geçmediler. Gerekçeleri ve kaynaklı emsalleri `docs/spec/rationale/`'de; kaynaklar turda bağımsız denetlenir.
 Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamıştı: onaltılık hash sabiti sözdizimi hatasıydı ve iletisi ".0 ekle" diyordu; hash çarpımının taşma iletisi ondalık öneriyordu; yapı dolaşılamıyordu; sözlük üreteci "expected a value" veriyordu [ölçüldü: 2026-10-28]. Bugünkü durumları status'ta.
 

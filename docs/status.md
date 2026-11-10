@@ -1199,7 +1199,7 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 
 ### 25.10–25.17
 
-- **Yapılacaklar (E, Ö2; sahip S1; Jarvis'in söz kesmesi; Tur 6B, 2026-11-10):** 25.13'ün yeni salt okunur özelliği (yeni üye kodu, Türkçe adı konuşmada, tanıdık adı triggered); kesicinin `_tetik`'ini okur [kanıtlı: `lib/vad.tr:148`]. 25.12'nin alt sınırı katılaşır: üst sınır baş tamponu artı sessizlikten büyük olmalı (eşitse de H7539). TR testi: tetik açılınca `TR_true`, kesit bitince, bölünüp süren kesitte ve `TR_flush`'tan sonra kuralın değerleri, eşit sınırın hatası. Belge: `lib/README.md`'nin `tr/vad` "Kesit"i.
+- **Yapılacaklar (E, Ö2; sahip S1; Jarvis'in söz kesmesi; Tur 6B, 2026-11-10):** 25.13'ün yeni salt okunur özelliği (yeni üye kodu, Türkçe adı konuşmada, tanıdık adı triggered); kesicinin `_tetik`'ini okur [kanıtlı: `lib/vad.tr:148`]. 25.12'nin alt sınırı katılaşır: üst sınır baş tamponu artı sessizlikten büyük olmalı (eşitse de H7539); eşitliği kabul eden iki test kuralla değişir: `tests/vad_test.tr:281` (0,928 sn, 10 + 19 = 29 çerçeve) ve `:340` (yuvarlama, 2 + 2 = 4) [kanıtlı: DENETİM 393 kapanışı]. TR testi: tetik açılınca `TR_true`, kesit bitince, bölünüp süren kesitte ve `TR_flush`'tan sonra kuralın değerleri, eşit sınırın hatası. Belge: `lib/README.md`'nin `tr/vad` "Kesit"i.
 - **Yapılacaklar (hız; sahip H1; canlı dinleme):** kısa sözde de Whisper yaklaşık 2,2 saniyeden aşağı inmiyor [ölçüldü]; sebep tam pencere olabilir [hipotez]. Sıradaki adım: profil.
 - **Yapılacaklar (F, Ö3; sahip T1):** çok büyük sessizlik süresi genel taşma iletisi veriyor (H2484) [ölçüldü: T1, DENETİM 245].
 
