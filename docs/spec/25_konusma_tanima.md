@@ -7,12 +7,17 @@ Emsal ve gerekçe: [`rationale/25_speech.md`](rationale/25_speech.md).
 ## Model
 
 **25.1** `TR_pretrained_whisper(yol)` `tr/whisper` kitaplığındadır ve bir `TR_Whisper` verir. Yol Hugging Face biçiminde bir klasördür.
-- Dosyaları `model.safetensors`, `config.json`, `tokenizer.json`, `generation_config.json`'dur. Biri ya da gerekli bir alan yoksa hatadır; ileti eksiği söyler.
+- Dosyaları `model.safetensors`, `config.json`, `tokenizer.json`, `generation_config.json`'dur. Biri, gerekli bir alan ya da gerekli bir özel parça yoksa açılışta hatadır; ileti eksiği söyler. Uzun bir sesten önce, klasör açılırken:
+  - `config.json`: `model_type`, `d_model`, `num_mel_bins`, `vocab_size`, `max_source_positions`, `max_target_positions`, `encoder_layers`, `encoder_attention_heads`, `encoder_ffn_dim`, `decoder_layers`, `decoder_attention_heads`, `decoder_ffn_dim`;
+  - `generation_config.json`: `suppress_tokens`, `no_timestamps_token_id`; çok dilli modelde `lang_to_id` (25.3);
+  - `tokenizer.json`'un özel parçaları: `<|endoftext|>`, `<|startoftranscript|>`, `<|startofprev|>`, `<|transcribe|>`. Damgalar adla aranmaz: `no_timestamps_token_id`'den sonraki kimliklerdir (25.5).
 - `config.json`'un `model_type`'ı `whisper` değilse hatadır; ileti `TR_pretrained_model`'i önerir. `TR_pretrained_model`'e Whisper klasörü vermek de hatadır; ileti bu adı önerir (15.55).
+- **Desteklenmeyen mimari hatadır** (model hatasız yüklenip yanlış metin üretirdi): boyutlar sıfırdan büyüktür, iki bakış sayısı `d_model`'i böler; `activation_function` verilmişse `gelu`'dur, `scale_embedding` verilmişse `false`'tur.
 - Çıkış katmanı gömmeye bağlıdır: dosyada ayrı ağırlık aranmaz.
-- 16 bitlik ağırlık açılırken `float32`'ye genişletilir; hesap `float32`'dedir. Nicemli ağırlık yoktur.
+- Ağırlık `float32`, `fp16` ya da `bf16`'dır; öbür tür hatadır. 16 bitlik ağırlık açılırken `float32`'ye genişletilir; hesap `float32`'dedir. Nicemli ağırlık yoktur.
+- `model.TR_transcribe` dıştaki `TR_mixed_precision` bloğundan etkilenmez: kendi hesabını `"float32"` bloğunda yapar (15.4), 25.4'ün aynı metni bloğa bağlı değildir.
 - `num_mel_bins` `config.json`'dan okunur; 80 ve 128 dışındaki değer hatadır.
-- Bilinmeyen ya da eksik tensör hatadır; ileti tensörün adını söyler.
+- Bilinmeyen, eksik ya da şekli `config.json`'a uymayan tensör hatadır; ileti tensörün adını söyler.
 - *Test:* TR testi.
 
 ```tr
@@ -37,6 +42,7 @@ TR_for k TR_in yazı.TR_segments { TR_print(k.TR_start, k.TR_end, k.TR_text) }
 **25.3** `TR_language:` zorunludur: varsayılan dil, unutulunca sessizce yanlış dilde metin üretirdi.
 - Değer modelin küçük harfli kısa kodudur: `"tr"`, `"en"`, `"yue"`. `<|ad|>` parçası modelin `generation_config.json`'unda yoksa hatadır; `"turkish"` ve `"TR"` de böyledir, ileti küçük harfli kısa kodu önerir.
 - Başlangıç dizisi `<|startoftranscript|>`, dil parçası, `<|transcribe|>`'dır.
+- **Tek dilli mi çok dilli mi, `generation_config.json` söyler:** `is_multilingual` varsa o; yoksa `lang_to_id`'nin varlığı. `is_multilingual` `true` iken `lang_to_id` yoksa açılışta hatadır. İkisi de yokken `vocab_size` 51865 ya da büyükse (özgünün çok dilli dağarcığı) de açılışta hatadır, ileti `is_multilingual`'ı yazmayı söyler: çok dilli bir model sessizce tek dilli sayılırdı.
 - Tek dilli modelde yalnız `"en"` geçerlidir; öbür kod hatadır, sessizce yutulmaz. Başlangıç dizisine dil ve görev parçası girmez.
 - *Test:* TR testi.
 
@@ -63,7 +69,7 @@ TR_for k TR_in yazı.TR_segments { TR_print(k.TR_start, k.TR_end, k.TR_text) }
 - Damga pencere başına göredir; `.TR_start` ve `.TR_end` kaydın başına göredir.
 - Ardışık iki damga iki kesitin sınırıdır: dizi orada bölünür, her dilim bir kesittir; başı dilimin ilk damgası, sonu son damgasıdır.
 - Ardışık damga varsa ve dizi tek damgayla bitiyorsa pencere boyu kadar ilerlenir; bitmiyorsa son ardışık çiftin ilk damgasına dönülür, sonrası atılır.
-- Ardışık damga yoksa tek kesit olur, pencere boyu kadar ilerlenir. Kesitin başı pencere başıdır; sonu `<|0.00|>` dışında son damgadır, damga yoksa pencere sonudur.
+- Ardışık damga yoksa tek kesit olur, pencere boyu kadar ilerlenir. Kesitin başı pencere başıdır; sonu `<|0.00|>` dışında son damgadır, damga yoksa kaydın pencereye düşen sonudur (kısa son pencerede kaydın sonu, 30 saniye değil).
 - Sıfır süreli ya da yalnız boşluktan oluşan kesitin metni ve parçaları silinir, kesit listede kalır: silinen parça sonraki pencerenin bağlamına girmez.
 - *Test:* TR testi.
 
@@ -121,6 +127,7 @@ Eşik 0–1 dışında, bitiş eşiği başlangıçtan büyük, süre sıfır, e
 
 **25.13** `k.TR_push(x)` 512 örnek alır; bir kesit bittiyse onu `TR_Tensor` olarak, bitmediyse `TR_none` verir. Örnekler 25.11'den geçer; hata varsa kesitleyici de değişmez.
 - **Tetik:** `p >= başlangıç` tetiği açar.
+- **Konuşmada:** `k.TR_in_speech` salt okunur bir `TR_Bool` özelliktir: tetik açıkken `TR_true`. `p >= başlangıç` çerçevesini alan `k.TR_push(x)`'ten sonra `TR_true` olur, `k.TR_push(x)` o sırada `TR_none` verse de; kesit bitince (25.13, 25.15) ve `k.TR_flush()`'tan sonra `TR_false`'tur. Bölünen kesit kalanla sürerse (25.15) `TR_true` kalır. Sözün başladığı an değerin `TR_false`'tan `TR_true`'ya geçişidir: `TR_var önce = k.TR_in_speech`, `k.TR_push(x)`, sonra `k.TR_in_speech TR_and TR_not önce`. Söz kesme (asistan konuşurken kullanıcının başlaması) kesitleyicinin eşiğini ve baş tamponunu dışarıda yeniden yazmadan böyle bulunur.
 - **Sessizlik sayacı:** `p < bitiş` çerçevelerini sayar; iki eşik arası çerçeve saymaz, sıfırlamaz da. Yalnız `p >= başlangıç` sıfırlar. Sayaç sessizliğe varınca kesit biter.
 - **Yuvarlama:** sessizlik ve baş tamponu çerçeveye yukarı, üst sınır aşağı yuvarlanır: 0,32 sn 10, 0,6 sn 19, 29 sn 906 çerçeve.
 - *Test:* TR testi.

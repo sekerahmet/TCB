@@ -97,3 +97,5 @@ Kurallar: [`20_kontrol_noktasi.md`](../20_kontrol_noktasi.md). Bu dosya her kura
 
 - *Emsal:* `pickle` tabanlı biçimler yüklenirken kod çalıştırabilir; `safetensors` bu yüzden yalnız veri tutar [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* koşu klasörü paylaşılır ve kopyalanır; içindeki bir dosyanın kod çalıştırması ya da belleği tüketmesi bir güvenlik açığıdır. Yalnız veri, katı çözüm ve boyut sınırları bunu kapatır.
+- *Sürüm 3 (Tur 6B, 2026-11-10; DENETİM 84 Ş1, Ş5):* sürüm 3'te donma durumu kaydedilmemişti; okurken "hiçbiri donmuş değil" varsaymak kurulumda dondurulmuş gövdeyi (15.34) sessizce çözerdi. Bu yüzden sürüm 3 okunurken programın kurduğu `.TR_requires_grad` korunur. *Emsal:* PyTorch donma durumunu hiç kaydetmez: `destination[prefix + name] = param if keep_vars else param.detach()` (`torch/nn/modules/module.py:2115`, v2.6.0); yüklemede programın kurduğu durum kalır, sürüm 3 okuması onunla aynıdır.
+

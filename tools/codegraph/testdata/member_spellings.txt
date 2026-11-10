@@ -904,6 +904,7 @@ k.TR_exists	ok	0	name:TR_mem_exists
 k.TR_flush	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_flush
 k.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 k.TR_grad	ok	0	name:TR_mem_grad
+k.TR_in_speech	ok	0	spec:25.13	tr_index:not_found:4
 k.TR_is_dir	ok	0	name:TR_mem_is_dir
 k.TR_k_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_k_proj
 k.TR_keys	ok	0	name:TR_mem_keys

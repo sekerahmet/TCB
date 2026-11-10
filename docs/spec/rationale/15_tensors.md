@@ -126,6 +126,8 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Paylaşımın tuzağı** başvuru anlamıdır; alınmadı, ileti ve rehber `h = h + f(h)`'yi gösterir.
   - **Yaprağın tanımı** PyTorch'unkiyle aynıdır: türev izlemeyen her tensör yapraktır. Kitaplığın `TR_Tensor(TR_no_grad(...), TR_requires_grad: TR_true)` dolambacı (`lib/layers.tr:20`) tanımın eksikliğini gösteriyordu.
   - **Türevin üç kuralı.** Yerinde yazma türevde yoktur; bu yüzden yazma ya türevsiz kipte ve yaprağa yapılır (iyileştirici), ya hatadır. Türevsiz hedefe türevli değer yazmak gradyan bağını sessizce koparırdı; PyTorch hedefi çizgeye katar, TR'de yerinde türev olmadığı için hata verilir. Kip sözcüksel değildir: iyileştirici yardımcısı ve `TR_custom_grad` bloktan çağrılır.
+- *Tensörle indekste eksi indeks (Tur 6B, 2026-11-10; DENETİM 388 N1):* `idx` tensörü çoğu zaman veriden gelir: parçalayıcının kimlikleri, `TR_topk`'un indeksleri, `-1` ya da `-100` dolgu nöbetçili yığınlar (15.23a `-100`'ü yok sayar). Eksiyi sondan saymak nöbetçiyi sessizce son satıra götürürdü; hata yüksek seslidir. *Emsal, almadığımız:* PyTorch'un gelişmiş indeksi eksiyi sarar: `if (value < 0) {` `value += size;` (`aten/src/ATen/native/IndexKernelUtils.h:43`–`:44`, v2.6.0); NumPy de: "Negative values are permitted in the index arrays and work as they do with" (`doc/source/user/basics.indexing.rst:304`, v2.2.0). `t[i]` metnin tek indeksi gibi sondan sayar (3.3); `t[idx]` bir seçimdir, kuralı ayrıdır. Motor zaten H6694 veriyor [ölçüldü: TCB, 2026-11-10].
+- *Liste değer (Tur 6B):* değerin liste olduğu tipten bilinir; 15.6a'nın "liste işlenen değildir" denetim hatasıyla aynı yerde yakalanır.
 
 ### 15.6e
 
@@ -181,6 +183,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* PyTorch'ta `relu`(−0) = −0; `abs`'ın türevi NaN'da 0'dır.
 - *Gerekçe:* işaret bitinin silinmesi IEEE'dir ve CPU ile GPU aynı bitleri verir ("Güvenilir"). Tam sayıda en küçük değerin mutlak değeri sığmaz; 15.3'ün taşma kuralı uygulanır.
+- *Geri yönde seçilmeyen dal (Tur 6B, 2026-11-10; DENETİM 234, 388):* `TR_relu` `g * 0` ile türev alıyordu: `x = -1`'de `TR_sqrt(TR_relu(x))`'in türevi NaN, `TR_clamp(x, TR_min: 0)`'ınki 0.0 [ölçüldü: DENETİM 388]. 15.13 ajana `TR_max(x, 0)` yerine bu ikisini önerir; ikisi aynı türevi vermeli. Gürültülü, sessiz değil; ama 15.15'in kuralı bütün seçimlere uygulanır. *Emsal:* PyTorch geri yönü sonuca bakarak seçer: `self: threshold_backward(grad, result, 0)` (`tools/autograd/derivatives.yaml:2092`, v2.6.0); NaN girdide sonuç NaN'dır, NaN korunur.
 
 ### 15.16a
 
@@ -277,6 +280,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **`-100` ve yok sayılmayan negatifler.** Eski kural her negatif hedefi sessizce yok sayıyordu. Bir veri hatası (yanlış kaydırma, işaret hatası) kaybı sessizce küçültür. Tek bir değer yok sayılır, ötekiler hatadır. `-100` dışarıdan gelen etiketli verinin ve ajanın bildiği kodun değeridir.
   - **Olasılık hedefi.** Damıtma ("büyük bir modelin bilgisini küçüğüne aktarmak") ve etiket yumuşatma olasılık hedefi ister; ayrı bir yerleşik yerine hedefin cinsi biçimi seçer (cins tipte, imzalar ayrık, 13.10). Olasılık hedefinde satır toplamı ve işaret denetlenmez: ondalık işlem beklemez (15.6).
   - Hedef denetimleri öğeye bağlıdır, bu yüzden bekleyen işlemlerdir (15.6).
+- *Hedefin şekli (Tur 6B, 2026-11-10; DENETİM 388):* motor yalnız öğe sayısını denetliyor; `[2, 3, 4]` logite devrik `[3, 2]` hedef kabul ediliyor, kayıp 1.3893125, doğru şekilde 1.751252 [ölçüldü: DENETİM 388]. Sessiz yanlıştır: hata yok, eğitim yanlış zaman adımlarını eşler. TR'de sınıf son eksen olduğu için `[B, T, V]` logite örnekleyicinin `[B, T]` hedefi doğrudan verilir (16.7); PyTorch'taki `.view(-1)` düzleştirmesine gerek yoktur. *Emsal:* PyTorch hedefin şeklini tam denetler: `"Expected target size "` (`aten/src/ATen/native/LossNLL.cpp:715`, v2.6.0). Göç: hedefi düz kuran örnekler (35, 36) ve öbür çağrılar uygulamada sayılır.
 
 ### 15.23b
 
@@ -287,6 +291,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* PyTorch `conv1d`/`conv2d` (`stride`, `padding`, `dilation`, `groups`), JAX `lax.conv_general_dilated` [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* CLAUDE.md görüntü, ses ve video modellerini ve "görüntüyü tanımak, içindeki nesneleri bulmak, görüntü üretmek"i ister. ViT'nin parça gömmesi, Whisper'ın girişi, yayılım modelinin U-Net'i ve nesne bulma evrişim ister. Kanal önde düzen PyTorch'un ve ONNX'in düzenidir: hazır ağırlıklar dönüştürülmeden alınır (Paylaşmak). Grup sayısının adı (`TR_num_groups`) iyileştiricinin `.TR_groups`'undan ayrıdır: bir ad bir anlam (17.5, 2.9). Havuzlama ve büyütme, ters evrişim ve `TR_pad` yol haritasındadır; örtüşmeyen havuzlama bugün `.TR_reshape` ve `TR_max`/`TR_mean` ile yazılır.
+- *Sapmanın türü (Tur 6B, 2026-11-10; DENETİM 186 N2, 388):* `x`, `w` bf16 iken float32 sapma önce bf16'ya iniyordu; `TR_conv1d(x, w, TR_none)`'a eklemek float32 veriyordu: aynı hesabın iki yazımı iki tür veriyordu. 15.24'ün `TR_bias`'ı 15.6c'yle birleşir; evrişim de öyle. *Emsal, almadığımız:* PyTorch blok dışında farklı türü reddeder: `"Input type (", input.toString(), ") and bias type (", bias.toString(),` (`aten/src/ATen/native/Convolution.cpp:781`, v2.6.0); TR 15.6c'de türleri birleştirir, ret ayrı bir kural olurdu.
 
 ### 15.23d
 
@@ -372,6 +377,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **İyileştirici durumu parametrenin cihazında** (DENETİM E1'in hükmü): 20.6'nın yüklemesiyle aynı yer.
   - **Donma durumu kontrol noktasına girer:** donma bir değere bağlıysa (kayıp eşiği), sürdürme başka durumla başlayıp 20.17'yi bozardı ("Güvenilir").
   - `TR_load_tensors`'ın varsayılanı parametre değildir: dosyadan okunan tablo sessizce eğitime açılmasın.
+- *Kullanılmayan alt modül (Tur 6B, 2026-11-10):* çok iyileştiricili eğitimde bir adımda kullanılmayan alt modülün iyileştiricisi H6988 ile durur; PyTorch orada gradyansız parametreyi atlayıp sessizce geçer. Kural değişmez, çünkü sessiz geçiş taşınan yaprak hatasını (15.39) da gizlerdi; cümle ajana iki doğru yazımı söyler.
 
 ### 15.35
 
@@ -408,6 +414,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* GPU'da temel aritmetik PTX'in doğru yuvarlanmış `.rn` komutlarıyla yapılıyor [ölçüldü: DENETİM, PTX]. Belirlenimciliğin tanımı 15.22a'dadır.
 - *Gerekçe:* "Güvenilir": aynı program aynı veriyle aynı sonucu verir. Aynı cihaz türünde bit bit aynılık söz verilir; cihaz türleri arasında söz, matematiğin verebildiği kadardır ve üç basamakta açıkça yazılır: IEEE 754'ün doğru yuvarlanmış işlemleri her yerde aynıdır; matematik işlevlerinin ölçülmüş ulp sınırı vardır; toplama sırası değişen ondalık indirgemelerde sayısal sınır söz verilmez, testler `TR_all_close` ile karşılaştırır. GPU'da olmayan işlemin sessizce CPU'ya düşmesi hızı gizlice yok ederdi ("Hata riski az").
+- *Model çıktısında tolerans (Tur 6B, 2026-11-10; DENETİM 121 N1):* AVX2 ile genel yolun logitleri 24 adımlık üretimde varsayılan toleransı aştı (en büyük fark 6,1e-05), üretilen metin aynıydı [ölçüldü: H1]. 15.18a'nın varsayılanları tek işlem içindir: "{dtype: (rtol, atol)}" tablosunda `torch.float32: (1.3e-6, 1e-5),` (`torch/testing/_comparison.py:64`, `:68`, v2.6.0). Çok katmanlı modelde fark birikir; varsayılanla karşılaştırmak doğru programı düşürürdü.
 
 ### 15.42
 
@@ -424,6 +431,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 - *Emsal:* PyTorch `torch.compile` ve JAX `jit` bütün programı izleyip derler (genel derleyici; izlenemeyen yerde `torch.compile` sessizce kaynaşmamış yola döner); CuPy `cupy.fuse` öğe öğe bir Python fonksiyonunu tek çekirdeğe çevirir ama türev almaz; Julia'nın `@.` yayını sözdizimiyle kaynaştırır; Triton ve Liger elle yazılmış birleşik çekirdeklerdir [kanıtlı: bugünkü 15.44'ün "Karşılaştırma ve karar"ı]. Kapanıştaki sayıyı JAX'ın `jit`'i iz anında sessizce sabitler, `torch.compile` değişen değerde korumayla yeniden derler [kanıtlı: bugünkü 15.44'ün metni]. Bugün TR'de CPU'da `TR_fuse` eski değeri, `TR_replay` yeni değeri veriyor, GPU'da `TR_replay` de sabitliyor [ölçüldü: DENETİM].
 - *Gerekçe:* "Hazır modelleri çalıştırmak ... hızlı" ve "Hata riski az". TR `cupy.fuse`'un açık ve dar kapsamını alır: kullanıcı neyin kaynaştığını yazarak seçer, kaynaştırılamayan işlem sessizce geçilmez, hata verir; geri yönü `torch.compile` gibi ara değerleri yeniden hesaplayarak üretir ve ileri yön bit düzeyinde aynıdır (derleyicilerin aksine sonuç değişmez). **Kapanıştaki sayının denetimi:** bugün kapanıştan okunan sayı değişince sonuç sessizce eski değerle hesaplanıyor (`sabit` 2'den 5'e çıktı, sonuç `[2, 4]` kaldı [ölçüldü]); öğrenme oranı ya da adım gibi değişen değerler tam bu biçimde yazılır, sessiz eskime "Hata riski az"ın karşıtıdır. Yeniden kaydetmek (`torch.compile`'ın korumaları) doğru sonucu verirdi ama gizli bir maliyet taşır; hata, ajana değeri argüman yapmasını söyler. Aynı program cihaza göre ayrı sonuç vermesin diye denetim her cihazdadır.
 - *Gerekçe (yolda liste ve sözlük):* çok katmanlı bir modelin bir üretim adımı katman listesini dolaşır (`model.katmanlar[i].k_onbellek`); yol yalnız değişken ve alan olsaydı 2. kilometre taşının hız yolu yazılamazdı. `TR_fuse` float64 ve 2²⁴'ü aşan tam sayıda float32'de bit bit aynı olamazdı; her tür kendi türünde hesaplanır (Gemini 15/2).
+- *Değer türleri, fonksiyon, metot, kapsam (Tur 6B, 2026-11-10; DENETİM 82, 84, 388 N4):* motor sayıyı, mantık değerini, metni ve yokluğu kaydedip denetliyor (mantık değeri dalı belirler), fonksiyon değerini kimliğiyle; kapanıştaki nesnenin metoduna iniyor, argümansız beslenen çağrıya H6987 veriyor [kanıtlı: `tests/tensor_test.tr:1568`–`:1597`]. Madde yalnız sayıyı ve "yolu olmayan sayı"yı yazıyordu; metin motorun genel kuralına genişler: izlenemeyen kapanış değeri hatadır. Kapanıştaki metodu reddetmek nesneli katmanlarla `TR_fuse`'u kullanılmaz kılardı. 15.45'in "kapanıştan okunan sayılar" cümlesi genişlemez: oynatmada metin ve fonksiyon kapanışı sınanmadı [hipotez: DENETİM 388].
 
 ### 15.45
 
@@ -513,6 +521,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Sayıda hata, tensörde NaN:** tensörün tek bir öğesi bütün işlemi durdurmamalı; NaN eğitimin kararlılık araçlarıyla (15.36) yakalanır.
   - Kural konurken bulunup düzeltilenler [ölçüldü: 2026-10-23]: GPU'da `tanh`, `tan`, `expm1` ve `sin` (`sin` CPU'da da) −0'ı +0'a çeviriyordu; GPU üssü C99'dan ayrılıyordu ((−0)³ = +0, (−∞)^0,5 = NaN, (±1)^∞ = NaN); CPU `tanh`(∞) 0,99999994 veriyordu; GPU −0'ların toplamını −0 veriyordu; GPU `atan2` türevi NaN'ı 0'a çeviriyor, CPU sonsuzda NaN veriyordu; tanh yaklaşımlı `gelu` −∞'da NaN veriyordu.
 - *Gerekçe (`!=` ve NaN, 2026-11-01, tur 2):* eski metin "karşılaştırma NaN'da `TR_false`" diyordu (15.49'un tablosu ve bu tablo); IEEE 754'te ve 4.5'te `NaN != x` doğrudur, bu yüzden 15.15'in önerdiği `TR_where(t != 0, ...)` NaN'ı doğru dala koyar (DENETİM'in bulgusu; Gemini `TUR2_RAPORU.md` 3.2'nin 9. maddesi, "öneri kabul").
+- *NaN'ın bitleri (Tur 6B, 2026-11-10; T1, DENETİM 134, 142, 148):* `TR_where`, gömme ve `TR_concat` sinyal NaN'ını CPU'da da susturuyor; fp16'da kart ile CPU ayrı bitler veriyor [ölçüldü: T1]. 15.47a'nın bit bit sözü dosya gidiş dönüşü içindir; işlemlerde söz verilen NaN'lıktır. Bitleri işlemlerde korumak her çekirdekte ayrı yol isterdi, programın gördüğü değer aynıdır.
 
 ### 15.51
 

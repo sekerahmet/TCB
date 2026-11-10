@@ -8,6 +8,8 @@ Araştırma: Gemini Whisper raporu (2026-11-05). DENETİM alıntıları doğrula
 
 - *Emsal:* HF, `faster-whisper` ve `candle` Whisper'ı ayrı sınıfla açıyor [kanıtlı: DENETİM 175].
 - *Gerekçe:* `TR_pretrained_model` `TR_GPT` döndürür, klasörün `model_type`'ı çalışma anı verisidir; aynı çağrı iki tip dönemez (1.2). H6697 ve H6945 metni `TR_pretrained_gguf` ve `TR_pretrained_model` diye sabittir; Whisper yolu kendi iletisini ister [ölçüldü: DENETİM 175].
+- *Gerekçe (Tur 6B, 2026-11-10; Gemini'nin raporu, DENETİM 388):* gerekli alanlar motorun okuduklarıdır, ad ad yazılır; "gerekli bir alan" sözü ajana neyin eksik olabileceğini söylemiyordu. Mimari kapıları olmasa desteklenmeyen bir ayar (`activation_function`, `scale_embedding`) hatasız yüklenip yanlış metin üretirdi, 15.55'in hazır dil modeli kapısıyla aynı kural. Özel parça bugün ilk çeviride aranıyor (H7099); açılışa taşınır, çünkü uzun bir ses işlendikten sonra düşmek boşa iştir ve `tokenizer.json` açılışta zaten okunur. Liste motorun adıyla aradığı dört parçadır; damgalar `no_timestamps_token_id`'den sayılır [kanıtlı: `lib/whisper.tr:322`–`:334`].
+- *`TR_mixed_precision`:* `TR_transcribe` gövdesini `"float32"` bloğunda koşar [kanıtlı: `lib/whisper.tr:434`]; bu yazılmazsa dıştaki 16 bitlik blok 25.4'ün aynı metnini bozardı. *Emsal:* PyTorch'ta dış bloğun içinde tam hassasiyetli alt bölge açılır: "``autocast(enabled=False)`` subregions can be nested in autocast-enabled regions." (`torch/amp/autocast_mode.py:176`, v2.6.0).
 
 ### 25.2
 
@@ -18,6 +20,7 @@ Araştırma: Gemini Whisper raporu (2026-11-05). DENETİM alıntıları doğrula
 
 - *Emsal:* `faster-whisper` ve `candle` yalnız kısa kod alıyor [kanıtlı: DENETİM 175]. Tek dilli modelde özgün Python `"tr"`'yi sessizce yutuyor, HF her değeri reddediyor.
 - *Gerekçe:* `"turkish"` tablosu İngilizceye ayrıcalık verirdi. TR `"en"`'i kabul eder, öbürünü reddeder: sessiz yanlış olmaz, model de kullanılabilir kalır.
+- *Çok dillilik (Tur 6B, DENETİM 388 Ş2):* motor `lang_to_id` yoksa tek dilli sayıyordu; çok dilli bir klasörde liste eksikse `"en"` başlangıcından dil parçası sessizce düşerdi. *Emsal:* özgün çok dilliliği dağarcıktan anlar: `return self.dims.n_vocab >= 51865` (`whisper/model.py:304`, `v20250625`); HF `generation_config`'in bayrağını okur, `lang_to_id` yokken dil verilince "The generation config is outdated and is thus not compatible with the `language` argument" hatası verir (`generation_whisper.py:1352`–`:1354`, v4.51.3). *Gerekçe:* yalnız dağarcık kuralı küçük dağarcıklı sentetik çok dilli klasörü (`tests/whisper_model_test.tr:345`) tek dilli sayardı; yalnız bayrak kuralı bayraksız eski klasörleri kırardı. Bayrak varsa o, yoksa liste; ikisi de yokken çok dilli boyda dağarcık belirsizdir ve hata verir: hiçbir yolda sessiz düşüş yok.
 
 ### 25.4
 
@@ -28,6 +31,7 @@ Araştırma: Gemini Whisper raporu (2026-11-05). DENETİM alıntıları doğrula
 
 - *Emsal:* süzgeç sırası `decoding.py:554`–`:566`; `suppress_tokens` özgünün `_get_suppress_tokens`'ıyla aynı, dört modelde fark 0 [ölçüldü: DENETİM 175].
 - *Gerekçe:* damga kuralının `logsumexp`'i bastırılmış logitlerden hesaplanır, sıra sonucu değiştirir [kanıtlı: DENETİM 175]. Dizinin ilk damgası çift sayılır (`decoding.py:464`): yazılmazsa `<0><0>` geçer, pencere ilerlemez [hesap: DENETİM 177].
+- *Boş başlangıç (Tur 6B):* damgalı çözümde (25.2) 3. adım ilk konumda metin parçalarını, metin sonu ve boşluk dahil, zaten `-sonsuz` yapar; 1. adım çıktıyı değiştirmez, ayrı bir davranış testi bağlanamaz. Özgünün süzgeç zincirine birebir uyum için kalır. *Emsal:* `logits[:, self.tokenizer.encode(" ") + [self.tokenizer.eot]] = -np.inf` (`decoding.py:430`) ve `logits[:, : self.tokenizer.timestamp_begin] = -np.inf` (`decoding.py:488`), `v20250625`.
 
 ### 25.6
 
@@ -36,7 +40,7 @@ Araştırma: Gemini Whisper raporu (2026-11-05). DENETİM alıntıları doğrula
 
 ### 25.7
 
-- *Emsal:* `transcribe.py:375`, `:389`, `:486`.
+- *Emsal:* `transcribe.py:375`, `:389`, `:486`. Kısa son pencerede kesitin sonu kaydın sonudur: `segment_size = min(N_FRAMES, content_frames - seek, seek_clip_end - seek)` ve `segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE` (`transcribe.py:283`, `:285`, `v20250625`); "pencere sonu" 30 saniyeyi düşündürürdü (Tur 6B).
 - *Gerekçe:* son ardışık çiftin ilk damgasına dönülür: son damgaya dönmek arada kalan metni sessizce atardı [hesap: DENETİM 177].
 
 ### 25.8
@@ -74,6 +78,7 @@ Araştırma: Gemini canlı ses raporu, Soru 3 (2026-11-06). DENETİM yönergeyi 
 
 - *Emsal:* eşikler `utils_vad.py:666`, `:671`; sıfırlama `:663`. Silero'da sayaç ilk `p < bitiş` çerçevesinden geçen süredir, iki eşik arası çerçeve süreye girer.
 - *Gerekçe:* TR yalnız `p < bitiş` çerçevelerini sayar: "sessizlik" o çerçevedir. Sessizlik 19 çerçevede bir kez yazılıdır, belirsiz bölgede kesit erken bitmez. Kesitin kuyruğu iki kuralda da kesittedir: son ünsüz sayaca bağlı değildir. Silero'dan uzaklık en çok 2 çerçevedir, kesit sayısı hiç ayrılmadı [ölçüldü: DENETİM 245; FLEURS tr dev, 338 kayıt, temiz, 20 dB ve 10 dB beyaz gürültü, iki ağırlık, kesitleyicinin Python eşidi]. İki kural yalnız sessiz ve ara çerçeve dönüşümlü gelirse ayrılır: TR'nin bedeli üst sınıra kadar gecikmedir, Silero'nunki zayıf konuşmanın kesilmesidir [hesap: DENETİM 245]; ölçüde ikisi de görülmedi. 600 / 32 = 18,75 ve 29 000 / 32 = 906,25: sessizlik ve tampon "en az", üst sınır "en çok" okunur.
+- *Konuşmada (Tur 6B, 2026-11-10; DENETİM 324, 388):* kesitleyici yalnız biten kesiti veriyordu; sözün başladığını dışarıda bulmak için kesitleyicinin eşiği ve baş tamponu yeniden yazılmak zorundaydı [kanıtlı: `lib/vad.tr:148`, `:230`–`:235`]. `TR_push`'un dönüşü değişmez: değiştirmek her akış döngüsünü kırardı. Tetik zaten kesitleyicinin durumudur; okunan bir değer olduğu için özelliktir (13.6). Olay değil durum: ajan geçişi önceki değerle karşılaştırıp bulur, kaçırılan bir olay olmaz. *Emsal:* Silero'nun `VADIterator`'ı aynı durumu tutar: `if (speech_prob >= self.threshold) and not self.triggered:` ardından `self.triggered = True` (`utils_vad.py:666`–`:667`, v6.2.3). *Ad (TCB):* `TR_in_speech`, `konuşmada`: kesitleyici konuşmanın içinde mi; `TR_triggered` kesitleyicinin iç terimini dışarı taşırdı, `familiar`'da durur.
 
 ### 25.14
 
