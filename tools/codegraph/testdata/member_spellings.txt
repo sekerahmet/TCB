@@ -355,6 +355,7 @@ a.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 a1.TR_grad	ok	0	name:TR_mem_grad
 a2.TR_grad	ok	0	name:TR_mem_grad
 a3.TR_grad	ok	0	name:TR_mem_grad
+ad.TR_contains	ok	0	name:TR_mem_contains
 ad.TR_ends_with	ok	0	name:TR_mem_ends_with
 ad.TR_split	ok	0	name:TR_mem_split
 ad.TR_starts_with	ok	0	name:TR_mem_starts_with

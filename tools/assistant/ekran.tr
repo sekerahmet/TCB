@@ -47,6 +47,7 @@ TR_struct Ekran {
     tur: TR_String = "" # süren ya da açılmak üzere olan tur; yoksa ""
     tur_sayısı: TR_Int = 0
     metin: TR_String? = TR_none # kabul edilmiş, henüz açılmamış metin turu
+    metin_turu: TR_String = "" # bekleyen metin turunun kabulde verilen kimliği
     durdur: TR_Bool = TR_false # süren tur için `stop` geldi
     kayıt: TR_Bool = TR_false # sınama: gönderilen olaylar `giden`'e de yazılır
     giden: TR_List[TR_JSON] = []
@@ -317,9 +318,10 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
         "send_text" => {
             TR_if TR_not e.hazır { TR_return red(k.kimlik, "not_ready", TR_JSON({})) }
             TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
+            TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
             TR_var m = TR_String(k.veri["text"])
             TR_if TR_Bytes(m).TR_length > _METİN_SINIRI { TR_return red(k.kimlik, "text_too_long", TR_JSON({"limit_bytes": _METİN_SINIRI})) }
-            e.yeni_tur()
+            e.metin_turu = e.yeni_tur()
             e.metin = m
         }
         "mic_set" => { e.mikrofon_istendi = TR_Bool(k.veri["on"]) }
@@ -328,6 +330,18 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
+}
+
+# metni_al: kabul edilmiş, henüz açılmamış metin turunu alır ve kabulde verilen kimliği süren tur yapar; yoksa
+# TR_none. Arada aynı çerçevede sesli bir tur açılıp bitmiş olabilir (`e.tur` onunkiydi), metin kendi kimliğiyle koşar.
+TR_func metni_al(e: Ekran) -> TR_String? {
+    TR_var m = e.metin
+    TR_if m != TR_none {
+        e.metin = TR_none
+        e.tur = e.metin_turu
+        e.metin_turu = ""
+    }
+    TR_return m
 }
 
 # ---------- Tur ----------

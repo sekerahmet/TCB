@@ -357,6 +357,19 @@ TR_func wav_yaz(klasör: TR_Path, s: TR_Sound, i: TR_Int) -> TR_String {
     TR_return yol
 }
 
+# program_mı_yol: --ffmpeg ve --çalıcı'nın programı. Ayırıcılı değer dosyanın kendisidir (TR_Path), ayırıcısız
+# değer PATH'te aranan addır (21.3): kullanıcı ikisinden birini verir, ad yol diye reddedilmez.
+TR_func program_mı_yol(ad: TR_String) -> TR_Bool { TR_return ad.TR_contains("/") TR_or ad.TR_contains("\\") }
+
+TR_func program_başlat(ad: TR_String, argümanlar: TR_List[TR_String], tampon: TR_Int) -> TR_Process {
+    TR_if program_mı_yol(ad) { TR_return TR_spawn_process(TR_Path(ad), argümanlar, TR_buffer_bytes: tampon) }
+    TR_return TR_spawn_process(ad, argümanlar, TR_buffer_bytes: tampon)
+}
+
+TR_func program_koş(ad: TR_String, argümanlar: TR_List[TR_String]) {
+    TR_if program_mı_yol(ad) { TR_run_process(TR_Path(ad), argümanlar) } TR_else { TR_run_process(ad, argümanlar) }
+}
+
 TR_func wav_çal(yol: TR_String, çal: (TR_String) -> TR_NoneType) {
     TR_defer { TR_remove(yol) }
     çal(yol)

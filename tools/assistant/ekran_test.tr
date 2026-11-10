@@ -528,3 +528,39 @@ TR_test "ekranın adresi sorgusuz köktür: kaynak sayfanın kendi kökü" {
     TR_assert_equal("http://127.0.0.1:\(s.TR_port)/", ekran_adresi(s))
     TR_assert(s.TR_close())
 }
+
+TR_test "mikrofonlu çerçevede kabul edilen metin turu kendi kimliğiyle koşar (DENETİM 395)" {
+    # Sıra: `oku`'nun `işle`'si bir send_text'i kabul eder (t-1), aynı `dinle` adımında biten kesit sesli turu açar,
+    # sesli tur biter, bekleyen metin `ara`'da `metni_al` ile koşar. Her tur kendi kimliğiyle başlar ve biter.
+    TR_var e = kayıtlı()
+    e.hazır = TR_true
+    e.bekleyen.TR_append(Komut(kimlik: "c-1", tür: "send_text", veri: TR_JSON({"text": "merhaba"})))
+    komutları_işle(e)
+    TR_assert_equal("t-1", e.tur)
+    e.yeni_tur()
+    tur_yürüt(e, "voice", sahte_uçlar(e, SahteTur(), (y) => "ses"))
+    TR_var m = metni_al(e)
+    TR_assert_equal("merhaba", m)
+    tur_yürüt(e, "text", sahte_uçlar(e, SahteTur(), (y) => "metin"))
+    TR_var başlar = [TR_String(o["data"]["turn_id"]) TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "turn_start"]
+    TR_var bitenler = [TR_String(o["data"]["turn_id"]) TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "turn_end"]
+    TR_assert_equal(["t-2", "t-1"], başlar)
+    TR_assert_equal(["t-2", "t-1"], bitenler)
+    TR_assert_equal(TR_none, metni_al(e))
+}
+
+TR_test "bekleyen metin turu varken ikinci send_text turn_busy alır" {
+    # Sesli tur bitip `e.tur` boşaldığında bekleyen metin henüz koşmamış olabilir; ikinci metin onu ezmemeli.
+    TR_var e = kayıtlı()
+    e.hazır = TR_true
+    e.bekleyen.TR_append(Komut(kimlik: "c-1", tür: "send_text", veri: TR_JSON({"text": "bir"})))
+    komutları_işle(e)
+    e.yeni_tur()
+    tur_yürüt(e, "voice", sahte_uçlar(e, SahteTur(), (y) => "ses"))
+    TR_assert_equal("", e.tur)
+    TR_var c = karar(e, Komut(kimlik: "c-2", tür: "send_text", veri: TR_JSON({"text": "iki"})))
+    TR_assert_equal("rejected", TR_String(c["status"]))
+    TR_assert_equal("turn_busy", TR_String(c["error"]["code"]))
+    TR_assert_equal("t-1", TR_String(c["error"]["values"]["turn_id"]))
+    TR_assert_equal("bir", metni_al(e))
+}

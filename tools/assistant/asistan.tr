@@ -49,7 +49,7 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
         "aygıt": "canlı kipte mikrofonun dshow adı", "sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
-        "ffmpeg": "ffmpeg programı", "çalıcı": "çalma komutu; WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
+        "ffmpeg": "ffmpeg programı: PATH'teki ad ya da dosyanın yolu", "çalıcı": "çalma komutu (program PATH'teki ad ya da dosyanın yolu); WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
         "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı; dolacaksa yeni konuşma başlar",
         "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri (JSON satırları)",
         "en_çok_tur": "canlı kipte bu kadar turdan sonra durur (0: sınırsız)",
@@ -188,7 +188,7 @@ TR_func canlı_tur(a: Asistan, kesit: TR_Tensor, t0: TR_Int, sonrası: TR_Bool, 
     TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
     TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
     TR_return tur_koş(a, kesit, t0, sonrası, geride, (s, i) => wav_yaz(klasör, s, i),
-        (yol) => wav_çal(yol, (y) => { TR_run_process(çalıcı, çalıcı_argümanları(y)) }), (_) => {})
+        (yol) => wav_çal(yol, (y) => { program_koş(çalıcı, çalıcı_argümanları(y)) }), (_) => {})
 }
 
 TR_func mikrofon_aç(başlangıç: TR_Int) -> TR_Process {
@@ -198,11 +198,11 @@ TR_func mikrofon_aç(başlangıç: TR_Int) -> TR_Process {
     TR_if sahte != "" {
         # Gerçek mikrofon gibi: durduğu süredeki ses kaybolur, WAV ilk başlatmadan bu yana geçen süreden açılır.
         TR_var saniye = TR_Float(şimdi() - başlangıç) / 1000.0
-        TR_return TR_spawn_process(ffmpeg, ["-nostdin", "-loglevel", "error", "-re", "-ss", "\(saniye)", "-i", sahte] + çıkış, TR_buffer_bytes: _TAMPON)
+        TR_return program_başlat(ffmpeg, ["-nostdin", "-loglevel", "error", "-re", "-ss", "\(saniye)", "-i", sahte] + çıkış, _TAMPON)
     }
     TR_var aygıt = _gerekli("aygıt")
     TR_if TR_not aygıt.TR_starts_with("audio=") { aygıt = "audio=" + aygıt }
-    TR_return TR_spawn_process(ffmpeg, ["-nostdin", "-loglevel", "error", "-f", "dshow", "-i", aygıt] + çıkış, TR_buffer_bytes: _TAMPON)
+    TR_return program_başlat(ffmpeg, ["-nostdin", "-loglevel", "error", "-f", "dshow", "-i", aygıt] + çıkış, _TAMPON)
 }
 
 # canlı_kip: mikrofon bir kez açılır, yalnız taşmadan sonra yeniden açılır; döngü `dinle`'dedir (zincir.tr).
@@ -333,9 +333,8 @@ TR_func ekranlı_kip() -> TR_Int {
         TR_var r = Arada()
         TR_for {
             işle()
-            TR_var metin = e.metin
+            TR_var metin = metni_al(e)
             TR_if metin != TR_none {
-                e.metin = TR_none
                 r.aralık = ekran_turu(a, e, TR_none, metin, şimdi(), TR_false, 0, işle)
                 TR_if TR_not sürsün() { TR_return Arada(dur: TR_true) }
                 TR_if mikrofon != TR_none { TR_return r }
@@ -373,7 +372,7 @@ TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0
     TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
     TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
     TR_var konuşma = Konuşma(hazırla: (s, i) => wav_yaz(klasör, s, i), t: t, t0: t0,
-        çal: (yol) => wav_çal(yol, (y) => { TR_run_process(çalıcı, çalıcı_argümanları(y)) }))
+        çal: (yol) => wav_çal(yol, (y) => { program_koş(çalıcı, çalıcı_argümanları(y)) }))
     TR_var aralık = tur_yürüt(e, TR_if söz == TR_none { "voice" } TR_else { "text" }, TurUçları(
         iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y),
         bitti: () => {

@@ -55,9 +55,8 @@ TR_func bakış() {
 TR_print("HAZIR")
 TR_for {
     bakış()
-    TR_var m = e.metin
+    TR_var m = metni_al(e)
     TR_if m != TR_none {
-        e.metin = TR_none
         sayı += 1
         tur_yürüt(e, "text", TurUçları(iş: (y) => sahte_iş(y, m), bitti: () => {}, geri_al: () => {},
             ölçüler: () => TR_JSON({"first_token_ms": 1}), çalıyor: () => TR_false, aralık: () => ÇalmaAralığı(), işle: bakış))

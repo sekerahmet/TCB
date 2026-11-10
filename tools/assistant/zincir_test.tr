@@ -362,3 +362,21 @@ TR_test "ara kancası: metin turunun çalma aralığı atılır, mikrofonun aç�
     TR_assert_equal(149, s.k) # 150. bakışta durdu
     TR_assert(s.sıfırlamalar.TR_length >= 2) # aralıktan sonra ve açılışta
 }
+
+TR_test "--ffmpeg ve --çalıcı: ayırıcılı değer dosyanın yolu, ayırıcısız değer PATH'teki ad" {
+    TR_assert(program_mı_yol("araçlar/ffmpeg"))
+    TR_assert(program_mı_yol("araçlar\\ffmpeg"))
+    TR_assert(TR_not program_mı_yol("ffmpeg"))
+    # Ad PATH'te aranır (H7497). Yol dosya diye denetlenir: ad diye reddedilmez (H7494) ve PATH'te aranmaz; kodu
+    # işletim sistemine göre değişir (Windows'ta uzantısız yol H7500).
+    TR_func kodlar(ad: TR_String) -> TR_List[TR_String] {
+        TR_var k: TR_List[TR_String] = []
+        TR_try { program_koş(ad, []) } TR_catch h { k.TR_append(h.TR_code) }
+        TR_try { program_başlat(ad, [], 1024).TR_cancel() } TR_catch h { k.TR_append(h.TR_code) }
+        TR_return k
+    }
+    TR_assert_equal(["H7497", "H7497"], kodlar("olmayan_program_k395"))
+    TR_var yol = kodlar("olmayan_klasor_k395/olmayan_program")
+    TR_assert_equal(2, yol.TR_length)
+    TR_for c TR_in yol { TR_assert(c != "H7494" TR_and c != "H7497") }
+}

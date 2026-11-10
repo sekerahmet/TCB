@@ -220,7 +220,8 @@ func TestScreenPolicy(t *testing.T) {
 	}
 }
 
-// Belirteç `source`'a gider: başka kapı kabul edilirse bir bağlantı onu aynı makinedeki başka bir sürece gönderir.
+// Belirteç sayfanın kendi köküne gider: kaynak yalnız http://127.0.0.1:<kapı> olabilir; başka bir kök kabul edilirse
+// bir bağlantı belirteci aynı makinedeki başka bir sürece gönderir.
 func TestSourceMustBeThePagesOwnOrigin(t *testing.T) {
 	plain := capture(t, `(?s)const plain = (.*?);`, script(t))
 	if plain != `location.protocol === "http:" && location.hostname === "127.0.0.1" && location.port !== ""` {
