@@ -95,8 +95,10 @@ func (c *Checker) inferIf(e *ast.IfExpression, used bool) string {
 // noneBranches dalları hepsi TR_none veren, değeri kullanılan TR_if ve TR_match ifadeleridir (5.5,
 // 5.6): tipleri beklenen tipten gelir; beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in
 // argümanı, TR_Any) asıl tip bilinemez, denetim hatasıdır (H1161). expected, tipi yazılmış bir yerden
-// (tipli değişken ve atama, dönüş tipi, kullanıcı fonksiyonunun parametresi, alan; expect) gelen
-// ifadelerdir. Başka bir dalın değeri olan iç ifade dışındakine katılır: karar dıştakinindir
+// (tipli değişken ve atama, dönüş tipi, kullanıcı fonksiyonunun parametresi, alan; expect) ya da tipi
+// bilinen bir yerden (tipi bilinen alana ve kabın öğesine atama, öğe tipi bilinen listenin
+// .TR_append'i, çekirdek metodun tek tipli parametresi; expectTyped) gelen ifadelerdir. Başka bir
+// dalın değeri olan iç ifade dışındakine katılır: karar dıştakinindir
 // (TR_if a { TR_if b { TR_none } TR_else { TR_none } } TR_else { 1 } bir TR_Int?'dir).
 type noneBranches struct {
 	values   map[ast.Expression]bool
@@ -128,11 +130,27 @@ func (c *Checker) expectBranches(t *ast.TypeRef, value ast.Expression) {
 		if t.Token.Code == codes.TypeAny && t.Args == nil && t.Params == nil && t.Elems == nil {
 			return
 		}
-		if c.noneBranches.expected == nil {
-			c.noneBranches.expected = map[ast.Expression]bool{}
-		}
-		c.noneBranches.expected[value] = true
+		c.markExpected(value)
 	}
+}
+
+// expectTyped tipi bilinen bir yerdeki (alan, kabın öğesi, metodun argümanı) TR_if ve TR_match'i
+// beklenen tipli sayar (5.5; DENETİM 400 Ş3); bilinmeyen tip ve TR_Any beklenen tip vermez.
+func (c *Checker) expectTyped(typ string, value ast.Expression) {
+	switch value.(type) {
+	case *ast.IfExpression, *ast.MatchExpression:
+		if typ != "" && typ != typeAny {
+			c.markExpected(value)
+		}
+	}
+}
+
+// markExpected value'yu beklenen tipli ifadelere ekler.
+func (c *Checker) markExpected(value ast.Expression) {
+	if c.noneBranches.expected == nil {
+		c.noneBranches.expected = map[ast.Expression]bool{}
+	}
+	c.noneBranches.expected[value] = true
 }
 
 // checkNoneBranches beklenen tipi olmayan, dalları hepsi TR_none veren ifadeleri bildirir.

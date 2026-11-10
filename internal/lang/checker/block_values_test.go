@@ -116,9 +116,13 @@ func TestIfAndMatchValueTypes(t *testing.T) {
 // Kural (5.5, 5.6, 6.6): değer veren dalların hepsi TR_none veriyorsa tip beklenen tipten gelir;
 // beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in argümanı, TR_Any) H1161. Beklenen tip:
 // tipli değişken ve atama, dönüş tipi, kullanıcı fonksiyonunun parametresi, tipli fonksiyon
-// ifadesinin gövdesi, tipli listenin öğesi. Başka bir dalın değeri olan iç ifadeye dıştaki karar verir.
+// ifadesinin gövdesi, tipli listenin öğesi; tipi bilinen alana ve kabın öğesine atama, öğe tipi
+// bilinen listenin .TR_append'i (DENETİM 400 Ş3). Tipi bilinmeyen kabın öğesi beklenen tip vermez.
+// Başka bir dalın değeri olan iç ifadeye dıştaki karar verir.
 func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
-	head := "TR_var c = TR_true\nTR_func al(x: TR_Int?) -> TR_Int {\n    TR_return x ?? 0\n}\n"
+	head := "TR_var c = TR_true\nTR_func al(x: TR_Int?) -> TR_Int {\n    TR_return x ?? 0\n}\n" +
+		"TR_struct Kap {\n    x: TR_Int? = 1\n}\nTR_var k = Kap()\nTR_var l: TR_List[TR_Int?] = [1]\n" +
+		"TR_var d: TR_Dict[TR_String, TR_Int?] = {\"a\": 1}\n"
 	none := "TR_if c { TR_none } TR_else { TR_none }"
 	match := "TR_match 1 {\n    1 => TR_none\n    _ => TR_none\n}"
 	for _, src := range []string{
@@ -128,7 +132,8 @@ func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
 		"TR_print(" + match + ")",
 		"TR_var g = (b: TR_Bool) => TR_if b { TR_none } TR_else { TR_none }",
 		"TR_var a = TR_if c { " + none + " } TR_else { TR_none }",
-		"TR_var l = [" + none + "]",
+		"TR_var m = [" + none + "]",
+		"TR_var u = [1, \"a\"]\nu[0] = " + none,
 	} {
 		_, errs := checkErrs(t, head+src)
 		if len(errs) != 1 || !messages.Has(errs[0], messages.H1161) {
@@ -142,7 +147,12 @@ func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
 		"TR_func f() -> TR_Int? {\n    TR_return " + none + "\n}",
 		"TR_print(al(" + none + "))",
 		"TR_var f: (TR_Bool) -> TR_Int? = (b) => TR_if b { TR_none } TR_else { TR_none }",
-		"TR_var l: TR_List[TR_Int?] = [" + none + "]",
+		"TR_var m: TR_List[TR_Int?] = [" + none + "]",
+		"k.x = " + none,
+		"l[0] = " + none,
+		"l.TR_append(" + none + ")",
+		"TR_var s = \" a \".TR_strip(" + none + ")",
+		"d[\"b\"] = " + match,
 		"TR_var w = TR_if c { " + none + " } TR_else { 1 }",
 		"TR_var y: TR_Int? = TR_if c { " + none + " } TR_else { TR_none }",
 	} {
