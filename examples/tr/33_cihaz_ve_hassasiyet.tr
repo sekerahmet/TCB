@@ -32,7 +32,7 @@ TR_print(TR_compute_dtype(), TR_mixed_precision("bf16") { TR_compute_dtype() })
 # tamsayıya çevrilir; hız ve bellek kazanılır, sonuç biraz değişir. Bloğun dışında hiçbir şey değişmez.
 TR_var qw = TR_zeros([2, 256], TR_dtype: "q4_k")
 TR_var qy = TR_quantized_activations { TR_ones([1, 256]) @ qw.TR_transpose() }
-TR_print(qy.TR_shape, TR_activations_quantized(), TR_quantized_activations { TR_activations_quantized() })
+TR_print(qy.TR_shape, TR_quantized_activations_on(), TR_quantized_activations { TR_quantized_activations_on() })
 
 # 16 bitlik parametreyi AdamW ile eğitirken ana_kopya: doğru (varsayılan) float32 bir ana kopya tutar;
 # güncelleme orada yapılıp parametreye yuvarlanır, böylece küçük adımlar kaybolmaz.

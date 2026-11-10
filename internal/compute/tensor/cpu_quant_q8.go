@@ -2,7 +2,7 @@ package tensor
 
 import "math"
 
-// Etkinleştirmenin nicemlendiği çarpım (15.53'ün TR_quantized_activations bloğu): Q4_K ve Q6_K ağırlıklı çarpım
+// Etkinleştirmenin nicemlendiği çarpım (15.53a'nın TR_quantized_activations bloğu): Q4_K ve Q6_K ağırlıklı çarpım
 // ağırlığı açmaz: x'in her satırı 256'lık bloklarla int8'e nicemlenir (quantizeQ8K), nokta çarpımı tamsayıdadır,
 // blok başına bir kez float32'ye geçilir (Go eşleri dotQ4KQ8Go ve dotQ6KQ8Go; AVX2 eşleri cpu_quant_q8_amd64.s'de).
 // Bitler float yolundan farklıdır; sonuç iş parçacığı sayısından ve satırların gruplanmasından bağımsızdır (her
@@ -84,7 +84,7 @@ func dotQ4KQ8Go(blocks int, w []byte, r *q8kRow) float32 {
 	return acc
 }
 
-// QuantActSupported dt'nin ağırlığı etkinleştirmesi nicemlenen çarpıma girer mi (15.53'ün biçim tablosu: q4_k ve
+// QuantActSupported dt'nin ağırlığı etkinleştirmesi nicemlenen çarpıma girer mi (15.53a'nın biçim tablosu: q4_k ve
 // q6_k). Sonlu olmayan değer içeren satırın kararı satır satır verilir (quantGemvQ8, quantGemmQ8): o satır float
 // yoluyla (quantGemv) hesaplanır, NaN ve sonsuz sonuca taşınır; nicemleme onları sessizce bir sayıya çevirirdi.
 // Başka satırın verisi bir satırın sonucunu değiştirmez.

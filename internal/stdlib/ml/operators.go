@@ -212,7 +212,7 @@ func matmulDType(m *interp.VM, a, b *tensor.Tensor, mixed tensor.DType) (*tensor
 			return nil, err
 		}
 	}
-	act := b.DType().IsQuantized() && actQuantOn(m) // TR_quantized_activations bloğu (15.53)
+	act := b.DType().IsQuantized() && actQuantOn(m) // TR_quantized_activations bloğu (15.53a)
 	if act {
 		if err := checkActQuant(b); err != nil {
 			return nil, err
@@ -251,7 +251,7 @@ func matmulDType(m *interp.VM, a, b *tensor.Tensor, mixed tensor.DType) (*tensor
 		var r *tensor.Tensor
 		switch {
 		case act && mixed != tensor.Float32:
-			// Sıra (15.53): x önce bloğun türüne iner, çekirdek float32'ye kesin açıp nicemler, sonuç o türe bir
+			// Sıra (15.53a): x önce bloğun türüne iner, çekirdek float32'ye kesin açıp nicemler, sonuç o türe bir
 			// kez yuvarlanır.
 			r = matMulActQuantOn(m, x.CastShared(mixed), y, mixed)
 		case act:

@@ -86,8 +86,54 @@ func TestQuantizedActivationsArguments(t *testing.T) {
 	wantMessage(t, err, messages.H6725)
 	_, err = block(m, []interp.Value{&interp.IntVal{Val: 3}}, nil)
 	wantMessage(t, err, messages.H6726)
-	v, err := m.Builtin(codes.FnActivationsQuantized).Fn(m, nil, nil)
+	v, err := m.Builtin(codes.FnQuantizedActivationsOn).Fn(m, nil, nil)
 	if err != nil || v != interp.False {
 		t.Fatalf("blok dışında sorgu: %v, %v", v, err)
+	}
+}
+
+// TestReplayKeyIncludesQuantizedActivations: TR_replay'in kaydı blokta ve dışında ayrıdır (15.53a).
+func TestReplayKeyIncludesQuantizedActivations(t *testing.T) {
+	m := interp.New()
+	outside := replayKeyPrefix(m)
+	m.SetTaskValue(actQuantKey{}, true)
+	if inside := replayKeyPrefix(m); inside == outside {
+		t.Fatalf("blokta ve dışında aynı anahtar: %q", inside)
+	}
+}
+
+// TestQuantizedActivationsUnderMixedPrecision: karışık hassasiyetle sıra (15.53a): x önce bloğun türüne iner,
+// çekirdek float32'ye açıp nicemler, sonuç bir kez yuvarlanır. Sonuç bu sırayla bit bit aynıdır; float32 x'i
+// nicemleyip yuvarlamaktan farklıdır.
+func TestQuantizedActivationsUnderMixedPrecision(t *testing.T) {
+	r := rand.New(rand.NewSource(54))
+	x := tensor.Randn(r, 3, 512)
+	w := q4kWeight(9, 5, 512).T()
+	m := interp.New()
+	m.SetTaskValue(actQuantKey{}, true)
+	got, err := matmulDType(m, x, w, tensor.BFloat16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(a *tensor.Tensor, out tensor.DType) []float32 {
+		r, k := tensor.MatMulActQuantKernel(a, w, out)
+		k.RunLocked()
+		return r.CastShared(tensor.Float32).Data()
+	}
+	want := run(x.CastShared(tensor.BFloat16), tensor.BFloat16)
+	wrong := run(x, tensor.BFloat16)
+	g := got.CastShared(tensor.Float32).Data()
+	differs := false
+	for i := range want {
+		if math.Float32bits(g[i]) != math.Float32bits(want[i]) {
+			t.Fatalf("[%d]: blokta %v, beklenen sıra %v", i, g[i], want[i])
+		}
+		differs = differs || math.Float32bits(want[i]) != math.Float32bits(wrong[i])
+	}
+	if got.DType() != tensor.BFloat16 {
+		t.Fatalf("sonucun türü %s", got.DType())
+	}
+	if !differs {
+		t.Fatalf("sıra ayırt edilmiyor: float32 x'i nicemlemek de aynı sonucu verdi")
 	}
 }

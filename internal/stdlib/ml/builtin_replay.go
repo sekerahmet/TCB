@@ -147,7 +147,7 @@ func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.V
 	var alias []int
 	shared := false
 	var key strings.Builder
-	fmt.Fprintf(&key, "%s|", mixedDType(m))
+	key.WriteString(replayKeyPrefix(m))
 	for i, a := range args {
 		if x, ok := interp.ToFloat(a); ok {
 			fmt.Fprintf(&key, "#%T%v;", a, x)
@@ -508,4 +508,11 @@ func sliceFits(src, dst []int, axis int) bool {
 		}
 	}
 	return true
+}
+
+// replayKeyPrefix kaydın anahtarının görev durumundan gelen başıdır: karışık hassasiyetin türü ve
+// TR_quantized_activations bloğu (15.53a). Blokta ve dışında ayrı kayıt tutulur: blok dışında yapılan kayıt blokta
+// oynatılsaydı GPU'daki nicemli ağırlığın hatası (H6724) atlanırdı.
+func replayKeyPrefix(m *interp.VM) string {
+	return fmt.Sprintf("%s|%v|", mixedDType(m), actQuantOn(m))
 }

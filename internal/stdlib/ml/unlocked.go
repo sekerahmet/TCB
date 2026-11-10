@@ -97,21 +97,23 @@ func onCPU(ts []*tensor.Tensor) bool {
 
 // matMulOn a @ b'dir; iş büyükse ve CPU'daysa kilit bırakılarak.
 func matMulOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
-	if m == nil || a.Device() != tensor.CPU || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
-		return tensor.MatMulOut(a, b, outType)
-	}
-	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.MatMulKernel(a, b, outType) })
+	return matMulWith(m, a, b, outType, tensor.MatMulKernel)
 }
 
-// matMulActQuantOn matMulOn'un etkinleştirmesi nicemlenen eşidir (TR_quantized_activations bloğu; ağırlık CPU'da,
-// checkActQuant geçmiştir).
+// matMulActQuantOn matMulOn'un etkinleştirmesi nicemlenen eşidir (TR_quantized_activations bloğu, 15.53a; ağırlık
+// CPU'da, checkActQuant geçmiştir).
 func matMulActQuantOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
-	if m == nil || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
-		r, k := tensor.MatMulActQuantKernel(a, b, outType)
+	return matMulWith(m, a, b, outType, tensor.MatMulActQuantKernel)
+}
+
+// matMulWith çekirdeği kernel kurar; iş büyükse ve CPU'daysa kilit bırakılarak koşar.
+func matMulWith(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType, kernel func(a, b *tensor.Tensor, outType tensor.DType) (*tensor.Tensor, *tensor.Kernel)) *tensor.Tensor {
+	if m == nil || a.Device() != tensor.CPU || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
+		r, k := kernel(a, b, outType)
 		k.RunLocked()
 		return r
 	}
-	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.MatMulActQuantKernel(a, b, outType) })
+	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return kernel(a, b, outType) })
 }
 
 // matMulWork çarpımın M·N·K'sidir (en az iki boyutlu, denetlenmiş şekiller).

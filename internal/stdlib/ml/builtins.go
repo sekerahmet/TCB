@@ -45,7 +45,7 @@ func Register(v *interp.VM) {
 	wrap(v, codes.FnMixedPrecision, newBuiltin(mixedPrecision))
 	wrap(v, codes.FnComputeDtype, newBuiltin(computeDType))
 	wrap(v, codes.FnQuantizedActivations, newBuiltin(quantizedActivations)) // quant_activations.go (15.53)
-	wrap(v, codes.FnActivationsQuantized, newBuiltin(activationsQuantized))
+	wrap(v, codes.FnQuantizedActivationsOn, newBuiltin(quantizedActivationsOn))
 
 	// --- Cihazlar (cihaz.go) ---
 	wrap(v, codes.FnDefaultDevice, newBuiltin(defaultDeviceBuiltin))
@@ -198,7 +198,7 @@ var gradFree = map[codes.Code]bool{
 	codes.FnLoadParameters: true, codes.FnLoadTensors: true, codes.FnLoadMetadata: true, codes.FnSaveTensors: true,
 	codes.FnFloatToBytes: true, codes.FnIntToBytes: true, codes.FnFromBytes: true,
 	codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnComputeDtype: true,
-	codes.FnQuantizedActivations: true, codes.FnActivationsQuantized: true,
+	codes.FnQuantizedActivations: true, codes.FnQuantizedActivationsOn: true,
 	codes.FnDefaultDevice: true, codes.FnDevices: true,
 	codes.FnCustomGrad: true, codes.FnFuse: true, codes.FnReplay: true,
 	// Yazma: türevi izlenen kaynağı checkWrite reddeder (H6956).

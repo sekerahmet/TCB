@@ -4,17 +4,17 @@
 # olmayan nicemlenmiş ağırlık TR'de kurulmaz (15.52).
 
 TR_test "15.53a blok değerini verir, durum yalnız blokta açıktır" {
-    TR_assert_equal(TR_false, TR_activations_quantized())
-    TR_assert_equal(TR_true, TR_quantized_activations { TR_activations_quantized() })
-    TR_assert_equal(TR_false, TR_activations_quantized())
+    TR_assert_equal(TR_false, TR_quantized_activations_on())
+    TR_assert_equal(TR_true, TR_quantized_activations { TR_quantized_activations_on() })
+    TR_assert_equal(TR_false, TR_quantized_activations_on())
     TR_assert_equal(3, TR_quantized_activations { 1 + 2 })
 }
 
 TR_test "15.53a iç içe blok tek durumdur, hatayla bitince önceki durum gelir" {
-    TR_assert_equal(TR_true, TR_quantized_activations { TR_quantized_activations { TR_activations_quantized() } })
+    TR_assert_equal(TR_true, TR_quantized_activations { TR_quantized_activations { TR_quantized_activations_on() } })
     TR_var w = TR_zeros([2, 32], TR_dtype: "q8")
     TR_assert_equal("H6723", TR_error_code { TR_quantized_activations { TR_zeros([1, 32]) @ w.TR_transpose() } })
-    TR_assert_equal(TR_false, TR_activations_quantized())
+    TR_assert_equal(TR_false, TR_quantized_activations_on())
 }
 
 TR_test "15.53a q4_k ve q6_k ağırlıkla blokta çarpım" {
@@ -53,11 +53,11 @@ TR_test "15.53a eşzamanlı görev açıldığı yerin durumunu alır" {
     TR_var görevde = TR_false
     TR_var a = []
     TR_quantized_activations {
-        a.TR_append(TR_async { görevde = TR_activations_quantized() })
+        a.TR_append(TR_async { görevde = TR_quantized_activations_on() })
     }
     TR_wait_all(a)
     TR_assert_equal(TR_true, görevde)
-    TR_var h = TR_async { görevde = TR_activations_quantized() }
+    TR_var h = TR_async { görevde = TR_quantized_activations_on() }
     h.TR_wait()
     TR_assert_equal(TR_false, görevde)
 }

@@ -1422,25 +1422,6 @@ tr: yazdır(acos(0.0), acos(Tensör([1.0, -1.0])).değer)
 
 İlişkili: `TR_asin(...)`, `TR_cos(...)`
 
-#### `TR_activations_quantized(...)` (`TR_fn_activations_quantized`, `etkinleştirme_nicemli_mi`)
-
-    etkinleştirme_nicemli_mi() → Mantık
-
-Görev nicemli_etkinleştirme bloğunun içindeyse doğru, dışındaysa yanlış verir.
-
-```tr
-TR_print(TR_activations_quantized(), TR_quantized_activations { TR_activations_quantized() })
-```
-
-Görünümü:
-
-```text
-en: print(activations_quantized(), quantized_activations { activations_quantized() })
-tr: yazdır(etkinleştirme_nicemli_mi(), nicemli_etkinleştirme { etkinleştirme_nicemli_mi() })
-```
-
-İlişkili: `TR_quantized_activations(...)`
-
 #### `TR_all(...)` (`TR_fn_all`, `hepsi`)
 
     hepsi(Tensör) → Mantık
@@ -3147,7 +3128,26 @@ en: var y = quantized_activations { Tensor([[1.0, 2.0]]) @ Tensor([[3.0], [4.0]]
 tr: değişken y = nicemli_etkinleştirme { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.değer)
 ```
 
-İlişkili: `TR_activations_quantized(...)`, `TR_mixed_precision(...)`, `TR_no_grad(...)`
+İlişkili: `TR_quantized_activations_on(...)`, `TR_mixed_precision(...)`, `TR_no_grad(...)`
+
+#### `TR_quantized_activations_on(...)` (`TR_fn_quantized_activations_on`, `nicemli_etkinleştirme_açık_mı`)
+
+    nicemli_etkinleştirme_açık_mı() → Mantık
+
+Görev nicemli_etkinleştirme bloğunun içindeyse doğru, dışındaysa yanlış verir.
+
+```tr
+TR_print(TR_quantized_activations_on(), TR_quantized_activations { TR_quantized_activations_on() })
+```
+
+Görünümü:
+
+```text
+en: print(quantized_activations_on(), quantized_activations { quantized_activations_on() })
+tr: yazdır(nicemli_etkinleştirme_açık_mı(), nicemli_etkinleştirme { nicemli_etkinleştirme_açık_mı() })
+```
+
+İlişkili: `TR_quantized_activations(...)`
 
 #### `TR_qwen3_format(...)` (`TR_fn_qwen3_format`, `qwen3_biçimi`)
 
