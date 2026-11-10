@@ -5,8 +5,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -20,11 +22,12 @@ import (
 
 // Adlı argümanlar (28.1, 28.2, 28.4, 28.5).
 var (
-	nameHost          = bind.NamedArg(codes.ArgHost)
-	namePort          = bind.NamedArg(codes.ArgPort)
-	nameToken         = bind.NamedArg(codes.ArgToken)
-	nameMaxConcurrent = bind.NamedArg(codes.ArgMaxConcurrent)
-	nameMaxBodyBytes  = bind.NamedArg(codes.ArgMaxBodyBytes)
+	nameHost           = bind.NamedArg(codes.ArgHost)
+	namePort           = bind.NamedArg(codes.ArgPort)
+	nameToken          = bind.NamedArg(codes.ArgToken)
+	nameMaxConcurrent  = bind.NamedArg(codes.ArgMaxConcurrent)
+	nameMaxBodyBytes   = bind.NamedArg(codes.ArgMaxBodyBytes)
+	nameTokenlessPaths = bind.NamedArg(codes.ArgTokenlessPaths)
 )
 
 // Süre sınırları (28.5): başlıklar 60 saniyede okunur, bağlantı bir sonraki istek için 5 saniye boşta
@@ -47,6 +50,7 @@ type options struct {
 	port          int
 	maxConcurrent int64
 	maxBody       int64
+	tokenless     map[string]bool // belirteç istemeyen çözülmüş tam yollar, yalnız sorgusuz GET ve HEAD (28.2)
 }
 
 // serve TR_serve_http(işleyici, ...)'dır (28.1): sunucuyu açar, beklemeden TR_HTTPServer'ı verir.
@@ -78,7 +82,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 	s := &HTTPServer{
 		handler: args[0], line: m.BuiltinLine(), vm: m, host: m.NewTaskHost(m.BuiltinLine()), ln: ln,
 		local: opt.host == localHost, token: opt.token, port: ln.Addr().(*net.TCPAddr).Port,
-		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, done: make(chan struct{}), stop: make(chan struct{}),
+		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, tokenless: opt.tokenless, done: make(chan struct{}), stop: make(chan struct{}),
 	}
 	s.srv = &http.Server{
 		Handler: s, ReadHeaderTimeout: headerTimeout, IdleTimeout: idleTimeout,
@@ -92,7 +96,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 // parseOptions adlı argümanları denetler; hatada sunucu açılmaz (28.1, 28.2).
 func parseOptions(fn any, named map[string]interp.Value) (options, error) {
 	opt := options{host: localHost, maxBody: defaultMaxBody}
-	if err := bind.CheckNamed(fn, named, nameHost, namePort, nameToken, nameMaxConcurrent, nameMaxBodyBytes); err != nil {
+	if err := bind.CheckNamed(fn, named, nameHost, namePort, nameToken, nameMaxConcurrent, nameMaxBodyBytes, nameTokenlessPaths); err != nil {
 		return opt, err
 	}
 	var err error
@@ -131,7 +135,58 @@ func parseOptions(fn any, named map[string]interp.Value) (options, error) {
 	if opt.maxBody, err = positiveArg(fn, named, nameMaxBodyBytes, defaultMaxBody); err != nil {
 		return opt, err
 	}
+	if opt.tokenless, err = tokenlessPathsArg(fn, named, opt.token); err != nil {
+		return opt, err
+	}
 	return opt, nil
+}
+
+// tokenlessPathsArg TR_tokenless_paths:'tir (28.2): belirteçli sunucuda belirteç istemeyen tam yollar, çözülmüş
+// biçimde (istek de çözülmüş yoluyla karşılaştırılır, isTokenless). Her öğe 28.3'e göre geçerli, `/` ile başlayan,
+// sorgusuz bir yoldur (H7660); `%` taşıyan öğe kodlanmış yazımdır, ileti çözülmüşünü önerir (H7662); belirteçsiz
+// sunucuda liste bir şey korumaz, ajan sayfayı korunuyor sanmasın diye boş da olsa çağrı hatasıdır (H7661).
+func tokenlessPathsArg(fn any, named map[string]interp.Value, token string) (map[string]bool, error) {
+	v, ok := bind.GetNamed(named, nameTokenlessPaths)
+	if !ok {
+		return nil, nil
+	}
+	list, ok := v.(*interp.ListVal)
+	if !ok {
+		return nil, namedTypeError(fn, nameTokenlessPaths, v, codes.TypeList)
+	}
+	paths := map[string]bool{}
+	for _, e := range list.Elements {
+		p, ok := e.(*interp.StringVal)
+		if !ok {
+			return nil, namedTypeError(fn, nameTokenlessPaths, v, codes.TypeList)
+		}
+		if err := tokenlessPathError(fn, p.Val); err != nil {
+			return nil, err
+		}
+		paths[p.Val] = true
+	}
+	if token == "" {
+		return nil, messages.New(messages.H7661, fn)
+	}
+	return paths, nil
+}
+
+// tokenlessPathError belirteçsiz yol listesinin bir öğesinin hatası. `%`'li öğenin çözülmüşü geçerli bir yolsa ileti
+// onu önerir; çözülemeyen ya da çözülünce geçersiz olan öğe H7660'tır.
+func tokenlessPathError(fn any, p string) error {
+	exact := func(q string) bool {
+		return strings.HasPrefix(q, "/") && !strings.ContainsAny(q, "?#%") && validPath(q)
+	}
+	if strings.Contains(p, "%") {
+		if d, err := url.PathUnescape(p); err == nil && exact(d) {
+			return messages.New(messages.H7662, fn, p, d)
+		}
+		return messages.New(messages.H7660, fn, p)
+	}
+	if !exact(p) {
+		return messages.New(messages.H7660, fn, p)
+	}
+	return nil
 }
 
 // hostError adresi ayrıştırılmış hâliyle denetler (28.2): yerel adresin tek yazımı 127.0.0.1'dir;
@@ -195,6 +250,7 @@ type HTTPServer struct {
 	port          int
 	maxConcurrent int64
 	maxBody       int64
+	tokenless     map[string]bool // TR_tokenless_paths: (28.2)
 	active        atomic.Int64
 	closing       atomic.Bool
 	stop          chan struct{} // kapanış başladı: yayın dinleyicileri cevabı bitirir (28.8)

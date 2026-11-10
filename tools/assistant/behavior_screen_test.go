@@ -220,14 +220,18 @@ func TestScreenPolicy(t *testing.T) {
 	}
 }
 
-// Belirteç `source`'a gider: başka kapı kabul edilirse bir bağlantı onu aynı makinedeki başka bir sürece gönderir.
+// Belirteç sayfanın kendi köküne gider: kaynak yalnız http://127.0.0.1:<kapı> olabilir; başka bir kök kabul edilirse
+// bir bağlantı belirteci aynı makinedeki başka bir sürece gönderir.
 func TestSourceMustBeThePagesOwnOrigin(t *testing.T) {
 	plain := capture(t, `(?s)const plain = (.*?);`, script(t))
-	if !strings.HasPrefix(plain, "url.origin === location.origin && ") || strings.Contains(plain, "||") {
-		t.Errorf("validSource must require the page's own origin, got: %s", plain)
+	if plain != `location.protocol === "http:" && location.hostname === "127.0.0.1" && location.port !== ""` {
+		t.Errorf("pageSource must accept only http://127.0.0.1:<port>, got: %s", plain)
 	}
-	if !strings.Contains(script(t), "return plain ? url.origin : null;") {
-		t.Errorf("validSource must return only a checked source")
+	if !strings.Contains(script(t), "return plain ? location.origin : null;") {
+		t.Errorf("pageSource must return only the page's own origin")
+	}
+	if strings.Contains(script(t), "location.search") || strings.Contains(script(t), `get("source")`) {
+		t.Errorf("the screen must not take its source from the address: a query needs the token (28.2)")
 	}
 	if !strings.Contains(section(t, "Kaynak"), "başka kapı reddedilir") {
 		t.Errorf("%s does not say that another port is rejected", contractPath)
@@ -504,7 +508,7 @@ func TestContractSaysTheSecurityRules(t *testing.T) {
 	for _, want := range []string{
 		"`Origin`", "`Host`", "`Origin: null`", "`Authorization: Bearer", "`Content-Type`", "`frame-ancestors`", "19.4", "`127.0.0.1`",
 		"`Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'`",
-		"`error.values`", "`snapshot`", "kullanıcının sözü", "en uzun gizli değer", "süzme kesmeden önce",
+		"`error.values`", "`snapshot`", "kullanıcının sözü", "`TR_mask_stream()`", "19.4a", "`.TR_finish()`", "süzme kesmeden önce",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the security section of %s does not mention %s", contractPath, want)

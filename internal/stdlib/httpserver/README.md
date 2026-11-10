@@ -56,7 +56,13 @@ yayıncının kimliği) görüntü verir, yeni olayları eski durumun üstüne o
 
 **Adres ve belirteç.** Varsayılan adres `127.0.0.1`'dir; adres ayrıştırılmış hâliyle denetlenir, başka
 adres belirteç ister; belirteç gizli değerdir (19.4). İletiler işletim sisteminin metnini taşımaz (28.9).
-Denetim: `TestServeArgumentErrors`, `TestServeSuggestionsWork`, `TestPortInUse`, `TestSecretToken`,
+Belirteçli sunucuda `TR_tokenless_paths:`'taki tam yollar sorgusuz `GET` ve `HEAD`'de belirteç istemez
+(`isTokenless`, `guard.go`): tarayıcının adres çubuğundan açtığı sayfa ve sayfanın betikleri `Authorization` taşıyamaz.
+Karşılaştırma çözülmüş yolladır (`r.URL.Path`), ham yolla değil; istek hedefinde `?` varsa (boş sorgu dahil) belirteç
+sorulur. Yerin denetimi (28.1a) önce, yolun ve sorgunun denetimi sonra gelir; önek yoktur. Listede geçersiz yol
+(H7660), `%`'li öğe (H7662) ve belirteçsiz sunucuda liste (H7661) çağrı hatasıdır. Denetim: `TestServeArgumentErrors`,
+`TestServeSuggestionsWork`, `TestTokenlessPathsSkipTheTokenOnlyForGetAndHead`,
+`TestTokenlessPathsCompareTheDecodedPath`, `TestTokenlessPathsNeedAToken`, `TestPortInUse`, `TestSecretToken`,
 `TestSecretTokenNeedsOwnerOnly`, `TestServerLogIsCoded`.
 
 **Dosya sunmak her makinede aynı cevabı verir.** `TR_file_response(kök, yol)` yolu bileşen bileşen kökün

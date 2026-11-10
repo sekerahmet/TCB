@@ -14,6 +14,9 @@ const (
 	chainModule  = "tools/assistant/zincir.tr"
 	chainTest    = "tools/assistant/zincir_test.tr"
 	chainGoTest  = "behavior_chain_test.go"
+	screenModule = "tools/assistant/ekran.tr"
+	screenTest   = "tools/assistant/ekran_test.tr"
+	fakeChain    = "tools/assistant/screen_demo.tr"
 )
 
 // Programın varsayılan model yolu ya da aygıtı yoktur: verilmezse hata verir, başka bir makinenin yolunu sessizce açmaz.
@@ -29,10 +32,10 @@ func TestChainHasNoDefaultModelOrDevice(t *testing.T) {
 	}
 }
 
-// Zincirin dosyaları README'de anılır; test dosyası modülü aktarır.
+// Zincirin ve ekranın TR dosyaları README'de anılır; test dosyaları modüllerini aktarır.
 func TestChainFilesAreListed(t *testing.T) {
 	readme := readFile(t, readmePath)
-	for _, f := range []string{chainProgram, chainModule, chainTest} {
+	for _, f := range []string{chainProgram, chainModule, chainTest, screenModule, screenTest, fakeChain} {
 		name := f[strings.LastIndex(f, "/")+1:]
 		if !strings.Contains(readme, "`"+name+"`") {
 			t.Errorf("%s does not name %s", readmePath, name)
@@ -46,5 +49,8 @@ func TestChainFilesAreListed(t *testing.T) {
 	}
 	if !strings.Contains(readFile(t, chainProgram), `TR_import "zincir"`) {
 		t.Errorf("%s does not import the chain module", chainProgram)
+	}
+	if !strings.Contains(readFile(t, screenTest), `TR_import "ekran"`) {
+		t.Errorf("%s does not import the screen module", screenTest)
 	}
 }

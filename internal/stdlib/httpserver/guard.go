@@ -31,7 +31,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if s.token != "" && !s.tokenMatches(r) {
+	if s.token != "" && !s.isTokenless(r) && !s.tokenMatches(r) {
 		w.Header()["Www-Authenticate"] = []string{"Bearer"}
 		refuseUnread(w, r, http.StatusUnauthorized, messages.Text(messages.H7617))
 		return
@@ -117,6 +117,16 @@ func (s *HTTPServer) originError(r *http.Request) (int, string) {
 		}
 	}
 	return 0, ""
+}
+
+// isTokenless istek belirteç istemeyen bir yola mı (TR_tokenless_paths:, 28.2)? Yalnız GET ve HEAD; istek hedefinde
+// `?` yoksa (`GET /?` de belirteç ister: RawQuery boş, ForceQuery doğru); çözülmüş yol (28.3'ün .TR_path'i) listedeki
+// bir yola tam eşitse. Ham yol (RawPath, RequestURI) karşılaştırılmaz: `/%6Cang/tr.js` `/lang/tr.js`'dir; `//`,
+// `/./`, sondaki `/` ve harf büyüklüğü eşleşmez. 28.1a'nın denetimi bundan önce, yolun ve sorgunun denetimi (28.3)
+// sonra gelir; gövde okunmaz.
+func (s *HTTPServer) isTokenless(r *http.Request) bool {
+	get := r.Method == http.MethodGet || r.Method == http.MethodHead
+	return get && r.URL.RawQuery == "" && !r.URL.ForceQuery && s.tokenless[r.URL.Path]
 }
 
 // tokenMatches Authorization: Bearer <belirteç> başlığını sabit sürede karşılaştırır (28.2).

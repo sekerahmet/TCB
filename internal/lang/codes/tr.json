@@ -444,6 +444,7 @@
   "TR_arg_token": { "name": "belirteç", "family": "adlı argüman: http_sun", "description": "Her istekte Authorization: Bearer <belirteç> başlığıyla sabit sürede karşılaştırılan belirteç; eksik ya da yanlışsa 401. En az 16 karakter, yalnız harf, rakam, _ ve -; gizli_belirteç() böyle bir belirteç üretir. Değeri gizlidir." },
   "TR_arg_token_id": { "name": "kimlik", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_token_ids": { "name": "kimlikler", "family": "kitaplık: tr/layers", "description": "" },
+  "TR_arg_tokenless_paths": { "name": "belirteçsiz_yollar", "family": "adlı argüman: http_sun", "description": "Belirteçli sunucuda belirteç istemeyen yollar: yalnız sorgusuz GET ve HEAD isteğinde, çözülmüş yol listedeki bir yola tam eşitse belirteç aranmaz; önek ve klasör yoktur, her dosya adıyla, çözülmüş biçimde (% olmadan) yazılır. Tarayıcının adres çubuğundan açılan sayfa böyle sunulur; olayların ve komutların yolu listeye girmez." },
   "TR_arg_tol": { "name": "tolerans", "family": "adlı argüman: türev_denetle", "description": "türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir." },
   "TR_arg_tool_calls": { "name": "araç_çağrıları", "family": "kitaplık: tr/chat", "description": "" },
   "TR_arg_tools": { "name": "araçlar", "family": "kitaplık: tr/chat", "description": "" },

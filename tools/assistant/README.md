@@ -2,22 +2,25 @@
 
 TR'de yazılacak yerel asistanın ekranı ve TR'yle konuşacağı sözleşme. Ekran incedir: tek sayfa ve dil dosyaları, düz JavaScript, derleme yok, dışarıdan hiçbir şey yüklemez. TR'ye HTTP ile bağlanır; pencere çizmek TR'nin işi değildir.
 
-TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla** çalışır ve bunu üstte sürekli yazar. Ekrandaki her şey uydurmadır. Yer geçicidir: asistanın TR kodu gelince taşınır.
+Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanımı 28). Sunucusuz açılan ekran **sahte olay akışıyla** çalışır ve bunu üstte sürekli yazar; sahte akıştaki her şey uydurmadır.
 
 ## Dosyalar
 
 - `index.html`: ekran. Biçim, kod ve sahte akış bu tek dosyada.
 - `lang/<kod>.js`: çeviriler, her dile bir dosya. Yalnız metin taşır.
-- `contract.md`: ekranın TR'den beklediği her şey. Asıl değer budur; HTTP bölümü yazılırken tartılır.
+- `contract.md`: ekranın TR'den beklediği her şey (sürüm 1). Asıl değer budur.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
 - `asistan.tr`, `zincir.tr`, `zincir_test.tr`: ekransız sesli zincir (aşağıda, "Zincir").
+- `screen_demo.tr`: ekranı modelsiz açar (sahte zincir: metin turu sözü yineleyen cevabı sözcük sözcük akıtır); ekranı gerçek sunucuyla denemek ve uçtan uca test içindir.
+- `behavior_screen_server_test.go`: `screen_demo.tr`'yi `trlang` ile açar, gerçek bağlantıyla konuşur: belirteçsiz yollar, `401`, `403`, akıştan bir tur, `Last-Event-ID` ile yeniden bağlanma, katlama yavaşken aboneliğin bir gönderime denk gelmesi (parça ekranda tam bir kez).
+- `ekran.tr`, `ekran_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; test modelsizdir.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 
 ## Zincir
 
-`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language: "tr"`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). Ekrana henüz bağlı değildir. Yarım çift yönlüdür: mikrofon açık kalır, ama çalınırken gelen ses atılır (aşağıda, "Dinleme").
+`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language: "tr"`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). `--ekran <kapı>` ile ekrana bağlanır (aşağıda, "Ekranlı kip"). Yarım çift yönlüdür: mikrofon açık kalır, ama çalınırken gelen ses atılır (aşağıda, "Dinleme").
 
-- **Kipler:** `--kip dosya` bir klasördeki WAV'ları sırayla söz olarak okur ve cevapları WAV olarak yazar; `--kip canlı` mikrofonu (`--aygıt`, dshow adı) ya da `--sahte_mikrofon`'u (bir WAV'ı `ffmpeg -re` ile gerçek zaman hızında akıtır; yeniden başlarken ilk başlatmadan bu yana geçen süreden açar) dinler ve `--çalıcı` ile çalar.
+- **Kipler:** `--kip dosya` bir klasördeki WAV'ları sırayla söz olarak okur ve cevapları WAV olarak yazar; `--kip canlı` mikrofonu (`--aygıt`, dshow adı) ya da `--sahte_mikrofon`'u (bir WAV'ı `ffmpeg -re` ile gerçek zaman hızında akıtır; yeniden başlarken ilk başlatmadan bu yana geçen süreden açar) dinler ve `--çalıcı` ile çalar. `--ffmpeg`'in ve `--çalıcı`'nın programı PATH'teki ad (`ffmpeg`) ya da dosyanın yoludur: `/` ya da `\` içeren değer yol sayılır. `--çalıcı` boşluklardan bölündüğü için onun yolunda boşluk olamaz.
 - **Varsayılan yol yoktur:** `--dil_modeli`, `--whisper`, `--vad`, `--ses_modeli` ve kipin girdileri verilmezse program hata verir. Seçeneklerin hepsi `--help`'tedir.
 - **Önbellek** turdan tura korunur: yeni dizi önbellektekiyle ortak önek kadar karşılaştırılır, önbellek oraya kırpılır, yalnız kalan okunur. Önek önceki asistan başlığının sonundan (konuşmanın ilk turunda önceden okunan sistem iletisinden) kısa çıkarsa `ÖNEK_KISA` yazılır. Sistem iletisi programın açılışında ve tur hatasından sonra, ilk sözden önce önbelleğe okunur (`ısıt`; `OLCU_ISITMA` süresini ve parça sayısını yazar): ilk tur yalnız kullanıcının iletisini okur. Isıtma düşerse program sürer, ilk tur sistem iletisini de okur. Önbellek dolup yeni konuşma başlayınca ısıtılmaz: soru zaten o turdadır. Önbellek `--bağlam` parça kadar ayrılır, modelin bütün bağlamı kadar değil (Qwen3-4B'de 40960 parça 11 520 MiB olurdu). Dolacaksa program bunu söyler ve sistem iletisiyle yeni konuşma başlatır. `--önbelleksiz` her turu baştan okur: önbelleğin sınaması.
 - **Cümle cümle:** cevabın cümleleri üretim sürerken, sınırları geldikçe sese çevrilir ve çalınır (`CümleAkışı`, `Konuşma`; `zincir.tr`). Sınır kuralı `cümleler`'inkidir; sınırla bitmeyen son parça cevap bitince söylenir. Dil modeli ve ses aynı görevde sırayla hesaplanır; çalma ayrı bir görevde ve dış süreçtedir, her çalma öncekini bekler. Söylenen cümleler sonunda `TR_qwen3_reply`'ın içeriğinin cümleleriyle karşılaştırılır; ayrılırsa (cevapta düşünce ya da araç çağrısı etiketi) kalan söylenmez, `SÖYLENEN FARKLI` yazılır.
@@ -26,6 +29,7 @@ TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla
   - çalma başlarken kullanıcı konuşuyorsa sözün yarısı atılır (söz kesme yok);
   - çalmadan önce, cevap hesaplanırken konuşulan söz kaybolmaz, sonraki turun sözü olur;
   - tampon taşarsa (tur tamponu aştı) hata okumada gelir, mikrofon yeniden açılır, program sürer.
+- **Ekranlı kip** (`--kip canlı --ekran <kapı> --belirteç_dosyası <yol>`; `--kip dosya` ile hata): belirteç üretilir ve dosyaya yalnız sahibine yazılır, sunucu `127.0.0.1:<kapı>`'da açılır, standart çıktıya ekranın adresi ve dosyanın yolu yazılır; belirtecin kendisi hiçbir yere yazılmaz. Modeller sonra bir görevde yüklenir: o sürede ekran `loading` görür, metin turu `not_ready` alır. Mikrofon kapalı başlar; ekranın `mic_set` komutuyla açılır, `mic: true` ilk çerçeve okununca gider. Tur bir görevde koşar (`tur_yürüt`, `ekran.tr`): komutlar tur sürerken de 20 ms'de bir okunur, `stop` görevi iptal eder; `turn_end`, `metrics`, geri alma ve `OLCU` satırı bekleyen tarafta, görevin sonucuna bağlı yazılır. Ekrana yalnız `TR_qwen3_reply`'ın içeriği gider: her adımda baştan çözülen metnin öncekinin uzantısı olan kısmı maske akışından (19.4a) geçer; yarım karakter ve etiketin olası başı tutulur; turun sonunda ekrandaki metin içerikten ayrıysa `replace` içeriği yazar. Metin turunun çalma aralığı sesli turunki gibi atılır (`Dinleme`'nin `ara`'sı); durdurulan turun aralığı durdurma anına uzar, kesilen çalmanın yankısı tur açmaz. Ekransız canlı kip ve dosya kipi değişmez.
 - **Hata** turu bitirir: ileti ekrana yazılır, kullanıcı iletisi geçmişten çıkar, program sonraki söze geçer. Son çalma başarıda da hatada da beklenir; çalmanın hatası (çalıcı yok) da tur hatasıdır. Geçmiş geri alınsa da kullanıcı cevabın bir kısmını duymuş olabilir: ilk sürümün kabulüdür. Yazısı boş kesit tur sayılmaz; `--en_çok_tur` cevaplanan ve hatayla biten turları sayar.
 - **Ses diskte kalmaz:** canlı kipte cevabın her cümlesi geçici bir WAV'a yazılır, çalınır ve hemen silinir (çalma hatayla bitse de); geçici klasör son çalma beklendikten sonra silinir.
 
@@ -34,13 +38,32 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
     --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 ```
 
-`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, üretilen kimliklerden cümlelerin sınır geldikçe çıkması (cümle akışı), rakam, önbelleğin kapasitesi ve ortak öneki, sistem iletisinin önceden okunması (kimlikler önbelleksiz okumayla aynı; hatası programı durdurmaz), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığının atılması, çapa, taşma; zaman damgalı sahte mikrofonla).
+`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, üretilen kimliklerden cümlelerin sınır geldikçe çıkması (cümle akışı), rakam, önbelleğin kapasitesi ve ortak öneki, sistem iletisinin önceden okunması (kimlikler önbelleksiz okumayla aynı; hatası programı durdurmaz), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığının atılması, çapa, taşma; zaman damgalı sahte mikrofonla), `ara` kancası (metin turunun aralığı, mikrofonun yeniden açılması, durma), durdurulan turun geri alınması.
+
+## Ekranın sunucusu
+
+`ekran.tr` sözleşmenin (`contract.md`) TR yanıdır.
+
+- **Sunucu:** `127.0.0.1`'de, belirteçli (28.2). Sayfa (`/`) ve sayfanın listelediği dil dosyaları (`/lang/<kod>.js`) `TR_tokenless_paths:`'tadır: tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez. `/events` ve `/command` belirteç ister. Başka her yol `404`. Sayfa `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'` ile, sayfa ve dil dosyaları `Cache-Control: no-store` ile gider; akışın `no-store`'unu yayıncı yazar (28.7).
+- **Görüntü yalnız olaylardan katlanır** (`katla`, 28.7'nin `TR_reduce:`'u): son `state` başta, son `metrics` sonda, bir konuşma parçası tek `turn_text` (`replace`), kapanan onay düşer, `error` girmez. Yeni tur açılırken görüntü 512 KiB'ı aşıyorsa eski turlar düşer, açık onay düşmez: görüntü olayın 1 MiB sınırının altında kalır.
+- **Komutun kararı ana döngüdedir** (`komutları_işle`). İşleyici biçimi denetler (`415`, bozuk JSON, sürüm, bilinmeyen komut, eksik alan), komutu tek bir `TR_append` ile bırakır ve cevabı bekler; `turn_busy`, `not_ready`, `text_too_long` ve `command_id` tekrarı ana döngüde verilir. İşleyicide "oku, sonra yaz" iki deyim olurdu ve 10.2'nin devir noktası arada iki `send_text`'i birden kabul ettirirdi. Son 1024 `command_id`'nin cevabı tutulur.
+
+`ekran_test.tr` modelsiz sınar: katlama (rastgele olay dizisinde görüntüyü işleyen ekran ile olayların hepsini işleyen ekran aynı durumu görür), olayın ve görüntünün 1 MiB sınırı, aynı anda iki `send_text`, aynı `command_id`'nin iki kez gelmesi, komutların kodları ve biçimi, sunulan dosyalar.
 
 ## Açmak
 
 `index.html`'i tarayıcıda açın. Sahte akış kendi başlar. Üstteki **Sahte sahne** seçicisi sözleşmenin bütün durumlarını oynatır: onay, süre dolması, bağlantı kopması, sunucunun yeniden başlaması, uzun çıktı, kötü niyetli metin.
 
-Gerçek kaynağa bağlanmak için `?source=http://127.0.0.1:<kapı>` verilir. Yalnız bu biçim ve sayfayı sunan kapı kabul edilir, sayfayı da TR sunmalıdır; `file://` yalnız sahte kipte çalışır (`contract.md`, "Kaynak").
+Gerçek kipte sayfayı TR sunar ve kaynak sayfanın kendi köküdür: yalnız `http://127.0.0.1:<kapı>/` kabul edilir, `localhost` reddedilir; `file://` yalnız sahte kipte çalışır (`contract.md`, "Kaynak").
+
+Sayfayı TR'nin sunması (proje kökünden; dosya yolları örnektir):
+
+```bash
+trlang tools/assistant/asistan.tr --kip canlı --aygıt "<mikrofonun dshow adı>" --ekran 8123 --belirteç_dosyası belirtec.txt \
+    --dil_modeli Qwen3-4B-Q4_K_M.gguf --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
+```
+
+Çıktının `EKRAN` satırındaki adres tarayıcıda açılır; ekran belirteci sorar, belirteç `belirtec.txt`'tedir (dosyayı yalnız sahibi okur). Modelsiz denemek için `trlang tools/assistant/screen_demo.tr --ekran 8123 --belirteç_dosyası belirtec.txt`.
 
 ## Yapı
 
@@ -90,4 +113,5 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 
 ## Testler
 
+- `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
 - `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı.

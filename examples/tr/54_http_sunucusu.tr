@@ -29,8 +29,10 @@ TR_var dosya = TR_Path(TR_temp_dir(), "belirtec.txt")
 TR_write_file(dosya, belirteç, TR_owner_only: TR_true)
 TR_print("belirteç dosyada:", TR_read_file(dosya).TR_length, "karakter; görünüşü:", belirteç)
 
-# Sunucu: kapıyı işletim sistemi seçer; her istek Authorization: Bearer <belirteç> ister.
-TR_var s = TR_serve_http(cevapla, TR_host: "127.0.0.1", TR_port: 0, TR_token: belirteç, TR_max_concurrent: 8, TR_max_body_bytes: 65536)
+# Sunucu: kapıyı işletim sistemi seçer; her istek Authorization: Bearer <belirteç> ister. Belirteçsiz yollar
+# (tarayıcının adres çubuğundan açtığı sayfa gibi) tam yolla yazılır, yalnız sorgusuz GET ve HEAD'de belirteç istemez.
+TR_var s = TR_serve_http(cevapla, TR_host: "127.0.0.1", TR_port: 0, TR_token: belirteç, TR_tokenless_paths: ["/saglik"],
+    TR_max_concurrent: 8, TR_max_body_bytes: 65536)
 TR_print("adres hazır:", s.TR_port > 0, TR_Type(s) == TR_HTTPServer)
 TR_print("kapandı:", s.TR_close())
 
