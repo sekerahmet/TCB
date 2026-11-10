@@ -31,7 +31,11 @@
 #                     satırında durdurulur, öbür adımlar (düzen kuralları, depo taramaları, yarış,
 #                     zorlama) bitince durulur; sonraki adımlar koşmaz, sonuç satırı ❌ olur. Yalnız betiğin kendi alt süreçleri
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
-#   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
+#   --kip=commit      commit öncesi denetim (~20 sn; yan oturumların ve TCB'nin tek commit öncesi komutu,
+#                     CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi (format_checks), tekrar
+#                     adayları ve G4'ü sık düşüren hafif paket testleri (commit_tests). Bu makinede koşan
+#                     tek kip; öbürleri Colab'da (ağır koşu kancası).
+#   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
 #                     ileti kullanımı), öbür paketlerdeki depo taramaları, .tr dosyalarının biçimi, dil
 #                     tanımı testleri (trlang test tests), değişen
@@ -76,8 +80,9 @@ for arg in "$@"; do
 	--kip=uzun) modes=uzun ;;
 	--kip=zorlama) modes=zorlama ;;
 	--kip=on) modes=on ;;
+	--kip=commit) modes=commit ;;
 	*)
-		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on] [--taban=<commit>] [--ilk-kalanda-dur])" >&2
+		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on|commit] [--taban=<commit>] [--ilk-kalanda-dur])" >&2
 		exit 2
 		;;
 	esac
@@ -101,7 +106,6 @@ repo_scans=(
 	TestDottedMemberSpellingsGolden
 	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
 	TestEveryErrorTypeIsLocalized
-	TestEveryMemberSpellingInRepoTRFilesResolves
 	TestEveryMultiNameValueSpecInTheRepositoryHasItsUses
 	TestEveryRepositoryScanIsRecognized
 	TestEveryTrackedDataFileHasATestOrAReason
@@ -121,6 +125,24 @@ repo_scans=(
 	TestSizesMatchTheLayoutTest
 	TestStatefulImplementersAreAsserted
 	TestUserPathsResolvedByLanguageRule
+)
+# commit_tests commit öncesi denetimin (--kip=commit) testleridir: G4 tam denetimini sık düşüren ve hafif
+# paketlerde duranlar. 2026-11-08–10'da 46 G4'ün ~16'sı kaldı; bu yedisinin paketleri dizüstünde 12 sn sürdü ve
+# 5 kalanı önlerdi. Codegraph (TestDottedMemberSpellingsGolden, TestReadmeGraphSizeIsCurrent: 5 kalan) ve e2e
+# testleri (2 kalan) burada değil: codegraph paketi yarışta 30–154 sn sürdü, önlediği kalandan pahalı [ölçüldü:
+# TCB, 2026-11-10]; G4'e kalırlar. Liste yalnız burada; kalanlar değişince burası değişir.
+commit_tests=(
+	TestClassedIdentitiesAreLive
+	TestEveryRuleHasATest
+	TestLayoutEnvVarNames
+	TestNoOldCommandName
+	TestReviewedSectionsWriteIdentities
+	TestSharedNamesListed
+	TestTRCodeIsTyped
+)
+commit_test_pkgs=(
+	./internal
+	./internal/devtools/testrunner
 )
 repo_scan_pkgs=(
 	./cmd/trlang
@@ -653,6 +675,15 @@ finish() {
 	echo "Adım süreleri:"
 	printf '%s\n' "${durations[@]}"
 	write_metrics
+	if [ "$modes" = commit ]; then
+		if [ $failed -eq 0 ]; then
+			echo "✅ Commit öncesi denetim geçti (tam denetim değildir)"
+		else
+			echo "❌ Commit öncesi denetimde kalan var:"
+			printf '  - %s\n' "${failures[@]}"
+		fi
+		exit $failed
+	fi
 	if [ "$modes" = on ]; then
 		# Ön denetim tam denetimin yerini tutmaz; sonuç satırı push koşulundaki satırla karışmasın.
 		if [ $failed -eq 0 ]; then
@@ -724,6 +755,19 @@ for mode in $modes; do
 		step "Zorlama: sık çöp toplama (GOGC=1 go test)"
 		GOGC=1 go test "${p_flag[@]}" -count=1 -timeout 120m ./... 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "GOGC=1 go test"
+		;;
+	commit)
+		step "Biçim (gofmt)"
+		mapfile -t gofiles < <(git ls-files -co --exclude-standard -- '*.go' | grep -v '^\.claude/' | while read -r f; do [ -f "$f" ] && echo "$f"; done)
+		unformatted=$(gofmt -l "${gofiles[@]}")
+		[ -z "$unformatted" ] || { echo "$unformatted"; fail "gofmt (gofmt -w ile biçimleyin)"; }
+		step "TR dosyalarının biçimi"
+		if build_tr; then format_checks; else fail "trlang derlenemedi"; fi
+		step "G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
+		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
+			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
+		dups_check
 		;;
 	on)
 		quick_static_checks

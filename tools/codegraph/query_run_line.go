@@ -255,7 +255,7 @@ func printRunPlan(w io.Writer, p runPlan) {
 		pkgs[t.dir] = true
 	}
 	// Koşulmayanlar ayrı listelenmez: aşağıdaki gruplardadırlar (DENETİM: "listed below" ayrı bir liste vaat ediyordu).
-	fmt.Fprintf(w, "  not run by these commands: %s in %s (among the groups below); before committing, `bash tools/full_check.sh --kip=on` (in the background) runs them all\n",
+	fmt.Fprintf(w, "  not run by these commands: %s in %s (among the groups below); the full check (`tools/full_check.sh`, on Colab) runs them all\n",
 		countOf(len(p.rest), "more Go test"), countOf(len(pkgs), "package"))
 }
 

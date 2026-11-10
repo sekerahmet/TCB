@@ -142,7 +142,7 @@ func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
 	} {
 		var out strings.Builder
 		printRunPlan(&out, runPlan{pkg: "a", rest: c.rest})
-		if !strings.Contains(out.String(), "not run by these commands: "+c.want+"; before committing") {
+		if !strings.Contains(out.String(), "not run by these commands: "+c.want+"; the full check") {
 			t.Errorf("want %q:\n%s", c.want, out.String())
 		}
 	}

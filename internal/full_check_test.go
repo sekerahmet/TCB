@@ -113,7 +113,8 @@ func sharedCommitPrefix(t *testing.T, root string) string {
 	return ""
 }
 
-// Kural (tools/full_check.sh, --kip=on): ön denetimin bütün Go adımları önbelleksiz koşar. Depo testleri
+// Kural (tools/full_check.sh, --kip=on ve --kip=commit): ön denetimin ve commit öncesi denetimin bütün Go
+// adımları önbelleksiz koşar. Depo testleri
 // dosyaları `git ls-files` ile bulur; çalışma ağacında Go'nun önbelleği yeni izlenen dosyayı görmez ve eski
 // sonucu verir (DENETİM istek 106, 110).
 func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
@@ -123,7 +124,7 @@ func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
 	}
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
 	goTest := regexp.MustCompile(`^\s*(?:\w+=\S*\s+)*go test `)
-	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"}} {
+	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"}, {"\tcommit)\n", "\n\t\t;;\n"}} {
 		_, rest, found := strings.Cut(script, part[0])
 		if !found {
 			t.Fatalf("tools/full_check.sh: %q bulunamadı", part[0])

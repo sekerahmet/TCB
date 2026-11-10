@@ -133,11 +133,11 @@ func sideSession(transcript string) bool {
 	return strings.Contains(transcript, "-claude-worktrees-")
 }
 
-// precheck ön denetimdir (`full_check.sh --kip=on`): yan oturum da bir maddenin sonunda koşar, arka
+// precheck commit öncesi denetimdir (`full_check.sh --kip=commit`, ~20 sn): yan oturum da her commit'ten önce koşar, arka
 // planda; tam denetim ana oturumundur.
-const precheck = "tools/full_check.sh --kip=on"
+const precheck = "tools/full_check.sh --kip=commit"
 
-// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir (ön denetimse
+// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir (commit öncesi denetimse
 // precheck), yoksa "". Yan oturumda (side) her alt ağaç deseni geniştir: yan oturum yalnız dokunduğu
 // paketleri koşar.
 func longCommand(command string, side bool) string {
@@ -152,7 +152,7 @@ func longCommand(command string, side bool) string {
 		switch {
 		case len(words) == 0:
 		case strings.TrimPrefix(words[0], "./") == "tools/full_check.sh":
-			if slices.Contains(words[1:], "--kip=on") {
+			if slices.Contains(words[1:], "--kip=commit") {
 				return precheck
 			}
 			return "tools/full_check.sh"

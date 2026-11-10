@@ -32,7 +32,7 @@ oturum doğrulayıp [`tools/codegraph/gaps.md`](../codegraph/gaps.md)'ye yazar.
 ## Uzun denetimler arka planda
 
 Aynı araç kabuk araçlarının (`Bash`, `PowerShell`; `PreToolUse`) kancasıdır ve ikinci kuralı
-zorlar: dakikalar süren denetimler (ön denetim ve tam denetim `tools/full_check.sh`, her kip; bütün
+zorlar: dakikalar süren denetimler (`tools/full_check.sh`, her kip; bütün
 ağacın ya da bir üst klasörün `go test`'i: `./...`, `./internal/...`) ön planda çağrılınca durur,
 gerekçe "arka planda koş" der. Kanca bütün komutu durdurur; ileti bunu ilk sözüyle söyler ("Nothing
 in this command ran, its earlier steps included"): 2026-10-28'de aynı komuttaki bir düzeltme de
@@ -49,9 +49,9 @@ der: yan oturum yalnız dokunduğu paketlerin testlerini koşar, bütün takım�
 koşar. Yan oturum, dökümü bir çalışma ağacının klasörüne (`C--Turkish-Code-Base--claude-worktrees-<ad>`)
 yazılan oturumdur; o anki klasör ölçüt değildir, çünkü ana oturum tam denetimi bir çalışma ağacında
 da koşar. Neden: 2026-10-26'da iki yan oturum bütün takımı arka planda koştu, makine %99'da kaldı ve
-ana oturumun tam denetimi süre sınırına takıldı. Ön denetim (`--kip=on`) istisnadır: yan oturum onu bir
-maddenin sonunda arka planda koşar (2026-10-28; yan dalda yalnız o dalın değiştirdiği paketleri koşar,
-`--taban` ile yalnız o maddeninkileri). Denetim: `TestSideSessionsRunOnlyTheirPackagesTests`.
+ana oturumun tam denetimi süre sınırına takıldı. Commit öncesi denetim (`--kip=commit`, ~20 sn)
+istisnadır: yan oturum onu her commit'ten önce arka planda koşar (2026-11-10). Ön denetim (`--kip=on`) artık
+bu makinede koşulmaz: oturumlar aynı anda koşunca tam denetimden yavaştı. Denetim: `TestSideSessionsRunOnlyTheirPackagesTests`.
 
 Neden kanca: kural hafızaya ve belgeye defalarca yazıldı, yine ön planda koşuldu (Ahmet,
 2026-10-25: "61. kez hafızaya aldın").

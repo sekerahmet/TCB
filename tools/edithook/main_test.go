@@ -188,13 +188,14 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 }
 
 // Kural (docs/development.md, tam denetim; tools/edithook/README.md): yan oturum tam denetimi ve bütün ağacın testini
-// (`...` desenli go test) arka planda da koşmaz; yalnız dokunduğu paketlerin testlerini ve bir
-// maddenin sonunda ön denetimi (`--kip=on`, arka planda) koşar, tam denetim birleştirmede ana
+// (`...` desenli go test) arka planda da koşmaz; yalnız dokunduğu paketlerin testlerini ve her
+// commit'ten önce commit öncesi denetimi (`--kip=commit`, arka planda) koşar; ön denetim (`--kip=on`) de genişlerdedir, tam denetim birleştirmede ana
 // oturumdadır. Yan oturum, dökümü bir çalışma ağacının klasörüne yazılan oturumdur.
 func TestSideSessionsRunOnlyTheirPackagesTests(t *testing.T) {
 	side := `C:\Users\u\.claude\projects\C--Turkish-Code-Base--claude-worktrees-ceviri-c395b3\s.jsonl`
 	wide := []string{
 		"bash tools/full_check.sh",
+		"bash tools/full_check.sh --kip=on --taban=abc123",
 		"go test ./internal/... ./tools/... ./cmd/...",
 		"go test ./internal/lang/... -count=1",
 	}
@@ -210,13 +211,13 @@ func TestSideSessionsRunOnlyTheirPackagesTests(t *testing.T) {
 		if out := shellIn(t, side, tool, "go test ./internal/lang/hint ./internal/lang/interp -run TestSuggest -count=1", true); out != "" {
 			t.Errorf("%s: yan oturumda dokunulan paketlerin testi geçmeli: %q", tool, out)
 		}
-		// Ön denetim maddenin sonunda yan oturumun da işidir; dakikalar sürdüğü için arka planda.
-		precheck := "bash tools/full_check.sh --kip=on --taban=abc123"
+		// Commit öncesi denetim yan oturumun da işidir; arka planda.
+		precheck := "bash tools/full_check.sh --kip=commit"
 		if out := shellIn(t, side, tool, precheck, true); out != "" {
-			t.Errorf("%s: yan oturumda arka plandaki ön denetim geçmeli: %q", tool, out)
+			t.Errorf("%s: yan oturumda arka plandaki commit öncesi denetim geçmeli: %q", tool, out)
 		}
 		if reason, ok := held(t, shellIn(t, side, tool, precheck, false)); !ok || !strings.Contains(reason, "run_in_background") {
-			t.Errorf("%s: yan oturumda ön planda ön denetim arka plana yönlendirilmeli: %q", tool, reason)
+			t.Errorf("%s: yan oturumda ön planda commit öncesi denetim arka plana yönlendirilmeli: %q", tool, reason)
 		}
 	}
 }
