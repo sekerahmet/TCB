@@ -327,6 +327,8 @@ Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sın
 
 - **Mevcut durum:** tip parametresi yok (`TR_enum Cevap[T]` sözdizimi hatası); kapsama denetimi yok (`_`'siz, eksik durumlu eşleme çalışırken H2702); dıştaki adla aynı bağlanan ad hata vermiyor, dıştakini gizliyor (5.12); alanın tipi denetlenmiyor (`TR_Int` alana metin) [ölçüldü: dört durumlu tip programı; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** tip parametresi (6.10 ile); kapsama denetimi (5.6); bağlanan adın 5.12 hatası; alan tipinin denetimi; TR testi.
+- **Mevcut durum (2026-11-10, DENETİM 391):** durum kurucusunun ifadesi denetimde tipsiz: `TR_var n: TR_Int = C.Yok` hatasız geçiyor, `TR_Type(n)` `C` basıyor; tipi kurucudan çıkarılan değerde (`TR_var c = C.Yok`) 15.5'in `==`, değer deseni ve `.TR_contains` denetimi uygulanmıyor, aynı değer `c: C` diye yazılınca uygulanıyor [ölçüldü: DENETİM 391, `6f3abe41`, küçük programlar].
+- **Yapılacaklar (C, Ö2; sahip T1, Tur 6A uygulaması, DENETİM 391 Ş1):** kurucunun tipi durumlu tipin kendisi; önce depoyu denetim komutuyla tarama ve göç; denetleyicinin testi.
 
 ### 7.8
 
