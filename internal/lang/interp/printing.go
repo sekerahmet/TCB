@@ -41,6 +41,9 @@ var (
 // kullanmaz: onlar Inspect'tedir.
 func (v *VM) textOf(val Value) string { return valueText(val, v.textLanguage()) }
 
+// TextOf is textOf for builtins outside interp (TR_assert_close's message, 12.4a).
+func (v *VM) TextOf(val Value) string { return v.textOf(val) }
+
 // DisplayText is v's display text, in the person's writing language (TR_LANG): the REPL's echo,
 // the debugger, the İzleme Masası and help text show it. The program's own text of a value
 // follows the language of its file instead (textOf); Inspect is canonical.

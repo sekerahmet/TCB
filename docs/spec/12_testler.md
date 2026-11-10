@@ -39,7 +39,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - Tensörde şekiller aynı olmalıdır; yayın yoktur.
 - Yakınlık öğe öğedir: iki öğe de sonluysa formül uygulanır; sonsuz bir öğe yalnız aynı işaretli sonsuza yakındır; sonlu ile sonsuz ve zıt işaretli iki sonsuz yakın değildir; NaN hiçbir şeye yakın değildir. Sonsuz ve NaN bu yüzden formüle girmez: formül IEEE'de tersini verirdi.
 - İleti en büyük farkı, yerini ve kullanılan toleransları söyler.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi ("12.4a yakın_olmalı formülü simetriktir; verilmeyen pay varsayılandır", "12.4a sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye", "12.4a sayı 0 boyutlu tensörle karşılaştırılır; pay tensörün hassasiyetinden, iki sayıda float64", "12.4a şekiller aynı olmalıdır, yayın yoktur; yalnız ondalık", "12.4a ileti en büyük farkı, yerini ve kullanılan payları söyler", "12.4a ve 15.18a eksi ya da NaN pay çalışma hatasıdır; 0 pay kesin eşitliktir").
 
 **12.5** Test dosyasının en dışında yalnız tanımlar ve `TR_test` blokları bulunur (1.1); en dıştaki başka bir deyim ve sabit olmayan bir ilk değer denetim hatasıdır. Testlerin ortak kurulumu (geçici klasör, model) en dışta tanımlanan bir fonksiyondur ve her test onu kendi çağırır; böylece her test öbürlerinden bağımsızdır.
 - **Her test kendi tanımlarıyla çalışır:** test dosyasının ve aktardığı modüllerin en dıştaki tanımları her test için yeniden kurulur; test bunların üstünde açılan yeni bir kapsamda çalışır. Bir testin en dıştaki bir değişkene atadığı değer, en dıştaki bir listeye eklediği öğe, bir modülün durumuna yaptığı değişiklik ve yerel adları sonraki teste geçmez. En dışta yalnız sabit ilk değer olduğu için (1.1) yeniden kurmanın bedeli küçüktür.

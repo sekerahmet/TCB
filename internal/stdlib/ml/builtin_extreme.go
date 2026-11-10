@@ -18,11 +18,12 @@ var (
 	nameAtol = bind.NamedArg(codes.ArgAtol)
 )
 
-// registerExtremes TR_maximum, TR_minimum ve TR_all_close'u bağlar.
+// registerExtremes TR_maximum, TR_minimum, TR_all_close ve TR_assert_close'u bağlar.
 func registerExtremes(v *interp.VM) {
 	wrap(v, codes.FnMaximum, newBuiltin(extremeBuiltin(codes.FnMaximum, tensor.Maximum, false)))
 	wrap(v, codes.FnMinimum, newBuiltin(extremeBuiltin(codes.FnMinimum, tensor.Minimum, true)))
 	wrap(v, codes.FnAllClose, newBuiltin(allCloseBuiltin))
+	wrap(v, codes.FnAssertClose, newBuiltin(assertCloseBuiltin))
 }
 
 // extremeBuiltin iki tensörün ya da tensörle sayının öğe öğe seçimidir; cins aynı olmalıdır.
@@ -207,7 +208,9 @@ func allCloseBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.
 	})
 }
 
-// closeBounds toleransları kurar: varsayılan daha az hassas işlenenindir, adlı argüman üstüne yazar.
+// closeBounds toleransları kurar: varsayılan daha az hassas işlenenindir, adlı argüman üstüne yazar;
+// eksi ya da NaN tolerans çalışma hatasıdır (15.18a, 12.4a: eksi tolerans her şeyi yakın, NaN hiçbir
+// şeyi yakın saymazdı).
 func closeBounds(fn any, a, b tensor.DType, named map[string]interp.Value) (float64, float64, error) {
 	ta, tb := closeTolerances[a], closeTolerances[b]
 	bound := [2]float64{max(ta[0], tb[0]), max(ta[1], tb[1])}
@@ -219,6 +222,9 @@ func closeBounds(fn any, a, b tensor.DType, named map[string]interp.Value) (floa
 		f, isNumber := interp.ToFloat(v)
 		if !isNumber {
 			return 0, 0, messages.New(messages.H6517, fn, name, typeName(v))
+		}
+		if f < 0 || math.IsNaN(f) {
+			return 0, 0, messages.New(messages.H2552, fn, name, shownFloat(f))
 		}
 		bound[i] = f
 	}

@@ -103,6 +103,7 @@
   "TR_fn_apply_rotary_fused": { "name": "apply_rotary_fused" },
   "TR_fn_argsort": { "name": "argsort" },
   "TR_fn_assert": { "name": "assert" },
+  "TR_fn_assert_close": { "name": "assert_close" },
   "TR_fn_assert_equal": { "name": "assert_equal" },
   "TR_fn_attention": { "name": "attention" },
   "TR_fn_backward": { "name": "backward" },

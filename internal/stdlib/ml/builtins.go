@@ -190,7 +190,7 @@ func wrap(v *interp.VM, kd codes.Code, setup func(old interp.BuiltinFunc) interp
 // float64 girdiyle H6040 vermezler (15.46; türev orada kaybolmaz). Karşılaştırma ve indeks
 // verenler, kurulum ve dosya işleri, türevsiz kip ve bloklar, fonksiyon alanlar.
 var gradFree = map[codes.Code]bool{
-	codes.FnAll: true, codes.FnAllClose: true, codes.FnEqual: true, codes.FnIsFinite: true,
+	codes.FnAll: true, codes.FnAllClose: true, codes.FnAssertClose: true, codes.FnEqual: true, codes.FnIsFinite: true,
 	codes.FnArgmax: true, codes.FnArgsort: true, codes.FnSample: true,
 	codes.FnAdamW: true, codes.FnSGD: true, codes.FnClipGrad: true, codes.FnBackward: true, codes.FnParameters: true,
 	codes.FnLoadParameters: true, codes.FnLoadTensors: true, codes.FnLoadMetadata: true, codes.FnSaveTensors: true,

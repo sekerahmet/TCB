@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 738 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 89 metot, 130 özellik, 192 adlı argüman.
+Toplam 739 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 163 fonksiyon, 11 sabit, 89 metot, 130 özellik, 192 adlı argüman.
 
 ## İçindekiler
 
@@ -1559,6 +1559,25 @@ tr: doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 ```
 
 İlişkili: `TR_assert_equal(...)`, `TR_test`
+
+#### `TR_assert_close(...)` (`TR_fn_assert_close`, `yakın_olmalı`)
+
+    yakın_olmalı(Ondalık | Tensör, Ondalık | Tensör, [Herhangi], göreli_pay: Tam | Ondalık = yok, mutlak_pay: Tam | Ondalık = yok) → YokTipi
+
+İki ondalık sayıyı ya da iki ondalık tensörü toleransla karşılaştırır: bir öğede |beklenen - gerçek|, mutlak_pay + göreli_pay · en büyük(|beklenen|, |gerçek|)'ü aşarsa en büyük farkı, yerini ve payları söyleyen hata fırlatır; yakınsa değer vermez. Varsayılan paylar daha az hassas işlenenin hassasiyetindendir (sayıda float64'ünkiler); eksi ya da NaN pay hatadır. Sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye yakın değildir; şekiller aynı olmalıdır, yayın yoktur.
+
+```tr
+TR_assert_close(0.3, 0.1 + 0.2); TR_assert_close(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.001]), TR_atol: 0.01); TR_print("yakın")
+```
+
+Görünümü:
+
+```text
+en: assert_close(0.3, 0.1 + 0.2); assert_close(Tensor([1.0, 2.0]), Tensor([1.0, 2.001]), atol: 0.01); print("yakın")
+tr: yakın_olmalı(0.3, 0.1 + 0.2); yakın_olmalı(Tensör([1.0, 2.0]), Tensör([1.0, 2.001]), mutlak_pay: 0.01); yazdır("yakın")
+```
+
+İlişkili: `TR_assert_equal(...)`, `TR_all_close(...)`, `TR_rtol:`, `TR_atol:`
 
 #### `TR_assert_equal(...)` (`TR_fn_assert_equal`, `eşit_olmalı`)
 
@@ -4043,7 +4062,7 @@ en: print(all_close(Tensor([1.0]), Tensor([1.1]), atol: 0.2))
 tr: yazdır(hepsi_yakın(Tensör([1.0]), Tensör([1.1]), mutlak_pay: 0.2))
 ```
 
-Kullananlar: `TR_all_close(...)` · İlişkili: `TR_rtol:`, `TR_all_close(...)`
+Kullananlar: `TR_all_close(...)`, `TR_assert_close(...)` · İlişkili: `TR_rtol:`, `TR_all_close(...)`
 
 #### `TR_backward:` (`TR_arg_backward`, `geri`)
 
@@ -5448,7 +5467,7 @@ en: print(all_close(Tensor([100.0]), Tensor([101.0]), rtol: 0.02))
 tr: yazdır(hepsi_yakın(Tensör([100.0]), Tensör([101.0]), göreli_pay: 0.02))
 ```
 
-Kullananlar: `TR_all_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
+Kullananlar: `TR_all_close(...)`, `TR_assert_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
 
 #### `TR_sample_rate:` (`TR_arg_sample_rate`, `örnekleme_hızı`)
 

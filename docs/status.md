@@ -459,12 +459,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md).
 
 ### 12.4a
 
-- **Mevcut durum (Tur 6A):** `TR_all_close`'da eksi tolerans `TR_true` veriyor (`TR_rtol: -1.0, TR_atol: 5.0`), NaN tolerans `TR_false` [ölçüldü: TCB, `70b1575b`, küçük program]; `TR_assert_close` henüz yok.
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** eksi ya da NaN tolerans çalışma hatası (15.18a ve 12.4a); TR testi.
-- **Mevcut durum:** toleranslı karşılaştırma yok; ondalık kesin eşitlikle kalıyor (0.1 + 0.2 ile 0.3) [ölçüldü].
-- **Yapılacaklar:** `TR_assert_close`, hassasiyete göre varsayılan toleranslar; TR testi.
-- **Gemini Koşu 3 (2026-10-29), uygulanacak:** sonsuz öğe yalnız aynı işaretli sonsuza yakındır (15.18a ile aynı).
-- **Gemini Koşu 7 (2026-10-29), uygulanacak:** sayı ile 0 boyutlu tensör, tek tolerans argümanı, isteğe bağlı mesaj.
+- **Mevcut durum (T1, Tur 6A):** `TR_assert_close` var: 12.4a'nın formülü, hassasiyete göre varsayılan toleranslar (iki sayıda float64'ün satırı), sonsuz ve NaN kuralı, sayı ile 0 boyutlu tensör, tek tolerans argümanı, isteğe bağlı mesaj, şekil eşitliği (yayın yok); ileti en büyük farkı, yerini ve toleransları söylüyor. Eksi ya da NaN tolerans `TR_all_close`'da da `TR_assert_close`'da da çalışma hatası [test: `tests/tensor_uc_ve_yakin_test.tr`, "12.4a ..." testleri].
 
 ### 12.3, 12.4
 

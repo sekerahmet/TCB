@@ -135,3 +135,63 @@ TR_test "15.18a yalnız ondalık tensör alır; öneri kopyalanınca çalışır
     TR_assert_equal("H6979", TR_error_code { TR_all_close(TR_Tensor([1.0]), 1.0) })
     TR_assert_equal("H6517", TR_error_code { TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.0]), TR_rtol: "a") })
 }
+
+TR_test "12.4a ve 15.18a eksi ya da NaN pay çalışma hatasıdır; 0 pay kesin eşitliktir" {
+    TR_var a = TR_Tensor([1.0])
+    TR_assert_equal("H2552", TR_error_code { TR_all_close(a, TR_Tensor([3.0]), TR_rtol: -1.0, TR_atol: 5.0) })
+    TR_assert_equal("H2552", TR_error_code { TR_all_close(a, a, TR_atol: nan()) })
+    TR_assert_equal("H2552", TR_error_code { TR_all_close(a, a, TR_rtol: -0.000001) })
+    TR_assert_equal("H2552", TR_error_code { TR_assert_close(1.0, 1.0, TR_atol: -1) })
+    TR_assert_equal("H2552", TR_error_code { TR_assert_close(1.0, 1.0, TR_rtol: nan()) })
+    TR_assert(TR_all_close(a, a, TR_rtol: 0, TR_atol: 0.0))
+    TR_assert_close(1.0, 1.0, TR_rtol: 0.0, TR_atol: 0.0)
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(1.0, 1.0000000001, TR_rtol: 0.0, TR_atol: 0.0) })
+}
+
+TR_test "12.4a yakın_olmalı formülü simetriktir; verilmeyen pay varsayılandır" {
+    TR_assert_close(0.3, 0.1 + 0.2)
+    TR_assert_close(100.0, 101.0, TR_rtol: 0.01)
+    TR_assert_close(101.0, 100.0, TR_rtol: 0.01)
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(100.0, 101.0, TR_rtol: 0.0099) })
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(101.0, 100.0, TR_rtol: 0.0099) })
+    TR_assert_close(1.0, 1.05, TR_atol: 0.1)
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(1.0, 1.05, TR_rtol: 0.01) })
+    TR_assert_close(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.001]), TR_atol: 0.01)
+    TR_assert_close(TR_zeros([0]), TR_zeros([0]))
+}
+
+TR_test "12.4a sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye" {
+    TR_assert_close(sonsuz(), sonsuz())
+    TR_assert_close(-sonsuz(), -sonsuz())
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(sonsuz(), -sonsuz()) })
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(1.0, sonsuz(), TR_atol: 1e300) })
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(nan(), nan()) })
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(TR_Tensor([1.0, nan()]), TR_Tensor([1.0, nan()])) })
+}
+
+TR_test "12.4a sayı 0 boyutlu tensörle karşılaştırılır; pay tensörün hassasiyetinden, iki sayıda float64" {
+    TR_assert_close(1.0, TR_Tensor(1.0))
+    TR_assert_close(TR_Tensor(1.0), 1.000002)
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(1.0, 1.000002) })
+    TR_assert_equal("H2553", TR_error_code { TR_assert_close(1.0, TR_Tensor(1.000002, TR_dtype: "float64")) })
+    TR_assert_equal("H2554", TR_error_code { TR_assert_close(1.0, TR_Tensor([1.0])) })
+}
+
+TR_test "12.4a şekiller aynı olmalıdır, yayın yoktur; yalnız ondalık" {
+    TR_assert_equal("H2554", TR_error_code { TR_assert_close(TR_Tensor([1.0]), TR_Tensor([1.0, 1.0])) })
+    TR_assert_equal("H2554", TR_error_code { TR_assert_close(TR_Tensor([1.0, 2.0]), TR_Tensor([[1.0, 2.0]])) })
+    TR_var tam = 1
+    TR_assert_equal("H2555", TR_error_code { TR_assert_close(tam, 1.0) })
+    TR_assert_equal("H2555", TR_error_code { TR_assert_close(1.0, TR_Tensor([1, 2])) })
+}
+
+TR_test "12.4a ileti en büyük farkı, yerini ve kullanılan payları söyler" {
+    TR_var metin = ""
+    TR_try {
+        TR_assert_close(TR_Tensor([[1.0, 2.0], [3.0, 4.0]]), TR_Tensor([[1.0, 2.25], [3.0, 4.5]]), "ağırlık", TR_atol: 0.1)
+    } TR_catch h {
+        TR_assert_equal("H2553", h.TR_code)
+        metin = h.TR_text("tr")
+    }
+    TR_assert_equal("yakınlık başarısız: ağırlık — en büyük fark 0.5, [1, 1] öğesinde: beklenen 4.0, gerçek 4.5 (`TR_rtol` 1.3e-06, `TR_atol` 0.1; 12.4a)", metin)
+}
