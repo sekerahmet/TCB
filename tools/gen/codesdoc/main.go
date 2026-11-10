@@ -126,11 +126,30 @@ func arguments(im codes.Signature) string {
 	return strings.Join(parts, ", ")
 }
 
+// returns imzanın dönüşünü yazar: " → Metin"; isteğe bağlı dönüş (tanımda "TR_String?") "?"
+// ile: " → Metin?" (3.5; değer ya da yok).
 func returns(im codes.Signature) string {
 	if im.Return.Empty() {
 		return ""
 	}
-	return " → " + typeName(im.Return)
+	s := typeName(im.Return)
+	if optionalReturn(im.Return) {
+		s += "?"
+	}
+	return " → " + s
+}
+
+// optionalReturn dönüş tipi tanımda "?" ile yazılmışsa doğrudur.
+func optionalReturn(t codes.TypeExpr) bool {
+	if t.Optional {
+		return true
+	}
+	for _, x := range t.Text {
+		if strings.HasSuffix(x, "?") {
+			return true
+		}
+	}
+	return false
 }
 
 // signatureLines bir kodun imzasını adlarla yazar (üyelerde tip başına bir satır).

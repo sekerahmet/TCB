@@ -2327,9 +2327,9 @@ tr: yazdır(hann_penceresi(4, periyodik: doğru).değer)
 
 #### `TR_input(...)` (`TR_fn_input`, `girdi`)
 
-    girdi([Herhangi]) → Metin
+    girdi([Herhangi]) → Metin?
 
-Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır. Boş satırda boş metin, giriş bittiyse yok döner (Metin?): varsayılan ?? ile verilir.
+Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır. Boş satırda boş metin, giriş bittiyse yok döner (Metin?): varsayılan ?? ile verilir. Yok bir kez gelir; ondan sonraki çağrı hatadır, döngü yok'u sınayıp biter.
 
 ```tr
 TR_var ad = TR_input("Adınız: ") ?? ""; TR_print("Merhaba " + ad)
@@ -6078,7 +6078,7 @@ tr: değişken g = eşzamanlı { uyu(10) }; g.iptal_et(); yazdır(hata_kodu { g.
 
 #### `.TR_cause` (`TR_mem_cause`, `neden`)
 
-    Hata.neden → Hata
+    Hata.neden → Hata?
 
 Hatanın nedeni olan hatadır (Hata(v, neden: e) ile kurulur); yoksa yok. Parantezsiz yazılan bir özelliktir.
 
@@ -6141,7 +6141,7 @@ tr: değişken p = program_başlat("gofmt", []); p.yaz(Baytlar("package a\n")); 
 
 #### `.TR_code` (`TR_mem_code`, `kod`)
 
-    Hata.kod → Metin
+    Hata.kod → Metin?
 
 Hatanın ileti kodudur ("H6903" gibi bir Metin); düz metinle ya da durumlu tip değeriyle fırlatılan hatada yok. Parantezsiz yazılan bir özelliktir.
 
@@ -6436,7 +6436,7 @@ tr: değişken m = maskeli_akış(); yazdır(m.adım("merhaba"), m.bitir(), m.bi
 
 #### `.TR_first` (`TR_mem_first`, `ilk`)
 
-    Liste.ilk → Herhangi
+    Liste.ilk → Herhangi?
 
 Listenin ilk elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir.
 
@@ -6479,9 +6479,9 @@ tr: yazdır([5, 6, 7].ilk)
 
 #### `.TR_get(...)` (`TR_mem_get`, `varsa_al`)
 
-    Sözlük.varsa_al(Herhangi) → Herhangi
-    Başlıklar.varsa_al(Metin) → Metin
-    Liste.varsa_al(Tam) → Herhangi
+    Sözlük.varsa_al(Herhangi) → Herhangi?
+    Başlıklar.varsa_al(Metin) → Metin?
+    Liste.varsa_al(Tam) → Herhangi?
     Metin.varsa_al(Tam) → Metin | YokTipi
 
 i. öğeyi (negatif indeks sondan sayar) ya da sözlükte ve JSON nesnesinde k anahtarının değerini verir; yoksa yok döner. Köşeli parantezle okuma (l[i], d["k"]) olmayan öğede hata verir; öğenin olmayabileceği bilinçli durumda varsa_al ile ?? birlikte kullanılır.
@@ -6560,8 +6560,8 @@ tr: yazdır(HTTPİsteği(başlıklar: {"Content-Type": "text/plain"}).başlıkla
 
 #### `.TR_index_of(...)` (`TR_mem_index_of`, `konumu`)
 
-    Liste.konumu(Herhangi) → Tam
-    Metin.konumu(Metin) → Tam
+    Liste.konumu(Herhangi) → Tam?
+    Metin.konumu(Metin) → Tam?
 
 Metinde alt metnin, listede değerin (== ile) ilk konumunu verir; bulunamazsa yok verir. Metinde konum karakter sayısıdır, bayt değil.
 
@@ -6764,7 +6764,7 @@ tr: yazdır({"ad": "Ali", "puan": 30}.anahtarlar())
 
 #### `.TR_last` (`TR_mem_last`, `son`)
 
-    Liste.son → Herhangi
+    Liste.son → Herhangi?
 
 Listenin son elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir.
 
@@ -7296,7 +7296,7 @@ tr: yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1, (a
 
 #### `.TR_remove(...)` (`TR_mem_remove`, `sil`)
 
-    Sözlük.sil(Herhangi) → Herhangi
+    Sözlük.sil(Herhangi) → Herhangi?
 
 Anahtarı sözlükten yerinde siler ve değerini verir; anahtar yoksa yok verir.
 

@@ -202,7 +202,7 @@ TR_var n = TR_try { oku() } TR_catch e {
 - **Dosya:** `TR_read_file(yol)` metni verir, `TR_write_file(yol, metin)` yazar. `TR_read_lines(yol)` satır satır okur: `TR_for satır TR_in TR_read_lines(yol) { }`.
 - **Yol:** `TR_Path("klasör", "a.txt")` yolu birleştirir, `yol.TR_is_file` dosya mı diye sorar, `TR_String(yol)` metnini verir. `TR_make_dir(yol)` klasör kurar.
 - **Klasör:** `TR_list_dir(klasör, "**/*.txt")` kalıba uyanları `TR_Path` listesi olarak verir; `**` sıfır ya da çok klasördür, klasörün kendisindeki dosyalar da gelir.
-- **Komut satırı:** `TR_var ayar = TR_command_line({"adet": 5, "soru": ""})` argümanları varsayılanlarıyla okur: `trlang run a.tr --adet 3`, `ayar["adet"]`. `TR_input("soru: ")` bir satır okur, `TR_env("AD")` ortam değişkenini verir.
+- **Komut satırı:** `TR_var ayar = TR_command_line({"adet": 5, "soru": ""})` argümanları varsayılanlarıyla okur: `trlang run a.tr --adet 3`, `ayar["adet"]`. `TR_input("soru: ")` bir satır okur ve `TR_String?` verir: boş satırda `""`, giriş bittiyse bir kez `TR_none`, ondan sonraki çağrı hatadır (H2561); okuma döngüsü `TR_none`'ı sınar: `TR_var s = TR_input()`, `TR_if s == TR_none { TR_break }`, tek okumada `TR_input() ?? ""`. `TR_env("AD")` ortam değişkenini verir.
 
 ## Başka dillerden gelen sık yanlışlar
 | Yazılan | TR'de |
