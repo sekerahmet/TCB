@@ -1813,7 +1813,7 @@
 "H7637": "{fn}: `{name}:` is required: write `{#EventBroadcast}({#capacity}: 100, {#snapshot}: {#JSON}({{}}), {#reduce}: (g, event) => event)`",
 "H7638": "{fn}: `{#reduce}:` must be a function of two parameters, which takes the snapshot and the event; the function given has {given} parameters: write `{#reduce}: (g, event) => event`",
 "H7639": "{fn}: `{#reduce}:` ended with an error; the event was not sent and the snapshot did not change: {err}",
-"H7640": "{fn}: `{#reduce}:` must give the new snapshot as {#JSON}, it gave {given}: write `{#reduce}: (g, event) => {#JSON}({{\"last\": event}})`",
+"H7640": "{fn}: `{#reduce}:` must give the new snapshot as {@JSON}, it gave {given}: write `{#reduce}: (g, event) => {#JSON}({{\"last\": event}})`",
 "H7641": "{fn}: `{#reduce}:` cannot send to the same broadcaster, the broadcaster would wait for itself while folding; send the event outside the fold",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
