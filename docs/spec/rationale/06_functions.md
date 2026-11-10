@@ -8,6 +8,7 @@ Kurallar: [`06_fonksiyonlar.md`](../06_fonksiyonlar.md). Bu dosya her kuralın e
 - *Gerekçe:* parametre ve dönüş tipi fonksiyonun sözleşmesidir; çağıran ve kodlama modeli onu okuyarak doğru argümanı verir, yanlışı çalışmadan önce görünür (1.2). Python alışkanlığıyla yazılan `->` aynen geçerlidir. Tek ad tek fonksiyon olunca bir çağrının hangi tanıma gittiği aranmaz.
 - *Emsal (tanımın adına atama, 2026-11-09, tur 4):* statik tipli TypeScript, Go, Rust, Swift, Kotlin ve C# fonksiyon tanımının adına atamayı derlemede reddeder; C#'ın CS0136'sı kapsayan kapsamda kullanılan adın iç blokta yerel olarak yeniden tanımlanmasını da reddeder ([CS0136](https://raw.githubusercontent.com/dotnet/docs/main/docs/csharp/misc/cs0136.md), açılış 2026-11-05) [kaynak: Gemini `TUR4_RAPORU.md` 2; DENETİM istek 167 bağlantıları açtı].
 - *Gerekçe (tanımın adına atama):* `f = g` `f`'nin imzasıyla çağrılıp `g`'nin gövdesini çalıştırır (6.9'un adlı argümanları); iç blokta `TR_var f = g` ise blok bitince dıştaki `f`'yi sessizce eski bırakırdı. Kural tanımın adını 5.12'nin yerel adı sayar; tek cümle iki yönü kapatır (DENETİM 167).
+- *Tur 6A (2026-11-10):* parametre listesinde sondaki virgül 3.6a'nın gerekçesiyle.
 
 ### 6.2
 
@@ -41,6 +42,7 @@ Kurallar: [`06_fonksiyonlar.md`](../06_fonksiyonlar.md). Bu dosya her kuralın e
 - *Emsal:* C# `void` temsilciye, gövdesi deyim olarak geçerli ifade olan lambdayı kabul eder ("would be permitted as a *statement_expression*", [C# dil tanımı 10.7.1](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/conversions#1071-general)); `async` lambdada kural `Task`'a uzanır. Go `x := f()`, `return f()` ve `[]any{f()}`'yi `f() (no value) used as value` ile reddeder; `go f()` ve fonksiyon değişmezindeki `f()` deyimi geçer [ölçüldü: TCB, go1.26.0].
 - *Emsal (karışık dönüş, 2026-11-09, tur 4):* Rust, Swift, TypeScript ve Python'un `mypy`/`ruff`'ı değer döndüren yolu olan fonksiyonda her yolun bitmesini ister; `ruff` RET501 yalnız `None` döndüren açık `return None`'ı işaretler [kaynak: Gemini `TUR4_RAPORU.md` 4; DENETİM istek 167 alıntıları eşledi].
 - *Gerekçe (tip tabanlı kural):* sözdizimsel `TR_return TR_none` yasağı `l.TR_map(...)` gibi beklenen somut tipi olmayan yerde meşru `T?` üreten bloğu yasaklıyordu. Aynı birleştirme 5.5'in ifade olarak `TR_if`'ine de yazıldı, yoksa blok ile ifade gövdesi arasındaki fark ifade biçiminde geri gelirdi (DENETİM 344 Ş1). `TR_var n = TR_none` sonra `TR_return n` 3.5'e göre zaten geçersizdir (ilk değeri `TR_none` olan değişken tipini yazar); kaçak 3.13 uygulanana dek motorda. Kural dönen değerlerin tipine bağlanınca liste değişmezinin ortak tip kuralıyla (3.6) aynı olur; yalnız `TR_none` dönen gövdenin tipi bilinemediği için hata kalır (3.13).
+- *Tur 6A (2026-11-10):* `T?` döndüren yol 3.6'nın kuralıyla birleşir.
 
 ### 6.7
 

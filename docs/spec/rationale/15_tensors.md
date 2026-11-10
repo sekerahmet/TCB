@@ -220,6 +220,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - Şekil farkında yayın yok: sınamanın sorusu "aynı mı"dır ("Hata riski az").
   - Bedel: GPU'da konağa okuma. Sıcak döngüde ajanın bilmesi gerekir; madde bunu yazar. Eksenli `TR_all`/`TR_any` beklemez.
   - **Sonsuzda yakınlık.** Formül IEEE'de tersini verir: |0 − ∞| = ∞ ≤ ∞ yakın, |−∞ − (−∞)| = NaN uzak. NumPy ve PyTorch'un `isclose`'u sonsuzu ayrı ele alır, aynı işaretli sonsuzu yakın, sonlu ile sonsuzu uzak sayar [ölçüldü: DENETİM, `numpy==2.1.1`, `torch==2.14`]; TR de.
+- *Tur 6A (2026-11-10):* tolerans kuralı 12.4a'nın gerekçesindedir.
 
 ### 15.19
 

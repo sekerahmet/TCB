@@ -29,11 +29,11 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - İki argüman aynı tipten olmalıdır; ayrı tipler 4.5'teki gibi denetim hatasıdır, ileti iki tipi söyler.
 - İleti ikisini de gösterir: beklenen `[1, 2, 3]`, gerçek `[1, 2, 4]`; ilk farklı öğenin yerini de söyler.
 - Değer döndürmez (13).
-- İki tensörde anlamı `TR_equal`'ınkidir: şekil ve bütün öğeler (15.5).
+- İki tensörde ve tensör içeren değerde (liste, sözlük, demet, yapı, durumlu tip, isteğe bağlı değer) anlamı içteki her tensör çiftinde `TR_equal`'ınkidir: şekil ve bütün öğeler (15.5). Fonksiyon, arayüz ve onları içeren değer burada da denetim hatasıdır (4.5, 7.8).
 - Ondalık kesin karşılaştırılır; toleransla karşılaştırma 12.4a'dadır.
 - *Test:* TR testi.
 
-**12.4a** `TR_assert_close(beklenen, gerçek, TR_rtol: r, TR_atol: a)` iki ondalık sayıyı ya da iki `TR_Float` tensörü toleransla karşılaştırır: her öğede fark, `a` ile `r` kere iki değerin mutlak değerinin büyüğünün toplamını aşmamalıdır. Formül simetriktir, argümanların sırası sonucu değiştirmez; 15.18a'nın aynı işi gören yerleşiği de bu formülü kullanır.
+**12.4a** `TR_assert_close(beklenen, gerçek, TR_rtol: r, TR_atol: a)` iki ondalık sayıyı ya da iki `TR_Float` tensörü toleransla karşılaştırır: her öğede fark, `a` ile `r` kere iki değerin mutlak değerinin büyüğünün toplamını aşmamalıdır. Formül simetriktir, argümanların sırası sonucu değiştirmez; 15.18a'nın aynı işi gören yerleşiği de bu formülü kullanır. Eksi ya da NaN tolerans çalışma hatasıdır (15.18a gibi).
 - Formül: |x − y| ≤ a + r · `TR_max(|x|, |y|)`.
 - Varsayılan toleranslar hassasiyete göredir (15.18a'nın tablosu; sayıda "float64"ün satırı). Biri `TR_Float` sayı, öbürü 0 boyutlu `TR_Tensor[TR_Float]` olabilir; tolerans tensörün hassasiyetinden seçilir. `TR_rtol:` ve `TR_atol:`'dan yalnız biri verilirse öbürü tablodaki varsayılandır. Üçüncü argüman `mesaj` isteğe bağlıdır; değer döndürmez (13.10).
 - Tensörde şekiller aynı olmalıdır; yayın yoktur.

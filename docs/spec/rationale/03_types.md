@@ -37,6 +37,7 @@ Kurallar: [`03_tipler.md`](../03_tipler.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* Swift'te ve Go'da tipsiz sayı yazımı değişmezdeki öbür öğelere göre tip alır (`[1, 2.5]` ondalık listesidir). Rust `Vec<T>`, Swift `[T]`, Go `[]T` ve Kotlin `List<T>` tek tiplidir. Python ve Go tip parametresini köşeli parantezle yazar (`list[int]`; Go'da tip parametresi listesi "enclosed in square brackets rather than parentheses"); Rust'ta ifadenin içinde `<` küçüktür işleciyle karıştığı için `::<>` gerekir ("required before the opening < for generic arguments to avoid ambiguity with the less-than operator"). Python'da ve Go'nun diliminde liste başvuruyla paylaşılır. *Almadık:* Python'un karışık tipli listesi. ([Rust 1.99 Vec](https://doc.rust-lang.org/std/vec/struct.Vec.html), [Rust 1.99 Reference yollar](https://doc.rust-lang.org/reference/paths.html#paths-in-expressions), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/collectiontypes/), [Go 1.27 tip parametreleri](https://go.dev/ref/spec#Type_parameter_declarations), [Kotlin 2.4](https://kotlinlang.org/docs/collections-overview.html), [PEP 585](https://peps.python.org/pep-0585/))
 - *Gerekçe:* tek tipli listede her öğenin tipi bilinir; öğe üzerindeki her işlem çalışmadan önce denetlenir. Köşeli parantez karşılaştırma işleçleriyle karışmaz. Büyük bir veri listesi fonksiyona kopyalanmadan geçer.
+- *Tur 6A (2026-11-10, `T` ile `T?`):* 3.5'te `T` `T?` beklenen yere verilir ve 4.8'de `T??` yoktur; bu yüzden `T` ile `T?` öğelerin ortak tipi `T?`'dir. Hepsi `TR_none` olan değişmezde asıl tip bilinemez (3.13): boş liste gibi beklenen tip ister. Swift aynı durumda "'nil' requires a contextual type" der (3.13'ün gerekçesi).
 
 ### 3.6a
 
@@ -45,6 +46,7 @@ Kurallar: [`03_tipler.md`](../03_tipler.md). Bu dosya her kuralın emsalini (ba�
 - *Gerekçe (`t.0.1`):* Rust'ta da `t.0.1` iç içe demetin öğesidir; ajanın doğal yazımı budur. Parantez zorunlu olsaydı (`(t.0).1`) ajan önce yanlışı yazıp iletiyle düzeltirdi.
 - *Gerekçe (tipte parantez):* isteğe bağlı fonksiyon tipi gruplamasız yazılamaz, çünkü `(T) -> R?`'nin `?`'si dönüşündür. Swift `((Int) -> Bool)?` yazar; Go ve Rust da tipte parantezi gruplama sayar (Rust'ta tek öğeli demet `(T,)`'dir). TR'de demet en az iki öğeli olduğu için `(T)` belirsiz değildir.
 - *Gerekçe (JSON):* JSON'da demet yoktur; Python'un `json`'u da demeti dizi yazar ("list, tuple → array"). Geri dönüş tiple olur: `TR_json_parse[T]` demet tipli alanı diziden kurar, tipsiz okuma dizi verir. ([Python json](https://docs.python.org/3/library/json.html#py-to-json-table))
+- *Tur 6A (2026-11-10, sondaki virgül):* Swift 6.1 demette ve parametre listesinde sondaki virgüle izin verdi [SE-0439, "Implemented (Swift 6.1)"]; Python, Rust, Go ve Kotlin parametre listesinde izin verir. TR'de çağrıda, listede ve sözlükte geçerli olan virgülün demette ve parametre listesinde hata olması ajana bir dosyada 15 hata verdirdi (ajan denemesi 7). `(x,)` hata kalır, çünkü TR'de tek öğeli demet yoktur: Python'daki anlamıyla yazan ajan sessiz bir tipe değil iletiye ulaşır.
 
 ### 3.7
 

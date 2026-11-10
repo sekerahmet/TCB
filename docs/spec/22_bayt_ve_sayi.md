@@ -51,7 +51,7 @@ TR_print(başlık.TR_read_int(24, TR_dtype: "uint32", TR_byte_order: "little")) 
 - 32 bit ondalıkta NaN ve sonsuz hatadır; ileti ilk böyle örneğin indeksini söyler. Aralık dışı sonlu değer olduğu gibi gelir.
 - Okunan biçimler: 16 bit tam sayı PCM, 32 bit ondalık ve bunların `WAVE_FORMAT_EXTENSIBLE` biçimi; orada alt biçim bu ikisinden biridir, geçerli bit sayısı örnek boyuna eşit ya da 0'dır. Öbürleri (8, 24 ve 32 bit tam sayı PCM, sıkıştırılmış ses, `RIFX`, `RF64`) hatadır. İleti `ffmpeg` ile 16 bite çevirmenin kabuk yazımını verir: `ffmpeg -nostdin -i girdi -c:a pcm_s16le çıktı.wav`.
 - 16 bit tam sayı 32768'e bölünür: tam sayı ses ondalığa `TR_Tensor[TR_Float](ham) / 32768.0` ile çevrilir.
-- `TR_write_wav(yol, ses)` 16 bit tam sayı PCM yazar. Ondalık değer 32767 ile çarpılır ve en yakın tam sayıya yuvarlanır. Boş ses hatadır: `TR_read_wav` onu geri okuyamaz.
+- `TR_write_wav(yol, ses)` 16 bit tam sayı PCM yazar. Ondalık değer 32767 ile çarpılır ve en yakın tam sayıya yuvarlanır; yarım çifte gider (13.1, 15.16a). Boş ses hatadır: `TR_read_wav` onu geri okuyamaz.
   - [-1, 1] dışındaki ve NaN örnek hatadır: taşan bir ses sessizce kırpılmaz (15.49). İleti ilk böyle örneğin indeksini ve değerini söyler. Aralık dışında kırpmanın açık yazımını önerir: `TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`; NaN ve sonsuzda önermez, çünkü `TR_clamp` NaN'ı değiştirmez, sonsuzu sessizce sınıra indirir (15.13); yukarıdaki bir hesabın bozulduğunu söyler.
   - Okuma 32768'e böler, yazma 32767 ile çarpar: okunup yeniden yazılan dosyanın bazı örnekleri bir birim değişir, kopya kayıpsız değildir.
 - Yeniden örnekleme kitaplıkta yoktur; `ffmpeg` ile yapılır (21.1'in örneğindeki `-ar 16000`).

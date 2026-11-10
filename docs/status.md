@@ -117,6 +117,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.6a
 
+- **Mevcut durum (Tur 6A):** demette sondaki virgül (`(1, 2,)`) ve parametre listesinde sondaki virgül sözdizimi hatası [ölçüldü: TCB, `70b1575b`, küçük program].
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** demette, demet tipinde, parametre listesinde, fonksiyon tipinde ve fonksiyon ifadesinde sondaki virgül; `(x,)`'in iletisi; ayrıştırıcının testi.
 - **Yapılacaklar:** `TR_json_parse[T]` (13.8) motorda yok, demet tipli alanın diziden kurulması onunla gelir.
 - **Yapılacaklar (D, Ö3; sahip D1; DENETİM 244):** tipi bilinen liste öğesi demetse `l[0][0]` denetimde değil çalışma anında hata veriyor; ileti `l[0].0`'ı öneriyor [ölçüldü: `74d38399`].
 
@@ -189,10 +191,14 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 ### 5.4
 
+- **Mevcut durum (Tur 6A):** düz `=` sağ yanı önce hesaplıyor: `l[f()] = g()` önce `g`'yi çağırıyor [ölçüldü: TCB, `70b1575b`, küçük program].
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** düz `=`'de önce hedefin yeri, sonra sağ yan; TR testi.
 - **Yapılacaklar:** `/=` iletisi `//=`'yi önerir.
 
 ### 5.5
 
+- **Mevcut durum (Tur 6A):** dalları hepsi `TR_none` veren `TR_if` beklenen tip olmadan denetimden geçiyor, çıktısı none; `T` ile `T?` dalı `T?` veriyor [ölçüldü: TCB, `70b1575b`, küçük program].
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** hepsi `TR_none` dallarda beklenen tip yoksa denetim hatası (3.6, 5.6, 6.6 ile); denetleyicinin testi.
 - **Mevcut durum:** `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor [ölçüldü: main `85a19c36`, dört küçük program; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
 
@@ -343,6 +349,8 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.3
 
+- **Mevcut durum (Tur 6A):** `.TR_text("tr")` yok. `TR_text` kataloğda yalnız `tr/whisper`'ın özelliği olarak kayıtlı (türü property); argümanlı metot ayrı bir kod ya da bu kodun türünün değişmesini ister [kanıtlı: DENETİM 382, `definitions.json`].
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** hatada ve iletide `.TR_text("tr")`; kataloğun dilleri dışındaki kodun çalışma hatası; TR testi.
 - **Mevcut durum:** `e == f` çalışma anında H2913; kural denetim hatası diyor (aşağıdaki satır) [ölçüldü: `tests/hatalar_ertele_test.tr`'nin 8.3 testi].
 - **Yapılacaklar (A, Ö1, 4a5; DENETİM 231: `x: TR_Int` içinde metin [ölçüldü: DENETİM 231]; `TR_catch e`'nin tipiyle kapanmaz):** `TR_value`'nun kapalı birleşim tipi ve `e == f`'nin denetim hatası (denetleyici, 4a); kopyanın daraltılması (4b), `_`'siz eşlemenin kapsaması (4c).
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** kapalı birleşimin yerel kopyası; hatayla biten kol eşlemenin tipine katılmaz (denetimi 4a2).
@@ -357,6 +365,8 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.6
 
+- **Mevcut durum (Tur 6A):** terminalde kodsuz hata kodsuz basılıyor (`TR_throw "düz hata"` → "Satır 2: düz hata") [ölçüldü: TCB, `70b1575b`, küçük program], ama motor onu `H2441` koduyla sarıyor (`internal/lang/interp/error_value.go`, `messages.New(messages.H2441, ...)`) ve hatalar örneği 12 başlık yorumunda H2441 bekliyor; kodun hangi çıktıda göründüğü uygulamada ölçülür.
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** kodsuz hatanın gösteriminde kod yok; örnek 12, `message_value_test.go`, `messages/error_test.go`, `examples/README.md` buna göre.
 - **Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü].
 - **Yapılacaklar:** çağrı yığını, en son çağrı en altta.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** yakalanmayan hatada nedenler zinciri.
@@ -451,6 +461,8 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md).
 
 ### 12.4a
 
+- **Mevcut durum (Tur 6A):** `TR_all_close`'da eksi tolerans `TR_true` veriyor (`TR_rtol: -1.0, TR_atol: 5.0`), NaN tolerans `TR_false` [ölçüldü: TCB, `70b1575b`, küçük program]; `TR_assert_close` henüz yok.
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** eksi ya da NaN tolerans çalışma hatası (15.18a ve 12.4a); TR testi.
 - **Mevcut durum:** toleranslı karşılaştırma yok; ondalık kesin eşitlikle kalıyor (0.1 + 0.2 ile 0.3) [ölçüldü].
 - **Yapılacaklar:** `TR_assert_close`, hassasiyete göre varsayılan toleranslar; TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** sonsuz öğe yalnız aynı işaretli sonsuza yakındır (15.18a ile aynı).
@@ -470,6 +482,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 
 ### 13.1
 
+- **Mevcut durum (Tur 6A):** `TR_input` giriş bitince `""` veriyor; `TR_ord` ve `TR_chr` yok; anahtarlı `TR_max` "1. argüman olarak Tam ya da Ondalık bekler" diyor [ölçüldü: TCB, `70b1575b`, küçük program]. Kod kataloğunun `TR_input` açıklaması (`docs/codes.md`) da eski davranışı anlatıyor.
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `TR_input` `TR_String?` (örnek `06_girdi.tr` iki çağrı); `TR_ord`, `TR_chr` (kataloğa iki kod); anahtarlı `TR_max` ve `TR_min` (imza, 13.3'ün bir kez çağrı ve değişiklik kuralı); TR testleri.
 - **Yapılacaklar (D ve F, Ö3; DENETİM istek 73 kapanışı):** `TR_write_file`'a `TR_JSON` değeri yalnız çalışma anında H2623; denetleyici `TR_JSON`'u bildiği için denetimde reddedilebilir, o zaman öneri programın kendi ifadesiyle `TR_json_string(j)` olur (bugün yer tutuculu `TR_json_string(...)`).
 - **Bedel (TCB kararı, 2026-11-04):** `utf8.ValidString` satır okumayı yavaşlatıyor: 1 GB'da ASCII +%9,5, Türkçe metin +%147,5 [ölçüldü: D1, Colab, altı tur]; doğruluk hızdan önce gelir, kabul. SIMD doğrulayıcı hız kolunda (D, Ö3).
 - **Bulgu (D1, 2026-11-04, Ö3):** kesin istatistiğin bedeli on öğeli listede `TR_mean` +0,44 µs, `TR_std` +2,4 µs (5,8 kat), `TR_median` +0,26 µs [ölçüldü: Colab]. Sığan toplamda büyük sayısız yol düşürür [hipotez].
@@ -477,6 +491,11 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 - **Yapılacaklar (D, Ö3; sahip D1, denetleyici; D1 tekdüze saat devri, 2026-11-09):** argüman almayan yerleşiğin fazla argümanı denetimde yakalanmıyor, yalnız çalışırken H2012: `TR_print(TR_monotonic_ns(1))` denetimden (`trlang` komutunun denetim kipi) hatasız geçiyor [ölçüldü: TCB, birleşik 60]; `TR_compute_dtype(1)` de [ölçüldü: D1, taban `fbf624ee`]. Tanım dosyasında `"params": []` yazılı; denetleyici argüman sayısını oradan okumuyor [hipotez: D1, kod okunmadı]. Ajan hatayı ancak koşunca görür.
 - **Yapılacaklar (A, Ö1, 4c; öncelik DENETİM istek 97 Ş2'de düzeltildi):** boş tensör listesinin `TR_sum`'ı hata yerine 0 veriyor, tensör tipli değişkene tam sayı giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]. Liste değeri öğe tipini taşımıyor, çalışma anında ayırt edilemez; `TR_sum[TR_Float]([])` da "indekslenemez" hatası veriyor [ölçüldü: DENETİM]. İş `pending.md`'nin 3.11'iyle aynı: parametre denetimden çalışma anına gelmeli.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_min` ve `TR_max`'ın anahtar fonksiyonlu biçimi sıralama sırasını kullanır; `TR_sum` tensör listesinde boşta hata (15.18).
+
+### 13.2
+
+- **Mevcut durum (Tur 6A):** `.TR_strip(".")` "0 argüman bekler" diyor; `.TR_is_alpha()`, `.TR_is_digit()`, `.TR_is_space()` yok [ölçüldü: TCB, `70b1575b`, küçük program].
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `.TR_strip(karakterler)`; üç sınıf metodu (kataloğa üç kod); TR testi.
 
 ### 13.3
 
@@ -497,6 +516,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 
 ### 13.8
 
+- **Mevcut durum (Tur 6A):** CSV hücresi iki yerde kırpılıyor, tırnaklı hücre dahil: `TR_parse_csv("  a ,\" b \",c  ")` → `[["a", "b", "c"]]` [ölçüldü: TCB, `70b1575b`, küçük program]; bütün metin (`formats.go`, `csv.NewReader(... strings.TrimSpace(...))`) ve her hücre (`csvValues`) [kanıtlı: DENETİM 382].
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** iki kırpmayı kaldırmak; `TestCSVCellsAreTextAndBOM` değişir; kılavuzun CSV satırı (`docs/guide/04_yapay_zeka_ve_veri.md`, "hücre boşlukları kırpılarak") aynı commit'te.
 - **Mevcut durum:** JSON'a NaN yazmak hata (H7008) [ölçüldü]. `TR_json_parse[T]` motorda yok; geldiğinde yinelenen anahtarı reddeden aynı çözücüden geçmeli. Dil tanımının sözlük üreteci (5.11, `{k: v TR_for k, v TR_in d}`) ve köşeli parantezdeki iki değişkenli üreteç (`TR_for i, x TR_in l`) motorda yok (sözdizimi hatası); H7012'nin önerisi bu yüzden döngüyle, CSV göçü aralıkla (`s[1..s.TR_length]`) yazıldı.
 - **Gemini Koşu 6 (2026-10-29), uygulanacak (tensörün yazımı A, Ö0: tam sayı değerli ondalık öğe `.0`'sız yazılıp geri okununca tam sayı oluyor; yol ve `TR_json_parse[T]` A, Ö1, 18.4 ve 6.10; DENETİM istek 81 Ş4):** `TR_json_string`'de yol ve tensörün yazımı; `TR_json_parse[T]`'de `null`, iç içe yapı ve tensör alanının hatası.
 - **Yapılacaklar (E, Ö3; sahip D1, Kol A 13; TCB 2026-11-09):** yapının JSON'a yazılması yok: `TR_json_string(K(3))` "K değeri JSON'a yazılamaz" veriyor [ölçüldü: TCB, `0a8073a4`]. `TR_json_parse[T]` ile birlikte Tur 1'in 13.8 ekleri de uygulanır: sayı alanında 3.7a'nın açma kuralı, kurulamayan yapının denetim hatası, döngülü nesnenin hatası.

@@ -25,6 +25,7 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 
 - *Emsal:* JUnit'in `assertEquals(expected, actual)`'ı beklenen ile gerçeği ayrı gösterir [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* tip farkı ("5" ile 5) en sık eşitlik hatasıdır; ikisini tipiyle göstermek okuyan ajana ve insana sorunu doğrudan söyler.
+- *Tur 6A (2026-11-10, tensör içeren değer):* PyTorch `torch.testing.assert_close` iç içe kapları yapısıyla ve öğe öğe karşılaştırır: "they are considered close if their structure matches and all their elements are considered close" [PyTorch 2.15, `torch.testing`]. Listedeki tensörün `==`'si yasaktır, çünkü maske verir (15.5); `TR_assert_equal` maske üretmez, ağırlık sözlüğünü ya da kayıp ve logit demetini doğrudan sınar.
 
 ### 12.4a
 
@@ -33,6 +34,7 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 - *Gerekçe:* ondalık sonuçlar kesin eşitlikle sınanamaz: `TR_assert_equal(0.1 + 0.2, 0.3)` kalır [ölçüldü]. ML testinde sınanan çoğu değer ondalık ve tensördür; ajan bir toleransı her seferinde uydurmak zorunda kalmamalıdır. 15.18a'nın `TR_all_close`'u ile aynı tablo.
 - *Gerekçe (sonsuz):* formül sonsuzda IEEE'de tersini verir (sonlu ile sonsuz yakın, aynı işaretli iki sonsuz uzak); NumPy ve PyTorch'un `isclose`'u gibi sonsuz ayrı ele alınır [ölçüldü: DENETİM, `numpy==2.1.1`, `torch==2.14`].
 - *Gerekçe (sayı ile tensör):* `.TR_item()` sayısı float64'tür ama hesabı float32'dir; tensörüyle karşılaştırmak toleransı doğru seçer. PyTorch iki toleranstan yalnız biri verilince hata verir; TR varsayılanı kullanır, çünkü ajan için tek argümanlık yazım daha az hatalıdır (Gemini Koşu 7).
+- *Tur 6A (2026-11-10, tolerans):* Python `math.isclose`'da "_rel_tol_ must be nonnegative and less than `1.0`", _abs_tol_ de "must be nonnegative" [Python 3.15.2, `math`]. PyTorch eksi toleransı kaynakta reddeder: "rtol must be greater than or equal to zero" [`aten/src/ATen/native/TensorCompare.cpp`, main, `TORCH_CHECK`]. NumPy denetlemez; eksi tolerans sessizce doğru verebilir (`TR_rtol: -1.0, TR_atol: 5.0` → `TR_true` [ölçüldü: TCB, `70b1575b`]). NaN tolerans aynı nedenle hatadır, 13.7'de NaN sınır gibi.
 
 ### 12.5
 
