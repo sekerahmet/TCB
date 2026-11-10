@@ -14,9 +14,12 @@ Denetim: `TestOriginIsChecked`, `TestTokenIsChecked`, `TestTokenComparisonIsCons
 `TestPathIsChecked`, `FuzzValidPath`, `TestBodyLimit`, `TestMaxConcurrent`.
 
 **TR sessiz değiştirmez.** Go'nun sunucusu geçersiz adlı başlığı siler, değerdeki satır sonunu boşluğa
-çevirir, 1xx'i ara cevap yazıp sürer; TR bunları cevap kurulurken hata yapar (28.3). Go'nun davranışını
-sabitleyen test Go değişince düşer.
-Denetim: `TestGoChangesHeadersSilently`, `TestResponseRejectsWhatGoChanges`, `TestResponseIsWrittenAsGiven`.
+çevirir, 1xx'i ara cevap yazıp sürer; TR bunları cevap kurulurken hata yapar (28.3). `204`, `205` ve `304`'ün
+gövdesi, sunucunun gövdeden yazdığı `Content-Length` ve `Transfer-Encoding` ve `close` dışında değerli
+`Connection` da kurulurken hatadır. `Connection: close` harf büyüklüğüne bakılmadan geçer ve `close` yazılır:
+Go cevaptan sonra bağlantıyı yalnız bu yazımla kapatır. Go'nun davranışını sabitleyen test Go değişince düşer.
+Denetim: `TestGoChangesHeadersSilently`, `TestGoClosesOnlyOnLowercaseClose`, `TestResponseRejectsWhatGoChanges`,
+`TestNoBodyStatusesAndServerHeaders`, `TestConnectionCloseClosesTheConnection`, `TestResponseIsWrittenAsGiven`.
 
 **İstek görevi `interp.TaskHost`'tan açılır.** Şablon görünüm `TR_serve_http` çağrıldığında alınır,
 her istek ondan çatallanır; işleyicinin hatası istemciye iç bilgisiz `500`, standart hataya kodlu ve
