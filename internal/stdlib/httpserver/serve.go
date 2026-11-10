@@ -28,10 +28,14 @@ var (
 )
 
 // Süre sınırları (28.5): başlıklar 60 saniyede okunur, bağlantı bir sonraki istek için 5 saniye boşta
-// bekler; cevap yazmanın ve işleyicinin süre sınırı yoktur.
+// bekler; cevap yazmanın ve işleyicinin süre sınırı yoktur. Testler kısaltır (t.Parallel'siz, t.Cleanup
+// ile geri koyar); sunucu kurulurken okunur. Varsayılanları TestTimeoutDefaults sabitler.
+var (
+	headerTimeout = 60 * time.Second
+	idleTimeout   = 5 * time.Second
+)
+
 const (
-	headerTimeout  = 60 * time.Second
-	idleTimeout    = 5 * time.Second
 	defaultMaxBody = 1 << 20
 	localHost      = "127.0.0.1"
 	minTokenLength = 16
@@ -74,7 +78,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 	s := &HTTPServer{
 		handler: args[0], line: m.BuiltinLine(), vm: m, host: m.NewTaskHost(m.BuiltinLine()), ln: ln,
 		local: opt.host == localHost, token: opt.token, port: ln.Addr().(*net.TCPAddr).Port,
-		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, done: make(chan struct{}),
+		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, done: make(chan struct{}), stop: make(chan struct{}),
 	}
 	s.srv = &http.Server{
 		Handler: s, ReadHeaderTimeout: headerTimeout, IdleTimeout: idleTimeout,
@@ -193,6 +197,7 @@ type HTTPServer struct {
 	maxBody       int64
 	active        atomic.Int64
 	closing       atomic.Bool
+	stop          chan struct{} // kapanış başladı: yayın dinleyicileri cevabı bitirir (28.8)
 	done          chan struct{}
 }
 

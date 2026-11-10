@@ -24,7 +24,10 @@ Denetim: `TestGoChangesHeadersSilently`, `TestGoClosesOnlyOnLowercaseClose`, `Te
 **İstek görevi `interp.TaskHost`'tan açılır.** Şablon görünüm `TR_serve_http` çağrıldığında alınır,
 her istek ondan çatallanır; işleyicinin hatası istemciye iç bilgisiz `500`, standart hataya kodlu ve
 maskeli bir satırdır, sunucu sürer (28.4). Kapanış (`s.TR_close()`, durdurma, program sonu) süren görevleri
-iptal eder, en çok 2 saniye bekler (28.8).
+iptal eder, en çok 2 saniye bekler (28.8). Açık akışlar kapanır: yayın dinleyicisinin cevabı düzgün biter
+(istemci `Last-Event-ID` ile döner), istek akışının bloğu iptal edilir ve akış düzgün bitirilmeden kesilir.
+Gövde okuması 60 saniye susarsa bağlantı kapanır; Go'nun kapanışta gövdenin kalanını okuması da bu süreyle
+biter (`readBody`, süre geçmiş bırakılır). Denetim: `TestCloseEndsOpenStreams`, `TestTimeoutsCloseTheConnection`.
 Denetim: `TestHandlerFailureIs500`, `TestCloseCancelsRunningHandlers`, `TestCloseFinishesAWrittenResponse`,
 `TestProgramEndClosesTheServer`, `TestWaitReturnsStopRequested`.
 

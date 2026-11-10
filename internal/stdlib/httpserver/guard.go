@@ -17,9 +17,10 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// ServeHTTP bir isteği işler (28.4). Geldiği yerin (28.1a), belirtecin (28.2), yolun (28.3), eşzamanlı
-// istek sınırının (28.4) ve gövde sınırının (28.5) denetimleri Go'nun goroutine'inde, kilit alınmadan
-// ve görev açılmadan yapılır: kimliksiz bir istek seli TR görevi açamaz. Geçen istek için görev açılır.
+// ServeHTTP bir isteği işler (28.4). Geldiği yerin (28.1a), belirtecin (28.2), yolun (28.3), gövde
+// sınırının (28.5) ve eşzamanlı istek sınırının (28.4) denetimleri bu sırayla Go'nun goroutine'inde, kilit
+// alınmadan ve görev açılmadan yapılır: kimliksiz bir istek seli TR görevi açamaz. Geçen istek için görev
+// açılır.
 // İşleyici akışlı cevap (28.7) döndürürse blok aynı görevde çalışır; görev ancak akış başladıktan sonra
 // istemci koparsa ya da yazma hata verirse iptal edilir (stop). Yayın akışının dinleyicisi görev bittikten
 // sonra kilitsiz yazar ve eşzamanlı istek sınırına sayılmaz.
@@ -181,18 +182,21 @@ func (s *HTTPServer) readBody(w http.ResponseWriter, r *http.Request) ([]byte, b
 	rc := http.NewResponseController(w)
 	src := &deadlineReader{r: r.Body, set: func() { _ = rc.SetReadDeadline(time.Now().Add(bodyReadGap)) }}
 	body, err := io.ReadAll(io.LimitReader(src, s.maxBody+1))
+	if err != nil && int64(len(body)) <= s.maxBody {
+		// İstemci koptu ya da sustu: işleyicinin hatası değil (28.9). Süre geçmiş kalır: Go bağlantıyı
+		// kapatırken gövdenin kalanını okumaya çalışır, süresiz beklerdi (TestTimeoutsCloseTheConnection).
+		_ = rc.SetReadDeadline(time.Now())
+		panic(http.ErrAbortHandler)
+	}
 	_ = rc.SetReadDeadline(time.Time{})
 	if int64(len(body)) > s.maxBody {
 		return nil, false
 	}
-	if err != nil {
-		panic(http.ErrAbortHandler) // istemci koptu ya da sustu: işleyicinin hatası değil (28.9)
-	}
 	return body, true
 }
 
-// bodyReadGap iki gövde okuması arasında beklenen en uzun süredir (28.5).
-const bodyReadGap = 60 * time.Second
+// bodyReadGap iki gövde okuması arasında beklenen en uzun süredir (28.5); testler kısaltır.
+var bodyReadGap = 60 * time.Second
 
 // deadlineReader her okumadan önce bağlantının okuma süresini yeniden kurar.
 type deadlineReader struct {

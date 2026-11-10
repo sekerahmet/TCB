@@ -307,7 +307,7 @@ func (b *EventBroadcast) since(cursor int64) (frames [][]byte, next int64, ok bo
 }
 
 // listen dinleyicinin cevabını yazar, işleyicinin görevi bittikten sonra, kilitsiz (28.7): başlıklar,
-// başlangıç çerçeveleri, sonra yeni olaylar ve nabız; istemci gidene, sunucu kapanana, dinleyici çok
+// başlangıç çerçeveleri, sonra yeni olaylar ve nabız; istemci gidene, kapanış başlayana, dinleyici çok
 // geride kalana ya da bir yazma takılana kadar. HEAD'de dinleyici kaydedilmez.
 func (s *HTTPServer) listen(w http.ResponseWriter, r *http.Request, res *Response) {
 	sub := res.stream.sub
@@ -357,8 +357,8 @@ func (s *HTTPServer) listen(w http.ResponseWriter, r *http.Request, res *Respons
 			}
 		case <-r.Context().Done():
 			return
-		case <-s.done:
-			return
+		case <-s.stop:
+			return // kapanış: cevap düzgün biter, istemci Last-Event-ID ile döner (28.8)
 		}
 		if frames, cursor, ok = b.since(cursor); !ok {
 			return

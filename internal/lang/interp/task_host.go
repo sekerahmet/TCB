@@ -123,7 +123,8 @@ func (task *VM) runHosted(t *TaskVal, fn func(task *VM) (Value, error)) {
 }
 
 // Close yeni görev açılmasını durdurur ve süren görevleri iptal eder (10.9); y kilidi tutar. Bu
-// çağrı kapattıysa true verir.
+// çağrı kapattıysa true verir. Görevler bitince sahibin finish'i kilitsiz bir goroutine'den çağrılır:
+// finish yorumlayıcının kilidini istemez, yalnız t.mu'yu ve atomikleri (cancelled, pending, interrupted) kullanır.
 func (h *TaskHost) Close(y *VM) bool {
 	h.mu.Lock()
 	was := h.closed

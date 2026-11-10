@@ -54,12 +54,15 @@ func (s *HTTPServer) wait(m *interp.VM, args []interp.Value, _ map[string]interp
 const closeWait = 2 * time.Second
 
 // shutdown sunucuyu kapatır (28.8): yeni bağlantı kabul edilmez, süren işleyici görevleri iptal edilir,
-// yazılmakta olan cevap tamamlanır; en çok 2 saniye beklenir, sonra bağlantılar kesilir. y kilidi
-// tutar. Bu çağrı kapattıysa true verir; zaten kapalıysa false.
+// yazılmakta olan cevap tamamlanır; açık akışlar kapanır: yayın dinleyicisinin cevabı düzgün biter, istek
+// akışının bloğu iptal edilir ve akışı düzgün bitirilmeden kesilir (cevap yarımdır). En çok 2 saniye
+// beklenir, sonra bağlantılar kesilir. y kilidi tutar. Bu çağrı kapattıysa true verir; zaten kapalıysa
+// false.
 func (s *HTTPServer) shutdown(y *interp.VM) bool {
 	if !s.closing.CompareAndSwap(false, true) {
 		return false
 	}
+	close(s.stop) // açık yayın dinleyicileri cevabı bitirir; istek akışlarının blokları iptal edilir (host.Close)
 	s.host.Close(y)
 	y.Blocking(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), closeWait)
@@ -76,6 +79,7 @@ func (s *HTTPServer) shutdown(y *interp.VM) bool {
 // cut süreç hemen biterken (1.7) ya da program kapanışı yolsuz biterken bağlantıları keser.
 func (s *HTTPServer) cut() {
 	if s.closing.CompareAndSwap(false, true) {
+		close(s.stop)
 		_ = s.srv.Close()
 		_ = s.ln.Close()
 		close(s.done)

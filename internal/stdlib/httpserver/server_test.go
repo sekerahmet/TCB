@@ -131,3 +131,47 @@ TR_var kod = TR_error_code { s.TR_wait() }`
 		t.Fatal("program bitince sunucu kapanmalı")
 	}
 }
+
+// TestCloseEndsOpenStreams: kapanış açık akışları kapatır ve 2 saniyeyi beklemez (28.8): yayın
+// dinleyicisinin cevabı düzgün biter (istemci Last-Event-ID ile döner), istek akışının bloğu iptal
+// edilir ve akışı düzgün bitirilmeden kesilir; blok durur.
+func TestCloseEndsOpenStreams(t *testing.T) {
+	say, n := counter()
+	ts := serveTR(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)
+TR_func f(i: TR_Request) -> TR_Response {
+    TR_if i.TR_path == "/" { TR_return y.TR_subscribe(i) }
+    TR_return TR_stream_response((a) => {
+        TR_for k TR_in 0..100000 {
+            say()
+            a.TR_send_event(k)
+            TR_sleep(0.01)
+        }
+    })
+}
+TR_var s = TR_serve_http(f)`, map[string]interp.Value{"say": say})
+	_, listener, _ := subscribeRaw(t, ts, "GET", "")
+	frame(t, listener)
+	res, _ := streamGet(t, ts, "GET", "/akis")
+	stream := bufio.NewReader(res.Body)
+	if line, err := stream.ReadString('\n'); err != nil || line != "data: 0\n" {
+		t.Fatalf("ilk olay: %q %v", line, err)
+	}
+	start := time.Now()
+	if got := closeOn(t, ts); got != "[true, false]" {
+		t.Fatalf("kapat: %s", got)
+	}
+	if d := time.Since(start); d > 1500*time.Millisecond {
+		t.Fatalf("açık akışlar kapanışı bekletmemeli: %v", d)
+	}
+	if rest, err := io.ReadAll(listener); err != nil || len(rest) != 0 {
+		t.Fatalf("dinleyicinin cevabı düzgün bitmeli: %q %v", rest, err)
+	}
+	if _, err := io.ReadAll(stream); err == nil {
+		t.Fatal("istek akışı düzgün bitirilmeden kesilmeli")
+	}
+	before := n.Load()
+	time.Sleep(200 * time.Millisecond)
+	if n.Load() != before {
+		t.Fatal("kapanıştan sonra akışın bloğu durmalı")
+	}
+}
