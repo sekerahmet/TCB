@@ -50,7 +50,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - Eşleme her durumu ya da `_`'yi kapsar (5.6).
 - `==` aynı durumu ve eşit alanları sınar. Tensör içeren durumlu tipin `==`'si ve `==` isteyen deseni denetim hatasıdır; durum deseni geçerlidir: alansız durumun parantezsiz deseni (`Cevap.Yok =>`) ve alan açan desen (`Cevap.Tamam(t) =>`) durumu sınar, alanı bağlar, `==` ile karşılaştırmaz; parantezli `(Cevap.Yok) =>` değer desenidir (5.6) ve `==` ister (15.5). Metni kurma yazımıdır: "Durum.Çalışıyor(adım: 5)".
 - Yapının deseni yoktur; yapıyla karşılaştırma parantezli ifadeyle yapılır (5.6).
-- *Test:* TR testi; kapsama ve tip parametresi uygulanınca TR testi.
+- *Test:* TR testi; kurucunun tipi: olumsuz fikstür `tests/negative/durum_kurucusu_tipi.tr`, Go: `TestVariantConstructorHasTheEnumType`; kapsama ve tip parametresi uygulanınca TR testi.
 
 ```tr
 # TR 4

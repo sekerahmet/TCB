@@ -192,6 +192,11 @@ func (c *Checker) callType(e *ast.CallExpression, info TypeInfo, found bool, obj
 	if ident, ok := e.Function.(*ast.Identifier); ok && found && info.TypeName == typeType && c.knownStruct(ident.Value) {
 		return ident.Value
 	}
+	if m, ok := e.Function.(*ast.MemberExpression); ok {
+		if t := c.variantType(m, true); t != "" {
+			return t // durumlu tipin alanlı durumu: C.Tamam(5) (7.7)
+		}
+	}
 	if m, ok := e.Function.(*ast.MemberExpression); ok && !m.Safe && c.knownStruct(objType) {
 		if f := c.structs[objType].Methods[m.Property]; f != nil && f.ReturnType != nil {
 			return c.localType(normalizedType(f.ReturnType))
@@ -289,4 +294,31 @@ func elementType(objType string, i int) string {
 		return typeAny
 	}
 	return s.elems[i]
+}
+
+// variantType durumlu tipin kurucusunun tipidir (7.7, 15.5): 'C.Yok' (alansız durum, called yanlış)
+// ve 'C.Tamam(5)' (alanlı durumun çağrısı, called doğru) durumlu tipin kendisidir, C. Yazımı yanlış
+// kurucu (alanlı durum çağrısız, alansız durum çağrıyla; çalışma hatası) ve kullanıcının gölgelediği
+// ad "": tipi bilinmez.
+func (c *Checker) variantType(m *ast.MemberExpression, called bool) string {
+	id, ok := m.Object.(*ast.Identifier)
+	if !ok || m.Safe {
+		return ""
+	}
+	def := c.typeDefs[id.Value]
+	if def == nil || def.Kind != ast.KindEnum {
+		return ""
+	}
+	if info, found := c.scope.Resolve(id.Value); !found || info.TypeName != typeType {
+		return ""
+	}
+	for _, v := range def.Variants {
+		if v.Name == m.Property {
+			if called != (len(v.Fields) > 0) {
+				return ""
+			}
+			return def.Name
+		}
+	}
+	return ""
 }

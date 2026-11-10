@@ -257,3 +257,31 @@ func TestLoopVariableTypes(t *testing.T) {
 	noErrors(t, "TR_var l = [1, \"a\"]\nTR_for x TR_in l {\n    TR_var s: TR_Bool = x\n}")
 	singleError(t, "TR_func f(n: TR_Int) -> TR_Int {\n    TR_return n\n}\nTR_var l = [f(x) TR_for x TR_in [\"a\"]]", messages.H1004, 4, `"TR_String"`)
 }
+
+// Kural (7.7, 15.5): durum kurucusunun ifadesi durumlu tipin kendisidir: alansız durum çağrısız
+// (`C.Yok`), alanlı durum çağrıyla (`C.Tamam(3)`). Tipi kurucudan çıkan değer, tipi yazılmış değer
+// gibi denetlenir: başka tipe atanamaz; tensör tutan durumlu tipin '=='si (H1148), değer deseni
+// (H1150) ve .TR_contains'i (H1149) denetim hatasıdır. Yanlış yazılan kurucu (alanlı durum çağrısız,
+// alansız durum çağrıyla, olmayan durum; çalışma hatası) ve ?. tipsiz kalır.
+func TestVariantConstructorHasTheEnumType(t *testing.T) {
+	const c = "TR_enum C {\n    Yok\n    Tamam(v: TR_Int)\n}\n"
+	expectTypes(t, map[string]string{
+		c + "TR_var v = C.Yok":      "C",
+		c + "TR_var v = C.Tamam(3)": "C",
+		c + "TR_var v = C.Tamam":    typeAny,
+		c + "TR_var v = C.Yok()":    typeAny,
+		c + "TR_var v = C.Baska":    typeAny,
+		c + "TR_var v = C?.Yok":     typeAny,
+	})
+	singleError(t, c+"TR_var n: TR_Int = C.Yok", messages.H1001, 5, `"TR_Int"`, `"C"`)
+	singleError(t, c+"TR_var n: TR_Int = C.Tamam(3)", messages.H1001, 5, `"C"`)
+	singleError(t, c+"TR_var v = C.Yok\nv = 1", messages.H1005, 6, `"v" değişkeni (C)`)
+	noErrors(t, c+"TR_var a: C = C.Yok\nTR_var b = C.Tamam(1)\na = b\nTR_var e = a == b\n"+
+		"TR_func f(x: C) -> C {\n    TR_return x\n}\nTR_var g = f(C.Yok)")
+
+	const tc = "TR_enum T {\n    Bos\n    Dolu(t: TR_Tensor)\n}\nTR_var c = T.Bos\n"
+	singleError(t, tc+"TR_var a = c == T.Dolu(TR_zeros([2]))", messages.H1148, 6, "eşlemeyle")
+	singleError(t, tc+"TR_var a = TR_match c {\n    (T.Bos) => 1\n    _ => 2\n}", messages.H1150, 7)
+	singleError(t, tc+"TR_var a = [c].TR_contains(c)", messages.H1149, 6, "`.TR_contains`")
+	noErrors(t, tc+"TR_var a = TR_match c {\n    T.Bos => 1\n    T.Dolu(x) => 2\n}")
+}
