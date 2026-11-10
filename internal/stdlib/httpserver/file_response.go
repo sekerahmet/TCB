@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -47,7 +48,7 @@ func fileResponse(m *interp.VM, args []interp.Value, named map[string]interp.Val
 var afterResolve func()
 
 // serveFile yolu bileşen bileşen kökün içinde arar; readDir bir klasörün gerçek adlarını verir.
-// Bağlantılar kendi çözücüyle çözülür, çözülmüş yolun kökün içinde olduğuna bakılır ve dosya köke
+// Bağlantılar çözülür (realPath), çözülmüş yolun kökün içinde olduğuna bakılır ve dosya köke
 // göre göreli hâliyle os.Root'ta açılır: çözme ile açma arasında bir bileşen dışarıyı gösteren bir
 // bağlantıyla değiştirilirse os.Root onu açmaz.
 func serveFile(readDir func(string) ([]fs.DirEntry, error), root, reqPath string) *Response {
@@ -55,8 +56,8 @@ func serveFile(readDir func(string) ([]fs.DirEntry, error), root, reqPath string
 	if !ok {
 		return notFound()
 	}
-	realRoot, ok1 := resolveLinks(root)
-	realFile, ok2 := resolveLinks(full)
+	realRoot, ok1 := realPath(root)
+	realFile, ok2 := realPath(full)
 	rel, ok3 := within(realRoot, realFile)
 	if !ok1 || !ok2 || !ok3 {
 		return notFound()
@@ -96,13 +97,25 @@ func readInRoot(root, rel string) ([]byte, bool) {
 	return data, true
 }
 
+// realPath yolun bağlantılarını çözer. Windows'ta kendi çözücüdür (resolveLinks); Linux'ta ve macOS'ta
+// filepath.EvalSymlinks'tir, çünkü çözücünün hedefteki ..'yi sözcüksel temizlemesi Windows'a uyar,
+// Linux'a uymaz (28.3a; TCB'nin kararı, 2026-11-10).
+func realPath(p string) (string, bool) {
+	if runtime.GOOS == "windows" {
+		return resolveLinks(p)
+	}
+	r, err := filepath.EvalSymlinks(p)
+	return r, err == nil
+}
+
 // maxLinks bir yolu çözerken izlenen en çok bağlantıdır (Linux'un MAXSYMLINKS'i); aşılırsa 404.
 const maxLinks = 40
 
 // resolveLinks mutlak bir yolun bağlantılarını bileşen bileşen çözer: kipi ModeSymlink ya da
 // ModeIrregular olan bileşen (Windows'ta junction, Go 1.23'ten beri ModeIrregular) os.Readlink'in
 // hedefiyle değiştirilir. filepath.EvalSymlinks junction'dan geçen yolda hata verdiği, os.Root da
-// junction'ı ve mutlak hedefli bağlantıyı hiç açmadığı için kendi çözücüdür (DENETİM 374).
+// junction'ı ve mutlak hedefli bağlantıyı hiç açmadığı için kendi çözücüdür (DENETİM 374). Readlink'in
+// her hatası (cevap vermediği öbür yeniden ayrıştırma noktaları: OneDrive, dedup) 404'tür.
 func resolveLinks(p string) (string, bool) {
 	cur := filepath.VolumeName(p) + string(filepath.Separator)
 	todo := splitPath(p[len(filepath.VolumeName(p)):])

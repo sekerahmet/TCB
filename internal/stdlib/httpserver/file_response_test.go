@@ -165,6 +165,45 @@ func TestFileLinkLoopIs404(t *testing.T) {
 	}
 }
 
+// TestRealPathFollowsThePlatform: bağlantılar Windows'ta kendi çözücüyle (resolveLinks), öbür sistemlerde
+// filepath.EvalSymlinks ile çözülür (28.3a; TCB'nin kararı, 2026-11-10). Windows'ta EvalSymlinks'in
+// junction'dan geçen yolda hata verdiği de sabitlenir: Go bunu düzeltirse kendi çözücünün nedeni kalkar.
+func TestRealPathFollowsThePlatform(t *testing.T) {
+	base := t.TempDir()
+	target := filepath.Join(base, "hedef")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "a.txt"), []byte("a"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "bag")
+	if runtime.GOOS == "windows" {
+		junction(t, link, target)
+	} else if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(link, "a.txt")
+	got, ok := realPath(p)
+	if !ok {
+		t.Fatalf("realPath(%q) çözülmedi", p)
+	}
+	if runtime.GOOS != "windows" {
+		want, err := filepath.EvalSymlinks(p)
+		if err != nil || got != want {
+			t.Fatalf("realPath = %q, EvalSymlinks = %q (%v): öbür sistemlerde ikisi aynı olmalı", got, want, err)
+		}
+		return
+	}
+	realTarget, _ := resolveLinks(target)
+	if want := filepath.Join(realTarget, "a.txt"); !strings.EqualFold(got, want) {
+		t.Fatalf("realPath = %q, beklenen %q", got, want)
+	}
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		t.Fatalf("EvalSymlinks junction'dan geçen yolu çözdü (%q): Go değişti, kendi çözücünün gerekçesine yeniden bakılmalı", r)
+	}
+}
+
 // junction Windows'ta bir junction kurar (mklink /J yönetici istemez); başka sistemde test atlanır.
 func junction(t *testing.T, link, target string) {
 	t.Helper()

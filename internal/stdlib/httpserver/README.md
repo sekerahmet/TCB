@@ -38,14 +38,16 @@ içinde arar: aygıt adı, sonu nokta ya da boşluk, `:` her işletim sisteminde
 gerçek adıyla harf büyüklüğü dahil aynı olmalıdır (Windows'un kısa adı da böyle düşer); kökten çıkan
 bağlantı reddedilir, kökün içindeki izlenir. Tür 28.3a'nın sabit tablosundandır (28.3a).
 
-Bağlantılar kendi çözücüyle çözülür (`resolveLinks`): `filepath.EvalSymlinks` Windows'ta junction'dan
-geçen yolda hata verir, `os.Root` junction'ı ve mutlak hedefli bağlantıyı hiç açmaz (DENETİM 374).
+Bağlantılar Windows'ta kendi çözücüyle çözülür (`resolveLinks`): `filepath.EvalSymlinks` Windows'ta
+junction'dan geçen yolda hata verir, `os.Root` junction'ı ve mutlak hedefli bağlantıyı hiç açmaz (DENETİM 374);
+`os.Readlink`'in her hatası (OneDrive, dedup gibi öbür yeniden ayrıştırma noktaları) 404'tür. Linux'ta ve
+macOS'ta `filepath.EvalSymlinks` kullanılır: çözücünün hedefteki `..`'yi sözcüksel temizlemesi Linux'a uymaz.
 Çözülmüş yol kökün içindeyse köke göre göreli hâli `os.Root` ile açılır: çözme ile açma arasında bir
 bileşen dışarıyı gösteren bağlantıyla değiştirilirse `os.Root` onu açmaz. Boyut ve tür açılan dosyanın
 `Stat`'ından okunur.
 Denetim: `TestFileResponseServesInsideTheRoot`, `TestFileComponentRules`, `TestFileCaseMustMatch` (harfe
 duyarsız sahte dosya sistemi), `TestFileShortNameIsRefused` (Windows), `TestFileLinksStayInsideTheRoot`,
-`TestFileJunctionsStayInsideTheRoot` (Windows), `TestFileSwapAfterResolveIsRefused` (yarış),
+`TestFileJunctionsStayInsideTheRoot` (Windows), `TestRealPathFollowsThePlatform`, `TestFileSwapAfterResolveIsRefused` (yarış),
 `TestFileLinkLoopIs404`, `TestFileResponseCall`, `FuzzFileComponent`.
 
 ## Testler
