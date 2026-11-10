@@ -342,6 +342,30 @@ TR_struct Sayaç {
     n: TR_Int = 0
 }
 
+TR_struct Görülen {
+    metin: TR_String = ""
+}
+
+# Ekran `stop`'ta turun görevini iptal eder; iptal üretimin bir adımında fırlar. Kayıt Tur'dan yazılır.
+TR_test "durdurulan turun Tur'unda ilk parçanın anı ve o ana kadarki metin vardır; cevap_ms yoktur" {
+    TR_var z = küçük_zincir(256, TR_false)
+    ısıt(z)
+    TR_var t = Tur(sıra: 1, söz_ms: 0)
+    TR_var g = Görülen()
+    TR_var ileti = ""
+    TR_try {
+        cevapla(z, "Merhaba, nasılsın?", şimdi(), t, (_) => {}, (m) => {
+            g.metin = m
+            TR_throw "durdu"
+        })
+    } TR_catch h { ileti = TR_String(h) }
+    TR_assert(ileti.TR_contains("durdu"))
+    TR_assert(t.ilk_parça_ms >= 0)
+    TR_assert(g.metin != "")
+    TR_assert_equal(g.metin, t.cevap)
+    TR_assert_equal(-1, t.cevap_ms)
+}
+
 TR_test "ara kancası: metin turunun çalma aralığı atılır, mikrofonun açılışı çapayı kurar, dur dinlemeyi bitirir" {
     TR_var s = SahteDinleme(sayı: 200, tetikler: [])
     TR_var d = sahte_dinleme(s)

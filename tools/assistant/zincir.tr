@@ -15,6 +15,9 @@ TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
 # Kesit kullanıcının sözü bittikten bu kadar sonra gelir.
 TR_const _SESSİZLİK_MS = 608
 
+# sessizlik_ms: sözün sonundan VAD'ın kararına geçen sabit süre (deneme kaydının özeti için; ad modülün içinde).
+TR_func sessizlik_ms() -> TR_Int { TR_return _SESSİZLİK_MS }
+
 # şimdi: zincirin bütün zaman damgalarının saati (ms): 13.1'in tekdüze saati. Geri gitmez, sistem saati düzeltilince
 # kaymaz; başlangıcı belirsizdir, yalnız iki değerin farkı anlamlıdır.
 TR_func şimdi() -> TR_Int { TR_return TR_monotonic_ns() // 1000000 }
@@ -26,7 +29,7 @@ TR_struct Tur {
     yazı_ms: TR_Int = -1
     ilk_parça_ms: TR_Int = -1
     ilk_cümle_ms: TR_Int = -1 # ilk cümlenin üretimi bitti: sınırı geldi ya da cevap bitti
-    cevap_ms: TR_Int = -1
+    cevap_ms: TR_Int = -1 # cevap bitti; durdurulan turda -1
     ilk_ses_ms: TR_Int = -1
     çalma_ms: TR_Int = -1 # ilk cümle çalınmaya başladı (dosya kipinde çalınmaya verildi)
     bekleme_ms: TR_Int = -1 # kullanıcının beklediği: sözün sonundan çalmanın başlamasına
@@ -43,6 +46,11 @@ TR_struct Tur {
     üretilen: TR_Int = 0
     yeni_konuşma: TR_Int = 0
     söylenen_fark: TR_Int = 0 # söylenen cümleler cevabın içeriğinin cümleleri değilse 1
+    duyulan: TR_String = "" # Whisper'ın metni (metin turunda yazılan)
+    giden: TR_String = "" # dil modeline giden kullanıcı iletisi
+    cevap: TR_String = "" # cevabın içeriği; durdurulan turda o ana kadar çözülen metin
+    düşünce: TR_String = "" # cevabın düşünce alanı (zincir düşünmeden kurulu: boş)
+    seslendirilen: TR_List[TR_String] = [] # ses üretimine giden cümleler
 }
 
 TR_func olcu_yaz(t: Tur) {
@@ -263,6 +271,11 @@ TR_func rakamlı(m: TR_String) -> TR_Bool {
 # akışının baştan çözülmüş metnini alır (ekran; etiket kimliğinden sonra metin değişmez).
 TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_String) -> TR_NoneType, aktı: (TR_String) -> TR_NoneType = (_) => {}) -> TR_String? {
     TR_if yazı.TR_strip() == "" { TR_return TR_none }
+    t.giden = yazı.TR_strip()
+    TR_var sesle = (c: TR_String) => {
+        t.seslendirilen.TR_append(c)
+        söyle(c)
+    }
     z.geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: yazı.TR_strip()))
     TR_var kimlikler = TR_qwen3_format(z.p, z.geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
     TR_if kimlikler.TR_length + z.en_çok > z.bağlam {
@@ -276,11 +289,15 @@ TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_Str
     t.beklenen_önek = beklenen_önek(z.p, z.geçmiş, z.son_asistan)
     TR_if z.son_asistan < 0 { t.beklenen_önek = TR_max(t.beklenen_önek, z.ısıtılan) } # ilk tur: ısıtılan sistem iletisi
     TR_var akış = cümle_akışı(z.p)
+    # İlk parçanın anı ve o ana kadarki metin her adımda Tur'a yazılır: durdurulan (iptal edilen) turun kaydında da
+    # bulunur. Cevap bitince ikisi cevabın kendisiyle yazılır.
     TR_var ü = üret(z, kimlikler, t, (k, an) => {
+        TR_if t.ilk_parça_ms < 0 { t.ilk_parça_ms = an - t0 }
         TR_var yeni = akış.ekle(k)
+        t.cevap = akış.metin
         TR_if yeni.TR_length > 0 TR_and t.ilk_cümle_ms < 0 { t.ilk_cümle_ms = an - t0 }
         aktı(akış.metin)
-        TR_for c TR_in yeni { söyle(c) }
+        TR_for c TR_in yeni { sesle(c) }
     })
     t.cevap_ms = şimdi() - t0
     TR_if ü.anlar.TR_length > 0 { t.ilk_parça_ms = ü.anlar[0] - t0 }
@@ -298,11 +315,13 @@ TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_Str
     z.geçmiş.TR_append(cevap)
     z.son_asistan = z.geçmiş.TR_length - 1
     TR_print("CEVAP:", cevap.TR_content)
+    t.cevap = cevap.TR_content
+    t.düşünce = TR_if cevap.TR_reasoning == TR_none { "" } TR_else { TR_String(cevap.TR_reasoning) }
     TR_if kalan == TR_none {
         t.söylenen_fark = 1
         TR_print("SÖYLENEN FARKLI tur=\(t.sıra) söylenen=\(akış.verilen.TR_length) cümle=\(cümleler(cevap.TR_content).TR_length)")
     } TR_else {
-        TR_for c TR_in kalan { söyle(c) }
+        TR_for c TR_in kalan { sesle(c) }
     }
     t.rakam = TR_if rakamlı(cevap.TR_content) { 1 } TR_else { 0 }
     TR_return cevap.TR_content
@@ -530,4 +549,11 @@ TR_func çalmada(aralıklar: TR_List[ÇalmaAralığı], son: TR_Int, kuyruk_ms: 
         TR_if a.başı < son TR_and son - _ÇERÇEVE_MS < a.sonu + kuyruk_ms { TR_return TR_true }
     }
     TR_return TR_false
+}
+
+# token_hızı: ilk parçadan sonraki üretimin hızı (parça/sn, bir ondalık); ölçülemezse -1.
+TR_func token_hızı(t: Tur) -> TR_Float {
+    TR_var süre = t.cevap_ms - t.ilk_parça_ms
+    TR_if t.ilk_parça_ms < 0 TR_or t.üretilen <= 1 TR_or süre <= 0 { TR_return -1.0 }
+    TR_return TR_round(TR_Float(t.üretilen - 1) * 1000.0 / TR_Float(süre) * 10.0) / 10.0
 }

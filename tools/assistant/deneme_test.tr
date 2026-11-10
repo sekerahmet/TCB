@@ -1,0 +1,127 @@
+# TR 4
+# Deneme kaydının modelsiz parçaları: klasörün sınırları, tur satırı ve WAV'ı, özet ve en büyük kalem, kaydın kendi
+# hatası, aynı klasörde ikinci açılış.
+TR_import "zincir"
+TR_import "deneme"
+
+TR_test "deneme klasörü açılmış tam yol olmalı; deponun, çalışma ağacının ve bulut klasörlerinin dışında" {
+    TR_var kök = TR_temp_dir()
+    TR_var dış = TR_String(TR_Path(kök, "TR_deneme", "20261110-163000"))
+    TR_assert_equal(TR_none, deneme_klasörü_hatası(dış))
+    # `.git` dosyası: çalışma ağacı; `.git` klasörü: depo. Kayıt klasörü henüz yok, üst klasörlerine bakılır.
+    TR_make_dir(TR_Path(kök, "ağaç"))
+    TR_write_file(TR_Path(kök, "ağaç", ".git"), "gitdir: başka/yer")
+    TR_make_dir(TR_Path(kök, "depo", ".git"))
+    TR_var ağaçta = TR_String(TR_Path(kök, "ağaç", "kayit", "1"))
+    TR_var depoda = TR_String(TR_Path(kök, "depo", "kayit"))
+    TR_var buradaki = TR_String(TR_Path(".", "kayıt").TR_absolute)
+    TR_for v TR_in [ağaçta, depoda, buradaki] {
+        TR_assert(TR_String(deneme_klasörü_hatası(v)).TR_contains("git deposunun ya da çalışma ağacının"))
+    }
+    TR_for v TR_in ["TR_deneme/20261110-1630", "%USERPROFILE%\\TR_deneme", "$env:USERPROFILE\\TR_deneme", ağaçta, depoda, buradaki,
+            "C:/Users/a/OneDrive/Masaüstü/d", "G:/My Drive/d", "G:/Drive'ım/d", "G:\\Drive’ım\\d", "C:/Users/a/Dropbox/d",
+            "C:/Users/a/iCloudDrive/d"] {
+        TR_var h = deneme_klasörü_hatası(v)
+        TR_assert(h != TR_none)
+        # İleti doğru yazımı verir: PowerShell'de açılan tam yol.
+        TR_assert(TR_String(h).TR_contains("$env:USERPROFILE\\TR_deneme\\"))
+    }
+}
+
+TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her turdan sonra; belirteç girmez" {
+    TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "deneme"))
+    TR_var d = Deneme(klasör: klasör, başı: 1000)
+    d.başla(deneme_başlığı({"kip": "canlı", "dil_modeli": "C:/modeller/Qwen3-4B-Q4_K_M.gguf", "ekran": "8123",
+        "belirteç": "gizli-belirtec-k396", "belirteç_dosyası": "C:/kullanici/belirtec-dosyasi.txt"}))
+    # Sesli tur: sentetik kesit (0,5 sn), sözün sonu 608 ms önce, 40 ms geç okundu.
+    TR_var t = Tur(sıra: 1, söz_ms: 500, geride_ms: 40)
+    t.yazı_ms = 900
+    t.ilk_parça_ms = 2400
+    t.çalma_ms = 3100
+    t.cevap_ms = 4400
+    t.üretilen = 14
+    tur_ölç(t)
+    t.duyulan = " merhaba"
+    t.giden = "merhaba"
+    t.cevap = "Merhaba, nasılsın?"
+    t.seslendirilen = ["Merhaba, nasılsın?"]
+    d.tur(t, "ses", TR_ones([8000]) * 0.1, 6000, "tamam", "")
+    # Metin turu: kesit yok, hatayla bitti.
+    TR_var m = Tur(sıra: 2, söz_ms: 0)
+    m.duyulan = "saat kaç"
+    d.tur(m, "metin", TR_none, 9000, "hata", "H7497")
+    TR_var satırlar = [TR_json_parse(s) TR_for s TR_in TR_read_file(TR_Path(klasör, "turlar.jsonl")).TR_lines() TR_if s != ""]
+    TR_assert_equal(3, satırlar.TR_length)
+    TR_assert_equal("Qwen3-4B-Q4_K_M.gguf", TR_String(satırlar[0]["dil_modeli"]))
+    TR_var s1 = satırlar[1]
+    TR_for a TR_in ["kayit", "tur", "saat", "kaynak", "son", "kesit_basi_ms", "kesit_sonu_ms", "soz_ms", "wav", "duyulan", "giden",
+            "cevap", "dusunce", "seslendirilen", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn"] {
+        TR_assert(s1.TR_keys().TR_contains(a))
+    }
+    TR_assert(TR_not s1.TR_keys().TR_contains("hata_kodu"))
+    TR_assert_equal(4960, TR_Int(s1["kesit_sonu_ms"])) # 6000 - 40 - 1000
+    TR_assert_equal(4460, TR_Int(s1["kesit_basi_ms"]))
+    TR_assert_equal(3708, TR_Int(s1["bekleme_ms"])) # 608 + toplam_ms
+    TR_assert_equal(6.5, TR_Float(s1["token_sn"])) # ilk parçadan sonra 13 parça / 2,0 sn
+    TR_assert_equal("", TR_String(s1["dusunce"]))
+    TR_var ses = TR_read_wav(TR_Path(klasör, TR_String(s1["wav"])))
+    TR_assert_equal(16000, ses.TR_sample_rate)
+    TR_assert_equal(8000, ses.TR_samples.TR_shape[1])
+    TR_var s2 = satırlar[2]
+    TR_assert_equal("hata", TR_String(s2["son"]))
+    TR_assert_equal("H7497", TR_String(s2["hata_kodu"]))
+    TR_assert(TR_not s2.TR_keys().TR_contains("wav"))
+    TR_var özet = TR_read_file(TR_Path(klasör, "ozet.md"))
+    TR_assert(özet.TR_contains("| anladı mı |"))
+    # Kalemler: yazı 900, istem ve ilk parça 1500, ilk cümle ve çalma 700, VAD 608; en büyüğü ne ilk ne son kalem.
+    TR_assert(özet.TR_contains("en büyük kalem (ortancalarla): istemin okunması ve ilk parça (ilk_parca_ms − yazi_ms), 1500"))
+    TR_assert_equal(2, TR_list_dir(klasör, "*").TR_length - 1) # turlar.jsonl, ozet.md, tek WAV
+    TR_for f TR_in TR_list_dir(klasör, "*") {
+        TR_if TR_Path(f).TR_extension != ".wav" {
+            TR_var yazılan = TR_read_file(f)
+            TR_assert(TR_not yazılan.TR_contains("gizli-belirtec-k396"))
+            TR_assert(TR_not yazılan.TR_contains("belirtec-dosyasi"))
+        }
+    }
+}
+
+TR_test "en büyük kalem ortancalardan seçilir; metin turunda VAD kalemi yok, kalem eksikse satır yok" {
+    TR_var o: TR_Dict[TR_String, TR_Float] = {"yazi_ms": 2000.0, "ilk_parca_ms": 2500.0, "toplam_ms": 2900.0}
+    TR_assert_equal("- en büyük kalem (ortancalarla): yazıya çevirme (yazi_ms), 2000.0 ms\n", en_büyük_kalem(o, TR_true))
+    # Kalemler 100, 500, 400 (ve sesli turda 608): en büyüğü seslide VAD'ın sabiti, metinde istem ve ilk parça.
+    TR_var k: TR_Dict[TR_String, TR_Float] = {"yazi_ms": 100.0, "ilk_parca_ms": 600.0, "toplam_ms": 1000.0}
+    TR_assert(en_büyük_kalem(k, TR_true).TR_contains("sözün sonundan VAD'ın kararına (sabit), 608.0 ms"))
+    TR_assert(en_büyük_kalem(k, TR_false).TR_contains("istemin okunması ve ilk parça (ilk_parca_ms − yazi_ms), 500.0 ms"))
+    TR_assert_equal("", en_büyük_kalem({"yazi_ms": 1.0}, TR_true))
+}
+
+TR_test "ekranlı turun nedeni kaydın sonu olur" {
+    TR_assert_equal("tamam", kayıt_sonu("done", TR_true))
+    TR_assert_equal("bos", kayıt_sonu("done", TR_false))
+    TR_assert_equal("durduruldu", kayıt_sonu("stopped", TR_true))
+    TR_assert_equal("hata", kayıt_sonu("error", TR_false))
+}
+
+TR_test "kaydın kendi yazma hatası turu bozmaz: fırlatmaz, DENEME HATASI yazar" {
+    TR_var kök = TR_temp_dir()
+    TR_var klasör = TR_String(TR_Path(kök, "d"))
+    TR_var d = Deneme(klasör: klasör, başı: 0)
+    d.başla(deneme_başlığı({"kip": "canlı"}))
+    # Klasörün yerinde bir dosya: kayıt yazılamaz (klasör silindi ya da disk doldu gibi).
+    TR_remove(klasör, TR_recursive: TR_true)
+    TR_write_file(TR_Path(kök, "d"), "dosya")
+    d.tur(Tur(sıra: 1, söz_ms: 0), "metin", TR_none, 0, "tamam", "")
+    TR_assert_equal("dosya", TR_read_file(TR_Path(kök, "d")))
+}
+
+TR_test "aynı klasörde ikinci açılış önceki kaydın üstüne yazmaz" {
+    TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "d"))
+    TR_var ilk = Deneme(klasör: klasör, başı: 0)
+    ilk.başla(deneme_başlığı({"kip": "canlı"}))
+    ilk.tur(Tur(sıra: 1, söz_ms: 0), "metin", TR_none, 0, "tamam", "")
+    TR_var ileti = ""
+    TR_try { Deneme(klasör: klasör, başı: 0).başla(deneme_başlığı({"kip": "canlı"})) } TR_catch h { ileti = TR_String(h) }
+    TR_assert(ileti.TR_contains("önceki bir kayıt var"))
+    TR_assert(ileti.TR_contains("$env:USERPROFILE\\TR_deneme\\"))
+    TR_assert_equal(2, [s TR_for s TR_in TR_read_file(TR_Path(klasör, "turlar.jsonl")).TR_lines() TR_if s != ""].TR_length)
+}

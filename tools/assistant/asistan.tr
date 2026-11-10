@@ -26,6 +26,7 @@ TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
 TR_import "ekran"
+TR_import "deneme"
 
 TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
@@ -44,7 +45,7 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
     "en_çok_parça": 160, "bağlam": 8192, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
-    "ekran": -1, "belirteç_dosyası": ""},
+    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": ""},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
@@ -54,12 +55,22 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri (JSON satırları)",
         "en_çok_tur": "canlı kipte bu kadar turdan sonra durur (0: sınırsız)",
         "ekran": "canlı kipte ekranın kapısı (127.0.0.1; 0: işletim sistemi seçer; verilmezse ekran yok)",
-        "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)"})
+        "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)",
+        "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok"})
 
 TR_func _gerekli(ad: TR_String) -> TR_String {
     TR_var v = TR_String(ayar[ad])
     TR_if v == "" { TR_throw "--\(ad) verilmeli: varsayılanı yok" }
     TR_return v
+}
+
+# deneme: --deneme_klasörü verildiyse oturumun kaydı (deneme.tr, Deneme); verilmezse kayıt yok, çıktı aynı. Kaydın
+# kendi yazma hatası turu bozmaz (Deneme.tur).
+TR_var deneme: Deneme? = TR_none
+
+TR_func deneme_yaz(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son: TR_String, kod: TR_String) {
+    TR_var d = deneme
+    TR_if d != TR_none { d.tur(t, kaynak, kesit, t0, son, kod) }
 }
 
 # Asistan: dil zinciri ile yazıya çeviren ve konuşan modeller.
@@ -93,15 +104,20 @@ TR_func tur_koş(a: Asistan, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_B
     TR_var uzunluk = z.geçmiş.TR_length
     TR_var konuşma = Konuşma(hazırla: hazırla, çal: çal, t: t, t0: t0)
     TR_try {
-        TR_if tur_işi(a, t, konuşma, kesit, TR_none, t0, TR_none) == TR_none { TR_return ÇalmaAralığı() }
+        TR_if tur_işi(a, t, konuşma, kesit, TR_none, t0, TR_none) == TR_none {
+            deneme_yaz(t, "ses", kesit, t0, "bos", "")
+            TR_return ÇalmaAralığı()
+        }
         bitince(t)
         tur_ölç(t)
         olcu_yaz(t)
+        deneme_yaz(t, "ses", kesit, t0, "tamam", "")
     } TR_catch e {
         TR_print("TUR HATASI:", e)
         TR_try { konuşma.bitir() } TR_catch e2 { TR_print("ÇALMA HATASI:", e2) }
         geri_al(z, t, uzunluk)
         TR_if t.çalma_başı >= 0 TR_and t.çalma_sonu < t.çalma_başı { t.çalma_sonu = şimdi() }
+        deneme_yaz(t, "ses", kesit, t0, "hata", e.TR_code)
     }
     kimlikleri_yaz(z)
     TR_return ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu)
@@ -124,6 +140,7 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
         yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: "tr").TR_text
     }
     t.yazı_ms = şimdi() - t0
+    t.duyulan = yazı
     TR_print("SÖZ:", yazı)
     TR_if ekran != TR_none TR_and yazı.TR_strip() != "" { ekran.söz(yazı.TR_strip()) }
     TR_var aktı = (m: TR_String) => {
@@ -385,7 +402,8 @@ TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0
         ölçüler: () => tur_ölçüleri(t),
         çalıyor: () => t.çalma_başı >= 0,
         aralık: () => ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu),
-        işle: işle))
+        işle: işle,
+        bitiş: (neden, kod) => deneme_yaz(t, TR_if söz == TR_none { "ses" } TR_else { "metin" }, kesit, t0, kayıt_sonu(neden, z.tur == t.sıra), kod)))
     kimlikleri_yaz(z)
     TR_return aralık
 }
@@ -394,14 +412,23 @@ TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0
 TR_func tur_ölçüleri(t: Tur) -> TR_JSON {
     TR_var d: TR_Dict[TR_String, TR_JSON] = {}
     TR_if t.ilk_parça_ms >= 0 { d["first_token_ms"] = TR_JSON(t.ilk_parça_ms) }
-    TR_var süre = t.cevap_ms - t.ilk_parça_ms
-    TR_if t.ilk_parça_ms >= 0 TR_and t.üretilen > 1 TR_and süre > 0 {
-        d["tokens_per_second"] = TR_JSON(TR_round(TR_Float(t.üretilen - 1) * 1000.0 / TR_Float(süre) * 10.0) / 10.0)
-    }
+    TR_var hız = token_hızı(t)
+    TR_if hız >= 0.0 { d["tokens_per_second"] = TR_JSON(hız) }
     TR_return TR_JSON(d)
 }
 
 TR_var kip = _gerekli("kip")
+TR_var deneme_yeri = TR_String(ayar["deneme_klasörü"])
+TR_if deneme_yeri != "" {
+    TR_var hata = deneme_klasörü_hatası(deneme_yeri)
+    TR_if hata != TR_none { TR_throw hata }
+    TR_var d = Deneme(klasör: deneme_yeri, başı: şimdi())
+    d.başla(deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]), "whisper": TR_String(ayar["whisper"]),
+        "vad": TR_String(ayar["vad"]), "ses_modeli": TR_String(ayar["ses_modeli"]), "en_çok_tur": TR_String(ayar["en_çok_tur"]),
+        "ekran": TR_String(ayar["ekran"])}))
+    deneme = d
+    TR_print("DENEME", d.klasör)
+}
 TR_if TR_Int(ayar["ekran"]) >= 0 {
     TR_if kip != "canlı" { TR_throw "--ekran yalnız --kip canlı ile verilir, --kip \(kip) verildi" }
     TR_print("bitti:", ekranlı_kip(), "tur")
