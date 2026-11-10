@@ -2,13 +2,13 @@
 
 TR'de yazılacak yerel asistanın ekranı ve TR'yle konuşacağı sözleşme. Ekran incedir: tek sayfa ve dil dosyaları, düz JavaScript, derleme yok, dışarıdan hiçbir şey yüklemez. TR'ye HTTP ile bağlanır; pencere çizmek TR'nin işi değildir.
 
-TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla** çalışır ve bunu üstte sürekli yazar. Ekrandaki her şey uydurmadır. Yer geçicidir: asistanın TR kodu gelince taşınır.
+Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanımı 28). Sunucusuz açılan ekran **sahte olay akışıyla** çalışır ve bunu üstte sürekli yazar; sahte akıştaki her şey uydurmadır.
 
 ## Dosyalar
 
 - `index.html`: ekran. Biçim, kod ve sahte akış bu tek dosyada.
 - `lang/<kod>.js`: çeviriler, her dile bir dosya. Yalnız metin taşır.
-- `contract.md`: ekranın TR'den beklediği her şey. Asıl değer budur; HTTP bölümü yazılırken tartılır.
+- `contract.md`: ekranın TR'den beklediği her şey (sürüm 1). Asıl değer budur.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
 - `asistan.tr`, `zincir.tr`, `zincir_test.tr`: ekransız sesli zincir (aşağıda, "Zincir").
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
@@ -90,4 +90,5 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 
 ## Testler
 
+- `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
 - `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı.

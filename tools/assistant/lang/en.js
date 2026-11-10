@@ -93,6 +93,7 @@ assistantLanguages.en = {
   "error_approval_expired": "The answer came after the time ran out.",
   "error_turn_busy": "A turn is still running. Wait for it or stop it.",
   "error_text_too_long": "The text is too long; the limit is {limit_bytes}.",
+  "error_not_ready": "The models are still loading. Try again when loading ends.",
   "error_mic_unavailable": "The microphone could not be opened.",
   "error_model_load_failed": "The model could not be loaded: {model}",
   "error_out_of_memory": "Not enough memory: {needed_bytes} needed.",

@@ -93,6 +93,7 @@ assistantLanguages.tr = {
   "error_approval_expired": "Cevap süre dolduktan sonra geldi.",
   "error_turn_busy": "Sürmekte olan bir tur var. Bitmesini bekleyin ya da durdurun.",
   "error_text_too_long": "Metin çok uzun; sınır {limit_bytes}.",
+  "error_not_ready": "Modeller hâlâ yükleniyor. Yükleme bitince yeniden deneyin.",
   "error_mic_unavailable": "Mikrofon açılamadı.",
   "error_model_load_failed": "Model yüklenemedi: {model}",
   "error_out_of_memory": "Bellek yetmedi: {needed_bytes} gerekiyor.",

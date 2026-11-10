@@ -504,7 +504,7 @@ func TestContractSaysTheSecurityRules(t *testing.T) {
 	for _, want := range []string{
 		"`Origin`", "`Host`", "`Origin: null`", "`Authorization: Bearer", "`Content-Type`", "`frame-ancestors`", "19.4", "`127.0.0.1`",
 		"`Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'`",
-		"`error.values`", "`snapshot`", "kullanıcının sözü", "en uzun gizli değer", "süzme kesmeden önce",
+		"`error.values`", "`snapshot`", "kullanıcının sözü", "`TR_mask_stream()`", "19.4a", "`.TR_finish()`", "süzme kesmeden önce",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the security section of %s does not mention %s", contractPath, want)

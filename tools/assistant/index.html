@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-qQ9HMHh+cV4His/FGA2ipXSbrhMs/klXzvGE5fKo4ow='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-bl40E1yEaUHPfBmtNaAKHTLOuCIqFfyelZefoJ7WEiQ='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -696,7 +696,6 @@ body.focus .left, body.focus .right { display: none; }
     model: "",
     tools: /** @type {{name: string, irreversible: boolean}[]} */ ([]),
     activeTurn: "",
-    lastSeq: 0,
     lastId: /** @type {string|null} */ (null),
     heartbeatMs: 15000,
     metrics: /** @type {Record<string, unknown>} */ ({}),
@@ -1182,13 +1181,46 @@ body.focus .left, body.focus .right { display: none; }
       return;
     }
     if (event.type === "heartbeat") return;
-    const seq = num(event.seq);
-    if (event.type !== "session" && seq !== null && seq <= ui.lastSeq) return;
-    if (seq !== null) ui.lastSeq = seq;
-    if (frame.id) ui.lastId = frame.id;
+    const step = eventStep(ui.lastId, frame.id, event.type);
+    ui.lastId = step.lastId;
+    if (step.reconnect) client.retry();
+    if (!step.apply) return;
     const handler = handlers.get(event.type);
     if (handler) handler(event.data && typeof event.data === "object" ? event.data : {});
   }
+
+  // ---------- Olay kimliği ----------
+  // splitId ve eventStep saf fonksiyondur; Go testi (TestEventIdOrder) bu iki işaretin arasını node ile koşar.
+
+  /**
+   * Kimlik `<ön ek>-<sıra>` metnidir (contract.md, "Kopma ve yeniden bağlanma"): olduğu gibi saklanır ve geri
+   * gönderilir, ön ek üretilmez; karşılaştırmada yalnız son tireden sonraki sıra sayıdır.
+   * @param {string} id @returns {{prefix: string, seq: bigint}|null}
+   */
+  function splitId(id) {
+    const dash = id.lastIndexOf("-");
+    const digits = id.slice(dash + 1);
+    if (dash <= 0 || !/^[0-9]{1,19}$/.test(digits)) return null;
+    return { prefix: id.slice(0, dash), seq: BigInt(digits) };
+  }
+
+  /**
+   * Bir olayın kimliğine göre: uygulanır mı, son kimlik ne olur, bağlantı yenilenir mi. `session` hiç atılmaz ve son
+   * kimliği kendi kimliğine kurar (ön eki farklı, sırası küçük olsa da). Öbür olay son kimlikle aynı ön eki ve daha
+   * büyük sırayı taşımalıdır: sırası büyük değilse atılır; ön eki farklıysa ya da son kimlik yoksa (ilk olay `session`
+   * değil) uygulanmaz, son kimlik silinir ve ekran `Last-Event-ID`'siz yeniden bağlanır.
+   * @param {string|null} lastId @param {string} id @param {string} type
+   * @returns {{apply: boolean, lastId: string|null, reconnect: boolean}}
+   */
+  function eventStep(lastId, id, type) {
+    if (type === "session") return { apply: true, lastId: id, reconnect: false };
+    const last = lastId === null ? null : splitId(lastId);
+    const next = splitId(id);
+    if (last === null || next === null || next.prefix !== last.prefix) return { apply: false, lastId: null, reconnect: true };
+    if (next.seq <= last.seq) return { apply: false, lastId, reconnect: false };
+    return { apply: true, lastId: id, reconnect: false };
+  }
+  // ---------- Olay kimliği sonu ----------
 
   // ---------- SSE ----------
 
@@ -1304,6 +1336,7 @@ body.focus .left, body.focus .right { display: none; }
     const CANCELLED = Symbol("cancelled");
     const encoder = new TextEncoder();
     let sessionNumber = 1;
+    let prefix = newId(); // yayıncının ön eki: sunucu her açılışta yeniden üretir
     let seq = 0;
     let frames = /** @type {{seq: number, text: string}[]} */ ([]);
     let log = /** @type {{type: string, data: any}[]} */ ([]);
@@ -1353,8 +1386,13 @@ body.focus .left, body.focus .right { display: none; }
         if (!muted) deliver(`data: ${JSON.stringify({ v: PROTOCOL_VERSION, type })}\n\n`);
         return;
       }
+      if (type === "session") {
+        // Görüntü saklanan bir olay değildir: kimliği son olayınkidir (olay yoksa `<ön ek>-0`).
+        deliver(`id: ${prefix}-${seq}\ndata: ${JSON.stringify({ v: PROTOCOL_VERSION, type, data })}\n\n`);
+        return;
+      }
       seq += 1;
-      const text = `id: ${seq}\ndata: ${JSON.stringify({ v: PROTOCOL_VERSION, seq, type, data })}\n\n`;
+      const text = `id: ${prefix}-${seq}\ndata: ${JSON.stringify({ v: PROTOCOL_VERSION, type, data })}\n\n`;
       frames.push({ seq, text });
       if (frames.length > 4096) frames.shift();
       remember(type, data);
@@ -1398,9 +1436,10 @@ body.focus .left, body.focus .right { display: none; }
       muted = false;
       sink = s;
       s.opened();
-      const last = lastId === null ? NaN : Number(lastId);
+      const asked = lastId === null ? null : splitId(lastId);
+      const last = asked === null || asked.prefix !== prefix ? -1 : Number(asked.seq);
       const oldest = frames.length > 0 ? frames[0].seq - 1 : seq;
-      if (Number.isFinite(last) && last >= oldest && last <= seq) {
+      if (last > 0 && last >= oldest && last <= seq) {
         for (const frame of frames) {
           if (frame.seq > last) deliver(frame.text);
         }
@@ -1646,6 +1685,7 @@ body.focus .left, body.focus .right { display: none; }
         runToken += 1;
         open.clear();
         sessionNumber += 1;
+        prefix = newId();
         seq = 0;
         frames = [];
         log = [];
@@ -1846,7 +1886,10 @@ body.focus .left, body.focus .right { display: none; }
       const mine = generation;
       const live = () => mine === generation;
       if (attempt === 0) setConn("connecting");
-      const parser = createParser(receive, () => {
+      // Bırakılan bağlantının tamponda kalan çerçeveleri işlenmez: yeniden bağlanma aynı itişin içinde olabilir.
+      const parser = createParser((frame) => {
+        if (live()) receive(frame);
+      }, () => {
         noteError({ code: "event_too_large", values: { limit_bytes: MAX_EVENT_BYTES } });
         retry();
       });
@@ -1879,7 +1922,7 @@ body.focus .left, body.focus .right { display: none; }
       setConn(phase, values);
     }
 
-    return { connect, refuse };
+    return { connect, refuse, retry };
   })();
 
   function newId() {

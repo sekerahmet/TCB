@@ -1,6 +1,6 @@
-# Ekran sözleşmesi (sürüm 1, öneri)
+# Ekran sözleşmesi (sürüm 1)
 
-Yerel asistanın ekranı TR'den ne bekliyorsa burada yazılıdır. Ekran yalnız bu sözleşmeyle konuşur; sahte akış da aynı baytları üretir. Bu bir öneridir: TR'de HTTP sunucusu henüz yok, sözleşme HTTP bölümü yazılırken tartılır.
+Yerel asistanın ekranı TR'den ne bekliyorsa burada yazılıdır. Ekran yalnız bu sözleşmeyle konuşur; sahte akış da aynı baytları üretir. Sunucu TR programıdır, TR'nin HTTP sunucusuyla ve olay yayıncısıyla yazılır (dil tanımı, 28).
 
 Tel İngilizcedir, hiçbir insan diline ayrıcalık yok. Ekrandaki yazılar telden gelmez: sunucu kod ve değer gönderir, ekran kendi sözlüğünden kullanıcının diliyle gösterir. Model metni, araç adı ve araç çıktısı veridir, çevrilmez.
 
@@ -30,22 +30,23 @@ Ekran kaynağını `source` parametresinden alır: `index.html?source=http://127
 `GET /events` şu çerçeveyle akar:
 
 ```text
-id: 42
-data: {"v":1,"seq":42,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Mer"}}
+id: 3f9a0c2e7b1d4e65-42
+data: {"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Mer"}}
 
 ```
 
-- `id` ve `seq` aynı sayıdır, oturum içinde birer artar. Olay adı (`event:`) kullanılmaz; tür JSON'un `type` alanındadır.
+- `id` olayın kimliğidir ve metindir: `<ön ek>-<sıra>` (dil tanımı, 28.7). Ön ek 16 küçük onaltılık karakterdir, sunucu her açılışta yeniden rastgele üretir; sıra 1'den birer artar. Veri kimlik taşımaz. Olay adı (`event:`) kullanılmaz; tür JSON'un `type` alanındadır.
 - `heartbeat` dışındaki her olayın `id`'si vardır.
 - Bir olay en çok 1 MiB'dir. Ekran daha uzun çerçeveyi okumaz, bağlantıyı kapatıp `event_too_large` gösterir.
 - Tarayıcının `EventSource`'u üstbilgi taşıyamaz ve belirteç URL'ye yazılmaz; bu yüzden ekran akışı `fetch` ile okur. Çerçeve aynı SSE'dir.
 
 ### Kopma ve yeniden bağlanma
 
-- Ekran son gördüğü `id`'yi `Last-Event-ID` üstbilgisiyle gönderir.
+- Ekran son gördüğü `id`'yi olduğu gibi saklar ve `Last-Event-ID` üstbilgisinde aynen geri gönderir; ön eki kendisi üretmez. Karşılaştırmak için yalnız son tireden sonraki sırayı sayı olarak okur.
 - **Sunucu o `id`'den sonrasını tutuyorsa** yalnız eksik olayları sırayla yollar, `session` yollamaz. En az son 1024 olay tutulur.
-- **Tutmuyorsa** (`id` yok, çok eski ya da sunucu yeniden başladı) ilk olay `session`'dır ve tam durumu taşır.
-- Ekran `seq`'i kendi son `seq`'inden büyük olmayan olayı atar. `session` hiç atılmaz: sayacı kendi `seq`'ine kurar.
+- **Tutmuyorsa** (`id` yok, çok eski, başka ön ekli ya da sunucu yeniden başladı) ilk olay `session`'dır ve tam durumu taşır. Sunucu yeniden başlayınca ön ek değişir ve sıra 1'den başlar: ön eki tutmayan `Last-Event-ID`'ye sunucu geri oynatmaz, önce `session`'ı verir.
+- `session` hiç atılmaz, ön eki farklı ya da sırası küçük olsa da: ekran son kimliği `session`'ın `id`'sine kurar.
+- `session` dışındaki olay, ön eki son kimliğinkinden farklıysa ya da sırası ondan büyük değilse uygulanmaz. Ön eki farklıysa ekran bağlantıyı kapatır ve `Last-Event-ID`'siz yeniden bağlanır (`session` gelir). Ekranın henüz son kimliği yoksa (ilk bağlantı) ilk olay `session`'dır; ondan önce gelen başka olay da uygulanmaz, ekran aynı biçimde yeniden bağlanır. Sağlam sunucudan böyle bir olay gelmez; uygulamak yeni sunucunun olaylarını eski durumun üstüne yazardı.
 - Nabız SSE yorumu değil olaydır: tarayıcı kodu yorumu göremez, sessiz kopma ancak böyle anlaşılır. `session`'daki `heartbeat_ms` aralığın iki buçuk katı boyunca hiçbir bayt gelmezse ekran bağlantıyı kopmuş sayar.
 - Ekran artan bekleyişle (en çok 10 sn) yeniden dener. `401` ve `403`'te denemez: kullanıcıya sorar ya da nedenini gösterir.
 
@@ -56,7 +57,7 @@ data: {"v":1,"seq":42,"type":"turn_text","data":{"turn_id":"t-7","role":"assista
 Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her şeyi siler ve `snapshot`'ı sırayla işler.
 
 ```json
-{"v":1,"seq":1,"type":"session","data":{
+{"v":1,"type":"session","data":{
   "session_id":"s-example-1",
   "server_version":"0.0.0-example",
   "model":"example-model-4b (made up)",
@@ -74,14 +75,15 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 }}
 ```
 
-- `snapshot` öbür olayların aynısıdır, `seq`'siz ve sıkıştırılmış: bir konuşma parçası tek `turn_text`, `heartbeat` ve `session` yoktur. Ekranda ikinci bir durum biçimi yok, aynı kod işler.
+- `session`'ın `id`'si görüntüye katılan son olayınkidir; daha olay yoksa `<ön ek>-0`'dır.
+- `snapshot` öbür olayların aynısıdır, kimliksiz ve sıkıştırılmış: bir konuşma parçası tek `turn_text`, `heartbeat` ve `session` yoktur. Ekranda ikinci bir durum biçimi yok, aynı kod işler.
 - `snapshot` bir `state` olayı, son ölçüler için bir `metrics` olayı ve **açık her onay için bir `approval_open`** taşır. Sığmazsa eski turlar düşer; açık onay düşmez.
 - Ekranda açık kart varken gelen `snapshot` o kartı taşımıyorsa kart kalkar ve ekran onayın geçersiz kaldığını yazar: onaylanmış sayılmaz.
 
 ### `state`
 
 ```json
-{"v":1,"seq":2,"type":"state","data":{"state":"loading","mic":false,"progress":0.4}}
+{"v":1,"type":"state","data":{"state":"loading","mic":false,"progress":0.4}}
 ```
 
 - `state`: `idle`, `loading`, `listening`, `thinking`, `speaking`, `error`.
@@ -91,7 +93,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `turn_start`
 
 ```json
-{"v":1,"seq":3,"type":"turn_start","data":{"turn_id":"t-7","source":"voice"}}
+{"v":1,"type":"turn_start","data":{"turn_id":"t-7","source":"voice"}}
 ```
 
 `source`: `text` ya da `voice`.
@@ -99,8 +101,8 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `turn_text`
 
 ```json
-{"v":1,"seq":4,"type":"turn_text","data":{"turn_id":"t-7","role":"user","mode":"replace","text":"Bugün hava nasıl","final":false}}
-{"v":1,"seq":9,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Örnek "}}
+{"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"user","mode":"replace","text":"Bugün hava nasıl","final":false}}
+{"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Örnek "}}
 ```
 
 - `role`: `user` (söz) ya da `assistant` (cevap).
@@ -110,7 +112,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `turn_end`
 
 ```json
-{"v":1,"seq":20,"type":"turn_end","data":{"turn_id":"t-7","reason":"stopped"}}
+{"v":1,"type":"turn_end","data":{"turn_id":"t-7","reason":"stopped"}}
 ```
 
 `reason`: `done`, `stopped`, `error`. `error`'da `error` alanı `{"code","values"}` taşır.
@@ -118,13 +120,13 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `tool_start`
 
 ```json
-{"v":1,"seq":5,"type":"tool_start","data":{"call_id":"c-3","turn_id":"t-7","tool":"example_read_file"}}
+{"v":1,"type":"tool_start","data":{"call_id":"c-3","turn_id":"t-7","tool":"example_read_file"}}
 ```
 
 ### `tool_end`
 
 ```json
-{"v":1,"seq":6,"type":"tool_end","data":{"call_id":"c-3","result":"ok","duration_ms":124,"output":"example line\n","output_bytes":13,"truncated":false}}
+{"v":1,"type":"tool_end","data":{"call_id":"c-3","result":"ok","duration_ms":124,"output":"example line\n","output_bytes":13,"truncated":false}}
 ```
 
 - `result`: `ok`, `error`, `denied`, `stopped`. `error`'da `error` alanı `{"code","values"}` taşır.
@@ -136,7 +138,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 Geri alınamaz iş için onay ister. Kart yalnız bu olaydan gelir; model metni kartın düzenine giremez.
 
 ```json
-{"v":1,"seq":7,"type":"approval_open","data":{
+{"v":1,"type":"approval_open","data":{
   "approval_id":"a-2",
   "turn_id":"t-7",
   "call_id":"c-4",
@@ -156,7 +158,7 @@ Geri alınamaz iş için onay ister. Kart yalnız bu olaydan gelir; model metni 
 ### `approval_close`
 
 ```json
-{"v":1,"seq":8,"type":"approval_close","data":{"approval_id":"a-2","reason":"answered","decision":"deny"}}
+{"v":1,"type":"approval_close","data":{"approval_id":"a-2","reason":"answered","decision":"deny"}}
 ```
 
 - `reason`: `answered`, `expired`, `stopped`.
@@ -166,7 +168,7 @@ Geri alınamaz iş için onay ister. Kart yalnız bu olaydan gelir; model metni 
 ### `metrics`
 
 ```json
-{"v":1,"seq":21,"type":"metrics","data":{"memory_bytes":4617089843,"tokens_per_second":11.2,"first_token_ms":910}}
+{"v":1,"type":"metrics","data":{"memory_bytes":4617089843,"tokens_per_second":11.2,"first_token_ms":910}}
 ```
 
 Bilinmeyen alan yazılmaz; ekran o ölçüyü boş gösterir. Ekranda sabit ölçü yoktur.
@@ -176,7 +178,7 @@ Bilinmeyen alan yazılmaz; ekran o ölçüyü boş gösterir. Ekranda sabit öl�
 Bir tura bağlı olmayan ya da sürmekte olan işi bitirmeyen hata.
 
 ```json
-{"v":1,"seq":22,"type":"error","data":{"code":"out_of_memory","values":{"needed_bytes":6442450944},"fatal":false}}
+{"v":1,"type":"error","data":{"code":"out_of_memory","values":{"needed_bytes":6442450944},"fatal":false}}
 ```
 
 `fatal` `true` ise sunucu çalışmaya devam edemez; ekran `error` durumunu gösterir.
@@ -188,7 +190,7 @@ data: {"v":1,"type":"heartbeat"}
 
 ```
 
-`id` ve `seq` taşımaz. `session`'daki `heartbeat_ms` aralığıyla gelir.
+`id` taşımaz. `session`'daki `heartbeat_ms` aralığıyla gelir: 15 saniye (dil tanımı, 28.7).
 
 ## Komutlar
 
@@ -234,6 +236,7 @@ Sunucudan gelenler:
 | `approval_expired` | `approval_id` | Cevap süre dolduktan sonra geldi |
 | `turn_busy` | `turn_id` | Sürmekte olan tur varken yeni tur istendi |
 | `text_too_long` | `limit_bytes` | Metin sınırı aştı |
+| `not_ready` | | Modeller yüklenirken yeni tur istendi |
 | `mic_unavailable` | | Mikrofon açılamadı |
 | `model_load_failed` | `model` | Model yüklenemedi |
 | `out_of_memory` | `needed_bytes` | Bellek yetmedi |
@@ -267,7 +270,7 @@ Herhangi bir web sitesi kullanıcının tarayıcısından `127.0.0.1`'e istek at
 - **CORS yok:** sunucu `Access-Control-Allow-*` göndermez, `OPTIONS` kabul etmez.
 - **Sunulan dosyalar:** yalnız ekran ve sayfanın listelediği dil dosyaları, `Content-Type: text/javascript`. Sayfanın politikası betiği `/lang/` altından kabul eder; başka betik sunulmaz.
 - **Gizli değer:** olaylar tele çıkmadan aynı süzgeçten geçer (dil tanımı 19.4): model metni, araç çıktısı, onay argümanı, `error.values`, `snapshot` ve kullanıcının sözü dahil. Argüman süzüldüyse kart `***` gösterir; ekran gerçek değeri hiç almaz.
-  - **Parçalı akış:** olay başına süzgeç iki `append` parçasına bölünen değeri görmez. Sunucu akışta metnin sonundan en uzun gizli değer kadarını geri tutar; geri tutulanı yeni parçayla birlikte süzer, `turn_end`'den önce de kalanını süzüp gönderir.
+  - **Parçalı akış:** olay başına süzgeç iki `append` parçasına bölünen değeri görmez. Sunucu akışın parçalarını önce maske akışından geçirir (`TR_mask_stream()`, dil tanımı 19.4a), akışın sonunda `.TR_finish()`'in verdiğini de `turn_end`'den önce gönderir.
   - **Sıra:** süzme kesmeden önce yapılır (64 KiB ve 1 MiB sınırı). Önce kesilirse değerin başı kalır, süzgeç onu tanımaz ve tele çıkar.
 - **Boyut:** olay en çok 1 MiB, araç çıktısı ve onay argümanı 64 KiB, komut gövdesi 64 KiB. Sunucu kesince söyler; sessiz kesme yok.
 - **Çerçeve ve bağlantı:** `frame-ancestors` meta etiketinde çalışmaz; sunucu `GET /` cevabında üstbilgiyle gönderir: `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'`. Sayfa başka bir sitenin içinde açılıp tıklatılamaz. Üstbilgi ile meta etiketi birlikte geçerlidir, bu yüzden sayfa yalnız kendi kapısına bağlanabilir.
@@ -280,4 +283,4 @@ Tartıda bakılacak. MCP'nin adı geçen bölümleri ve DAP'ın temel ileti biç
 
 - **SSE:** [HTML standardı](https://html.spec.whatwg.org/multipage/server-sent-events.html): `id`, `Last-Event-ID`.
 - **MCP 2025-06-18:** [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports). "Security Warning" (`Origin` denetimi, yalnız `127.0.0.1`, kimlik doğrulama) ve "Resumability and Redelivery" (kopunca kaldığı yerden sürme) bu sözleşmenin kaynağıdır. Fark: burada JSON-RPC yok, akış tek ve her sekmeye aynıdır.
-- **DAP:** [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/specification). Her iletide `seq`, olayda ad ve gövde, cevapta isteğe bağ ve başarı alanı; hata için kısa kod. `seq`, `type`, `data` ve `command_id` buradan gelir. Depoda emsali İzleme Masası'dır.
+- **DAP:** [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/specification). Her iletide `seq`, olayda ad ve gövde, cevapta isteğe bağ ve başarı alanı; hata için kısa kod. `type`, `data` ve `command_id` buradan gelir; sıra burada SSE'nin `id` satırındadır (28.7), veride değil. Depoda emsali İzleme Masası'dır.
