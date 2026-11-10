@@ -19,7 +19,7 @@ Uzun bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basıl�
 - **Model:** tensör içeren bir yapı, liste ya da sözlük, ya da tek bir tensör. İçindeki bütün yaprak tensörler kaydedilir, her cinste (15.1): türev izleyenler (parametreler) ve izlemeyenler (durum: TR ile yazılmış iyileştiricinin momentumu, sabit tablolar, tam sayı tamponları). Adlar modelin içindeki yol adlarıdır (`m/w`, `m/kos`): parametrelerinki `TR_named_parameters`'ınkiyle (13.8a) aynıdır, durum tensörleri de aynı yolla adlanır. Aynı tensör bir kez kaydedilir. Modelin içinde ya da tek başına türev izleyen bir ara sonuç hatadır (15.33). Modeldeki yapıların düz değerli alanları (`TR_Int`, `TR_Float`, `TR_String`, `TR_Bool`, `TR_none`) da kaydedilir ve düz değerler gibi yerinde yenilenir; fonksiyon alanları kaydedilmez.
 - **İyileştirici** (`TR_AdamW`, `TR_SGD`): `op.TR_state` (20.12).
 - **Okuyucu** (`TR_Sampler`, `TR_SequentialReader`): `ö.TR_state` (20.13).
-- **Günlük** (`TR_Logger`): dosyanın o anki bayt uzunluğu.
+- **Günlük** (`TR_Logger`): dosyanın o anki bayt uzunluğu; devam kaydının `offset`'i budur (19.6).
 - **Düz değerler:** yalnız `TR_Int`, `TR_Float`, `TR_String`, `TR_Bool`, `TR_none` ve iç içe liste ve sözlük içeren bir sözlük ya da liste (en iyi kayıp, sayaçlar). Yüklemede yerinde ve iç içe yenilenir: aynı yerde aynı türden kap varsa o kap güncellenir, yenisiyle değiştirilmez; başka değişkenlerden tutulan bağlar kopmaz. Kayıt paylaşımı tutmaz: aynı iç kap birden çok yerden bağlıysa yalnız ilk yerde (anahtar ve sıra düzeniyle) yerinde yenilenir; sonuç belirlenimcidir.
 
 Düz bir sayı, metin ya da mantık değeri doğrudan verilemez (kullanıcının değişkenine geri yazılamaz); bir sözlüğe konur. Fonksiyon, ara tensör ve boş sözlük hatadır.

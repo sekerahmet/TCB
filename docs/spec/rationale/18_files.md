@@ -65,6 +65,7 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 - *Emsal:* pandas `.gz` uzantısından sıkıştırmayı anlar [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* derlemler çoğunlukla sıkıştırılmış gelir; ayrı bir açma adımı ajanın unutacağı bir adımdır. Uzantı ile içerik uyuşmazsa sessizce bayt okumak yerine hata vermek yanlışı gösterir.
+- *Tur 6C (2026-11-10):* `TR_read_bytes` listede yoktur ve açmaz: gerekçesi 13.1'de.
 
 ### 18.13
 

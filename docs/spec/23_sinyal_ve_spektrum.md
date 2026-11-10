@@ -78,7 +78,7 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 
 **23.6** `TR_whisper_log_mel(ses, TR_n_mels: m)` `tr/audio` kitaplığındadır (22.4, 11.6). OpenAI Whisper'ın `transcribe`'ının kullandığı log-Mel'i bir kaydın tamamı için verir: `[m, örnek // 160 + 3000]` şekilli bir `TR_Tensor[TR_Float]`. Kaydın kendi çerçeveleri ilk `örnek // 160`'tır; gerisi 30 saniyelik dolgununkilerdir.
 - `ses` bir `TR_Sound`'dur (22.4). Denetim sırası: örnekler iki boyutlu değilse hata (alanlar kurulduktan sonra atanmış olabilir, 7.5); sonra hız; sonra kanal; sonra boş ses.
-  - `.TR_sample_rate` 16000 değilse hatadır; ileti yeniden örneklemenin kabuk yazımını önerir: `ffmpeg -nostdin -i girdi -ar 16000 -c:a pcm_s16le çıktı.wav`.
+  - `.TR_sample_rate` 16000 değilse hatadır; ileti yeniden örneklemenin yazımını önerir (21.1): `TR_run_process("ffmpeg", ["-nostdin", "-y", "-i", "girdi.wav", "-ar", "16000", "-c:a", "pcm_s16le", "çıktı.wav"])`.
   - Örneği olmayan ses hatadır: dolgu onu sessizce sessizliğe çevirirdi.
   - Birden çok kanal hatadır; sessizce tek kanala indirilmez. İleti iki açık yazımı önerir: ilk kanal `TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: ses.TR_sample_rate)`, ortalama `TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: ses.TR_sample_rate)`.
 - `TR_n_mels:` zorunludur: modelin `config.json`'undaki `num_mel_bins` (large-v3'te 128, öncekilerde 80).

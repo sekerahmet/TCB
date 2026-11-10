@@ -6,13 +6,14 @@ Her kuralın emsali ve gerekçesi: [`rationale/21_processes.md`](rationale/21_pr
 
 Bir TR programı bazı işleri başka bir programa yaptırır: `ffmpeg` sesi ve videoyu çözer, `arecord` mikrofonu okur, `aplay` hoparlöre çalar, bir ajan bir aracı çalıştırır. Bu bölüm dış programın nasıl başlatıldığını, girdisinin ve çıktısının nasıl taşındığını, nasıl durdurulduğunu ve hatasının nasıl görüldüğünü söyler.
 
-**21.1** `TR_run_process(program, argümanlar)` bir dış programı çalıştırır, bitmesini bekler ve standart çıktısını `TR_Bytes` olarak verir.
-- `program` aranacak bir ad (`TR_String`, 21.3) ya da bir dosya yoludur (`TR_Path`). `argümanlar` bir `TR_List[TR_String]`'dir; her öğe programa tek bir argüman olarak, değiştirilmeden verilir. Yol argümanı `TR_String(yol)` ile yazılır (18.1); listeye `TR_Path` koymak denetim hatasıdır ve ileti `TR_String(yol)`'u önerir.
+**21.1** `TR_run_process(program, argüman_listesi)` bir dış programı çalıştırır, bitmesini bekler ve standart çıktısını `TR_Bytes` olarak verir.
+- `program` aranacak bir ad (`TR_String`, 21.3) ya da bir dosya yoludur (`TR_Path`). `argüman_listesi` bir `TR_List[TR_String]`'dir; her öğe programa tek bir argüman olarak, değiştirilmeden verilir. Yol argümanı `TR_String(yol)` ile yazılır (18.1); listeye `TR_Path` koymak denetim hatasıdır ve ileti `TR_String(yol)`'u önerir.
 - **Kabuk yoktur:** `|`, `>`, `*`, `$`, `~` ve boşluk argümanın sıradan karakterleridir. Boru hattı iki süreçle (21.2) yazılır; kabuk gerçekten gerekiyorsa açıkça çağrılır: `TR_run_process("sh", ["-c", komut])`.
 - Adlı argümanlar:
   - `TR_input:` bir `TR_Bytes`'tır: programın standart girdisi. Verilmezse girdi boş aygıttır; girdiden okuyan program hemen dosya sonu alır, beklemede kalmaz.
   - `TR_env:` için 21.6, `TR_timeout:` için 21.5, `TR_exit_codes:` için 21.4.
 - Bütün çıktı belleğe alınır. Büyük ya da bitmeyen çıktı `TR_spawn_process` ile parça parça okunur.
+- Program bittikten sonra başlattığı bir süreç (torun) çıktı borusunu açık tutarsa en çok 2 saniye beklenir; süre dolunca o ana kadar okunan çıktı verilir, torun öldürülmez ve sonucu programın çıkış kodu belirler (21.4).
 - Beklerken kilit bırakılır (10.3).
 
 ```tr
@@ -21,9 +22,9 @@ TR_var ham = TR_run_process("ffmpeg", ["-nostdin", "-i", "soru.mp3", "-f", "s16l
 TR_var ses = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](ham, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
 ```
 
-- *Test:* TR testi (olumsuz fikstür `tests/negative/program_argumani_yol.tr`); Go: `TestRunProcessOutputIsBytes`, `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessInput`, `TestRunProcessArgumentListErrors`, `TestRunProcessPathSuggestionRuns`, `TestRunProcessCallErrors`, `TestRunProcessReleasesTheLock`, `TestProcessArgumentListHoldsNoPath`.
+- *Test:* TR testi (olumsuz fikstür `tests/negative/program_argumani_yol.tr`); Go: `TestRunProcessOutputIsBytes`, `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessInput`, `TestRunProcessArgumentListErrors`, `TestRunProcessPathSuggestionRuns`, `TestRunProcessCallErrors`, `TestRunProcessReleasesTheLock`, `TestProcessArgumentListHoldsNoPath`; torunun borusu: `TestGrandchildHoldingThePipeDoesNotBlock`.
 
-**21.2** `TR_spawn_process(program, argümanlar)` programı başlatır ve beklemeden bir `TR_Process` verir. Programın standart girdisi ve standart çıktısı TR programına bağlıdır. `program` ve `argümanlar` 21.1'deki gibidir; adlı argümanlar `TR_env:`, `TR_exit_codes:`, `TR_buffer_bytes:`'tır.
+**21.2** `TR_spawn_process(program, argüman_listesi)` programı başlatır ve beklemeden bir `TR_Process` verir. Programın standart girdisi ve standart çıktısı TR programına bağlıdır. `program` ve `argüman_listesi` 21.1'deki gibidir; adlı argümanlar `TR_env:`, `TR_exit_codes:`, `TR_buffer_bytes:`'tır.
 - `p.TR_read(n)` tam `n` bayt okur ve `TR_Bytes` verir. Program çıktısını kapattıysa (dosya sonu) kalanı verir, kalan da yoksa boş `TR_Bytes` verir. Okuma `n` bayt gelene kadar bekler, yani `n` gecikmedir: 16 kHz tek kanallı "int16" seste 1024 bayt 32 ms'dir.
 - `p.TR_write(b)` bir `TR_Bytes`'ın hepsini programın girdisine yazar; program okumuyorsa bekler. `p.TR_close_stdin()` girdiyi kapatır, program dosya sonu alır.
 - `p.TR_wait()` girdiyi kapatır, programın bitmesini bekler ve çıkış kodunu `TR_Int` olarak verir (21.4). `p.TR_wait(TR_timeout: saniye)` 10.7'deki gibidir. `p.TR_done()` programın bitip bitmediğini söyler, beklemez.
@@ -33,7 +34,7 @@ TR_var ses = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](ham, TR_dtype: "int16", T
 - Programın çıktısını kilit dışında bir okuyucu sürekli alır: tampon dolana kadar boru dolmaz, TR kodu hesap yaparken veri beklemez. `p.TR_read` bu okuyucunun tamponundan okur.
 - `TR_buffer_bytes:` verilmezse tampon dolunca okuyucu durur, boru dolar, program bekler: programın yazdığı hiçbir bayt kaybolmaz. Dosya çözen, araç çalıştıran iş budur.
 - `TR_buffer_bytes: b` canlı kaynak içindir: pozitif `TR_Int`, bayt; başka değer hatadır. Ön ayırma yapılmaz; `b` makinenin belleğini aşarsa çağrı hatasıdır. Tampon `b` bayta varıp yeni bayt gelirse program 21.5'teki gibi durdurulur, biriken baytlar atılır ve taşma hatası kurulur. Sessizce veri atılmaz, eskinin üstüne yazılmaz; süreç sürdürülmez, çünkü atılan baytın sınırı örnek sınırına denk gelmeyebilir. Toparlanma yeni bir `TR_spawn_process`'tir. Program bitmişse boruda kalan taşma sayılmaz: tamponu aşıp hemen biten programda, programın kendi çıktısında ya bütün veri ya taşma hatası gelir, eksik veri gelmez.
-- İki kipte de program bittikten sonra torunun yazdıkları en çok 4 saniye alınır; okunmayan ya da geç gelen bayt hatasız kesilebilir.
+- İki kipte de program bittikten sonra torunun yazdıkları en çok 2 saniye alınır (21.1); okunmayan ya da geç gelen bayt hatasız kesilebilir.
 - Taşma hatası programın çıkışından ayrıdır: bundan sonraki her `p.TR_read` ve `p.TR_wait` aynı hatayı verir. `TR_try` ile yakalanırsa görülmüş sayılır. Hiç görülmezse program biterken yazılır ve program 1 koduyla biter (10.6 gibi). `p.TR_cancel()` hatayı silmez. 21.2 ve 21.4'ün "TR'nin durdurduğu sürecin durması hata olarak yazılmaz" cümlesi bunu kapsamaz.
 - `TR_buffer_bytes:` verilmişken tampondan büyük `p.TR_read` çağrı hatasıdır: hiç dolmaz.
 - Okuma döngüsü boş `p.TR_read` ile biter. `p.TR_done()` doğruyken tamponda veri olabilir; `p.TR_read` `p.TR_wait`'ten sonra da kalanı verir.
@@ -61,15 +62,17 @@ TR_for {
 
 **21.3** Ad olarak verilen program `PATH`'te aranır.
 - Ad bir yol ayırıcısı (`/` ya da `\`) içeremez. Dosyanın kendisi bir `TR_Path` ile verilir; göreli yol çalışma klasörüne göredir.
-- `PATH`'teki göreli girdiler ve çalışma klasörü aranmaz: indirilen bir veri klasöründeki aynı adlı dosya çalışmaz.
+- `TR_env:`'de `PATH` verildiyse (Windows'ta adın harf büyüklüğü fark etmez, 21.6) program orada aranır, verilmediyse TR programının `PATH`'inde; ikisinde de bu maddenin kuralları geçer.
+- `PATH`'teki göreli girdiler ve çalışma klasörü aranmaz: indirilen bir veri klasöründeki aynı adlı dosya çalışmaz. Boş girdi (yan yana iki ayırıcı, baştaki ya da sondaki ayırıcı) POSIX'te çalışma klasörü demektir, o da aranmaz. `TR_env: {"PATH": ""}` hiçbir yerde aramaz: program bulunamaz, ileti dosyanın yolunu (`TR_Path`) önerir.
 - Windows'ta yalnız `.exe` ve `.com` dosyaları aranır. Ad `.exe`, `.com`, `.bat` ya da `.cmd` ile bitemez: `"ffmpeg.exe"` hatadır ve ileti `"ffmpeg"`'i önerir, böylece aynı kod her işletim sisteminde çalışır. Başka noktalı adlar (`"python3.11"`) program adıdır.
 - Windows'ta `.bat` ve `.cmd` dosyaları ad ya da yol olarak çalıştırılamaz: bunların argümanları güvenle kaçırılamaz. İleti açık yazımı verir (`TR_run_process("cmd", ["/c", "npm.cmd", ...])`) ve bu yolda argümanların `cmd.exe`'nin kurallarıyla yorumlandığını, dışarıdan gelen bir argümanın böyle verilmemesi gerektiğini söyler.
 - Bulunamayan programın iletisi adı söyler. Ad boşluk içeriyorsa ileti argümanların listeye ayrılmasını önerir: `TR_run_process("ffmpeg", ["-i", "a.wav"])`.
-- *Test:* Go: `TestProgramNameIsSearchedInPath`, `TestProgramNameHoldsNoSeparator`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestRelativePathEntriesAreNotSearched`, `TestProgramNameCannotEndInAnExtension`, `TestDottedProgramNameIsAName`, `TestWindowsRunsOnlyExeAndCom`, `TestWindowsBatchFilesAreRefused`, `TestBatchSuggestionRuns`, `TestMissingProgramMessages`.
+- *Test:* Go: `TestProgramNameIsSearchedInPath`, `TestProgramNameHoldsNoSeparator`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestRelativePathEntriesAreNotSearched`, `TestProgramNameCannotEndInAnExtension`, `TestDottedProgramNameIsAName`, `TestWindowsRunsOnlyExeAndCom`, `TestWindowsBatchFilesAreRefused`, `TestBatchSuggestionRuns`, `TestMissingProgramMessages`; `TR_env:`'deki `PATH` (boş, göreli ve boş metin girdisiyle): gerekmez, henüz uygulanmadı.
 
 **21.4** Programın çıkış kodu `TR_exit_codes:`'ta değilse (varsayılan `[0]`) çağrı çalışma hatasıyla biter. `TR_spawn_process`'te hata `p.TR_wait()`'ten gelir.
 - İleti programın adını, çıkış kodunu ve standart hata çıktısının sonunu taşır. Gizli değerler orada da 19.4'teki gibi görünmez.
 - Bir sinyalle ölen program da hatadır; ileti sinyali söyler.
+- `TR_exit_codes: []` hiçbir bitişi kabul etmez: program başlatılmadan çalışma hatasıdır, ileti kabul edilen kodların yazımını verir (`TR_exit_codes: [0]`).
 - TR'nin kendisinin durdurduğu programın çıkışı çıkış hatası değildir:
   - iptalde iptal hatası (10.9), süre sınırında zaman aşımı hatası (10.7) gelir;
   - program biterken ve durdurmada (1.5) durdurulan süreç hata olarak yazılmaz, 10.6'da iptal edilen görev gibi.
@@ -79,7 +82,7 @@ TR_for {
 
 **21.5** İptal (10.9), süre sınırı (10.7), `p.TR_cancel()` ve durdurma (1.5) programı aynı yolla durdurur:
 - Önce nazik bir istek gider: Unix'te SIGTERM, Windows'ta Ctrl+Break olayı.
-- Program 2 saniye içinde durmazsa öldürülür.
+- Program 2 saniye içinde durmazsa öldürülür. Program nazik istekten sonra çıkınca ya da 2 saniye dolunca süreç grubunda (Windows'ta iş nesnesinde) kalan süreçler hemen öldürülür: 2 saniye yalnız programın kendisi içindir.
 - İstek ve öldürme programın başlattığı süreçlere de gider: program kendi süreç grubunda başlar (Windows'ta bir iş nesnesinde). Kendini gruptan bilerek ayıran bir torun süreç bunun dışında kalır.
 - Uçbirimde basılan Ctrl+C önce TR programına gelir, dış programa gelmez. TR programı durursa dış program da bu kurala göre durur (1.5). Durdurmayı üstlenen programda (1.6) dış program, TR programı durana kadar sürer. 1.6'nın sınıflarıyla: `p.TR_read` yeni bir şey bekler, istekten sonra "durdurma istendi" hatasıyla döner; `p.TR_write`, `p.TR_wait` ve `TR_run_process` süren bir işi bitirir, sürer.
 - TR hemen biterken (1.7) önce süreç gruplarını öldürür. TR'nin kendisi öldürülür ya da çökerse Unix'te gruptaki süreçler kalabilir; Windows'ta iş nesnesi onları da kapatır.

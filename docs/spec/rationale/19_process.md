@@ -48,6 +48,7 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 
 - *Emsal:* yok; TR'nin günlük biçimi.
 - *Gerekçe:* sürdürülen eğitimde kesilmeden önce yazılmış adımlar yeniden hesaplanır; okuyucu hangi kayıtların geçerli olduğunu kuraldan bilmelidir, silme yoktur (sonuna ekleme).
+- *Tur 6C (2026-11-10, `offset`):* PyTorch'un `SummaryWriter`'ı `purge_step` ile kesilip yeniden başlayan günlükte büyük adımlı olayları gizler; TensorBoard `--purge_orphaned_data` ile yeniden başlama olayından büyük adımları atar [kaynak: github.com/pytorch/pytorch `torch/utils/tensorboard/writer.py`; github.com/tensorflow/tensorboard README; Gemini Uzak 12, DENETİM 402]. JSON Lines her değerden sonra satır sonu ister [kaynak: jsonlines.org]. *Gerekçe:* satır ortasına düşen `offset` bozuk dosyadır, sessizce yarım satır atlamak yanlış kayıpları geçerli sayardı; kesilmiş günlük ise 20.6'nın uyarıyla izin verdiği bir durumdur, hata değildir.
 
 ### 19.7
 

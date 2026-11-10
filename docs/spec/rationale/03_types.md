@@ -95,6 +95,7 @@ Kurallar: [`03_tipler.md`](../03_tipler.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* Python `type(x)`, Swift `type(of:)` ve Go `reflect.TypeOf` bir tip değeri verir. *Almadık:* tipi adının metniyle sınamak. ([Python 3.15](https://docs.python.org/3/library/functions.html#type), [Swift 6.4](https://developer.apple.com/documentation/swift/type(of:)), [Go 1.27 reflect](https://pkg.go.dev/reflect#TypeOf))
 - *Gerekçe:* çalışırken tip sormak tanılama ve genel yardımcılar içindir; statik tip (3.13) çoğu soruyu çalışmadan önce cevaplar. Metinle karşılaştırma bir yazım farkında sessizce yanlış verirdi.
+- *Tur 6C (2026-11-10, parametreli tip değeri):* Python'da `list[str]` ifade yerinde bir tip nesnesidir ve `list == list[str]` yanlıştır; örnekler parametreyi taşımaz: "generic types erase type parameters during object creation" [kaynak: peps.python.org/pep-0585]. Rust'ın `TypeId`'si tam parametreli tipten kurulur [kaynak: doc.rust-lang.org/std/any/struct.TypeId.html, 1.99.1]. Gemini Uzak 12, DENETİM 402. *Rust'ı aldık:* parametresiz kap tipi her parametreli hâline eşit sayılsaydı `==` geçişsiz olurdu (`TR_List[TR_Int]` ve `TR_List[TR_String]` ikisi de `TR_List`'e eşit; Tur 3, 2.9). Tip parametresi çalışma anında değerin kendisinde taşınmaz: tipi denetleyici bilir (3.13); şablonda somut tipin çağrıdan nasıl taşınacağı uygulamanın işidir, bedeli uygulayan oturumun önerisinde yazılır (DENETİM 402 Ş3). Sıra: önce ifade yerinde parametreli yazım, sonra eşitlik, sonra parametresiz `TR_Task`.
 
 ### 3.12
 
@@ -102,6 +103,7 @@ Kurallar: [`03_tipler.md`](../03_tipler.md). Bu dosya her kuralın emsalini (ba�
 - *Gerekçe:* her işin tek yazımı vardır (2.9): tip ile aynı adı taşıyıp yalnız büyük-küçük harfle ayrılan ikinci bir fonksiyon kodlama modelini yanıltırdı. Sığmayan ya da tanımsız bir değer sessizce başka bir sayıya dönmez; bozuk bir ayar dosyasındaki sayı olmayan bir metin çalışmanın başında görünür.
 - *Emsal (mantık değerinden sayı, metinden liste kurulmaz):* Go'da mantık değerinden sayıya dönüşüm yoktur: dönüşüm kurallarının hiçbiri `bool`'u kapsamaz. *Almadık:* Python'da `bool` `int`'in alt sınıfıdır (`int(True)` 1), Rust'ta `i32: From<bool>` vardır; Python'un `list("ab")`'si metni karakterlerine ayırır. ([Go 1.27 dönüşümler](https://go.dev/ref/spec#Conversions), [Python 3.15 bool](https://docs.python.org/3/library/functions.html#bool), [Rust 1.99 i32](https://doc.rust-lang.org/std/primitive.i32.html#impl-From%3Cbool%3E-for-i32))
 - *Gerekçe:* `TR_Int(koşul)` çoğu zaman yanlışlıkla yazılır (sayı yerine karşılaştırma); metinden liste ise karakter mi, satır mı, sözcük mü belirsizdir. İkisi de açık yazımla yapılır: `TR_if c { 1 } TR_else { 0 }`, `[c TR_for c TR_in m]`.
+- *Tur 6C (2026-11-10, `TR_Dict(d)`):* Python'da `dict(d)` sığ kopyadır: "A shallow copy constructs a new compound object and then ... inserts references into it" [kaynak: docs.python.org/3/library/copy.html, 3.15.2]. *Gerekçe:* `TR_List(l)` kopyalarken `TR_Dict(d)`'nin hata vermesi simetriyi bozar; Python'dan `dict(d)` alışkanlığıyla gelen ajan beklediği kopyayı alır.
 
 ### 3.13
 

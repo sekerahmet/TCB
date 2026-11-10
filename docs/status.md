@@ -142,6 +142,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 ### 3.11
 
 - **Yapılacaklar (E ve F1, Ö2; sahip D1; DENETİM 395 Ş4):** dil tanımının parametreli tip değerleri motorda yazılamıyor: `TR_Dict[TR_String, TR_JSON]` ifade yerinde sözdizimi hatası, `TR_List[TR_JSON]` çalışma hatası ("Tip tipi indekslenemez"); ileti doğru yazımı vermiyor. Çalışma anı tipin parametresini taşımıyor (`TR_Type(TR_JSON([1]))` parametresiz liste tipini yazıyor) [ölçüldü: DENETİM 395]. Karar Tur 6C'de (pending "3.11, parametreli tip değerinin yazımı").
+- **Yapılacaklar (E, Ö2; sahip D1, 3.11'in dilimi; Tur 6C):** parametresiz `TR_List`, `TR_Dict` ve `TR_Task` tip yazımı ve tip değeri olarak denetim hatası; `TR_Type(x)` tam tipi verir, şablonda çağrının somut tipini (somut tipin taşınma yolu ve bedeli uygulayanın önerisinde; DENETİM 402 Ş3). Göç: `tests/tipler_test.tr` (`TR_Type(j) == TR_List`), `definitions.json`'un `TR_Type` örneği, `examples/tr/12_tip_adlari.tr`, H1134'ün önerisi, `internal/suggestion_messages_test.go`, `internal/lang/checker/README.md`'nin 3.7a paragrafı. Sıra: önce yukarıdaki satır (ifade yerinde parametreli tip), sonra bu, sonra 3.14'ün eşitliği.
+- **Yapılacaklar (E, Ö3; sahip D1; Tur 6C):** `TR_Dict(d)` sözlükte H2423 veriyor; dil tanımı sığ kopya diyor (3.12) [kanıtlı: D1, `probe5b.tr`].
 
 ### 3.13
 
@@ -163,6 +165,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md).
 - **Mevcut durum:** tipi bilinmeyen yerde çalışma anı ayrı tipli iki değeri sessizce eşit değil sayıyor [test: `TestDistinctTypesAreNotCompared`].
 - **Yapılacaklar (D, Ö3; sahip D1; D1 devri Bulgu 1, DENETİM 339 Ş1):** JSON ile JSON olmayan değerin H2705'i kabın içinde çift çifte aranıyor; genel yolda birleşim-bul `x ~ z ~ y` zincirinde `(x, y)`'yi gezmez, `z`'nin aynı yerinde `TR_none` varsa o çiftin hatası kaçar ve sonuç `TR_false` olur [hesap: D1; kanıtlı: `internal/lang/interp/equality.go:288`–`:292`]. Yalnız 10 000 kap çiftini aşan, paylaşılan ya da kendine bağlanan, genel tipli değerde; tipli kodda kabın içinde JSON ile JSON olmayan değer aynı yerde durmaz. Sıradaki adım: genel yolda çift kümesiyle ayrı tarama ya da tip düzeyinde denetim, 15.5 diliminden sonra.
 - **Bilinen bedel (TCB kararı, birleşik 63):** 3 alanlı yapının `==`'si +%5 (498 → 525 ns) [ölçüldü: D1, Colab, `cpu_d1-esitlik_hiz2`]; sıcak yol profilinde görünürse yeniden bakılır.
+- **Yapılacaklar (sınıfsız: hız ve hizmet reddi; Ö3; sahip D1; Tur 6C):** `==` paylaşılan alt yapıyı her yoldan ayrı geziyor, derin paylaşımda üstel; dil tanımı bitmiş düğüm çiftlerinin hatırlanmasını yazıyor (4.5). Test: derinliği 60 olan `[a, a]` zinciri.
 
 ### 4.7
 
@@ -408,6 +411,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md).
 - **Yapılacaklar (D, Ö3; sahip T1):** döngünün ve üretecin her turu devir noktası (`loopTurn`) [kanıtlı: `compiler_loop.go` `listComprehension`]; üretecin turunun gecikme testi yok.
 - **Yapılacaklar (F, Ö3; sahip H1; S1 bulgusu, DENETİM 188):** çakışmada hazırlık yeniden yapılınca önceki çarpımın bitişik kopyaları havuza dönmüyor, çöp toplayıcı alıyor [kanıtlı: `unlocked.go:24`–`:38`, `cpu_memory.go`]. Yalnız başka görev aynı depoyu tutarken.
 - **Yapılacaklar (F, Ö3; sahip T1; S1 önerisi):** çekirdek gövdesinde kapı çağrısını yakalayan kaynak testi: kural bugün yalnız yorumda. CPU gövdeleri 16 bit tamponu kapıdan iade ediyor, izin listesinde olmadığı için kilitlenmez (`cpu_dtype.go:199`): test bunu yanlış alarm saymasın.
+- **Yapılacaklar (test, Ö3; sahip T1; Tur 6C):** çekirdeğin ortasında kesilmemenin (durdurma, `TR_exit`, iptal) testi yok; davranış kilidin geri alınışında denetleniyor [kanıtlı: DENETİM, `vm.go`'nun `checkInterrupt`'ı].
 
 ### 10.3
 
@@ -426,6 +430,10 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md).
 - **Yapılacaklar:** testi olmayan üç kısım: durum değiştiren yerleşiğin iptalde bitmesi, alt görevi bekleyen başka görev, `TR_handle_stop`.
 - **Gemini Koşu 4'ün kalan iki maddesi:** 9.1'in son deyim olan `TR_defer` denetim hatası (denetleyicinin işi) ve 5.4'ün bileşik atamadaki değerlendirme sırası (görevlerden bağımsız yorumlayıcı işi).
 
+### 10.10
+
+- **Yapılacaklar (E, Ö3; sahip TCB tasarım, sonra T1; Tur 6C):** kuyruk (`TR_Queue[T](n)`, `.TR_put`, `.TR_get`, `.TR_close()`, `TR_for`) motorda yok. Yazımı ifade yerinde parametreli tipe bağlı (3.11'in satırı); uygulamanın bedeli (tip, bekleme, iptal, kapanma, testler) uygulayan oturumun önerisinde. Asistanın yoklamasını kaldırır (pending'in ölçüsü: bakış 20 ms).
+
 ## 11. Modüller
 
 Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md).
@@ -433,6 +441,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md).
 ### 11.1
 
 - **Yapılacaklar (F, Ö3; sahip D1; DENETİM 281):** `TR_import "ortak.TR"` `ortak.TR.tr`'yi arıyor; ileti doğru yazımı (`"ortak"`) önermiyor [ölçüldü: D1]. Mutlak yolun harf büyüklüğü kuralda yazılı değil (`pending.md`).
+- **Yapılacaklar (A adayı, ölçülünce Ö1; sahip D1; Tur 6C):** mutlak yolla aktarmada harf büyüklüğü denetleniyor mu bilinmiyor; Windows'ta aynı modül iki yazımla iki kez yüklenebilir [hipotez: modül anahtarı yazılan yoldan; ölçülmedi, DENETİM 281 N2]. Önce ölçülür; doğruysa denetim ve test.
 
 ### 11.2
 
@@ -1030,6 +1039,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 ### 19.5, 19.7
 
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok.
+- **Yapılacaklar (E, Ö3; sahip T1; Tur 6C):** günlüğün `.TR_append`'i `TR_true` döndürüyor; dil tanımı değer döndürmez diyor (19.5, 13.10) [kanıtlı: `record.go`].
 
 ### 19.6
 
@@ -1165,10 +1175,12 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md).
 - **Mevcut durum:** otomatik testte canlı mikrofon ve `dshow` yolu yok [ölçüldü: `git grep -l dshow`: yalnız `tools/assistant` ve belgeler, test dosyası yok].
 - **Yapılacaklar (F1, Ö3; sahip D1; DENETİM 395 Ş4):** yoldan program isteyen iletinin önerisi argümanları siliyor: tam yolla ve tek argümanla çağrılan `TR_spawn_process` için öneri `TR_Path`'li yolu boş argüman listesiyle veriyor [ölçüldü: DENETİM 395, `k395/b3.tr`]; kopyalanan düzeltme argümanı kaybeder.
 - **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; DENETİM 226 Ş2):** Unix'te `trlang test` ve kabukta durdurma isteği yakalanmıyor; süreç grubundaki dış program TR ölünce kalır [hipotez: kod okuma, `catchStop` yalnız `runProgram`'da]. Kabuktan çıkınca yazmayan program kalıyor, `TR_exit(0)` da durdurmuyor [ölçüldü: DENETİM 248, G4]; çıkış yolu `catchStop` değil, aynı dilimde yapılır.
-- **Yapılacaklar (C, Ö2; sahip S1; DENETİM 250):** `TR_run_process`'in çıktı sınırı gerçek bellekte iş görmüyor: G4'te 176 GiB'de `yes` 51,5 sn sonra SIGKILL aldı, ileti yok, tepe 173,55 GiB [ölçüldü: G4]. Sınır küçültülünce ileti geliyor, ama tepe bütün bellek kadar [ölçüldü: G4, beş boy]. Tampon ikiye katlanarak büyüyor, süreç kodunun "eskisi ile yenisi birlikte durur" hesabı yetmiyor [hipotez: tepe sayılarına uyuyor]. Yön: sabit boy parça listesi, birleştirme yalnız başarılı dönüşte; test tepe ayırmayı ölçsün. 21.2'nin torun cümlesine de test bağlanacak: 4 saniye ve sessiz kesilme [ölçüldü: DENETİM 250].
+- **Yapılacaklar (C, Ö2; sahip S1; DENETİM 250):** `TR_run_process`'in çıktı sınırı gerçek bellekte iş görmüyor: G4'te 176 GiB'de `yes` 51,5 sn sonra SIGKILL aldı, ileti yok, tepe 173,55 GiB [ölçüldü: G4]. Sınır küçültülünce ileti geliyor, ama tepe bütün bellek kadar [ölçüldü: G4, beş boy]. Tampon ikiye katlanarak büyüyor, süreç kodunun "eskisi ile yenisi birlikte durur" hesabı yetmiyor [hipotez: tepe sayılarına uyuyor]. Yön: sabit boy parça listesi, birleştirme yalnız başarılı dönüşte; test tepe ayırmayı ölçsün. 21.2'nin torun cümlesine de test bağlanacak: sessiz kesilme ve süre; cümle Tur 6C'de kodun `stopGrace`'ine göre 2 saniyeye indi, DENETİM 250'nin ölçtüğü 4 saniyenin hangi durumdan geldiği ölçülecek [ölçüldü: DENETİM 250; kanıtlı: süreç paketinde `stopGrace = 2 * time.Second`].
 - **Yapılacaklar (D, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
 - **Yapılacaklar (A, Ö1, yerli ses girişi; roadmap, yerel sesli asistan 6. adım; DENETİM 233):** dış süreçten okunan seste kaynak kendi içinde veri atarsa TR görmez: `ffmpeg` dshow ve `arecord` taşmada sürer [kanıtlı: DENETİM 233, kaynak kod]. 21.2'nin sözü "TR aldığı baytı kaybetmez"dir, "mikrofon kaybetmez" değil.
 - **Sınır (DENETİM 226 N1, N4):** `AUTH` sözcüğü `SSH_AUTH_SOCK`'u da süzer, git push ajana ulaşamaz, ileti `TR_env:` yazımını verir [ölçüldü]. `/dev/tty` okuyan program `TR_timeout:` olmadan dönmeyebilir [hipotez].
+- **Yapılacaklar (A, Ö0; sahip S1; Tur 6C):** `TR_env:`'de `PATH` verilse de program TR'nin kendi `PATH`'inde aranıyor; dil tanımı `TR_env:`'dekini istiyor, boş ve göreli girdisiz, boş `PATH` hiçbir yerde (21.3). Bugün başka bir program sessizce çalışabilir. Test: boş, göreli ve boş metin girdisi; Windows'ta anahtarın harfi.
+- **Yapılacaklar (test, Ö3; sahip S1; Tur 6C, DENETİM 402 N2):** akışlı kipte torunun borusunun testi (`behavior_spawn_process_test.go`) süreyi yalnız 6 sn üst sınırla sınıyor; toplu kipteki 1,9–4,5 sn gibi 2 sn'yi ölçsün.
 
 ## 22. Bayt ve sayı
 
@@ -1178,6 +1190,7 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md).
 
 - **Mevcut durum:** WAV okumasının bellek tepesi dosyanın yaklaşık 10 katı: 38,4 MB'lık dosyada 395 904 KB [ölçüldü: S1].
 - **Yapılacaklar (F, Ö3; sahip S1):** iletide bayt adı okunmuyor: H7067 metin olmayan parça adını sayı listesi diye gösteriyor [ölçüldü: S1]. Uzun dosyalar için parça parça okuma, önce gerçek ihtiyaç ölçülür.
+- **Yapılacaklar (F1, Ö3; sahip S1; Tur 6C):** WAV biçiminin ve örnekleme hızının iletileri (22.4, 23.6) kabuk komutu öneriyor; dil tanımı `TR_run_process("ffmpeg", ["-nostdin", "-y", ...])` yazımını istiyor. `TestWavMessagesGiveTheFix` ve `lib/audio_test.tr` buna göre.
 
 ## 23. Sinyal ve spektrum
 

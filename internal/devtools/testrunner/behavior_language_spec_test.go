@@ -273,10 +273,7 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		"\"metin \\\\(x)\"":   "status: metin içi ifade örneği",
 		"language.go:122-131": "status: dosya yolu",
 		"language.go:32-39":   "status: dosya yolu",
-		// tr/chat'in TR_arguments'ı (argümanlar, arguments) gelince düz sözcük olarak anılan yerler (TCB, 2026-11-08).
-		"TR_run_process(program, argümanlar)":      "21.1: parametrenin yer tutucusu, kod değil",
-		"TR_spawn_process(program, argümanlar)":    "21.2: parametrenin yer tutucusu, kod değil",
-		"argümanlar":                               "21.2: parametrenin yer tutucusu, kod değil",
+		// tr/chat'in TR_arguments'ı (argümanlar, arguments) gelince dosya adı olarak anılan yerler (TCB, 2026-11-08; yer tutucu Tur 6C'de argüman_listesi oldu).
 		"internal/stdlib/process/arguments.go":     "status: dosya yolu",
 		"internal/stdlib/process/arguments.go:206": "status: dosya yolu",
 		// 28'in yol, gövde ve path adları (TR_mem_path, TR_mem_body) gelince yer tutucu ya da dosya adı olarak anılan yerler (http-28 aşama 1, 2026-11-09).
@@ -371,9 +368,10 @@ var identityExceptions = map[string]string{
 	"TR_train_tokenizer": "onaylı yeni ad (16.4)", "TR_reserved_tokens": "onaylı yeni ad (16.4)", "TR_write_dataset": "onaylı yeni ad (16.6)", "TR_shard_tokens": "onaylı yeni ad (16.6)", "TR_write_lines": "onaylı yeni ad (18.17; satırları_yaz)", "TR_LineWriter": "onaylı yeni ad (18.17; SatırYazıcı)", "TR_ignore_case": "onaylı yeni ad (18.5; harf_duyarsız)", "TR_any": "onaylı yeni ad (15.18a; biri)", "TR_select": "onaylı yeni ad (15.3; seç)", "TR_fill": "onaylı yeni ad (15.3; doldur)", "TR_unsqueeze": "onaylı yeni ad (15.3; eksen_ekle)", "TR_descending": "onaylı yeni ad (15.22; azalan)", "TR_is_nan": "onaylı yeni ad (15.16a, 13.7; nan_mı)", "TR_argmin": "onaylı yeni ad (15.19; argmin)", "TR_gather": "onaylı yeni ad (15.21a; indeksle_seç)", "TR_conv2d": "onaylı yeni ad (15.23c; evrişim_2b)", "TR_group_norm": "onaylı yeni ad (15.23b; grup_normu)", "TR_dropout": "onaylı yeni ad (15.23d; seyreltme)", "TR_detach": "onaylı yeni ad (15.27a; ayır)", "TR_AnyTensor": "onaylı yeni ad (15.1; HerCinsTensör)", "TR_narrow": "onaylı yeni ad (15.1; daralt)", "TR_quantized": "onaylı yeni ad (15.52; nicemlenmiş)", "TR_zero_point": "onaylı yeni ad (15.52; sıfır_noktası)",
 	"TR_decode_stream": "onaylı yeni ad (16.3a; akışla_çöz)", "TR_DecodeStream": "onaylı yeni ad (16.3a; ÇözmeAkışı)", "TR_read_chat": "onaylı yeni ad (24.4; sohbet_oku)",
 	"TR_boundary_tokens": "onaylı yeni ad (16.2; sınır_parçaları)",
-	"TR_while":           "bilerek yanlış: kalkan sözcük (2.9)",
-	"TR_default":         "bilerek yanlış: kalkan sözcük (2.9)",
-	"TR_elif":            "bilerek yanlış: başka dilin yazımı (5.5)", "TR_it": "kalkan sözcük (6.7): status anlatımı, ana oturum güncelleyince kalkar", "TR_acc": "aynı (6.7)",
+	"TR_Queue":           "onaylı yeni ad (10.10; Kuyruk)", "TR_put": "onaylı yeni ad (10.10; koy)",
+	"TR_while":   "bilerek yanlış: kalkan sözcük (2.9)",
+	"TR_default": "bilerek yanlış: kalkan sözcük (2.9)",
+	"TR_elif":    "bilerek yanlış: başka dilin yazımı (5.5)", "TR_it": "kalkan sözcük (6.7): status anlatımı, ana oturum güncelleyince kalkar", "TR_acc": "aynı (6.7)",
 	"TR_prnt":  "bilerek yanlış: önerinin örneği (2.3a)",
 	"TR_Flaot": "bilerek yanlış: önerinin örneği (2.3a)",
 }

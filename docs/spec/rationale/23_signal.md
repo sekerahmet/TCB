@@ -54,3 +54,4 @@ Karşılaştırma:
 - 16 kHz ve tek kanal: yeniden örnekleme kitaplıkta yok (22.4); kanalı sessizce seçmek ya da ortalamak bir kararı ajandan saklar. İleti iki yazımı da verir; ikisi `TR_Sound`'un kurulmasıyla çalışır (22.4).
 - `TR_n_mels:` zorunludur, çünkü yanlış varsayılan (80) large-v3'te şekil hatasına, başka bir modelde sessiz yanlışa dönüşür.
 - Eşitlik ölçütü iki ayrı sözdür. Özgün uygulamayla karşılaştırmada `1e-4` transformers'ın sınavıdır; dış bir uygulamayla eşitliğin ölçüsüdür. 15.41 ise TR'nin kendi cihazları arasındaki farkı söyler; ikisi karıştırılmaz (DENETİM istek 43, K7). Açgözlü parçaların birebir eşitliği yalnız aynı cihaz türünde bir doğruluk testidir; cihazlar arasında logitler eşite yakınken seçilen parça değişebilir (DENETİM istek 42, öneri 5).
+- *Tur 6C (2026-11-10):* iletinin `TR_run_process` yazımı ve `-y`: gerekçesi 22.4'te.

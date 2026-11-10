@@ -1334,10 +1334,14 @@ parçalı.TR_contains	ok	0	name:TR_mem_contains
 pencere.TR_append	ok	0	name:TR_mem_append
 personel.TR_map	ok	0	name:TR_mem_map
 ple.TR_mem_table	not_found	4	-
+q.TR_close	ok	0	name:TR_mem_close
 q.TR_dtype	ok	0	name:TR_mem_dtype
 q.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
+q.TR_get	ok	0	name:TR_mem_get
 q.TR_grad	ok	0	name:TR_mem_grad
+q.TR_length	ok	0	name:TR_mem_length
 q.TR_permute	ok	0	name:TR_mem_permute
+q.TR_put	ok	0	spec:10.10	tr_index:not_found:4
 q.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 q.TR_reshape	ok	0	name:TR_mem_reshape
 q.TR_shape	ok	0	name:TR_mem_shape

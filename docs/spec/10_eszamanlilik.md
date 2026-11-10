@@ -22,8 +22,11 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
   - Okuma ve yazma izni tensörün **deposundadır**: aynı depoyu paylaşan görünümler (15) birbirini korur.
   - Yerleşik bütün izinlerini başlarken **hepsini birden** alır; biri alınamıyorsa hiçbirini tutmadan, kilidi bırakarak bekler. Böylece kilitlenme olmaz.
   - TR kodunu geri çağıran yerleşik (kullanıcının yazdığı türev, `TR_fuse`'un fonksiyonu, anahtarlı sıralama) geri çağırmadan önce izinlerini bırakır: bölünmezlik geri çağırmalar arasındaki parçalar içindir.
+  - İyileştiricinin adımı bütün parametrelerin depolarının iznini birlikte alır: başka bir görev yarım güncellenmiş bir model görmez.
+- Kilidi bırakmanın bedeli işin kendisinden büyükse (yaklaşık 1 ms'den kısa tensör işi) yerleşik kilidi tutar; bu süre sözün 5 ms'sinin içindedir.
+- Kilit bırakılmışken gelen durdurma (1.5), `TR_exit` (1.10) ve iptal (10.9) çalışan çekirdeği (bir tensör işleminin tek hesap adımı) ortasında bölmez: çekirdek biter, kilit geri alınınca işler; gecikme en çok bir çekirdeğin süresidir. Yarım yazılmış bir çıktı ya da parametre `TR_defer`'e ve `TR_catch`'e görünmez.
 - Ağır hesap yapan yerleşikler ayrıca kendi içinde paralel çalışır.
-- *Test:* TR testi; Go: `TestAsyncConcurrentDictAndListWrites`; sıra, gecikme sözü ve bölünmezlik uygulanınca Go testi (bekleyen görevin kilidi alma süresi tekdüze saatle ölçülür; iki ve üç meşgul görevle).
+- *Test:* TR testi; Go: `TestAsyncConcurrentDictAndListWrites`; uzun tensör işinde kilidin bırakılması ve bölünmezlik: `TestOtherTasksRunDuringLongTensorWork`, `TestUnlockedStepShowsNoHalfUpdatedParameters`, `TestInPlaceWriteWaitsForTheUnlockedElementwiseOp`; çekirdeğin ortasında kesilmemesi: gerekmez, henüz testi yok; sıra, gecikme sözü ve bölünmezlik uygulanınca Go testi (bekleyen görevin kilidi alma süresi tekdüze saatle ölçülür; iki ve üç meşgul görevle).
 
 **10.3** Engelleyici işlemler kilidi bırakır: `TR_sleep`, beklemeler (`.TR_wait()`, `TR_wait_all`), girdi, dosya işleri, ağ istekleri, dış süreç ve sunucu beklemeleri. Bekleyen görevler böylece iç içe ilerler: dört görevde `TR_sleep(0.2)` toplam yaklaşık 0,2 saniye sürer.
 - *Test:* TR testi.
@@ -58,3 +61,14 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 - İptal edilen görevi bekleyen `.TR_wait()` ve `TR_wait_all`, görev durana kadar bekler (süren durum değiştiren yerleşik, ertelenen işler ve iptal geçen alt görevler biter), sonra iptal hatası fırlatır (10.7'deki kodla); `g.TR_done()` ancak o zaman `TR_true` verir. `TR_wait_all(görevler)` için iptal de bir hatadır (10.5).
 - Bitmiş görevi iptal etmenin etkisi yoktur. `TR_handle_stop` (1.6) iptali etkilemez: o program durdurma isteğini üstlenir, iptal edilen görev yine durur.
 - *Test:* TR testi: `tests/eszamanli_test.tr` (beklemede ve döngü turunda durma, görevin içinde `TR_catch`'in yakalamaması, ertelenenlerin çalışması, gövdesi sürerken iptal edilen görevin alt görevinin de ana görevin ertelenenlerinden önce durması, bitmiş görevde etkisizlik); Go: `TestACancelledTaskStopsAtItsSafePoint`, `TestCancelReachesTheTasksChildren`, `TestDefersKeepTheirErrorsWhileUnwinding` (iptalde ertelenen işin hatası), `TestCancelReachesAFinishedBodysChildren` (gövdesi bitmiş, alt görevini bekleyen görevde iptalin ve süre sınırının alt göreve geçmesi, tekdüze saat), `TestAFinishedChildIsNotKept` (bitmiş alt görevlerin listeden budanması); durum değiştiren yerleşiğin bitmesinin, alt görevi bekleyen başka görevin ve `TR_handle_stop`'un testi yok.
+
+**10.10** `TR_Queue[T](n)` görevler arasında değer taşıyan, sıralı (ilk giren ilk çıkar) bir kuyruk kurar.
+- `n` kuyruğun alabileceği en çok değer sayısıdır, pozitif bir `TR_Int`; başka değer hatadır. Sınırsız kuyruk yoktur: hızlı bir üretici (mikrofon, ağ akışı) yavaş bir tüketicinin karşısında belleği sessizce bitirmesin.
+- `T` isteğe bağlı olamaz (denetim hatası): `TR_none` kuyruğun kapandığını bildirir.
+- `q.TR_put(x)` değeri sona ekler; kuyruk doluysa yer açılana kadar bekler. `q.TR_get()` baştaki değeri çıkarıp verir; kuyruk boşsa bir değer gelene kadar bekler. İkisi de beklerken kilidi bırakır (10.3); bekleyenler geldikleri sırayla uyanır.
+- `q.TR_get(TR_timeout: saniye)` ve `q.TR_put(x, TR_timeout: saniye)` en çok verilen süre kadar bekler; süre dolarsa zaman aşımı hatası (10.7'nin kodu) fırlar. Beklemeler iptalle (10.9) ve durdurmayla (1.5) da biter; durdurmayı üstlenen programda (1.6) bekleyen `TR_get` ve `TR_put`, 21.5'teki `p.TR_read` gibi, durdurma istendi hatasıyla döner.
+- `q.TR_length` kuyruktaki değer sayısıdır. Tek tüketicili sabit hızlı bir döngü her turda önce ona bakar, değer varsa bekletmeden alır.
+- `q.TR_close()` kuyruğu kapatır: bu çağrı kapattıysa `TR_true`, zaten kapalıysa `TR_false` verir (18.15 gibi). Kapalı kuyruğa `TR_put` çalışma hatasıdır; o sırada yer bekleyen `TR_put`'lar da hatayla döner. `TR_get` kalan değerleri sırayla verir, kuyruk boşalınca `TR_none` verir; bu yüzden `q.TR_get()`'in tipi `T?`'dir ve `TR_for x TR_in q { ... }` (5.7) kuyruk kapanıp boşalınca biter.
+- Sıra: tek bir görev yazıp tek bir görev okuyorsa değerler yazıldıkları sırayla çıkar; aynı veriyle aynı sonuç verir. Birden çok görev yazıyorsa görevler arası sıra 10.8'deki gibi tanımsızdır, her görevin kendi değerleri kendi sırasındadır.
+- Birden çok kaynağı birlikte beklemenin yolu tek bir kuyruktur: kaynaklar aynı kuyruğa durumlu tipin (7.7) değerlerini yazar, tüketici `TR_match` ile ayırır. Birden çok kuyruktan hazır olanı seçen bir deyim yoktur.
+- *Test:* gerekmez, henüz uygulanmadı.

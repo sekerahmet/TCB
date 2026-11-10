@@ -79,7 +79,7 @@ Karşılaştırma yolun üst klasörlerinde bağlantıları çözülmüş mutlak
 - Dosya sonuna gelince, `.TR_close()` ile (18.15) ya da program bitince kapanır.
 - *Test:* TR testi.
 
-**18.12** `.gz` saydamlığı: yolu `.gz` ile biten (harf büyüklüğü fark etmez) bir dosya `TR_read_file`, `TR_read_lines` ve `TR_read_csv`'da açılarak okunur, `TR_write_file` ve `TR_write_lines`'ta sıkıştırılarak yazılır.
+**18.12** `.gz` saydamlığı: yolu `.gz` ile biten (harf büyüklüğü fark etmez) bir dosya `TR_read_file`, `TR_read_lines` ve `TR_read_csv`'da açılarak okunur, `TR_write_file` ve `TR_write_lines`'ta sıkıştırılarak yazılır. `TR_read_bytes` dosyanın baytlarını olduğu gibi okur, `.gz`'yi açmaz (13.1).
 - Kural yalnız uzantıya bakar: içerik gzip değilse okuma bunu söyleyen bir hatayla durur; bozuk ve yarıda kesilmiş gzip içeriği de hatadır.
 - `TR_read_file`'ın bir `.gz` dosyadan açacağı içerik en çok 1 GB'tır; daha büyüğü `TR_read_lines` ile okunur.
 - *Test:* TR testi.

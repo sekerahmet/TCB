@@ -10,9 +10,10 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - Aktarmalar dosyanın başında, başlıktan sonra ve öbür tanımlardan önce yazılır (2.1).
 - Modülün en dışında yalnız tanımlar bulunur; ilk değerler sabittir (1.1). Bir modülün en dışında çalışan bir deyim denetim hatasıdır.
 - Yol bir metindir; `.tr` uzantısı isteğe bağlıdır.
-- **Göreli yol** yalnız aktaran dosyanın klasörüne göre çözülür; çalışma klasörüne ve programın klasörüne bakılmaz (dosyası olmayan kabukta yol çalışma klasörüne göredir). Bulunamazsa hata; programın klasöründe aynı adlı dosya varsa ileti onu açık yolla önerir (`"../ad"`). Yolun harf büyüklüğü diskteki adla her sistemde aynı olmalıdır; farklıysa hata, ileti diskteki adı önerir (18.5 gibi). Bu, veri dosyalarının yol kuralından (13) bilerek ayrılır: kod yazıldığı dosyanın yanındadır.
+- Yolun her bileşeninin harf büyüklüğü, göreli yolda da mutlak yolda da, diskteki adla her sistemde aynı olmalıdır; farklıysa hata, ileti diskteki adı önerir (18.5 gibi). Böylece harf büyüklüğüne duyarsız sistemde aynı modül iki yazımla iki kez yüklenmez (11.3). Windows'ta sürücü harfinin büyüklüğü fark etmez.
+- **Göreli yol** yalnız aktaran dosyanın klasörüne göre çözülür; çalışma klasörüne ve programın klasörüne bakılmaz (dosyası olmayan kabukta yol çalışma klasörüne göredir). Bulunamazsa hata; programın klasöründe aynı adlı dosya varsa ileti onu açık yolla önerir (`"../ad"`). Bu, veri dosyalarının yol kuralından (13) bilerek ayrılır: kod yazıldığı dosyanın yanındadır.
 - Modül bulunamazsa ileti bakılan yerleri sayar. `tr/` önekli yollar diskte aranmaz (11.6).
-- *Test:* TR testi, olumsuz fikstür.
+- *Test:* TR testi, olumsuz fikstür; mutlak yolun harf büyüklüğü: gerekmez, henüz uygulanmadı.
 
 **11.2** `TR_import "yol" TR_as m` modülü tek bir **modül değeri** olarak `m`'ye bağlar. Adlarına `m.ad` ile erişilir ve her adın tipi çalışmadan önce bilinir: `m.kare(2)`, `m.PI`.
 - Modül değeri bir sözlük değildir: `m["PI"]` denetim hatasıdır, ileti `m.PI`'yi önerir.

@@ -7,6 +7,7 @@ Kurallar: [`11_moduller.md`](../11_moduller.md). Bu dosya her kuralın emsalini 
 - *Emsal:* Go'da aktarma dosyanın başındadır; Python'un göreli aktarması paketin konumuna göredir [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* Güvenilir: başka bir klasörden çalıştırılan program yanındaki modül yerine çalışma klasöründe duran aynı adlı bir dosyayı yüklememelidir; kod, yazıldığı dosyanın yanındadır. Modülün en dışında yalnız tanım olması 1.1'in kuralıdır: aktarmak yan etki doğurmaz.
 - *Gerekçe (yedek yol yok):* programın klasörüne düşen yedek yol, kodun yazıldığı dosyanın yanında bulunmadığında başka bir modülü sessizce yüklüyordu; harf büyüklüğüne duyarsız disklerde (Windows, macOS) yanlış yazılmış ad başka sistemde kırılıyordu (Gemini Koşu 5).
+- *Mutlak yolun harfi (Tur 6C, 2026-11-10):* Node harf büyüklüğüne duyarsız sistemde iki yazımı iki modül sayar: "require('./foo') and require('./FOO') return two different objects, irrespective of whether or not ./foo and ./FOO are the same file" [kaynak: nodejs.org/api/modules.html, v26.13.0]. Go'nun modül yolu kuralı: "we must never require two different casings of a file path" [kaynak: pkg.go.dev/golang.org/x/mod/module]. Python aktarma adının harfini Windows'ta ve macOS'ta da denetler (`PYTHONCASEOK` kapatır) [kaynak: docs.python.org/3/using/cmdline.html, 3.15.2]. Gemini Uzak 12, DENETİM 402. *Go'yu aldık:* kural göreli yolla sınırlı kalsaydı mutlak yolla 11.3'ün "bir kez yüklenir" sözü bozulur, program Linux'a taşınınca kırılırdı.
 
 ### 11.2
 
