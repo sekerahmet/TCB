@@ -4,12 +4,99 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
+
+// Kural (13.1): girdi() girdinin sonunu bir kez TR_none ile bildirir; sonraki çağrı H2561'dir
+// (Python'un EOFError'ı gibi). Boş satıra kadar okuyan döngü (s == "") girdi bitince sessizce
+// dönmez, TR_none'dan sonraki çağrıda H2561 ile durur (DENETİM 400, p3.tr). İletinin önerdiği
+// yazım (TR_none'ı sınayıp çıkmak) girdi sonunda hatasız biter; sonu satır sonsuz son satır da
+// okunur. Hata TR_error_code ile yakalanır.
+func TestInputAfterTheEndIsAnError(t *testing.T) {
+	const loop = "TR_var n = 0\nTR_for TR_true {\n    TR_var s = TR_input()\n    TR_if s == \"\" { TR_break }\n" +
+		"    n += 1\n    TR_if n > 5 { TR_break }\n}\nTR_print(\"okunan: \\(n)\")"
+	run := func(src, input string) (string, error) {
+		var out bytes.Buffer
+		m := New()
+		m.Out = &out
+		m.Stdin = strings.NewReader(input)
+		_, err := m.Run(mustParseProgram(t, src))
+		return strings.TrimSpace(out.String()), err
+	}
+	for _, input := range []string{"bir\niki\n", "bir\niki", ""} {
+		out, err := run(loop, input)
+		if !messages.Has(err, messages.H2561) || strings.Contains(out, "okunan") {
+			t.Errorf("girdi %q: döngü TR_none'dan sonraki çağrıda H2561 ile durmalıydı; çıktı %q, hata %v", input, out, err)
+		}
+	}
+	out, err := run(loop, "bir\n\niki\n") // boş satır döngüyü bitirir, girdi sonuna varılmaz
+	if err != nil || out != "okunan: 1" {
+		t.Errorf("boş satırda: çıktı %q, hata %v", out, err)
+	}
+	const fixed = "TR_var n = 0\nTR_for TR_true {\n    TR_var s = TR_input()\n    TR_if s == TR_none { TR_break }\n" +
+		"    n += 1\n}\nTR_print(\"okunan: \\(n)\")"
+	for input, want := range map[string]string{"bir\niki\n": "okunan: 2", "bir\nson": "okunan: 2", "": "okunan: 0", "\n": "okunan: 1"} {
+		if out, err := run(fixed, input); err != nil || out != want {
+			t.Errorf("önerilen yazım, girdi %q: çıktı %q (beklenen %q), hata %v", input, out, want, err)
+		}
+	}
+	out, err = run("TR_var a = TR_input()\nTR_print(a, TR_error_code { TR_input() })", "")
+	if err != nil || out != "none H2561" {
+		t.Errorf("H2561 yakalanmalı: çıktı %q, hata %v", out, err)
+	}
+}
+
+// Kural (13.1, H1162): H1162'nin önerdiği koşul uçtan uca çalışır: denetleyicinin iletisinden kopyalanan
+// yazım denetimden geçer ve döngü girdi bitince de, bitiş değeri gelince de durur (DENETİM 400 Ş2;
+// eski öneri '(... ?? "") != "son"' girdi sonunda dönmeye sürüyordu). Test burada, çünkü denetleyici
+// yorumlayıcıyı içe aktaramaz (internal/layers_test.go, langOrder).
+func TestInputLoopSuggestionEnds(t *testing.T) {
+	fixPattern := regexp.MustCompile("`(\\([^`]*\\?\\?[^`]*)`")
+	check := func(src string) []error {
+		prog := mustParseProgram(t, src)
+		c := checker.New()
+		c.SetFile(checker.ProgramFile, src)
+		c.CheckProgram(prog)
+		return c.Errs()
+	}
+	for cond, runs := range map[string]map[string]string{
+		`TR_input() != ""`:        {"a\nb\n": "2", "": "0", "a\n\nb\n": "1"},
+		`TR_input("> ") != "son"`: {"a\nb\n": "2", "": "0", "a\nson\nb\n": "1"},
+		`"son" != TR_input()`:     {"a\nb\n": "2", "": "0", "son\n": "0"},
+	} {
+		errs := check("TR_for " + cond + " {\n}")
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H1162) {
+			t.Errorf("%s: tek H1162 bekleniyordu, gelen %v", cond, errs)
+			continue
+		}
+		fix := fixPattern.FindStringSubmatch(errs[0].Error())
+		if fix == nil {
+			t.Errorf("%s: iletide ?? ile bir yazım yok: %s", cond, errs[0])
+			continue
+		}
+		src := "TR_var n = 0\nTR_for " + fix[1] + " {\n    n += 1\n}\nTR_print(n)"
+		if errs := check(src); len(errs) > 0 {
+			t.Errorf("önerilen %s denetimden geçmeli: %v", fix[1], errs)
+		}
+		for input, want := range runs {
+			var out bytes.Buffer
+			m := New()
+			m.Out = &out
+			m.Stdin = strings.NewReader(input)
+			_, err := m.Run(mustParseProgram(t, src))
+			if got := strings.TrimSpace(out.String()); err != nil || !strings.HasSuffix(got, want) {
+				t.Errorf("önerilen %s, girdi %q: çıktı %q (sonu %q olmalı), hata %v", fix[1], input, got, want, err)
+			}
+		}
+	}
+}
 
 // girdi() her çağrıda yeni bir tamponlu okuyucu açınca ilk okuma kaynağın tamamını
 // tampona çekiyor, sonraki satırlar tamponla birlikte kayboluyordu. VM başına tek okuyucu

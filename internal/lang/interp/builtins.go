@@ -67,6 +67,9 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) > 1 {
 		return nil, ArgCountError(codes.FnInput, Counts(0, 1), len(args), "", messages.Text(messages.H2300))
 	}
+	if y.inputHasEnded() {
+		return nil, messages.New(messages.H2561) // TR_none'dan sonraki çağrı (13.1; Python'un EOFError'ı)
+	}
 	if len(args) > 0 {
 		y.WriteOutput(y.Out, y.textOf(args[0]))
 	}
@@ -78,7 +81,8 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return nil, messages.New(messages.H2507, CallPrefix(codes.FnInput), turkish.FileErrorReason("", readErr))
 	}
 	if readErr == io.EOF && line == "" {
-		return Null, nil // giriş bitti (13.1): boş satır "" verir, girdi sonu TR_none
+		y.endInput()
+		return Null, nil // giriş bitti (13.1): boş satır "" verir, girdi sonu bir kez TR_none
 	}
 	line = strings.TrimRight(line, "\r\n")
 	return &StringVal{Val: line}, nil

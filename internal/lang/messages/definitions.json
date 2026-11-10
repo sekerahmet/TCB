@@ -431,6 +431,7 @@
 "H2558": { "param": ["fn", "count"] },
 "H2559": { "param": ["given", "length"], "slots": {"ord": "TR_fn_ord"} },
 "H2560": { "param": ["given"], "slots": {"chr": "TR_fn_chr"} },
+"H2561": { "param": [], "slots": {"input": "TR_fn_input", "none": "TR_kw_none", "var": "TR_kw_var", "if": "TR_kw_if", "break": "TR_kw_break"} },
 "H2600": { "param": ["type"], "slots": {"Bool": "TR_type_Bool", "length": "TR_mem_length", "none": "TR_kw_none"} },
 "H2601": { "param": ["type"], "slots": {"Bool": "TR_type_Bool", "and": "TR_kw_and", "or": "TR_kw_or", "not": "TR_kw_not", "length": "TR_mem_length", "none": "TR_kw_none"} },
 "H2602": { "param": ["op", "type"] },

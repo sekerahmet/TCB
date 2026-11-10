@@ -31,6 +31,22 @@ func (v *VM) InputReader() *bufio.Reader {
 	return v.inputReader
 }
 
+// endInput girdinin sonunun TR_none ile bildirildiğini kaydeder (13.1).
+func (v *VM) endInput() {
+	v.isInput.Lock()
+	v.inputEnded = true
+	v.isInput.Unlock()
+}
+
+// inputHasEnded girdi() girdinin sonunu daha önce bildirdiyse doğrudur: bir kez TR_none, sonraki
+// çağrı hatadır (H2561, 13.1; Python'un EOFError'ı gibi). Böylece TR_none'ı "" ile karşılaştıran
+// döngü girdi bitince sessizce dönmez, bir sonraki çağrıda durur.
+func (v *VM) inputHasEnded() bool {
+	v.isInput.Lock()
+	defer v.isInput.Unlock()
+	return v.inputEnded
+}
+
 // lineRead başlamış bir satır okumasıdır; bitince done kapanır.
 type lineRead struct {
 	done chan struct{}

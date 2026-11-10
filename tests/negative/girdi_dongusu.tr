@@ -3,6 +3,6 @@
 TR_for TR_input("> ") != "son" { # ERROR H1162
     TR_print("satır")
 }
-TR_for (TR_input("> ") ?? "") != "son" {
+TR_for (TR_input("> ") ?? "son") != "son" {
     TR_print("satır")
 }

@@ -9,13 +9,14 @@ import (
 
 // Kural (13.1): TR_input giriş bitince TR_none verir; döngü koşulu TR_input çağrısını TR_none olmayan
 // bir değerle '!=' ile karşılaştırıyorsa girdi bitince döngü durmaz, denetim hatasıdır (H1162). İleti
-// girdi sonunu da bitiş sayan yazımı verir ve o yazım hatasızdır. TR_none'la karşılaştırma, '==' ve
-// değişkene alınmış satır geçer.
+// girdi sonunu da bitiş sayan yazımı verir, `(çağrı ?? bitiş) != bitiş`, ve o yazım hatasızdır;
+// girdi sonunda durduğunu interp.TestInputLoopSuggestionEnds koşarak sınar. TR_none'la karşılaştırma,
+// '==' ve değişkene alınmış satır geçer.
 func TestInputLoopNeverEnds(t *testing.T) {
 	for _, tc := range []struct{ src, fix string }{
 		{"TR_for TR_input() != \"\" {\n}", "(TR_input() ?? \"\") != \"\""},
-		{"TR_for TR_input(\"> \") != \"son\" {\n}", "(TR_input(\"> \") ?? \"\") != \"son\""},
-		{"TR_for \"son\" != TR_input() {\n}", "(TR_input() ?? \"\") != \"son\""},
+		{"TR_for TR_input(\"> \") != \"son\" {\n}", "(TR_input(\"> \") ?? \"son\") != \"son\""},
+		{"TR_for \"son\" != TR_input() {\n}", "(TR_input() ?? \"son\") != \"son\""},
 	} {
 		errs := checkFileErrs(t, tc.src)
 		if len(errs) != 1 || !messages.Has(errs[0], messages.H1162) {

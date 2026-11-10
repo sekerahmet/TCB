@@ -10,7 +10,9 @@
 
 # girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı verir (Metin?).
 # Hiçbir şey yazılmazsa boş metin (""), giriş bittiyse yok gelir; ?? "" ikisini birleştirir.
-TR_var ad = TR_input("Adın nedir? ") ?? ""
+# Giriş bir kez yok verdikten sonra girdi() yeniden çağrılmaz: o çağrı hatadır (13.1).
+TR_var ad_satırı = TR_input("Adın nedir? ")
+TR_var ad = ad_satırı ?? ""
 TR_if ad == "" {
     ad = "Misafir"
 }
@@ -20,8 +22,11 @@ TR_print("Merhaba, \(ad)!")
 TR_var kod = TR_ord(ad[0])
 TR_print("Adının ilk harfi \(TR_chr(kod)), kodu \(kod).")
 
-# girdi sayı vermez; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir.
-TR_var yaş_metni = TR_input("Yaşın kaç? ") ?? ""
+# girdi sayı vermez; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir. Giriş bittiyse ikinci soru sorulmaz.
+TR_var yaş_metni = ""
+TR_if ad_satırı != TR_none {
+    yaş_metni = TR_input("Yaşın kaç? ") ?? ""
+}
 TR_var yaş = 20
 TR_if yaş_metni != "" {
     yaş = TR_Int(yaş_metni)

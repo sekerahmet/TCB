@@ -181,8 +181,10 @@ type vmShared struct {
 	taskFailed    atomic.Bool
 
 	// pendingRead girdi() için başlamış, sonucu henüz alınmamış satır okumasıdır: bırakılan bir
-	// bekleme okunan satırı yitirmez (bkz. input.go).
+	// bekleme okunan satırı yitirmez (bkz. input.go). inputEnded girdi() girdinin sonunu bir kez
+	// TR_none ile bildirdikten sonra açıktır: sonraki çağrı H2561'dir (13.1). İkisi isInput'la korunur.
 	pendingRead *lineRead
+	inputEnded  bool
 
 	// isOutput çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
 	// varken açıktır (yoksa kilit alınmaz). Bkz. output.go.
