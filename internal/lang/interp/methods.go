@@ -202,6 +202,7 @@ func findMethod(obj Value, cm *coreMethod) *builtinMethod {
 // başlatıcısında kurulsalardı başlatma döngüsü oluşurdu.
 func init() {
 	setupStringMethods()
+	setupCharClassMethods()
 	setupSearchMethods()
 	setupListMethods()
 	setupDictMethods()
@@ -217,8 +218,12 @@ func setupStringMethods() {
 	addMethod(typeString, codes.MemLower, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return longText(y, inst, strings.ToLower), nil
 	})
-	addMethod(typeString, codes.MemStrip, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
+	addMethod(typeString, codes.MemStrip, signature{0, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		s := inst.(*StringVal).Val
+		if len(args) == 0 {
+			return &StringVal{Val: strings.TrimSpace(s)}, nil // Unicode boşluk: TR_split'in boşluğu (unicode.IsSpace)
+		}
+		return &StringVal{Val: strings.Trim(s, y.textOf(args[0]))}, nil // karakter kümesi, önek değil; boş küme kırpmaz (13.2)
 	})
 	addMethod(typeString, codes.MemSplit, signature{0, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		split := strings.Fields // Unicode boşluk dizileri, boş öğe yok (13.2): TR_strip'in boşluğu (unicode.IsSpace)

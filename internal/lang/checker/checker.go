@@ -122,6 +122,8 @@ type Checker struct {
 	reassigned map[string]bool
 	// expectedReturns dönüş tipi beklenen tipten bilinen fonksiyon ifadeleridir (arrow_returns.go).
 	expectedReturns map[*ast.FunctionLiteral]bool
+	// noneBranches dalları hepsi TR_none veren TR_if ve TR_match ifadeleridir (5.5, 5.6; block_values.go).
+	noneBranches noneBranches
 }
 
 // New returns a checker with an empty global scope.
@@ -188,6 +190,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
 	c.noValue, c.expectedReturns = map[ast.Expression]bool{}, map[*ast.FunctionLiteral]bool{}
+	c.noneBranches = noneBranches{values: map[ast.Expression]bool{}, expected: map[ast.Expression]bool{}}
 	c.noteAssigned(prog)
 	c.noteTypeDefs(prog)
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir; önce aranır, çünkü
@@ -201,6 +204,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkTopLevel(prog)
 	c.checkTestPlaces(prog)
 	c.checkSignatures(prog)
+	c.checkNoneBranches()
 	c.checkValuePlaces(prog)
 	c.checkWrittenAny(prog)
 	sortByLine(c.errors[start:])
@@ -264,6 +268,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.WhileStatement:
 		c.condition(s.Condition)
+		c.checkInputLoop(s.Condition) // 13.1 (input_loop.go)
 		c.checkStatement(s.Body)
 
 	case *ast.TryCatchStatement:
@@ -306,6 +311,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.itemType(v)
 		}
 		c.checkUnpackCount(s, s.Values, len(s.Targets))
+		c.checkTargetOrder(s) // 5.3 (assign_order.go)
 		for _, t := range s.Targets {
 			ident, ok := t.(*ast.Identifier)
 			if !ok {
@@ -571,10 +577,10 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 	} else {
 		// indeks ve alan hedefleri (l[i] = ..., p.x = ...) okunan ifadeler içerir
 		c.checkModuleAssign(s.Target)
-		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
-		c.inferExpression(s.Target)
-		c.checkIndexAssign(s, valType)   // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
-		c.checkElementAssign(s, valType) // öğe tipi bilinen kaba başka tipte değer (3.6, 3.7)
-		c.checkJSONIndexAssign(s)        // TR_JSON değiştirilemez (3.7a, json_values.go)
+		c.checkFieldAssign(s, valType)                      // alanın tipi (7.5)
+		c.expectTyped(c.inferExpression(s.Target), s.Value) // hedefin tipi beklenen tiptir (5.5)
+		c.checkIndexAssign(s, valType)                      // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
+		c.checkElementAssign(s, valType)                    // öğe tipi bilinen kaba başka tipte değer (3.6, 3.7)
+		c.checkJSONIndexAssign(s)                           // TR_JSON değiştirilemez (3.7a, json_values.go)
 	}
 }

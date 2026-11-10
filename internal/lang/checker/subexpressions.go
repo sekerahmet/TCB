@@ -66,6 +66,9 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		return indexType(left, index), true
 	case *ast.MemberExpression:
 		obj := c.inferExpression(e.Object)
+		if t := c.variantType(e, false); t != "" {
+			return t, true // durumlu tipin alansız durumu: C.Yok (7.7)
+		}
 		if t := c.memberValueType(e, obj, false); t != "" {
 			return t, true // tipi bilinen çekirdek alıcının özelliği (1.2, 13.9)
 		}

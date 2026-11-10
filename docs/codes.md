@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 739 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 88 metot, 131 özellik, 193 adlı argüman.
+Toplam 745 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 165 fonksiyon, 11 sabit, 92 metot, 130 özellik, 193 adlı argüman.
 
 ## İçindekiler
 
@@ -726,7 +726,7 @@ en: try { throw "okunamadı" } catch e { print(Error("yüklenemedi", cause: e).c
 tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden: e).neden) }
 ```
 
-Üyeleri: `.TR_cause`, `.TR_code`, `.TR_suppressed`, `.TR_value` · İlişkili: `TR_catch`, `TR_throw`, `TR_Message`
+Üyeleri: `.TR_cause`, `.TR_code`, `.TR_suppressed`, `.TR_text(...)`, `.TR_value` · İlişkili: `TR_catch`, `TR_throw`, `TR_Message`
 
 #### `TR_EventBroadcast` (`TR_type_EventBroadcast`, `OlayYayını`)
 
@@ -963,7 +963,7 @@ en: var i = Message("H6903", -1); print(Type(i), i)
 tr: değişken i = İleti("H6903", -1); yazdır(Tip(i), i)
 ```
 
-İlişkili: `TR_error_code(...)`, `TR_assert(...)`, `TR_throw`
+Üyeleri: `.TR_text(...)` · İlişkili: `TR_error_code(...)`, `TR_assert(...)`, `TR_throw`
 
 #### `TR_Muon` (`TR_type_Muon`, `Muon`)
 
@@ -1219,7 +1219,7 @@ en: var ad: String = "şeker"; print(Type(ad), ad[-1], String(12) + "a", String(
 tr: değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", Metin([1, 2]))
 ```
 
-Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
+Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_is_alpha(...)`, `.TR_is_digit(...)`, `.TR_is_space(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
 
 #### `TR_StructType` (`TR_type_StructType`, `YapıTanımı`)
 
@@ -1560,6 +1560,25 @@ tr: doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 
 İlişkili: `TR_assert_equal(...)`, `TR_test`
 
+#### `TR_assert_close(...)` (`TR_fn_assert_close`, `yakın_olmalı`)
+
+    yakın_olmalı(Ondalık | Tensör, Ondalık | Tensör, [Herhangi], göreli_pay: Tam | Ondalık = yok, mutlak_pay: Tam | Ondalık = yok) → YokTipi
+
+İki ondalık sayıyı ya da iki ondalık tensörü toleransla karşılaştırır: bir öğede |beklenen - gerçek|, mutlak_pay + göreli_pay · en büyük(|beklenen|, |gerçek|)'ü aşarsa en büyük farkı, yerini ve payları söyleyen hata fırlatır; yakınsa değer vermez. Varsayılan paylar daha az hassas işlenenin hassasiyetindendir (sayıda float64'ünkiler); eksi ya da NaN pay hatadır. Sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye yakın değildir; şekiller aynı olmalıdır, yayın yoktur.
+
+```tr
+TR_assert_close(0.3, 0.1 + 0.2); TR_assert_close(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.001]), TR_atol: 0.01); TR_print("yakın")
+```
+
+Görünümü:
+
+```text
+en: assert_close(0.3, 0.1 + 0.2); assert_close(Tensor([1.0, 2.0]), Tensor([1.0, 2.001]), atol: 0.01); print("yakın")
+tr: yakın_olmalı(0.3, 0.1 + 0.2); yakın_olmalı(Tensör([1.0, 2.0]), Tensör([1.0, 2.001]), mutlak_pay: 0.01); yazdır("yakın")
+```
+
+İlişkili: `TR_assert_equal(...)`, `TR_all_close(...)`, `TR_rtol:`, `TR_atol:`
+
 #### `TR_assert_equal(...)` (`TR_fn_assert_equal`, `eşit_olmalı`)
 
     eşit_olmalı(Herhangi, Herhangi, [Herhangi]) → YokTipi
@@ -1679,6 +1698,25 @@ tr: yazdır(tavan(3.2), tavan(7), tavan(Tensör([-1.5, 2.5])).değer)
 ```
 
 İlişkili: `TR_floor(...)`, `TR_round(...)`
+
+#### `TR_chr(...)` (`TR_fn_chr`, `koddan_karakter`)
+
+    koddan_karakter(Tam) → Metin
+
+Bir Unicode kod noktasından tek karakterlik metin verir; eksi, 0x10FFFF'ten büyük ya da 0xD800–0xDFFF arası sayı hatadır.
+
+```tr
+TR_print(TR_chr(351), TR_chr(65))
+```
+
+Görünümü:
+
+```text
+en: print(chr(351), chr(65))
+tr: yazdır(koddan_karakter(351), koddan_karakter(65))
+```
+
+İlişkili: `TR_ord(...)`
 
 #### `TR_clamp(...)` (`TR_fn_clamp`, `sınırla`)
 
@@ -2289,22 +2327,22 @@ tr: yazdır(hann_penceresi(4, periyodik: doğru).değer)
 
 #### `TR_input(...)` (`TR_fn_input`, `girdi`)
 
-    girdi([Herhangi]) → Metin
+    girdi([Herhangi]) → Metin?
 
-Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır, giriş bittiyse boş metin döner.
+Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır. Boş satırda boş metin, giriş bittiyse yok döner (Metin?): varsayılan ?? ile verilir. Yok bir kez gelir; ondan sonraki çağrı hatadır, döngü yok'u sınayıp biter.
 
 ```tr
-TR_var ad = TR_input("Adınız: "); TR_print("Merhaba " + ad)
+TR_var ad = TR_input("Adınız: ") ?? ""; TR_print("Merhaba " + ad)
 ```
 
 Görünümü:
 
 ```text
-en: var ad = input("Adınız: "); print("Merhaba " + ad)
-tr: değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
+en: var ad = input("Adınız: ") ?? ""; print("Merhaba " + ad)
+tr: değişken ad = girdi("Adınız: ") ?? ""; yazdır("Merhaba " + ad)
 ```
 
-İlişkili: `TR_print(...)`
+İlişkili: `TR_print(...)`, `TR_none`
 
 #### `TR_int_to_bytes(...)` (`TR_fn_int_to_bytes`, `tam_sayı_baytları`)
 
@@ -2693,9 +2731,9 @@ tr: değişken b = gizli_belirteç(); değişken m = maskeli_akış(); değişke
 
 #### `TR_max(...)` (`TR_fn_max`, `max`)
 
-    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
-Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en büyük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_max([2.0, 1.5]), TR_max(3, 7, 5), TR_max(TR_Tensor([[1, 5], [3, 2]]), TR_dim: 0).TR_tolist)
@@ -2788,9 +2826,9 @@ tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayıs
 
 #### `TR_min(...)` (`TR_fn_min`, `min`)
 
-    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
-Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en küçük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_min([3, 1, 2]), TR_min(4, 2.5), TR_min(1, 1.5))
@@ -2930,6 +2968,25 @@ tr: yazdır(birler([2, 2], tür: "bf16").değer)
     yalnızca_2b()
 
 
+
+#### `TR_ord(...)` (`TR_fn_ord`, `karakter_kodu`)
+
+    karakter_kodu(Metin) → Tam
+
+Tek karakterlik bir metnin Unicode kod noktasını (Tam) verir; uzunluğu 1 olmayan metin hatadır. Kod noktası bayt değildir: karakter_kodu("ş") 351'dir, Baytlar("ş") iki bayttır.
+
+```tr
+TR_print(TR_ord("ş"), TR_ord("A"))
+```
+
+Görünümü:
+
+```text
+en: print(ord("ş"), ord("A"))
+tr: yazdır(karakter_kodu("ş"), karakter_kodu("A"))
+```
+
+İlişkili: `TR_chr(...)`, `TR_Bytes`
 
 #### `TR_orthogonalize(...)` (`TR_fn_orthogonalize`, `dikleştir`)
 
@@ -4043,7 +4100,7 @@ en: print(all_close(Tensor([1.0]), Tensor([1.1]), atol: 0.2))
 tr: yazdır(hepsi_yakın(Tensör([1.0]), Tensör([1.1]), mutlak_pay: 0.2))
 ```
 
-Kullananlar: `TR_all_close(...)` · İlişkili: `TR_rtol:`, `TR_all_close(...)`
+Kullananlar: `TR_all_close(...)`, `TR_assert_close(...)` · İlişkili: `TR_rtol:`, `TR_all_close(...)`
 
 #### `TR_backward:` (`TR_arg_backward`, `geri`)
 
@@ -5448,7 +5505,7 @@ en: print(all_close(Tensor([100.0]), Tensor([101.0]), rtol: 0.02))
 tr: yazdır(hepsi_yakın(Tensör([100.0]), Tensör([101.0]), göreli_pay: 0.02))
 ```
 
-Kullananlar: `TR_all_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
+Kullananlar: `TR_all_close(...)`, `TR_assert_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
 
 #### `TR_sample_rate:` (`TR_arg_sample_rate`, `örnekleme_hızı`)
 
@@ -6038,7 +6095,7 @@ tr: değişken g = eşzamanlı { uyu(10) }; g.iptal_et(); yazdır(hata_kodu { g.
 
 #### `.TR_cause` (`TR_mem_cause`, `neden`)
 
-    Hata.neden → Hata
+    Hata.neden → Hata?
 
 Hatanın nedeni olan hatadır (Hata(v, neden: e) ile kurulur); yoksa yok. Parantezsiz yazılan bir özelliktir.
 
@@ -6101,7 +6158,7 @@ tr: değişken p = program_başlat("gofmt", []); p.yaz(Baytlar("package a\n")); 
 
 #### `.TR_code` (`TR_mem_code`, `kod`)
 
-    Hata.kod → Metin
+    Hata.kod → Metin?
 
 Hatanın ileti kodudur ("H6903" gibi bir Metin); düz metinle ya da durumlu tip değeriyle fırlatılan hatada yok. Parantezsiz yazılan bir özelliktir.
 
@@ -6396,7 +6453,7 @@ tr: değişken m = maskeli_akış(); yazdır(m.adım("merhaba"), m.bitir(), m.bi
 
 #### `.TR_first` (`TR_mem_first`, `ilk`)
 
-    Liste.ilk → Herhangi
+    Liste.ilk → Herhangi?
 
 Listenin ilk elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir.
 
@@ -6439,9 +6496,9 @@ tr: yazdır([5, 6, 7].ilk)
 
 #### `.TR_get(...)` (`TR_mem_get`, `varsa_al`)
 
-    Sözlük.varsa_al(Herhangi) → Herhangi
-    Başlıklar.varsa_al(Metin) → Metin
-    Liste.varsa_al(Tam) → Herhangi
+    Sözlük.varsa_al(Herhangi) → Herhangi?
+    Başlıklar.varsa_al(Metin) → Metin?
+    Liste.varsa_al(Tam) → Herhangi?
     Metin.varsa_al(Tam) → Metin | YokTipi
 
 i. öğeyi (negatif indeks sondan sayar) ya da sözlükte ve JSON nesnesinde k anahtarının değerini verir; yoksa yok döner. Köşeli parantezle okuma (l[i], d["k"]) olmayan öğede hata verir; öğenin olmayabileceği bilinçli durumda varsa_al ile ?? birlikte kullanılır.
@@ -6520,8 +6577,8 @@ tr: yazdır(HTTPİsteği(başlıklar: {"Content-Type": "text/plain"}).başlıkla
 
 #### `.TR_index_of(...)` (`TR_mem_index_of`, `konumu`)
 
-    Liste.konumu(Herhangi) → Tam
-    Metin.konumu(Metin) → Tam
+    Liste.konumu(Herhangi) → Tam?
+    Metin.konumu(Metin) → Tam?
 
 Metinde alt metnin, listede değerin (== ile) ilk konumunu verir; bulunamazsa yok verir. Metinde konum karakter sayısıdır, bayt değil.
 
@@ -6541,6 +6598,44 @@ tr: yazdır("merhaba".konumu("ha"), [10, 20].konumu(20), [10].konumu(30) ?? -1)
 #### `.TR_input_norm` (`TR_mem_input_norm`, `norm1`)
 
 
+
+#### `.TR_is_alpha(...)` (`TR_mem_is_alpha`, `harf_mı`)
+
+    Metin.harf_mı() → Mantık
+
+Metin boş değilse ve her karakteri Unicode harfiyse (genel kategori L) doğru verir; boş metinde yanlış. Sınıf her yazıda aynıdır: ğ ve 字 harftir.
+
+```tr
+TR_print("ğ字".TR_is_alpha(), "a1".TR_is_alpha(), "".TR_is_alpha())
+```
+
+Görünümü:
+
+```text
+en: print("ğ字".is_alpha(), "a1".is_alpha(), "".is_alpha())
+tr: yazdır("ğ字".harf_mı(), "a1".harf_mı(), "".harf_mı())
+```
+
+İlişkili: `.TR_is_digit(...)`, `.TR_is_space(...)`
+
+#### `.TR_is_digit(...)` (`TR_mem_is_digit`, `rakam_mı`)
+
+    Metin.rakam_mı() → Mantık
+
+Metin boş değilse ve her karakteri Unicode ondalık rakamıysa (Nd) doğru verir; boş metinde yanlış. ² rakam değildir, Arapça ٣ rakamdır; eksi işareti ve nokta rakam değildir.
+
+```tr
+TR_print("2026".TR_is_digit(), "²".TR_is_digit(), "-1".TR_is_digit())
+```
+
+Görünümü:
+
+```text
+en: print("2026".is_digit(), "²".is_digit(), "-1".is_digit())
+tr: yazdır("2026".rakam_mı(), "²".rakam_mı(), "-1".rakam_mı())
+```
+
+İlişkili: `.TR_is_alpha(...)`, `.TR_is_space(...)`
 
 #### `.TR_is_dir` (`TR_mem_is_dir`, `klasör_mü`)
 
@@ -6579,6 +6674,25 @@ tr: klasör_oluştur("bir_klasör"); yazdır(Yol("bir_klasör").dosya_mı)
 ```
 
 İlişkili: `.TR_exists`, `.TR_is_dir`
+
+#### `.TR_is_space(...)` (`TR_mem_is_space`, `boşluk_mu`)
+
+    Metin.boşluk_mu() → Mantık
+
+Metin boş değilse ve her karakteri böl()'ün böldüğü Unicode boşluğuysa (sekme ve satır sonu dahil) doğru verir; boş metinde yanlış.
+
+```tr
+TR_print(" \t".TR_is_space(), "a b".TR_is_space())
+```
+
+Görünümü:
+
+```text
+en: print(" \t".is_space(), "a b".is_space())
+tr: yazdır(" \t".boşluk_mu(), "a b".boşluk_mu())
+```
+
+İlişkili: `.TR_is_alpha(...)`, `.TR_is_digit(...)`, `.TR_strip(...)`
 
 #### `.TR_item(...)` (`TR_mem_item`, `tek_değer`)
 
@@ -6667,7 +6781,7 @@ tr: yazdır({"ad": "Ali", "puan": 30}.anahtarlar())
 
 #### `.TR_last` (`TR_mem_last`, `son`)
 
-    Liste.son → Herhangi
+    Liste.son → Herhangi?
 
 Listenin son elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir.
 
@@ -7199,7 +7313,7 @@ tr: yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1, (a
 
 #### `.TR_remove(...)` (`TR_mem_remove`, `sil`)
 
-    Sözlük.sil(Herhangi) → Herhangi
+    Sözlük.sil(Herhangi) → Herhangi?
 
 Anahtarı sözlükten yerinde siler ve değerini verir; anahtar yoksa yok verir.
 
@@ -7721,20 +7835,22 @@ tr: değişken ç = İlerleme(); ç.güncelle(); yazdır(ç.durdur())
 
 #### `.TR_strip(...)` (`TR_mem_strip`, `kırp`)
 
-    Metin.kırp() → Metin
+    Metin.kırp([Metin]) → Metin
 
-Metnin başındaki ve sonundaki boşlukları (satır sonları dahil) atar. Yeni bir metin verir.
+Argümansız, metnin başındaki ve sonundaki Unicode boşlukları (satır sonları dahil) atar; argümanla iki uçtan argümanda geçen her karakteri atar: argüman bir karakter kümesidir, önek ya da sonek değil; boş argüman bir şey kırpmaz. Yeni bir metin verir.
 
 ```tr
-TR_print("  merhaba  ".TR_strip())
+TR_print("  merhaba  ".TR_strip(), "..a.".TR_strip("."))
 ```
 
 Görünümü:
 
 ```text
-en: print("  merhaba  ".strip())
-tr: yazdır("  merhaba  ".kırp())
+en: print("  merhaba  ".strip(), "..a.".strip("."))
+tr: yazdır("  merhaba  ".kırp(), "..a.".kırp("."))
 ```
+
+İlişkili: `.TR_split(...)`, `.TR_is_space(...)`
 
 #### `.TR_subscribe(...)` (`TR_mem_subscribe`, `abone_et`)
 
@@ -7786,9 +7902,25 @@ tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlat�
 
 
 
-#### `.TR_text` (`TR_mem_text`, `metin`)
+#### `.TR_text(...)` (`TR_mem_text`, `metin`)
 
+    Hata.metin(Metin) → Metin
+    İleti.metin(Metin) → Metin
 
+Hatanın ya da iletinin verilen dildeki okunur metnidir; dil kodu zorunludur ("tr", "en"). Katalog iletisi o dilin kataloğundan kurulur; düz metinde ve durumlu tip değerinde hatanın metni verilir. Kataloğun dilleri dışındaki kod çalışma hatasıdır (8.3, 8.5).
+
+```tr
+TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_print(e.TR_text("en")) }
+```
+
+Görünümü:
+
+```text
+en: try { throw Message("H6903", -1) } catch e { print(e.text("en")) }
+tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e.metin("en")) }
+```
+
+İlişkili: `.TR_code`, `TR_Message`
 
 #### `.TR_threshold` (`TR_mem_threshold`, `eşik`)
 

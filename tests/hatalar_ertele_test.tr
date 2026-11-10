@@ -89,6 +89,33 @@ TR_test "8.3 çalışma hatası kodu ve iletisiyle yakalanır; hatanın metni il
     }
 }
 
+TR_test "8.3 .TR_text hatanın dil koduyla istenen dildeki okunur metnidir; dil kodu zorunludur, kataloğun dilleri dışındaki kod hatadır" {
+    TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h {
+        TR_assert_equal("pencere negatif olamaz, -1 verildi", h.TR_text("tr"))
+        TR_assert_equal("window cannot be negative, got -1", h.TR_text("en"))
+        # iletinin kendi .TR_text'iyle aynı (8.5); hatanın metni dilden bağımsız kalır
+        TR_assert_equal(h.TR_text("en"), h.TR_value.TR_text("en"))
+        TR_assert_equal(`Message("H6903", -1)`, TR_String(h))
+    }
+    TR_assert_equal("pencere negatif olamaz, -1 verildi", TR_Message("H6903", -1).TR_text("tr"))
+    # çalışma hatası da kendi iletisiyle
+    TR_try { TR_var z = [1] - 1 } TR_catch h {
+        TR_assert_equal(`the "-" operation is not supported between types List and Int`, h.TR_text("en"))
+    }
+    # düz metinde ve durumlu tip değerinde hatanın metni
+    TR_try { TR_throw "düz" } TR_catch h { TR_assert_equal("düz", h.TR_text("en")) }
+    TR_try { TR_throw AyarHatası.Bozuk(3) } TR_catch h { TR_assert_equal(TR_String(h), h.TR_text("tr")) }
+    # dil kodu zorunlu; kataloğu olmayan dil, boş kod ve metin olmayan argüman hatadır
+    TR_try { TR_throw "x" } TR_catch h {
+        TR_assert_equal("H2550", TR_error_code { h.TR_text("de") })
+        TR_assert_equal("H2550", TR_error_code { h.TR_text("") })
+        TR_assert_equal("H2550", TR_error_code { h.TR_text("TR") })
+        TR_assert_equal("H2551", TR_error_code { h.TR_text() })
+        TR_assert_equal("H2551", TR_error_code { h.TR_text("tr", "en") })
+    }
+    # kitaplığın kaydında .TR_text bir alandır, çağrılmaz: tests/whisper_model_test.tr
+}
+
 TR_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
     TR_func iç() { TR_throw "derinde" }
     TR_func dış() { iç() }

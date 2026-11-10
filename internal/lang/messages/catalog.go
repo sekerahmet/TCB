@@ -26,6 +26,17 @@ var enFile []byte
 // bir dilde metni olmayan kod Türkçe gösterilir (Türkçeye ayrıcalık tanıyan geçici istisna).
 var languageFiles = map[string][]byte{"tr": trFile, "en": enFile}
 
+// CatalogLanguages are the language codes that have a message catalog, sorted ("en", "tr"): the
+// languages in which a message's text can be built (.TR_text("tr"), 8.3).
+func CatalogLanguages() []string {
+	langs := make([]string, 0, len(languageFiles))
+	for lang := range languageFiles {
+		langs = append(langs, lang)
+	}
+	slices.Sort(langs)
+	return langs
+}
+
 // Catalog is one language's message templates, checked against the definitions.
 type Catalog struct {
 	Language  string

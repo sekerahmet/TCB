@@ -82,6 +82,9 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 	if _, unverified := ReturnsNotVerified[k]; unverified || k == codes.None {
 		return ""
 	}
+	if t := optionalReturn(k); t != "" {
+		return t
+	}
 	ret, ok := SingleReturn(k)
 	if ok && ret == codes.TypeBuiltinFunction {
 		return typeFunction // yerleşik fonksiyon bir fonksiyon değeridir (13.9)
@@ -99,8 +102,9 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 
 // extremeType TR_max ve TR_min'in sayı çağrısının tipidir (13.1, işlecin tipi, 4.2): değerler (ya da
 // tek liste argümanının öğeleri) hep TR_Int ise TR_Int, aralarında TR_Float varsa TR_Float
-// (TR_max(2, 1.5) → 2.0). Adlı argüman (tensör), tek sayı, anahtar fonksiyonu, sayı olmayan ya da
-// tipi bilinmeyen değer ""; çağrı TR_max ya da TR_min değilse de "".
+// (TR_max(2, 1.5) → 2.0). Anahtar fonksiyonlu biçim (liste ve fonksiyon) listenin öğe tipini verir:
+// sonuç listenin bir öğesidir. Adlı argüman (tensör), tek sayı, sayı olmayan ya da tipi bilinmeyen
+// değer ""; çağrı TR_max ya da TR_min değilse de "".
 func (c *Checker) extremeType(e *ast.CallExpression, k codes.Code) string {
 	if k != codes.FnMax && k != codes.FnMin || len(e.NamedArgs) != 0 || len(e.Arguments) == 0 {
 		return ""
@@ -108,6 +112,10 @@ func (c *Checker) extremeType(e *ast.CallExpression, k codes.Code) string {
 	types := make([]string, len(e.Arguments))
 	for i, a := range e.Arguments {
 		types[i] = c.itemTypes[a]
+	}
+	if list := shapeOf(types[0]); len(types) == 2 && list.base == typeList && !list.optional && len(list.args) == 1 &&
+		shapeOf(types[1]).base == typeFunction {
+		return list.args[0]
 	}
 	if len(types) == 1 {
 		list := shapeOf(types[0])
@@ -144,4 +152,18 @@ func (c *Checker) roundType(e *ast.CallExpression, k codes.Code) string {
 		return typeInt
 	}
 	return t
+}
+
+// optionalReturn dönüşü tek bir isteğe bağlı tip olan yerleşik fonksiyonun tipidir (TR_input
+// TR_String? verir, 13.1): değer asıl tipin yerinde kullanılamaz, önce açılır (3.5). Başka dönüş "".
+func optionalReturn(k codes.Code) string {
+	def, ok := codes.DefinitionOf(k)
+	if !ok || k.IsLibrary() || def.Kind != codes.KindFunction {
+		return ""
+	}
+	r := def.Signature.Return
+	if len(r.Types) != 1 || !(r.Optional || strings.HasSuffix(r.Text[0], "?")) {
+		return ""
+	}
+	return MemberReturn(r.Text[0], "")
 }

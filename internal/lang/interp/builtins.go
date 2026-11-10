@@ -25,6 +25,8 @@ var coreBuiltins = [...]struct {
 	{codes.FnSum, sumBuiltin},
 	{codes.FnMin, minBuiltin},
 	{codes.FnMax, maxBuiltin},
+	{codes.FnOrd, ordBuiltin},
+	{codes.FnChr, chrBuiltin},
 	{codes.FnAbs, absBuiltin},
 	{codes.FnSqrt, sqrtBuiltin},
 	{codes.FnRound, roundBuiltin},
@@ -65,6 +67,9 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) > 1 {
 		return nil, ArgCountError(codes.FnInput, Counts(0, 1), len(args), "", messages.Text(messages.H2300))
 	}
+	if y.inputHasEnded() {
+		return nil, messages.New(messages.H2561) // TR_none'dan sonraki çağrı (13.1; Python'un EOFError'ı)
+	}
 	if len(args) > 0 {
 		y.WriteOutput(y.Out, y.textOf(args[0]))
 	}
@@ -74,6 +79,10 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 	if readErr != nil && readErr != io.EOF && line == "" {
 		return nil, messages.New(messages.H2507, CallPrefix(codes.FnInput), turkish.FileErrorReason("", readErr))
+	}
+	if readErr == io.EOF && line == "" {
+		y.endInput()
+		return Null, nil // giriş bitti (13.1): boş satır "" verir, girdi sonu bir kez TR_none
 	}
 	line = strings.TrimRight(line, "\r\n")
 	return &StringVal{Val: line}, nil
@@ -95,12 +104,66 @@ func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // minBuiltin min() yerleşiğidir.
 // min/max: tek bir liste ya da birden çok sayı alır; Tam ile Ondalık karışırsa sonuç Ondalık'tır (extreme)
 func minBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if list, key, ok := keyedArgs(args); ok {
+		return keyedExtreme(y, codes.FnMin, list, key, false)
+	}
 	return extremeArgs(codes.FnMin, args, false)
 }
 
 // maxBuiltin max() yerleşiğidir.
 func maxBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if list, key, ok := keyedArgs(args); ok {
+		return keyedExtreme(y, codes.FnMax, list, key, true)
+	}
 	return extremeArgs(codes.FnMax, args, true)
+}
+
+// keyedArgs anahtar fonksiyonlu biçimdir (13.1): bir liste ve bir fonksiyon.
+func keyedArgs(args []Value) (*ListVal, Value, bool) {
+	if len(args) != 2 || !callable(args[1]) {
+		return nil, nil, false
+	}
+	list, ok := args[0].(*ListVal)
+	return list, args[1], ok
+}
+
+// keyedExtreme TR_max(l, f) ve TR_min(l, f): anahtarı en büyük (en küçük) öğe. Anahtar fonksiyonu her
+// öğe için bir kez, sırayla çağrılır (13.3); çağrı listeye öğe ekler ya da çıkarırsa 5.7'deki gibi
+// hatadır. Anahtarlar 13.10'un sıralama sırasıyla karşılaştırılır (NaN anahtar en büyük); eşitlerde
+// ilk öğe döner. NaN yayma yalnız düz sayı listesindedir.
+func keyedExtreme(y *VM, kd codes.Code, list *ListVal, key Value, upper bool) (Value, error) {
+	if fn, ok := key.(*FuncVal); ok && len(fn.Parameters) != 1 {
+		return nil, messages.New(messages.H2558, CallPrefix(kd), len(fn.Parameters))
+	}
+	if len(list.Elements) == 0 {
+		return extreme(kd, nil, upper, true)
+	}
+	items := append([]Value(nil), list.Elements...)
+	keys := make([]Value, len(items))
+	mark := markOf(list)
+	for i, item := range items {
+		k, err := y.ApplyFunction(key, []Value{item}, nil, 0)
+		if err != nil {
+			return nil, err
+		}
+		if err := mark.changed(list, 0); err != nil {
+			return nil, err
+		}
+		keys[i] = k
+	}
+	if a, b := sortFault(keys); a != nil {
+		if b == nil {
+			return nil, messages.New(messages.H2556, CallPrefix(kd), TypeAndSummary(a))
+		}
+		return nil, messages.New(messages.H2557, CallPrefix(kd), TypeAndSummary(a), TypeAndSummary(b))
+	}
+	picked := 0
+	for i := 1; i < len(keys); i++ {
+		if c := sortOrder(keys[i], keys[picked]); upper && c > 0 || !upper && c < 0 {
+			picked = i
+		}
+	}
+	return items[picked], nil
 }
 
 // absBuiltin mutlak() yerleşiğidir.

@@ -1,6 +1,6 @@
 # TR 4
 # 06 — Girdi: kullanıcıdan veri okumak.
-# Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek,
+# Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek, karakter kodu,
 # girdi boşken varsayılana düşmek.
 # Önceki örnekten: tipler ve dönüşümler (03), metin (04), koşullar (05).
 # Çalıştırma (proje kökünden): trlang examples/tr/06_girdi.tr
@@ -8,16 +8,25 @@
 #   Girdi gelmeyen ortamlarda (standart giriş boş ya da kapalı) program varsayılanlarla sürer.
 #   Hata ayıklayıcıda (F5) girdi() çalışmaz: oturumda standart giriş yoktur; Ctrl+F5 ya da terminalde çalıştırın.
 
-# girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı Metin olarak verir.
-# Hiçbir şey yazılmazsa boş metin ("") gelir.
-TR_var ad = TR_input("Adın nedir? ")
+# girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı verir (Metin?).
+# Hiçbir şey yazılmazsa boş metin (""), giriş bittiyse yok gelir; ?? "" ikisini birleştirir.
+# Giriş bir kez yok verdikten sonra girdi() yeniden çağrılmaz: o çağrı hatadır (13.1).
+TR_var ad_satırı = TR_input("Adın nedir? ")
+TR_var ad = ad_satırı ?? ""
 TR_if ad == "" {
     ad = "Misafir"
 }
 TR_print("Merhaba, \(ad)!")
 
-# girdi her zaman Metin verir; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir.
-TR_var yaş_metni = TR_input("Yaşın kaç? ")
+# karakter_kodu(k) tek karakterin Unicode kod noktasını, koddan_karakter(n) koddan karakteri verir.
+TR_var kod = TR_ord(ad[0])
+TR_print("Adının ilk harfi \(TR_chr(kod)), kodu \(kod).")
+
+# girdi sayı vermez; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir. Giriş bittiyse ikinci soru sorulmaz.
+TR_var yaş_metni = ""
+TR_if ad_satırı != TR_none {
+    yaş_metni = TR_input("Yaşın kaç? ") ?? ""
+}
 TR_var yaş = 20
 TR_if yaş_metni != "" {
     yaş = TR_Int(yaş_metni)

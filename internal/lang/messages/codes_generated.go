@@ -141,6 +141,8 @@ const (
 	H0300 Code = 300  // `{#defer}` yalnız blokla yazılır, çağrı yazımı yoktur: `{#defer} {{ {call} }}`
 	H0301 Code = 301  // '{name}' metot değil, fonksiyondur ve önce yol yazılır: `{name}(y, x)` (`y` yol, `x` içeriktir)
 	H0302 Code = 302  //  ('{written}' TR'de yok; yerine '{example}' yazılır)
+	H0310 Code = 310  // TR'de tek öğeli demet yok: demetin en az iki öğesi vardır (`(x, y)`); tek değer için virgülü silin (`(x)` değerin kendisidir), tek öğeli bir dizi için liste yazın: `[x]`
+	H0311 Code = 311  // TR'de tek öğeli demet tipi yok: demet tipinin en az iki öğesi vardır (`(A, B)`); tek tip için virgülü silin (`(T)` tipin kendisidir), tek öğeli bir dizi için liste tipi yazın: `{#List}[T]`
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -207,6 +209,9 @@ const (
 	H1151 Code = 1151 // '{op}' {type} değerini yalnız `{#none}` değişmeziyle karşılaştırır: tensör tutan değer eşitlenemez, isteğe bağlısı da (3.5, 15.5); ikisini önce `{#none}`'la sınayıp açın, sonra tensörü `{#equal}(a, b)` ile karşılaştırın
 	H1152 Code = 1152 // '{op}' {type} değerlerini karşılaştıramaz: fonksiyon ve fonksiyon tutan değer eşitlenemez, görünüşü aynı iki fonksiyon da eşit sayılmaz (4.5); fonksiyonların sonuçlarını karşılaştırın: f(x) == g(x)
 	H1153 Code = 1153 // '{op}' {type} değerlerini karşılaştıramaz: arayüz değeri ve onu tutan değer karşılaştırılamaz (7.8); asıl değerlerin alanlarını karşılaştırın
+	H1160 Code = 1160 // `{target}` hedefinin yeri, aynı atamada solunda atanan `{name}` yerine bakıyor (kap öğesinde indeks fark etmez; 5.3): yer atamadan önce, eski değerle hesaplanır (Python'da yeni değerle); {split, select, empty {değerleri önce ayrı değişkenlere alıp atamayı ikiye ayırın} other {atamayı ikiye ayırın: `{split}`}}
+	H1161 Code = 1161 // dalların hepsi `{#none}` veriyor ve beklenen tip yok (5.5, 5.6): değerin asıl tipi bilinemez (3.13); tipi yazılmış bir yere verin (`{#var} y: {#Int}? = ...`) ya da dallardan birinde değer verin
+	H1162 Code = 1162 // `{call}` giriş bitince `{#none}` verir ve `{#none} != {other}` hep doğrudur: bu döngü girdi bitince durmaz (13.1); girdi sonunda da durmak için `({call} ?? {other}) != {other}` yazın ya da satırı bir değişkene alıp `{#none}`'ı sınayın
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
@@ -336,7 +341,6 @@ const (
 	H2438 Code = 2438 // {error}{suggestion}
 	H2439 Code = 2439 // {range} ('..') uçları {number} sayı olmalıdır
 	H2440 Code = 2440 // '{name}' parametresi henüz tanımlanmadı; varsayılan değer yalnızca kendisinden önceki parametreleri görür
-	H2441 Code = 2441 // {text}
 	H2442 Code = 2442 // <ok fonksiyonu>
 	H2443 Code = 2443 // {type} tipi üzerinde döngü kurulamaz
 	H2444 Code = 2444 // {type} sayı taşması (-({value})); ondalık sonuç için örn. -({value}.0) yazın
@@ -421,6 +425,18 @@ const (
 	H2535 Code = 2535 // {type} tipinde {prop|q} metodu yok; listeden öğe konumuyla çıkarılır: `l.{#remove_at}(i)`
 	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'trlang {show}' ile yazılır)
+	H2550 Code = 2550 // {lang|q} dilinde ileti kataloğu yok (8.3): `.{#text}`'in dil kodu {langs|list} olur: `e.{#text}("en")`
+	H2551 Code = 2551 // `.{#text}` tek argüman alır, dil kodunu (8.3): `e.{#text}("tr")`; {given} argüman verildi
+	H2552 Code = 2552 // {fn}: {arg} eksi ya da NaN olamaz, {given} verildi (12.4a, 15.18a); pay 0 ya da artı bir sayıdır, verilmezse işlenenlerin hassasiyetinden gelir
+	H2553 Code = 2553 // yakınlık başarısız{message, select, empty {} other {: {message}}} — en büyük fark {diff}{place, select, empty {} other {, {place} öğesinde}}: beklenen {expected}, gerçek {actual} (`{#rtol}` {rtol}, `{#atol}` {atol}; 12.4a)
+	H2554 Code = 2554 // yakınlık başarısız{message, select, empty {} other {: {message}}} — şekiller farklı: beklenen {expected}, gerçek {actual}; yayın yoktur (12.4a)
+	H2555 Code = 2555 // {fn}: {order}. argüman ondalık sayı ya da ondalık tensör olmalı, {given} verildi (12.4a); tam sayı, metin ve mantık değeri toleransla değil eşitlikle sınanır
+	H2556 Code = 2556 // {fn}: anahtar fonksiyonu {given} verdi, bu sıralanamaz; anahtar sayı, metin ya da öğeleri sıralanabilen bir demet olmalıdır (13.1, 13.10)
+	H2557 Code = 2557 // {fn}: anahtar fonksiyonunun verdiği {a} ile {b} karşılaştırılamaz; anahtarlar yalnızca sayı, yalnızca metin ya da yalnızca öğeleri sıralanabilen demetler olmalıdır (13.1, 13.10)
+	H2558 Code = 2558 // {fn}: anahtar fonksiyonu tek parametre alır (öğe) ve öğenin anahtarını verir; {count} parametreli fonksiyon verildi, karşılaştırıcı anahtar değildir (13.1)
+	H2559 Code = 2559 // `{#ord}(k)`'nin `k`'si tek karakterlik bir metindir, {given|q} {length} karakterdir (13.1); her karakterin kodu ayrı alınır: `{#ord}({given|q}[0])`
+	H2560 Code = 2560 // `{#chr}(n)`'nin `n`'si bir Unicode skaler değeridir: 0 ile 0x10FFFF arası, 0xD800–0xDFFF vekil aralığı hariç (13.1, 2.6); {given} verildi
+	H2561 Code = 2561 // `{#input}()` girdi bittikten sonra yeniden çağrıldı: önceki çağrı girdinin sonunu `{#none}` ile bildirdi, ondan sonra okunacak satır yok (13.1); satırı bir değişkene alıp `{#none}`'ı sınayın ve döngüyü bitirin: `{#var} s = {#input}()`, sonra `{#if} s == {#none} {{ {#break} }}`
 	H2600 Code = 2600 // koşul bir mantık değeri ({@Bool}) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
 	H2601 Code = 2601 // `{#and}`, `{#or}` ve `{#not}` yalnız mantık değeri ({@Bool}) alır; {type} verildi. Açık bir sınama yazın: `x.{#length} > 0`, `x != {#none}`, `x != 0`
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın

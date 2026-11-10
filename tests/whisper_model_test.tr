@@ -557,3 +557,9 @@ TR_test "25.3 parçalayıcıda özel parça yoksa hata" {
     TR_var model = TR_pretrained_whisper(klasör(çeviri_ayarı(), çeviri_üretimi(), çeviri_ağırlıkları()))
     TR_assert_equal("H7099", TR_error_code { model.TR_transcribe(ses_kur(800), TR_language: "en") })
 }
+
+TR_test "25.2 kaydın .TR_text'i bir alandır, çağrılmaz (hatanın .TR_text metodundan ayrı, 8.3)" {
+    TR_var k = TR_Segment(0.0, 1.0, "merhaba", [])
+    TR_assert_equal("merhaba", k.TR_text)
+    TR_assert_equal("H2421", TR_error_code { TR_var m = k.TR_text("tr") })
+}

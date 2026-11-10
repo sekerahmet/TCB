@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
@@ -88,7 +90,78 @@ func (c *Checker) inferIf(e *ast.IfExpression, used bool) string {
 	if !used {
 		return typeAny
 	}
+	c.noteNoneBranches(e, &b)
 	return b.common(c)
+}
+
+// noneBranches dalları hepsi TR_none veren, değeri kullanılan TR_if ve TR_match ifadeleridir (5.5,
+// 5.6): tipleri beklenen tipten gelir; beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in
+// argümanı, TR_Any) asıl tip bilinemez, denetim hatasıdır (H1161). expected, tipi yazılmış bir yerden
+// (tipli değişken ve atama, dönüş tipi, kullanıcı fonksiyonunun parametresi, alan; expect) ya da tipi
+// bilinen bir yerden (tipi bilinen alana ve kabın öğesine atama, öğe tipi bilinen listenin
+// .TR_append'i, çekirdek metodun tek tipli parametresi; expectTyped) gelen ifadelerdir. Başka bir
+// dalın değeri olan iç ifade dışındakine katılır: karar dıştakinindir
+// (TR_if a { TR_if b { TR_none } TR_else { TR_none } } TR_else { 1 } bir TR_Int?'dir).
+type noneBranches struct {
+	values   map[ast.Expression]bool
+	expected map[ast.Expression]bool
+}
+
+// noteNoneBranches dallar hepsi TR_none veriyorsa e'yi kaydeder; dalın değeri olan iç ifadeler
+// kayıttan çıkar (b.exprs).
+func (c *Checker) noteNoneBranches(e ast.Expression, b *branchTypes) {
+	if c.noneBranches.values == nil {
+		c.noneBranches.values = map[ast.Expression]bool{}
+	}
+	all := !b.unknown && len(b.types) > 0
+	for i, x := range b.exprs {
+		inner := c.noneBranches.values[x] // iç ifadenin dalları da hepsi TR_none
+		delete(c.noneBranches.values, x)
+		all = all && (b.types[i] == typeNull || inner)
+	}
+	if all {
+		c.noneBranches.values[e] = true
+	}
+}
+
+// expectBranches tipi yazılmış bir yerdeki TR_if ve TR_match'i beklenen tipli sayar; TR_Any her tipi
+// alır, beklenen tip vermez.
+func (c *Checker) expectBranches(t *ast.TypeRef, value ast.Expression) {
+	switch value.(type) {
+	case *ast.IfExpression, *ast.MatchExpression:
+		if t.Token.Code == codes.TypeAny && t.Args == nil && t.Params == nil && t.Elems == nil {
+			return
+		}
+		c.markExpected(value)
+	}
+}
+
+// expectTyped tipi bilinen bir yerdeki (alan, kabın öğesi, metodun argümanı) TR_if ve TR_match'i
+// beklenen tipli sayar (5.5; DENETİM 400 Ş3); bilinmeyen tip ve TR_Any beklenen tip vermez.
+func (c *Checker) expectTyped(typ string, value ast.Expression) {
+	switch value.(type) {
+	case *ast.IfExpression, *ast.MatchExpression:
+		if typ != "" && typ != typeAny {
+			c.markExpected(value)
+		}
+	}
+}
+
+// markExpected value'yu beklenen tipli ifadelere ekler.
+func (c *Checker) markExpected(value ast.Expression) {
+	if c.noneBranches.expected == nil {
+		c.noneBranches.expected = map[ast.Expression]bool{}
+	}
+	c.noneBranches.expected[value] = true
+}
+
+// checkNoneBranches beklenen tipi olmayan, dalları hepsi TR_none veren ifadeleri bildirir.
+func (c *Checker) checkNoneBranches() {
+	for e := range c.noneBranches.values {
+		if !c.noneBranches.expected[e] {
+			c.addErrorAt(e, messages.New(messages.H1161))
+		}
+	}
 }
 
 // branchTypes dalların değerleridir; unknown, değeri bilinmeyen bir dal vardır.
@@ -120,9 +193,15 @@ func (b *branchTypes) block(c *Checker, blk *ast.BlockStatement) {
 	b.unknown = true
 }
 
+// common dalların ortak tipidir. Değer veren dalların hepsi TR_none veriyorsa tip TR_NoneType'tır
+// (DENETİM 400 kapanış K-Ş1): beklenen tip isteğe bağlıysa (T?) değer ona girer, değilse düz
+// TR_none gibi tip hatasıdır (3.5); TR_Any olsaydı tip denetimi atlanır, değer sessizce girerdi.
 func (b *branchTypes) common(c *Checker) string {
 	if b.unknown || len(b.types) == 0 {
 		return typeAny
+	}
+	if !slices.ContainsFunc(b.types, func(t string) bool { return t != typeNull }) {
+		return typeNull
 	}
 	if t := c.commonType(b.types, b.exprs); t != "" {
 		return t
@@ -170,5 +249,6 @@ func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
 	if !used {
 		return typeAny
 	}
+	c.noteNoneBranches(e, &b)
 	return b.common(c)
 }

@@ -21,12 +21,35 @@ func (p *Parser) parseGroupedOrLambdaExpression(pattern bool) ast.Expression {
 	exp := p.parseExpression(precLowest)
 	if p.peekTokenIs(lexer.TokComma) {
 		// (a, b): demet (3.6a); tek öğeli parantez gruplamadır
-		exp = &ast.TupleExpression{Token: tok, Elements: p.parseCommaExpressions(exp), Parens: true}
+		exp = p.tupleElements(tok, exp)
+		if exp == nil {
+			return nil
+		}
 	}
 	if !p.expectPeek(lexer.TokRParen) {
 		return nil
 	}
 	return exp
+}
+
+// tupleElements reads the elements after a tuple's first one; the cursor is on the first element and
+// the next token is ','. One comma may follow the last element (2.8): '(1, 2,)'. '(x,)' is no tuple,
+// since a tuple has at least two elements (3.6a): H0310. The cursor stays before ')'.
+func (p *Parser) tupleElements(tok lexer.Token, first ast.Expression) ast.Expression {
+	elems := []ast.Expression{first}
+	for p.peekTokenIs(lexer.TokComma) {
+		p.nextToken() // ','
+		if p.peekTokenIs(lexer.TokRParen) {
+			break
+		}
+		p.nextToken()
+		elems = append(elems, p.parseExpression(precLowest))
+	}
+	if len(elems) == 1 {
+		p.syntaxError(p.curToken(), messages.H0310)
+		return nil
+	}
+	return &ast.TupleExpression{Token: tok, Elements: elems, Parens: true}
 }
 func (p *Parser) isLambdaAhead() bool {
 	// mevcut token '('
@@ -166,6 +189,9 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 			break
 		}
 		p.nextToken() // ','
+		if p.peekTokenIs(lexer.TokRParen) {
+			break // sondaki virgül (2.8, 6.1)
+		}
 		p.nextToken()
 	}
 

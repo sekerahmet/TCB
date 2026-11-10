@@ -1,7 +1,7 @@
 # TR 4
 # 04 — Metin: metne değer yerleştirmek ve metinle çalışmak.
 # Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
-# kırp, içerir, başlar, biter, değiştir, böl; metnin baytları (Baytlar).
+# kırp, içerir, başlar, biter, değiştir, böl; harf_mı, rakam_mı, boşluk_mu; metnin baytları (Baytlar).
 # Önceki örnekten: değişkenler ve tipler (02, 03).
 # Çalıştırma (proje kökünden): trlang examples/tr/04_metin.tr
 
@@ -23,6 +23,12 @@ TR_print(cümle.TR_strip().TR_upper())
 TR_print(cümle.TR_strip().TR_lower())
 TR_print(cümle.TR_contains("dünya"), cümle.TR_strip().TR_starts_with("mer"))
 TR_print(cümle.TR_strip().TR_replace("dünya", "TR"))
+
+# kırp(karakterler) iki uçtan verilen karakterleri atar: argüman bir karakter kümesidir, önek değil.
+TR_print("--[başlık]--".TR_strip("-[]"))
+
+# harf_mı, rakam_mı ve boşluk_mu her karakterin sınıfını sorar; boş metinde yanlış verir.
+TR_print("ağaç".TR_is_alpha(), "2026".TR_is_digit(), "a1".TR_is_digit(), "  ".TR_is_space(), "".TR_is_alpha())
 
 # Metotlar zincirlenebilir: soldan sağa sırayla uygulanır.
 TR_print("  tr dili  ".TR_strip().TR_upper().TR_length)

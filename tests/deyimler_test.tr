@@ -199,6 +199,71 @@ TR_test "5.4 bileşik atamada önce hedefin yeri, sonra sağ yan hesaplanır" {
     TR_assert_equal([1.0, 6.0], t.TR_tolist)
 }
 
+TR_test "5.4 düz ='de de önce hedefin yeri, sonra sağ yan: l[f()] = g()'de önce f" {
+    TR_var iz: TR_List[TR_String] = []
+    TR_func f(ad: TR_String, n: TR_Int) -> TR_Int {
+        iz.TR_append(ad)
+        TR_return n
+    }
+    TR_var l = [0, 0, 0]
+    l[f("hedef", 0)] = f("sağ", 7)
+    TR_assert_equal(["hedef", "sağ"], iz)
+    TR_assert_equal([7, 0, 0], l)
+    # sağ yan indeksi değiştirse de yazma ilk hesaplanan yere gider (Python sağ yanı önce hesaplar)
+    TR_var k = 0
+    TR_func sağ(n: TR_Int) -> TR_Int {
+        k = 2
+        TR_return n
+    }
+    l[k] = sağ(5)
+    TR_assert_equal([5, 0, 0], l)
+    # sözlük anahtarı ve alanın sahibi de sağ yandan önce
+    TR_var d: TR_Dict[TR_String, TR_Int] = {}
+    iz = []
+    d[TR_String(f("hedef", 3))] = f("sağ", 4)
+    TR_assert_equal(["hedef", "sağ"], iz)
+    TR_assert_equal({"3": 4}, d)
+    TR_struct Kutu { x: TR_Int }
+    TR_var p = Kutu(x: 1)
+    TR_var eski = p
+    TR_func yeni_kutu() -> TR_Int {
+        p = Kutu(x: 100)
+        TR_return 5
+    }
+    p.x = yeni_kutu()
+    TR_assert_equal([5, 100], [eski.x, p.x])
+}
+
+TR_test "5.3 çoklu atamada önce bütün yerler, sonra bütün sağ yanlar, sonra yazmalar soldan sağa" {
+    TR_var iz: TR_List[TR_String] = []
+    TR_func f(ad: TR_String, n: TR_Int) -> TR_Int {
+        iz.TR_append(ad)
+        TR_return n
+    }
+    TR_var l = [0, 0, 0]
+    l[f("h1", 0)], l[f("h2", 2)] = f("s1", 8), f("s2", 9)
+    TR_assert_equal(["h1", "h2", "s1", "s2"], iz)
+    TR_assert_equal([8, 0, 9], l)
+    # takas
+    l[0], l[2] = l[2], l[0]
+    TR_assert_equal([9, 0, 8], l)
+    # sağında atanan adı okumak serbesttir: iki sıra aynı sonucu verir
+    TR_var i = 0
+    l[i], i = 7, 2
+    TR_assert_equal([[7, 0, 8], 2], [l, i])
+    # sağ yanın açtığı demet ve liste de yerlerden sonra hesaplanır
+    iz = []
+    l[f("h", 1)], i = [f("s", 4), 1]
+    TR_assert_equal(["h", "s"], iz)
+    TR_assert_equal([[7, 4, 8], 1], [l, i])
+    # solunda atanan adı ya da yolu okuyan yer: tests/negative/coklu_atama_sirasi.tr
+    # İletinin önerisi (H1160) iki atamaya ayırır; Python'un sonucunu verir
+    TR_var j = 0
+    TR_var m = [0, 0]
+    j = 1; m[j] = 5
+    TR_assert_equal([0, 5], m)
+}
+
 TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
     TR_func sınıflandır(n: TR_Int) -> TR_String {
         TR_return TR_if n < 0 { "negatif" } TR_else TR_if n == 0 { "sıfır" } TR_else { "pozitif" }
@@ -208,6 +273,28 @@ TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
     TR_assert_equal("pozitif", sınıflandır(7))
     # Değer yerindeki TR_if'in TR_else'i zorunludur; Python'un koşullu ifadesi yoktur
     # Olumsuz fikstür: tests/negative/degersiz_if.tr
+}
+
+TR_func yok_ya_da(n: TR_Int?) -> TR_Int {
+    TR_return n ?? -1
+}
+
+TR_test "5.5 T ile T? dalı T?; hepsi TR_none dallarda tip beklenen tipten gelir" {
+    TR_var c = TR_true
+    TR_var z = TR_if c { 1 } TR_else { TR_none }
+    TR_var z2: TR_Int? = z
+    TR_assert_equal(1, z2)
+    TR_var y: TR_Int? = TR_if c { TR_none } TR_else { TR_none }
+    TR_assert_equal(TR_none, y)
+    TR_assert_equal(-1, yok_ya_da(TR_if c { TR_none } TR_else { TR_none }))
+    TR_var m: TR_String? = TR_match 1 {
+        1 => TR_none
+        _ => TR_none
+    }
+    TR_assert_equal(TR_none, m)
+    TR_var f: (TR_Bool) -> TR_Int? = (b) => TR_if b { TR_none } TR_else { TR_none }
+    TR_assert_equal(TR_none, f(c))
+    # Beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in argümanı): tests/negative/hepsi_yok_dallar.tr
 }
 
 TR_test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {

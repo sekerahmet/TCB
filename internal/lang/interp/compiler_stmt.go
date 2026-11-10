@@ -115,10 +115,8 @@ func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) sta
 		value = k.placeOfName(id.Value).code(value, s.Line()) // tipi yazılı ada atama (3.13)
 	}
 	codeVal := opCode(string(s.Operator))
-	if codeVal != opAssign {
-		if place, write := c.assignPlace(k, s.Target, codeVal, s.Line()); place != nil {
-			return compoundAtPlace(place, write, value)
-		}
+	if place, write := c.assignPlace(k, s.Target, codeVal, s.Line()); place != nil {
+		return assignAtPlace(place, write, value)
 	}
 	dest := c.assignTarget(k, s.Target, codeVal, s.Line())
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -133,10 +131,11 @@ func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) sta
 	}
 }
 
-// compoundAtPlace bileşik atamayı 5.4'ün sırasıyla yapar: önce hedefin yeri (indeks, alanın
-// sahibi), sonra sağ yan, sonra hedefin değeri okunur, işlem uygulanır ve yazılır. Sağ yan indeksi
-// ya da sahibi değiştirse de yazma ilk hesaplanan yere gider.
-func compoundAtPlace(place placeFunc, write writeFunc, value exprCode) statementCode {
+// assignAtPlace indeks ve alan hedefine atamayı 5.4'ün sırasıyla yapar, düz '=' ve bileşik atamada:
+// önce hedefin yeri (indeks, alanın sahibi), sonra sağ yan; bileşikte sonra hedefin değeri okunur,
+// işlem uygulanır ve yazılır. Sağ yan indeksi ya da sahibi değiştirse de yazma ilk hesaplanan
+// yere gider (`l[f()] = g()`'de önce f, sonra g).
+func assignAtPlace(place placeFunc, write writeFunc, value exprCode) statementCode {
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		owner, key, err := place(v, env)
 		if err != nil {
@@ -153,16 +152,44 @@ func compoundAtPlace(place placeFunc, write writeFunc, value exprCode) statement
 	}
 }
 
-// multiAssignStatement çoklu atamayı (a, b = b, a) derler.
+// multiAssignStatement çoklu atamayı (a, b = b, a) 5.3'ün üç evresiyle derler: önce hedeflerin
+// yerleri (indeks, alanın sahibi) soldan sağa, sonra sağdaki ifadelerin hepsi, sonra yazmalar
+// soldan sağa. 'a, b = b, a' ve 'l[i], l[j] = l[j], l[i]' takas eder; 'i, l[i] = 1, 5'
+// denetimde hatadır (yer eski i ile hesaplanırdı; checker/assign_order.go).
 func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStatement) statementCode {
-	// Önce sağdaki tüm ifadeler hesaplanır (a, b = b, a takası için kritik!)
 	values := c.multiSides(k, s.Values)
-	dests := make([]func(*VM, *Environment, Value) error, len(s.Targets))
+	n := len(s.Targets)
+	places := make([]placeFunc, n)
+	writes := make([]writeFunc, n)
+	dests := make([]func(*VM, *Environment, Value) error, n)
+	anyPlace := false
 	for i, t := range s.Targets {
-		dests[i] = c.assignTarget(k, t, opAssign, s.Line())
+		if places[i], writes[i] = c.assignPlace(k, t, opAssign, s.Line()); places[i] == nil {
+			dests[i] = c.assignTarget(k, t, opAssign, s.Line())
+		}
+		anyPlace = anyPlace || places[i] != nil
+	}
+	if !anyPlace { // yalnız adlar (a, b = b, a + b): yer evresi yok, ayırma da yok
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			return applyUnpacked(v, env, s, values, n, func(i int, val Value) error {
+				return dests[i](v, env, val)
+			})
+		}
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return applyUnpacked(v, env, s, values, len(dests), func(i int, val Value) error {
+		owners, keys := make([]Value, n), make([]Value, n)
+		for i, place := range places {
+			if place != nil {
+				var err error
+				if owners[i], keys[i], err = place(v, env); err != nil {
+					return nil, signalNone, err
+				}
+			}
+		}
+		return applyUnpacked(v, env, s, values, n, func(i int, val Value) error {
+			if places[i] != nil {
+				return writes[i](v, owners[i], keys[i], val)
+			}
 			return dests[i](v, env, val)
 		})
 	}
@@ -299,18 +326,36 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 }
 
 // thrownError 'fırlat' ile başlatılan hatadır; metni fırlatılan değerin metnidir. caught onu
-// yakalayanın göreceği TR_Error'dır (errorValue).
+// yakalayanın göreceği TR_Error'dır (errorValue). Katalog iletisi (8.5) value'dadır, kendi koduyla;
+// düz metin ve durumlu tip değeri kodsuzdur (8.6): value nil, metni text, dilden bağımsız.
 type thrownError struct {
 	value  *messages.Error
+	text   string
 	caught *ErrorVal
 }
 
-func (e *thrownError) Error() string { return e.value.Error() }
+func (e *thrownError) Error() string {
+	if e.value == nil {
+		return e.text
+	}
+	return e.value.Error()
+}
 
-// MessageText hatanın lang dilindeki metnidir (messages.Localized).
-func (e *thrownError) MessageText(lang string) string { return messages.ErrorIn(e.value, lang) }
+// MessageText hatanın lang dilindeki metnidir (messages.Localized); kodsuz hatanınki her dilde aynı.
+func (e *thrownError) MessageText(lang string) string {
+	if e.value == nil {
+		return e.text
+	}
+	return messages.ErrorIn(e.value, lang)
+}
 
-func (e *thrownError) Unwrap() error { return e.value }
+// Unwrap kodlu hatanın iletisidir; kodsuz hatada nil (arayüzde nil *messages.Error kalmasın diye açık).
+func (e *thrownError) Unwrap() error {
+	if e.value == nil {
+		return nil
+	}
+	return e.value
+}
 
 // importStatement 'aktar' deyimini derler.
 func (c *compiler) importStatement(k *compilerScope, s *ast.ImportStatement) statementCode {

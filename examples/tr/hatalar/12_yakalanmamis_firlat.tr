@@ -1,6 +1,6 @@
 # TR 4
 # Hata 12 — Yakalanmayan fırlat.
-# İleti kodu: H2441
+# İleti kodu: yok
 # Ne olur: fırlat ile üretilen hata hiçbir yakala bloğuna ulaşmazsa program durur ve hata iletisi yazılır.
 # Neden: Hatayı karşılayan bir dene/yakala yok.
 # Düzeltilmiş hâli:

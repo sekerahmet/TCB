@@ -88,7 +88,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 09 | [`09_bilinmeyen_adli_arguman.tr`](tr/hatalar/09_bilinmeyen_adli_arguman.tr) | Bilinmeyen adlı argüman (`H2410`) |
 | 10 | [`10_sinir_disi_indeks.tr`](tr/hatalar/10_sinir_disi_indeks.tr) | Sınır dışı indeks (`H2515`) |
 | 11 | [`11_sifira_bolme.tr`](tr/hatalar/11_sifira_bolme.tr) | Sıfıra bölme (`H2470`) |
-| 12 | [`12_yakalanmamis_firlat.tr`](tr/hatalar/12_yakalanmamis_firlat.tr) | Yakalanmayan fırlat (`H2441`) |
+| 12 | [`12_yakalanmamis_firlat.tr`](tr/hatalar/12_yakalanmamis_firlat.tr) | Yakalanmayan fırlat (kodsuz) |
 | 13 | [`13_yok_uzerinde_ozellik.tr`](tr/hatalar/13_yok_uzerinde_ozellik.tr) | yok değerin özelliği (`H2466`) |
 | 14 | [`14_alan_bulunamadi.tr`](tr/hatalar/14_alan_bulunamadi.tr) | Olmayan alan (`H2468`) |
 | 15 | [`15_donusum_hatasi.tr`](tr/hatalar/15_donusum_hatasi.tr) | Dönüşüm hatası (`H2640`) |

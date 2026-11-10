@@ -11,7 +11,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 - *Test:* TR testi.
 
 **5.3** Çoklu tanım ve atama virgülle yapılır; önce hedeflerin yerleri (indeks, alanın sahibi; 5.4) soldan sağa, sonra sağdaki ifadelerin hepsi hesaplanır, sonra yazmalar soldan sağa yapılır (`a, b = b, a` ve `l[i], l[j] = l[j], l[i]` takas eder). Bir hedefin yeri aynı atamada solunda atanan bir adı ya da yolu okuyorsa denetim hatasıdır; kap öğesinde indeks fark etmez: solda `p[a]`'ya yazılıyorsa sağındaki yer `p[...]`'yi okuyamaz (`i, l[i] = 1, 5`; `a, a.b = x, y`; `p[a], p[p[b]] = 2, 9`): yer eski değerle hesaplanır, Python'da yeniyle; ileti iki atamaya ayırmayı önerir. Sağında atanan adı okumak serbesttir, iki sıra aynı sonucu verir (`önceki, k.arka, k = k, önceki, k.arka`). Sağda tek bir demet (3.6a) varsa öğelerine açılır; demetin uzunluğu tipinde olduğu için öğe sayısı tutmazsa denetim hatasıdır (6.3). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
-- *Test:* TR testi.
+- *Test:* TR testi; yerin solda atanan adın ya da yolun yerine bakması (kap öğesinde indeks joker: `p[a], p[p[b]]`, `l[i], l[l[j]]`, sözlükte `d[k], d[d[j]]`; takas geçer): olumsuz fikstür `tests/negative/coklu_atama_sirasi.tr`, Go: `TestMultiAssignPlaceReadsALeftTarget`.
 
 ```tr
 # TR 4
@@ -24,7 +24,7 @@ TR_const AD, SOYAD = ["Mustafa", "Kemal"]
 - *Test:* TR testi; tip kuralı: `TestCompoundAssignment`, `TestPlusOperands`, olumsuz fikstür `tests/negative/arti_islenen.tr`.
 
 **5.5** `TR_if koşul { ... } TR_else TR_if koşul { ... } TR_else { ... }`: koşul `TR_Bool`'dur (3.10), gövde her zaman süslü parantez içindedir. `TR_if` ifade olarak da kullanılır: değeri çalışan bloğun son ifadesidir; o zaman `TR_else` zorunludur ve bütün dalların tipi aynıdır; bir dal `T`, öbürü `T?` ya da `TR_none` veriyorsa tip `T?`'dir (`TR_if x > 0 { x } TR_else { TR_none }` bir `TR_Int?`, 3.6'nın `[1.0, TR_none]`'ı ve 6.6 gibi). Değer veren dalların hepsi `TR_none` veriyorsa tip beklenen tipten gelir (`TR_var y: TR_Int? = TR_if c { TR_none } TR_else { TR_none }`); beklenen tip yoksa ya da her tipi alıyorsa (`TR_print`'in argümanı) asıl tip bilinemez ve denetim hatasıdır (3.13, 6.6). `TR_elif` yoktur; ileti `TR_else TR_if`'i önerir. Python'un koşullu ifadesi (`a TR_if c TR_else b`) sözdizimi hatasıdır; ileti `TR_if c { a } TR_else { b }`'yi önerir.
-- *Test:* TR testi; dal tipi uygulanınca denetleyicinin testi.
+- *Test:* TR testi; dal tipi uygulanınca denetleyicinin testi; hepsi `TR_none` dallar: `TestAllNoneBranchesNeedAnExpectedType`, `TestAllNoneBranchesAreANone`, olumsuz fikstür `tests/negative/hepsi_yok_dallar.tr`.
 
 ```tr
 # TR 4
@@ -38,7 +38,7 @@ TR_var tur = TR_if n < 0 { "negatif" } TR_else { "sıfır ya da pozitif" }
 - Eşleme her durumu kapsar: `TR_Bool`'da iki değer, öbür tiplerde bir `_` kolu gerekir; kapsamayan eşleme denetim hatasıdır.
 - Kol gövdesi bir ifade, `{ blok }` ya da `TR_return ifade` olabilir. `TR_match` ifade olarak kullanılınca kolların tipi 5.5'teki gibidir: bütün kolların tipi aynıdır, `T` ile `T?` ya da `TR_none` veren kollar `T?` verir, hepsi `TR_none` veren kollarda tip beklenen tipten gelir.
 - Durumlu tiplerin deseni 7.7'dedir; yapının deseni yoktur (7.7).
-- *Test:* TR testi; kapsama denetimi ve ad deseninin kuralı uygulanınca denetleyicinin testi.
+- *Test:* TR testi; kapsama denetimi ve ad deseninin kuralı uygulanınca denetleyicinin testi; hepsi `TR_none` kollar: `TestAllNoneBranchesNeedAnExpectedType`, `TestAllNoneBranchesAreANone`.
 
 ```tr
 # TR 4

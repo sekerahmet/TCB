@@ -1,0 +1,8 @@
+# TR 4
+# TEST 13.1 girdi bitince TR_input TR_none verir; koşulu TR_input() != "..." olan döngü girdi bitince durmaz, denetim hatasıdır
+TR_for TR_input("> ") != "son" { # ERROR H1162
+    TR_print("satır")
+}
+TR_for (TR_input("> ") ?? "son") != "son" {
+    TR_print("satır")
+}

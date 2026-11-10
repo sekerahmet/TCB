@@ -42,3 +42,17 @@ func TestCodeLabelAndHeading(t *testing.T) {
 		t.Errorf("codeList(aynı kısa ad) = %q, beklenen %q", got, want)
 	}
 }
+
+// Kural (3.5, 17.2): isteğe bağlı dönüş imzada "?" ile yazılır (TR_input'un dönüşü TR_String?:
+// "→ Metin?"); isteğe bağlı olmayan dönüşte "?" yoktur (DENETİM 400 N6).
+func TestOptionalReturnIsWritten(t *testing.T) {
+	for k, want := range map[codes.Code]string{
+		codes.FnInput: " → " + codes.Source().Name(codes.TypeString) + "?",
+		codes.FnOrd:   " → " + codes.Source().Name(codes.TypeInt),
+	} {
+		def, _ := codes.DefinitionOf(k)
+		if got := returns(def.Signature); got != want {
+			t.Errorf("returns(%s) = %q, beklenen %q", k, got, want)
+		}
+	}
+}

@@ -99,6 +99,9 @@ func (c *Checker) checkMemberArgTypes(e *ast.CallExpression, k codes.Code, sig c
 		p, ok := paramAt(sig, i)
 		want, single := ParamType(p)
 		given := argTypes[i]
+		if ok && single {
+			c.expectTyped(codes.Name(want), arg) // tek tipli parametre beklenen tiptir (5.5)
+		}
 		if ok && k == codes.MemAppend && p.Text[0] == "T" {
 			c.checkElementArg(e, i, given)
 			continue
@@ -130,7 +133,11 @@ func (c *Checker) memberArgHint(k codes.Code, expected, actual string, value ast
 func (c *Checker) checkElementArg(e *ast.CallExpression, i int, given string) {
 	recvType := c.receivers[e]
 	s := shapeOf(recvType)
-	if s.base != typeList || len(s.args) != 1 || s.optional || given == typeAny || s.args[0] == typeAny {
+	if s.base != typeList || len(s.args) != 1 || s.optional || s.args[0] == typeAny {
+		return
+	}
+	c.expectTyped(s.args[0], e.Arguments[i]) // öğe tipi beklenen tiptir (5.5)
+	if given == typeAny {
 		return
 	}
 	if !c.assignable(s.args[0], given, e.Arguments[i]) {

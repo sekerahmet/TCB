@@ -1,0 +1,11 @@
+# TR 4
+# TEST 5.5 değer veren dalların hepsi TR_none veriyorsa ve beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in argümanı) asıl tip bilinemez, denetim hatasıdır (5.6, 6.6 aynı kural)
+TR_var c = TR_true
+TR_print(TR_if c { TR_none } TR_else { TR_none }) # ERROR H1161
+TR_var a = TR_if c { TR_none } TR_else { TR_none } # ERROR H1161
+TR_var b = TR_match 1 { # ERROR H1161
+    1 => TR_none
+    _ => TR_none
+}
+TR_var g = (x: TR_Bool) => TR_if x { TR_none } TR_else { TR_none } # ERROR H1161
+TR_print(a, b, g)
