@@ -1,26 +1,26 @@
 # TR 4
 # TEST 7.7 durum kurucusunun ifadesi durumlu tipin kendisidir (15.5): başka tipe atanamaz; tipi kurucudan çıkan değer, tipi yazılmış değer gibi denetlenir (==, değer deseni, .TR_contains)
-TR_enum C {
+TR_enum KurucuDurumu {
     Yok
     Tamam(v: TR_Int)
 }
-TR_enum T {
+TR_enum TensörKurucusu {
     Bos
     Dolu(t: TR_Tensor)
 }
-TR_var n: TR_Int = C.Yok # ERROR H1001
-TR_var m: TR_Int = C.Tamam(3) # ERROR H1001
-TR_var a: C = C.Tamam(3)
-TR_var b = C.Yok
+TR_var n: TR_Int = KurucuDurumu.Yok # ERROR H1001
+TR_var m: TR_Int = KurucuDurumu.Tamam(3) # ERROR H1001
+TR_var a: KurucuDurumu = KurucuDurumu.Tamam(3)
+TR_var b = KurucuDurumu.Yok
 a = b
-TR_var c = T.Bos
-TR_print(c == T.Dolu(TR_zeros([2]))) # ERROR H1148
+TR_var c = TensörKurucusu.Bos
+TR_print(c == TensörKurucusu.Dolu(TR_zeros([2]))) # ERROR H1148
 TR_print([c].TR_contains(c)) # ERROR H1149
 TR_var k = TR_match c {
-    (T.Bos) => 1 # ERROR H1150
+    (TensörKurucusu.Bos) => 1 # ERROR H1150
     _ => 2
 }
 TR_var d = TR_match c {
-    T.Bos => 1
-    T.Dolu(x) => 2
+    TensörKurucusu.Bos => 1
+    TensörKurucusu.Dolu(x) => 2
 }
