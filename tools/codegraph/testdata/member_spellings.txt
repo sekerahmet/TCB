@@ -1353,6 +1353,8 @@ q.TR_tolist	ok	0	name:TR_mem_tolist
 q.TR_transpose	ok	0	name:TR_mem_transpose
 q.TR_wait	ok	0	name:TR_mem_wait
 q2.TR_grad	ok	0	name:TR_mem_grad
+qw.TR_transpose	ok	0	name:TR_mem_transpose
+qy.TR_shape	ok	0	name:TR_mem_shape
 r.TR_append	ok	0	name:TR_mem_append
 r.TR_device	ok	0	name:TR_mem_device
 r.TR_dtype	ok	0	name:TR_mem_dtype
