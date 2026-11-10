@@ -17,7 +17,8 @@ import (
 // Kural (13.1): girdi() girdinin sonunu bir kez TR_none ile bildirir; sonraki çağrı H2561'dir
 // (Python'un EOFError'ı gibi). Boş satıra kadar okuyan döngü (s == "") girdi bitince sessizce
 // dönmez, TR_none'dan sonraki çağrıda H2561 ile durur (DENETİM 400, p3.tr). İletinin önerdiği
-// yazım (TR_none'ı sınayıp çıkmak) girdi sonunda hatasız biter; sonu satır sonsuz son satır da
+// yazım (TR_none'ı sınayıp çıkmak; tr ve en iletisinden kopyalanır) girdi sonunda hatasız biter, boş
+// satırda bitmez; sonu satır sonsuz son satır da
 // okunur. Hata TR_error_code ile yakalanır.
 func TestInputAfterTheEndIsAnError(t *testing.T) {
 	const loop = "TR_var n = 0\nTR_for TR_true {\n    TR_var s = TR_input()\n    TR_if s == \"\" { TR_break }\n" +
@@ -40,11 +41,24 @@ func TestInputAfterTheEndIsAnError(t *testing.T) {
 	if err != nil || out != "okunan: 1" {
 		t.Errorf("boş satırda: çıktı %q, hata %v", out, err)
 	}
-	const fixed = "TR_var n = 0\nTR_for TR_true {\n    TR_var s = TR_input()\n    TR_if s == TR_none { TR_break }\n" +
-		"    n += 1\n}\nTR_print(\"okunan: \\(n)\")"
-	for input, want := range map[string]string{"bir\niki\n": "okunan: 2", "bir\nson": "okunan: 2", "": "okunan: 0", "\n": "okunan: 1"} {
-		if out, err := run(fixed, input); err != nil || out != want {
-			t.Errorf("önerilen yazım, girdi %q: çıktı %q (beklenen %q), hata %v", input, out, want, err)
+	// İletinin son iki yazımı (satırı değişkene alan atama ve TR_none'ı sınayan eğer) iletiden
+	// kopyalanır, iki dilin iletisinden de (DENETİM 400 kapanış K-N2, K-N3).
+	_, ended := run("TR_var a = TR_input()\nTR_var b = TR_input()", "")
+	if !messages.Has(ended, messages.H2561) {
+		t.Fatalf("ikinci çağrı H2561 vermeli: %v", ended)
+	}
+	for _, lang := range []string{"tr", "en"} {
+		spans := regexp.MustCompile("`([^`]+)`").FindAllStringSubmatch(messages.ErrorIn(ended, lang), -1)
+		if len(spans) < 2 {
+			t.Errorf("%s: H2561'de iki yazım yok: %s", lang, messages.ErrorIn(ended, lang))
+			continue
+		}
+		fixed := "TR_var n = 0\nTR_for TR_true {\n    " + spans[len(spans)-2][1] + "\n    " + spans[len(spans)-1][1] + "\n" +
+			"    n += 1\n}\nTR_print(\"okunan: \\(n)\")"
+		for input, want := range map[string]string{"bir\niki\n": "okunan: 2", "bir\nson": "okunan: 2", "": "okunan: 0", "\n": "okunan: 1", "a\n\nb\n": "okunan: 3"} {
+			if out, err := run(fixed, input); err != nil || out != want {
+				t.Errorf("%s: önerilen yazım, girdi %q: çıktı %q (beklenen %q), hata %v\n%s", lang, input, out, want, err, fixed)
+			}
 		}
 	}
 	out, err = run("TR_var a = TR_input()\nTR_print(a, TR_error_code { TR_input() })", "")
@@ -53,7 +67,7 @@ func TestInputAfterTheEndIsAnError(t *testing.T) {
 	}
 }
 
-// Kural (13.1, H1162): H1162'nin önerdiği koşul uçtan uca çalışır: denetleyicinin iletisinden kopyalanan
+// Kural (13.1, H1162): H1162'nin önerdiği koşul uçtan uca çalışır: denetleyicinin iletisinden (tr ve en) kopyalanan
 // yazım denetimden geçer ve döngü girdi bitince de, bitiş değeri gelince de durur (DENETİM 400 Ş2;
 // eski öneri '(... ?? "") != "son"' girdi sonunda dönmeye sürüyordu). Test burada, çünkü denetleyici
 // yorumlayıcıyı içe aktaramaz (internal/layers_test.go, langOrder).
@@ -76,23 +90,26 @@ func TestInputLoopSuggestionEnds(t *testing.T) {
 			t.Errorf("%s: tek H1162 bekleniyordu, gelen %v", cond, errs)
 			continue
 		}
-		fix := fixPattern.FindStringSubmatch(errs[0].Error())
-		if fix == nil {
-			t.Errorf("%s: iletide ?? ile bir yazım yok: %s", cond, errs[0])
-			continue
-		}
-		src := "TR_var n = 0\nTR_for " + fix[1] + " {\n    n += 1\n}\nTR_print(n)"
-		if errs := check(src); len(errs) > 0 {
-			t.Errorf("önerilen %s denetimden geçmeli: %v", fix[1], errs)
-		}
-		for input, want := range runs {
-			var out bytes.Buffer
-			m := New()
-			m.Out = &out
-			m.Stdin = strings.NewReader(input)
-			_, err := m.Run(mustParseProgram(t, src))
-			if got := strings.TrimSpace(out.String()); err != nil || !strings.HasSuffix(got, want) {
-				t.Errorf("önerilen %s, girdi %q: çıktı %q (sonu %q olmalı), hata %v", fix[1], input, got, want, err)
+		for _, lang := range []string{"tr", "en"} { // iki dilin iletisi de (DENETİM 400 kapanış K-N3)
+			text := messages.ErrorIn(errs[0], lang)
+			fix := fixPattern.FindStringSubmatch(text)
+			if fix == nil {
+				t.Errorf("%s, %s: iletide ?? ile bir yazım yok: %s", cond, lang, text)
+				continue
+			}
+			src := "TR_var n = 0\nTR_for " + fix[1] + " {\n    n += 1\n}\nTR_print(n)"
+			if errs := check(src); len(errs) > 0 {
+				t.Errorf("%s: önerilen %s denetimden geçmeli: %v", lang, fix[1], errs)
+			}
+			for input, want := range runs {
+				var out bytes.Buffer
+				m := New()
+				m.Out = &out
+				m.Stdin = strings.NewReader(input)
+				_, err := m.Run(mustParseProgram(t, src))
+				if got := strings.TrimSpace(out.String()); err != nil || !strings.HasSuffix(got, want) {
+					t.Errorf("%s: önerilen %s, girdi %q: çıktı %q (sonu %q olmalı), hata %v", lang, fix[1], input, got, want, err)
+				}
 			}
 		}
 	}
