@@ -1,7 +1,7 @@
 # TR 4
 # 17 — Testler: kodun yanına test yazmak.
 # Ne öğretir: `test "ad" { ... }` blokları, doğrula(koşul, [mesaj]) ve eşit_olmalı(beklenen, gerçek)
-# ile denetim, hatanın fırlatıldığını sınamak.
+# ile denetim, ondalığı yakın_olmalı ile toleransla sınamak, hatanın fırlatıldığını sınamak.
 # Önceki örnekten: fonksiyonlar, yapılar, listeler, hata yönetimi (08–15).
 # Dosya adı *_test.tr ile biter: `trlang test` bir klasörde yalnızca bu adlı dosyaları bulur.
 # Çalıştırma (proje kökünden):
@@ -48,6 +48,14 @@ TR_test "toplama" {
 TR_test "ortalama" {
     TR_assert_equal(2.5, ortalama_al([1, 2, 3, 4]))
     TR_assert(ortalama_al([10]) == 10, "tek elemanın ortalaması kendisidir")
+}
+
+TR_test "ondalık sonuç toleransla sınanır" {
+    # 0.1 + 0.2 tam 0.3 değildir: ondalık eşit_olmalı ile değil yakın_olmalı ile sınanır. Paylar
+    # verilmezse hassasiyetin varsayılanıdır; göreli_pay ve mutlak_pay adlı argümanla verilir.
+    TR_assert_close(0.3, 0.1 + 0.2)
+    TR_assert_close(2.5, ortalama_al([1, 2, 3, 4]), TR_atol: 1e-9)
+    TR_assert_close(TR_Tensor([0.5, 1.0]), TR_Tensor([0.5, 1.0000001]))
 }
 
 TR_test "boş listede hata fırlatılır" {
