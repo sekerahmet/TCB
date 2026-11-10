@@ -10,9 +10,13 @@ import (
 // Çoklu atamanın sırası (5.3): önce hedeflerin yerleri (indeks, alanın sahibi; 5.4) soldan sağa,
 // sonra sağdaki ifadelerin hepsi, sonra yazmalar soldan sağa. Bir hedefin yeri aynı atamada
 // solunda atanan bir adı ya da yolu okuyorsa ('i, l[i] = 1, 5'; 'a, a.b = x, y') yer eski değerle
-// hesaplanır, Python'da yeniyle: sessizce ayrılırdı, denetim hatasıdır (H1160). Sağında atanan adı
-// okumak serbesttir, iki sıra aynı sonucu verir. Ad ve yol düzeyindedir: takma adla aynı nesneyi
-// gösteren iki ad yakalanmaz.
+// hesaplanır, Python'da yeniyle: sessizce ayrılırdı, denetim hatasıdır (H1160). Kap öğesinde indeks
+// fark etmez (DENETİM 393): solda 'p[a]'ya yazılıyorsa sağdaki yer 'p[...]'yi okuyamaz
+// ('p[a], p[p[b]] = 2, 9'; a == b iken birebir yol karşılaştırması yakalamazdı). O öğenin içine
+// yazmak ('p[a][0]') 'p[...]'yi okumayı yasaklamaz: 'p[a][0], p[b][1] = 1, 2' geçerlidir. Sağında
+// atanan adı okumak serbesttir, iki sıra aynı sonucu verir. Ad ve yol düzeyindedir: takma adla aynı
+// nesneyi gösteren iki ad ve yerdeki çağrının okuduğu ad ('i, l[f()]') yakalanmaz, orada kural
+// Go'nunkidir.
 
 // checkTargetOrder hedeflerin yerlerini solundaki hedeflere göre denetler.
 func (c *Checker) checkTargetOrder(s *ast.MultiAssignStatement) {
@@ -42,35 +46,51 @@ func assignedPath(e ast.Expression) bool {
 }
 
 // placeReads hedefin yerini hesaplayan ifadeler (indeksin kabı ve indeksi, alanın sahibi) path'i
-// okuyor mu: yazımın anlamı (konumsuz döküm) aynı olan bir alt ifade.
+// okuyor mu (samePlace).
 func placeReads(target, path ast.Expression) bool {
-	var parts []ast.Expression
 	switch x := target.(type) {
 	case *ast.IndexExpression:
-		parts = []ast.Expression{x.Left, x.Index}
+		return reads(x.Left, path) || reads(x.Index, path)
 	case *ast.MemberExpression:
-		parts = []ast.Expression{x.Object}
-	default:
-		return false
+		return reads(x.Object, path)
 	}
-	want := ast.Dump(path)
+	return false
+}
+
+// reads e'nin path'in yerine bakan bir alt ifadesi var mı (samePlace).
+func reads(e, path ast.Expression) bool {
 	found := false
-	for _, p := range parts {
-		ast.Walk(p, func(n any) bool {
-			switch e := n.(type) {
-			case *ast.Identifier, *ast.MemberExpression, *ast.IndexExpression:
-				found = found || ast.Dump(e.(ast.Node)) == want
-			}
-			return !found
-		})
-	}
+	ast.Walk(e, func(n any) bool {
+		if x, ok := n.(ast.Expression); ok && samePlace(x, path) {
+			found = true
+		}
+		return !found
+	})
 	return found
+}
+
+// samePlace e, path'in yazdığı yere bakıyor mu: ad aynı addır; alan aynı alanın adıyla aynı yere
+// bakan sahiptir; indekste kap aynı yere bakar, indeks fark etmez (p[b], p[a]'nın yerine bakabilir).
+// Öbür ifadeler konumsuz dökümleri aynıysa.
+func samePlace(e, path ast.Expression) bool {
+	switch p := path.(type) {
+	case *ast.Identifier:
+		x, ok := e.(*ast.Identifier)
+		return ok && x.Value == p.Value
+	case *ast.MemberExpression:
+		x, ok := e.(*ast.MemberExpression)
+		return ok && x.Property == p.Property && samePlace(x.Object, p.Object)
+	case *ast.IndexExpression:
+		x, ok := e.(*ast.IndexExpression)
+		return ok && samePlace(x.Left, p.Left)
+	}
+	return ast.Dump(e) == ast.Dump(path)
 }
 
 // splitAssignment iletinin önerisi: atama j. hedeften önce ikiye ayrılır ('i = 1; l[i] = 5'). Öneri
 // yalnız değerler hedeflerle bire bir yazılmışsa ve ikinci yarının değerleri ilk yarıda atanan bir
-// adı ya da yolu okumuyorsa verilir (yoksa ayırmak değerlerin anlamını da değiştirirdi); boş metin
-// iletinin genel biçimini seçer.
+// adın ya da yolun yerine bakmıyorsa verilir (yoksa ayırmak değerlerin anlamını da değiştirirdi); boş
+// metin iletinin genel biçimini seçer.
 func (c *Checker) splitAssignment(s *ast.MultiAssignStatement, j int) string {
 	if len(s.Values) != len(s.Targets) {
 		return ""
@@ -100,18 +120,4 @@ func (c *Checker) splitAssignment(s *ast.MultiAssignStatement, j int) string {
 		return ""
 	}
 	return first + "; " + second
-}
-
-// reads e'nin path'i okuyan bir alt ifadesi var mı.
-func reads(e, path ast.Expression) bool {
-	want := ast.Dump(path)
-	found := false
-	ast.Walk(e, func(n any) bool {
-		switch x := n.(type) {
-		case *ast.Identifier, *ast.MemberExpression, *ast.IndexExpression:
-			found = found || ast.Dump(x.(ast.Node)) == want
-		}
-		return !found
-	})
-	return found
 }

@@ -11,7 +11,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 - *Test:* TR testi.
 
 **5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir demet (3.6a) varsa öğelerine açılır; demetin uzunluğu tipinde olduğu için öğe sayısı tutmazsa denetim hatasıdır (6.3). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
-- *Test:* TR testi; yerin solda atanan adı okuması: olumsuz fikstür `tests/negative/coklu_atama_sirasi.tr`, Go: `TestMultiAssignPlaceReadsALeftTarget`.
+- *Test:* TR testi; yerin solda atanan adın ya da yolun yerine bakması (kap öğesinde indeks joker: `p[a], p[p[b]]`, `l[i], l[l[j]]`, sözlükte `d[k], d[d[j]]`; takas geçer): olumsuz fikstür `tests/negative/coklu_atama_sirasi.tr`, Go: `TestMultiAssignPlaceReadsALeftTarget`.
 
 ```tr
 # TR 4

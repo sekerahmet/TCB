@@ -187,7 +187,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 ### 5.3
 
 - **Mevcut durum:** fonksiyon değerinin çağrısında, isteğe bağlı ve tipi bilinmeyen demette öğe sayısının tutmaması çalışırken bulunuyor (H2709); kural demette denetim hatası diyor [test: `TestUnpackCountOfAKnownTuple`].
-- **Mevcut durum (T1, Tur 6A):** çoklu atama üç evreli (yerler, sağ yanlar, yazmalar; TCB kararı 14:41); solunda atanan adı ya da yolu okuyan yer H1160 [test: `TestMultiAssignPlaceReadsALeftTarget`, `tests/negative/coklu_atama_sirasi.tr`].
+- **Mevcut durum (T1, Tur 6A):** çoklu atama üç evreli (yerler, sağ yanlar, yazmalar; TCB kararı 14:41); solunda atanan adın ya da yolun yerine bakan yer H1160, kap öğesinde indeks fark etmez (`p[a], p[p[b]]`; DENETİM 393), takas ve `p[a][0], p[b][1]` geçer [test: `TestMultiAssignPlaceReadsALeftTarget`, `tests/negative/coklu_atama_sirasi.tr`].
 
 ### 5.4
 
