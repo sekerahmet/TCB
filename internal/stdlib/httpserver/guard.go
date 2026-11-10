@@ -31,7 +31,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if s.token != "" && !s.tokenMatches(r) {
+	if s.token != "" && !s.isPublic(r) && !s.tokenMatches(r) {
 		w.Header()["Www-Authenticate"] = []string{"Bearer"}
 		refuseUnread(w, r, http.StatusUnauthorized, messages.Text(messages.H7617))
 		return
@@ -117,6 +117,13 @@ func (s *HTTPServer) originError(r *http.Request) (int, string) {
 		}
 	}
 	return 0, ""
+}
+
+// isPublic istek belirteç istemeyen bir yola mı (TR_public_paths:, 28.2)? Yalnız GET ve HEAD, yalnız tam
+// eşit yol; aynı yola başka yöntem belirteç ister. 28.1a'nın denetimi bundan önce, yolun ve sorgunun
+// denetimi (28.3) sonra gelir; gövde okunmaz.
+func (s *HTTPServer) isPublic(r *http.Request) bool {
+	return (r.Method == http.MethodGet || r.Method == http.MethodHead) && s.public[r.URL.Path]
 }
 
 // tokenMatches Authorization: Bearer <belirteç> başlığını sabit sürede karşılaştırır (28.2).

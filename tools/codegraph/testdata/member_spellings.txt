@@ -396,6 +396,7 @@ ayar.TR_keys	ok	0	name:TR_mem_keys
 ayar.TR_length	ok	0	name:TR_mem_length
 aygıt.TR_starts_with	ok	0	name:TR_mem_starts_with
 aynı_w.TR_tolist	ok	0	name:TR_mem_tolist
+açık.TR_close	ok	0	name:TR_mem_close
 açılan.TR_device	ok	0	name:TR_mem_device
 açılan.TR_dtype	ok	0	name:TR_mem_dtype
 açılan.TR_tolist	ok	0	name:TR_mem_tolist

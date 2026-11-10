@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 738 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 88 metot, 131 özellik, 192 adlı argüman.
+Toplam 739 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 162 fonksiyon, 11 sabit, 88 metot, 131 özellik, 193 adlı argüman.
 
 ## İçindekiler
 
@@ -3371,7 +3371,7 @@ tr: değişken b = gizli_belirteç(); yazdır(b.uzunluk, b)
 
 #### `TR_serve_http(...)` (`TR_fn_serve_http`, `http_sun`)
 
-    http_sun(Fonksiyon | YerleşikFonksiyon, adres: Metin = "127.0.0.1", kapı_numarası: Tam = 0, belirteç: Metin = yok, en_çok_eşzamanlı: Tam = yok, en_çok_gövde_baytı: Tam = 1.048576e+06) → HTTPSunucusu
+    http_sun(Fonksiyon | YerleşikFonksiyon, adres: Metin = "127.0.0.1", kapı_numarası: Tam = 0, belirteç: Metin = yok, en_çok_eşzamanlı: Tam = yok, en_çok_gövde_baytı: Tam = 1.048576e+06, herkese_açık_yollar: Liste = yok) → HTTPSunucusu
 
 Bir HTTP sunucusu açar ve beklemeden HTTPSunucusu verir; işleyici her istek için ayrı bir görevde çağrılır. Varsayılan adres 127.0.0.1'dir; başka adres belirteç ister. Başka bir siteden tarayıcıyla gelen istek, belirteçsiz istek, geçersiz yol, büyük gövde ve sınırı aşan istek işleyiciye ulaşmaz.
 
@@ -5327,6 +5327,23 @@ Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `.TR_port
 #### `TR_prompt:` (`TR_arg_prompt`, `istem`)
 
 
+
+#### `TR_public_paths:` (`TR_arg_public_paths`, `herkese_açık_yollar`)
+
+Belirteçli sunucuda belirteç istemeyen yollar: yalnız GET ve HEAD isteğinde, yol listedeki bir yola tam eşitse belirteç aranmaz; önek ve klasör yoktur, her dosya adıyla yazılır. Tarayıcının adres çubuğundan açılan sayfa böyle sunulur; olayların ve komutların yolu listeye girmez.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_public_paths: ["/", "/lang/tr.js"]); TR_print(s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, token: secret_token(), public_paths: ["/", "/lang/tr.js"]); print(s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, belirteç: gizli_belirteç(), herkese_açık_yollar: ["/", "/lang/tr.js"]); yazdır(s.kapat())
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_token:`, `TR_file_response(...)`
 
 #### `TR_qk_norm:` (`TR_arg_qk_norm`, `qk_normu`)
 

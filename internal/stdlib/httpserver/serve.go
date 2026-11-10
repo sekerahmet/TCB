@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -25,6 +26,7 @@ var (
 	nameToken         = bind.NamedArg(codes.ArgToken)
 	nameMaxConcurrent = bind.NamedArg(codes.ArgMaxConcurrent)
 	nameMaxBodyBytes  = bind.NamedArg(codes.ArgMaxBodyBytes)
+	namePublicPaths   = bind.NamedArg(codes.ArgPublicPaths)
 )
 
 // Süre sınırları (28.5): başlıklar 60 saniyede okunur, bağlantı bir sonraki istek için 5 saniye boşta
@@ -47,6 +49,7 @@ type options struct {
 	port          int
 	maxConcurrent int64
 	maxBody       int64
+	public        map[string]bool // belirteç istemeyen tam yollar, yalnız GET ve HEAD (28.2)
 }
 
 // serve TR_serve_http(işleyici, ...)'dır (28.1): sunucuyu açar, beklemeden TR_HTTPServer'ı verir.
@@ -78,7 +81,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 	s := &HTTPServer{
 		handler: args[0], line: m.BuiltinLine(), vm: m, host: m.NewTaskHost(m.BuiltinLine()), ln: ln,
 		local: opt.host == localHost, token: opt.token, port: ln.Addr().(*net.TCPAddr).Port,
-		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, done: make(chan struct{}), stop: make(chan struct{}),
+		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, public: opt.public, done: make(chan struct{}), stop: make(chan struct{}),
 	}
 	s.srv = &http.Server{
 		Handler: s, ReadHeaderTimeout: headerTimeout, IdleTimeout: idleTimeout,
@@ -92,7 +95,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 // parseOptions adlı argümanları denetler; hatada sunucu açılmaz (28.1, 28.2).
 func parseOptions(fn any, named map[string]interp.Value) (options, error) {
 	opt := options{host: localHost, maxBody: defaultMaxBody}
-	if err := bind.CheckNamed(fn, named, nameHost, namePort, nameToken, nameMaxConcurrent, nameMaxBodyBytes); err != nil {
+	if err := bind.CheckNamed(fn, named, nameHost, namePort, nameToken, nameMaxConcurrent, nameMaxBodyBytes, namePublicPaths); err != nil {
 		return opt, err
 	}
 	var err error
@@ -131,7 +134,39 @@ func parseOptions(fn any, named map[string]interp.Value) (options, error) {
 	if opt.maxBody, err = positiveArg(fn, named, nameMaxBodyBytes, defaultMaxBody); err != nil {
 		return opt, err
 	}
+	if opt.public, err = publicPathsArg(fn, named, opt.token); err != nil {
+		return opt, err
+	}
 	return opt, nil
+}
+
+// publicPathsArg TR_public_paths:'tir (28.2): belirteçli sunucuda belirteç istemeyen tam yollar. Her öğe
+// 28.3'e göre geçerli, `/` ile başlayan, sorgusuz bir yoldur (H7660); belirteçsiz sunucuda liste bir şey
+// korumaz, ajan sayfayı korunuyor sanmasın diye çağrı hatasıdır (H7661). Boş liste hata değildir.
+func publicPathsArg(fn any, named map[string]interp.Value, token string) (map[string]bool, error) {
+	v, ok := bind.GetNamed(named, namePublicPaths)
+	if !ok {
+		return nil, nil
+	}
+	list, ok := v.(*interp.ListVal)
+	if !ok {
+		return nil, namedTypeError(fn, namePublicPaths, v, codes.TypeList)
+	}
+	paths := map[string]bool{}
+	for _, e := range list.Elements {
+		p, ok := e.(*interp.StringVal)
+		if !ok {
+			return nil, namedTypeError(fn, namePublicPaths, v, codes.TypeList)
+		}
+		if !strings.HasPrefix(p.Val, "/") || strings.ContainsAny(p.Val, "?#") || !validPath(p.Val) {
+			return nil, messages.New(messages.H7660, fn, p.Val)
+		}
+		paths[p.Val] = true
+	}
+	if token == "" {
+		return nil, messages.New(messages.H7661, fn)
+	}
+	return paths, nil
 }
 
 // hostError adresi ayrıştırılmış hâliyle denetler (28.2): yerel adresin tek yazımı 127.0.0.1'dir;
@@ -195,6 +230,7 @@ type HTTPServer struct {
 	port          int
 	maxConcurrent int64
 	maxBody       int64
+	public        map[string]bool // TR_public_paths: (28.2)
 	active        atomic.Int64
 	closing       atomic.Bool
 	stop          chan struct{} // kapanış başladı: yayın dinleyicileri cevabı bitirir (28.8)

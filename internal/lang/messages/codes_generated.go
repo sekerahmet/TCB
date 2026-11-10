@@ -1820,6 +1820,8 @@ const (
 	H7639 Code = 7639 // {fn}: `{#reduce}:` hatayla bitti; olay gönderilmedi, görüntü değişmedi: {err}
 	H7640 Code = 7640 // {fn}: `{#reduce}:` yeni görüntüyü {@JSON} olarak vermeli, {given} verdi: `{#reduce}: (g, olay) => {#JSON}({{"son": olay}})` yazın
 	H7641 Code = 7641 // {fn}: `{#reduce}:` aynı yayıncıya gönderemez, katlama sürerken yayıncı kendini beklerdi; olayı katlamanın dışında gönderin
+	H7660 Code = 7660 // {fn}: `{#public_paths}:`'taki {path|q} tam bir yol değil: yol `/` ile başlar, sorgu, ters bölü, denetim karakteri ve `..` bileşeni taşımaz; her dosya adıyla yazılır: `{#public_paths}: ["/", "/index.html"]`
+	H7661 Code = 7661 // {fn}: `{#public_paths}:` yalnız belirteçli sunucuda anlamlıdır, belirteçsiz sunucuda her yol zaten açıktır; korumak için belirteç verin: `{#token}: {#secret_token}()`
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

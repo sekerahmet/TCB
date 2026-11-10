@@ -359,6 +359,7 @@
   "TR_arg_position": { "name": "position" },
   "TR_arg_pre_roll": { "name": "pre_roll" },
   "TR_arg_prompt": { "name": "prompt" },
+  "TR_arg_public_paths": { "name": "public_paths" },
   "TR_arg_qk_norm": { "name": "qk_norm" },
   "TR_arg_query": { "name": "query" },
   "TR_arg_quota_gb": { "name": "quota_gb" },

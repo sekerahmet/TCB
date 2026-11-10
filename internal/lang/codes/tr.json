@@ -408,6 +408,7 @@
   "TR_arg_position": { "name": "konum", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_pre_roll": { "name": "baş_tamponu", "family": "kitaplık: tr/vad", "description": "" },
   "TR_arg_prompt": { "name": "istem", "family": "kitaplık: tr/layers", "description": "" },
+  "TR_arg_public_paths": { "name": "herkese_açık_yollar", "family": "adlı argüman: http_sun", "description": "Belirteçli sunucuda belirteç istemeyen yollar: yalnız GET ve HEAD isteğinde, yol listedeki bir yola tam eşitse belirteç aranmaz; önek ve klasör yoktur, her dosya adıyla yazılır. Tarayıcının adres çubuğundan açılan sayfa böyle sunulur; olayların ve komutların yolu listeye girmez." },
   "TR_arg_qk_norm": { "name": "qk_normu", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_query": { "name": "sorgu", "family": "adlı argüman: HTTPİsteği", "description": "İsteğin sorgusu: Metin anahtarlı, Metin listesi değerli sözlük." },
   "TR_arg_quota_gb": { "name": "kota_gb", "family": "adlı argüman: veri_kümesi", "description": "Önbellek klasörünün kullanabileceği en çok disk alanıdır (GB). Pozitif bir sayı olmalıdır ve yalnızca önbellek: ile birlikte geçerlidir." },

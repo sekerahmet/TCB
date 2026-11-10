@@ -1815,6 +1815,8 @@
 "H7639": { "param": ["fn", "err"], "slots": {"reduce": "TR_arg_reduce"} },
 "H7640": { "param": ["fn", "given"], "slots": {"reduce": "TR_arg_reduce", "JSON": "TR_type_JSON"} },
 "H7641": { "param": ["fn"], "slots": {"reduce": "TR_arg_reduce"} },
+"H7660": { "param": ["fn", "path"], "slots": {"public_paths": "TR_arg_public_paths"} },
+"H7661": { "param": ["fn"], "slots": {"public_paths": "TR_arg_public_paths", "token": "TR_arg_token", "secret_token": "TR_fn_secret_token"} },
 "H7900": { "param": ["fn", "given", "suggestion"] },
 "H7901": { "param": ["fn", "given", "names"] },
 "H7902": { "param": ["fn", "given"] },

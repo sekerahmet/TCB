@@ -103,6 +103,52 @@ func TestTokenIsChecked(t *testing.T) {
 	}
 }
 
+// TestPublicPathsNeedNoToken: TR_public_paths:'teki tam yol GET ve HEAD'de belirteçsiz açılır; aynı yola başka
+// yöntem, listede olmayan yol ve yolun öneki belirteç ister; 28.1a'nın denetimi listedeki yolda da önce gelir,
+// yolun ve sorgunun denetimi (28.3) de (28.2).
+func TestPublicPathsNeedNoToken(t *testing.T) {
+	const token = "abcdefghijklmnop_-0123"
+	ts := serveGo(t, `, TR_token: "`+token+`", TR_public_paths: ["/", "/lang/tr.js"]`, ok200)
+	self := "http://" + ts.addr()
+	cases := []struct {
+		name, method, path string
+		header             map[string]string
+		code               int
+	}{
+		{"listedeki kök, GET", "GET", "/", nil, 200},
+		{"listedeki dosya, GET", "GET", "/lang/tr.js", nil, 200},
+		{"listedeki dosya, HEAD", "HEAD", "/lang/tr.js", nil, 200},
+		{"listedeki dosya, sorgulu", "GET", "/lang/tr.js?v=1", nil, 200},
+		{"aynı kaynaktan sayfa", "GET", "/", map[string]string{"Origin": self, "Sec-Fetch-Site": "same-origin"}, 200},
+		{"listedeki yola POST", "POST", "/", nil, 401},
+		{"listedeki yola OPTIONS", "OPTIONS", "/", nil, 401},
+		{"listede olmayan yol", "GET", "/events", nil, 401},
+		{"listedeki yolun uzantısı", "GET", "/lang/tr.js/x", nil, 401},
+		{"listedeki yolun öneki", "GET", "/lang/", nil, 401},
+		{"listedeki yolun başka yazımı", "GET", "/lang//tr.js", nil, 401},
+		{"yabancı Origin listedeki yolda", "GET", "/", map[string]string{"Origin": "http://saldirgan.example"}, 403},
+		{"başka site listedeki yolda", "GET", "/", map[string]string{"Sec-Fetch-Site": "cross-site"}, 403},
+		{"geçersiz sorgu listedeki yolda", "GET", "/?a=%ff", nil, 400},
+		{"listede olmayan yol, belirteçli", "GET", "/events", map[string]string{"Authorization": "Bearer " + token}, 200},
+	}
+	want := int64(0)
+	for _, c := range cases {
+		res, _ := ts.do(t, c.method, c.path, c.header, nil)
+		if res.StatusCode != c.code {
+			t.Fatalf("%s: %d, beklenen %d", c.name, res.StatusCode, c.code)
+		}
+		if c.code == 401 && res.Header.Get("WWW-Authenticate") != "Bearer" {
+			t.Fatalf("%s: WWW-Authenticate: Bearer eksik", c.name)
+		}
+		if c.code == 200 {
+			want++
+		}
+	}
+	if got := ts.calls.Load(); got != want {
+		t.Fatalf("işleyici %d kez çağrıldı, %d bekleniyordu: reddedilen istek işleyiciye gitmez", got, want)
+	}
+}
+
 // TestTokenComparisonIsConstantTime: belirteç sabit sürede karşılaştırılır (crypto/subtle, 28.2). Süre
 // ölçüsü gürültülüdür; kaynak denetlenir: karşılaştırma ConstantTimeCompare'dir, == değil.
 func TestTokenComparisonIsConstantTime(t *testing.T) {

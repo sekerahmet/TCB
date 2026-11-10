@@ -38,6 +38,17 @@ func TestServeArgumentErrors(t *testing.T) {
 		`TR_max_body_bytes: -1`:                              messages.H7628,
 		`TR_max_body_bytes: 1.5`:                             messages.H7628,
 		`TR_port: "80"`:                                      messages.H7604,
+		// TR_public_paths: (28.2): geçersiz yol ve belirteçsiz liste (boş da olsa: liste bir şey korumaz); boş liste
+		// belirteçli sunucuda hata değildir (TestServeSuggestionsWork).
+		`TR_token: "abcdefghijklmnop", TR_public_paths: ["index.html"]`: messages.H7660,
+		`TR_token: "abcdefghijklmnop", TR_public_paths: ["/a?b=1"]`:     messages.H7660,
+		`TR_token: "abcdefghijklmnop", TR_public_paths: ["/a/../b"]`:    messages.H7660,
+		`TR_token: "abcdefghijklmnop", TR_public_paths: ["/a\\b"]`:      messages.H7660,
+		`TR_token: "abcdefghijklmnop", TR_public_paths: [""]`:           messages.H7660,
+		`TR_public_paths: ["/"]`:                                        messages.H7661,
+		`TR_public_paths: []`:                                           messages.H7661,
+		`TR_token: "abcdefghijklmnop", TR_public_paths: "/"`:            messages.H7604,
+		`TR_token: "abcdefghijklmnop", TR_public_paths: [1]`:            messages.H7604,
 	}
 	for args, want := range cases {
 		o := trrun.Exec(t, handlerTR+"TR_serve_http(f, "+args+")")
@@ -58,6 +69,15 @@ func TestServeSuggestionsWork(t *testing.T) {
 	mustContain(t, "H7623", o.Err.Error(), "TR_secret_token()")
 	// Dış adrese bağlanmak bu makinede güvenlik duvarını uyarır; önerinin belirteç yarısı yerelde koşar.
 	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_host: "127.0.0.1", TR_token: TR_secret_token())
+TR_var result = s.TR_close()`)
+	// H7660'ın ve H7661'in önerdiği yazım (28.2, TR_public_paths:); belirteçli sunucuda boş liste hata değildir.
+	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_token: "abcdefghijklmnop", TR_public_paths: ["index.html"])`)
+	mustContain(t, "H7660", o.Err.Error(), `TR_public_paths: ["/", "/index.html"]`)
+	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_public_paths: ["/"])`)
+	mustContain(t, "H7661", o.Err.Error(), "TR_token: TR_secret_token()")
+	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_public_paths: ["/", "/index.html"])
+TR_var result = s.TR_close()`)
+	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_public_paths: [])
 TR_var result = s.TR_close()`)
 }
 
