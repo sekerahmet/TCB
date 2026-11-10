@@ -37,8 +37,13 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = TR_min([2.0, 1.5])":                  typeFloat,
 		"TR_var v = TR_max(TR_Tensor([1.0]), TR_dim: 0)": typeAny,
 		"TR_var v = TR_max(\"a\", \"b\")":                typeAny,
-		"TR_var v = TR_max([1, 2], (x) => -x)":           typeAny,
-		"TR_var v = TR_max(" + unknownValue + ", 1)":     typeAny,
+		// 13.1: anahtarlı biçim listenin öğesini verir
+		"TR_var v = TR_max([1, 2], (x) => -x)":           typeInt,
+		"TR_var v = TR_min([\"a\"], (s) => s.TR_length)": typeString,
+		"TR_var v = TR_max([[1]], (l) => l.TR_length)":   listType(typeInt),
+		// 13.1: TR_input TR_String? verir (girdi sonunda TR_none)
+		"TR_var v = TR_input()":                      typeString + "?",
+		"TR_var v = TR_max(" + unknownValue + ", 1)": typeAny,
 		// 13.1: TR_round(x) TR_Int, TR_round(x, basamak) girdinin tipi
 		"TR_var v = TR_round(3.7)":                     typeInt,
 		"TR_var v = TR_round(5, 2)":                    typeInt,

@@ -666,3 +666,59 @@ TR_test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
     TR_assert_equal("H7006", TR_error_code { TR_read_csv("ad,yaş\nAli,30") })
     TR_assert_equal("H2423", TR_error_code { TR_parse_csv([5, "a"][0]) })
 }
+
+TR_test "13.1 TR_ord ve TR_chr kod noktasıdır, bayt değil; uzunluğu 1 olmayan metin ve skaler olmayan sayı hatadır" {
+    TR_assert_equal(351, TR_ord("ş"))
+    TR_assert_equal(2, TR_Bytes("ş").TR_length)
+    TR_assert_equal(65, TR_ord("A"))
+    TR_assert_equal(23383, TR_ord("字"))
+    TR_assert_equal(0, TR_ord(TR_chr(0)))
+    TR_assert_equal("ş", TR_chr(351))
+    TR_assert_equal(1114111, TR_ord(TR_chr(0x10FFFF)))
+    TR_assert_equal(0xD7FF, TR_ord(TR_chr(0xD7FF)))
+    TR_assert_equal(0xE000, TR_ord(TR_chr(0xE000)))
+    TR_assert_equal("H2559", TR_error_code { TR_ord("") })
+    TR_assert_equal("H2559", TR_error_code { TR_ord("ab") })
+    TR_assert_equal("H2559", TR_error_code { TR_ord("e\u{301}") })
+    TR_assert_equal("H2560", TR_error_code { TR_chr(-1) })
+    TR_assert_equal("H2560", TR_error_code { TR_chr(0xD800) })
+    TR_assert_equal("H2560", TR_error_code { TR_chr(0xDFFF) })
+    TR_assert_equal("H2560", TR_error_code { TR_chr(0x110000) })
+}
+
+TR_test "13.1 anahtarlı TR_max ve TR_min anahtarı en büyük ya da en küçük öğeyi verir; eşitlerde ilki, NaN anahtar en büyük" {
+    TR_var meyveler = ["elma", "ar", "kiraz", "nar"]
+    TR_assert_equal("kiraz", TR_max(meyveler, (m) => m.TR_length))
+    TR_assert_equal("ar", TR_min(meyveler, (m) => m.TR_length))
+    TR_assert_equal("ab", TR_max(["ab", "cd"], (m) => m.TR_length))
+    TR_assert_equal("ab", TR_min(["ab", "cd"], (m) => m.TR_length))
+    TR_assert_equal("nar", TR_max(meyveler, (m) => m))
+    TR_assert_equal([2, "b"], TR_max([[1, "a"], [2, "b"]], (ç) => (ç[0], 0)))
+    TR_assert_equal(2.0, TR_max([1.0, 2.0, 3.0], (x) => TR_if x == 2.0 { TR_Float("nan") } TR_else { x }))
+    TR_assert_equal(1.0, TR_min([1.0, 2.0, 3.0], (x) => TR_if x == 2.0 { TR_Float("nan") } TR_else { x }))
+    TR_assert_equal(-0.0, TR_min([0.0, -0.0], (x) => x))
+}
+
+TR_test "13.1 anahtar fonksiyonu öğe başına bir kez, sırayla çağrılır; listeyi değiştirirse hatadır" {
+    TR_var çağrılar: TR_List[TR_Int] = []
+    TR_var en = TR_max([3, 1, 2], (x) => {
+        çağrılar.TR_append(x)
+        TR_return -x
+    })
+    TR_assert_equal(1, en)
+    TR_assert_equal([3, 1, 2], çağrılar)
+    TR_var l = [1, 2]
+    TR_assert_equal("H2703", TR_error_code { TR_max(l, (x) => {
+        l.TR_append(x)
+        TR_return x
+    }) })
+}
+
+TR_test "13.1 anahtarlı biçimde boş liste, iki parametreli fonksiyon ve sıralanamayan anahtar hatadır" {
+    TR_var boş: TR_List[TR_Int] = []
+    TR_assert_equal("H2624", TR_error_code { TR_max(boş, (x) => x) })
+    TR_assert_equal("H2625", TR_error_code { TR_min(boş, (x) => x) })
+    TR_assert_equal("H2558", TR_error_code { TR_max([1], (a, b) => a) })
+    TR_assert_equal("H2556", TR_error_code { TR_max([1, 2], (x) => [x]) })
+    TR_assert_equal("H2557", TR_error_code { TR_min([1, 2], (x) => TR_if x == 1 { (1, 2) } TR_else { ("a", 2) }) })
+}

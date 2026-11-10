@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 739 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 163 fonksiyon, 11 sabit, 89 metot, 130 özellik, 192 adlı argüman.
+Toplam 741 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 165 fonksiyon, 11 sabit, 89 metot, 130 özellik, 192 adlı argüman.
 
 ## İçindekiler
 
@@ -1699,6 +1699,25 @@ tr: yazdır(tavan(3.2), tavan(7), tavan(Tensör([-1.5, 2.5])).değer)
 
 İlişkili: `TR_floor(...)`, `TR_round(...)`
 
+#### `TR_chr(...)` (`TR_fn_chr`, `koddan_karakter`)
+
+    koddan_karakter(Tam) → Metin
+
+Bir Unicode kod noktasından tek karakterlik metin verir; eksi, 0x10FFFF'ten büyük ya da 0xD800–0xDFFF arası sayı hatadır.
+
+```tr
+TR_print(TR_chr(351), TR_chr(65))
+```
+
+Görünümü:
+
+```text
+en: print(chr(351), chr(65))
+tr: yazdır(koddan_karakter(351), koddan_karakter(65))
+```
+
+İlişkili: `TR_ord(...)`
+
 #### `TR_clamp(...)` (`TR_fn_clamp`, `sınırla`)
 
     sınırla(Tam | Ondalık | Tensör, en_az: Tam | Ondalık = yok, en_fazla: Tam | Ondalık = yok) → Tam | Ondalık | Tensör
@@ -2310,20 +2329,20 @@ tr: yazdır(hann_penceresi(4, periyodik: doğru).değer)
 
     girdi([Herhangi]) → Metin
 
-Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır, giriş bittiyse boş metin döner.
+Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır. Boş satırda boş metin, giriş bittiyse yok döner (Metin?): varsayılan ?? ile verilir.
 
 ```tr
-TR_var ad = TR_input("Adınız: "); TR_print("Merhaba " + ad)
+TR_var ad = TR_input("Adınız: ") ?? ""; TR_print("Merhaba " + ad)
 ```
 
 Görünümü:
 
 ```text
-en: var ad = input("Adınız: "); print("Merhaba " + ad)
-tr: değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
+en: var ad = input("Adınız: ") ?? ""; print("Merhaba " + ad)
+tr: değişken ad = girdi("Adınız: ") ?? ""; yazdır("Merhaba " + ad)
 ```
 
-İlişkili: `TR_print(...)`
+İlişkili: `TR_print(...)`, `TR_none`
 
 #### `TR_int_to_bytes(...)` (`TR_fn_int_to_bytes`, `tam_sayı_baytları`)
 
@@ -2712,9 +2731,9 @@ tr: değişken b = gizli_belirteç(); değişken m = maskeli_akış(); değişke
 
 #### `TR_max(...)` (`TR_fn_max`, `max`)
 
-    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
-Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en büyük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_max([2.0, 1.5]), TR_max(3, 7, 5), TR_max(TR_Tensor([[1, 5], [3, 2]]), TR_dim: 0).TR_tolist)
@@ -2807,9 +2826,9 @@ tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayıs
 
 #### `TR_min(...)` (`TR_fn_min`, `min`)
 
-    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
-Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en küçük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_min([3, 1, 2]), TR_min(4, 2.5), TR_min(1, 1.5))
@@ -2949,6 +2968,25 @@ tr: yazdır(birler([2, 2], tür: "bf16").değer)
     yalnızca_2b()
 
 
+
+#### `TR_ord(...)` (`TR_fn_ord`, `karakter_kodu`)
+
+    karakter_kodu(Metin) → Tam
+
+Tek karakterlik bir metnin Unicode kod noktasını (Tam) verir; uzunluğu 1 olmayan metin hatadır. Kod noktası bayt değildir: karakter_kodu("ş") 351'dir, Baytlar("ş") iki bayttır.
+
+```tr
+TR_print(TR_ord("ş"), TR_ord("A"))
+```
+
+Görünümü:
+
+```text
+en: print(ord("ş"), ord("A"))
+tr: yazdır(karakter_kodu("ş"), karakter_kodu("A"))
+```
+
+İlişkili: `TR_chr(...)`, `TR_Bytes`
 
 #### `TR_orthogonalize(...)` (`TR_fn_orthogonalize`, `dikleştir`)
 

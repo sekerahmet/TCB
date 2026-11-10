@@ -268,6 +268,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.WhileStatement:
 		c.condition(s.Condition)
+		c.checkInputLoop(s.Condition) // 13.1 (input_loop.go)
 		c.checkStatement(s.Body)
 
 	case *ast.TryCatchStatement:

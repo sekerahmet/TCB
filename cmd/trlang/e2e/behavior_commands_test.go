@@ -251,7 +251,7 @@ func TestInputPipeAndShell(t *testing.T) {
 	s := testkit.RunBinary(t, trBinary, dir, "bir\niki\n", nil, "g.tr")
 	testkit.Wait(t, s, 0, []string{"a=[bir] b=[iki]"}, nil)
 
-	input := "TR_var x = TR_input()\nveri\nTR_print(\"x=\" + x)\nexit\n" // kabuk satırları kimliklerle
+	input := "TR_var x = TR_input() ?? \"\"\nveri\nTR_print(\"x=\" + x)\nexit\n" // kabuk satırları kimliklerle
 	s = testkit.RunBinary(t, trBinary, "", input, nil)
 	testkit.Wait(t, s, 0, []string{"x=veri", "Görüşmek üzere!"}, nil)
 }

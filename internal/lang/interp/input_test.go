@@ -26,7 +26,7 @@ TR_print("a=[\(a)] b=[\(b)] c=[\(c)]")`)
 	if _, err := m.Run(prog); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.TrimSpace(out.String()); got != "a=[bir] b=[iki] c=[]" {
+	if got := strings.TrimSpace(out.String()); got != "a=[bir] b=[iki] c=[none]" { // girdi sonu TR_none (13.1)
 		t.Fatalf("girdi satırları: %q", got)
 	}
 }
