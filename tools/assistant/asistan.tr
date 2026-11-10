@@ -26,6 +26,7 @@ TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
 TR_import "ekran"
+TR_import "deneme"
 
 TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
@@ -63,7 +64,8 @@ TR_func _gerekli(ad: TR_String) -> TR_String {
     TR_return v
 }
 
-# deneme: --deneme_klasörü verildiyse oturumun kaydı (zincir.tr, Deneme); verilmezse kayıt yok, çıktı aynı.
+# deneme: --deneme_klasörü verildiyse oturumun kaydı (deneme.tr, Deneme); verilmezse kayıt yok, çıktı aynı. Kaydın
+# kendi yazma hatası turu bozmaz (Deneme.tur).
 TR_var deneme: Deneme? = TR_none
 
 TR_func deneme_yaz(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son: TR_String, kod: TR_String) {
@@ -401,7 +403,7 @@ TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0
         çalıyor: () => t.çalma_başı >= 0,
         aralık: () => ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu),
         işle: işle,
-        bitiş: (neden) => deneme_yaz(t, TR_if söz == TR_none { "ses" } TR_else { "metin" }, kesit, t0, kayıt_sonu(neden, z.tur == t.sıra), "")))
+        bitiş: (neden, kod) => deneme_yaz(t, TR_if söz == TR_none { "ses" } TR_else { "metin" }, kesit, t0, kayıt_sonu(neden, z.tur == t.sıra), kod)))
     kimlikleri_yaz(z)
     TR_return aralık
 }
@@ -418,7 +420,7 @@ TR_func tur_ölçüleri(t: Tur) -> TR_JSON {
 TR_var kip = _gerekli("kip")
 TR_var deneme_yeri = TR_String(ayar["deneme_klasörü"])
 TR_if deneme_yeri != "" {
-    TR_var hata = deneme_klasörü_hatası(deneme_yeri, ".")
+    TR_var hata = deneme_klasörü_hatası(deneme_yeri)
     TR_if hata != TR_none { TR_throw hata }
     TR_var d = Deneme(klasör: deneme_yeri, başı: şimdi())
     d.başla(deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]), "whisper": TR_String(ayar["whisper"]),

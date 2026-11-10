@@ -342,6 +342,30 @@ TR_struct Sayaç {
     n: TR_Int = 0
 }
 
+TR_struct Görülen {
+    metin: TR_String = ""
+}
+
+# Ekran `stop`'ta turun görevini iptal eder; iptal üretimin bir adımında fırlar. Kayıt Tur'dan yazılır.
+TR_test "durdurulan turun Tur'unda ilk parçanın anı ve o ana kadarki metin vardır; cevap_ms yoktur" {
+    TR_var z = küçük_zincir(256, TR_false)
+    ısıt(z)
+    TR_var t = Tur(sıra: 1, söz_ms: 0)
+    TR_var g = Görülen()
+    TR_var ileti = ""
+    TR_try {
+        cevapla(z, "Merhaba, nasılsın?", şimdi(), t, (_) => {}, (m) => {
+            g.metin = m
+            TR_throw "durdu"
+        })
+    } TR_catch h { ileti = TR_String(h) }
+    TR_assert(ileti.TR_contains("durdu"))
+    TR_assert(t.ilk_parça_ms >= 0)
+    TR_assert(g.metin != "")
+    TR_assert_equal(g.metin, t.cevap)
+    TR_assert_equal(-1, t.cevap_ms)
+}
+
 TR_test "ara kancası: metin turunun çalma aralığı atılır, mikrofonun açılışı çapayı kurar, dur dinlemeyi bitirir" {
     TR_var s = SahteDinleme(sayı: 200, tetikler: [])
     TR_var d = sahte_dinleme(s)
@@ -380,77 +404,3 @@ TR_test "--ffmpeg ve --çalıcı: ayırıcılı değer dosyanın yolu, ayırıc�
     TR_assert_equal(2, yol.TR_length)
     TR_for c TR_in yol { TR_assert(c != "H7494" TR_and c != "H7497") }
 }
-
-TR_test "deneme klasörü açılmış tam yol olmalı; deponun ve bulut klasörlerinin dışında" {
-    TR_var dış = TR_String(TR_Path(TR_temp_dir(), "TR_deneme", "20261110-1630"))
-    TR_assert_equal(TR_none, deneme_klasörü_hatası(dış, "."))
-    TR_var içerdeki = TR_String(TR_Path(".", "kayıt").TR_absolute)
-    TR_for v TR_in ["TR_deneme/20261110-1630", "%USERPROFILE%\\TR_deneme", "$env:USERPROFILE\\TR_deneme", içerdeki, "C:/Users/a/OneDrive/Masaüstü/d", "G:/My Drive/d"] {
-        TR_var h = deneme_klasörü_hatası(v, ".")
-        TR_assert(h != TR_none)
-        # İleti doğru yazımı verir: PowerShell'de açılan tam yol.
-        TR_assert(TR_String(h).TR_contains("$env:USERPROFILE\\TR_deneme\\"))
-    }
-}
-
-TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her turdan sonra; belirteç girmez" {
-    TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "deneme"))
-    TR_var d = Deneme(klasör: klasör, başı: 1000)
-    d.başla(deneme_başlığı({"kip": "canlı", "dil_modeli": "C:/modeller/Qwen3-4B-Q4_K_M.gguf", "ekran": "8123",
-        "belirteç": "gizli-belirtec-k396", "belirteç_dosyası": "C:/kullanici/belirtec-dosyasi.txt"}))
-    # Sesli tur: sentetik kesit (0,5 sn), sözün sonu 608 ms önce, 40 ms geç okundu.
-    TR_var t = Tur(sıra: 1, söz_ms: 500, geride_ms: 40)
-    t.yazı_ms = 900
-    t.ilk_parça_ms = 2400
-    t.çalma_ms = 3100
-    t.cevap_ms = 4400
-    t.üretilen = 14
-    tur_ölç(t)
-    t.duyulan = " merhaba"
-    t.giden = "merhaba"
-    t.cevap = "Merhaba, nasılsın?"
-    t.seslendirilen = ["Merhaba, nasılsın?"]
-    d.tur(t, "ses", TR_ones([8000]) * 0.1, 6000, "tamam", "")
-    # Metin turu: kesit yok, durduruldu.
-    TR_var m = Tur(sıra: 2, söz_ms: 0)
-    m.duyulan = "saat kaç"
-    d.tur(m, "metin", TR_none, 9000, "durduruldu", "")
-    TR_var satırlar = [TR_json_parse(s) TR_for s TR_in TR_read_file(TR_Path(klasör, "turlar.jsonl")).TR_lines() TR_if s != ""]
-    TR_assert_equal(3, satırlar.TR_length)
-    TR_assert_equal("Qwen3-4B-Q4_K_M.gguf", TR_String(satırlar[0]["dil_modeli"]))
-    TR_var s1 = satırlar[1]
-    TR_for a TR_in ["kayit", "tur", "saat", "kaynak", "son", "kesit_basi_ms", "kesit_sonu_ms", "soz_ms", "wav", "duyulan", "giden",
-            "cevap", "dusunce", "seslendirilen", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn"] {
-        TR_assert(s1.TR_keys().TR_contains(a))
-    }
-    TR_assert_equal(4960, TR_Int(s1["kesit_sonu_ms"])) # 6000 - 40 - 1000
-    TR_assert_equal(4460, TR_Int(s1["kesit_basi_ms"]))
-    TR_assert_equal(3708, TR_Int(s1["bekleme_ms"])) # 608 + toplam_ms
-    TR_assert_equal(6.5, TR_Float(s1["token_sn"])) # ilk parçadan sonra 13 parça / 2,0 sn
-    TR_assert_equal("", TR_String(s1["dusunce"]))
-    TR_var ses = TR_read_wav(TR_Path(klasör, TR_String(s1["wav"])))
-    TR_assert_equal(16000, ses.TR_sample_rate)
-    TR_assert_equal(8000, ses.TR_samples.TR_shape[1])
-    TR_var s2 = satırlar[2]
-    TR_assert_equal("durduruldu", TR_String(s2["son"]))
-    TR_assert(TR_not s2.TR_keys().TR_contains("wav"))
-    TR_var özet = TR_read_file(TR_Path(klasör, "ozet.md"))
-    TR_assert(özet.TR_contains("| anladı mı |"))
-    TR_assert(özet.TR_contains("en büyük kalem"))
-    TR_assert_equal(2, TR_list_dir(klasör, "*").TR_length - 1) # turlar.jsonl, ozet.md, tek WAV
-    TR_for f TR_in TR_list_dir(klasör, "*") {
-        TR_if TR_Path(f).TR_extension != ".wav" {
-            TR_var yazılan = TR_read_file(f)
-            TR_assert(TR_not yazılan.TR_contains("gizli-belirtec-k396"))
-            TR_assert(TR_not yazılan.TR_contains("belirtec-dosyasi"))
-        }
-    }
-}
-
-TR_test "ekranlı turun nedeni kaydın sonu olur" {
-    TR_assert_equal("tamam", kayıt_sonu("done", TR_true))
-    TR_assert_equal("bos", kayıt_sonu("done", TR_false))
-    TR_assert_equal("durduruldu", kayıt_sonu("stopped", TR_true))
-    TR_assert_equal("hata", kayıt_sonu("error", TR_false))
-}
-

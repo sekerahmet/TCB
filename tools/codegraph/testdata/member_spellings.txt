@@ -497,6 +497,7 @@ biten.TR_cancel	ok	0	name:TR_mem_cancel
 biten.TR_wait	ok	0	name:TR_mem_wait
 bitenler.TR_append	ok	0	name:TR_mem_append
 bitenler.TR_length	ok	0	name:TR_mem_length
+bitişler.TR_append	ok	0	name:TR_mem_append
 bk.TR_length	ok	0	name:TR_mem_length
 blok.TR_dtype	ok	0	name:TR_mem_dtype
 blok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
@@ -1065,7 +1066,6 @@ l.TR_reverse	ok	0	name:TR_mem_reverse
 l.TR_shape	ok	0	name:TR_mem_shape
 l.TR_slice	ok	0	name:TR_mem_slice
 l.TR_sort	ok	0	name:TR_mem_sort
-l.TR_starts_with	ok	0	name:TR_mem_starts_with
 l.TR_strip	ok	0	name:TR_mem_strip
 l.TR_tolist	ok	0	name:TR_mem_tolist
 l.TR_unique	ok	0	name:TR_mem_unique
@@ -1702,6 +1702,7 @@ yok.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 yok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 yok.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 yol.TR_ends_with	ok	0	name:TR_mem_ends_with
+yol.TR_exists	ok	0	name:TR_mem_exists
 yol.TR_is_file	ok	0	name:TR_mem_is_file
 yol.TR_length	ok	0	name:TR_mem_length
 yol.TR_starts_with	ok	0	name:TR_mem_starts_with

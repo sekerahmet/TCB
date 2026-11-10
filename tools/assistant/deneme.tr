@@ -1,0 +1,168 @@
+# TR 4
+# Canlı denemenin kaydı (--deneme_klasörü): her tur `turlar.jsonl`'e bir satır ve kesitin WAV'ı (`tur-<kayıt>.wav`);
+# `ozet.md` her turdan sonra yeniden yazılır, program kesilse de kalır. Süreler `OLCU` satırının adları ve anlamlarıyla:
+# `bekleme_ms` sözün sonundan, öbürleri `t0`'dan (VAD'ın kararı, sözün sonu + 608 ms); metin turunda VAD yoktur,
+# `bekleme_ms` 608 fazladır. Kayıt kullanıcının sesidir: klasör bir deponun ve bulut klasörlerinin dışında olur.
+TR_import "zincir"
+
+TR_const _SAAT_FARKI_SN = 10800 # TSS, UTC+3
+TR_const _DENEME_BAŞLIĞI = ["kip", "dil_modeli", "whisper", "vad", "ses_modeli", "en_çok_tur", "ekran"]
+TR_const _DENEME_SÜRELERİ = ["bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms"]
+# Eşitlenen bulut klasörlerinin adları, küçük harfle: OneDrive, Google Drive (İngilizce ve Türkçe adı, düz ve kıvrık
+# kesmeyle), Dropbox, iCloud Drive.
+TR_const _BULUT_ADLARI = ["onedrive", "google drive", "googledrive", "my drive", "drive'ım", "drive’ım", "dropbox", "icloud drive", "iclouddrive"]
+TR_const _ÖRNEK_KLASÖR = "PowerShell'de: --deneme_klasörü \"$env:USERPROFILE\\TR_deneme\\20261110-163000\""
+
+TR_func iki_hane(n: TR_Int) -> TR_String { TR_return TR_if n < 10 { "0\(n)" } TR_else { "\(n)" } }
+
+TR_func saat_yazısı(ms: TR_Int) -> TR_String {
+    TR_var s = (ms // 1000 + _SAAT_FARKI_SN) % 86400
+    TR_return "\(iki_hane(s // 3600)):\(iki_hane(s % 3600 // 60)):\(iki_hane(s % 60))"
+}
+
+# depo_kökü: yolun kendisinden köke doğru içinde `.git` olan ilk klasör (klasörse depo, dosyaysa çalışma ağacı); yoksa
+# TR_none. Yolun kendisi henüz olmayabilir.
+TR_func depo_kökü(yol: TR_Path) -> TR_Path? {
+    TR_var y = yol
+    TR_for _ TR_in 0..1024 {
+        TR_if TR_Path(y, ".git").TR_exists { TR_return y }
+        TR_var üst = y.TR_parent
+        TR_if TR_String(üst) == TR_String(y) { TR_return TR_none }
+        y = üst
+    }
+    TR_return TR_none
+}
+
+# deneme_klasörü_hatası: klasör açılmış tam yol olmalı (TR ortam değişkenini açmaz); bir git deposunun ya da çalışma
+# ağacının (yolun ya da üst klasörlerinden birinin içinde `.git`) ve bulut klasörlerinin dışında olmalı. Uygunsa TR_none.
+TR_func deneme_klasörü_hatası(v: TR_String) -> TR_String? {
+    TR_if v.TR_contains("%") TR_or v.TR_contains("$") { TR_return "--deneme_klasörü ortam değişkeni içeremez (TR açmaz), açılmış tam yol verilmeli: \(v). \(_ÖRNEK_KLASÖR)" }
+    TR_var p = TR_String(TR_Path(v).TR_absolute)
+    TR_if p != TR_String(TR_Path(v)) { TR_return "--deneme_klasörü tam yol olmalı, göreli verildi: \(v). \(_ÖRNEK_KLASÖR)" }
+    TR_var kök = depo_kökü(TR_Path(p))
+    TR_if kök != TR_none { TR_return "--deneme_klasörü bir git deposunun ya da çalışma ağacının içinde olamaz (\(TR_String(kök))): \(v). \(_ÖRNEK_KLASÖR)" }
+    TR_var l = p.TR_lower()
+    TR_for b TR_in _BULUT_ADLARI {
+        TR_if l.TR_contains(b) { TR_return "--deneme_klasörü bulut klasöründe olamaz (\(b)): \(v). \(_ÖRNEK_KLASÖR)" }
+    }
+    TR_return TR_none
+}
+
+# deneme_başlığı: oturumun ilk satırı; seçeneklerden yalnız _DENEME_BAŞLIĞI'ndakiler girer, yollar adlarıyla (belirteç
+# ve belirteç dosyası girmez).
+TR_func deneme_başlığı(seçenekler: TR_Dict[TR_String, TR_String]) -> TR_JSON {
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {"oturum": TR_JSON(saat_yazısı(TR_time_ms()))}
+    TR_for ad TR_in _DENEME_BAŞLIĞI {
+        TR_var v = seçenekler.TR_get(ad)
+        TR_if v != TR_none { d[ad] = TR_JSON(TR_if TR_String(v).TR_contains("/") TR_or TR_String(v).TR_contains("\\") { TR_Path(TR_String(v)).TR_name } TR_else { TR_String(v) }) }
+    }
+    TR_return TR_JSON(d)
+}
+
+# kayıt_sonu: ekranlı turun nedeni (tur_yürüt) kaydın `son`'u olur; cevapsız biten tur `bos`'tur.
+TR_func kayıt_sonu(neden: TR_String, cevaplandı: TR_Bool) -> TR_String {
+    TR_if neden == "stopped" { TR_return "durduruldu" }
+    TR_if neden == "error" { TR_return "hata" }
+    TR_return TR_if cevaplandı { "tamam" } TR_else { "bos" }
+}
+
+# Deneme: bir oturumun kaydı. `tur` her turda bir kez çağrılır (`son`: tamam, durduruldu, hata ya da bos).
+TR_struct Deneme {
+    klasör: TR_String
+    başı: TR_Int # oturumun başı (şimdi()): kesitin sınırları buna göre
+    satırlar: TR_String = ""
+    özet: TR_List[TR_JSON] = []
+    sayı: TR_Int = 0
+
+    # başla: önceki bir kaydın üstüne yazmaz (aynı klasörle iki açılış ilk kaydı silerdi).
+    TR_func başla(başlık: TR_JSON) {
+        TR_var yol = TR_Path(TR_self.klasör, "turlar.jsonl")
+        TR_if yol.TR_exists { TR_throw "--deneme_klasörü'nde önceki bir kayıt var (turlar.jsonl), üstüne yazılmaz: \(TR_self.klasör). Yeni bir klasör verilmeli; \(_ÖRNEK_KLASÖR)" }
+        TR_make_dir(TR_self.klasör)
+        TR_self.satırlar = TR_json_string(başlık) + "\n"
+        TR_write_file(yol, TR_self.satırlar)
+    }
+
+    # tur: kaydın kendi hatası (disk dolu, klasör silinmiş) turu bozmaz, geri aldırmaz: `DENEME HATASI` yazılır, program
+    # sürer.
+    TR_func tur(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son: TR_String, kod: TR_String) {
+        TR_try { TR_self.yaz(t, kaynak, kesit, t0, son, kod) } TR_catch h { TR_print("DENEME HATASI:", h) }
+    }
+
+    TR_func yaz(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son: TR_String, kod: TR_String) {
+        TR_self.sayı += 1
+        TR_var d: TR_Dict[TR_String, TR_JSON] = {"kayit": TR_JSON(TR_self.sayı), "tur": TR_JSON(t.sıra),
+            "saat": TR_JSON(saat_yazısı(TR_time_ms())), "kaynak": TR_JSON(kaynak), "son": TR_JSON(son)}
+        TR_if kod != "" { d["hata_kodu"] = TR_JSON(kod) }
+        TR_if kesit != TR_none {
+            # Kesitin sonu mikrofonun saatinde: VAD'ın kararı eksi geç okunma payı; bitiş sessizliği kesitin içindedir (25.14).
+            TR_var sonu = t0 - t.geride_ms - TR_self.başı
+            d["kesit_basi_ms"] = TR_JSON(sonu - t.söz_ms)
+            d["kesit_sonu_ms"] = TR_JSON(sonu)
+            d["soz_ms"] = TR_JSON(t.söz_ms)
+            TR_var ad = "tur-\(TR_self.sayı).wav"
+            TR_write_wav(TR_Path(TR_self.klasör, ad), TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), 16000))
+            d["wav"] = TR_JSON(ad)
+        }
+        d["duyulan"] = TR_JSON(t.duyulan)
+        d["giden"] = TR_JSON(t.giden)
+        d["cevap"] = TR_JSON(t.cevap)
+        d["dusunce"] = TR_JSON(t.düşünce)
+        d["seslendirilen"] = TR_JSON(t.seslendirilen)
+        TR_var süreler = [t.bekleme_ms, t.yazı_ms, t.ilk_parça_ms, t.çalma_ms, t.cevap_ms, t.geride_ms]
+        TR_for i TR_in 0.._DENEME_SÜRELERİ.TR_length { d[_DENEME_SÜRELERİ[i]] = TR_JSON(süreler[i]) }
+        d["token_sn"] = TR_JSON(token_hızı(t))
+        TR_var satır = TR_JSON(d)
+        TR_self.satırlar += TR_json_string(satır) + "\n"
+        TR_write_file(TR_Path(TR_self.klasör, "turlar.jsonl"), TR_self.satırlar)
+        TR_self.özet.TR_append(satır)
+        TR_write_file(TR_Path(TR_self.klasör, "ozet.md"), deneme_özeti(TR_self.özet))
+    }
+}
+
+TR_func _hücre(m: TR_String, n: TR_Int) -> TR_String {
+    TR_var k = m.TR_replace("\n", " ").TR_replace("|", "/")
+    TR_return TR_if k.TR_length > n { k[0..n] + "…" } TR_else { k }
+}
+
+# deneme_özeti: tur başına bir satır, Ahmet'in dolduracağı boş sütunlar; sonda türe göre ortancalar ve en büyük kalem.
+TR_func deneme_özeti(turlar: TR_List[TR_JSON]) -> TR_String {
+    TR_var m = "# Deneme özeti\n\nSüreler ms. Boş sütunları sen doldur: anladı mı (evet / kısmen / hayır), cevap iyi mi (1–5), hız kabul edilir mi (evet / hayır).\n\n"
+    m += "| kayıt | tur | kaynak | son | duyulan | cevap | " + _DENEME_SÜRELERİ.TR_join(" | ") + " | aslında söylediğim | anladı mı | cevap iyi mi | hız kabul edilir mi | not |\n"
+    m += "| --: | --: | :-- | :-- | :-- | :-- |" + [" --: |" TR_for _ TR_in _DENEME_SÜRELERİ].TR_join("") + " :-- | :-- | :-- | :-- | :-- |\n"
+    TR_for d TR_in turlar {
+        TR_var s = ["\(TR_Int(d[a]))" TR_for a TR_in _DENEME_SÜRELERİ]
+        m += "| \(TR_Int(d["kayit"])) | \(TR_Int(d["tur"])) | \(TR_String(d["kaynak"])) | \(TR_String(d["son"])) | \(_hücre(TR_String(d["duyulan"]), 200)) | \(_hücre(TR_String(d["cevap"]), 80)) | " + s.TR_join(" | ") + " |  |  |  |  |  |\n"
+    }
+    TR_for kaynak TR_in ["ses", "metin"] {
+        TR_var bunlar = [d TR_for d TR_in turlar TR_if TR_String(d["kaynak"]) == kaynak TR_and TR_String(d["son"]) == "tamam"]
+        TR_if bunlar.TR_length == 0 { TR_continue }
+        m += "\n## Ortancalar: \(kaynak) (\(bunlar.TR_length) tur)\n\n"
+        TR_var o: TR_Dict[TR_String, TR_Float] = {}
+        TR_for a TR_in _DENEME_SÜRELERİ {
+            TR_var v = [TR_Float(TR_Int(d[a])) TR_for d TR_in bunlar TR_if TR_Int(d[a]) >= 0]
+            TR_if v.TR_length > 0 {
+                o[a] = TR_median(v)
+                m += "- \(a): \(o[a])\n"
+            }
+        }
+        m += en_büyük_kalem(o, kaynak == "ses")
+    }
+    TR_return m
+}
+
+# en_büyük_kalem: bekleme_ms'in kalemleri (toplamları bekleme_ms'tir) ortancalarla; en büyüğü satır olarak, kalemler
+# eksikse boş. `sesli`: sözün sonundan VAD'ın kararına geçen sabit süre de bir kalemdir.
+TR_func en_büyük_kalem(o: TR_Dict[TR_String, TR_Float], sesli: TR_Bool) -> TR_String {
+    TR_if TR_not (o.TR_contains("yazi_ms") TR_and o.TR_contains("ilk_parca_ms") TR_and o.TR_contains("toplam_ms")) { TR_return "" }
+    TR_var adlar = ["yazıya çevirme (yazi_ms)", "istemin okunması ve ilk parça (ilk_parca_ms − yazi_ms)",
+        "ilk cümle, sesi ve çalmanın başı (toplam_ms − ilk_parca_ms)"]
+    TR_var değerler = [o["yazi_ms"], o["ilk_parca_ms"] - o["yazi_ms"], o["toplam_ms"] - o["ilk_parca_ms"]]
+    TR_if sesli {
+        adlar.TR_append("sözün sonundan VAD'ın kararına (sabit)")
+        değerler.TR_append(TR_Float(sessizlik_ms()))
+    }
+    TR_var en = 0
+    TR_for i TR_in 0..değerler.TR_length { TR_if değerler[i] > değerler[en] { en = i } }
+    TR_return "- en büyük kalem (ortancalarla): \(adlar[en]), \(değerler[en]) ms\n"
+}

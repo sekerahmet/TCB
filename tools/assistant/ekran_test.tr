@@ -443,6 +443,7 @@ TR_struct SahteTur {
     sonu: TR_Int = -1
     bakış: TR_Int = 0
     durdur_bakışta: TR_Int = -1
+    bitişler: TR_List[TR_String] = [] # "neden|kod|o ana kadarki turn_end sayısı"
 }
 
 TR_func sahte_uçlar(e: Ekran, s: SahteTur, iş: (Yazıcı) -> TR_String?) -> TurUçları {
@@ -451,7 +452,8 @@ TR_func sahte_uçlar(e: Ekran, s: SahteTur, iş: (Yazıcı) -> TR_String?) -> Tu
         aralık: () => ÇalmaAralığı(başı: s.başı, sonu: s.sonu), işle: () => {
             s.bakış += 1
             TR_if s.bakış == s.durdur_bakışta { e.durdur = TR_true }
-        })
+        },
+        bitiş: (neden, kod) => { s.bitişler.TR_append("\(neden)|\(kod)|\(sonlar(e).TR_length)") })
 }
 
 TR_func sonlar(e: Ekran) -> TR_List[TR_JSON] { TR_return [o["data"] TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "turn_end"] }
@@ -514,6 +516,27 @@ TR_test "turun hatası tek turn_end error ve geri alma; tur kendi turn_end'ini y
     TR_assert_equal("internal", TR_String(son[0]["error"]["code"]))
     TR_assert_equal(1, s.geri)
     TR_assert_equal(0, s.bitti)
+}
+
+TR_test "bitiş her turda bir kez, turn_end'den sonra, nedeni ve hatanın koduyla: deneme kaydı ekranlı kipte buradan yazılır" {
+    TR_func koş(iş: (Yazıcı) -> TR_String?, durdur: TR_Int) -> TR_List[TR_String] {
+        TR_var e = kayıtlı()
+        e.yeni_tur()
+        TR_var s = SahteTur(durdur_bakışta: durdur)
+        tur_yürüt(e, "text", sahte_uçlar(e, s, iş))
+        TR_return s.bitişler
+    }
+    TR_assert_equal(["done||1"], koş((y) => "tamam", -1))
+    TR_assert_equal(["done||1"], koş((y) => TR_none, -1)) # boş tur
+    TR_assert_equal(["stopped||1"], koş((y) => {
+        TR_sleep(10.0)
+        TR_return "olmamalı"
+    }, 3))
+    # Kodlu hata: PATH'te olmayan program (H7497).
+    TR_assert_equal(["error|H7497|1"], koş((y) => {
+        program_koş("olmayan_program_k399", [])
+        TR_return "olmamalı"
+    }, -1))
 }
 
 TR_test "belirteç dosyası yalnız sahibine yazılır; belirteç dosyadakiyle aynıdır" {
