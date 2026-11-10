@@ -39,7 +39,7 @@ TR_var tur = TR_if n < 0 { "negatif" } TR_else { "sıfır ya da pozitif" }
 - Eşleme her durumu kapsar: `TR_Bool`'da iki değer, öbür tiplerde bir `_` kolu gerekir; kapsamayan eşleme denetim hatasıdır.
 - Kol gövdesi bir ifade, `{ blok }` ya da `TR_return ifade` olabilir. `TR_match` ifade olarak kullanılınca kolların tipi 5.5'teki gibidir: bütün kolların tipi aynıdır, `T` ile `T?` ya da `TR_none` veren kollar `T?` verir, hepsi `TR_none` veren kollarda tip beklenen tipten gelir.
 - Durumlu tiplerin deseni 7.7'dedir; yapının deseni yoktur (7.7).
-- *Test:* TR testi; kapsama denetimi ve ad deseninin kuralı uygulanınca denetleyicinin testi; hepsi `TR_none` kollar: `TestAllNoneBranchesNeedAnExpectedType`, `TestAllNoneBranchesAreANone`; demet deseni: TR testi (`tests/http_sunucusu_test.tr`).
+- *Test:* TR testi; kapsama denetimi ve ad deseninin kuralı uygulanınca denetleyicinin testi; hepsi `TR_none` kollar: `TestAllNoneBranchesNeedAnExpectedType`, `TestAllNoneBranchesAreANone`; değer demeti deseni: TR testi (`tests/http_sunucusu_test.tr`); demetin içinde `_` ve durum deseni: gerekmez, henüz uygulanmadı.
 
 ```tr
 # TR 4

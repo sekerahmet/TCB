@@ -27,6 +27,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 1. 13'ün yerleşiklerinin sessiz yanlışları (DENETİM istek 81, önem taraması teslim 3): 2a (`654c2459`) ve 2b birleşti; modülün içinden yazılan göreli yolun modül klasörüne düşmesi (13.1a, diskte veri eziyor) iki teslimin listesinde yok.
 2. 15.6d, yerinde yazma kopyadan geçmez (A; T1; DENETİM 342 Ş4): hedef zincirinde kopya veren adımın hatası, denetleyici ve çalışma anı. İletinin önerisi `.TR_select` ve tensörle indekse yazmaya (15.6d'nin E satırları) bağlı; o gelene kadar H7042'nin çalışan döngüsü.
 3. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
+4. 21.3, `TR_env:`'deki `PATH` (A; S1; Tur 6C): program TR'nin kendi `PATH`'inde aranıyor, başka program sessizce çalışabilir.
 Sonra Ö2: 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14, 15.1'in öğe cinsi. Kol A: 8.5'in işletim sistemi hatası (DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı.
@@ -142,7 +143,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 ### 3.11
 
 - **Yapılacaklar (E ve F1, Ö2; sahip D1; DENETİM 395 Ş4):** dil tanımının parametreli tip değerleri motorda yazılamıyor: `TR_Dict[TR_String, TR_JSON]` ifade yerinde sözdizimi hatası, `TR_List[TR_JSON]` çalışma hatası ("Tip tipi indekslenemez"); ileti doğru yazımı vermiyor. Çalışma anı tipin parametresini taşımıyor (`TR_Type(TR_JSON([1]))` parametresiz liste tipini yazıyor) [ölçüldü: DENETİM 395]. Karar Tur 6C'de (pending "3.11, parametreli tip değerinin yazımı").
-- **Yapılacaklar (E, Ö2; sahip D1, 3.11'in dilimi; Tur 6C):** parametresiz `TR_List`, `TR_Dict` ve `TR_Task` tip yazımı ve tip değeri olarak denetim hatası; `TR_Type(x)` tam tipi verir, şablonda çağrının somut tipini (somut tipin taşınma yolu ve bedeli uygulayanın önerisinde; DENETİM 402 Ş3). Göç: `tests/tipler_test.tr` (`TR_Type(j) == TR_List`), `definitions.json`'un `TR_Type` örneği, `examples/tr/12_tip_adlari.tr`, H1134'ün önerisi, `internal/suggestion_messages_test.go`, `internal/lang/checker/README.md`'nin 3.7a paragrafı. Sıra: önce yukarıdaki satır (ifade yerinde parametreli tip), sonra bu, sonra 3.14'ün eşitliği.
+- **Yapılacaklar (D, Ö3; sahip D1, 3.11'in dilimi; Tur 6C; sınıf DENETİM 404 N1):** parametresiz `TR_List`, `TR_Dict` ve `TR_Task` tip yazımı ve tip değeri olarak denetim hatası (bugün kabul ediliyor; eşitliğin sessiz yanlışı 3.14'ün A satırında); `TR_Type(x)` tam tipi verir, şablonda çağrının somut tipini (somut tipin taşınma yolu ve bedeli uygulayanın önerisinde; DENETİM 402 Ş3). Göç: `tests/tipler_test.tr` (`TR_Type(j) == TR_List`), `definitions.json`'un `TR_Type` örneği, `examples/tr/12_tip_adlari.tr`, H1134'ün önerisi, `internal/suggestion_messages_test.go`, `internal/lang/checker/README.md`'nin 3.7a paragrafı, `docs/agent_reference.md`'nin JSON türleri satırı (parametresiz `TR_List`, `TR_Dict`; DENETİM 404 N3). Sıra: önce yukarıdaki satır (ifade yerinde parametreli tip), sonra bu, sonra 3.14'ün eşitliği.
 - **Yapılacaklar (E, Ö3; sahip D1; Tur 6C):** `TR_Dict(d)` sözlükte H2423 veriyor; dil tanımı sığ kopya diyor (3.12) [kanıtlı: D1, `probe5b.tr`].
 
 ### 3.13
@@ -216,6 +217,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 - **Mevcut durum:** kapsama denetimi yok: `_`'siz eşleme denetimden geçiyor, eşleşmeyince çalışırken H2702 veriyor. Düz adla yazılan değişken deseni hata vermiyor, değeri karşılaştırıyor. Kolların tipi denetlenmiyor (bir kol metin, öbürü sayı veriyor). Tensör içeren desen denetim hatası vermiyor, bütün tensörü karşılaştırıyor [ölçüldü: altı küçük eşleme programı; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** kapsama denetimi (`TR_Bool`'da iki değer, öbür tiplerde `_`); düz adla yazılan değişken deseni denetim hatası, ileti `(x)`'i ya da `_`'yi önerir; ifade olarak kullanılınca kolların tipi aynı; tensör içeren desenin denetim hatası (15.5 ile); denetleyicinin testi.
+- **Yapılacaklar (E, Ö2; sahip D1; Tur 6C, DENETİM 404 Ş2):** demet deseninin içinde `_` ve durum deseni sözdizimi hatası ("'_' okunamaz"); yalnız değerlerden oluşan demet eşleşiyor [ölçüldü: DENETİM 404]. Ö2: asistanın ve HTTP sunucusunun yönlendirmesi (`("POST", _)`) buna dayanıyor.
 
 ### 5.7
 
@@ -253,6 +255,7 @@ Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yaln
 
 - **Mevcut durum:** eksik dönüş denetlenmiyor: dönüş tipi `TR_Int` olan fonksiyonda `TR_return`'süz yol denetimden geçiyor, çalışınca yokluk veriyor; fonksiyon tipi beklenen fonksiyon ifadesinin blok gövdesinde de [ölçüldü: dalı biten ve bitmeyen fonksiyonlar, `TR_throw`, sonsuz döngü, `TR_match` ve `TR_exit` ile biten yollar; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** bitmeyen yol denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler: `TR_return`, `TR_throw`, `TR_exit`, çıkışı olmayan sonsuz döngü, bütün dalları biten `TR_if` ve bütün kolları biten `TR_match`; denetleyicinin testi.
+- **Not (Tur 6C, DENETİM 404 N8):** bitiş denetimi uygulanınca iç içe kural (dalları biten iç `TR_if`/`TR_match`) ve döngüden çıkan `TR_break`/`TR_continue`'nun bitirmemesi de sınansın: bugün `-> TR_Int` fonksiyonu döngüden `TR_break` ile çıkıp `TR_none` döndürüyor [ölçüldü: DENETİM 404].
 
 ### 6.3
 
@@ -1181,6 +1184,7 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md).
 - **Sınır (DENETİM 226 N1, N4):** `AUTH` sözcüğü `SSH_AUTH_SOCK`'u da süzer, git push ajana ulaşamaz, ileti `TR_env:` yazımını verir [ölçüldü]. `/dev/tty` okuyan program `TR_timeout:` olmadan dönmeyebilir [hipotez].
 - **Yapılacaklar (A, Ö0; sahip S1; Tur 6C):** `TR_env:`'de `PATH` verilse de program TR'nin kendi `PATH`'inde aranıyor; dil tanımı `TR_env:`'dekini istiyor, boş ve göreli girdisiz, boş `PATH` hiçbir yerde (21.3). Bugün başka bir program sessizce çalışabilir. Test: boş, göreli ve boş metin girdisi; Windows'ta anahtarın harfi.
 - **Yapılacaklar (test, Ö3; sahip S1; Tur 6C, DENETİM 402 N2):** akışlı kipte torunun borusunun testi (`behavior_spawn_process_test.go`) süreyi yalnız 6 sn üst sınırla sınıyor; toplu kipteki 1,9–4,5 sn gibi 2 sn'yi ölçsün.
+- **Yapılacaklar (F, Ö3; sahip S1; DENETİM 404 N8):** süreç paketinde iki yerleşiğin dosyasındaki yorumlar yer tutucuyu hâlâ eski adla yazıyor; dil tanımında `argüman_listesi`.
 
 ## 22. Bayt ve sayı
 
