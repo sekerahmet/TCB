@@ -145,3 +145,84 @@ func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
 		}
 	}
 }
+
+// Kural (tools/full_check.sh, --kip=commit): commit öncesi denetimin listesindeki her test, listenin
+// paketlerinden birinde tanımlıdır. Taşınan ya da yeniden adlanan bir test `go test -run`'da "no tests to run"
+// ile sessizce geçerdi (DENETİM 383 N1).
+func TestCommitTestsExist(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := strings.ReplaceAll(string(data), "\r\n", "\n")
+	names, pkgs := shellArray(t, script, "commit_tests"), shellArray(t, script, "commit_test_pkgs")
+	if len(names) == 0 || len(pkgs) == 0 {
+		t.Fatalf("commit_tests (%d) ya da commit_test_pkgs (%d) boş", len(names), len(pkgs))
+	}
+	var sources strings.Builder
+	for _, pkg := range pkgs {
+		files, err := filepath.Glob(filepath.Join(reporoot.Path(strings.TrimPrefix(pkg, "./")), "*_test.go"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range files {
+			b, err := os.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sources.Write(b)
+		}
+	}
+	for _, name := range names {
+		if !strings.Contains(sources.String(), "func "+name+"(t *testing.T)") {
+			t.Errorf("commit_tests'teki %s commit_test_pkgs'in hiçbir paketinde tanımlı değil (%v)", name, pkgs)
+		}
+	}
+}
+
+// shellArray betikteki `ad=(...)` dizisinin öğelerini verir.
+func shellArray(t *testing.T, script, name string) []string {
+	t.Helper()
+	_, rest, found := strings.Cut(script, "\n"+name+"=(\n")
+	if !found {
+		t.Fatalf("tools/full_check.sh: %s dizisi bulunamadı", name)
+	}
+	body, _, _ := strings.Cut(rest, "\n)\n")
+	return strings.Fields(body)
+}
+
+// Kural (tools/full_check.sh, --kip=commit): commit kipi başka bir kip bayrağıyla verilirse betik çıkış 2 ile durur;
+// son bayrak kazandığı için `--kip=commit --hizli` bu makinede tam denetimi koşuyordu, ağır koşu kancası
+// yalnız `--kip=commit`'e baktığı için geçirmişti (DENETİM 383 Ş3). Commit kipi gofmt'u ortak işlevle koşar:
+// kendi yazdığı tek satırlık gofmt Windows'un komut satırı sınırını aşıp hiç koşmadan geçiyordu (Ş1).
+func TestCommitModeTakesNoOtherModeAndSharesGofmt(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := strings.ReplaceAll(string(data), "\r\n", "\n")
+	_, rest, found := strings.Cut(script, "\tcommit)\n")
+	if !found {
+		t.Fatal("tools/full_check.sh: commit kolu bulunamadı")
+	}
+	body, _, _ := strings.Cut(rest, "\n\t\t;;\n")
+	if !strings.Contains(body, "gofmt_check") || strings.Contains(body, "gofmt -l") {
+		t.Errorf("commit kolu gofmt'u gofmt_check ile koşmalı:\n%s", body)
+	}
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash yok")
+	}
+	for _, args := range [][]string{{"--kip=commit", "--hizli"}, {"--hizli", "--kip=commit"}, {"--kip=commit", "--kip=on"}} {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, bash, append([]string{filepath.Join("tools", "full_check.sh")}, args...)...)
+		cmd.WaitDelay = time.Second
+		cmd.Dir = reporoot.Path(".")
+		out, err := cmd.CombinedOutput()
+		exit, ok := err.(*exec.ExitError)
+		if !ok || exit.ExitCode() != 2 || !strings.Contains(string(out), "başka bir kip bayrağıyla") {
+			t.Errorf("%v: çıkış 2 ve kip iletisi beklenirdi, gelen %v: %s", args, err, out)
+		}
+	}
+}

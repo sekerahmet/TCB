@@ -33,7 +33,7 @@
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=commit      commit öncesi denetim (~20 sn; yan oturumların ve TCB'nin tek commit öncesi komutu,
 #                     CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi (format_checks), tekrar
-#                     adayları ve G4'ü sık düşüren hafif paket testleri (commit_tests). Bu makinede koşan
+#                     adayları, düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -69,7 +69,9 @@ cd "$(dirname "$0")/.."
 modes="dagitim go-esleri"
 base_override=""
 stop_first=""
+mode_flags=0
 for arg in "$@"; do
+	case "$arg" in --hizli | --kip=*) mode_flags=$((mode_flags + 1)) ;; esac
 	case "$arg" in
 	--taban=*) base_override=${arg#--taban=} ;;
 	--ilk-kalanda-dur) stop_first=1 ;;
@@ -87,6 +89,14 @@ for arg in "$@"; do
 		;;
 	esac
 done
+# Son kip bayrağı kazanır; --kip=commit başka bir kiple gelirse bu makinede ağır bir kip koşardı (ağır koşu
+# kancası yalnız --kip=commit'i geçirir; DENETİM 383 Ş3).
+if [ "$modes" = commit ] || printf '%s\n' "$@" | grep -qx -- '--kip=commit'; then
+	if [ "$mode_flags" -ne 1 ]; then
+		echo "--kip=commit başka bir kip bayrağıyla birlikte verilemez (--hizli, --kip=...)" >&2
+		exit 2
+	fi
+fi
 # --taban tam kimliğe çözülür: birden çok commit'e uyan kısa kimlik (da0457c5, 2026-11-03) ya da
 # olmayan commit sessizce "ortak ata yok" diye okunup değişen dosyaların testleri ve dups atlanıyordu.
 if [ -n "$base_override" ]; then
@@ -106,6 +116,7 @@ repo_scans=(
 	TestDottedMemberSpellingsGolden
 	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
 	TestEveryErrorTypeIsLocalized
+	TestEveryMemberSpellingInRepoTRFilesResolves
 	TestEveryMultiNameValueSpecInTheRepositoryHasItsUses
 	TestEveryRepositoryScanIsRecognized
 	TestEveryTrackedDataFileHasATestOrAReason
@@ -126,23 +137,24 @@ repo_scans=(
 	TestStatefulImplementersAreAsserted
 	TestUserPathsResolvedByLanguageRule
 )
-# commit_tests commit öncesi denetimin (--kip=commit) testleridir: G4 tam denetimini sık düşüren ve hafif
-# paketlerde duranlar. 2026-11-08–10'da 46 G4'ün ~16'sı kaldı; bu yedisinin paketleri dizüstünde 12 sn sürdü ve
-# 5 kalanı önlerdi. Codegraph (TestDottedMemberSpellingsGolden, TestReadmeGraphSizeIsCurrent: 5 kalan) ve e2e
-# testleri (2 kalan) burada değil: codegraph paketi yarışta 30–154 sn sürdü, önlediği kalandan pahalı [ölçüldü:
-# TCB, 2026-11-10]; G4'e kalırlar. Liste yalnız burada; kalanlar değişince burası değişir.
+# Commit öncesi denetimin (--kip=commit) testleri: düzen kurallarının paketi (./internal) bütün olarak, öbür
+# paketlerden yalnız G4 tam denetimini sık düşüren hafifler commit_tests ile. 2026-11-04–10'un 189 G4 koşusunda
+# ./internal'ın testleri (TestTestFileMatchesSource 5 kez, TestTRCodeIsTyped, TestClassedIdentitiesAreLive,
+# TestNoOldCommandName), TestReviewedSectionsWriteIdentities, kod listesinin iki testi ve TestRepoTRFilesPassCheck
+# kaldı (DENETİM 383). Codegraph ve e2e testleri burada değil: codegraph paketi dizüstünde yarışta 30–154 sn sürdü,
+# önlediği kalandan pahalı [ölçüldü: TCB, 2026-11-10]; G4'e kalırlar. Adların her biri commit_test_pkgs'in bir
+# paketinde tanımlı olmalı (TestCommitTestsExist): taşınan ad "no tests to run" ile sessizce geçerdi.
 commit_tests=(
-	TestClassedIdentitiesAreLive
+	TestCodeSlotsResolveToIdentities
+	TestEveryCodeHasDescription
 	TestEveryRuleHasATest
-	TestLayoutEnvVarNames
-	TestNoOldCommandName
+	TestRepoTRFilesPassCheck
 	TestReviewedSectionsWriteIdentities
-	TestSharedNamesListed
-	TestTRCodeIsTyped
 )
 commit_test_pkgs=(
-	./internal
+	./cmd/trlang
 	./internal/devtools/testrunner
+	./internal/lang/codes
 )
 repo_scan_pkgs=(
 	./cmd/trlang
@@ -334,6 +346,22 @@ initial_state=$(repo_state)
 STATICCHECK=honnef.co/go/tools/cmd/staticcheck@v0.8.2
 DEADCODE=golang.org/x/tools/cmd/deadcode@v0.52.0
 
+# gofmt_check depodaki (izlenen ve henüz eklenmemiş) bütün Go dosyalarını gofmt'tan geçirir; .claude/ altındaki
+# çalışma ağaçları başka depolardır, silinmiş ama henüz commitlenmemiş dosyalar atlanır. Dosyalar xargs ile
+# geçer: tek komut satırına yazılan 1 346 dosya Windows'un sınırını aşıp gofmt'u hiç koşturmuyordu (DENETİM 383 Ş1).
+# Tam denetim, ön denetim ve commit öncesi denetim bu fonksiyonu çağırır.
+gofmt_check() {
+	local unformatted
+	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		unformatted=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
+			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs -r -d '\n' gofmt -l)
+	else
+		unformatted=$(gofmt -l ./cmd ./internal ./lib ./tools)
+	fi
+	[ $? -eq 0 ] || fail "gofmt çalışmadı"
+	[ -z "$unformatted" ] || fail "gofmt ile biçimlenmesi gereken dosyalar: $unformatted"
+}
+
 # quick_static_checks tam denetimin ve ön denetimin ortak durağan adımlarıdır.
 quick_static_checks() {
 	step "Üretilmiş dosyalar güncel mi"
@@ -347,16 +375,7 @@ quick_static_checks() {
 	done
 
 	step "Biçim (gofmt), go vet, go.mod"
-	# Depodaki (izlenen ve henüz eklenmemiş) bütün Go dosyaları; .claude/ altındaki çalışma
-	# ağaçları başka depolardır. Silinmiş ama henüz commitlenmemiş dosyalar atlanır.
-	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-		unformatted=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
-			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs -r -d '\n' gofmt -l)
-	else
-		unformatted=$(gofmt -l ./cmd ./internal ./lib ./tools)
-	fi
-	[ $? -eq 0 ] || fail "gofmt çalışmadı"
-	[ -z "$unformatted" ] || fail "gofmt ile biçimlenmesi gereken dosyalar: $unformatted"
+	gofmt_check
 	go vet ./... || fail "go vet"
 	go mod verify >/dev/null || fail "go mod verify (modül önbelleği go.sum ile uyuşmuyor)"
 	go mod tidy -diff >/dev/null || fail "go.mod/go.sum düzenli değil (go mod tidy ile düzeltin)"
@@ -758,12 +777,12 @@ for mode in $modes; do
 		;;
 	commit)
 		step "Biçim (gofmt)"
-		mapfile -t gofiles < <(git ls-files -co --exclude-standard -- '*.go' | grep -v '^\.claude/' | while read -r f; do [ -f "$f" ] && echo "$f"; done)
-		unformatted=$(gofmt -l "${gofiles[@]}")
-		[ -z "$unformatted" ] || { echo "$unformatted"; fail "gofmt (gofmt -w ile biçimleyin)"; }
+		gofmt_check
 		step "TR dosyalarının biçimi"
 		if build_tr; then format_checks; else fail "trlang derlenemedi"; fi
-		step "G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
+		step "Düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
+		go test "${p_flag[@]}" -short -count=1 ./internal 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+		watched_ok "${PIPESTATUS[0]}" || fail "düzen kuralları"
 		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
 			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
