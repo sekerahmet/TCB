@@ -49,7 +49,7 @@ Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** 
 ```sh
 bash tools/full_check.sh          # dagitim + go-esleri: durağan denetimler, ARM derlemesi, go test, trlang test, örnekler
 bash tools/full_check.sh --hizli  # yalnızca iş sırasında: yalnızca dagitim kipi (Go eşleri atlanır)
-bash tools/full_check.sh --kip=commit # commit öncesi denetim (~20 sn): gofmt, .tr biçimi, tekrar adayları, sık kalan hafif testler
+bash tools/full_check.sh --kip=commit # commit öncesi denetim (~35 sn): gofmt, .tr biçimi, tekrar adayları, sık kalan hafif testler
 bash tools/full_check.sh --kip=on     # ön denetim (Colab'da ~8 dk): üretilmiş dosyalar, gofmt, vet, düzen kuralları, değişen paketler, dups
 ```
 

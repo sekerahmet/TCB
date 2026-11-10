@@ -31,7 +31,7 @@
 #                     satırında durdurulur, öbür adımlar (düzen kuralları, depo taramaları, yarış,
 #                     zorlama) bitince durulur; sonraki adımlar koşmaz, sonuç satırı ❌ olur. Yalnız betiğin kendi alt süreçleri
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
-#   --kip=commit      commit öncesi denetim (~20 sn; yan oturumların ve TCB'nin tek commit öncesi komutu,
+#   --kip=commit      commit öncesi denetim (~35 sn; yan oturumların ve TCB'nin tek commit öncesi komutu,
 #                     CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi (format_checks), tekrar
 #                     adayları, düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
@@ -97,6 +97,9 @@ if [ "$modes" = commit ] || printf '%s\n' "$@" | grep -qx -- '--kip=commit'; the
 		exit 2
 	fi
 fi
+# FULL_CHECK_ARGS_ONLY=1: yalnız argümanlar sınanır (TestCommitModeTakesNoOtherModeAndSharesGofmt); koruma bozulsa
+# da test bu makinede bir kipi başlatmaz (DENETİM 383 K-N3).
+[ "${FULL_CHECK_ARGS_ONLY:-}" != 1 ] || exit 0
 # --taban tam kimliğe çözülür: birden çok commit'e uyan kısa kimlik (da0457c5, 2026-11-03) ya da
 # olmayan commit sessizce "ortak ata yok" diye okunup değişen dosyaların testleri ve dups atlanıyordu.
 if [ -n "$base_override" ]; then
@@ -137,7 +140,8 @@ repo_scans=(
 	TestStatefulImplementersAreAsserted
 	TestUserPathsResolvedByLanguageRule
 )
-# Commit öncesi denetimin (--kip=commit) testleri: düzen kurallarının paketi (./internal) bütün olarak, öbür
+# Commit öncesi denetimin (--kip=commit) testleri: düzen kurallarının paketleri (./internal, ./internal/reporoot;
+# reporoot'un TestTestsListFilesThroughReporoot'u 2026-11-10'da G4'ü düşürdü) bütün olarak, öbür
 # paketlerden yalnız G4 tam denetimini sık düşüren hafifler commit_tests ile. 2026-11-04–10'un 189 G4 koşusunda
 # ./internal'ın testleri (TestTestFileMatchesSource 5 kez, TestTRCodeIsTyped, TestClassedIdentitiesAreLive,
 # TestNoOldCommandName), TestReviewedSectionsWriteIdentities, kod listesinin iki testi ve TestRepoTRFilesPassCheck
@@ -780,8 +784,8 @@ for mode in $modes; do
 		gofmt_check
 		step "TR dosyalarının biçimi"
 		if build_tr; then format_checks; else fail "trlang derlenemedi"; fi
-		step "Düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
-		go test "${p_flag[@]}" -short -count=1 ./internal 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+		step "Düzen kuralları (./internal, ./internal/reporoot) ve G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
+		go test "${p_flag[@]}" -short -count=1 ./internal ./internal/reporoot 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 		watched_ok "${PIPESTATUS[0]}" || fail "düzen kuralları"
 		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
 			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures

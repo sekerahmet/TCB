@@ -49,7 +49,7 @@ der: yan oturum yalnız dokunduğu paketlerin testlerini koşar, bütün takım�
 koşar. Yan oturum, dökümü bir çalışma ağacının klasörüne (`C--Turkish-Code-Base--claude-worktrees-<ad>`)
 yazılan oturumdur; o anki klasör ölçüt değildir, çünkü ana oturum tam denetimi bir çalışma ağacında
 da koşar. Neden: 2026-10-26'da iki yan oturum bütün takımı arka planda koştu, makine %99'da kaldı ve
-ana oturumun tam denetimi süre sınırına takıldı. Commit öncesi denetim (`--kip=commit`, ~20 sn)
+ana oturumun tam denetimi süre sınırına takıldı. Commit öncesi denetim (`--kip=commit`, ~35 sn)
 istisnadır: yan oturum onu her commit'ten önce arka planda koşar (2026-11-10). Ön denetim (`--kip=on`) artık
 bu makinede koşulmaz: oturumlar aynı anda koşunca tam denetimden yavaştı. Denetim: `TestSideSessionsRunOnlyTheirPackagesTests`.
 

@@ -161,7 +161,7 @@ func TestCommitTestsExist(t *testing.T) {
 	}
 	var sources strings.Builder
 	for _, pkg := range pkgs {
-		files, err := filepath.Glob(filepath.Join(reporoot.Path(strings.TrimPrefix(pkg, "./")), "*_test.go"))
+		files, err := reporoot.Glob(filepath.Join(reporoot.Path(strings.TrimPrefix(pkg, "./")), "*_test.go"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -194,7 +194,9 @@ func shellArray(t *testing.T, script, name string) []string {
 // Kural (tools/full_check.sh, --kip=commit): commit kipi başka bir kip bayrağıyla verilirse betik çıkış 2 ile durur;
 // son bayrak kazandığı için `--kip=commit --hizli` bu makinede tam denetimi koşuyordu, ağır koşu kancası
 // yalnız `--kip=commit`'e baktığı için geçirmişti (DENETİM 383 Ş3). Commit kipi gofmt'u ortak işlevle koşar:
-// kendi yazdığı tek satırlık gofmt Windows'un komut satırı sınırını aşıp hiç koşmadan geçiyordu (Ş1).
+// kendi yazdığı tek satırlık gofmt Windows'un komut satırı sınırını aşıp hiç koşmadan geçiyordu (Ş1). Betik
+// FULL_CHECK_ARGS_ONLY=1 ile argümanları sınayıp çıkar: koruma bozulursa test bu makinede tam denetimi başlatmaz
+// (DENETİM 383 K-N3); geçerli argümanlar çıkış 0 verir.
 func TestCommitModeTakesNoOtherModeAndSharesGofmt(t *testing.T) {
 	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
 	if err != nil {
@@ -213,13 +215,20 @@ func TestCommitModeTakesNoOtherModeAndSharesGofmt(t *testing.T) {
 	if err != nil {
 		t.Skip("bash yok")
 	}
-	for _, args := range [][]string{{"--kip=commit", "--hizli"}, {"--hizli", "--kip=commit"}, {"--kip=commit", "--kip=on"}} {
+	for _, args := range [][]string{{"--kip=commit", "--hizli"}, {"--hizli", "--kip=commit"}, {"--kip=commit", "--kip=on"}, {"--kip=commit"}} {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		cmd := exec.CommandContext(ctx, bash, append([]string{filepath.Join("tools", "full_check.sh")}, args...)...)
 		cmd.WaitDelay = time.Second
 		cmd.Dir = reporoot.Path(".")
+		cmd.Env = append(os.Environ(), "FULL_CHECK_ARGS_ONLY=1")
 		out, err := cmd.CombinedOutput()
+		if len(args) == 1 {
+			if err != nil {
+				t.Errorf("%v: yalnız argüman denetiminde çıkış 0 beklenirdi, gelen %v: %s", args, err, out)
+			}
+			continue
+		}
 		exit, ok := err.(*exec.ExitError)
 		if !ok || exit.ExitCode() != 2 || !strings.Contains(string(out), "başka bir kip bayrağıyla") {
 			t.Errorf("%v: çıkış 2 ve kip iletisi beklenirdi, gelen %v: %s", args, err, out)

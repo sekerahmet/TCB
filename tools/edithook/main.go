@@ -133,7 +133,7 @@ func sideSession(transcript string) bool {
 	return strings.Contains(transcript, "-claude-worktrees-")
 }
 
-// precheck commit öncesi denetimdir (`full_check.sh --kip=commit`, ~20 sn): yan oturum da her commit'ten önce koşar, arka
+// precheck commit öncesi denetimdir (`full_check.sh --kip=commit`, ~35 sn): yan oturum da her commit'ten önce koşar, arka
 // planda; tam denetim ana oturumundur.
 const precheck = "tools/full_check.sh --kip=commit"
 
