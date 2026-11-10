@@ -48,6 +48,14 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	if K == 0 {
 		return // boş toplam: c olduğu gibi kalır, float çarpımıyla aynı
 	}
+	if quantQ8Ready(dt, a[:M*K]) { // H1 hız prototipi (15.53): ağırlık açılmaz, bkz. cpu_quant_q8.go
+		if M == 1 {
+			quantGemvQ8(N, K, a, w, dt, c)
+		} else {
+			quantGemmQ8(M, N, K, a, w, dt, c)
+		}
+		return
+	}
 	if M == 1 {
 		quantGemv(N, K, a, w, dt, c)
 		return
