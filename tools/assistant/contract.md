@@ -17,13 +17,11 @@ Bütün örnekler uydurmadır.
 
 ## Kaynak
 
-Ekran kaynağını `source` parametresinden alır: `index.html?source=http://127.0.0.1:8123`.
+Ekranın kaynağı sayfanın kendi köküdür: TR'nin sunduğu `http://127.0.0.1:<kapı>/` sayfası olayları ve komutları aynı köke gönderir. Parametre yoktur: sayfanın adresi sorgusuzdur, çünkü sorgulu istek belirteç ister (dil tanımı, 28.2) ve tarayıcı adres çubuğundan açılan sayfaya belirteç ekleyemez.
 
-- Parametre yoksa sahte akış çalışır ve üstte "sahte kip" sürekli yazılıdır.
-- Kabul edilen tek biçim `http://127.0.0.1:<kapı>`: kullanıcı adı, yol, sorgu ve parça olmaz. `localhost`, başka adres ve `https` reddedilir.
-- Kapı sayfayı sunan kapıdır: `source`'un kökü sayfanın köküyle aynı olmalı, başka kapı reddedilir. Yoksa bir bağlantı kullanıcının girdiği belirteci aynı makinedeki başka bir sürece gönderirdi. Sayfanın `connect-src`'u yerel adresle sınırlıdır, `GET /` üstbilgisi onu sayfanın kendi kapısına daraltır ("Güvenlik").
-- Reddedilen kaynakta ekran sahte akışa düşmez: bağlantı yok der ve reddedilen kaynağı gösterir.
-- `file://` ile açılan sayfa yalnız sahte kipte çalışır (`Origin` `null` olur, sunucu ona izin vermez). Gerçek kipte sayfayı TR sunar.
+- `file://` ile açılan sayfa sahte akışla çalışır ve üstte "sahte kip" sürekli yazılıdır (`Origin` `null` olur, sunucu ona izin vermez). Gerçek kipte sayfayı TR sunar.
+- Gerçek kipe yalnız `http://127.0.0.1:<kapı>` kökünden açılan sayfa geçer. `localhost`, başka adres ve `https` reddedilir: ekran sahte akışa düşmez, bağlantı yok der ve reddedilen kökü gösterir.
+- Kaynak sayfayı sunan kapıdır, başka kapı reddedilir: belirteç yalnız ona gider. Yoksa bir bağlantı kullanıcının girdiği belirteci aynı makinedeki başka bir sürece gönderirdi. Sayfanın `connect-src`'u yerel adresle sınırlıdır, `GET /` üstbilgisi onu sayfanın kendi kapısına daraltır ("Güvenlik").
 
 ## Olay akışı
 
@@ -253,7 +251,7 @@ Ekranın kendi ürettikleri:
 | Kod | Değerler | Ne zaman |
 | --- | --- | --- |
 | `connection_lost` | | Akış kesildi ya da komut gönderilemedi |
-| `source_rejected` | `source` | `source` parametresi kurala uymuyor |
+| `source_rejected` | `source` | Sayfanın kökü gerçek kaynak olamaz (`localhost`, başka adres, `https`) |
 | `protocol_mismatch` | `got`, `want` | Sunucunun sürümü başka |
 | `event_too_large` | `limit_bytes` | Çerçeve sınırı aştı |
 | `bad_event` | | Çerçeve geçerli JSON değil |

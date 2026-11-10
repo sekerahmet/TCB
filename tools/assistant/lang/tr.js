@@ -9,7 +9,7 @@ assistantLanguages.tr = {
   "conn_reconnecting": "Bağlantı koptu. Yeniden deneniyor ({attempt}. deneme).",
   "conn_auth": "Sunucu belirteç istiyor.",
   "conn_forbidden": "Sunucu bu sayfayı kabul etmedi.",
-  "conn_rejected": "Bağlantı yok: bu kaynak kabul edilmiyor: {source}. Yalnız sayfayı sunan http://127.0.0.1:<kapı> kabul edilir.",
+  "conn_rejected": "Bağlantı yok: bu adres kabul edilmiyor: {source}. Sayfayı TR'nin verdiği http://127.0.0.1:<kapı> adresiyle açın.",
   "conn_mismatch": "Bağlantı yok: bu ekran {want}. sürümü, sunucu {got}. sürümü konuşuyor. Ekranı güncelleyip yeniden yükleyin.",
   "label_connection": "Bağlantı",
   "label_model": "Model",

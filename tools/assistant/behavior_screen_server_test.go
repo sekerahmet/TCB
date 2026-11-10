@@ -60,7 +60,7 @@ type screenServer struct {
 	base, token string
 }
 
-var screenLine = regexp.MustCompile(`EKRAN (http://127\.0\.0\.1:[0-9]+)/\?source=`)
+var screenLine = regexp.MustCompile(`EKRAN (http://127\.0\.0\.1:[0-9]+)/ `)
 
 // startScreen screen_demo.tr'yi açar; test bitince süreç kapanır.
 func startScreen(t *testing.T, args ...string) screenServer {

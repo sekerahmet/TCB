@@ -523,9 +523,8 @@ TR_test "belirteç dosyası yalnız sahibine yazılır; belirteç dosyadakiyle a
     TR_assert(b.TR_length >= 16)
 }
 
-TR_test "ekranın adresi kaynağı kendi kökü olan sayfadır" {
+TR_test "ekranın adresi sorgusuz köktür: kaynak sayfanın kendi kökü" {
     TR_var s = ekran_aç(ekran(), 0, TR_secret_token())
-    TR_var kök = "http://127.0.0.1:\(s.TR_port)"
-    TR_assert_equal(kök + "/?source=" + kök, ekran_adresi(s))
+    TR_assert_equal("http://127.0.0.1:\(s.TR_port)/", ekran_adresi(s))
     TR_assert(s.TR_close())
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-bl40E1yEaUHPfBmtNaAKHTLOuCIqFfyelZefoJ7WEiQ='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-OlBAoIVjPLJyFR8YOo8vn2PgK/zXP4OopWQEJrqOI9M='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -1833,24 +1833,19 @@ body.focus .left, body.focus .right { display: none; }
 
   // ---------- Bağlantı ----------
 
-  /** @param {string} value @returns {string|null} */
-  function validSource(value) {
-    if (location.protocol === "file:") return null;
-    let url;
-    try {
-      url = new URL(value);
-    } catch {
-      return null;
-    }
-    // Belirteç yalnız sayfayı sunan kapıya gider: başka bir yerel süreç `source` ile onu alamaz.
-    const plain = url.origin === location.origin && url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== "" &&
-      url.username === "" && url.password === "" && url.pathname === "/" && url.search === "" && url.hash === "";
-    return plain ? url.origin : null;
+  /**
+   * Kaynak sayfanın kendi köküdür (contract.md, "Kaynak"): belirteç yalnız sayfayı sunan kapıya gider, başka bir
+   * yerel süreç onu alamaz. Yalnız `http://127.0.0.1:<kapı>`; `localhost`, başka adres ve `https` reddedilir.
+   * @returns {string|null}
+   */
+  function pageSource() {
+    const plain = location.protocol === "http:" && location.hostname === "127.0.0.1" && location.port !== "";
+    return plain ? location.origin : null;
   }
 
-  const sourceParam = new URLSearchParams(location.search).get("source");
-  const base = sourceParam === null ? null : validSource(sourceParam);
-  const mock = sourceParam === null ? createMockTransport() : null;
+  const fromFile = location.protocol === "file:";
+  const base = fromFile ? null : pageSource();
+  const mock = fromFile ? createMockTransport() : null;
   /** @type {any} */
   const transport = mock || (base ? fetchTransport(base) : null);
 
@@ -2178,7 +2173,7 @@ body.focus .left, body.focus .right { display: none; }
       byId("scenePlay").addEventListener("click", () => mock.play(byId("sceneSelect").value));
     }
     if (!transport) {
-      setConn("rejected", { source: sourceParam });
+      setConn("rejected", { source: location.origin });
       return;
     }
     renderStatus();
