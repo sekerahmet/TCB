@@ -62,6 +62,7 @@ Kurallar: [`02_sozcuk_yapisi.md`](../02_sozcuk_yapisi.md). Bu dosya her kuralın
 
 - *Emsal:* Go satırın son sözcüğü bir ad, değer, `)`, `]` ya da `}` ise noktalı virgülü kendisi koyar; Python, Kotlin ve Swift'te de satır sonu deyimi bitirir. *Almadık:* JavaScript'in satır başındaki `-`'yi önceki satıra bağlaması, bilinen bir tuzak. ([Go 1.27](https://go.dev/ref/spec#Semicolons), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#line-structure), [Kotlin 2.4](https://kotlinlang.org/docs/basic-syntax.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/lexicalstructure/))
 - *Gerekçe:* satırın nerede bittiği gözle görülür; bir satırın başındaki işaret önceki satırı sessizce değiştirmez. Çağrısız tek başına ifade, bölünmüş bir formülün kopan parçasıdır; uyarı geçilebileceği için (4.7'nin gerekçesi) hatadır. Go da yalnız çağrıyı deyim olarak kabul eder: "With the exception of specific built-in functions, function and method calls and receive operations can appear in statement context" [kanıtlı: DENETİM, Go 1.27] (Gemini, 2026-10-27).
+- *Tur 6A (2026-11-10, sondaki virgül):* kural bütün virgüllü listeler için tek yerde; gerekçesi 3.6a'da.
 
 ### 2.9
 

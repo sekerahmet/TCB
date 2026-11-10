@@ -14,7 +14,8 @@ Her kuralın emsali ve gerekçesi: [`rationale/08_errors.md`](rationale/08_error
 - `e.TR_code`: iletinin kodu (`"H6903"`, metin; 8.5) ya da kodu olmayan hatada (düz metin, durumlu tip değeri) `TR_none`;
 - `e.TR_value`: fırlatılan değer; çalışma hatasında iletisi, hata başka bir hatayı sarıyorsa en içteki nedenin iletisi (kodu `TR_error_code`'unki, 8.5); sarmalayanın bağlamı (dosya yolu, öneri) yalnız gösterilen hatadadır (8.6). Tipi kapalı bir birleşimdir (metin, `TR_Message` ya da durumlu tip değeri): yalnız `TR_match`'in deseniyle ya da `TR_Type` sınamasıyla açılır, başka kullanımı denetim hatasıdır (3.7a'daki `TR_JSON` gibi). Yerel bir değişkene kopyalanabilir (aynı kapalı birleşim tipiyle); kopya da aynı yollarla açılır, `TR_Type` ile daraltılan kopya `_`'siz bir `TR_match`'le bir hata tipinin bütün durumlarını kapsar (7.8). Hatayla biten kol (`_ => { TR_throw e }`) eşlemenin değer tipine katılmaz;
 - `e.TR_cause`: nedeni olan hata (`TR_Error?`);
-- `e.TR_suppressed`: hata kapsamdan çıkarken ertelenen işlerin verdiği öbür hatalar, çalışma sırasıyla (`TR_List[TR_Error]`, çoğunlukla boş; 9.4).
+- `e.TR_suppressed`: hata kapsamdan çıkarken ertelenen işlerin verdiği öbür hatalar, çalışma sırasıyla (`TR_List[TR_Error]`, çoğunlukla boş; 9.4);
+- `.TR_text("tr")`: hatanın o dildeki okunur metni (aşağıda).
 
 Hatanın metni `TR_String(e)`'dir: fırlatılan değerin metni (3.14; iletide onu kuran çağrı, `Message("H6903", -1)`; düz metinde metnin kendisi); okuyana göre değişmez. Okunur metin `.TR_text("tr")` gibi zorunlu bir dil koduyla (`TR_String`) alınır. Katalog iletisinde metin o dilde katalogdan kurulur (iletinin kendi `.TR_text`'iyle aynı, 8.5); düz metinde ve durumlu tip değerinde `TR_String(e)` verilir; kataloğun dilleri dışındaki kod çalışma hatasıdır.
 

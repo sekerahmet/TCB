@@ -365,7 +365,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.6
 
-- **Mevcut durum (Tur 6A):** terminalde kodsuz hata kodsuz basılıyor (`TR_throw "düz hata"` → "Satır 2: düz hata") [ölçüldü: TCB, `70b1575b`, küçük program], ama motor onu `H2441` koduyla sarıyor (`internal/lang/interp/error_value.go`, `messages.New(messages.H2441, ...)`) ve hatalar örneği 12 başlık yorumunda H2441 bekliyor; kodun hangi çıktıda göründüğü uygulamada ölçülür.
+- **Mevcut durum (Tur 6A):** terminalde kodsuz hata kodsuz basılıyor (`TR_throw "düz hata"` → "Satır 2: düz hata") [ölçüldü: TCB, `70b1575b`, küçük program], ama motor onu `H2441` koduyla sarıyor (`internal/lang/interp/error_value.go`, `messages.New(messages.H2441, ...)`) ve hatalar örneği 12 başlık yorumunda H2441 bekliyor. H2441 kullanıcı çıktısında görünmüyor, yalnız Go içinde [kanıtlı: DENETİM 384]; değişecekler örnek 12'nin başlığı ve `TestExampleErrors`'ın beklediği kod.
 - **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** kodsuz hatanın gösteriminde kod yok; örnek 12, `message_value_test.go`, `messages/error_test.go`, `examples/README.md` buna göre.
 - **Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü].
 - **Yapılacaklar:** çağrı yığını, en son çağrı en altta.
@@ -483,7 +483,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 ### 13.1
 
 - **Mevcut durum (Tur 6A):** `TR_input` giriş bitince `""` veriyor; `TR_ord` ve `TR_chr` yok; anahtarlı `TR_max` "1. argüman olarak Tam ya da Ondalık bekler" diyor [ölçüldü: TCB, `70b1575b`, küçük program]. Kod kataloğunun `TR_input` açıklaması (`docs/codes.md`) da eski davranışı anlatıyor.
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `TR_input` `TR_String?` (örnek `06_girdi.tr` iki çağrı); `TR_ord`, `TR_chr` (kataloğa iki kod); anahtarlı `TR_max` ve `TR_min` (imza, 13.3'ün bir kez çağrı ve değişiklik kuralı); TR testleri.
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `TR_input` `TR_String?`: kod kataloğundaki kaydın dönüş tipi ve örneği (`definitions.json`; `docs/codes.md` ondan üretilir), Türkçe açıklaması (`tr.json`), `06_girdi.tr`'nin iki çağrısı, `internal/lang/interp/input_test.go`'nun girdi sonu beklentisi, e2e `behavior_commands_test.go`'nun kabuk satırı [kanıtlı: DENETİM 384]; `TR_ord`, `TR_chr` (kataloğa iki kod); anahtarlı `TR_max` ve `TR_min` (imza, 13.3'ün bir kez çağrı ve değişiklik kuralı); TR testleri.
 - **Yapılacaklar (D ve F, Ö3; DENETİM istek 73 kapanışı):** `TR_write_file`'a `TR_JSON` değeri yalnız çalışma anında H2623; denetleyici `TR_JSON`'u bildiği için denetimde reddedilebilir, o zaman öneri programın kendi ifadesiyle `TR_json_string(j)` olur (bugün yer tutuculu `TR_json_string(...)`).
 - **Bedel (TCB kararı, 2026-11-04):** `utf8.ValidString` satır okumayı yavaşlatıyor: 1 GB'da ASCII +%9,5, Türkçe metin +%147,5 [ölçüldü: D1, Colab, altı tur]; doğruluk hızdan önce gelir, kabul. SIMD doğrulayıcı hız kolunda (D, Ö3).
 - **Bulgu (D1, 2026-11-04, Ö3):** kesin istatistiğin bedeli on öğeli listede `TR_mean` +0,44 µs, `TR_std` +2,4 µs (5,8 kat), `TR_median` +0,26 µs [ölçüldü: Colab]. Sığan toplamda büyük sayısız yol düşürür [hipotez].
@@ -495,7 +495,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 ### 13.2
 
 - **Mevcut durum (Tur 6A):** `.TR_strip(".")` "0 argüman bekler" diyor; `.TR_is_alpha()`, `.TR_is_digit()`, `.TR_is_space()` yok [ölçüldü: TCB, `70b1575b`, küçük program].
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `.TR_strip(karakterler)`; üç sınıf metodu (kataloğa üç kod); TR testi.
+- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** `.TR_strip(karakterler)` (katalogdaki açıklaması da); üç sınıf metodu (kataloğa üç kod); TR testi.
 
 ### 13.3
 

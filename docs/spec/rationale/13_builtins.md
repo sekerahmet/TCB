@@ -48,6 +48,7 @@ Kurallar: [`13_yerlesikler.md`](../13_yerlesikler.md). Bu dosya her kuralın ems
 
 - *Emsal:* Rust'ta değeri dönüştüren iş metottur (`iter.map`, `v.len()`). Python'un `functools.reduce`'u başlangıcı isteğe bağlı alır: "If the optional initial is present, it is placed before the items of the iterable in the calculation, and serves as a default when the iterable is empty". Go `max(a, b)` ile `slices.Max(s)`'i ayrı adla, Kotlin `maxOf(a, b)` ile `list.max()`'ı ayrı adla ayırır [kanıtsız]. *Almadık:* Python'un `len(x)` ve `x.__len__()` gibi iki yazımı; `reduce`'un fonksiyonu başa alan sırası: TR'de fonksiyon son argümandır (6.7). ([Python 3.15 functools](https://docs.python.org/3/library/functools.html#functools.reduce))
 - *Gerekçe:* her işin tek biçimi olunca ajan yazımı tahmin etmez; yanlış biçim tanımsız ad ya da bilinmeyen üyedir ve ileti doğrusunu söyler. Listenin en büyüğü ile iki değerin büyüğü ayrı iki iştir; başka diller ad, TR imza ile ayırır. Sondaki bloğun parametre almaması (6.7) yüzünden iki parametreli `TR_reduce` ok fonksiyonuyla yazılır.
+- *Tur 6A (2026-11-10, `TR_ord` ve `TR_chr`):* metot olsaydı biri metnin, öbürü sayının metodu olurdu; çift ayrı yerlerde ve ajanın en çok gördüğü yazımdan (Python'un `ord` ve `chr` fonksiyonları) uzak dururdu. Bir sayının metodu olarak karakter kurmak 13.6'nın "değere soru soran iş"ine de uymaz.
 
 ### 13.7
 
