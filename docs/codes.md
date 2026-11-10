@@ -3115,7 +3115,7 @@ tr: yazdır("Toplam:", 2 + 3)
 
     nicemli_etkinleştirme(Fonksiyon | YerleşikFonksiyon) → Herhangi
 
-nicemli_etkinleştirme { ... } bloğunda "q4_k" ve "q6_k" ağırlıkla çarpımda girdi 256'lık bloklarla int8'e nicemlenir, tamsayıyla çarpılır (15.53); sonuç bloğun dışındakinden biraz farklıdır, iş parçacığı sayısından bağımsızdır. Başka nicemlenmiş ağırlık türü ve GPU hatadır.
+nicemli_etkinleştirme { ... } bloğunda "q4_k" ve "q6_k" ağırlıkla çarpımda girdi 256'lık bloklarla int8'e nicemlenir, tamsayıyla çarpılır (15.53a); sonuç bloğun dışındakinden biraz farklıdır, iş parçacığı sayısından bağımsızdır. Başka nicemlenmiş ağırlık türü ve GPU hatadır.
 
 ```tr
 TR_var y = TR_quantized_activations { TR_Tensor([[1.0, 2.0]]) @ TR_Tensor([[3.0], [4.0]]) }; TR_print(y.TR_tolist)

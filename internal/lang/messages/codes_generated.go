@@ -1379,8 +1379,8 @@ const (
 	H6720 Code = 6720 // {fn}: {axis}. eksenin uzunluğu {length} ({shape}); [{start}, {end}) aralığı geçersiz (0 ≤ baş ≤ son ≤ {length} olmalı)
 	H6721 Code = 6721 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı
 	H6722 Code = 6722 // {method}() argüman almaz; eksenlerin sırasını vermek için {permute}(...) kullanın
-	H6723 Code = 6723 // {fn} {{ ... }} bloğunda "{dtype}" ağırlıkla çarpım yok (15.53): girdi yalnız "q4_k" ve "q6_k" ağırlıkla nicemlenir; çarpımı bloğun dışına alın
-	H6724 Code = 6724 // {fn} {{ ... }} bloğu GPU'da yok (15.53, 15.41): "{dtype}" ağırlık GPU'da; çarpımı bloğun dışına alın ya da ağırlığı CPU'ya taşıyın
+	H6723 Code = 6723 // {fn} {{ ... }} bloğunda "{dtype}" ağırlıkla çarpım yok (15.53a): girdi yalnız "q4_k" ve "q6_k" ağırlıkla nicemlenir; çarpımı bloğun dışına alın
+	H6724 Code = 6724 // {fn} {{ ... }} bloğu GPU'da yok (15.53a, 15.41): "{dtype}" ağırlık GPU'da; çarpımı bloğun dışına alın ya da girdiyi ve ağırlığı CPU'ya taşıyın
 	H6725 Code = 6725 // {fn} {{ ... }} yalnız bir blok alır, {given} parametre verildi
 	H6726 Code = 6726 // {fn} {{ ... }} bir blok bekler, {given} verildi
 	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
