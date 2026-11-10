@@ -50,7 +50,9 @@ dışlamasında (`sem`) birliktedir, bekleyen kilidi bırakır, katlamanın kend
 ağa yazmaz, dinleyicilere haber verir. Dinleyici işleyicinin görevi bittikten sonra Go'nun goroutine'inde yazar
 (`listen`) ve `TR_max_concurrent:`'a sayılmaz; kaçırdığı olay halkadan düşerse ya da bir yazma 10 saniyede bitmezse
 yalnız onun bağlantısı kapanır, olay atlanmaz. Görüntü abonelikte bir kez daha maskelenir. HEAD'de dinleyici
-kaydedilmez. Denetim: `broadcast_test.go`.
+kaydedilmez. Olay kimliği `<ön ek>-<sıra>`'dır: ön ek yayıncı kurulurken rastgele üretilir (16 onaltılık
+karakter), sıra 1'den sayar. Ön eki tutmayan `Last-Event-ID` (yeniden başlamadan önceki sunucunun ya da başka
+yayıncının kimliği) görüntü verir, yeni olayları eski durumun üstüne oynatmaz. Denetim: `broadcast_test.go`.
 
 **Adres ve belirteç.** Varsayılan adres `127.0.0.1`'dir; adres ayrıştırılmış hâliyle denetlenir, başka
 adres belirteç ister; belirteç gizli değerdir (19.4). İletiler işletim sisteminin metnini taşımaz (28.9).

@@ -7,8 +7,9 @@
 # Çalıştırma (proje kökünden): trlang examples/tr/57_olay_yayini.tr
 #
 # Kendin dene: s.TR_close() yerine s.TR_wait() yaz, programı çalıştır ve başka bir terminalde
-# curl -N http://127.0.0.1:<kapı>/olaylar ile görüntüyü ve olayları izle; kesilen bağlantıyı
-# curl -N -H "Last-Event-ID: 2" ile açarsan 2'den sonraki olaylar gelir. Ctrl+C sunucuyu kapatır.
+# curl -N http://127.0.0.1:<kapı>/olaylar ile görüntüyü ve olayları izle; kesilen bağlantıyı son
+# aldığın kimlikle (id satırı, yayıncının ön eki ve sırası) curl -N -H "Last-Event-ID: <kimlik>" ile
+# açarsan ondan sonraki olaylar gelir. Ctrl+C sunucuyu kapatır.
 
 # Görüntü ekranın durumudur: son durum ve kaç olay geldiği. Katlama her olayı ona ekler; olay
 # gönderilen verinin maskeli JSON'udur.
