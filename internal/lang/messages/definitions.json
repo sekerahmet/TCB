@@ -205,6 +205,7 @@
 "H1152": { "param": ["op", "type"] },
 "H1153": { "param": ["op", "type"] },
 "H1160": { "param": ["target", "name", "split"] },
+"H1161": { "slots": {"var": "TR_kw_var", "none": "TR_kw_none", "Int": "TR_type_Int"} },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

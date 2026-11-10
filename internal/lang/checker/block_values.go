@@ -88,7 +88,60 @@ func (c *Checker) inferIf(e *ast.IfExpression, used bool) string {
 	if !used {
 		return typeAny
 	}
+	c.noteNoneBranches(e, &b)
 	return b.common(c)
+}
+
+// noneBranches dalları hepsi TR_none veren, değeri kullanılan TR_if ve TR_match ifadeleridir (5.5,
+// 5.6): tipleri beklenen tipten gelir; beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in
+// argümanı, TR_Any) asıl tip bilinemez, denetim hatasıdır (H1161). expected, tipi yazılmış bir yerden
+// (tipli değişken ve atama, dönüş tipi, kullanıcı fonksiyonunun parametresi, alan; expect) gelen
+// ifadelerdir. Başka bir dalın değeri olan iç ifade dışındakine katılır: karar dıştakinindir
+// (TR_if a { TR_if b { TR_none } TR_else { TR_none } } TR_else { 1 } bir TR_Int?'dir).
+type noneBranches struct {
+	values   map[ast.Expression]bool
+	expected map[ast.Expression]bool
+}
+
+// noteNoneBranches dallar hepsi TR_none veriyorsa e'yi kaydeder; dalın değeri olan iç ifadeler
+// kayıttan çıkar (b.exprs).
+func (c *Checker) noteNoneBranches(e ast.Expression, b *branchTypes) {
+	if c.noneBranches.values == nil {
+		c.noneBranches.values = map[ast.Expression]bool{}
+	}
+	all := !b.unknown && len(b.types) > 0
+	for i, x := range b.exprs {
+		inner := c.noneBranches.values[x] // iç ifadenin dalları da hepsi TR_none
+		delete(c.noneBranches.values, x)
+		all = all && (b.types[i] == typeNull || inner)
+	}
+	if all {
+		c.noneBranches.values[e] = true
+	}
+}
+
+// expectBranches tipi yazılmış bir yerdeki TR_if ve TR_match'i beklenen tipli sayar; TR_Any her tipi
+// alır, beklenen tip vermez.
+func (c *Checker) expectBranches(t *ast.TypeRef, value ast.Expression) {
+	switch value.(type) {
+	case *ast.IfExpression, *ast.MatchExpression:
+		if t.Token.Code == codes.TypeAny && t.Args == nil && t.Params == nil && t.Elems == nil {
+			return
+		}
+		if c.noneBranches.expected == nil {
+			c.noneBranches.expected = map[ast.Expression]bool{}
+		}
+		c.noneBranches.expected[value] = true
+	}
+}
+
+// checkNoneBranches beklenen tipi olmayan, dalları hepsi TR_none veren ifadeleri bildirir.
+func (c *Checker) checkNoneBranches() {
+	for e := range c.noneBranches.values {
+		if !c.noneBranches.expected[e] {
+			c.addErrorAt(e, messages.New(messages.H1161))
+		}
+	}
 }
 
 // branchTypes dalların değerleridir; unknown, değeri bilinmeyen bir dal vardır.
@@ -170,5 +223,6 @@ func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
 	if !used {
 		return typeAny
 	}
+	c.noteNoneBranches(e, &b)
 	return b.common(c)
 }

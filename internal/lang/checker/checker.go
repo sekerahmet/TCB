@@ -122,6 +122,8 @@ type Checker struct {
 	reassigned map[string]bool
 	// expectedReturns dönüş tipi beklenen tipten bilinen fonksiyon ifadeleridir (arrow_returns.go).
 	expectedReturns map[*ast.FunctionLiteral]bool
+	// noneBranches dalları hepsi TR_none veren TR_if ve TR_match ifadeleridir (5.5, 5.6; block_values.go).
+	noneBranches noneBranches
 }
 
 // New returns a checker with an empty global scope.
@@ -188,6 +190,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
 	c.noValue, c.expectedReturns = map[ast.Expression]bool{}, map[*ast.FunctionLiteral]bool{}
+	c.noneBranches = noneBranches{values: map[ast.Expression]bool{}, expected: map[ast.Expression]bool{}}
 	c.noteAssigned(prog)
 	c.noteTypeDefs(prog)
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir; önce aranır, çünkü
@@ -201,6 +204,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkTopLevel(prog)
 	c.checkTestPlaces(prog)
 	c.checkSignatures(prog)
+	c.checkNoneBranches()
 	c.checkValuePlaces(prog)
 	c.checkWrittenAny(prog)
 	sortByLine(c.errors[start:])

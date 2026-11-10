@@ -107,6 +107,47 @@ func TestIfAndMatchValueTypes(t *testing.T) {
 		"TR_var a = 1\nTR_var v = TR_match a { 1 => { TR_var b = 2\n        b }\n    _ => 0 }": typeInt,
 		"TR_var a = 1\nTR_var v = TR_match a { 1 => [1]\n    _ => { TR_throw \"yok\" } }":      listType(typeInt),
 		"TR_var a = 1\nTR_var v = TR_match a { 1 => 1\n    _ => \"x\" }":                       typeAny,
+		"TR_var a = 1\nTR_var v = TR_if a > 0 { 1 } TR_else { TR_none }":                       optionalType(typeInt),
+		"TR_var a = 1\nTR_var v = TR_match a { 1 => TR_none\n    _ => \"x\" }":                 optionalType(typeString),
 	})
 	singleError(t, "TR_var a = 1\nTR_var v = TR_if a > 0 { \"+\" } TR_else { \"-\" }\nv = 3", messages.H1005, 3, "TR_String")
+}
+
+// Kural (5.5, 5.6, 6.6): değer veren dalların hepsi TR_none veriyorsa tip beklenen tipten gelir;
+// beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in argümanı, TR_Any) H1161. Beklenen tip:
+// tipli değişken ve atama, dönüş tipi, kullanıcı fonksiyonunun parametresi, tipli fonksiyon
+// ifadesinin gövdesi, tipli listenin öğesi. Başka bir dalın değeri olan iç ifadeye dıştaki karar verir.
+func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
+	head := "TR_var c = TR_true\nTR_func al(x: TR_Int?) -> TR_Int {\n    TR_return x ?? 0\n}\n"
+	none := "TR_if c { TR_none } TR_else { TR_none }"
+	match := "TR_match 1 {\n    1 => TR_none\n    _ => TR_none\n}"
+	for _, src := range []string{
+		"TR_print(" + none + ")",
+		"TR_var a = " + none,
+		"TR_var a = " + match,
+		"TR_print(" + match + ")",
+		"TR_var g = (b: TR_Bool) => TR_if b { TR_none } TR_else { TR_none }",
+		"TR_var a = TR_if c { " + none + " } TR_else { TR_none }",
+		"TR_var l = [" + none + "]",
+	} {
+		_, errs := checkErrs(t, head+src)
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H1161) {
+			t.Errorf("%q: tek H1161 bekleniyordu, gelen %v", src, errs)
+		}
+	}
+	for _, src := range []string{
+		"TR_var y: TR_Int? = " + none,
+		"TR_var y: TR_String? = " + match,
+		"TR_var y: TR_Int? = 1\ny = " + none,
+		"TR_func f() -> TR_Int? {\n    TR_return " + none + "\n}",
+		"TR_print(al(" + none + "))",
+		"TR_var f: (TR_Bool) -> TR_Int? = (b) => TR_if b { TR_none } TR_else { TR_none }",
+		"TR_var l: TR_List[TR_Int?] = [" + none + "]",
+		"TR_var w = TR_if c { " + none + " } TR_else { 1 }",
+		"TR_var y: TR_Int? = TR_if c { " + none + " } TR_else { TR_none }",
+	} {
+		if _, errs := checkErrs(t, head+src); len(errs) > 0 {
+			t.Errorf("%q hatasız olmalı: %v", src, errs)
+		}
+	}
 }

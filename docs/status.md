@@ -196,8 +196,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 ### 5.5
 
-- **Mevcut durum (Tur 6A):** dalları hepsi `TR_none` veren `TR_if` beklenen tip olmadan denetimden geçiyor, çıktısı none; `T` ile `T?` dalı `T?` veriyor [ölçüldü: TCB, `70b1575b`, küçük program].
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** hepsi `TR_none` dallarda beklenen tip yoksa denetim hatası (3.6, 5.6, 6.6 ile); denetleyicinin testi.
+- **Mevcut durum (T1, Tur 6A):** dalları hepsi `TR_none` veren `TR_if` ve `TR_match` beklenen tip yoksa ya da her tipi alıyorsa H1161; tipli yer (değişken, atama, dönüş, kullanıcı fonksiyonunun parametresi, tipli fonksiyon ifadesi, tipli liste) tipi verir; `T` ile `T?` dalı `T?` [test: `TestAllNoneBranchesNeedAnExpectedType`, `TestIfAndMatchValueTypes`, `tests/negative/hepsi_yok_dallar.tr`].
 - **Mevcut durum:** `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor [ölçüldü: main `85a19c36`, dört küçük program; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
 

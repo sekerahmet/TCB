@@ -16,15 +16,19 @@ import (
 // tipten yazılır.
 
 // expect t bir fonksiyon tipiyse value'daki fonksiyon ifadesinin dönüş tipi bilinir; liste ve demet
-// değişmezinin öğeleri öğe tipiyle.
+// değişmezinin öğeleri öğe tipiyle; TR_if ve TR_match'in tipi t'dir (hepsi TR_none dallar).
 func (c *Checker) expect(t *ast.TypeRef, value ast.Expression) {
 	if t == nil {
 		return
 	}
+	c.expectBranches(t, value) // 5.5, 5.6 (block_values.go)
 	switch v := value.(type) {
 	case *ast.FunctionLiteral:
 		if t.Return != nil {
 			c.expectedReturns[v] = true
+			if body := arrowBody(v); body != nil {
+				c.expect(t.Return, body) // (x) => TR_if ...: dönüş tipi gövdenin beklenen tipidir
+			}
 		}
 	case *ast.ListLiteral:
 		if len(t.Args) == 1 {

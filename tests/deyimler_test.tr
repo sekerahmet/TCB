@@ -275,6 +275,28 @@ TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
     # Olumsuz fikstür: tests/negative/degersiz_if.tr
 }
 
+TR_func yok_ya_da(n: TR_Int?) -> TR_Int {
+    TR_return n ?? -1
+}
+
+TR_test "5.5 T ile T? dalı T?; hepsi TR_none dallarda tip beklenen tipten gelir" {
+    TR_var c = TR_true
+    TR_var z = TR_if c { 1 } TR_else { TR_none }
+    TR_var z2: TR_Int? = z
+    TR_assert_equal(1, z2)
+    TR_var y: TR_Int? = TR_if c { TR_none } TR_else { TR_none }
+    TR_assert_equal(TR_none, y)
+    TR_assert_equal(-1, yok_ya_da(TR_if c { TR_none } TR_else { TR_none }))
+    TR_var m: TR_String? = TR_match 1 {
+        1 => TR_none
+        _ => TR_none
+    }
+    TR_assert_equal(TR_none, m)
+    TR_var f: (TR_Bool) -> TR_Int? = (b) => TR_if b { TR_none } TR_else { TR_none }
+    TR_assert_equal(TR_none, f(c))
+    # Beklenen tip yoksa ya da her tipi alıyorsa (TR_print'in argümanı): tests/negative/hepsi_yok_dallar.tr
+}
+
 TR_test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
     TR_func not_adı(n: TR_Int) -> TR_String {
         TR_return TR_match n {
