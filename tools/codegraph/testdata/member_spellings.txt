@@ -903,6 +903,7 @@ iç.TR_update	ok	0	name:TR_mem_update
 içerik.TR_contains	ok	0	name:TR_mem_contains
 içerik.TR_ends_with	ok	0	name:TR_mem_ends_with
 içerik.TR_length	ok	0	name:TR_mem_length
+içerik.TR_split	ok	0	name:TR_mem_split
 içinde.TR_contains	ok	0	name:TR_mem_contains
 j.TR_append	ok	0	name:TR_mem_append
 j.TR_body	ok	0	name:TR_mem_body

@@ -11,6 +11,8 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 - `contract.md`: ekranın TR'den beklediği her şey (sürüm 1). Asıl değer budur.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
 - `asistan.tr`, `zincir.tr`, `zincir_test.tr`: ekransız sesli zincir (aşağıda, "Zincir").
+- `screen_demo.tr`: ekranı modelsiz açar (sahte zincir: metin turu sözü yineleyen cevabı sözcük sözcük akıtır); ekranı gerçek sunucuyla denemek ve uçtan uca test içindir.
+- `behavior_screen_server_test.go`: `screen_demo.tr`'yi `trlang` ile açar, gerçek bağlantıyla konuşur: belirteçsiz yollar, `401`, `403`, akıştan bir tur, `Last-Event-ID` ile yeniden bağlanma, katlama yavaşken aboneliğin bir gönderime denk gelmesi (parça ekranda tam bir kez).
 - `ekran.tr`, `ekran_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; test modelsizdir.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 
@@ -53,6 +55,15 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
 `index.html`'i tarayıcıda açın. Sahte akış kendi başlar. Üstteki **Sahte sahne** seçicisi sözleşmenin bütün durumlarını oynatır: onay, süre dolması, bağlantı kopması, sunucunun yeniden başlaması, uzun çıktı, kötü niyetli metin.
 
 Gerçek kaynağa bağlanmak için `?source=http://127.0.0.1:<kapı>` verilir. Yalnız bu biçim ve sayfayı sunan kapı kabul edilir, sayfayı da TR sunmalıdır; `file://` yalnız sahte kipte çalışır (`contract.md`, "Kaynak").
+
+Sayfayı TR'nin sunması (proje kökünden; dosya yolları örnektir):
+
+```bash
+trlang tools/assistant/asistan.tr --kip canlı --aygıt "<mikrofonun dshow adı>" --ekran 8123 --belirteç_dosyası belirtec.txt \
+    --dil_modeli Qwen3-4B-Q4_K_M.gguf --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
+```
+
+Çıktının `EKRAN` satırındaki adres tarayıcıda açılır; ekran belirteci sorar, belirteç `belirtec.txt`'tedir (dosyayı yalnız sahibi okur). Modelsiz denemek için `trlang tools/assistant/screen_demo.tr --ekran 8123 --belirteç_dosyası belirtec.txt`.
 
 ## Yapı
 

@@ -69,11 +69,12 @@ TR_struct Ekran {
     }
 }
 
-# ekran_kur: yayıncıyı kurar ve ilk olayı (`state: loading`) yollar. `kök` index.html'in klasörüdür.
-TR_func ekran_kur(kök: TR_String, model: TR_String) -> Ekran {
+# ekran_kur: yayıncıyı kurar ve ilk olayı (`state: loading`) yollar. `kök` index.html'in klasörüdür; `katlayıcı`
+# yalnız sınamada değişir (screen_demo.tr katlamayı yavaşlatır, abonelik bir gönderime denk gelsin).
+TR_func ekran_kur(kök: TR_String, model: TR_String, katlayıcı: (TR_JSON, TR_JSON) -> TR_JSON = katla) -> Ekran {
     TR_var baş = TR_JSON({"v": _SÜRÜM, "type": "session", "data": {"session_id": "s-\(TR_time_ms())", "server_version": "tr-assistant-1",
         "model": model, "tools": [], "heartbeat_ms": _NABIZ_MS, "snapshot": []}})
-    TR_var yayın = TR_EventBroadcast(TR_capacity: _KAPASİTE, TR_snapshot: baş, TR_reduce: katla,
+    TR_var yayın = TR_EventBroadcast(TR_capacity: _KAPASİTE, TR_snapshot: baş, TR_reduce: katlayıcı,
         TR_heartbeat: {"v": _SÜRÜM, "type": "heartbeat"})
     TR_var e = Ekran(yayın: yayın, kök: kök, diller: sayfanın_dilleri(kök))
     e.durum("loading")

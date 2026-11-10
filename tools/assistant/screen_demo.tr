@@ -1,0 +1,66 @@
+# TR 4
+# Ekranı modelsiz açar: sunucu, yayıncı ve komutlar asistan.tr'ninkiyle aynı (ekran.tr), zincirin yerinde sahte bir
+# tur vardır: metin turu sözü yineleyen bir cevabı sözcük sözcük akıtır. Ekranın gerçek sunucuyla denenmesi ve
+# uçtan uca Go testi (behavior_screen_server_test.go) içindir; ses, model ve mikrofon yoktur.
+#
+# Kullanım (proje kökünden; belirteç dosyasının yolu örnektir):
+#   trlang tools/assistant/screen_demo.tr --ekran 8123 --belirteç_dosyası belirtec.txt
+# Çıktıdaki adresi tarayıcıda açın, belirteci dosyadan okuyup girin.
+
+TR_import "ekran"
+TR_import "zincir"
+
+TR_var ayar = TR_command_line({"ekran": 0, "belirteç_dosyası": "", "parça_beklemesi": 0.05, "katlama_beklemesi": 0.0},
+    TR_description: "Ekranı sahte bir zincirle açar (model, ses ve mikrofon yok)",
+    TR_descriptions: {"ekran": "kapı (127.0.0.1; 0: işletim sistemi seçer)", "belirteç_dosyası": "belirtecin yazılacağı dosya (yalnız sahibi okur)",
+        "parça_beklemesi": "cevabın iki sözcüğü arası (sn)", "katlama_beklemesi": "sınama: her katlamada bekleme (sn), aboneliği gönderime denk getirir"})
+
+TR_var dosya = TR_String(ayar["belirteç_dosyası"])
+TR_if dosya == "" { TR_throw "--belirteç_dosyası verilmeli: varsayılanı yok" }
+TR_var bekleme = TR_Float(ayar["katlama_beklemesi"])
+TR_var parça = TR_Float(ayar["parça_beklemesi"])
+
+TR_func yavaş_katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
+    TR_sleep(bekleme)
+    TR_return katla(g, olay)
+}
+
+TR_var e = ekran_kur(ekran_klasörü(), "sahte", TR_if bekleme > 0.0 { yavaş_katla } TR_else { katla })
+TR_var s = ekran_aç(e, TR_Int(ayar["ekran"]), belirteç_yaz(dosya))
+TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
+e.hazır = TR_true
+e.boşta()
+
+# sahte_iş: sözü yineleyen cevap, sözcük sözcük; her adımda baştan "çözülen" metin gibi birikmiş metin verilir.
+TR_func sahte_iş(y: Yazıcı, söz: TR_String) -> TR_String? {
+    y.söz(söz)
+    TR_var içerik = "Sahte cevap: " + söz + "."
+    TR_var biriken = ""
+    TR_for sözcük TR_in içerik.TR_split(" ") {
+        biriken = TR_if biriken == "" { sözcük } TR_else { biriken + " " + sözcük }
+        TR_sleep(parça)
+        y.ilerle(biriken)
+    }
+    TR_return içerik
+}
+
+TR_var sayı = 0
+TR_func bakış() {
+    komutları_işle(e)
+    TR_if e.mic != e.mikrofon_istendi {
+        e.mic = e.mikrofon_istendi
+        TR_if e.tur == "" { e.boşta() }
+    }
+}
+TR_print("HAZIR")
+TR_for {
+    bakış()
+    TR_var m = e.metin
+    TR_if m != TR_none {
+        e.metin = TR_none
+        sayı += 1
+        tur_yürüt(e, "text", TurUçları(iş: (y) => sahte_iş(y, m), bitti: () => {}, geri_al: () => {},
+            ölçüler: () => TR_JSON({"first_token_ms": 1}), çalıyor: () => TR_false, aralık: () => ÇalmaAralığı(), işle: bakış))
+    }
+    TR_sleep(0.02)
+}
