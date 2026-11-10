@@ -3371,7 +3371,7 @@ tr: değişken b = gizli_belirteç(); yazdır(b.uzunluk, b)
 
 #### `TR_serve_http(...)` (`TR_fn_serve_http`, `http_sun`)
 
-    http_sun(Fonksiyon | YerleşikFonksiyon, adres: Metin = "127.0.0.1", kapı_numarası: Tam = 0, belirteç: Metin = yok, en_çok_eşzamanlı: Tam = yok, en_çok_gövde_baytı: Tam = 1.048576e+06, herkese_açık_yollar: Liste = yok) → HTTPSunucusu
+    http_sun(Fonksiyon | YerleşikFonksiyon, adres: Metin = "127.0.0.1", kapı_numarası: Tam = 0, belirteç: Metin = yok, en_çok_eşzamanlı: Tam = yok, en_çok_gövde_baytı: Tam = 1.048576e+06, belirteçsiz_yollar: Liste = yok) → HTTPSunucusu
 
 Bir HTTP sunucusu açar ve beklemeden HTTPSunucusu verir; işleyici her istek için ayrı bir görevde çağrılır. Varsayılan adres 127.0.0.1'dir; başka adres belirteç ister. Başka bir siteden tarayıcıyla gelen istek, belirteçsiz istek, geçersiz yol, büyük gövde ve sınırı aşan istek işleyiciye ulaşmaz.
 
@@ -5328,23 +5328,6 @@ Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `.TR_port
 
 
 
-#### `TR_public_paths:` (`TR_arg_public_paths`, `herkese_açık_yollar`)
-
-Belirteçli sunucuda belirteç istemeyen yollar: yalnız GET ve HEAD isteğinde, yol listedeki bir yola tam eşitse belirteç aranmaz; önek ve klasör yoktur, her dosya adıyla yazılır. Tarayıcının adres çubuğundan açılan sayfa böyle sunulur; olayların ve komutların yolu listeye girmez.
-
-```tr
-TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_public_paths: ["/", "/lang/tr.js"]); TR_print(s.TR_close())
-```
-
-Görünümü:
-
-```text
-en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, token: secret_token(), public_paths: ["/", "/lang/tr.js"]); print(s.close())
-tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, belirteç: gizli_belirteç(), herkese_açık_yollar: ["/", "/lang/tr.js"]); yazdır(s.kapat())
-```
-
-Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_token:`, `TR_file_response(...)`
-
 #### `TR_qk_norm:` (`TR_arg_qk_norm`, `qk_normu`)
 
 
@@ -5698,6 +5681,23 @@ Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_secre
 #### `TR_token_ids:` (`TR_arg_token_ids`, `kimlikler`)
 
 
+
+#### `TR_tokenless_paths:` (`TR_arg_tokenless_paths`, `belirteçsiz_yollar`)
+
+Belirteçli sunucuda belirteç istemeyen yollar: yalnız sorgusuz GET ve HEAD isteğinde, çözülmüş yol listedeki bir yola tam eşitse belirteç aranmaz; önek ve klasör yoktur, her dosya adıyla, çözülmüş biçimde (% olmadan) yazılır. Tarayıcının adres çubuğundan açılan sayfa böyle sunulur; olayların ve komutların yolu listeye girmez.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_tokenless_paths: ["/", "/lang/tr.js"]); TR_print(s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, token: secret_token(), tokenless_paths: ["/", "/lang/tr.js"]); print(s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, belirteç: gizli_belirteç(), belirteçsiz_yollar: ["/", "/lang/tr.js"]); yazdır(s.kapat())
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_token:`, `TR_file_response(...)`
 
 #### `TR_tol:` (`TR_arg_tol`, `tolerans`)
 

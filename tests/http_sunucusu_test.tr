@@ -50,10 +50,11 @@ TR_test "28.2 adres ayrıştırılmış hâliyle denetlenir, dış adres belirte
     TR_assert_equal("H7624", TR_error_code { TR_serve_http(cevapla, TR_token: "on altı karakterli boşluklu") })
     TR_var s = TR_serve_http(cevapla, TR_token: TR_secret_token())
     TR_assert(s.TR_close())
-    # Belirteç istemeyen yollar tam yoldur; belirteçsiz sunucuda liste çağrı hatasıdır.
-    TR_assert_equal("H7660", TR_error_code { TR_serve_http(cevapla, TR_token: TR_secret_token(), TR_public_paths: ["index.html"]) })
-    TR_assert_equal("H7661", TR_error_code { TR_serve_http(cevapla, TR_public_paths: ["/"]) })
-    TR_var açık = TR_serve_http(cevapla, TR_token: TR_secret_token(), TR_public_paths: ["/", "/lang/tr.js"])
+    # Belirteçsiz yollar çözülmüş tam yoldur; % taşıyan öğe ve belirteçsiz sunucuda liste çağrı hatasıdır.
+    TR_assert_equal("H7660", TR_error_code { TR_serve_http(cevapla, TR_token: TR_secret_token(), TR_tokenless_paths: ["index.html"]) })
+    TR_assert_equal("H7662", TR_error_code { TR_serve_http(cevapla, TR_token: TR_secret_token(), TR_tokenless_paths: ["/a%20b"]) })
+    TR_assert_equal("H7661", TR_error_code { TR_serve_http(cevapla, TR_tokenless_paths: ["/"]) })
+    TR_var açık = TR_serve_http(cevapla, TR_token: TR_secret_token(), TR_tokenless_paths: ["/", "/lang/tr.js", "/a b"])
     TR_assert(açık.TR_close())
 }
 

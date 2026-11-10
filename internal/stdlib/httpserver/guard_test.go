@@ -103,34 +103,22 @@ func TestTokenIsChecked(t *testing.T) {
 	}
 }
 
-// TestPublicPathsNeedNoToken: TR_public_paths:'teki tam yol GET ve HEAD'de belirteçsiz açılır; aynı yola başka
-// yöntem, listede olmayan yol ve yolun öneki belirteç ister; 28.1a'nın denetimi listedeki yolda da önce gelir,
-// yolun ve sorgunun denetimi (28.3) de (28.2).
-func TestPublicPathsNeedNoToken(t *testing.T) {
-	const token = "abcdefghijklmnop_-0123"
-	ts := serveGo(t, `, TR_token: "`+token+`", TR_public_paths: ["/", "/lang/tr.js"]`, ok200)
-	self := "http://" + ts.addr()
-	cases := []struct {
-		name, method, path string
-		header             map[string]string
-		code               int
-	}{
-		{"listedeki kök, GET", "GET", "/", nil, 200},
-		{"listedeki dosya, GET", "GET", "/lang/tr.js", nil, 200},
-		{"listedeki dosya, HEAD", "HEAD", "/lang/tr.js", nil, 200},
-		{"listedeki dosya, sorgulu", "GET", "/lang/tr.js?v=1", nil, 200},
-		{"aynı kaynaktan sayfa", "GET", "/", map[string]string{"Origin": self, "Sec-Fetch-Site": "same-origin"}, 200},
-		{"listedeki yola POST", "POST", "/", nil, 401},
-		{"listedeki yola OPTIONS", "OPTIONS", "/", nil, 401},
-		{"listede olmayan yol", "GET", "/events", nil, 401},
-		{"listedeki yolun uzantısı", "GET", "/lang/tr.js/x", nil, 401},
-		{"listedeki yolun öneki", "GET", "/lang/", nil, 401},
-		{"listedeki yolun başka yazımı", "GET", "/lang//tr.js", nil, 401},
-		{"yabancı Origin listedeki yolda", "GET", "/", map[string]string{"Origin": "http://saldirgan.example"}, 403},
-		{"başka site listedeki yolda", "GET", "/", map[string]string{"Sec-Fetch-Site": "cross-site"}, 403},
-		{"geçersiz sorgu listedeki yolda", "GET", "/?a=%ff", nil, 400},
-		{"listede olmayan yol, belirteçli", "GET", "/events", map[string]string{"Authorization": "Bearer " + token}, 200},
-	}
+// tokenlessServer belirteçli, belirteçsiz yolları olan sunucu.
+const tokenlessToken = "abcdefghijklmnop_-0123"
+
+func tokenlessServer(t *testing.T) *testServer {
+	return serveGo(t, `, TR_token: "`+tokenlessToken+`", TR_tokenless_paths: ["/", "/lang/tr.js", "/a b"]`, ok200)
+}
+
+type tokenlessCase struct {
+	name, method, path string
+	header             map[string]string
+	code               int
+}
+
+// checkTokenless istekleri sırayla atar; reddedilen istek işleyiciye gitmez (çağrı sayısı 200'lerinki).
+func checkTokenless(t *testing.T, ts *testServer, cases []tokenlessCase) {
+	t.Helper()
 	want := int64(0)
 	for _, c := range cases {
 		res, _ := ts.do(t, c.method, c.path, c.header, nil)
@@ -147,6 +135,55 @@ func TestPublicPathsNeedNoToken(t *testing.T) {
 	if got := ts.calls.Load(); got != want {
 		t.Fatalf("işleyici %d kez çağrıldı, %d bekleniyordu: reddedilen istek işleyiciye gitmez", got, want)
 	}
+}
+
+// TestTokenlessPathsSkipTheTokenOnlyForGetAndHead: TR_tokenless_paths:'teki yol yalnız GET ve HEAD'de belirteçsiz
+// açılır; aynı yola başka yöntem ve listede olmayan yol belirteç ister; 28.1a'nın denetimi listedeki yolda da önce,
+// yolun ve sorgunun denetimi (28.3) de gelir (28.2).
+func TestTokenlessPathsSkipTheTokenOnlyForGetAndHead(t *testing.T) {
+	ts := tokenlessServer(t)
+	self := "http://" + ts.addr()
+	checkTokenless(t, ts, []tokenlessCase{
+		{"listedeki kök, GET", "GET", "/", nil, 200},
+		{"listedeki dosya, GET", "GET", "/lang/tr.js", nil, 200},
+		{"listedeki dosya, HEAD", "HEAD", "/lang/tr.js", nil, 200},
+		{"aynı kaynaktan sayfa", "GET", "/", map[string]string{"Origin": self, "Sec-Fetch-Site": "same-origin"}, 200},
+		{"listedeki yola POST", "POST", "/", nil, 401},
+		{"listedeki yola PUT", "PUT", "/lang/tr.js", nil, 401},
+		{"listedeki yola OPTIONS", "OPTIONS", "/", nil, 401},
+		{"listede olmayan yol", "GET", "/events", nil, 401},
+		{"listedeki yolun uzantısı", "GET", "/lang/tr.js/x", nil, 401},
+		{"listedeki yolun öneki", "GET", "/lang/", nil, 401},
+		{"listedeki yolun önekinin öneki", "GET", "/lang", nil, 401},
+		{"yabancı Origin listedeki yolda", "GET", "/", map[string]string{"Origin": "http://saldirgan.example"}, 403},
+		{"başka site listedeki yolda", "GET", "/", map[string]string{"Sec-Fetch-Site": "cross-site"}, 403},
+		{"başka Host listedeki yolda", "GET", "/", map[string]string{"Host": "saldirgan.example"}, 403},
+		{"listede olmayan yol, belirteçli", "GET", "/events", map[string]string{"Authorization": "Bearer " + tokenlessToken}, 200},
+		{"listedeki yola POST, belirteçli", "POST", "/", map[string]string{"Authorization": "Bearer " + tokenlessToken}, 200},
+	})
+}
+
+// TestTokenlessPathsCompareTheDecodedPath: karşılaştırma çözülmüş yolladır (28.3'ün .TR_path'i), ham yolla değil;
+// `//`, `/./`, sondaki `/` ve harf büyüklüğü eşleşmez. İstek hedefinde `?` varsa, sorgu boş olsa da (`GET /?`),
+// belirteç sorulur (28.2; DENETİM 392 N6).
+func TestTokenlessPathsCompareTheDecodedPath(t *testing.T) {
+	ts := tokenlessServer(t)
+	auth := map[string]string{"Authorization": "Bearer " + tokenlessToken}
+	checkTokenless(t, ts, []tokenlessCase{
+		{"kodlanmış harf", "GET", "/%6Cang/tr.js", nil, 200},
+		{"kodlanmış boşluk", "GET", "/a%20b", nil, 200},
+		{"çift bölü", "GET", "//lang/tr.js", nil, 401},
+		{"nokta bileşeni", "GET", "/./lang/tr.js", nil, 401},
+		{"sondaki bölü", "GET", "/lang/tr.js/", nil, 401},
+		{"büyük harf", "GET", "/LANG/tr.js", nil, 401},
+		{"kodlanmış bölü", "GET", "/lang%2Ftr.js", nil, 200},
+		{"sorgulu", "GET", "/lang/tr.js?v=1", nil, 401},
+		{"sorgulu kök", "GET", "/?x=1", nil, 401},
+		{"boş sorgu", "GET", "/?", nil, 401},
+		{"boş sorgu, HEAD", "HEAD", "/lang/tr.js?", nil, 401},
+		{"sorgulu, belirteçli", "GET", "/?x=1", auth, 200},
+		{"geçersiz sorgu, belirteçli", "GET", "/?a=%ff", auth, 400},
+	})
 }
 
 // TestTokenComparisonIsConstantTime: belirteç sabit sürede karşılaştırılır (crypto/subtle, 28.2). Süre

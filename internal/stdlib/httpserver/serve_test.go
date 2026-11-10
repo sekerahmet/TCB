@@ -38,17 +38,6 @@ func TestServeArgumentErrors(t *testing.T) {
 		`TR_max_body_bytes: -1`:                              messages.H7628,
 		`TR_max_body_bytes: 1.5`:                             messages.H7628,
 		`TR_port: "80"`:                                      messages.H7604,
-		// TR_public_paths: (28.2): geçersiz yol ve belirteçsiz liste (boş da olsa: liste bir şey korumaz); boş liste
-		// belirteçli sunucuda hata değildir (TestServeSuggestionsWork).
-		`TR_token: "abcdefghijklmnop", TR_public_paths: ["index.html"]`: messages.H7660,
-		`TR_token: "abcdefghijklmnop", TR_public_paths: ["/a?b=1"]`:     messages.H7660,
-		`TR_token: "abcdefghijklmnop", TR_public_paths: ["/a/../b"]`:    messages.H7660,
-		`TR_token: "abcdefghijklmnop", TR_public_paths: ["/a\\b"]`:      messages.H7660,
-		`TR_token: "abcdefghijklmnop", TR_public_paths: [""]`:           messages.H7660,
-		`TR_public_paths: ["/"]`:                                        messages.H7661,
-		`TR_public_paths: []`:                                           messages.H7661,
-		`TR_token: "abcdefghijklmnop", TR_public_paths: "/"`:            messages.H7604,
-		`TR_token: "abcdefghijklmnop", TR_public_paths: [1]`:            messages.H7604,
 	}
 	for args, want := range cases {
 		o := trrun.Exec(t, handlerTR+"TR_serve_http(f, "+args+")")
@@ -70,14 +59,14 @@ func TestServeSuggestionsWork(t *testing.T) {
 	// Dış adrese bağlanmak bu makinede güvenlik duvarını uyarır; önerinin belirteç yarısı yerelde koşar.
 	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_host: "127.0.0.1", TR_token: TR_secret_token())
 TR_var result = s.TR_close()`)
-	// H7660'ın ve H7661'in önerdiği yazım (28.2, TR_public_paths:); belirteçli sunucuda boş liste hata değildir.
-	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_token: "abcdefghijklmnop", TR_public_paths: ["index.html"])`)
-	mustContain(t, "H7660", o.Err.Error(), `TR_public_paths: ["/", "/index.html"]`)
-	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_public_paths: ["/"])`)
+	// H7660'ın, H7661'in ve H7662'nin önerdiği yazım (28.2, TR_tokenless_paths:).
+	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_token: "abcdefghijklmnop", TR_tokenless_paths: ["index.html"])`)
+	mustContain(t, "H7660", o.Err.Error(), `TR_tokenless_paths: ["/", "/index.html"]`)
+	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_tokenless_paths: ["/"])`)
 	mustContain(t, "H7661", o.Err.Error(), "TR_token: TR_secret_token()")
-	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_public_paths: ["/", "/index.html"])
-TR_var result = s.TR_close()`)
-	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_public_paths: [])
+	o = trrun.Exec(t, handlerTR+`TR_serve_http(f, TR_token: "abcdefghijklmnop", TR_tokenless_paths: ["/a%20b"])`)
+	mustContain(t, "H7662", o.Err.Error(), `TR_tokenless_paths: ["/a b"]`)
+	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_tokenless_paths: ["/", "/index.html", "/a b"])
 TR_var result = s.TR_close()`)
 }
 
@@ -186,4 +175,35 @@ func TestTimeoutsCloseTheConnection(t *testing.T) {
 	if ts.calls.Load() != 1 || limited.calls.Load() != 0 || tokened.calls.Load() != 0 {
 		t.Fatalf("işleyici yalnız tam gelen istekte çağrılmalı: %d %d %d", ts.calls.Load(), limited.calls.Load(), tokened.calls.Load())
 	}
+}
+
+// TestTokenlessPathsNeedAToken: TR_tokenless_paths:'in çağrı hataları (28.2): tam yol olmayan öğe (H7660), `%`
+// taşıyan, kodlanmış öğe (H7662; çözülmüşü geçersizse H7660), belirteçsiz sunucuda liste, boş da olsa (H7661),
+// liste olmayan değer (H7604). Belirteçli sunucuda boş liste hata değildir. Hatada sunucu açılmaz.
+func TestTokenlessPathsNeedAToken(t *testing.T) {
+	const tok = `TR_token: "abcdefghijklmnop", `
+	cases := map[string]messages.Code{
+		tok + `TR_tokenless_paths: ["index.html"]`: messages.H7660,
+		tok + `TR_tokenless_paths: ["/a?b=1"]`:     messages.H7660,
+		tok + `TR_tokenless_paths: ["/a#b"]`:       messages.H7660,
+		tok + `TR_tokenless_paths: ["/a/../b"]`:    messages.H7660,
+		tok + `TR_tokenless_paths: ["/a\\b"]`:      messages.H7660,
+		tok + `TR_tokenless_paths: [""]`:           messages.H7660,
+		tok + `TR_tokenless_paths: ["/a%20b"]`:     messages.H7662,
+		tok + `TR_tokenless_paths: ["/%6Cang"]`:    messages.H7662,
+		tok + `TR_tokenless_paths: ["/a%zz"]`:      messages.H7660,
+		tok + `TR_tokenless_paths: ["/%2e%2e/x"]`:  messages.H7660,
+		`TR_tokenless_paths: ["/"]`:                messages.H7661,
+		`TR_tokenless_paths: []`:                   messages.H7661,
+		tok + `TR_tokenless_paths: "/"`:            messages.H7604,
+		tok + `TR_tokenless_paths: [1]`:            messages.H7604,
+	}
+	for args, want := range cases {
+		o := trrun.Exec(t, handlerTR+"TR_serve_http(f, "+args+")")
+		if !messages.Has(o.Err, want) {
+			t.Fatalf("%s: %s bekleniyordu, alınan %v", args, want, o.Err)
+		}
+	}
+	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_tokenless_paths: [])
+TR_var result = s.TR_close()`)
 }

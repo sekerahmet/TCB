@@ -416,43 +416,43 @@ const (
 	ArgPosition                 Code = 407 // TR_arg_position: position · konum
 	ArgPreRoll                  Code = 408 // TR_arg_pre_roll: pre_roll · baş_tamponu
 	ArgPrompt                   Code = 409 // TR_arg_prompt: prompt · istem
-	ArgPublicPaths              Code = 410 // TR_arg_public_paths: public_paths · herkese_açık_yollar
-	ArgQkNorm                   Code = 411 // TR_arg_qk_norm: qk_norm · qk_normu
-	ArgQuery                    Code = 412 // TR_arg_query: query · sorgu
-	ArgQuotaGb                  Code = 413 // TR_arg_quota_gb: quota_gb · kota_gb
-	ArgReasoning                Code = 414 // TR_arg_reasoning: reasoning · düşünce
-	ArgRecursive                Code = 415 // TR_arg_recursive: recursive · içindekilerle
-	ArgReduce                   Code = 416 // TR_arg_reduce: reduce · indirge
-	ArgRequiresGrad             Code = 417 // TR_arg_requires_grad: requires_grad · türev_izle
-	ArgRole                     Code = 418 // TR_arg_role: role · rol
-	ArgRopeTheta                Code = 419 // TR_arg_rope_theta: rope_theta · rope_tabanı
-	ArgRow                      Code = 420 // TR_arg_row: row · satır
-	ArgRtol                     Code = 421 // TR_arg_rtol: rtol · göreli_pay
-	ArgSampleRate               Code = 422 // TR_arg_sample_rate: sample_rate · örnekleme_hızı
-	ArgSamples                  Code = 423 // TR_arg_samples: samples · örnekler
-	ArgScale                    Code = 424 // TR_arg_scale: scale · ölçek
-	ArgSeed                     Code = 425 // TR_arg_seed: seed · tohum
-	ArgSeparated                Code = 426 // TR_arg_separated: separated · ayrılan
-	ArgShape                    Code = 427 // TR_arg_shape: shape · şekil
-	ArgSilence                  Code = 428 // TR_arg_silence: silence · sessizlik
-	ArgSinTable                 Code = 429 // TR_arg_sin_table: sin_table · sin_tablosu
-	ArgSnapshot                 Code = 430 // TR_arg_snapshot: snapshot · anlık_görüntü
-	ArgSparse                   Code = 431 // TR_arg_sparse: sparse · seyrek
-	ArgSparseLr                 Code = 432 // TR_arg_sparse_lr: sparse_lr · seyrek_öğrenme_oranı
-	ArgSpecialTokens            Code = 433 // TR_arg_special_tokens: special_tokens · özel_parçalar
-	ArgStart                    Code = 434 // TR_arg_start: start · başlangıç
-	ArgStartThreshold           Code = 435 // TR_arg_start_threshold: start_threshold · başlangıç_eşiği
-	ArgStatus                   Code = 436 // TR_arg_status: status · durum_kodu
-	ArgStep                     Code = 437 // TR_arg_step: step · adım
-	ArgStride                   Code = 438 // TR_arg_stride: stride · kayma
-	ArgTargets                  Code = 439 // TR_arg_targets: targets · hedef
-	ArgTemperature              Code = 440 // TR_arg_temperature: temperature · sıcaklık
-	ArgThreshold                Code = 441 // TR_arg_threshold: threshold · eşik
-	ArgTied                     Code = 442 // TR_arg_tied: tied · paylaşımlı
-	ArgTimeout                  Code = 443 // TR_arg_timeout: timeout · süre_sınırı
-	ArgToken                    Code = 444 // TR_arg_token: token · belirteç
-	ArgTokenId                  Code = 445 // TR_arg_token_id: token_id · kimlik
-	ArgTokenIds                 Code = 446 // TR_arg_token_ids: token_ids · kimlikler
+	ArgQkNorm                   Code = 410 // TR_arg_qk_norm: qk_norm · qk_normu
+	ArgQuery                    Code = 411 // TR_arg_query: query · sorgu
+	ArgQuotaGb                  Code = 412 // TR_arg_quota_gb: quota_gb · kota_gb
+	ArgReasoning                Code = 413 // TR_arg_reasoning: reasoning · düşünce
+	ArgRecursive                Code = 414 // TR_arg_recursive: recursive · içindekilerle
+	ArgReduce                   Code = 415 // TR_arg_reduce: reduce · indirge
+	ArgRequiresGrad             Code = 416 // TR_arg_requires_grad: requires_grad · türev_izle
+	ArgRole                     Code = 417 // TR_arg_role: role · rol
+	ArgRopeTheta                Code = 418 // TR_arg_rope_theta: rope_theta · rope_tabanı
+	ArgRow                      Code = 419 // TR_arg_row: row · satır
+	ArgRtol                     Code = 420 // TR_arg_rtol: rtol · göreli_pay
+	ArgSampleRate               Code = 421 // TR_arg_sample_rate: sample_rate · örnekleme_hızı
+	ArgSamples                  Code = 422 // TR_arg_samples: samples · örnekler
+	ArgScale                    Code = 423 // TR_arg_scale: scale · ölçek
+	ArgSeed                     Code = 424 // TR_arg_seed: seed · tohum
+	ArgSeparated                Code = 425 // TR_arg_separated: separated · ayrılan
+	ArgShape                    Code = 426 // TR_arg_shape: shape · şekil
+	ArgSilence                  Code = 427 // TR_arg_silence: silence · sessizlik
+	ArgSinTable                 Code = 428 // TR_arg_sin_table: sin_table · sin_tablosu
+	ArgSnapshot                 Code = 429 // TR_arg_snapshot: snapshot · anlık_görüntü
+	ArgSparse                   Code = 430 // TR_arg_sparse: sparse · seyrek
+	ArgSparseLr                 Code = 431 // TR_arg_sparse_lr: sparse_lr · seyrek_öğrenme_oranı
+	ArgSpecialTokens            Code = 432 // TR_arg_special_tokens: special_tokens · özel_parçalar
+	ArgStart                    Code = 433 // TR_arg_start: start · başlangıç
+	ArgStartThreshold           Code = 434 // TR_arg_start_threshold: start_threshold · başlangıç_eşiği
+	ArgStatus                   Code = 435 // TR_arg_status: status · durum_kodu
+	ArgStep                     Code = 436 // TR_arg_step: step · adım
+	ArgStride                   Code = 437 // TR_arg_stride: stride · kayma
+	ArgTargets                  Code = 438 // TR_arg_targets: targets · hedef
+	ArgTemperature              Code = 439 // TR_arg_temperature: temperature · sıcaklık
+	ArgThreshold                Code = 440 // TR_arg_threshold: threshold · eşik
+	ArgTied                     Code = 441 // TR_arg_tied: tied · paylaşımlı
+	ArgTimeout                  Code = 442 // TR_arg_timeout: timeout · süre_sınırı
+	ArgToken                    Code = 443 // TR_arg_token: token · belirteç
+	ArgTokenId                  Code = 444 // TR_arg_token_id: token_id · kimlik
+	ArgTokenIds                 Code = 445 // TR_arg_token_ids: token_ids · kimlikler
+	ArgTokenlessPaths           Code = 446 // TR_arg_tokenless_paths: tokenless_paths · belirteçsiz_yollar
 	ArgTol                      Code = 447 // TR_arg_tol: tol · tolerans
 	ArgToolCalls                Code = 448 // TR_arg_tool_calls: tool_calls · araç_çağrıları
 	ArgTools                    Code = 449 // TR_arg_tools: tools · araçlar
@@ -1159,7 +1159,6 @@ var identities = [...]string{
 	ArgPosition:                 "TR_arg_position",
 	ArgPreRoll:                  "TR_arg_pre_roll",
 	ArgPrompt:                   "TR_arg_prompt",
-	ArgPublicPaths:              "TR_arg_public_paths",
 	ArgQkNorm:                   "TR_arg_qk_norm",
 	ArgQuery:                    "TR_arg_query",
 	ArgQuotaGb:                  "TR_arg_quota_gb",
@@ -1196,6 +1195,7 @@ var identities = [...]string{
 	ArgToken:                    "TR_arg_token",
 	ArgTokenId:                  "TR_arg_token_id",
 	ArgTokenIds:                 "TR_arg_token_ids",
+	ArgTokenlessPaths:           "TR_arg_tokenless_paths",
 	ArgTol:                      "TR_arg_tol",
 	ArgToolCalls:                "TR_arg_tool_calls",
 	ArgTools:                    "TR_arg_tools",
