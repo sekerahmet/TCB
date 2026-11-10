@@ -1,15 +1,15 @@
 # TR 4
 # TEST 5.3 çoklu atamada bir hedefin yeri solunda atanan bir adı ya da yolu okuyorsa denetim hatasıdır (yer eski değerle hesaplanır); sağında atanan adı okumak serbesttir
-TR_struct K {
+TR_struct SıraKutusu {
     b: TR_Int
     iç: TR_List[TR_Int]
 }
 TR_var l = [1, 2, 3]
 TR_var i = 0
-TR_var a = K(1, [0])
+TR_var a = SıraKutusu(1, [0])
 i, l[i] = 1, 5 # ERROR H1160
 i, l[i + 1] = l[0], i # ERROR H1160
-a, a.b = K(2, [0]), 7 # ERROR H1160
+a, a.b = SıraKutusu(2, [0]), 7 # ERROR H1160
 a.iç, a.iç[0] = [4], 9 # ERROR H1160
 l[i], i = 9, 1
 a.b, a.iç = 3, [5]
