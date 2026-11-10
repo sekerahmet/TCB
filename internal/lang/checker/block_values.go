@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
@@ -191,9 +193,15 @@ func (b *branchTypes) block(c *Checker, blk *ast.BlockStatement) {
 	b.unknown = true
 }
 
+// common dalların ortak tipidir. Değer veren dalların hepsi TR_none veriyorsa tip TR_NoneType'tır
+// (DENETİM 400 kapanış K-Ş1): beklenen tip isteğe bağlıysa (T?) değer ona girer, değilse düz
+// TR_none gibi tip hatasıdır (3.5); TR_Any olsaydı tip denetimi atlanır, değer sessizce girerdi.
 func (b *branchTypes) common(c *Checker) string {
 	if b.unknown || len(b.types) == 0 {
 		return typeAny
+	}
+	if !slices.ContainsFunc(b.types, func(t string) bool { return t != typeNull }) {
+		return typeNull
 	}
 	if t := c.commonType(b.types, b.exprs); t != "" {
 		return t

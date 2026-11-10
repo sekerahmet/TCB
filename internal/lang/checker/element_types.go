@@ -60,7 +60,9 @@ func (c *Checker) checkElementAssign(s *ast.AssignStatement, valType string) {
 	if bad, _ := c.unopened(elem, valType, value); bad != nil {
 		return // H1135
 	}
-	if c.knownType(elem) && c.knownType(valType) && !functionType(valType) && !c.assignable(elem, valType, value) {
+	// TR_none (TR_NoneType) isteğe bağlı olmayan öğeye girmez (3.5; DENETİM 400 kapanış K-N1)
+	known := c.knownType(valType) || valType == typeNull
+	if c.knownType(elem) && known && !functionType(valType) && !c.assignable(elem, valType, value) {
 		c.addErrorAt(s.Value, messages.New(messages.H1136, c.typeArg(valType), c.typeArg(container), c.typeArg(elem), kind))
 	}
 }

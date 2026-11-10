@@ -11,7 +11,8 @@ import (
 
 // Kural (3.6, 3.7; H1136): öğe tipi bilinen kabın indeksine başka tipte değer yazmak denetim hatasıdır;
 // bileşik atamada atanan değer işlemin sonucudur. Listede öğe, sözlükte değer. Tam sayı ondalık
-// öğeye yazılır (3.13); tipi bilinmeyen değer, öğe tipsiz kap, dilim ve isteğe bağlı öğeli kap geçer.
+// öğeye yazılır (3.13); TR_none isteğe bağlı olmayan öğeye yazılmaz (3.5); tipi bilinmeyen değer, öğe
+// tipsiz kap, dilim ve isteğe bağlı öğeli kap geçer.
 func TestElementAssignType(t *testing.T) {
 	cases := []struct {
 		name, src string
@@ -22,6 +23,8 @@ func TestElementAssignType(t *testing.T) {
 		{"iç içe", "TR_var m = [[1], [2]]\nm[0][0] = \"s\"", 2},
 		{"sözlük değeri", "TR_var d = {\"a\": 1}\nd[\"b\"] = \"s\"", 2},
 		{"tipli liste", "TR_var m: TR_List[TR_String] = []\nm[0] = 1", 2},
+		{"yok listede", "TR_var m: TR_List[TR_Int] = [1]\nm[0] = TR_none", 2},                // 3.5 (DENETİM 400 K-N1)
+		{"yok sözlükte", "TR_var d: TR_Dict[TR_String, TR_Int] = {}\nd[\"a\"] = TR_none", 2}, // 3.5
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) { singleError(t, tc.src, messages.H1136, tc.line) })

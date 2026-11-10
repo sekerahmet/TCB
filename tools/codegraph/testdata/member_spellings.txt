@@ -1051,6 +1051,7 @@ liste.TR_reduce	ok	0	name:TR_mem_reduce
 ll.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 ll.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 ll.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
+lo.TR_append	ok	0	name:TR_mem_append
 log_mel.TR_shape	ok	0	name:TR_mem_shape
 log_mel.TR_slice	ok	0	name:TR_mem_slice
 loss.TR_tolist	ok	0	name:TR_mem_tolist
