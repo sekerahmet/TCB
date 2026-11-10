@@ -16,7 +16,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 
 ## Zincir
 
-`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language: "tr"`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). Ekrana henüz bağlı değildir. Yarım çift yönlüdür: mikrofon açık kalır, ama çalınırken gelen ses atılır (aşağıda, "Dinleme").
+`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language: "tr"`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). `--ekran <kapı>` ile ekrana bağlanır (aşağıda, "Ekranlı kip"). Yarım çift yönlüdür: mikrofon açık kalır, ama çalınırken gelen ses atılır (aşağıda, "Dinleme").
 
 - **Kipler:** `--kip dosya` bir klasördeki WAV'ları sırayla söz olarak okur ve cevapları WAV olarak yazar; `--kip canlı` mikrofonu (`--aygıt`, dshow adı) ya da `--sahte_mikrofon`'u (bir WAV'ı `ffmpeg -re` ile gerçek zaman hızında akıtır; yeniden başlarken ilk başlatmadan bu yana geçen süreden açar) dinler ve `--çalıcı` ile çalar.
 - **Varsayılan yol yoktur:** `--dil_modeli`, `--whisper`, `--vad`, `--ses_modeli` ve kipin girdileri verilmezse program hata verir. Seçeneklerin hepsi `--help`'tedir.
@@ -27,6 +27,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
   - çalma başlarken kullanıcı konuşuyorsa sözün yarısı atılır (söz kesme yok);
   - çalmadan önce, cevap hesaplanırken konuşulan söz kaybolmaz, sonraki turun sözü olur;
   - tampon taşarsa (tur tamponu aştı) hata okumada gelir, mikrofon yeniden açılır, program sürer.
+- **Ekranlı kip** (`--kip canlı --ekran <kapı> --belirteç_dosyası <yol>`; `--kip dosya` ile hata): belirteç üretilir ve dosyaya yalnız sahibine yazılır, sunucu `127.0.0.1:<kapı>`'da açılır, standart çıktıya ekranın adresi (`?source=` ile) ve dosyanın yolu yazılır; belirtecin kendisi hiçbir yere yazılmaz. Modeller sonra bir görevde yüklenir: o sürede ekran `loading` görür, metin turu `not_ready` alır. Mikrofon kapalı başlar; ekranın `mic_set` komutuyla açılır, `mic: true` ilk çerçeve okununca gider. Tur bir görevde koşar (`tur_yürüt`, `ekran.tr`): komutlar tur sürerken de 20 ms'de bir okunur, `stop` görevi iptal eder; `turn_end`, `metrics`, geri alma ve `OLCU` satırı bekleyen tarafta, görevin sonucuna bağlı yazılır. Ekrana yalnız `TR_qwen3_reply`'ın içeriği gider: her adımda baştan çözülen metnin öncekinin uzantısı olan kısmı maske akışından (19.4a) geçer; yarım karakter ve etiketin olası başı tutulur; turun sonunda ekrandaki metin içerikten ayrıysa `replace` içeriği yazar. Metin turunun çalma aralığı sesli turunki gibi atılır (`Dinleme`'nin `ara`'sı); durdurulan turun aralığı durdurma anına uzar, kesilen çalmanın yankısı tur açmaz. Ekransız canlı kip ve dosya kipi değişmez.
 - **Hata** turu bitirir: ileti ekrana yazılır, kullanıcı iletisi geçmişten çıkar, program sonraki söze geçer. Son çalma başarıda da hatada da beklenir; çalmanın hatası (çalıcı yok) da tur hatasıdır. Geçmiş geri alınsa da kullanıcı cevabın bir kısmını duymuş olabilir: ilk sürümün kabulüdür. Yazısı boş kesit tur sayılmaz; `--en_çok_tur` cevaplanan ve hatayla biten turları sayar.
 - **Ses diskte kalmaz:** canlı kipte cevabın her cümlesi geçici bir WAV'a yazılır, çalınır ve hemen silinir (çalma hatayla bitse de); geçici klasör son çalma beklendikten sonra silinir.
 
@@ -35,7 +36,7 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
     --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 ```
 
-`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, üretilen kimliklerden cümlelerin sınır geldikçe çıkması (cümle akışı), rakam, önbelleğin kapasitesi ve ortak öneki, sistem iletisinin önceden okunması (kimlikler önbelleksiz okumayla aynı; hatası programı durdurmaz), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığının atılması, çapa, taşma; zaman damgalı sahte mikrofonla).
+`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, üretilen kimliklerden cümlelerin sınır geldikçe çıkması (cümle akışı), rakam, önbelleğin kapasitesi ve ortak öneki, sistem iletisinin önceden okunması (kimlikler önbelleksiz okumayla aynı; hatası programı durdurmaz), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığının atılması, çapa, taşma; zaman damgalı sahte mikrofonla), `ara` kancası (metin turunun aralığı, mikrofonun yeniden açılması, durma), durdurulan turun geri alınması.
 
 ## Ekranın sunucusu
 

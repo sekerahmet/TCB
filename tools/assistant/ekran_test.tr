@@ -359,3 +359,173 @@ TR_test "sunucu belirteçli açılır: sayfa ve dil dosyaları belirteçsiz yoll
     # Boş belirteç geçersizdir: sunucu açılmaz (28.2).
     TR_assert_equal("H7624", TR_error_code { ekran_aç(e, 0, "") })
 }
+
+# ---------- Tur ve cevap metni ----------
+
+TR_func kayıtlı() -> Ekran {
+    TR_var e = ekran()
+    e.kayıt = TR_true
+    TR_return e
+}
+
+# metinler: kayıttaki asistan `turn_text`'lerinin metinleri, sırayla.
+TR_func metinler(e: Ekran) -> TR_List[TR_String] {
+    TR_return [TR_String(o["data"]["text"]) TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "turn_text" TR_and TR_String(o["data"]["role"]) == "assistant"]
+}
+
+# ekrandaki: kayıttaki olayları işleyen ekranın gösterdiği cevap.
+TR_func ekrandaki(e: Ekran, tur: TR_String) -> TR_String {
+    TR_var g = Görünüm()
+    TR_for o TR_in e.giden { uygula(g, o) }
+    TR_var m = g.satırlar.TR_get(tur + "|assistant")
+    TR_return TR_if m == TR_none { "" } TR_else { m }
+}
+
+TR_test "cevap metni: ekrana yalnız öncekinin uzantısı gider; birleşim içeriktir, replace yok" {
+    TR_var e = kayıtlı()
+    TR_var y = Yazıcı(e: e, tur: "t-1")
+    TR_var içerik = "Merhaba, bugün hava güzel."
+    TR_for i TR_in 1..=içerik.TR_length { y.ilerle(içerik[0..i]) }
+    y.bitir(içerik)
+    TR_assert_equal(içerik, metinler(e).TR_join(""))
+    TR_assert_equal(içerik, ekrandaki(e, "t-1"))
+    TR_for o TR_in e.giden { TR_assert_equal("append", TR_String(o["data"]["mode"])) }
+}
+
+TR_test "cevap metni: yarım karakter ve etiketin olası başı tutulur, etiket ekrana gitmez, son metin içeriktir" {
+    TR_var e = kayıtlı()
+    TR_var y = Yazıcı(e: e, tur: "t-1")
+    y.ilerle("Mer")
+    y.ilerle("Merhaba\u{FFFD}")
+    TR_assert_equal(["Mer", "haba"], metinler(e))
+    y.ilerle("Merhaba ç")
+    y.ilerle("Merhaba ç <th")
+    y.ilerle("Merhaba ç <think>gizli")
+    y.ilerle("Merhaba ç <think>gizli düşünce</think> son")
+    TR_for m TR_in metinler(e) {
+        TR_assert(TR_not m.TR_contains("<"))
+        TR_assert(TR_not m.TR_contains("gizli"))
+    }
+    TR_assert_equal("Merhaba ç ", ekrandaki(e, "t-1"))
+    y.bitir("Merhaba ç")
+    TR_assert_equal("Merhaba ç", ekrandaki(e, "t-1"))
+}
+
+TR_test "cevap metni: çözüm öncekinin uzantısı değilse replace gider, ekran sonra uzantıyı ekler" {
+    TR_var e = kayıtlı()
+    TR_var y = Yazıcı(e: e, tur: "t-1")
+    y.ilerle("abc")
+    y.ilerle("abX d")
+    y.ilerle("abX de")
+    TR_assert_equal("abX de", ekrandaki(e, "t-1"))
+    TR_var kipler = [TR_String(o["data"]["mode"]) TR_for o TR_in e.giden]
+    TR_assert_equal(["append", "replace", "append"], kipler)
+    y.bitir("abX de")
+    TR_assert_equal(3, e.giden.TR_length)
+}
+
+TR_test "cevap metni: iki adıma bölünen gizli değer ekrana maskeli gider" {
+    TR_var e = kayıtlı()
+    TR_var y = Yazıcı(e: e, tur: "t-1")
+    TR_var b = TR_secret_token()
+    TR_var içerik = "anahtar: " + b + " bitti"
+    y.ilerle("anahtar: " + b[0..20])
+    y.ilerle(içerik)
+    y.bitir(içerik)
+    TR_assert_equal("anahtar: *** bitti", metinler(e).TR_join(""))
+    TR_for m TR_in metinler(e) { TR_assert(TR_not m.TR_contains(b[0..20])) }
+}
+
+TR_struct SahteTur {
+    bitti: TR_Int = 0
+    geri: TR_Int = 0
+    başı: TR_Int = -1
+    sonu: TR_Int = -1
+    bakış: TR_Int = 0
+    durdur_bakışta: TR_Int = -1
+}
+
+TR_func sahte_uçlar(e: Ekran, s: SahteTur, iş: (Yazıcı) -> TR_String?) -> TurUçları {
+    TR_return TurUçları(iş: iş, bitti: () => { s.bitti += 1 }, geri_al: () => { s.geri += 1 },
+        ölçüler: () => TR_JSON({"first_token_ms": 7}), çalıyor: () => s.başı >= 0,
+        aralık: () => ÇalmaAralığı(başı: s.başı, sonu: s.sonu), işle: () => {
+            s.bakış += 1
+            TR_if s.bakış == s.durdur_bakışta { e.durdur = TR_true }
+        })
+}
+
+TR_func sonlar(e: Ekran) -> TR_List[TR_JSON] { TR_return [o["data"] TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "turn_end"] }
+
+TR_func durumlar(e: Ekran) -> TR_List[TR_String] { TR_return [TR_String(o["data"]["state"]) TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "state"] }
+
+TR_test "stop bitince'den sonra gelirse tek turn_end: done; ölçü bir kez, geri alma yok" {
+    TR_var e = kayıtlı()
+    e.yeni_tur()
+    TR_var s = SahteTur()
+    TR_var a = tur_yürüt(e, "text", sahte_uçlar(e, s, (y) => {
+        y.ilerle("tamam")
+        e.durdur = TR_true # stop turun son adımından sonra geldi
+        TR_return "tamam"
+    }))
+    TR_var son = sonlar(e)
+    TR_assert_equal(1, son.TR_length)
+    TR_assert_equal("done", TR_String(son[0]["reason"]))
+    TR_assert_equal(1, s.bitti)
+    TR_assert_equal(0, s.geri)
+    TR_assert_equal(1, [o TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "metrics"].TR_length)
+    TR_assert_equal("", e.tur)
+    TR_assert(TR_not e.durdur)
+    TR_assert_equal(-1, a.başı)
+}
+
+TR_test "stop süren turu iptal eder: tek turn_end stopped, geri alma, çalma aralığı stop'a uzar" {
+    TR_var e = kayıtlı()
+    e.yeni_tur()
+    TR_var s = SahteTur(durdur_bakışta: 5)
+    TR_var baş = şimdi()
+    TR_var a = tur_yürüt(e, "voice", sahte_uçlar(e, s, (y) => {
+        s.başı = şimdi() # çalma başladı, sonu yok: iptal çalmanın ortasında
+        TR_sleep(10.0)
+        TR_return "olmamalı"
+    }))
+    TR_var son = sonlar(e)
+    TR_assert_equal(1, son.TR_length)
+    TR_assert_equal("stopped", TR_String(son[0]["reason"]))
+    TR_assert_equal(1, s.geri)
+    TR_assert_equal(0, s.bitti)
+    TR_assert_equal(0, [o TR_for o TR_in e.giden TR_if TR_String(o["type"]) == "metrics"].TR_length)
+    TR_assert(şimdi() - baş < 3000) # iptal beklemeyi keser
+    TR_assert(a.başı >= 0)
+    TR_assert(a.sonu >= baş + 4 * 20) # en az dört bakış sürdü: kesilen çalmanın yankısı aralıktadır
+    TR_assert_equal(["thinking", "speaking", "idle"], durumlar(e))
+}
+
+TR_test "turun hatası tek turn_end error ve geri alma; tur kendi turn_end'ini yazmaz" {
+    TR_var e = kayıtlı()
+    e.yeni_tur()
+    TR_var s = SahteTur()
+    tur_yürüt(e, "text", sahte_uçlar(e, s, (y) => {
+        y.ilerle("yarım")
+        TR_throw "sahte hata"
+    }))
+    TR_var son = sonlar(e)
+    TR_assert_equal(1, son.TR_length)
+    TR_assert_equal("error", TR_String(son[0]["reason"]))
+    TR_assert_equal("internal", TR_String(son[0]["error"]["code"]))
+    TR_assert_equal(1, s.geri)
+    TR_assert_equal(0, s.bitti)
+}
+
+TR_test "belirteç dosyası yalnız sahibine yazılır; belirteç dosyadakiyle aynıdır" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "belirtec"))
+    TR_var b = belirteç_yaz(yol)
+    TR_assert_equal(b, TR_read_file(yol))
+    TR_assert(b.TR_length >= 16)
+}
+
+TR_test "ekranın adresi kaynağı kendi kökü olan sayfadır" {
+    TR_var s = ekran_aç(ekran(), 0, TR_secret_token())
+    TR_var kök = "http://127.0.0.1:\(s.TR_port)"
+    TR_assert_equal(kök + "/?source=" + kök, ekran_adresi(s))
+    TR_assert(s.TR_close())
+}

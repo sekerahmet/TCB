@@ -5,6 +5,10 @@
 # - Komutun kararı ana döngüde verilir (`komutları_işle`): işleyici komutu tek bir `TR_append` ile bırakır, cevabı
 #   bekler. İşleyicide "oku, sonra yaz" iki deyim olurdu; 10.2'nin devir noktası arada iki `send_text`'i birden
 #   kabul ettirir, aynı `command_id`'yi iki kez işletirdi.
+# - Tur bir görevde koşar (`tur_yürüt`); `stop` onu iptal eder (10.9). `turn_end`, `metrics` ve geri alma tek yerde,
+#   bekleyen tarafta, `.TR_wait()`'in sonucuna bağlı yazılır: tur kendi `turn_end`'ini yazmaz.
+
+TR_import "zincir"
 
 TR_const _SÜRÜM = 1
 TR_const _KAPASİTE = 1024 # sözleşme: en az son 1024 olay
@@ -16,6 +20,8 @@ TR_const _TUTULAN_KOMUT = 1024
 TR_const _BÜTÇE = 524288
 TR_const _CEVAP_BEKLEMESİ = 0.005 # işleyicinin ana döngünün cevabına bakışı (sn)
 TR_const _CSP = "frame-ancestors 'none'; connect-src 'self'"
+TR_const _TUR_BAKIŞI = 0.02 # tur sürerken ana döngünün komutlara bakışı (sn)
+TR_const _ETİKETLER = ["<think>", "</think>", "<tool_call>", "</tool_call>"]
 
 # Komut: işleyicinin bıraktığı, ana döngünün cevapladığı komut.
 TR_struct Komut {
@@ -42,9 +48,13 @@ TR_struct Ekran {
     tur_sayısı: TR_Int = 0
     metin: TR_String? = TR_none # kabul edilmiş, henüz açılmamış metin turu
     durdur: TR_Bool = TR_false # süren tur için `stop` geldi
+    kayıt: TR_Bool = TR_false # sınama: gönderilen olaylar `giden`'e de yazılır
+    giden: TR_List[TR_JSON] = []
 
     TR_func gönder(tür: TR_String, veri: TR_JSON) {
-        TR_self.yayın.TR_send_event(TR_JSON({"v": _SÜRÜM, "type": tür, "data": veri}))
+        TR_var olay = TR_JSON({"v": _SÜRÜM, "type": tür, "data": veri})
+        TR_self.yayın.TR_send_event(olay)
+        TR_if TR_self.kayıt { TR_self.giden.TR_append(olay) }
     }
 
     TR_func durum(durum: TR_String) { TR_self.gönder("state", TR_JSON({"state": durum, "mic": TR_self.mic})) }
@@ -196,6 +206,12 @@ TR_func ekran_aç(e: Ekran, kapı: TR_Int, belirteç: TR_String) -> TR_HTTPServe
     TR_return TR_serve_http(cevapla, TR_port: kapı, TR_token: belirteç, TR_tokenless_paths: açık, TR_max_body_bytes: 65536)
 }
 
+# ekran_adresi: tarayıcıda açılacak adres; ekran kaynağını `source`'tan alır (contract.md, "Kaynak").
+TR_func ekran_adresi(s: TR_HTTPServer) -> TR_String {
+    TR_var kök = "http://127.0.0.1:\(s.TR_port)"
+    TR_return kök + "/?source=" + kök
+}
+
 # ekran_cevabı: sunucunun işleyicisi; belirteci sunucu denetlemiştir.
 TR_func ekran_cevabı(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_var yol = istek.TR_path
@@ -313,6 +329,145 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
+}
+
+# ---------- Tur ----------
+
+# TurUçları: ekranlı bir turun zincire bağlandığı yerler. `iş` görevde koşar; öbürleri bekleyen taraftadır.
+TR_struct TurUçları {
+    iş: (Yazıcı) -> TR_String? # turun kendisi: cevabın içeriği, söz boşsa TR_none
+    bitti: () -> TR_NoneType # normal dönüş (ölçü satırı)
+    geri_al: () -> TR_NoneType # iptal ya da hata: geçmiş, önbellek
+    ölçüler: () -> TR_JSON # `metrics`'in verisi
+    çalıyor: () -> TR_Bool # ilk çalma başladı mı
+    aralık: () -> ÇalmaAralığı # turun çalma aralığı
+    işle: () -> TR_NoneType # ana döngünün komutlara bakışı
+}
+
+# tur_yürüt: süren turu (`e.tur`) bir görevde koşar, beklerken komutları işler; `stop` görevi iptal eder (10.9).
+# `turn_end`, `metrics` ve geri alma yalnız burada, görevin sonucuna bağlı yazılır: normal dönüş `done`, iptal
+# (H2920) `stopped`, başka hata `error`. Çalma aralığını verir; iptal ya da hatada aralık şimdiye uzar (kesilen
+# çalmanın yankısı yeni tur açmaz).
+TR_func tur_yürüt(e: Ekran, kaynak: TR_String, u: TurUçları) -> ÇalmaAralığı {
+    TR_var tur = e.tur
+    e.gönder("turn_start", TR_JSON({"turn_id": tur, "source": kaynak}))
+    e.durum("thinking")
+    TR_var y = Yazıcı(e: e, tur: tur)
+    TR_var g = TR_async u.iş(y)
+    TR_var konuşuyor = TR_false
+    TR_for TR_not g.TR_done() {
+        u.işle()
+        TR_if e.durdur { g.TR_cancel() }
+        TR_if TR_not konuşuyor TR_and u.çalıyor() {
+            konuşuyor = TR_true
+            e.durum("speaking")
+        }
+        TR_sleep(_TUR_BAKIŞI)
+    }
+    TR_var neden = "done"
+    TR_var içerik: TR_String? = TR_none
+    TR_try {
+        içerik = g.TR_wait()
+    } TR_catch hata {
+        neden = TR_if hata.TR_code == "H2920" { "stopped" } TR_else { "error" }
+        TR_if neden == "error" { TR_print("TUR HATASI:", hata) }
+    }
+    TR_var a = u.aralık()
+    TR_if neden == "done" {
+        TR_if içerik != TR_none { y.bitir(içerik) }
+        u.bitti()
+        e.gönder("turn_end", TR_JSON({"turn_id": tur, "reason": "done"}))
+        e.gönder("metrics", u.ölçüler())
+    } TR_else {
+        u.geri_al()
+        TR_var son = TR_JSON({"turn_id": tur, "reason": neden})
+        TR_if neden == "error" { son = TR_JSON({"turn_id": tur, "reason": neden, "error": {"code": "internal", "values": {}}}) }
+        e.gönder("turn_end", son)
+        TR_if a.başı >= 0 { a = ÇalmaAralığı(başı: a.başı, sonu: TR_max(a.sonu, şimdi())) }
+    }
+    e.tur = ""
+    e.durdur = TR_false
+    e.boşta()
+    TR_return a
+}
+
+# Yazıcı: bir turun ekrana giden metni. Cevap her adımda baştan çözülür (16.3a'nın akışlı çözmesi yok): ekrana
+# yalnız öncekinin uzantısı olan kısım gider; sondaki yarım karakter (U+FFFD) ve bir düşünce ya da araç etiketinin
+# olası başı tutulur, tamamlanmış etiket akışı durdurur. Önce uzantı ham metinde bulunur, sonra maske akışından
+# geçer (19.4a). Çözüm öncekinin uzantısı değilse `replace` gider ve maske akışı yeniden kurulur. Turun sonunda
+# verilen ham metin içerikten ayrıysa son bir `replace` içeriği yazar: ekrandaki son metin geçmişe yazılan içeriktir.
+TR_struct Yazıcı {
+    e: Ekran
+    tur: TR_String
+    ham: TR_String = "" # ekrana verilen ham metin (maskeden önce)
+    maske: TR_MaskStream = TR_mask_stream()
+    durdu: TR_Bool = TR_false
+
+    TR_func söz(m: TR_String) {
+        TR_self.e.gönder("turn_text", TR_JSON({"turn_id": TR_self.tur, "role": "user", "mode": "replace", "text": m, "final": TR_true}))
+    }
+
+    TR_func ilerle(metin: TR_String) {
+        TR_if TR_self.durdu { TR_return }
+        TR_var aday, etiketli = gösterilebilir(metin)
+        TR_if etiketli { TR_self.durdu = TR_true }
+        TR_if aday.TR_starts_with(TR_self.ham) {
+            TR_var ek = aday[TR_self.ham.TR_length..aday.TR_length]
+            TR_if ek == "" { TR_return }
+            TR_self.ham = aday
+            TR_self.gönder("append", TR_self.maske.TR_step(ek))
+            TR_return
+        }
+        TR_self.maske = TR_mask_stream()
+        TR_self.ham = aday
+        TR_self.e.gönder("turn_text", TR_JSON({"turn_id": TR_self.tur, "role": "assistant", "mode": "replace", "text": TR_self.maske.TR_step(aday)}))
+    }
+
+    TR_func gönder(kip: TR_String, parça: TR_String) {
+        TR_if parça == "" { TR_return }
+        TR_self.e.gönder("turn_text", TR_JSON({"turn_id": TR_self.tur, "role": "assistant", "mode": kip, "text": parça}))
+    }
+
+    TR_func bitir(içerik: TR_String) {
+        TR_self.gönder("append", TR_self.maske.TR_finish())
+        TR_if TR_self.ham != içerik {
+            TR_var m = TR_mask_stream()
+            TR_var maskeli = m.TR_step(içerik) + m.TR_finish()
+            TR_self.e.gönder("turn_text", TR_JSON({"turn_id": TR_self.tur, "role": "assistant", "mode": "replace", "text": maskeli}))
+        }
+    }
+}
+
+# gösterilebilir: baştan çözülmüş metnin ekrana gidebilecek başı ve tamamlanmış bir etiket görülüp görülmediği.
+# Etiketin kendisi ve sonrası gitmez; sondaki U+FFFD'ler ve bir etiketin olası başı (`<th`, `<to`, yalnız `<`) tutulur.
+TR_func gösterilebilir(metin: TR_String) -> (TR_String, TR_Bool) {
+    TR_var m = metin
+    TR_var etiketli = TR_false
+    TR_for et TR_in _ETİKETLER {
+        TR_var i = m.TR_index_of(et)
+        TR_if i != TR_none {
+            m = m[0..i]
+            etiketli = TR_true
+        }
+    }
+    TR_var n = m.TR_length
+    TR_for n > 0 TR_and m[n - 1] == "\u{FFFD}" { n -= 1 }
+    m = m[0..n]
+    TR_var tut = 0
+    TR_for et TR_in _ETİKETLER {
+        TR_for k TR_in 1..et.TR_length {
+            TR_if k > tut TR_and m.TR_ends_with(et[0..k]) { tut = k }
+        }
+    }
+    TR_return m[0..m.TR_length - tut], etiketli
+}
+
+# belirteç_yaz: yeni bir belirteç (28.2a) ve onu yalnız sahibinin okuyabileceği dosyaya yazar (18.13); belirtecin
+# kendisi hiçbir yere yazılmaz (standart çıktı, günlük, URL), program yalnız dosyanın yolunu söyler.
+TR_func belirteç_yaz(dosya: TR_String) -> TR_String {
+    TR_var b = TR_secret_token()
+    TR_write_file(dosya, b, TR_owner_only: TR_true)
+    TR_return b
 }
 
 # nesne: JSON değeri bir nesne mi.

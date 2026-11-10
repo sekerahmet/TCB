@@ -320,3 +320,45 @@ TR_test "önbelleğin ortak öneki önceki asistan başlığının sonunda biter
     TR_assert_equal(p.TR_token_id("<think>"), önbellekte[ortak])
     TR_assert_equal(0, beklenen_önek(p, geçmiş, -1))
 }
+
+TR_test "durdurulan ya da hatalı tur geri alınır: geçmiş tur öncesine döner, önbellek yeniden kurulur ve ısıtılır" {
+    TR_var z = küçük_zincir(256, TR_false)
+    ısıt(z)
+    TR_var uzunluk = z.geçmiş.TR_length
+    TR_var ilk = ilk_tur(z, Tur(sıra: 1, söz_ms: 0))
+    z.geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "yarım"))
+    z.son_asistan = z.geçmiş.TR_length - 1
+    geri_al(z, Tur(sıra: 1, söz_ms: 0), uzunluk)
+    TR_assert_equal(uzunluk, z.geçmiş.TR_length)
+    TR_assert_equal(-1, z.son_asistan)
+    TR_assert_equal(1, z.tur)
+    TR_assert(z.ısıtılan > 0)
+    TR_assert_equal(z.ısıtılan, z.okunan.TR_length)
+    # Geri alınan turdan sonra aynı söz aynı cevabı verir: önbellek turun yarısını taşımaz.
+    TR_assert_equal(ilk, ilk_tur(z, Tur(sıra: 1, söz_ms: 0)))
+}
+
+TR_struct Sayaç {
+    n: TR_Int = 0
+}
+
+TR_test "ara kancası: metin turunun çalma aralığı atılır, mikrofonun açılışı çapayı kurar, dur dinlemeyi bitirir" {
+    TR_var s = SahteDinleme(sayı: 200, tetikler: [])
+    TR_var d = sahte_dinleme(s)
+    TR_var sayaç = Sayaç()
+    d.ara = () => {
+        sayaç.n += 1
+        TR_var kez = sayaç.n
+        TR_if kez == 10 { TR_return Arada(aralık: ÇalmaAralığı(başı: 0, sonu: 850 + 60 * 32), açıldı: TR_false) }
+        TR_if kez == 100 { TR_return Arada(açıldı: TR_true) }
+        TR_if kez == 150 { TR_return Arada(dur: TR_true) }
+        TR_return Arada()
+    }
+    dinle(d)
+    # 10. bakıştan önce 9 çerçeve verildi; aralık 60. çerçeveye kadar: 10–60 atılır.
+    TR_assert(TR_not s.verilen.TR_contains(30))
+    TR_assert(s.verilen.TR_contains(9))
+    TR_assert(s.verilen.TR_contains(70))
+    TR_assert_equal(149, s.k) # 150. bakışta durdu
+    TR_assert(s.sıfırlamalar.TR_length >= 2) # aralıktan sonra ve açılışta
+}
