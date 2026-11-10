@@ -364,8 +364,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.6
 
-- **Mevcut durum (Tur 6A):** terminalde kodsuz hata kodsuz basılıyor (`TR_throw "düz hata"` → "Satır 2: düz hata") [ölçüldü: TCB, `70b1575b`, küçük program], ama motor onu `H2441` koduyla sarıyor (`internal/lang/interp/error_value.go`, `messages.New(messages.H2441, ...)`) ve hatalar örneği 12 başlık yorumunda H2441 bekliyor. H2441 kullanıcı çıktısında görünmüyor, yalnız Go içinde [kanıtlı: DENETİM 384]; değişecekler örnek 12'nin başlığı ve `TestExampleErrors`'ın beklediği kod.
-- **Yapılacaklar (A, Ö1; sahip TCB, Tur 6A uygulaması):** kodsuz hatanın gösteriminde kod yok; örnek 12, `message_value_test.go`, `messages/error_test.go`, `examples/README.md` buna göre.
+- **Mevcut durum (T1, Tur 6A):** düz metin ve durumlu tip değeri fırlatmak kodsuz hatadır, motor da onu kodsuz taşıyor (sarma kodu emekli, `retired.json`); `TR_error_code` kodsuz hatanın nedenler zincirindeki kodu yine buluyor. Hatalar örneği 12 "İleti kodu: yok" diyor, `TestExampleErrors` onda hiçbir hatanın kodu olmadığını sınıyor [test: `TestExampleErrors`, `TestErrorCodeFollowsTheCauseChain`].
 - **Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü].
 - **Yapılacaklar:** çağrı yığını, en son çağrı en altta.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** yakalanmayan hatada nedenler zinciri.

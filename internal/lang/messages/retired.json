@@ -91,6 +91,10 @@
   "commit": "claude/katman2-deger-12bdf3",
   "reason": "deleted: TR_float is gone; TR_Float reads text in program spelling (H2642, 3.12)"
  },
+ "H2441": {
+  "commit": "claude/t1-tur6a",
+  "reason": "deleted: interp: a thrown text or variant value has no code (8.6); thrownError carries its text"
+ },
  "H2449": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"

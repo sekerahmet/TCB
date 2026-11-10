@@ -49,4 +49,4 @@ TR_var ayar = TR_try { ayar_oku("ayar.json") } TR_catch e {
 - *Test:* TR testi; sistemin metninin değere girmemesi: Go `TestFileErrorReasonCarriesNoSystemText`.
 
 **8.6** Yakalanmayan hata programı durdurur ve çağrı yığınını yazar: her çerçeve için dosya, satır ve satırın metni, en son çağrı en altta; en sonda hatanın kodu ve iletisi okuyanın dilinde (kodu olmayan hatada, düz metin ve durumlu tip değerinde, kod yazılmaz, yalnız `TR_String(e)`: ekrandaki kod programın `.TR_code`'da gördüğüyle aynıdır, 8.3); bastırılmış hatalar (9.4) da kodu ve iletisiyle, altında; sonra nedenler zinciri (`TR_cause`), her neden kodu, iletisi ve çağrı yığınıyla, dıştan içe. Çıkış kodu 1'dir (1.9).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go e2e testi.
+- *Test:* Go: `TestExampleErrors` (kodsuz hatanın gösteriminde kod yok: örnek 12, "İleti kodu: yok"); çağrı yığını, bastırılmış hatalar ve nedenler zinciri henüz uygulanmadı, uygulanınca Go e2e testi.

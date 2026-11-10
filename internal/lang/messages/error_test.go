@@ -151,10 +151,10 @@ func (v localizedValue) MessageText(lang string) string { return v[lang] }
 // değer de o dilde (Fluent'in FluentType.toString(scope) gibi).
 func TestLocalizedArgument(t *testing.T) {
 	v := localizedValue{"tr": "doğru", "en": "true"}
-	if got := TextIn("en", H2441, v); got != "true" {
+	if got := TextIn("en", H2001, 3, v); got != "Line 3: true" {
 		t.Errorf("en: %q", got)
 	}
-	if got := TextIn("tr", H2441, v); got != "doğru" {
+	if got := TextIn("tr", H2001, 3, v); got != "Satır 3: doğru" {
 		t.Errorf("tr: %q", got)
 	}
 	if got := TextIn("en", H2424, v, v); got != "true (true)" {

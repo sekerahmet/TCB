@@ -155,7 +155,7 @@ func TestErrorCode(t *testing.T) {
 }
 
 // Kural (8.5): düz metin hatanın kodu yoktur; kodsuz hatada TR_error_code koda dönmez, hatayı olduğu
-// gibi yeniden fırlatır (eskiden her değer H2441 veriyordu): metin, durumlu tip değeri. Fırlatılamayan
+// gibi yeniden fırlatır (kodsuz hatanın gösteriminde de kod yoktur, 8.6): metin, durumlu tip değeri. Fırlatılamayan
 // değer (sayı, sözlük) kendi çalışma hatasıdır (H2911, 8.2).
 func TestErrorCodeRethrowsACodelessError(t *testing.T) {
 	for thrown, want := range map[string]string{`"düz metin"`: "\ndüz metin\n", "Renk.Kırmızı": "\nRenk.Kırmızı\n", "5": "H2911\n\n", `{"kod": 5}`: "H2911\n\n"} {

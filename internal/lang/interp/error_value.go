@@ -113,13 +113,13 @@ func (e *ErrorVal) raise(line int) error {
 	if e.err != nil {
 		return e.err
 	}
-	var value *messages.Error
+	thrown := &thrownError{caught: e}
 	if m, ok := e.thrown.(*MessageVal); ok {
-		value = m.Error() // katalog iletisi kendi koduyla
+		thrown.value = m.Error() // katalog iletisi kendi koduyla
 	} else {
-		value = messages.New(messages.H2441, writeItem(e.thrown, nil, nil))
+		thrown.text = writeItem(e.thrown, nil, nil) // düz metin, durumlu tip değeri: kodsuz (8.6)
 	}
-	e.err = messages.At(line, 0, &thrownError{value: value, caught: e})
+	e.err = messages.At(line, 0, thrown)
 	return e.err
 }
 

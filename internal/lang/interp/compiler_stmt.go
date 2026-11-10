@@ -326,18 +326,36 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 }
 
 // thrownError 'fırlat' ile başlatılan hatadır; metni fırlatılan değerin metnidir. caught onu
-// yakalayanın göreceği TR_Error'dır (errorValue).
+// yakalayanın göreceği TR_Error'dır (errorValue). Katalog iletisi (8.5) value'dadır, kendi koduyla;
+// düz metin ve durumlu tip değeri kodsuzdur (8.6): value nil, metni text, dilden bağımsız.
 type thrownError struct {
 	value  *messages.Error
+	text   string
 	caught *ErrorVal
 }
 
-func (e *thrownError) Error() string { return e.value.Error() }
+func (e *thrownError) Error() string {
+	if e.value == nil {
+		return e.text
+	}
+	return e.value.Error()
+}
 
-// MessageText hatanın lang dilindeki metnidir (messages.Localized).
-func (e *thrownError) MessageText(lang string) string { return messages.ErrorIn(e.value, lang) }
+// MessageText hatanın lang dilindeki metnidir (messages.Localized); kodsuz hatanınki her dilde aynı.
+func (e *thrownError) MessageText(lang string) string {
+	if e.value == nil {
+		return e.text
+	}
+	return messages.ErrorIn(e.value, lang)
+}
 
-func (e *thrownError) Unwrap() error { return e.value }
+// Unwrap kodlu hatanın iletisidir; kodsuz hatada nil (arayüzde nil *messages.Error kalmasın diye açık).
+func (e *thrownError) Unwrap() error {
+	if e.value == nil {
+		return nil
+	}
+	return e.value
+}
 
 // importStatement 'aktar' deyimini derler.
 func (c *compiler) importStatement(k *compilerScope, s *ast.ImportStatement) statementCode {

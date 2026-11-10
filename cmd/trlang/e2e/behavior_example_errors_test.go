@@ -17,10 +17,11 @@ import (
 )
 
 // Hata örnekleri: examples/tr/hatalar. Her dosya bir hatayı bilerek yapar; ilk yorum satırlarından biri
-// beklenen ileti kodunu söyler ("İleti kodu: H1010"). Testler ileti metnine değil koda ve çıkış koduna
-// bakar (iletiler gösterim diline göre değişir).
+// beklenen ileti kodunu söyler ("İleti kodu: H1010"). Kodu olmayan hatanın (düz metin ya da durumlu
+// tip değeri fırlatmak, 8.6) örneği "İleti kodu: yok" der ("Message code: none"). Testler ileti
+// metnine değil koda ve çıkış koduna bakar (iletiler gösterim diline göre değişir).
 
-var messageCodeLine = regexp.MustCompile(`(?m)^# (?:İleti kodu|Message code): (H\d{4})$`)
+var messageCodeLine = regexp.MustCompile(`(?m)^# (?:İleti kodu|Message code): (H\d{4}|yok|none)$`)
 
 // errorExamples dil klasöründeki hata örneklerini numarasıyla verir.
 func errorExamples(t *testing.T, lang, dir string) map[string]string {
@@ -41,7 +42,8 @@ func errorExamples(t *testing.T, lang, dir string) map[string]string {
 	return out
 }
 
-func expectedCode(t *testing.T, path string) messages.Code {
+// expectedCode örneğin söylediği koddur; coded false ise örnek kodsuz bir hata bekler.
+func expectedCode(t *testing.T, path string) (messages.Code, bool) {
 	t.Helper()
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -49,13 +51,16 @@ func expectedCode(t *testing.T, path string) messages.Code {
 	}
 	m := messageCodeLine.FindStringSubmatch(string(data))
 	if m == nil {
-		t.Fatalf("%s: 'İleti kodu: H…' (ya da 'Message code: H…') yorum satırı yok", path)
+		t.Fatalf("%s: 'İleti kodu: H…' (ya da 'Message code: H…', kodsuzda 'yok' ya da 'none') yorum satırı yok", path)
+	}
+	if m[1] == "yok" || m[1] == "none" {
+		return 0, false
 	}
 	code, err := messages.Parse(m[1])
 	if err != nil {
 		t.Fatalf("%s: %v", path, err)
 	}
-	return code
+	return code, true
 }
 
 // producedErrors dosyayı süreç içinde hazırlar ve çalıştırır; sözdizimi, tip ya da çalışma zamanı
@@ -79,7 +84,8 @@ func producedErrors(t *testing.T, path string) (errs []error, beforeRun bool) {
 	return nil, false
 }
 
-// Her hata örneği süreç içinde söylediği ileti kodunu gerçekten üretir; ikili her gösterim dilinde 1
+// Her hata örneği süreç içinde söylediği ileti kodunu gerçekten üretir (kodsuz örnek hata üretir ve
+// hiçbirinde kod yoktur, 8.6: messages.Root bulamaz); ikili her gösterim dilinde 1
 // koduyla çıkar ve hatayı standart hataya yazar. Denetimde düşen örnekte hiçbir satır çalışmaz:
 // hatadan önceki satırın çıktısı da yoktur (dil tanımı 1.3; 23_devam_disinda.tr hatadan önce yazdırır).
 func TestExampleErrors(t *testing.T) {
@@ -89,14 +95,23 @@ func TestExampleErrors(t *testing.T) {
 	}
 	for n, p := range examples {
 		t.Run(n, func(t *testing.T) {
-			want := expectedCode(t, p)
+			want, coded := expectedCode(t, p)
 			found := false
 			errs, beforeRun := producedErrors(t, p)
 			for _, e := range errs {
-				found = found || messages.Has(e, want)
+				if coded {
+					found = found || messages.Has(e, want)
+					continue
+				}
+				if m, ok := messages.Root(e); ok {
+					t.Errorf("%s: kodsuz hata bekleniyordu, %s kodlu ileti üretti", filepath.Base(p), m.Code)
+				}
 			}
-			if !found {
+			switch {
+			case coded && !found:
 				t.Errorf("%s: %s kodlu bir ileti üretmedi", filepath.Base(p), want)
+			case !coded && len(errs) == 0:
+				t.Errorf("%s: hata üretmedi", filepath.Base(p))
 			}
 			rel, _ := filepath.Rel(reporoot.Path(), p)
 			for _, display := range []string{"tr", "en"} {

@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -120,7 +121,8 @@ func (v *VM) registerMessageBuiltins() {
 		if err == nil {
 			return Null, nil
 		}
-		if _, coded := messages.As(err); !coded || uncatchable(err) {
+		var thrown *thrownError // kodsuz fırlatılan hatanın nedenler zincirinde kod olabilir (8.6)
+		if _, coded := messages.As(err); (!coded && !errors.As(err, &thrown)) || uncatchable(err) {
 			return nil, err
 		}
 		for e := errorValue(err); e != nil; e = e.cause {
