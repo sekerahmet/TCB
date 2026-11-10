@@ -355,6 +355,7 @@ TR_struct TurUçları {
     çalıyor: () -> TR_Bool # ilk çalma başladı mı
     aralık: () -> ÇalmaAralığı # turun çalma aralığı
     işle: () -> TR_NoneType # ana döngünün komutlara bakışı
+    bitiş: (TR_String) -> TR_NoneType = (_) => {} # `turn_end`'den sonra nedeniyle (done, stopped, error): deneme kaydı
 }
 
 # tur_yürüt: süren turu (`e.tur`) bir görevde koşar, beklerken komutları işler; `stop` görevi iptal eder (10.9).
@@ -398,6 +399,7 @@ TR_func tur_yürüt(e: Ekran, kaynak: TR_String, u: TurUçları) -> ÇalmaAralı
         e.gönder("turn_end", son)
         TR_if a.başı >= 0 { a = ÇalmaAralığı(başı: a.başı, sonu: TR_max(a.sonu, şimdi())) }
     }
+    u.bitiş(neden)
     e.tur = ""
     e.durdur = TR_false
     e.boşta()
