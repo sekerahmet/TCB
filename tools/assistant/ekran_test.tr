@@ -1,0 +1,361 @@
+# TR 4
+# Ekranın modelsiz sınaması: katlama (görüntü olaylardan), komutların kararı, sunulan dosyalar.
+TR_import "ekran"
+
+# ---------- Ekranın modeli ----------
+# Görünüm: ekranın olaylardan çizdiği durum (index.html'in işleyicileri gibi): `replace` eski metnin yerine geçer,
+# `append` sonuna eklenir, `session` her şeyi siler ve `snapshot`'ı sırayla işler. Görüntünün doğruluğu: görüntüyü
+# işleyen ekran ile olayların hepsini baştan işleyen ekran aynı durumu görür.
+TR_struct Görünüm {
+    durum: TR_String = ""
+    mic: TR_Bool = TR_false
+    ölçü: TR_String = ""
+    turlar: TR_List[TR_String] = []
+    satırlar: TR_Dict[TR_String, TR_String] = {} # "tur|alan" → değer
+    onaylar: TR_List[TR_String] = []
+}
+
+TR_func uygula(g: Görünüm, olay: TR_JSON) {
+    TR_var tür = TR_String(olay["type"])
+    TR_var v = olay["data"]
+    TR_match tür {
+        "session" => {
+            g.durum = ""
+            g.mic = TR_false
+            g.ölçü = ""
+            g.turlar = []
+            g.satırlar = {}
+            g.onaylar = []
+            TR_for x TR_in TR_List(v["snapshot"]) { uygula(g, x) }
+        }
+        "state" => {
+            g.durum = TR_String(v["state"])
+            g.mic = TR_Bool(v["mic"])
+        }
+        "metrics" => { g.ölçü = TR_json_string(v) }
+        "turn_start" => {
+            TR_var t = TR_String(v["turn_id"])
+            g.turlar.TR_append(t)
+            g.satırlar[t + "|kaynak"] = TR_String(v["source"])
+        }
+        "turn_text" => {
+            TR_var anahtar = TR_String(v["turn_id"]) + "|" + TR_String(v["role"])
+            TR_var önceki = g.satırlar.TR_get(anahtar)
+            TR_var metin = TR_String(v["text"])
+            TR_if TR_String(v["mode"]) == "append" TR_and önceki != TR_none { metin = önceki + metin }
+            g.satırlar[anahtar] = metin
+            TR_var son = v.TR_get("final")
+            TR_if son != TR_none { g.satırlar[anahtar + "|final"] = TR_json_string(son) }
+        }
+        "turn_end" => { g.satırlar[TR_String(v["turn_id"]) + "|son"] = TR_String(v["reason"]) }
+        "approval_open" => { g.onaylar.TR_append(TR_String(v["approval_id"])) }
+        "approval_close" => { g.onaylar = [a TR_for a TR_in g.onaylar TR_if a != TR_String(v["approval_id"])] }
+        _ => {}
+    }
+}
+
+# metni: görünümün karşılaştırılan hâli; `turlar` verilirse yalnız o turlar.
+TR_func metni(g: Görünüm, turlar: TR_List[TR_String]) -> TR_String {
+    TR_var parçalar = ["durum=" + g.durum, "mic=\(g.mic)", "ölçü=" + g.ölçü, "onaylar=" + g.onaylar.TR_join(",")]
+    TR_for t TR_in turlar {
+        TR_for alan TR_in ["kaynak", "user", "user|final", "assistant", "son"] {
+            TR_var d = g.satırlar.TR_get(t + "|" + alan)
+            parçalar.TR_append(t + "|" + alan + "=" + TR_if d == TR_none { "-" } TR_else { d })
+        }
+    }
+    TR_return parçalar.TR_join("\n")
+}
+
+TR_func zarf(tür: TR_String, veri: TR_JSON) -> TR_JSON { TR_return TR_JSON({"v": 1, "type": tür, "data": veri}) }
+
+TR_func baş() -> TR_JSON {
+    TR_return TR_JSON({"v": 1, "type": "session", "data": {"session_id": "s-sınama", "server_version": "0", "model": "yok",
+        "tools": [], "heartbeat_ms": 15000, "snapshot": []}})
+}
+
+# Üreteç: belirlenimci sözde rastgele sayılar (doğrusal eşlenik), tohumla aynı dizi.
+TR_struct Üreteç {
+    x: TR_Int
+    TR_func sayı(n: TR_Int) -> TR_Int {
+        TR_self.x = (TR_self.x * 1103515245 + 12345) % 2147483648
+        TR_return (TR_self.x // 65536) % n
+    }
+}
+
+# olay_dizisi: sözleşmeye uyan rastgele bir olay dizisi: turlar sırayla, söz `replace` (taslak ve son), cevap
+# `append` ya da arada `replace`, araç ve onay, ölçü, hata.
+TR_func olay_dizisi(tohum: TR_Int, uzunluk: TR_Int, metin_boyu: TR_Int) -> TR_List[TR_JSON] {
+    TR_var r = Üreteç(x: tohum)
+    TR_var olaylar: TR_List[TR_JSON] = []
+    TR_var tur = ""
+    TR_var n = 0
+    TR_var açık: TR_List[TR_String] = []
+    TR_var onay = 0
+    TR_for olaylar.TR_length < uzunluk {
+        TR_var seç = r.sayı(10)
+        TR_if tur == "" {
+            TR_if seç < 6 {
+                n += 1
+                tur = "t-\(n)"
+                olaylar.TR_append(zarf("turn_start", TR_JSON({"turn_id": tur, "source": TR_if seç < 3 { "voice" } TR_else { "text" }})))
+            } TR_else TR_if seç < 8 {
+                olaylar.TR_append(zarf("state", TR_JSON({"state": ["idle", "listening"][r.sayı(2)], "mic": r.sayı(2) == 1})))
+            } TR_else TR_if açık.TR_length > 0 {
+                olaylar.TR_append(zarf("approval_close", TR_JSON({"approval_id": açık.TR_remove_at(0), "reason": "expired"})))
+            } TR_else {
+                olaylar.TR_append(zarf("error", TR_JSON({"code": "internal", "values": {}, "fatal": TR_false})))
+            }
+            TR_continue
+        }
+        TR_var parça = "ş" * (1 + r.sayı(metin_boyu)) + "\(olaylar.TR_length) "
+        TR_match seç {
+            0 => { olaylar.TR_append(zarf("turn_text", TR_JSON({"turn_id": tur, "role": "user", "mode": "replace", "text": parça, "final": r.sayı(2) == 1}))) }
+            1, 2, 3, 4 => { olaylar.TR_append(zarf("turn_text", TR_JSON({"turn_id": tur, "role": "assistant", "mode": "append", "text": parça}))) }
+            5 => { olaylar.TR_append(zarf("turn_text", TR_JSON({"turn_id": tur, "role": "assistant", "mode": "replace", "text": parça}))) }
+            6 => { olaylar.TR_append(zarf("state", TR_JSON({"state": "speaking", "mic": TR_false}))) }
+            7 => {
+                onay += 1
+                açık.TR_append("a-\(onay)")
+                olaylar.TR_append(zarf("approval_open", TR_JSON({"approval_id": "a-\(onay)", "turn_id": tur, "call_id": "c-\(onay)", "tool": "x", "args": parça})))
+            }
+            8 => { olaylar.TR_append(zarf("metrics", TR_JSON({"first_token_ms": r.sayı(1000), "tokens_per_second": 11.5}))) }
+            _ => {
+                olaylar.TR_append(zarf("turn_end", TR_JSON({"turn_id": tur, "reason": ["done", "stopped", "error"][r.sayı(3)]})))
+                tur = ""
+            }
+        }
+    }
+    TR_return olaylar
+}
+
+TR_func görüntü_turları(g: TR_JSON) -> TR_List[TR_String] {
+    TR_return [TR_String(x["data"]["turn_id"]) TR_for x TR_in TR_List(g["data"]["snapshot"]) TR_if TR_String(x["type"]) == "turn_start"]
+}
+
+TR_test "katlama: görüntüyü işleyen ekran olayların hepsini baştan işleyen ekranla aynı durumu görür" {
+    TR_for tohum TR_in [1, 7, 42] {
+        TR_var olaylar = olay_dizisi(tohum, 400, 6)
+        TR_var g = baş()
+        TR_var hepsi = Görünüm()
+        TR_for i TR_in 0..olaylar.TR_length {
+            g = katla(g, olaylar[i])
+            uygula(hepsi, olaylar[i])
+            TR_if i % 37 == 0 TR_or i == olaylar.TR_length - 1 {
+                TR_var yeniden = Görünüm()
+                uygula(yeniden, g)
+                TR_assert_equal(metni(hepsi, hepsi.turlar), metni(yeniden, yeniden.turlar))
+            }
+        }
+        # Bir konuşma parçası tek `turn_text`'tir; `heartbeat`, `session` ve `error` görüntüye girmez.
+        TR_var anahtarlar: TR_List[TR_String] = []
+        TR_for x TR_in TR_List(g["data"]["snapshot"]) {
+            TR_var tür = TR_String(x["type"])
+            TR_assert(TR_not ["heartbeat", "session", "error"].TR_contains(tür))
+            TR_if tür == "turn_text" {
+                anahtarlar.TR_append(TR_String(x["data"]["turn_id"]) + "|" + TR_String(x["data"]["role"]))
+                TR_assert_equal("replace", TR_String(x["data"]["mode"]))
+            }
+        }
+        TR_assert_equal(anahtarlar.TR_unique().TR_length, anahtarlar.TR_length)
+        TR_var ilk = TR_List(g["data"]["snapshot"])[0]
+        TR_assert_equal("state", TR_String(ilk["type"]))
+    }
+}
+
+TR_test "katlama: zarf başlangıç değerindedir, yalnız snapshot değişir; bilinmeyen olay görüntüyü değiştirmez" {
+    TR_var g = katla(baş(), zarf("state", TR_JSON({"state": "loading", "mic": TR_false})))
+    TR_assert_equal(TR_json_string(baş()["data"]["session_id"]), TR_json_string(g["data"]["session_id"]))
+    TR_assert_equal("session", TR_String(g["type"]))
+    TR_assert_equal(15000, TR_Int(g["data"]["heartbeat_ms"]))
+    TR_assert_equal(g, katla(g, zarf("future_event", TR_JSON({"x": 1}))))
+    TR_assert_equal(g, katla(g, zarf("error", TR_JSON({"code": "internal", "values": {}, "fatal": TR_false}))))
+}
+
+# Büyük söz: 32 KiB denetim karakteri, JSON'da her biri 6 bayt (\u0001): olayın ve görüntünün en kötüsü.
+TR_func büyük_tur(g: TR_JSON, n: TR_Int, söz: TR_String) -> TR_JSON {
+    TR_var t = "t-\(n)"
+    TR_var x = katla(g, zarf("turn_start", TR_JSON({"turn_id": t, "source": "text"})))
+    x = katla(x, zarf("turn_text", TR_JSON({"turn_id": t, "role": "user", "mode": "replace", "text": söz, "final": TR_true})))
+    TR_for i TR_in 0..160 { x = katla(x, zarf("turn_text", TR_JSON({"turn_id": t, "role": "assistant", "mode": "append", "text": "kelime "}))) }
+    TR_return katla(x, zarf("turn_end", TR_JSON({"turn_id": t, "reason": "done"})))
+}
+
+TR_test "olay ve görüntü 1 MiB'in altında kalır: eski turlar düşer, açık onay düşmez" {
+    TR_var söz = "\u{1}" * 32768
+    TR_var olay = zarf("turn_text", TR_JSON({"turn_id": "t-1", "role": "user", "mode": "replace", "text": söz, "final": TR_true}))
+    TR_assert(TR_Bytes(TR_json_string(olay)).TR_length < 1048576)
+    TR_var g = baş()
+    TR_for n TR_in 1..=40 {
+        g = büyük_tur(g, n, söz)
+        # Açık onay ilk turundur: tur düşünce onay kalır.
+        TR_if n == 1 { g = katla(g, zarf("approval_open", TR_JSON({"approval_id": "a-1", "turn_id": "t-1", "call_id": "c-1", "tool": "x", "args": "{}"}))) }
+        TR_assert(TR_Bytes(TR_json_string(g)).TR_length < 1048576)
+    }
+    TR_var turlar = görüntü_turları(g)
+    TR_assert(turlar.TR_length < 40)
+    TR_assert(turlar.TR_length >= 2)
+    TR_assert_equal("t-40", turlar[turlar.TR_length - 1])
+    TR_var onaylar = [x TR_for x TR_in TR_List(g["data"]["snapshot"]) TR_if TR_String(x["type"]) == "approval_open"]
+    TR_assert_equal(1, onaylar.TR_length)
+    # Düşen turun hiçbir satırı kalmaz.
+    TR_for x TR_in TR_List(g["data"]["snapshot"]) {
+        TR_var t = x["data"].TR_get("turn_id")
+        TR_if t != TR_none TR_and TR_String(x["type"]) != "approval_open" { TR_assert(turlar.TR_contains(TR_String(t))) }
+    }
+}
+
+# ---------- Komutlar ----------
+
+TR_func ekran() -> Ekran {
+    TR_var e = ekran_kur(ekran_klasörü(), "yok")
+    e.hazır = TR_true
+    TR_return e
+}
+
+TR_func komut(tür: TR_String, kimlik: TR_String, veri: TR_String) -> TR_Request {
+    TR_return TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json"},
+        TR_body: TR_Bytes("{\"v\": 1, \"command_id\": \"\(kimlik)\", \"type\": \"\(tür)\", \"data\": \(veri)}"))
+}
+
+TR_func gövde(c: TR_Response) -> TR_JSON { TR_return TR_json_parse(TR_String(c.TR_body)) }
+
+TR_func durum(c: TR_Response) -> TR_String {
+    TR_var j = gövde(c)
+    TR_if TR_String(j["status"]) == "accepted" { TR_return "accepted" }
+    TR_return TR_String(j["error"]["code"])
+}
+
+# bekle: işleyiciler komutlarını bırakana kadar bekler (en çok 2 sn); kararı ana döngü vermeden cevap yoktur.
+TR_func işleyiciler_bıraktı(e: Ekran, n: TR_Int, görevler: TR_List[TR_Task[TR_Response]]) {
+    TR_var baş = TR_monotonic_ns()
+    TR_for e.bekleyen.TR_length < n {
+        TR_assert(TR_monotonic_ns() - baş < 2000000000)
+        TR_sleep(0.001)
+    }
+    TR_for g TR_in görevler { TR_assert(TR_not g.TR_done()) }
+}
+
+TR_test "iki send_text aynı anda: biri accepted, öbürü turn_busy; karar ana döngüde" {
+    TR_var e = ekran()
+    TR_var g1 = TR_async ekran_cevabı(e, komut("send_text", "k-1", "{\"text\": \"bir\"}"))
+    TR_var g2 = TR_async ekran_cevabı(e, komut("send_text", "k-2", "{\"text\": \"iki\"}"))
+    işleyiciler_bıraktı(e, 2, [g1, g2])
+    komutları_işle(e)
+    TR_var cevaplar = [durum(g1.TR_wait()), durum(g2.TR_wait())].TR_sort()
+    TR_assert_equal(["accepted", "turn_busy"], cevaplar)
+    TR_assert_equal(1, e.tur_sayısı)
+    TR_assert_equal("t-1", e.tur)
+}
+
+TR_test "aynı command_id iki kez aynı anda: iş bir kez, ikisine de ilk cevap" {
+    TR_var e = ekran()
+    TR_var g1 = TR_async ekran_cevabı(e, komut("send_text", "aynı", "{\"text\": \"bir\"}"))
+    TR_var g2 = TR_async ekran_cevabı(e, komut("send_text", "aynı", "{\"text\": \"bir\"}"))
+    işleyiciler_bıraktı(e, 2, [g1, g2])
+    komutları_işle(e)
+    TR_assert_equal("accepted", durum(g1.TR_wait()))
+    TR_assert_equal("accepted", durum(g2.TR_wait()))
+    TR_assert_equal(1, e.tur_sayısı)
+    TR_assert_equal("bir", e.metin)
+    # Sonra gelen tekrar da ilk cevabı alır, yeni tur açmaz.
+    TR_var g3 = TR_async ekran_cevabı(e, komut("send_text", "aynı", "{\"text\": \"bir\"}"))
+    işleyiciler_bıraktı(e, 1, [g3])
+    komutları_işle(e)
+    TR_assert_equal("accepted", durum(g3.TR_wait()))
+    TR_assert_equal(1, e.tur_sayısı)
+}
+
+TR_func tek(e: Ekran, istek: TR_Request) -> TR_Response {
+    TR_var g = TR_async ekran_cevabı(e, istek)
+    TR_var baş = TR_monotonic_ns()
+    TR_for TR_not g.TR_done() TR_and e.bekleyen.TR_length == 0 {
+        TR_assert(TR_monotonic_ns() - baş < 2000000000)
+        TR_sleep(0.001)
+    }
+    komutları_işle(e)
+    TR_return g.TR_wait()
+}
+
+TR_test "komutların kodları: not_ready, text_too_long, unknown_approval, stop, mic_set" {
+    TR_var e = ekran()
+    e.hazır = TR_false
+    TR_assert_equal("not_ready", durum(tek(e, komut("send_text", "a", "{\"text\": \"x\"}"))))
+    TR_assert_equal("accepted", durum(tek(e, komut("mic_set", "b", "{\"on\": true}"))))
+    TR_assert(e.mikrofon_istendi)
+    TR_assert_equal("accepted", durum(tek(e, komut("stop", "c", "{}"))))
+    TR_assert(TR_not e.durdur) # tur yok: etkisiz
+    e.hazır = TR_true
+    TR_var uzun = "ç" * 16385 # 32 770 bayt
+    TR_var c = tek(e, komut("send_text", "d", "{\"text\": \"\(uzun)\"}"))
+    TR_assert_equal("text_too_long", durum(c))
+    TR_assert_equal(32768, TR_Int(gövde(c)["error"]["values"]["limit_bytes"]))
+    TR_var sınırda = "ç" * 16384 # 32 768 bayt
+    TR_assert_equal("accepted", durum(tek(e, komut("send_text", "e", "{\"text\": \"\(sınırda)\"}"))))
+    TR_assert_equal("turn_busy", durum(tek(e, komut("send_text", "f", "{\"text\": \"x\"}"))))
+    TR_assert_equal("accepted", durum(tek(e, komut("stop", "g", "{}"))))
+    TR_assert(e.durdur)
+    TR_var o = tek(e, komut("approval_answer", "h", "{\"approval_id\": \"a-9\", \"decision\": \"approve\"}"))
+    TR_assert_equal("unknown_approval", durum(o))
+    TR_assert_equal("a-9", TR_String(gövde(o)["error"]["values"]["approval_id"]))
+    TR_assert_equal("accepted", durum(tek(e, komut("mic_set", "i", "{\"on\": false}"))))
+    TR_assert(TR_not e.mikrofon_istendi)
+}
+
+TR_test "komutun biçimi işleyicide: 415, bozuk JSON, sürüm, bilinmeyen komut, eksik alan" {
+    TR_var e = ekran()
+    TR_var düz = TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "text/plain"}, TR_body: TR_Bytes("{}"))
+    TR_var c = ekran_cevabı(e, düz)
+    TR_assert_equal(415, c.TR_status)
+    TR_assert_equal("unsupported_media_type", durum(c))
+    TR_var bozuk = TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json; charset=utf-8"}, TR_body: TR_Bytes("{bozuk"))
+    TR_assert_equal("bad_request", durum(ekran_cevabı(e, bozuk)))
+    TR_var sürüm = TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json"},
+        TR_body: TR_Bytes("{\"v\": 2, \"command_id\": \"x\", \"type\": \"stop\", \"data\": {}}"))
+    TR_var s = ekran_cevabı(e, sürüm)
+    TR_assert_equal("unsupported_version", durum(s))
+    TR_assert_equal("x", TR_String(gövde(s)["command_id"]))
+    TR_assert_equal("unknown_command", durum(ekran_cevabı(e, komut("dance", "y", "{}"))))
+    TR_assert_equal("bad_request", durum(ekran_cevabı(e, komut("mic_set", "z", "{\"on\": \"evet\"}"))))
+    TR_assert_equal("bad_request", durum(ekran_cevabı(e, komut("send_text", "w", "{}"))))
+    TR_assert_equal(0, e.bekleyen.TR_length) # biçimi bozuk komut ana döngüye gitmez
+}
+
+TR_test "tutulan command_id sayısı sınırlı: son 1024" {
+    TR_var e = ekran()
+    TR_for i TR_in 0..1030 {
+        e.bekleyen.TR_append(Komut(kimlik: "k-\(i)", tür: "stop", veri: TR_JSON({})))
+        komutları_işle(e)
+    }
+    TR_assert_equal(1024, e.cevaplar.TR_length)
+    TR_assert(e.cevaplar.TR_get("k-0") == TR_none)
+    TR_assert(e.cevaplar.TR_get("k-1029") != TR_none)
+}
+
+# ---------- Sunulan dosyalar ----------
+
+TR_test "sayfa, dil dosyaları ve başka yol: CSP, önbelleksiz, listede olmayan dil 404" {
+    TR_var e = ekran()
+    TR_assert_equal(["en", "tr"], e.diller.TR_sort())
+    TR_var s = ekran_cevabı(e, TR_Request(TR_path: "/"))
+    TR_assert_equal(200, s.TR_status)
+    TR_assert_equal("frame-ancestors 'none'; connect-src 'self'", s.TR_headers["Content-Security-Policy"])
+    TR_assert_equal("no-store", s.TR_headers["Cache-Control"])
+    TR_assert_equal("text/html; charset=utf-8", s.TR_headers["Content-Type"])
+    TR_var d = ekran_cevabı(e, TR_Request(TR_path: "/lang/tr.js"))
+    TR_assert_equal(200, d.TR_status)
+    TR_assert_equal("text/javascript; charset=utf-8", d.TR_headers["Content-Type"])
+    TR_assert_equal("no-store", d.TR_headers["Cache-Control"])
+    TR_for yol TR_in ["/lang/xx.js", "/index.html", "/contract.md", "/ekran.tr", "/lang/", "/command", "/lang/../ekran.tr"] {
+        TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_path: yol)).TR_status)
+    }
+    TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_method: "POST", TR_path: "/")).TR_status)
+}
+
+TR_test "sunucu belirteçli açılır: sayfa ve dil dosyaları belirteçsiz yollardır" {
+    TR_var e = ekran()
+    TR_var s = ekran_aç(e, 0, TR_secret_token())
+    TR_assert(s.TR_port > 0)
+    TR_assert(s.TR_close())
+    # Boş belirteç geçersizdir: sunucu açılmaz (28.2).
+    TR_assert_equal("H7624", TR_error_code { ekran_aç(e, 0, "") })
+}

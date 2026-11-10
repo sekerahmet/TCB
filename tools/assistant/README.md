@@ -11,6 +11,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 - `contract.md`: ekranın TR'den beklediği her şey (sürüm 1). Asıl değer budur.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
 - `asistan.tr`, `zincir.tr`, `zincir_test.tr`: ekransız sesli zincir (aşağıda, "Zincir").
+- `ekran.tr`, `ekran_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; test modelsizdir.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 
 ## Zincir
@@ -35,6 +36,16 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
 ```
 
 `zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, üretilen kimliklerden cümlelerin sınır geldikçe çıkması (cümle akışı), rakam, önbelleğin kapasitesi ve ortak öneki, sistem iletisinin önceden okunması (kimlikler önbelleksiz okumayla aynı; hatası programı durdurmaz), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığının atılması, çapa, taşma; zaman damgalı sahte mikrofonla).
+
+## Ekranın sunucusu
+
+`ekran.tr` sözleşmenin (`contract.md`) TR yanıdır.
+
+- **Sunucu:** `127.0.0.1`'de, belirteçli (28.2). Sayfa (`/`) ve sayfanın listelediği dil dosyaları (`/lang/<kod>.js`) `TR_tokenless_paths:`'tadır: tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez. `/events` ve `/command` belirteç ister. Başka her yol `404`. Sayfa `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'` ile, sayfa ve dil dosyaları `Cache-Control: no-store` ile gider; akışın `no-store`'unu yayıncı yazar (28.7).
+- **Görüntü yalnız olaylardan katlanır** (`katla`, 28.7'nin `TR_reduce:`'u): son `state` başta, son `metrics` sonda, bir konuşma parçası tek `turn_text` (`replace`), kapanan onay düşer, `error` girmez. Yeni tur açılırken görüntü 512 KiB'ı aşıyorsa eski turlar düşer, açık onay düşmez: görüntü olayın 1 MiB sınırının altında kalır.
+- **Komutun kararı ana döngüdedir** (`komutları_işle`). İşleyici biçimi denetler (`415`, bozuk JSON, sürüm, bilinmeyen komut, eksik alan), komutu tek bir `TR_append` ile bırakır ve cevabı bekler; `turn_busy`, `not_ready`, `text_too_long` ve `command_id` tekrarı ana döngüde verilir. İşleyicide "oku, sonra yaz" iki deyim olurdu ve 10.2'nin devir noktası arada iki `send_text`'i birden kabul ettirirdi. Son 1024 `command_id`'nin cevabı tutulur.
+
+`ekran_test.tr` modelsiz sınar: katlama (rastgele olay dizisinde görüntüyü işleyen ekran ile olayların hepsini işleyen ekran aynı durumu görür), olayın ve görüntünün 1 MiB sınırı, aynı anda iki `send_text`, aynı `command_id`'nin iki kez gelmesi, komutların kodları ve biçimi, sunulan dosyalar.
 
 ## Açmak
 
