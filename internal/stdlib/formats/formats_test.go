@@ -109,7 +109,7 @@ func TestCSVReadFileAndParseText(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	want := `[[["ad", "yaş"], ["Ali", "30"], ["Ayşe", "27.5"]], [["x", "1"], ["y", "2"]], [["tek"]], [["tarih", "1/2/2024"]], []]`
+	want := `[[["ad", " yaş"], ["Ali", " 30"], ["Ayşe", " 27.5"]], [["x", "1"], ["y", "2"]], [["tek"]], [["tarih", "1/2/2024"]], []]` // boşluk veridir (13.8)
 	if val.Inspect() != want {
 		t.Fatalf("%s bekleniyordu, %s alındı", want, val.Inspect())
 	}
@@ -194,7 +194,7 @@ func TestCSVCellsAreTextAndBOM(t *testing.T) {
 	}
 	want := `[["NaN", "Inf", "-Inf", "infinity", "007", "12345678901234567890", "0x10", "1_000", "1e400", "+5", "00.5", ".5"], ` +
 		`[String, String, String, String, String, String, String, String, String, String, String, String], ` +
-		`["-0", "0", "1.0", "2.5e3", "-7", "9223372036854775807", "1E-3", "0.0", "", "42", "1.", "1e"], ` +
+		`["-0", "0", "1.0", "2.5e3", "-7", "9223372036854775807", "1E-3", "0.0", "", "  42 ", "1.", "1e"], ` +
 		`[String, String, String, String, String, String, String, String, String, String, String, String]]`
 	if val.Inspect() != want {
 		t.Fatalf("\n%s\nbeklenen\n%s", val.Inspect(), want)

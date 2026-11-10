@@ -203,9 +203,10 @@ func resolveCSVPath(vm *interp.VM, d interp.Value) (csvPath, error) {
 func stripBOM(s string) string { return strings.TrimPrefix(s, "\ufeff") }
 
 // parseCSV CSV metnini kayıtlara ayırır (TR değerlerine dokunmaz; kilit bırakılmışken
-// çalışabilir). Satır sayısı ve toplam hücre sayısı koleksiyon sınırındadır.
+// çalışabilir). Satır sayısı ve toplam hücre sayısı koleksiyon sınırındadır. Metnin başındaki ve
+// sonundaki boşluk veridir, kırpılmaz (13.8); boş satırları ve sondaki satır sonunu okuyucu atlar.
 func parseCSV(kd codes.Code, input string) ([][]string, error) {
-	r := csv.NewReader(strings.NewReader(strings.TrimSpace(stripBOM(input))))
+	r := csv.NewReader(strings.NewReader(stripBOM(input)))
 	r.ReuseRecord = false
 	var records [][]string
 	cells := 0
@@ -224,15 +225,16 @@ func parseCSV(kd codes.Code, input string) ([][]string, error) {
 	}
 }
 
-// csvValues kayıtları satır listelerine çevirir: hücre hep metindir (13.8), boşlukları kırpılır;
-// sayı gerekirse program tip çağrısıyla çevirir (TR_Int(hücre), 3.12). Eskiden katı sayı biçimindeki
+// csvValues kayıtları satır listelerine çevirir: hücre hep metindir (13.8), boşlukları veridir,
+// kırpılmaz (gerekirse program .TR_strip() ile kırpar); sayı gerekirse program tip çağrısıyla çevirir
+// (TR_Int(hücre), 3.12). Eskiden katı sayı biçimindeki
 // hücre kendiliğinden sayı oluyordu: aynı sütun satırdan satıra tip değiştiriyordu ("007" metin, "7" sayı).
 func csvValues(records [][]string) (interp.Value, error) {
 	rows := make([]interp.Value, 0, len(records))
 	for _, rec := range records {
 		cols := make([]interp.Value, 0, len(rec))
 		for _, cell := range rec {
-			cols = append(cols, &interp.StringVal{Val: strings.TrimSpace(cell)})
+			cols = append(cols, &interp.StringVal{Val: cell})
 		}
 		rows = append(rows, &interp.ListVal{Elements: cols})
 	}
