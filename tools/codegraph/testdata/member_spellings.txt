@@ -1056,6 +1056,7 @@ m.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 m.TR_dtype	ok	0	name:TR_mem_dtype
 m.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 m.TR_final_norm	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_final_norm
+m.TR_finish	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_finish
 m.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 m.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 m.TR_get	ok	0	name:TR_mem_get

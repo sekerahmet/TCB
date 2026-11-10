@@ -23,6 +23,19 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 - *Emsal:* GitHub Actions gizli değerleri günlükte `***` ile maskeler; değer dönüştürülünce eşleşmez [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* ajanlar programın çıktısını okur ve başka yerlere taşır; çıktıya düşen bir anahtar sızmış bir anahtardır. Veriyi değiştirmemek programın doğru çalışmasını korur: maskeleme yalnız insanın göreceği yerdedir. Sözcüklerin dil dosyalarında durması hiçbir dile ayrıcalık tanımaz: yeni bir gösterim dili kendi sözcüklerini getirir (`contraseña`).
 
+### 19.4a
+
+- *Emsal:*
+  - **TR 16.3a:** akışlı çözme yarım karakteri aynı yolla tutar: `.TR_step`, `.TR_finish` ve birleşimin toplu sonuçla aynı olduğu sözü. 19.4a aynı kalıbı gizli değerin başına uygular.
+  - **GitHub Actions Runner:** maske satır başınadır; birden çok satıra yayılan gizli değer satır satır kaydedilmezse maskelenmez [kanıtsız: bu tur açılmadı].
+  - **Ekranın sözleşmesi** (`tools/assistant/contract.md`, "Parçalı akış"): sunucu metnin sonundan en uzun gizli değer kadarını geri tutar. TR programına bu boyu veren bir araç yoktu (`VM.LongestSecret` yalnız Go'da).
+- *Gerekçe:*
+  - Dil modelinin cevabı token token gider; 20 karakterlik bir anahtar hemen her zaman iki ya da daha çok parçaya bölünür. Olay başına maske bu yüzden asıl kullanımda hiç çalışmazdı (DENETİM 356 Ş4, kritik).
+  - Programa yalnız en uzun gizli değerin boyunu vermek geri tutmayı her programa yeniden yazdırırdı: ajan tutma ile maskenin sırasını ya da sonu göndermeyi kaçırır, kaçırması sessizdir. Akış nesnesi işi tek yerde yapar, sözü testle sabitlenir.
+  - Tutulan, en uzun gizli değerin tamamı değil, bir gizli değerin başı olabilecek en uzun sondur: gizli değer yoksa ya da metnin sonu hiçbir gizli değerle başlamıyorsa gecikme olmaz.
+  - Kendiliğinden (olay akışının içinde) geri tutmak olmazdı: iki olayın hangi metinlerinin birleşeceğini (`append`) yalnız program bilir; motorun olayın verisini bölmesi 19.4'ün "veri değişmez"iyle çatışırdı.
+  - Akış sürerken eklenen gizli değerin önceden verilmiş başını hiçbir yol geri alamaz; söz bunu açıkça dışarıda bırakır.
+
 ### 19.5
 
 - *Emsal:* TensorBoard ve Weights & Biases ölçüleri olay kaydı olarak yazar; JSON Lines yaygın bir düz biçimdir [kanıtsız: bu tur açılmadı].

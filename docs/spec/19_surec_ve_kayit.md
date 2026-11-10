@@ -48,6 +48,25 @@ TR_print(ayar.adım)
 - Bu, sızıntıyı azaltır ama güvence değildir: değer dönüştürülünce (dilim, ters çevirme) eşleşme kaybolur. Gizli değer argümanla değil ortam değişkeniyle verilir.
 - *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; `TR_owner_only:` (18.13) `TestWriteFileSecretNeedsOwnerOnly`; belirteç (28.2, 28.2a) `TestTokenIsChecked`, `TestSecretToken`; olay akışı (28.7) gerekmez, henüz uygulanmadı.
 
+**19.4a** `TR_mask_stream()` bir `TR_MaskStream` verir: parça parça gelen metni insanın göreceği çıktıya maskeli verir. Olay başına maske (28.7) iki parçaya bölünen gizli değeri görmez; dil modelinin parça parça ürettiği metin böyle bölünür.
+- `.TR_step(parça)` gösterilebilecek metni verir: tuttuğu metinle parçayı birleştirir, gizli değerleri `***` yapar ve sonunda bir gizli değerin başı olabilecek en uzun kısmı tutar. Tutulan, en uzun gizli değerden kısadır; gizli değer yoksa hiçbir şey tutulmaz.
+- `.TR_finish()` tutulanı maskeleyip verir. Sonra `.TR_step` hatadır.
+- `parça` bir `TR_String`'dir; başka tip çağrı hatasıdır.
+- **Söz:** bir akıştaki bütün `.TR_step` ve `.TR_finish` sonuçlarının birleşimi, parçaların birleşiminin 19.4'e göre maskesidir. Söz, akış açıkken yeni gizli değer eklenmezse geçerlidir; sonradan eklenen değerin daha önce verilmiş başı geri alınamaz.
+- Programın elindeki parçalar değişmez; akış yalnız gösterilecek metni verir.
+
+```tr
+# TR 4
+TR_var m = TR_mask_stream()
+TR_var gösterilen = ""
+TR_for parça TR_in ["anahtar: ab", "cdef12", " bitti"] {
+    gösterilen = gösterilen + m.TR_step(parça)
+}
+gösterilen = gösterilen + m.TR_finish()
+```
+
+- *Test:* gerekmez, henüz uygulanmadı.
+
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.
 - Her açılışın ilk satırı bir başlangıç kaydıdır: `{"kind":"start","time":...,"version":2,"program":"egit.tr","settings":{...}}`. Bağlı bir çubuğun toplamı çubuğun ilk kaydındadır (19.9); `settings` programda `TR_command_line` çağrıldıysa onun sonucudur.
