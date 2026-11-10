@@ -5,10 +5,11 @@ import (
 	"os"
 )
 
-// H1 hız prototipi (15.53, etkinleştirmenin nicemlenmesi; öntanımlı kapalı). TR_NICEM_ETKIN=1 iken Q4_K ağırlıklı
-// çarpım ağırlığı açmaz: x'in her satırı 256'lık bloklarla int8'e nicemlenir (quantizeQ8K), nokta çarpımı
-// tamsayıdadır, blok başına bir kez float32'ye geçilir (dotQ4KQ8Go ve AVX2 eşi sdotq4kq8). Bitler float
-// yolundan farklıdır; sonuç iş parçacığı sayısından bağımsızdır (satır satır, blok sırası sabit).
+// H1 hız prototipi (15.53, etkinleştirmenin nicemlenmesi; öntanımlı kapalı). TR_NICEM_ETKIN=1 iken Q4_K ve Q6_K
+// ağırlıklı çarpım ağırlığı açmaz: x'in her satırı 256'lık bloklarla int8'e nicemlenir (quantizeQ8K), nokta
+// çarpımı tamsayıdadır, blok başına bir kez float32'ye geçilir (Go eşleri dotQ4KQ8Go ve dotQ6KQ8Go; AVX2 eşleri
+// cpu_quant_q8_amd64.s'de). Bitler float yolundan farklıdır; sonuç iş parçacığı sayısından ve satırların
+// gruplanmasından bağımsızdır (her çıktı öğesi tek bir çekirdek çağrısıdır, blok sırası sabittir).
 var actQuant = os.Getenv("TR_NICEM_ETKIN") == "1"
 
 // q8kRow bir satırın nicemlenmiş hâli: q kodlar, d blok ölçekleri, bs 16'lık alt blokların kod toplamları.
@@ -23,6 +24,9 @@ func newQ8KRow(K int) *q8kRow {
 }
 
 // quantizeQ8K x'i nicemler: blokta d = max|x| / 127, kod = yuvarla(x · 127 / max|x|) (eşitte çifte), ±127.
+// x sonludur (quantQ8Ready). max|x| < 127 / float32'nin en büyüğü (~3,7e−37) iken 127 / max|x| float32'de
+// sonsuza taşar: kodlar işarete inerdi, sıfır öğe 0·∞ = NaN olurdu (int8(NaN) Go'da uygulamaya bağlıdır).
+// O blokta oran float64'te hesaplanır (en küçük alt normalde bile sonludur); öbür bloklarda yol değişmez.
 func quantizeQ8K(x []float32, r *q8kRow) {
 	for b := 0; b < len(x)/kBlock; b++ {
 		blk := x[b*kBlock : (b+1)*kBlock]
@@ -33,11 +37,17 @@ func quantizeQ8K(x []float32, r *q8kRow) {
 				amax = a
 			}
 		}
-		if !(amax > 0) {
+		switch id := float32(127 / amax); {
+		case !(amax > 0):
 			clear(q)
 			r.d[b] = 0
-		} else {
-			id := float32(127 / amax)
+		case id-id != 0:
+			r.d[b] = float32(amax / 127)
+			id64 := 127 / float64(amax)
+			for j, v := range blk {
+				q[j] = int8(max(-127, min(127, math.RoundToEven(float64(v)*id64))))
+			}
+		default:
 			r.d[b] = float32(amax / 127)
 			for j, v := range blk {
 				t := math.RoundToEven(float64(float32(v * id)))
@@ -114,13 +124,16 @@ func quantGemvQ8(N, K int, a []float32, w []byte, dt DType, c []float32) {
 	quantizeQ8K(a, r)
 	rowBytes := quantRowBytes(dt, K)
 	parallelFor(N, K, func(lo, hi int) {
-		var tmp [32]byte
+		var tmp [q8Tmp]byte
 		for n := lo; n < hi; n++ {
 			c[n] += dotQ8(dt, K/kBlock, w[n*rowBytes:(n+1)*rowBytes], r, tmp[:])
 		}
 	})
 	holdWorkers(quantHold)
 }
+
+// q8Tmp çekirdeklerin çalışma alanının baytıdır: en çoğu Q6_K'nın dört satırlısı (16 ölçek ve dört msum).
+const q8Tmp = 48
 
 // quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; her ağırlık satırı dört etkinleştirme
 // satırıyla birlikte çarpılır (dotQ4KQ8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her
@@ -133,30 +146,30 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 		rows[m] = &q8kRow{q: all.q[m*K : (m+1)*K], d: all.d[m*nb : (m+1)*nb], bs: all.bs[m*K/16 : (m+1)*K/16]}
 	}
 	// Satırlar birbirinden bağımsız nicemlenir: paralel nicemleme bitleri değiştirmez. Tek iş parçacığında 512
-	// satırlık okumada duvar süresinin ~%14'üydü (profil: 5 CPU-sn, hepsi seri).
+	// satırlık okumada duvar süresinin ~%14'üydü (profil, 2026-11-10, Qwen3-4B Q4_K_M, i7-13700H: 5 CPU-sn, seri).
 	parallelFor(M, 4*K, func(lo, hi int) {
 		for m := lo; m < hi; m++ {
 			quantizeQ8K(a[m*K:(m+1)*K], rows[m])
 		}
 	})
 	rowBytes := quantRowBytes(dt, K)
-	dort := dotQ8x4(dt)
+	four := dotQ8x4(dt)
 	// Bloklama: iş birimi q8BlockN ağırlık satırıdır. Her etkinleştirme dörtlüsü (4·K bayt) bloğun bütün
 	// ağırlık satırlarıyla art arda çarpılır, birinci düzey önbellekte kalır; blok ağırlığı (q8BlockN satır)
 	// ikinci düzeyde kalır. Bloksuz sürümde her ağırlık satırı bütün etkinleştirmeyi (512 satırda 1,3–5 MB)
-	// baştan okuyordu; 512 satırlık okumada float yolundan yavaştı (profil: süre çekirdeklerde, ~17 GOPS).
-	// Her c öğesi yine tek bir çekirdek çağrısının sonucunu bir kez alır: bitler bloksuz sürümle aynıdır.
+	// baştan okuyordu; 512 satırlık okumada float yolundan yavaştı (profil, 2026-11-10, Qwen3-4B Q4_K_M,
+	// i7-13700H: süre çekirdeklerde, ~17 GOPS). Her c öğesi yine tek bir çekirdek çağrısının sonucunu bir kez
+	// alır: bitler bloksuz sürümle aynıdır.
 	nBlocks := (N + q8BlockN - 1) / q8BlockN
 	parallelFor(nBlocks, q8BlockN*M*K, func(lo, hi int) {
-		var tmp [48]byte
+		var tmp [q8Tmp]byte
 		var out [4]float32
 		for jb := lo; jb < hi; jb++ {
 			n0, n1 := jb*q8BlockN, min(N, (jb+1)*q8BlockN)
 			m := 0
 			for ; m+4 <= M; m += 4 {
 				for n := n0; n < n1; n++ {
-					out = [4]float32{}
-					dort(nb, w[n*rowBytes:(n+1)*rowBytes], rows[m], K, tmp[:], out[:])
+					four(nb, w[n*rowBytes:(n+1)*rowBytes], rows[m], K, tmp[:], out[:])
 					for r := range 4 {
 						c[(m+r)*N+n] += out[r]
 					}
@@ -175,7 +188,7 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 // ikinci düzey önbelleğe (i7-13700H'nin P çekirdeğinde 1,25 MB) sığar [hesap].
 const q8BlockN = 16
 
-// dotQ8x4 dt'nin dört satırlı nicemli çekirdeğidir.
+// dotQ8x4 dt'nin dört satırlı nicemli çekirdeğidir: out[r] = r0'dan başlayan r'inci satırın sonucu.
 func dotQ8x4(dt DType) func(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float32) {
 	if dt == Q6K {
 		return dotQ6KQ8x4
@@ -183,21 +196,13 @@ func dotQ8x4(dt DType) func(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte,
 	return dotQ4KQ8x4
 }
 
-// dotQ6KQ8x4Go dotQ6KQ8x4'ün Go eşidir: r0'dan başlayan dört satır (r0'ın dilimleri K arayla devam eder).
-func dotQ6KQ8x4Go(blocks int, w []byte, r0 *q8kRow, K int, out []float32) {
+// dotQ8x4Go dört satırlı çekirdeklerin Go eşidir: r0'dan başlayan dört satır (r0'ın dilimleri K arayla devam
+// eder; bitişik tampon), out[r] = dot(r'inci satır).
+func dotQ8x4Go(dot func(int, []byte, *q8kRow) float32, blocks int, w []byte, r0 *q8kRow, K int, out []float32) {
 	nb := K / kBlock
 	for r := range 4 {
 		row := &q8kRow{q: r0.q[r*K : r*K+K : r*K+K], d: r0.d[r*nb : r*nb+nb], bs: r0.bs[r*K/16 : r*K/16+K/16]}
-		out[r] += dotQ6KQ8Go(blocks, w, row)
-	}
-}
-
-// dotQ4KQ8x4Go dotQ4KQ8x4'ün Go eşidir: r0'dan başlayan dört satır (r0'ın dilimleri K arayla devam eder).
-func dotQ4KQ8x4Go(blocks int, w []byte, r0 *q8kRow, K int, out []float32) {
-	nb := K / kBlock
-	for r := range 4 {
-		row := &q8kRow{q: r0.q[r*K : r*K+K : r*K+K], d: r0.d[r*nb : r*nb+nb], bs: r0.bs[r*K/16 : r*K/16+K/16]}
-		out[r] += dotQ4KQ8Go(blocks, w, row)
+		out[r] = dot(blocks, w, row)
 	}
 }
 

@@ -137,8 +137,9 @@ q8son:
 // func sdotq4kq8x4(blocks int, w *byte, q *int8, d *float32, bs *int16, tmp *byte, out *float32, sq, sd, sb int)
 //
 // Dört Q8 satırı aynı Q4_K satırıyla: kodlar blok başına bir kez yüklenip açılır. Satır r'nin q'su q + r·sq,
-// d'si d + r·sd, bs'si bs + r·sb bayttadır. out[r] += her bloğun t'si, blok sırasıyla: her satırın sonucu
-// sdotq4kq8'inkiyle bit bit aynıdır (out sıfırla başlarsa).
+// d'si d + r·sd, bs'si bs + r·sb bayttadır; tmp 32 bayt. Her bloğun t·d8'i blok sırasıyla doğrudan out[r]'ye
+// eklenir: sonuç sdotq4kq8'inkiyle bit bit aynıdır yalnız out sıfırla başlarsa; sarmalayıcı (dotQ4KQ8x4) out'u
+// önce sıfırlar.
 TEXT ·sdotq4kq8x4(SB), NOSPLIT, $0-80
 	MOVQ         blocks+0(FP), CX
 	MOVQ         w+8(FP), DI
@@ -441,8 +442,14 @@ q6son:
 // func sdotq6kq8x4(blocks int, w *byte, q *int8, d *float32, bs *int16, tmp *byte, out *float32, sq, sd, sb int)
 //
 // Dört Q8 satırı aynı Q6_K satırıyla: kodlar ve ölçekler blok başına bir kez açılır. Satır r'nin q'su q + r·sq,
-// d'si d + r·sd, bs'si bs + r·sb bayttadır; tmp 48 bayt (16 ölçek, dört msum). out[r] += her bloğun t·d8'i,
-// blok sırasıyla: her satırın sonucu sdotq6kq8'inkiyle bit bit aynıdır (out sıfırla başlarsa).
+// d'si d + r·sd, bs'si bs + r·sb bayttadır; tmp 48 bayt (16 ölçek, dört msum). Her bloğun t·d8'i blok
+// sırasıyla doğrudan out[r]'ye eklenir: sonuç sdotq6kq8'inkiyle bit bit aynıdır yalnız out sıfırla başlarsa;
+// sarmalayıcı (dotQ6KQ8x4) out'u önce sıfırlar.
+//
+// Elle bakılır: gövde 2026-11-10'da bir kez bir üreteçle yazıldı, üreteç depoda değil. Her 32'lik parçanın
+// açılışı (ql, qh, maske, kaydırma, ölçek yayını) sdotq6kq8'deki parçanınkiyle komut komut aynıdır; dört satır
+// için yalnız çarpım ve toplama tekrarlanır (satır r'nin kodu q + r·sq: SI, SI+R13, SI+2·R13, SI+R10). Değişiklik
+// iki çekirdekte birlikte yapılır; TestQ8FourRowsMatchOneRow iki çekirdeği bit bit karşılaştırır.
 TEXT ·sdotq6kq8x4(SB), NOSPLIT, $0-80
 	MOVQ         blocks+0(FP), CX
 	MOVQ         w+8(FP), DI
