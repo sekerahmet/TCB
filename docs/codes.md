@@ -730,7 +730,7 @@ tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden:
 
 #### `TR_EventBroadcast` (`TR_type_EventBroadcast`, `OlayYayını`)
 
-Aynı olayları birden çok dinleyiciye gönderen yayıncıdır: son kapasite kadar olayı saklar, her olaya 1'den artan bir kimlik verir. anlık_görüntü: başlangıç görüntüsüdür (bir JSON), indirge: her olayı görüntüye katlar: OlayYayını(kapasite: 100, anlık_görüntü: JSON({}), indirge: (g, olay) => olay). y.olay_gönder(veri) yayınlar, y.abone_et(istek) dinleyici cevabını verir.
+Aynı olayları birden çok dinleyiciye gönderen yayıncıdır: son kapasite kadar olayı saklar, her olaya yayıncıya özgü bir kimlik verir (ön ek ve 1'den artan sıra). anlık_görüntü: başlangıç görüntüsüdür (bir JSON), indirge: her olayı görüntüye katlar: OlayYayını(kapasite: 100, anlık_görüntü: JSON({}), indirge: (g, olay) => olay). y.olay_gönder(veri) yayınlar, y.abone_et(istek) dinleyici cevabını verir.
 
 ```tr
 TR_var y = TR_EventBroadcast(TR_capacity: 100, TR_snapshot: TR_JSON({"son": TR_none}), TR_reduce: (g, olay) => TR_JSON({"son": olay})); y.TR_send_event("hazır"); TR_print(TR_Type(y) == TR_EventBroadcast)
@@ -7723,7 +7723,7 @@ tr: yazdır("  merhaba  ".kırp())
 
     OlayYayını.abone_et(HTTPİsteği) → HTTPCevabı
 
-İsteğe bir dinleyici cevabı (text/event-stream) verir; işleyici onu döndürür: y.abone_et(istek). Last-Event-ID saklanan bir olayınsa ondan sonrakiler, değilse önce anlık görüntü (son kimlikle), sonra yeni olaylar gider: arada olay kaybolmaz ve iki kez gelmez. Dinleyici eşzamanlı istek sınırına sayılmaz; yavaş okuyanın yalnız bağlantısı kapanır.
+İsteğe bir dinleyici cevabı (text/event-stream) verir; işleyici onu döndürür: y.abone_et(istek). Last-Event-ID bu yayıncının saklanan bir olayının kimliğiyse ondan sonrakiler, değilse önce anlık görüntü (son kimlikle), sonra yeni olaylar gider: arada olay kaybolmaz ve iki kez gelmez. Dinleyici eşzamanlı istek sınırına sayılmaz; yavaş okuyanın yalnız bağlantısı kapanır.
 
 ```tr
 TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g); TR_print(y.TR_subscribe(TR_Request()).TR_headers["Content-Type"])
