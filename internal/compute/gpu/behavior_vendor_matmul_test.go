@@ -204,7 +204,7 @@ func TestVendorMatmulMissingLibraryWarnsOnce(t *testing.T) {
 	if n := strings.Count(out, "\n"); n != 1 || !strings.Contains(out, exampleFor(runtime.GOOS)) {
 		t.Fatalf("H4130 bir kez ve işletim sisteminin örneğiyle bekleniyordu:\n%s", out)
 	}
-	if be.lt != nil || !strings.HasPrefix(be.gemmPath(), messages.Text(messages.H4036)) {
+	if be.lt != nil || !strings.HasPrefix(be.gemmPath(), ownKernelPrefix()) {
 		t.Fatalf("kitaplıksız blokta yol: %q", be.gemmPath())
 	}
 	for goos, want := range map[string]string{

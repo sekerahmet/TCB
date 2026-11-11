@@ -704,7 +704,6 @@
 "H4033": "calls that fell back to the own kernel: {count}",
 "H4034": "last error: {last}",
 "H4035": "skipped: {notes}",
-"H4036": "own kernel",
 "H4037": "own kernel ({reasons})",
 "H4038": "cuBLASLt status {status} ({m}×{n}×{k}, batch {batch})",
 "H4039": "== GPU profile ({device}: {card}; matrix multiplication: {path}) ==",

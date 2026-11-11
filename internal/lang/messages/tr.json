@@ -704,7 +704,6 @@
 "H4033": "kendi çekirdeğe düşen çağrı {count}",
 "H4034": "son hata: {last}",
 "H4035": "atlanan: {notes}",
-"H4036": "kendi çekirdeği",
 "H4037": "kendi çekirdeği ({reasons})",
 "H4038": "cuBLASLt durum {status} ({m}×{n}×{k}, toplu {batch})",
 "H4039": "== GPU profili ({device}: {card}; matris çarpımı: {path}) ==",

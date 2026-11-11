@@ -704,7 +704,6 @@
 "H4033": { "param": ["count"] },
 "H4034": { "param": ["last"] },
 "H4035": { "param": ["notes"] },
-"H4036": { "param": [] },
 "H4037": { "param": ["reasons"] },
 "H4038": { "param": ["status", "m", "n", "k", "batch"] },
 "H4039": { "param": ["device", "card", "path"] },

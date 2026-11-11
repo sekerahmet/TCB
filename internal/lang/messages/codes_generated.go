@@ -709,7 +709,6 @@ const (
 	H4033 Code = 4033 // kendi çekirdeğe düşen çağrı {count}
 	H4034 Code = 4034 // son hata: {last}
 	H4035 Code = 4035 // atlanan: {notes}
-	H4036 Code = 4036 // kendi çekirdeği
 	H4037 Code = 4037 // kendi çekirdeği ({reasons})
 	H4038 Code = 4038 // cuBLASLt durum {status} ({m}×{n}×{k}, toplu {batch})
 	H4039 Code = 4039 // == GPU profili ({device}: {card}; matris çarpımı: {path}) ==
