@@ -1602,8 +1602,12 @@ const (
 	H7155 Code = 7155 // {@pretrained_gguf}: dosyada {key|q} {value} yazıyor; bağlam uzunluğu pozitif olmazsa modelin konumu olmaz: dosya hatalı, modeli yeniden indirin
 	H7160 Code = 7160 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisinin tanımında olmayan {count, plural, one {anahtar} other {# anahtar}}: {keys}{file, select, empty {} other { ({file|q})}}; tanınmayan anahtar hesabı değiştirebilir, model okunmadan yüklenmez: modelin başka bir dönüştürmesini kullanın
 	H7161 Code = 7161 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {first|q} ile {second|q} aynı ayarın iki yazımı ama değerleri ayrı ({a} ve {b}); config.json'da yalnız birini bırakın
+	H7162 Code = 7162 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {family|q} ailesinin durma parçası {name|q} dağarcıkta yok: parçalayıcı bu ailenin değil, model yüklenmez
+	H7163 Code = 7163 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: dosyanın bildirdiği {id} durma kimliği ({name|q}) {family|q} ailesinin durma listesinde yok ({list}): model o parçada durmazdı, model yüklenmez
+	H7170 Code = 7170 // {@eos_tokens}: model bir sohbet ailesine bağlı değil{families, select, empty {} other { (tablodaki aileler: {families})}}, durma listesi yok; durma kimliklerini açıkça yazın: `{#eos}: [...]`
 	H7171 Code = 7171 // {@pretrained_model}: {key|q} = {value} desteklenmiyor: TR bu ayarı uygulamaz, bu model TR'de yüklenmez; config'i değiştirmek modeli değiştirir
 	H7172 Code = 7172 // {@generate}: {@eos} durma kimliklerinin listesidir, tek sayı ({value}) verildi: `{#eos}: [{value}]` yazın
+	H7173 Code = 7173 // {@generate}: {@eos}'a bir fonksiyon verildi, durma kimliklerinin listesi değil: metodu parantezle çağırın, `{#eos}: model.{#eos_tokens}()`
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi

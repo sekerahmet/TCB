@@ -522,6 +522,7 @@
   "TR_mem_encode": { "kind": "method", "types": ["TR_Tokenizer"], "params": ["TR_String|TR_List"], "named": [["TR_arg_special_tokens", "TR_Bool", true], ["TR_arg_pair", "TR_String|TR_List"]], "returns": "TR_List", "related": ["TR_mem_decode"], "example": "TR_print(TR_load_tokenizer(\"tests/data/tokenizer.json\").TR_encode(\"Merhaba dünya!\"))" },
   "TR_mem_end": { "kind": "property", "module": "tr/whisper" },
   "TR_mem_ends_with": { "kind": "method", "pure": true, "types": ["TR_String"], "params": ["TR_String"], "returns": "TR_Bool", "related": ["TR_mem_starts_with", "TR_mem_contains"], "example": "TR_print(\"rapor.tr\".TR_ends_with(\".tr\"))" },
+  "TR_mem_eos_tokens": { "kind": "method", "module": "tr/layers" },
   "TR_mem_eps": { "kind": "property", "module": "tr/optimizers" },
   "TR_mem_evaluated": { "kind": "method", "module": "tr/training" },
   "TR_mem_exceeds": { "kind": "method", "module": "tr/training" },

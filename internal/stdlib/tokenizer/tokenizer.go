@@ -184,6 +184,10 @@ func loadError(path string, err error, tried []string) error {
 			messages.New(messages.H5612), interp.SearchedPlaces(tried))
 	}
 	switch {
+	case messages.Has(err, messages.H5650):
+		// Parçalayıcısız GGUF sarılmaz: kitaplık bu kodu TR_error_code ile tanır ve modeli ailesiz
+		// sayar (15.55); H5620'nin içinde kalsaydı öbür yükleme hatalarından ayrılmazdı.
+		return err
 	case isUnsupported(err):
 		// Çekirdeğin iletisi kendi başına tamdır ("desteklenmeyen ... türü"); metni değiştirilmez.
 		return messages.New(messages.H5614, fn, path, err)

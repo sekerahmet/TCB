@@ -17,6 +17,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_trt_python_test.go`: TR tensör dosyasının (.trt) Python'da yazılıp TR'de okunması ve tersi (`tools/gpu/trt_io.py`)
 - `behavior_ready_gguf_test.go`: GGUF dosyasından kurulan modelin safetensors ve açılmış ağırlıkla aynı logitleri vermesi; satır sırası, üstveri varsayılanları ve yükleme kapıları (dosyalar Go ile kurulur).
 - `behavior_gguf_workers_test.go`: GGUF modelinin logitleri işçi sayısından bağımsız.
+- `behavior_chat_family_test.go`: hazır modelin durma listesi sohbet tanımından kurulur (GGUF'ta mimari ve parçalayıcı etiketi, klasörde `model_type` ve `tokenizer_config.json`'un işareti); H7162, H7163, üç ailesiz yolda H7170 ve açık `TR_eos:` ile üretim, parantezsiz metodun H7173'ü (dosyalar Go ile kurulur).
 - `behavior_gguf_key_gate_test.go`: GGUF'un yapı tanımında olmayan anahtarı (başka mimarinin öneki, yeni önek dahil) yükleme hatasıdır; serbest dört önek ve bilinen anahtarlar geçer (dosyalar Go ile kurulur).
 - `behavior_generate_eos_test.go`: üretimin `TR_eos:`'una tek sayı verilince iletinin önerdiği liste yazımı.
 - `behavior_gguf_rope_freqs_test.go`: `rope_freqs.weight` bölenlerinin tablosunun llama.cpp formülüyle aynı olması, tensörün isteğe bağlı oluşu ve kullanılamayan bölenlerin yükleme hatası olması (dosyalar Go ile kurulur; `TR_GGUF_LLAMA32` verilirse tablo gerçek Llama 3.2 dosyasıyla da kıyaslanır)

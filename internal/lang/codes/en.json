@@ -469,6 +469,7 @@
   "TR_mem_encode": { "name": "encode" },
   "TR_mem_end": { "name": "end" },
   "TR_mem_ends_with": { "name": "ends_with" },
+  "TR_mem_eos_tokens": { "name": "eos_tokens" },
   "TR_mem_eps": { "name": "eps" },
   "TR_mem_evaluated": { "name": "evaluated" },
   "TR_mem_exceeds": { "name": "exceeds" },

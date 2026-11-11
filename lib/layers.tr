@@ -618,6 +618,7 @@ TR_struct TR_GPT {
         TR_assert(TR_vocab_size == TR_none TR_or (TR_vocab_size >= 1 TR_and TR_vocab_size <= çıkış), TR_Message("H5648", TR_vocab_size, çıkış))
         # Adlı argümanın tipi bugün denetlenmiyor (docs/status.md, 6.5): tek sayı burada adıyla durur.
         TR_if TR_Type(TR_eos) == TR_Int { TR_throw TR_Message("H7172", "\(TR_eos)") }
+        TR_if TR_Type(TR_eos) == TR_Function { TR_throw TR_Message("H7173") }
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
         TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none
@@ -659,5 +660,16 @@ TR_struct TR_GPT {
             }
         }
         TR_return kimlikler
+    }
+
+    # durma_parçaları modelin sohbet ailesinin durma kimlikleridir (15.55): hazır_gguf ve hazır_model
+    # onları sohbet tanımından kurar. Ailesiz modelde (tabloda olmayan dosya ya da elle kurulan GPT)
+    # çağrı H7170'tir: boş liste sessizce sınıra kadar üretirdi; kimlikler TR_eos: [...] ile yazılır.
+    TR_func TR_eos_tokens() -> TR_List[TR_Int] {
+        TR_if TR_not TR_self.TR_config.TR_contains("durma") {
+            TR_var aileler = TR_if TR_self.TR_config.TR_contains("aileler") { TR_String(TR_self.TR_config["aileler"]) } TR_else { "" }
+            TR_throw TR_Message("H7170", aileler)
+        }
+        TR_return [TR_Int(k) TR_for k TR_in TR_self.TR_config["durma"]]
     }
 }

@@ -323,6 +323,18 @@ TR_var durma = p.TR_declared_eos_tokens`)
 	if _, err := run(t, `TR_load_tokenizer("`+file("gpt-4o")+`")`); !messages.Has(err, messages.H6679) {
 		t.Errorf("bilinmeyen etiket: %v", err)
 	}
+	// Parçalayıcısız GGUF'un kodu sarılmaz: kitaplık onu TR_error_code ile ailesiz sayar (15.55).
+	bare := filepath.Join(t.TempDir(), "yalın.gguf")
+	if err := os.WriteFile(bare, (&gguftest.Builder{}).KV("general.architecture", "llama").Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m, err = run(t, `TR_var kod = TR_error_code { TR_load_tokenizer("`+filepath.ToSlash(bare)+`") }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := al(t, m, "kod").Inspect(); got != "H5650" {
+		t.Errorf("parçalayıcısız GGUF'un kodu %s; H5650 olmalı", got)
+	}
 }
 
 func TestStepLimitAndWarning(t *testing.T) {

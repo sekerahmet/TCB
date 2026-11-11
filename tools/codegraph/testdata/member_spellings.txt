@@ -284,6 +284,7 @@ _DAR_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
 _DENEME_SÜRELERİ.TR_join	ok	0	name:TR_mem_join
 _DENEME_SÜRELERİ.TR_length	ok	0	name:TR_mem_length
 _FİİL_ÜNLÜ_DÜŞENLER.TR_contains	ok	0	name:TR_mem_contains
+_GENEL_SINIFLAR.TR_contains	ok	0	name:TR_mem_contains
 _GGUF_SERBEST.TR_contains	ok	0	name:TR_mem_contains
 _KALIN_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
 _KENAR.TR_contains	ok	0	name:TR_mem_contains
@@ -654,6 +655,8 @@ doğrulama_kaydı.TR_append	ok	0	name:TR_mem_append
 doğrulama_kümesi.TR_sequential	ok	0	name:TR_mem_sequential
 doğrusal.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
 dur.TR_contains	ok	0	name:TR_mem_contains
+durma.TR_append	ok	0	name:TR_mem_append
+durma.TR_contains	ok	0	name:TR_mem_contains
 durum.TR_get	ok	0	name:TR_mem_get
 durum.TR_keys	ok	0	name:TR_mem_keys
 döngü.TR_cancel	ok	0	name:TR_mem_cancel
@@ -1112,6 +1115,7 @@ m.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 m.TR_dtype	ok	0	name:TR_mem_dtype
 m.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 m.TR_ends_with	ok	0	name:TR_mem_ends_with
+m.TR_eos_tokens	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_eos_tokens
 m.TR_final_norm	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_final_norm
 m.TR_finish	ok	0	name:TR_mem_finish
 m.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
@@ -1174,6 +1178,7 @@ model.TR_build_cache	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_build_cache
 model.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 model.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 model.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
+model.TR_eos_tokens	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_eos_tokens
 model.TR_exists	ok	0	name:TR_mem_exists
 model.TR_final_norm	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_final_norm
 model.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
@@ -1184,6 +1189,7 @@ model.TR_logits	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_logits
 model.TR_loss	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_loss
 model.TR_mem_build_cache	not_found	4	-
 model.TR_mem_config	not_found	4	-
+model.TR_mem_eos_tokens	not_found	4	-
 model.TR_mem_forward	not_found	4	-
 model.TR_mem_generate	not_found	4	-
 model.TR_mem_hidden_states	not_found	4	-
@@ -1206,6 +1212,7 @@ n.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:f
 n1.TR_append	ok	0	name:TR_mem_append
 n2.TR_append	ok	0	name:TR_mem_append
 n32.TR_to_dtype	ok	0	name:TR_mem_to_dtype
+nesil.TR_exists	ok	0	name:TR_mem_exists
 nl.TR_length	ok	0	name:TR_mem_length
 noktalar.TR_map	ok	0	name:TR_mem_map
 noktasal.TR_append	ok	0	name:TR_mem_append
@@ -1513,6 +1520,8 @@ süreler.TR_length	ok	0	name:TR_mem_length
 süzgeç.TR_shape	ok	0	name:TR_mem_shape
 sıfırlamalar.TR_append	ok	0	name:TR_mem_append
 sıfırlamalar.TR_length	ok	0	name:TR_mem_length
+sınıf.TR_ends_with	ok	0	name:TR_mem_ends_with
+sınıf.TR_length	ok	0	name:TR_mem_length
 sınıflar.TR_tolist	ok	0	name:TR_mem_tolist
 sıra.TR_append	ok	0	name:TR_mem_append
 sıra.TR_length	ok	0	name:TR_mem_length
@@ -1693,6 +1702,7 @@ yakalanan.TR_contains	ok	0	name:TR_mem_contains
 yalnız.TR_length	ok	0	name:TR_mem_length
 yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
+yapılandırma.TR_exists	ok	0	name:TR_mem_exists
 yarım.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 yavaş.TR_wait	ok	0	name:TR_mem_wait
 yayın.TR_send_event	ok	0	name:TR_mem_send_event
