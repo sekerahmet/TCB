@@ -313,7 +313,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - **Cihaz türleri arasında** bit eşitliği söz verilmez: ondalık toplamın biriktirme yolu CPU'da ve GPU'da ayrıdır (15.50'nin sınır cümlesi) ve son bitlerde ayrılabilir. GPU'nun SM sayısına göre ayarlanan yolları (normun geri yönü, GEMM) farklı kart modellerinde ayrılabilir.
 - Tam sayı ve mantık indirgemeleri, `TR_max`/`TR_min`/`TR_argmax`/`TR_argmin`, `TR_topk` ve `TR_argsort` cihazdan bağımsız aynı sonucu verir.
 - Cihaz türleri arasındaki farkın sınırı 15.41'dedir.
-- *Test:* Go: `TestSumParallelPaths`, `TestSumAllParallel`, `TestParallelKernelsMatchSerial`, `TestDeterministic`.
+- *Test:* TR testi (`tests/tensor_kayik_gorunum_test.tr`); Go: `TestSumParallelPaths`, `TestSumAllParallel`, `TestParallelKernelsMatchSerial`, `TestDeterministic`, `TestMisalignedViewsMatchBits`, `TestSmCountDoesNotChangeBits`, `TestGemmPaddingKeepsNegativeZero`.
 
 **15.22b** Sıralama sırası. Tanımı 13.10'dadır ("sıralanabilir" kısıtının yanında: −0.0 < 0.0, NaN her sayıdan büyük; işleçler, 4.4 ve 4.5, ise IEEE 754 karşılaştırmasıdır). Tensörde bu sırayı **bütünüyle** kullananlar: `TR_topk` ve `TR_argsort`. `TR_max`, `TR_min`, `TR_argmax`, `TR_argmin`, `TR_maximum` ve `TR_minimum` (15.16a) onu NaN dışındaki sayılarda kullanır (−0.0 < 0.0); NaN'ı ise yayar ya da ilk NaN'ı seçer (15.18, 15.19).
 - *Test:* TR testi; Go: `TestMaxNegativeZeroOrder`, `TestArgSortAndTopK`, `TestSpecialValuesTable`, GPU'da `TestMax` ve `TestSort`; `TR_argmin`, `TR_maximum` ve `TR_minimum` uygulanınca TR testi.

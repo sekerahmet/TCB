@@ -58,9 +58,10 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 
 // gemv M = 1 çarpımını tek satırlık çekirdekle yapar (kernel_gemv.go); kapalıysa ya da K = 0
 // ise yanlış döner. M = 1'de transA önemsizdir: A [1, K] de [K, 1] de bitişik K elemandır.
-// Dörtlü vektörel okuma satırlar dört elemana hizalıysa seçilir (devrik değilken B'nin satırları:
-// N 4'ün katı; devrikken A ile B'nin satırları: K 4'ün katı). A ve C float32'dir; B float32 ya da
-// 16 bitlik olabilir (ağırlık açılmadan okunur, kernel_gemv.go).
+// Toplama sırası her zaman dört bitişik öğeyle tanımlıdır; vektörel okuma yalnız yükleme
+// biçimidir ve satırlar dört elemana hizalıysa seçilir (devrik değilken B'nin satırları: N 4'ün
+// katı; devrikken A ile B'nin satırları: K 4'ün katı). Hiza bitleri değiştirmez (15.22a). A ve C
+// float32'dir; B float32 ya da 16 bitlik olabilir (ağırlık açılmadan okunur, kernel_gemv.go).
 func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB bool, c *storage, cOf int, over bool) bool {
 	if g.gemvOff || K == 0 {
 		return false
@@ -74,20 +75,15 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 	ad, bd := g.storageOf(a.S), g.storageOf(b.S)
 	bt := bd.dtype
 	alignA, alignB := align(g.addressOf(a)) >= 16, align(g.addressOf(b)) >= uint32(4*dtypeSize(bt))
-	vw := 1
 	var pull *kernel
 	var cfg gemvConfig
 	if transB {
-		if K%4 == 0 && alignA && alignB {
-			vw = 4
-		}
-		pull = g.takeKernel(fmt.Sprintf("gemv_t:%d:%v:%s", vw, over, bt), gemvTKernel(vw, over, bt))
+		vec := K%4 == 0 && alignA && alignB
+		pull = g.takeKernel(fmt.Sprintf("gemv_t:%v:%v:%s", vec, over, bt), gemvTKernel(vec, over, bt))
 	} else {
-		if N%4 == 0 && alignB {
-			vw = 4
-		}
-		cfg = g.pickGemv(batch, N, vw)
-		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%d:%v:%s", cfg, vw, over, bt), gemvKernel(cfg, vw, over, bt))
+		vec := N%4 == 0 && alignB
+		cfg = g.pickGemv(batch, N)
+		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%v:%v:%s", cfg, vec, over, bt), gemvKernel(cfg, vec, over, bt))
 	}
 	for z0 := 0; z0 < batch; z0 += 65535 {
 		nz := min(batch-z0, 65535)
@@ -95,27 +91,35 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 		if transB {
 			g.launch(pull, [3]uint32{blocks(N, gemvTWarps), uint32(nz), 1}, [3]uint32{32 * gemvTWarps, 1, 1}, p)
 		} else {
-			g.launch(pull, [3]uint32{blocks(N, cfg.L*vw), uint32(nz), 1}, [3]uint32{uint32(cfg.T), 1, 1}, p)
+			g.launch(pull, [3]uint32{blocks(N, cfg.L*gemvCols), uint32(nz), 1}, [3]uint32{uint32(cfg.T), 1, 1}, p)
 		}
 	}
 	return true
 }
 
+// fixedSMs toplama sırasını belirleyen ayarlarda kartın SM sayısının yerine geçen sabittir
+// (15.22a: ayar yalnız boydan seçilir; SM sayısı başlatma ızgarasını değiştirebilir, toplama
+// sırasını değiştiremez): gemv'nin şerit sayısı (gemvMinBlocks) ve norm geri yönünün parça
+// sayısı (backend_row.go). Değeri 0b'nin önce-sonra ölçüsünde L4'te gözden geçirilir.
+const fixedSMs = 64
+
+// gemvMinBlocks devrik olmayan tek satırlık çarpımın şeritlerini daraltma eşiğidir (eski 2·SM).
+const gemvMinBlocks = 2 * fixedSMs
+
 // pickGemv devrik olmayan tek satırlık çarpımın ayarı: blok önce 32 sütun (satır başına 128
-// bayt) okur; bloklar SM sayısının iki katını doldurmuyorsa sütun sayısı 8'e kadar
-// yarılanır (satır başına en az bir 32 baytlık kesim). Blokta 512 iş parçacığı: ölçüm (RTX PRO
-// 6000, SmolLM2 ve Qwen3 boyları) 256 ve 128'den hızlı ya da eşit (1536×576: 4,1 / 6,2 /
-// 12,3 µs), kitaplıktan hızlı ya da eşit.
-func (g *backend) pickGemv(batch, N, vw int) gemvConfig {
+// bayt) okur; bloklar gemvMinBlocks'u doldurmuyorsa sütun sayısı 8'e kadar yarılanır (satır
+// başına en az bir 32 baytlık kesim). Seçim yalnız (N, batch) iledir. Blokta 512 iş parçacığı:
+// ölçüm (RTX PRO 6000, SmolLM2 ve Qwen3 boyları) 256 ve 128'den hızlı ya da eşit (1536×576:
+// 4,1 / 6,2 / 12,3 µs), kitaplıktan hızlı ya da eşit.
+func (g *backend) pickGemv(batch, N int) gemvConfig {
 	if a := g.gemvConst; a != nil {
 		if a.L < 1 || a.L > 32 || a.L&(a.L-1) != 0 || a.T < 32 || a.T > 1024 || a.T%32 != 0 {
 			panic(internalf("invalid matrix-vector setting %+v", *a))
 		}
 		return *a
 	}
-	_, sm := g.sr.capability()
-	L := 32 / vw
-	for L*vw > 8 && int(blocks(N, L*vw))*batch < 2*max(sm, 1) {
+	L := 32 / gemvCols
+	for L*gemvCols > 8 && int(blocks(N, L*gemvCols))*batch < gemvMinBlocks {
 		L /= 2
 	}
 	return gemvConfig{L: L, T: 512}

@@ -289,13 +289,13 @@ func (g *backend) rowSums(target tensor.Storage, source *storage, R, D int) {
 
 // normBackwardFused γ'nın gradyanı istenen geri yön (kernel_norm.go normBackwardFusedKernel):
 // P blok, her biri ardışık satır parçası; blok başına kısmi γ toplamları [P, D] sonra satırlar
-// boyunca sabit sırayla indirgenir. P SM başına 2048 iş parçacığını dolduracak kadardır (ayar SM
-// sayısından seçilir; aynı kartta her koşuda aynı sonuç).
+// boyunca sabit sırayla indirgenir. P, fixedSMs SM'lik bir kartta SM başına 2048 iş parçacığını
+// dolduracak kadardır: yalnız (R, D) ile seçilir, kartın SM sayısıyla değil (parça sınırı γ'nın
+// türevinin toplama sırasıdır; 15.22a).
 func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage, gd *storage, xv tensor.View, gv *tensor.View, avg, rstd tensor.Storage, R, D int, layer, set bool, dxT tensor.DType) {
 	B := powerOfTwo(D, 32, 256)
 	C := (D + B - 1) / B
-	_, sm := g.sr.capability()
-	P := min(R, max(sm, 1)*max(2048/B, 1))
+	P := min(R, fixedSMs*max(2048/B, 1))
 	chunk := (R + P - 1) / P
 	P = (R + chunk - 1) / chunk
 	part := gt.buffer(P*D, false)
@@ -309,7 +309,7 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 }
 
 // normBackwardWarp γ'nın gradyanı istenen geri yönü warp çekirdeğiyle yürütür (normWarpGradD):
-// satırlar blok parçalarına bölünür (normBackwardFused ile SM başına aynı iş parçacığı sayısı: 2048), x iki düzeyli
+// satırlar blok parçalarına bölünür (normBackwardFused ile aynı kural: fixedSMs, SM başına 2048 iş parçacığı), x iki düzeyli
 // adımla yerinde okunur, γ'nın kısmi toplamları [P, D] sabit sırayla toplanır.
 func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, R, D, H, S0, S1 int, layer, set bool) {
 	gv := gt.readNativeP(gamma)
@@ -319,8 +319,7 @@ func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *stor
 		dx = g.storageOf(gx)
 		dxT = dx.dtype
 	}
-	_, sm := g.sr.capability()
-	P := min((R+warpRows-1)/warpRows, max(sm, 1)*8)
+	P := min((R+warpRows-1)/warpRows, fixedSMs*8)
 	chunk := (R + P - 1) / P
 	P = (R + chunk - 1) / chunk
 	part := gt.buffer(P*D, false)

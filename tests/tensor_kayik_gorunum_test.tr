@@ -1,0 +1,51 @@
+# TR 4
+# docs/spec/15_tensorler.md 15.22a — sonuç girdinin bellek hizasına bağlı olmaz: aynı değerler kayık bir
+# görünümden de gelse bitler aynıdır. Kartın bütün çekirdek aileleri Go testindedir
+# (internal/compute/gpu/behavior_bits_test.go, TestMisalignedViewsMatchBits); bu test işlemcide koşar.
+
+TR_func kayık(değerler: TR_List[TR_Float], ön: TR_Int, şekil: TR_List[TR_Int]) -> TR_Tensor {
+    TR_var düz = []
+    TR_for i TR_in 0..ön {
+        düz.TR_append(9.0)
+    }
+    TR_for v TR_in değerler {
+        düz.TR_append(v)
+    }
+    TR_return TR_Tensor(düz).TR_slice(0, ön, ön + değerler.TR_length).TR_reshape(şekil)
+}
+
+TR_func değerler(n: TR_Int) -> TR_List[TR_Float] {
+    TR_var d = []
+    TR_for i TR_in 0..n {
+        d.TR_append(TR_sin(i * 1.7) * 3.0 + 1e-3 * i)
+    }
+    TR_return d
+}
+
+TR_test "15.22a @ kayık görünümle aynı bitleri verir" {
+    TR_var a = değerler(12)
+    TR_var b = değerler(20)
+    TR_var beklenen = (kayık(a, 0, [3, 4]) @ kayık(b, 0, [4, 5])).TR_reshape([-1]).TR_tolist
+    TR_for ön TR_in [1, 2, 3] {
+        TR_assert_equal(beklenen, (kayık(a, ön, [3, 4]) @ kayık(b, ön, [4, 5])).TR_reshape([-1]).TR_tolist)
+    }
+    TR_var tek = (kayık(değerler(4), 0, [4]) @ kayık(b, 0, [4, 5])).TR_tolist
+    TR_assert_equal(tek, (kayık(değerler(4), 3, [4]) @ kayık(b, 1, [4, 5])).TR_tolist)
+}
+
+TR_test "15.22a TR_sum kayık görünümle aynı bitleri verir" {
+    TR_var d = değerler(130)
+    TR_var beklenen = TR_sum(kayık(d, 0, [130])).TR_item()
+    TR_for ön TR_in [1, 2, 3] {
+        TR_assert_equal(beklenen, TR_sum(kayık(d, ön, [130])).TR_item())
+    }
+}
+
+TR_test "15.22a TR_attention kayık görünümle aynı bitleri verir" {
+    TR_var q = değerler(48)
+    TR_var beklenen = TR_attention(kayık(q, 0, [1, 3, 2, 8]), kayık(q, 0, [1, 3, 2, 8]), kayık(q, 0, [1, 3, 2, 8])).TR_reshape([-1]).TR_tolist
+    TR_for ön TR_in [1, 2, 3] {
+        TR_var k = kayık(q, ön, [1, 3, 2, 8])
+        TR_assert_equal(beklenen, TR_attention(k, k, k).TR_reshape([-1]).TR_tolist)
+    }
+}

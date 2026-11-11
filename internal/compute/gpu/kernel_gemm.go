@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
@@ -12,14 +13,16 @@ import (
 //
 // C[z] (+)= op(A[z])·op(B[z]); her blok C'nin BM×BN'lik bir döşemesini hesaplar. K
 // ekseni BK'lık dilimlerle gezilir: A ve B döşemeleri paylaşımlı belleğe yüklenir (sınır
-// dışı elemanlar 0), engelden sonra her iş parçacığı TM×TN'lik kayıt bloğunu fma ile
+// dışı elemanlar A'da −0, B'de +0: K dışındaki dolgu adımının çarpımı −0'dır ve −0 + c = c her c
+// için, −0 dahil; dolgu adımı sayısı döşemeye göre değişse de bitler değişmez), engelden sonra her iş parçacığı TM×TN'lik kayıt bloğunu fma ile
 // biriktirir. İş parçacığının satırları w = min(TM, 4)'lü bitişik gruplardır:
 // g·(BM·w/TM) + ty·w + i (g < TM/w, i < w), sütunları aynı biçimde tx'ten; böylece
 // paylaşımlı bellekten her grup tek okumayla (w = 4: ld.shared.v4) gelir (A satırları çeyrek warp'ta yayınla, B
 // sütunları çakışmasız). Paylaşımlı dizilerin satırları 4 elemanla dolgulanır (yükleme
 // sırasında bank çakışmalarını azaltır, 16 bayt hizayı korur). Döşeme boyları arka ucun
-// ayarıdır (carpimAyari), kullanıcıya görünmez. Makinede üreticinin kitaplığı varsa çarpım
-// onunla yapılır (carpim_kitaplik.go); bu çekirdek yedektir.
+// ayarıdır (pickGemm), kullanıcıya görünmez ve yalnız hızı değiştirir: her çıktı öğesi tek
+// toplayıcıda k = 0, 1, …, K−1 sırasıyla birikir. Makinede üreticinin kitaplığı varsa çarpım
+// onunla yapılır (gemm_lib.go); bu çekirdek yedektir.
 
 // gemmConfig matris çarpımı döşeme boyları (hepsi ikinin kuvveti).
 type gemmConfig struct {
@@ -106,8 +109,8 @@ func gemmKernel(a gemmConfig, transA, transB, over bool) func() *emitter {
 		}
 		k0 := k.whole(0)
 		k.whileLess("u32", k0, K, func() {
-			k.loadGemm(aShare, pa, sa, m0, k0, M, K, transA)
-			k.loadGemm(bShare, pb, sb, n0, k0, N, K, !transB)
+			k.loadGemm(aShare, pa, sa, m0, k0, M, K, transA, float32(math.Copysign(0, -1)))
+			k.loadGemm(bShare, pb, sb, n0, k0, N, K, !transB, 0)
 			k.barrier()
 			k.computeGemm(a, acc, sa, sb, tx, ty)
 			k.barrier()
@@ -138,9 +141,9 @@ func (k *emitter) gemmShares(tid reg, D, BK, row2, T int, outerContiguous bool) 
 	return shares
 }
 
-// loadGemm payları genel bellekten (sınır dışı 0) paylaşımlı belleğe taşır. Genel
-// bellekteki eleman: disBitisik ise (k0+kk)·Dboy + (d0+dis), değilse (d0+dis)·K + k0+kk.
-func (k *emitter) loadGemm(shares []gemmShare, ptr, sm, d0, k0, DSize, K reg, outerContiguous bool) {
+// loadGemm payları genel bellekten (sınır dışı pad) paylaşımlı belleğe taşır. Genel
+// bellekteki eleman: outerContiguous ise (k0+kk)·DSize + (d0+outer), değilse (d0+outer)·K + k0+kk.
+func (k *emitter) loadGemm(shares []gemmShare, ptr, sm, d0, k0, DSize, K reg, outerContiguous bool, pad float32) {
 	for _, py := range shares {
 		gd, gk := k.r(), k.r()
 		k.e("add.s32", gd, d0, py.outer)
@@ -155,7 +158,7 @@ func (k *emitter) loadGemm(shares []gemmShare, ptr, sm, d0, k0, DSize, K reg, ou
 		} else {
 			k.e("mad.lo.s32", idx, gd, K, gk)
 		}
-		v := k.constant(0)
+		v := k.constant(pad)
 		k.ifCase(p1, "ld.global.f32", v, mem(k.address(ptr, idx, 4), 0))
 		ad := k.r()
 		k.e("add.s32", ad, sm, py.smOfs)

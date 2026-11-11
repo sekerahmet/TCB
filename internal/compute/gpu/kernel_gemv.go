@@ -15,14 +15,19 @@ import (
 // iş ağırlığı bir kez okumaktır (bellek bandıyla sınırlı). Bu çekirdekler ağırlığı birleşik
 // (coalesced) erişimle, çok blokla ve iş parçacığı başına birkaç bağımsız yüklemeyle okur.
 //
-// gemvKernel (B [K, N]; doğrusal katman x @ W): blok BN = L·vw sütun hesaplar (vw = 4:
-// iş parçacığı başına dört bitişik sütun, tek ld.global.v4; vw = 1: bir sütun). Bir warp'ın
-// 32 şeridi 32/L dilimdir, bloğun T iş parçacığı S = T/L dilim: dilim s, k = s, s+S, ...
-// satırlarını dört ayrı toplayıcıyla (dörtlü açılım) biriktirir.
+// gemvKernel (B [K, N]; doğrusal katman x @ W): blok BN = L·4 sütun hesaplar; iş parçacığı
+// her zaman dört bitişik sütun hesaplar (gemvCols). Bir warp'ın 32 şeridi 32/L dilimdir,
+// bloğun T iş parçacığı S = T/L dilim: dilim s, k = s, s+S, ... satırlarını dört ayrı
+// toplayıcıyla (dörtlü açılım) biriktirir.
 //
 // gemvTKernel (B [N, K]; devrik: paylaşımlı gömmenin devriği x @ Wᵀ ve geri yayılımda
-// dX = dY @ Wᵀ): her warp bir çıktı sütununu hesaplar; şeritler bitişik K satırını vw'lik
-// parçalarla gezer.
+// dX = dY @ Wᵀ): her warp bir çıktı sütununu hesaplar; şerit her zaman dört bitişik K
+// öğesini toplar, şeritler K'yı 128'lik adımla gezer.
+//
+// Toplama sırası mantıksal indeksten tanımlıdır, bellek hizasından değil (15.22a): vec doğruysa
+// (hizalı ve boy 4'ün katı) dört öğe tek vektörel yüklemeyle, değilse dört tekil yüklemeyle
+// okunur; seçim yalnız yükleme biçimini değiştirir. Aynı değerler kayık bir görünümden de gelse
+// bitler aynıdır (TestMisalignedViewsMatchBits).
 //
 // B (ağırlık) float32 ya da 16 bitlik (bf16, fp16) olabilir: 16 bitlik ağırlık açılmadan okunur
 // (bayt yarıya iner), a, toplayıcılar ve c float32'dir (ağırlığı 16 bit, hesabı 32 bit; dil
@@ -30,7 +35,8 @@ import (
 //
 // Toplama sırası sabittir: toplayıcılar sırayla, warp içi kelebek karıştırmayla (shfl.bfly;
 // iki eş aynı toplamı bulur), warp'lar paylaşımlı bellekte warp sırasıyla. Sonuç aynı ayarla
-// her koşuda aynıdır (belirlenimci); ayar (L, T) yalnızca boydan ve SM sayısından seçilir.
+// her koşuda aynıdır (belirlenimci); ayar (L, T) yalnızca boydan seçilir, SM sayısından değil
+// (pickGemv; TestSmCountDoesNotChangeBits).
 
 // gemvConfig devrik olmayan tek satırlık çarpımın ayarı: L bir satırdaki şerit sayısı, T
 // bloktaki iş parçacığı sayısı (ikisi de ikinin kuvveti, L ≤ 32 ≤ T ≤ 1024).
@@ -39,13 +45,25 @@ type gemvConfig struct{ L, T int }
 // gemvUnroll iş parçacığının aynı anda okuduğu satır sayısı (bağımsız toplayıcılar).
 const gemvUnroll = 4
 
-func gemvKernel(a gemvConfig, vw int, over bool, bt tensor.DType) func() *emitter {
+// gemvCols bir iş parçacığının hesapladığı bitişik öğe sayısı (devrik olmayanda sütun, devrikte
+// K öğesi); toplama sırası buna bağlıdır, yükleme biçimine bağlı değildir.
+const gemvCols = 4
+
+// gemvLoadName çekirdek adındaki yükleme genişliğidir (4: vektörel, 1: tekil).
+func gemvLoadName(vec bool) int {
+	if vec {
+		return 4
+	}
+	return 1
+}
+
+func gemvKernel(a gemvConfig, vec, over bool, bt tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("gemv_%d_%d_%d_%v_%s", a.L, a.T, vw, over, bt))
+		k := newEmitter(fmt.Sprintf("gemv_%d_%d_%d_%v_%s", a.L, a.T, gemvLoadName(vec), over, bt))
 		pa, pb := k.pointer("a"), k.pointer("b")
 		pc := k.written("c")
 		N, K := k.u32p("n"), k.u32p("k")
-		W, S, BN := a.T/32, a.T/a.L, a.L*vw
+		W, S, BN := a.T/32, a.T/a.L, a.L*gemvCols
 		sm := k.shared("sm", 4*W*BN)
 		tid := k.special("%tid.x")
 		lane, warp, cg, s := k.r(), k.r(), k.r(), k.r()
@@ -56,16 +74,12 @@ func gemvKernel(a gemvConfig, vw int, over bool, bt tensor.DType) func() *emitte
 		k.e("mad.lo.s32", s, warp, 32/a.L, s)
 		n0, n := k.r(), k.r()
 		k.e("mul.lo.s32", n0, k.special("%ctaid.x"), BN)
-		k.e("mad.lo.s32", n, cg, vw, n0)
+		k.e("mad.lo.s32", n, cg, gemvCols, n0)
 		k.batchOffsets(pa, pb, pc, N, K, dtypeSize(bt))
-		// Son bloğun dışarda kalan sütunları geçerli bir sütunu okur (sonuçları yazılmaz): yükleme
-		// koşulsuzdur. vw = 4'te N 4'ün katıdır.
-		nr := k.r()
-		k.e("sub.s32", nr, N, vw)
-		k.e("min.u32", nr, n, nr)
+		cols := k.gemvColumns(n, N, vec)
 		acc := make([][]reg, gemvUnroll)
 		for u := range acc {
-			acc[u] = make([]reg, vw)
+			acc[u] = make([]reg, gemvCols)
 			for j := range acc[u] {
 				acc[u][j] = k.constant(0)
 			}
@@ -73,9 +87,16 @@ func gemvKernel(a gemvConfig, vw int, over bool, bt tensor.DType) func() *emitte
 		row := func(kk reg, acc []reg) {
 			xv := k.f()
 			k.e("ld.global.f32", xv, mem(k.address(pa, kk, 4), 0))
-			idx := k.r()
-			k.e("mad.lo.s32", idx, kk, N, nr)
-			bv := k.gemvLoad(bt, k.address(pb, idx, dtypeSize(bt)), vw)
+			bv := make([]reg, gemvCols)
+			for j, c := range cols {
+				idx := k.r()
+				k.e("mad.lo.s32", idx, kk, N, c)
+				if vec {
+					bv = k.gemvLoad(bt, k.address(pb, idx, dtypeSize(bt)), gemvCols)
+					break
+				}
+				bv[j] = k.load(bt, k.address(pb, idx, dtypeSize(bt)))
+			}
 			for j := range acc {
 				k.e("fma.rn.f32", acc[j], xv, bv[j], acc[j])
 			}
@@ -84,16 +105,38 @@ func gemvKernel(a gemvConfig, vw int, over bool, bt tensor.DType) func() *emitte
 		k.e("mov.u32", kk, s)
 		k.unrolledRows(kk, K, S, func(u int, r reg) { row(r, acc[u]) })
 		// Toplayıcılar sabit sırayla, sonra warp içindeki dilimler kelebekle.
-		t := make([]reg, vw)
+		t := make([]reg, gemvCols)
 		for j := range t {
 			t[j] = k.sum(k.sum(acc[0][j], acc[1][j]), k.sum(acc[2][j], acc[3][j]))
 			for m := a.L; m < 32; m *= 2 {
 				t[j] = k.sum(t[j], k.shflXor(t[j], m))
 			}
 		}
-		k.gemvWarpSum(a, vw, t, sm, tid, lane, warp, cg, n0, N, pc, over)
+		k.gemvWarpSum(a, gemvCols, t, sm, tid, lane, warp, cg, n0, N, pc, over)
 		return k
 	}
+}
+
+// gemvColumns iş parçacığının dört sütununun okunacağı sütunlardır. Dışarda kalan sütunlar
+// geçerli bir sütunu okur (sonuçları yazılmaz, her sütunun toplayıcısı ayrıdır): yükleme
+// koşulsuzdur. vec'te tek değer döner: dörtlünün başı min(n, N−4) (N 4'ün katıdır, n de);
+// tekilde her sütun min(n+j, N−1).
+func (k *emitter) gemvColumns(n, N reg, vec bool) []reg {
+	if vec {
+		nr := k.r()
+		k.e("sub.s32", nr, N, gemvCols)
+		k.e("min.u32", nr, n, nr)
+		return []reg{nr}
+	}
+	last := k.r()
+	k.e("sub.s32", last, N, 1)
+	cols := make([]reg, gemvCols)
+	for j := range cols {
+		cols[j] = k.r()
+		k.e("add.s32", cols[j], n, j)
+		k.e("min.u32", cols[j], cols[j], last)
+	}
+	return cols
 }
 
 // gemvWarpSum warp toplamlarını (t, her warp'ın ilk dilimindeki şeritlerde) paylaşımlı belleğe
@@ -142,9 +185,13 @@ func (k *emitter) gemvWarpSum(a gemvConfig, vw int, t []reg, sm, tid, lane, warp
 // gemvTWarps devrik tek satırlık çarpımın bloğundaki warp sayısı (blok başına çıktı).
 const gemvTWarps = 8
 
-func gemvTKernel(vw int, over bool, bt tensor.DType) func() *emitter {
+// gemvTKernel'de şerit dört bitişik öğeyi toplar: vec'te tek vektörel yüklemeyle (K 4'ün katı,
+// A ve B hizalı), değilse dört tekil yüklemeyle; tekilde K'nın dışındaki öğe toplanmaz (adres
+// K−1'e kısılır, toplayıcı selp ile korunur). İki yolun toplama sırası aynıdır.
+func gemvTKernel(vec, over bool, bt tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("gemv_t_%d_%v_%s", vw, over, bt))
+		const vw = gemvCols
+		k := newEmitter(fmt.Sprintf("gemv_t_%d_%v_%s", gemvLoadName(vec), over, bt))
 		pa, pb := k.pointer("a"), k.pointer("b")
 		pc := k.written("c")
 		N, K := k.u32p("n"), k.u32p("k")
@@ -167,13 +214,30 @@ func gemvTKernel(vw int, over bool, bt tensor.DType) func() *emitter {
 				acc[u][j] = k.constant(0)
 			}
 		}
+		lastK := k.r()
+		k.e("sub.s32", lastK, K, 1)
 		row := func(kk reg, acc []reg) {
-			idx := k.r()
-			k.e("add.s32", idx, base, kk)
-			xv := k.gemvLoad(tensor.Float32, k.address(pa, kk, 4), vw)
-			bv := k.gemvLoad(bt, k.address(pb, idx, dtypeSize(bt)), vw)
+			if vec {
+				idx := k.r()
+				k.e("add.s32", idx, base, kk)
+				xv := k.gemvLoad(tensor.Float32, k.address(pa, kk, 4), vw)
+				bv := k.gemvLoad(bt, k.address(pb, idx, dtypeSize(bt)), vw)
+				for j := range acc {
+					k.e("fma.rn.f32", acc[j], xv[j], bv[j], acc[j])
+				}
+				return
+			}
 			for j := range acc {
-				k.e("fma.rn.f32", acc[j], xv[j], bv[j], acc[j])
+				kj, ci, idx, in := k.r(), k.r(), k.r(), k.p()
+				k.e("add.s32", kj, kk, j)
+				k.e("setp.lt.u32", in, kj, K)
+				k.e("min.u32", ci, kj, lastK)
+				k.e("add.s32", idx, base, ci)
+				xv := k.load(tensor.Float32, k.address(pa, ci, 4))
+				bv := k.load(bt, k.address(pb, idx, dtypeSize(bt)))
+				t := k.f()
+				k.e("fma.rn.f32", t, xv, bv, acc[j])
+				k.e("selp.f32", acc[j], t, acc[j], in)
 			}
 		}
 		kk := k.r()
