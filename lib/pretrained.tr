@@ -475,21 +475,18 @@ TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR
             }
         }
     }
-    model.TR_config["durma"] = durma
+    model._aileyi_yaz(durma)
     TR_return model
 }
 
-# _ailesiz modelin neden ailesiz kaldığını yazar; model.TR_eos_tokens()'un H7170'i onu okur
-# (lib/layers.tr). neden: marker (klasörde tokenizer_config.json yok), table (ikili tabloda yok), name,
-# id (dosya aileyle uyuşmuyor), tokenizer (parçalayıcı ya da klasörün bir aile dosyası okunamadı;
-# klasörde ayrıntı dosyanın adıdır). Elle kurulan GPT'de neden yoktur (none). hata yakalanan hatadır:
-# H7170 onu nedeni olarak taşır (TCB 21:51, 8.2), kullanıcı e.TR_cause ile okur.
+# _ailesiz modelin neden ailesiz kaldığını modelin _aile'sine yazar; model.TR_eos_tokens()'un H7170'i
+# onu okur (lib/layers.tr). neden: marker (klasörde tokenizer_config.json yok), table (ikili tabloda
+# yok), name, id (dosya aileyle uyuşmuyor), tokenizer (parçalayıcı yüklenemedi), file (klasörde
+# tokenizer_config.json, generation_config.json ya da config.json'un eos_token_id'si okunamadı, GGUF'ta
+# eot ya da eom kimlik değil; ayrıntı dosyanın adıdır). Elle kurulan GPT'de neden yoktur (none). hata
+# yakalanan hatadır: H7170 onu nedeni olarak taşır (TCB 21:51, 8.2), kullanıcı e.TR_cause ile okur.
 TR_func _ailesiz(model: TR_GPT, neden: TR_String, aile: TR_String, ayrıntı: TR_String, hata: TR_Error? = TR_none) -> TR_GPT {
-    TR_if hata != TR_none { model.TR_config["ailesiz_hata"] = hata }
-    model.TR_config["aileler"] = [a.aile TR_for a TR_in _sohbet_tablosu()].TR_join(", ")
-    model.TR_config["ailesiz"] = neden
-    model.TR_config["aile"] = aile
-    model.TR_config["ayrıntı"] = ayrıntı
+    model._ailesiz_yaz(neden, [a.aile TR_for a TR_in _sohbet_tablosu()].TR_join(", "), aile, ayrıntı, hata)
     TR_return model
 }
 
@@ -498,15 +495,16 @@ TR_func _ailesiz(model: TR_GPT, neden: TR_String, aile: TR_String, ayrıntı: TR
 # hatası (H2107) buraya gelmez:
 # TR_pretrained_gguf aynı dosyanın üstverisini ve tensörlerini önce okur, okunamayan dosyada o hatayla
 # durur. Kod listesine bakılmaz: tanınmayan bir sonraki biçim de modeli kapatmaz. Dosyanın
-# bildirdiği kimliklerin hatası (yanlış türde eot, H6681) da aynı yoldan ailesiz bırakır.
+# bildirdiği kimliklerin hatası (yanlış türde eot, H6681) da ailesiz bırakır, nedeni file'dır:
+# parçalayıcı yüklenmiştir; ayrıntı boştur, bozuk anahtarı asıl hata söyler (TCB 22:52).
 TR_func _gguf_ailesi(model: TR_GPT, yol: TR_String, mimari: TR_String) -> TR_GPT {
     TR_var p: TR_Tokenizer? = TR_none
     TR_var bildirilen: TR_List[TR_Int]? = TR_none
-    TR_try {
-        p = TR_load_tokenizer(yol)
-        bildirilen = p.TR_declared_eos_tokens
-    } TR_catch e {
+    TR_try { p = TR_load_tokenizer(yol) } TR_catch e {
         TR_return _ailesiz(model, "tokenizer", "", "", e)
+    }
+    TR_try { bildirilen = p.TR_declared_eos_tokens } TR_catch e {
+        TR_return _ailesiz(model, "file", "", "", e)
     }
     TR_var s: _Sohbet? = TR_none
     TR_for a TR_in _sohbet_tablosu() {
@@ -529,7 +527,7 @@ TR_func _klasör_ailesi(model: TR_GPT, k: TR_Path, ayar: TR_JSON) -> TR_GPT {
     TR_if TR_not yapılandırma.TR_exists { TR_return _ailesiz(model, "marker", "", "") }
     TR_var işaret = ""
     TR_try { işaret = _klasör_işareti(yapılandırma) } TR_catch e {
-        TR_return _ailesiz(model, "tokenizer", "", "tokenizer_config.json", e)
+        TR_return _ailesiz(model, "file", "", "tokenizer_config.json", e)
     }
     TR_var mimari = TR_String(TR_config_value(ayar, "model_type", ""))
     TR_var s: _Sohbet? = TR_none
@@ -546,7 +544,7 @@ TR_func _klasör_ailesi(model: TR_GPT, k: TR_Path, ayar: TR_JSON) -> TR_GPT {
     TR_var kaynak = TR_if nesil.TR_exists { "generation_config.json" } TR_else { "config.json" }
     TR_var bildirilen: TR_List[TR_Int]? = TR_none
     TR_try { bildirilen = _bildirilen(TR_if nesil.TR_exists { TR_json_parse(TR_read_file(nesil)) } TR_else { ayar }) } TR_catch e {
-        TR_return _ailesiz(model, "tokenizer", s.aile, kaynak, e)
+        TR_return _ailesiz(model, "file", s.aile, kaynak, e)
     }
     TR_var p: TR_Tokenizer? = TR_none
     TR_try { p = TR_load_tokenizer(sözlük) } TR_catch e {

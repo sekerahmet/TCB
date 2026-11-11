@@ -489,6 +489,18 @@ TR_struct TR_KVCache {
 #   GPT(40000, bağlam: 1024, boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 4, ara_boyut: 672, paylaşımlı: doğru,
 #       pencereler: katman_pencereleri("YYGYGYYG", [32, 64]), qk_normu: doğru, birleşik_kv: doğru,
 #       birleşik_kapı: doğru, ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 512)
+# _Aile modelin sohbet ailesinin durumudur (15.55): durma listesi ya da ailesiz kalmanın nedeni.
+# hazır_gguf ve hazır_model yazar (_aileyi_yaz, _ailesiz_yaz), durma_parçaları okur. Ayar sözlüğünde
+# durmaz: ayar JSON'a yazılır ve dolaşılır, saklanan hata JSON'a yazılamazdı (DENETİM 457 N1, TCB 22:40).
+TR_struct _Aile {
+    durma: TR_List[TR_Int]? # ailenin durma kimlikleri; ailesiz modelde yok
+    neden: TR_String # ailesizliğin nedeni (H7170'in reason'ı)
+    aileler: TR_String # sohbet tablosundaki aileler
+    aile: TR_String
+    ayrıntı: TR_String
+    hata: TR_Error? # yakalanan hata: H7170'in nedeni (TCB 21:51, 8.2)
+}
+
 # Neden GPT'ye seçenek, ayrı bir model yapısı değil: gömme → bloklar → norm → logit iskeleti,
 # başlatma kuralı ve `üret` aynıdır; fark yalnızca blok ayarıdır, bir kopya ikinci bakım yükü olurdu.
 TR_struct TR_GPT {
@@ -500,6 +512,7 @@ TR_struct TR_GPT {
     TR_ple_context: TR_PLEContext?
     TR_cos_table: TR_Tensor
     TR_sin_table: TR_Tensor
+    _aile: _Aile? = TR_none # elle kurulan GPT'de yok: durma_parçaları H7170 (neden none)
     TR_func TR_init(TR_vocab_size: TR_Int, TR_context: TR_Int = 256, TR_embed_dim: TR_Int = 256, TR_num_layers: TR_Int = 4, TR_num_heads: TR_Int = 4, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_tied: TR_Bool = TR_false, TR_seed: TR_Int = 1, TR_windows: TR_List[TR_Int]? = TR_none, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_eps: TR_Float = 0.00001, TR_ple_dim: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_rope_theta: TR_Float = 10000.0, TR_weight_dtype: TR_String = "float32", TR_init_std: TR_Float = 0.02) {
         TR_self.TR_config = {"dağarcık": TR_vocab_size, "bağlam": TR_context, "embed_dim": TR_embed_dim, "katman": TR_num_layers, "num_heads": TR_num_heads, "head_dim": TR_head_dim,
             "num_kv_heads": TR_num_kv_heads, "ara_boyut": TR_intermediate_dim, "paylaşımlı": TR_tied, "tohum": TR_seed,
@@ -669,19 +682,22 @@ TR_struct TR_GPT {
     # durma_parçaları modelin sohbet ailesinin durma kimlikleridir (15.55): hazır_gguf ve hazır_model
     # onları sohbet tanımından kurar. Ailesiz modelde (aile bulunmayan ya da aileyle uyuşmayan dosya,
     # ya da elle kurulan GPT) çağrı H7170'tir: boş liste sessizce sınıra kadar üretirdi; kimlikler
-    # TR_eos: [...] ile yazılır. İleti modelin neden ailesiz kaldığını söyler (hazır_* yazar).
+    # TR_eos: [...] ile yazılır. İleti modelin neden ailesiz kaldığını söyler (hazır_* modelin _aile'sine
+    # yazar); hata saklandıysa onu nedeni olarak taşır ve e.TR_cause'u adıyla gösterir.
     TR_func TR_eos_tokens() -> TR_List[TR_Int] {
-        TR_if TR_not TR_self.TR_config.TR_contains("durma") {
-            TR_var c = TR_self.TR_config
-            TR_var aileler = TR_if c.TR_contains("aileler") { TR_String(c["aileler"]) } TR_else { "" }
-            TR_var neden = TR_if c.TR_contains("ailesiz") { TR_String(c["ailesiz"]) } TR_else { "none" }
-            TR_var aile = TR_if c.TR_contains("aile") { TR_String(c["aile"]) } TR_else { "" }
-            TR_var ayrıntı = TR_if c.TR_contains("ayrıntı") { TR_String(c["ayrıntı"]) } TR_else { "" }
-            TR_var ileti = TR_Message("H7170", aileler, neden, aile, ayrıntı)
-            # Parçalayıcının ya da aile dosyasının hatası H7170'in nedenidir (TCB 21:51, 8.2).
-            TR_if c.TR_contains("ailesiz_hata") { TR_throw TR_Error(ileti, TR_cause: c["ailesiz_hata"]) }
-            TR_throw ileti
-        }
-        TR_return [TR_Int(k) TR_for k TR_in TR_self.TR_config["durma"]]
+        TR_var a = TR_self._aile
+        TR_if a != TR_none TR_and a.durma != TR_none { TR_return [k TR_for k TR_in a.durma] }
+        TR_if a == TR_none { TR_throw TR_Message("H7170", "", "none", "", "", "") }
+        TR_var ileti = TR_Message("H7170", a.aileler, a.neden, a.aile, a.ayrıntı, TR_if a.hata == TR_none { "" } TR_else { "cause" })
+        TR_if a.hata != TR_none { TR_throw TR_Error(ileti, TR_cause: a.hata) }
+        TR_throw ileti
+    }
+    # _aileyi_yaz ve _ailesiz_yaz modelin aile durumunu yazar; yalnız hazır_gguf ve hazır_model
+    # (tr/pretrained) çağırır. 11.7 yapının _ alanını ve metodunu gizlemez: bu bir gelenektir.
+    TR_func _aileyi_yaz(durma: TR_List[TR_Int]) {
+        TR_self._aile = _Aile(durma: durma, neden: "", aileler: "", aile: "", ayrıntı: "", hata: TR_none)
+    }
+    TR_func _ailesiz_yaz(neden: TR_String, aileler: TR_String, aile: TR_String, ayrıntı: TR_String, hata: TR_Error?) {
+        TR_self._aile = _Aile(durma: TR_none, neden: neden, aileler: aileler, aile: aile, ayrıntı: ayrıntı, hata: hata)
     }
 }
