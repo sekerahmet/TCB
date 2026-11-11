@@ -1961,6 +1961,7 @@
 "H8170": "The family `{family}` of `{id}` is not supported. Supported: {known}.",
 "H8171": "`--toplam_bellek` was not given or is not valid ({given}): give the computer's total memory in bytes (at least 1073741824, 1 GiB), for example `--toplam_bellek 17179869184` (16 GiB).",
 "H8172": "The default place of the settings file cannot be found on this computer: the `LOCALAPPDATA` environment variable is not set. Give `--ayar <path>`, for example `--ayar ayar.json`.",
+"H8173": "`--bağlam` is not valid ({given}): give the context as a number of tokens greater than 0, for example `--bağlam 8192`; if it is not given, the settings' `context` is used, or 8192.",
 "H8200": "no step information: use {progress}(...) and .{update}(...) in the training loop",
 "H8201": "(in the imported module)",
 "H8202": "(top level)",

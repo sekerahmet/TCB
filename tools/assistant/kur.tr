@@ -7,15 +7,19 @@
 #   trlang tools/assistant/kur.tr --ayar ayar.json --toplam_bellek 17179869184 --ayarı_yaz
 TR_import "katalog"
 
-TR_var seç = TR_command_line({"katalog": "katalog.json", "ayar": "", "toplam_bellek": 0, "bağlam": 0, "ayarı_yaz": TR_false},
+# `bağlam`'ın öntanımlısı yokluktur: verilmemesi 0 ya da eksi verilmesinden ayrılır (H8173; tasarımın defteri 58).
+TR_var seç = TR_command_line({"katalog": "katalog.json", "ayar": "", "toplam_bellek": 0, "bağlam": TR_none, "ayarı_yaz": TR_false},
     TR_description: "Dost'un model kataloğunu ve ayarını okur, bu makineye hangi dil modelinin sığdığını ve önerileni yazar; model yüklemez",
-    TR_descriptions: {"katalog": "model kataloğu (JSON); verilmezse programın yanındaki katalog.json",
+    TR_descriptions: {"katalog": "model kataloğu (JSON); verilmezse katalog.json, önce çalışma klasöründe, sonra programın klasöründe aranır",
         "ayar": "ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json, LOCALAPPDATA yoksa zorunlu",
         "toplam_bellek": "makinenin toplam belleği, bayt, en az 1073741824 (1 GiB) (0: verilmedi; uygunluk hesabı onu ister)",
-        "bağlam": "uygunluk hesabının bağlamı, parça; verilmezse ayarın context'i, o da yoksa 8192",
+        "bağlam": "uygunluk hesabının bağlamı, parça, 0'dan büyük; verilmezse ayarın context'i, o da yoksa 8192",
         "ayarı_yaz": "önerilen ayarı --ayar dosyasına yazar (geçici adla, sonra taşıyarak)"})
 
+TR_var bağlam: TR_Int? = TR_none
+TR_if seç["bağlam"] != TR_none { bağlam = bağlam_oku(TR_String(seç["bağlam"])) }
+
 TR_for satır TR_in kur(TR_String(seç["katalog"]), TR_String(seç["ayar"]), TR_env("LOCALAPPDATA"), TR_Int(seç["toplam_bellek"]),
-        TR_Int(seç["bağlam"]), TR_Bool(seç["ayarı_yaz"])) {
+        bağlam, TR_Bool(seç["ayarı_yaz"])) {
     TR_print(satır)
 }

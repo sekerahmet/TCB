@@ -384,9 +384,21 @@ TR_func ayar_oku(yol: TR_String, k: Katalog) -> Ayar? {
     TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı)
 }
 
-# bağlam_seç: `--bağlam` verildiyse (0'dan büyük) o, yoksa ayarın `context`'i, yoksa 8192.
-TR_func bağlam_seç(verilen: TR_Int, ayar: Ayar?) -> TR_Int {
-    TR_if verilen > 0 { TR_return verilen }
+# bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.
+TR_func bağlam_oku(metin: TR_String) -> TR_Int {
+    TR_var n = 0
+    TR_try { n = TR_Int(metin) } TR_catch _e { TR_throw TR_Message("H8173", metin) }
+    TR_return n
+}
+
+# bağlam_seç: `--bağlam` verildiyse o (0 ya da eksi H8173: sessizce 8192 alınmaz), yoksa ayarın `context`'i, yoksa
+# 8192. "Verilmedi" yalnız seçeneğin hiç yazılmamasıdır (`TR_none`; tasarımın defteri 58).
+TR_func bağlam_seç(verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
+    TR_var v = verilen
+    TR_if v != TR_none {
+        TR_if v <= 0 { TR_throw TR_Message("H8173", "\(v)") }
+        TR_return v
+    }
     TR_var a = ayar
     TR_if a != TR_none { TR_return a.bağlam }
     TR_return ÖNTANIMLI_BAĞLAM
@@ -501,14 +513,14 @@ TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String,
 
 # kur: kur.tr'nin bütün işi; çıktı satırlarını verir (S3'ün biçimi, satırdaki değerler ASCII). `yaz` yoksa ayar
 # dosyasına dokunulmaz.
-TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, toplam: TR_Int, bağlam_verilen: TR_Int,
+TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, toplam: TR_Int, bağlam_verilen: TR_Int?,
         yaz: TR_Bool) -> TR_List[TR_String] {
     TR_var k = katalog_oku(katalog_yolu)
     TR_var yol = ayar_yolu(ayar_verilen, yer)
     TR_var a = ayar_oku(yol, k)
     TR_var bağlam = bağlam_seç(bağlam_verilen, a)
     TR_var l = uygunluk(k, a, toplam, bağlam)
-    TR_var satırlar = ["MAKINE toplam_bayt=\(toplam) kaynak=elle"]
+    TR_var satırlar = ["MAKINE toplam_bayt=\(toplam) kaynak=elle baglam=\(bağlam)"]
     TR_for u TR_in l {
         TR_var ölçü = TR_if u.ölçülü { "olculdu" } TR_else { "hesap" }
         satırlar.TR_append("UYGUNLUK \(u.kimlik) \(u.uyum) gereken_bayt=\(u.gereken) esik_bayt=\(u.eşik) olcu=\(ölçü)")

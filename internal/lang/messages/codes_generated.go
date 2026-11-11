@@ -1966,6 +1966,7 @@ const (
 	H8170 Code = 8170 // `{id}`'nin ailesi `{family}` desteklenmiyor. Desteklenenler: {known}.
 	H8171 Code = 8171 // `--toplam_bellek` verilmedi ya da geçersiz ({given}): makinenin toplam belleğini bayt olarak verin (en az 1073741824, 1 GiB), örneğin `--toplam_bellek 17179869184` (16 GiB).
 	H8172 Code = 8172 // Ayar dosyasının öntanımlı yeri bu makinede kurulamadı: `LOCALAPPDATA` ortam değişkeni yok. `--ayar <yol>` verin, örneğin `--ayar ayar.json`.
+	H8173 Code = 8173 // `--bağlam` geçersiz ({given}): bağlamı 0'dan büyük bir parça sayısı olarak verin, örneğin `--bağlam 8192`; verilmezse ayarın `context`'i, o da yoksa 8192 kullanılır.
 	H8200 Code = 8200 // adım bilgisi yok: eğitim döngüsünde {progress}(...) ve .{update}(...) kullanın
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)

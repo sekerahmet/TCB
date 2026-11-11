@@ -1961,6 +1961,7 @@
 "H8170": { "param": ["id", "family", "known"] },
 "H8171": { "param": ["given"] },
 "H8172": { "param": [] },
+"H8173": { "param": ["given"] },
 "H8200": { "param": ["progress", "update"] },
 "H8201": { "param": [] },
 "H8202": { "param": [] },

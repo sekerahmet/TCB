@@ -206,7 +206,7 @@ TR_test "ayarın yeri: --ayar, LOCALAPPDATA, ikisi de yoksa H8172" {
     TR_assert_equal(TR_String(TR_Path("C:/Users/x/AppData/Local", "Dost", "ayar.json")), ayar_yolu("", "C:/Users/x/AppData/Local"))
     TR_assert_equal("H8172", TR_error_code { ayar_yolu("", TR_none) })
     TR_assert_equal("H8172", TR_error_code { ayar_yolu("", "") })
-    TR_assert_equal("H8172", TR_error_code { kur(_dosya("katalog.json", _örnek_katalog()), "", TR_none, 17179869184, 0, TR_false) })
+    TR_assert_equal("H8172", TR_error_code { kur(_dosya("katalog.json", _örnek_katalog()), "", TR_none, 17179869184, TR_none, TR_false) })
 }
 
 TR_test "toplam bellek: 0, eksi ve 1 GiB'den küçük H8171; 1 GiB geçer" {
@@ -253,8 +253,8 @@ TR_test "fit'in eşikleri: gereken tam 0,6 × toplamda fits, bir bayt azında ti
     TR_assert_equal("qwen3-4b-q4km", öneri(uygunluk(k, TR_none, en_az - 1, 8192)))
     TR_assert_equal("", öneri(uygunluk(k, TR_none, sıkı - 1, 8192)))
     TR_var kat = _dosya("katalog.json", _örnek_katalog())
-    TR_assert_equal("ONERILEN qwen3-4b-q4km fit=tight", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, en_az - 1, 0, TR_false)[2])
-    TR_assert_equal("ONERILEN yok", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, sıkı - 1, 0, TR_false)[2])
+    TR_assert_equal("ONERILEN qwen3-4b-q4km fit=tight", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, en_az - 1, TR_none, TR_false)[2])
+    TR_assert_equal("ONERILEN yok", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, sıkı - 1, TR_none, TR_false)[2])
 }
 
 TR_test "iki noktalı ölçüde en büyük context'li ölçü alınır" {
@@ -271,22 +271,31 @@ TR_test "bağlamın önceliği: seçenek, ayar, 8192" {
     TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
     TR_var a = ayar_oku(_dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\":4096")), k)
     TR_assert_equal(2048, bağlam_seç(2048, a))
-    TR_assert_equal(4096, bağlam_seç(0, a))
-    TR_assert_equal(8192, bağlam_seç(0, TR_none))
+    TR_assert_equal(4096, bağlam_seç(TR_none, a))
+    TR_assert_equal(8192, bağlam_seç(TR_none, TR_none))
+    # Verilen 0 ve eksi değer açık hatadır, sessizce 8192 alınmaz (tasarımın defteri 58).
+    TR_for v TR_in [0, -5] {
+        TR_assert_equal("H8173", TR_error_code { bağlam_seç(v, a) })
+        TR_try { bağlam_seç(v, TR_none) } TR_catch e { TR_assert_equal("Message(\"H8173\", \"\(v)\")", TR_String(e)) }
+    }
+    TR_assert_equal(1, bağlam_seç(1, TR_none))
+    TR_assert_equal(4096, bağlam_oku("4096"))
+    TR_assert_equal("H8173", TR_error_code { bağlam_oku("dört") })
 }
 
 TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca geçici adla taşınır, eski ayar korunur" {
     TR_var kat = _dosya("katalog.json", _örnek_katalog())
     TR_var klasör = TR_temp_dir()
     TR_var ayar = TR_String(TR_Path(klasör, "Dost", "ayar.json"))
-    TR_var satırlar = kur(kat, "", TR_String(klasör), 17179869184, 0, TR_false)
-    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle", satırlar[0])
+    TR_var satırlar = kur(kat, "", TR_String(klasör), 17179869184, TR_none, TR_false)
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=8192", satırlar[0])
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=4096", kur(kat, "", TR_String(klasör), 17179869184, 4096, TR_false)[0])
     # 5e9 + 294912 × 8192 (geçici) + 1 GiB + en büyük dilin küçükleri (en: 6e8 + 1e7 + 4e8); eşik 0,6 × 16 GiB.
     TR_assert_equal("UYGUNLUK qwen3-4b-q4km fits gereken_bayt=9499660928 esik_bayt=10307921510 olcu=olculdu", satırlar[1])
     TR_assert_equal("ONERILEN qwen3-4b-q4km", satırlar[2])
     TR_assert_equal(3, satırlar.TR_length)
     TR_assert(TR_not TR_Path(ayar).TR_exists)
-    TR_var büyük = kur(kat, ayar, TR_none, 34359738368, 0, TR_true)
+    TR_var büyük = kur(kat, ayar, TR_none, 34359738368, TR_none, TR_true)
     TR_assert_equal(["ONERILEN qwen3-4b-q4km", "AYAR_YAZILDI \(ayar)"], [büyük[2], büyük[3]])
     TR_var k = katalog_oku(kat)
     TR_var a = ayar_oku(ayar, k)
