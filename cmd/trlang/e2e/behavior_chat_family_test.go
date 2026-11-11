@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf/gguftest"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -16,7 +17,7 @@ import (
 // tanımındaki adlardan parçalayıcının kimliğiyle kurulur; m.TR_eos_tokens() onu verir. GGUF'ta aile
 // (mimari, p.TR_pretokenizer_tag), klasörde (model_type, tokenizer_config.json'un işareti) ile
 // seçilir. Ailesiz modelde (parçalayıcısı yüklenemeyen GGUF, tabloda olmayan etiket,
-// tokenizer_config'siz ya da tokenizer.json'suz klasör, aileyle uyuşmayan dosya: ilk durma adı
+// tokenizer_config'siz ya da aile dosyalarından biri yok ya da okunamayan klasör, aileyle uyuşmayan dosya: ilk durma adı
 // dağarcıkta yok ya da bildirilen kimlik listede yok) çağrı H7170'tir, ileti nedeni söyler; dosyanın
 // kimliği denetlenmez, TR_eos: [...] ile üretim sürer.
 
@@ -31,6 +32,19 @@ func familyGGUF(t *testing.T, dir string, c tinyConfig, pre string, special []st
 // SentencePiece'li GGUF'tur (Llama 2, Mistral), TR'nin parçalayıcısı onu yüklemez (H6678).
 func familyGGUFOf(t *testing.T, dir string, c tinyConfig, kind, pre string, special []string, declared map[string]uint32) string {
 	t.Helper()
+	return writeGGUF(t, dir, familyBuilder(c, kind, pre, special, declared))
+}
+
+// writeGGUF dosyayı dir/m.gguf'a yazar, yolunu verir.
+func writeGGUF(t *testing.T, dir string, b *gguftest.Builder) string {
+	t.Helper()
+	file := filepath.Join(dir, "m.gguf")
+	writeBytes(t, file, b.Bytes())
+	return filepath.ToSlash(file)
+}
+
+// familyBuilder familyGGUFOf'un dosyasını kurar; çağıran anahtar ekleyebilir.
+func familyBuilder(c tinyConfig, kind, pre string, special []string, declared map[string]uint32) *gguftest.Builder {
 	b := c.ggufFile(c.randomWeights(1))
 	tokens := make([]string, 0, 40+len(special))
 	for i := range 40 {
@@ -51,9 +65,7 @@ func familyGGUFOf(t *testing.T, dir string, c tinyConfig, kind, pre string, spec
 			b.KV("tokenizer.ggml."+key+"_token_id", id)
 		}
 	}
-	file := filepath.Join(dir, "m.gguf")
-	writeBytes(t, file, b.Bytes())
-	return filepath.ToSlash(file)
+	return b
 }
 
 // familyImport betiklerin aktarmasıdır; sabit olarak durur ki tests-for lib/pretrained.tr bu dosyayı bulsun.
@@ -73,37 +85,49 @@ var (
 	llama3    = []string{"<|begin_of_text|>", "<|end_of_text|>", "<|eot_id|>", "<|eom_id|>"}
 )
 
-// reasonText H7170'in Türkçe metninde her nedenin cümlesidir (reason).
-var reasonText = map[string]string{
-	"table":     "dosyanın ailesi sohbet tablosunda yok",
-	"name":      "ailenin ilk durma adı dağarcıkta yok",
-	"id":        "dosyanın bildirdiği durma kimliği ailenin listesinde yok",
-	"tokenizer": "parçalayıcısı yüklenemedi",
-	"none":      "model hazır bir dosyadan yüklenmedi",
+// reasonText H7170'in Türkçe ve İngilizce metninde her nedenin cümlesidir (reason); other yazım
+// yanlışlı bir nedendir (DENETİM 456 N2).
+var reasonText = map[string][2]string{
+	"table":     {"dosyanın ailesi sohbet tablosunda yok", "the file's family is not in the chat table"},
+	"marker":    {"aileyi seçen `tokenizer_config.json` yok", "the `tokenizer_config.json` that selects the family is missing"},
+	"name":      {"ailenin ilk durma adı dağarcıkta yok", "the family's first stop token is not in the vocabulary"},
+	"id":        {"dosyanın bildirdiği durma kimliği ailenin listesinde yok", "a stop id the file declares is not in the family's list"},
+	"tokenizer": {"parçalayıcısı yüklenemedi", "its tokenizer did not load"},
+	"none":      {"model hazır bir dosyadan yüklenmedi", "the model was not loaded from a published file"},
+	"other":     {"nedeni bilinmiyor", "the reason is unknown"},
 }
 
-// familylessBody H7170'in kodunu ve Türkçe metnini yazar.
-const familylessBody = "TR_try { m.TR_eos_tokens() } TR_catch e {\n    TR_print(e.TR_code)\n    TR_print(e.TR_text(\"tr\"))\n}"
+// familylessBody H7170'in kodunu (TR_error_code, dış hata), Türkçe ve İngilizce metnini ve nedeninin
+// en içteki kodunu ya da nedeni yoksa "-" yazar (TCB 21:51: yakalanan hata H7170'in nedenidir).
+const familylessBody = "TR_try { m.TR_eos_tokens() } TR_catch e {\n    TR_print(TR_error_code { TR_throw e })\n    TR_print(e.TR_text(\"tr\"))\n    TR_print(e.TR_text(\"en\"))\n" +
+	"    TR_if e.TR_cause == TR_none { TR_print(\"-\") } TR_else { TR_print(TR_error_code { TR_throw e.TR_cause }) }\n}"
 
-// checkFamilyless çıktının H7170 olduğunu, nedenin cümlesini ve verilen parçaları taşıdığını, öbür
-// nedenlerin cümlesini taşımadığını sınar.
-func checkFamilyless(t *testing.T, got, reason string, parts ...string) {
+// checkFamilyless çıktının H7170 olduğunu, iki dilde de nedenin cümlesini ve verilen parçaları
+// (dilden bağımsız değerler) taşıdığını, öbür nedenlerin cümlesini taşımadığını sınar. Nedenin
+// (e.TR_cause) en içteki kodunu verir, yoksa "-"; tokenizer dışındaki nedenlerde neden yoktur.
+func checkFamilyless(t *testing.T, got, reason string, parts ...string) string {
 	t.Helper()
 	lines := strings.Split(got, "\n")
-	if len(lines) != 2 || lines[0] != "H7170" {
+	if len(lines) != 4 || lines[0] != "H7170" {
 		t.Errorf("H7170 bekleniyordu (%s):\n%s", reason, got)
-		return
+		return ""
 	}
-	for r, text := range reasonText {
-		if strings.Contains(lines[1], text) != (r == reason) {
-			t.Errorf("neden %s değil ya da %s de geçiyor:\n%s", reason, r, lines[1])
+	if reason != "tokenizer" && lines[3] != "-" {
+		t.Errorf("%s nedeninde ekli hata %s", reason, lines[3])
+	}
+	for lang, line := range lines[1:3] {
+		for r, text := range reasonText {
+			if strings.Contains(line, text[lang]) != (r == reason) {
+				t.Errorf("neden %s değil ya da %s de geçiyor:\n%s", reason, r, line)
+			}
+		}
+		for _, p := range parts {
+			if !strings.Contains(line, p) {
+				t.Errorf("%q yok:\n%s", p, line)
+			}
 		}
 	}
-	for _, p := range parts {
-		if !strings.Contains(lines[1], p) {
-			t.Errorf("%q yok:\n%s", p, lines[1])
-		}
-	}
+	return lines[3]
 }
 
 func TestGGUFChatFamilyStopList(t *testing.T) {
@@ -198,7 +222,10 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	qwenTiny.writeHF(t, noVocab, qwenTiny.randomWeights(1))
 	writeBytes(t, filepath.Join(noVocab, "tokenizer_config.json"), []byte(`{"tokenizer_class": "Qwen2TokenizerFast"}`))
 	unknownTag := familyGGUF(t, t.TempDir(), llamaTiny, "smaug-bpe", llama3, nil)
+	// Yanlış türde eot: parçalayıcı yüklenir, bildirilen kimlikler H6681'dir (DENETİM 456 taraması).
+	textEOT := writeGGUF(t, t.TempDir(), familyBuilder(llamaTiny, "gpt2", "llama-bpe", llama3, nil).KV("tokenizer.ggml.eot_token_id", "42"))
 	loads := map[string]string{
+		"eot'u metin GGUF":           fmt.Sprintf("TR_pretrained_gguf(%q)", textEOT),
 		"parçalayıcısız GGUF":        fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
 		"smollm etiketi":             fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
 		"tanınmayan etiket":          fmt.Sprintf("TR_pretrained_gguf(%q)", unknownTag),
@@ -207,22 +234,40 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 		"klasör":                     fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
 		"tokenizer.json'suz klasör":  fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
 	}
-	// H7170'in her yoldaki nedeni (DENETİM 454 Ş1); elle kurulan GPT hazır bir dosyadan gelmez.
-	reasons := map[string]string{
-		"parçalayıcısız GGUF": "tokenizer", "smollm etiketi": "table", "tanınmayan etiket": "tokenizer",
-		"SentencePiece'li GGUF": "tokenizer", "mimarisiyle çelişen etiket": "tokenizer", "klasör": "table",
-		"tokenizer.json'suz klasör": "tokenizer",
+	// H7170'in her yoldaki nedeni (DENETİM 454 Ş1), ekli hatanın kodu (TCB 21:51: parçalayıcının
+	// hatası H5620, bildirilen kimliklerinki H6681; yoksa "-") ve ayrıntısı (DENETİM 456 N1, N2).
+	reasons := map[string][]string{
+		"eot'u metin GGUF":    {"tokenizer", "H6681"},
+		"parçalayıcısız GGUF": {"tokenizer", "H5620"}, "smollm etiketi": {"table", "-"}, "tanınmayan etiket": {"tokenizer", "H5620"},
+		"SentencePiece'li GGUF": {"tokenizer", "H5620"}, "mimarisiyle çelişen etiket": {"tokenizer", "H5620"}, "klasör": {"marker", "-"},
+		"tokenizer.json'suz klasör": {"tokenizer", "-", `"qwen3"`, ": tokenizer.json"},
 	}
 	for name, load := range loads {
 		t.Run(name, func(t *testing.T) {
 			if got := runFamily(t, dir, load, body); got != "H7170\ntrue" {
 				t.Errorf("çıktı %q", got)
 			}
-			checkFamilyless(t, runFamily(t, dir, load, familylessBody), reasons[name])
+			r := reasons[name]
+			if cause := checkFamilyless(t, runFamily(t, dir, load, familylessBody), r[0], r[2:]...); cause != r[1] {
+				t.Errorf("ekli hata %q; %q olmalı", cause, r[1])
+			}
 		})
 	}
-	checkFamilyless(t, runFamily(t, dir, "TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)", familylessBody), "none")
-	got := runFamily(t, dir, loads["klasör"], "m.TR_eos_tokens()")
+	// Ekli hata parçalayıcının kendi iletisidir: işlevin adı, dosyanın yolu ve etiket; kullanıcı
+	// TR_load_tokenizer'ı ayrıca çağırmadan görür (TCB 21:51).
+	got := runFamily(t, dir, loads["tanınmayan etiket"], "TR_try { m.TR_eos_tokens() } TR_catch e { TR_print(e.TR_cause.TR_text(\"tr\")) }")
+	if !strings.Contains(got, "parçalayıcı_yükle") || !strings.Contains(got, unknownTag) || !strings.Contains(got, "smaug-bpe") {
+		t.Errorf("ekli hatanın metni:\n%s", got)
+	}
+	// Elle kurulan GPT'nin kendi dalı var; tanınmayan neden (yazım yanlışı) genel dalı alır (DENETİM 456 N2).
+	gpt := "TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)"
+	checkFamilyless(t, runFamily(t, dir, gpt, familylessBody), "none")
+	checkFamilyless(t, runFamily(t, dir, gpt, "m.TR_config[\"ailesiz\"] = \"tabel\"\n"+familylessBody), "other")
+	// eot'u metin olan dosyanın parçalayıcısı yüklenir; hata yalnız bildirilen kimliklerdedir.
+	if got := runFamily(t, dir, fmt.Sprintf("TR_load_tokenizer(%q)", textEOT), "TR_print(m.TR_vocab_size)\nTR_print(TR_error_code { m.TR_declared_eos_tokens })"); got != "44\nH6681" {
+		t.Errorf("eot'u metin dosyanın parçalayıcısı: %q", got)
+	}
+	got = runFamily(t, dir, loads["klasör"], "m.TR_eos_tokens()")
 	if !strings.Contains(got, "`TR_eos: [...]`") || !strings.Contains(got, "llama3, qwen3") {
 		t.Errorf("H7170'in iletisi aileleri ve açık yazımı söylemiyor:\n%s", got)
 	}
@@ -274,6 +319,48 @@ func TestFolderChatFamily(t *testing.T) {
 			}
 			if got := runFamily(t, dir, load, "TR_print(m.TR_eos_tokens())"); got != c.want {
 				t.Errorf("çıktı %q; %q olmalı", got, c.want)
+			}
+		})
+	}
+}
+
+// TestFolderFamilyFilesThatDoNotRead: klasörün aile dosyaları (tokenizer_config.json,
+// generation_config.json ya da config.json'un eos_token_id'si, tokenizer.json) bu dilimden önce
+// okunmuyordu; biri okunamazsa klasör yine yüklenir, ailesizdir: H7170'in nedeni tokenizer,
+// ayrıntısı dosyanın adı, dosyanın hatası H7170'in nedeni (DENETİM 456 Ş1, N1; TCB 21:51).
+func TestFolderFamilyFilesThatDoNotRead(t *testing.T) {
+	tok, err := os.ReadFile(reporoot.Path("tests", "data", "qwen3_chat", "tokenizer.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, file, content, family string }{
+		{"bozuk tokenizer.json", "tokenizer.json", "{", `"qwen3"`},
+		{"bozuk tokenizer_config.json", "tokenizer_config.json", "{", ""},
+		{"bozuk generation_config.json", "generation_config.json", "{", `"qwen3"`},
+		{"metin durma kimliği", "generation_config.json", `{"eos_token_id": ["a"]}`, `"qwen3"`},
+		{"config.json'da metin durma kimliği", "config.json", `"a"`, `"qwen3"`},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			qwenTiny.writeHF(t, dir, qwenTiny.randomWeights(1))
+			writeBytes(t, filepath.Join(dir, "tokenizer.json"), tok)
+			writeBytes(t, filepath.Join(dir, "tokenizer_config.json"), []byte(`{"tokenizer_class": "Qwen2TokenizerFast"}`))
+			if c.file == "config.json" {
+				addConfigKey(t, filepath.Join(dir, "config.json"), "eos_token_id", c.content)
+			} else {
+				writeBytes(t, filepath.Join(dir, c.file), []byte(c.content))
+			}
+			load := fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(dir))
+			parts := []string{": " + c.file}
+			if c.family != "" {
+				parts = append(parts, c.family)
+			}
+			// Dosyanın hatası H7170'in nedenidir (TCB 21:51).
+			if cause := checkFamilyless(t, runFamily(t, dir, load, familylessBody), "tokenizer", parts...); !strings.HasPrefix(cause, "H") {
+				t.Errorf("ekli hata yok: %q", cause)
+			}
+			if got := runFamily(t, dir, load, "TR_print(m.TR_generate([1, 2], 3, TR_temperature: 0, TR_eos: [5]).TR_length > 2)"); got != "true" {
+				t.Errorf("açık kimlikle üretim: %q", got)
 			}
 		})
 	}

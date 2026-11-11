@@ -79,9 +79,10 @@ type Tokenizer struct {
 	encodeRegex, parseRegex int
 
 	// Yalnız GGUF'tan yüklenende (16.1): dosyanın ön bölme etiketi ve bildirdiği durma kimlikleri.
-	// tokenizer.json'da ikisi de boştur.
+	// tokenizer.json'da ikisi de boştur. declaredEOSErr anahtarlardan biri yanlış türdeyse H6681'dir.
 	pretokenizerTag string
 	declaredEOS     []int32
+	declaredEOSErr  error
 }
 
 // exprCount bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.

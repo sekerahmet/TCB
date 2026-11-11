@@ -167,16 +167,14 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 	if err != nil {
 		return nil, messages.Internal("gguf tokenizer document: " + err.Error())
 	}
-	declared, err := ggufDeclaredEOS(f)
-	if err != nil {
-		return nil, err
-	}
 	p, err := Parse(data)
 	if err != nil {
 		return nil, err
 	}
 	p.pretokenizerTag, _ = f.Values[ggufKeyPre].Data.(string) // ggufTagOf denetledi
-	p.declaredEOS = declared
+	// Yanlış türdeki eot ya da eom parçalayıcıyı kapatmaz: bu dilimden önce okunmuyorlardı, dosya
+	// yükleniyordu. Hata yalnız p.TR_declared_eos_tokens'ta çıkar (16.1, DENETİM 456 taraması).
+	p.declaredEOS, p.declaredEOSErr = ggufDeclaredEOS(f)
 	return p, nil
 }
 
@@ -218,8 +216,12 @@ func (p *Tokenizer) PretokenizerTag() (string, bool) {
 
 // DeclaredEOSTokens GGUF'un bildirdiği durma kimlikleridir (ggufDeclaredEOSKeys); dosya hiçbirini
 // bildirmiyorsa ya da parçalayıcı tokenizer.json'dan yüklendiyse yoktur (16.1). Boş liste dönmez.
-func (p *Tokenizer) DeclaredEOSTokens() ([]int32, bool) {
-	return slices.Clone(p.declaredEOS), len(p.declaredEOS) > 0
+// Anahtarlardan biri yanlış türdeyse hata H6681'dir.
+func (p *Tokenizer) DeclaredEOSTokens() ([]int32, bool, error) {
+	if p.declaredEOSErr != nil {
+		return nil, false, p.declaredEOSErr
+	}
+	return slices.Clone(p.declaredEOS), len(p.declaredEOS) > 0, nil
 }
 
 // ggufTagOf modeli ve etiketi denetler.

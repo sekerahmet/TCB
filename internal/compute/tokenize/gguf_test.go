@@ -308,14 +308,22 @@ func TestGGUFDeclaredEosTokens(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, ok := p.DeclaredEOSTokens()
-			if ok != (c.want != nil) || !slices.Equal(got, c.want) {
-				t.Errorf("%v, %v; %v olmalı", got, ok, c.want)
+			got, ok, err := p.DeclaredEOSTokens()
+			if err != nil || ok != (c.want != nil) || !slices.Equal(got, c.want) {
+				t.Errorf("%v, %v, %v; %v olmalı", got, ok, err, c.want)
 			}
 		})
 	}
-	if _, err := parseGGUF(t, base.builder().KV(eot, "3")); !messages.Has(err, messages.H6681) {
-		t.Errorf("metin kimlik: %v; H6681 olmalı", err)
+	// Yanlış türdeki eot parçalayıcıyı kapatmaz (bu dilimden önce okunmuyordu); hata yalnız
+	// bildirilen kimliklerde çıkar (DENETİM 456 taraması).
+	for _, v := range []any{"3", int32(3)} {
+		p, err := parseGGUF(t, base.builder().KV(eot, v))
+		if err != nil {
+			t.Fatalf("%T kimlik: parçalayıcı yüklenmedi: %v", v, err)
+		}
+		if _, _, err := p.DeclaredEOSTokens(); !messages.Has(err, messages.H6681) {
+			t.Errorf("%T kimlik: %v; H6681 olmalı", v, err)
+		}
 	}
 }
 

@@ -109,7 +109,11 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 		}
 		return interp.Null, nil
 	case memberDeclaredEOS:
-		if ids, ok := n.p.DeclaredEOSTokens(); ok {
+		ids, ok, err := n.p.DeclaredEOSTokens()
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			return bind.IntList(ids), nil
 		}
 		return interp.Null, nil

@@ -677,7 +677,10 @@ TR_struct TR_GPT {
             TR_var neden = TR_if c.TR_contains("ailesiz") { TR_String(c["ailesiz"]) } TR_else { "none" }
             TR_var aile = TR_if c.TR_contains("aile") { TR_String(c["aile"]) } TR_else { "" }
             TR_var ayrıntı = TR_if c.TR_contains("ayrıntı") { TR_String(c["ayrıntı"]) } TR_else { "" }
-            TR_throw TR_Message("H7170", aileler, neden, aile, ayrıntı)
+            TR_var ileti = TR_Message("H7170", aileler, neden, aile, ayrıntı)
+            # Parçalayıcının ya da aile dosyasının hatası H7170'in nedenidir (TCB 21:51, 8.2).
+            TR_if c.TR_contains("ailesiz_hata") { TR_throw TR_Error(ileti, TR_cause: c["ailesiz_hata"]) }
+            TR_throw ileti
         }
         TR_return [TR_Int(k) TR_for k TR_in TR_self.TR_config["durma"]]
     }

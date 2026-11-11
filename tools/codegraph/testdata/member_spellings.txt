@@ -1114,6 +1114,7 @@ m.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 m.TR_contains	ok	0	name:TR_mem_contains
 m.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 m.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
+m.TR_declared_eos_tokens	ok	0	name:TR_mem_declared_eos_tokens
 m.TR_dtype	ok	0	name:TR_mem_dtype
 m.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 m.TR_ends_with	ok	0	name:TR_mem_ends_with
@@ -1147,6 +1148,7 @@ m.TR_strip	ok	0	name:TR_mem_strip
 m.TR_tolist	ok	0	name:TR_mem_tolist
 m.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 m.TR_transpose	ok	0	name:TR_mem_transpose
+m.TR_vocab_size	ok	0	name:TR_mem_vocab_size
 m1.TR_grad	ok	0	name:TR_mem_grad
 m2.TR_grad	ok	0	name:TR_mem_grad
 m2.TR_tolist	ok	0	name:TR_mem_tolist
