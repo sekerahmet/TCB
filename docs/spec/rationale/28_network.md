@@ -7,7 +7,7 @@ Kaynaklar dört turdan gelir:
 - tur 3: Gemini'nin güvenlik incelemesi, DENETİM 329 ve 330 yeniden üretti;
 - tur 4: Gemini'nin emsal araştırması (S1–S8), DENETİM 346 alıntıları örnekledi (2026-11-09).
 
-Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
+Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1.26.11'de `net/http/server.go` değişti, satırlar kayar, alıntılanan davranış aynı).
 
 ### 28.1
 
