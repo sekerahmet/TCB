@@ -47,10 +47,13 @@ func familyGGUF(t *testing.T, dir string, c tinyConfig, pre string, special []st
 	return filepath.ToSlash(file)
 }
 
+// familyImport betiklerin aktarmasıdır; sabit olarak durur ki tests-for lib/pretrained.tr bu dosyayı bulsun.
+const familyImport = `TR_import "tr/pretrained"`
+
 // runFamily m'yi yükler ve gövdeyi koşar; çıktıyı verir.
 func runFamily(t *testing.T, dir, load, body string) string {
 	t.Helper()
-	writeTR(t, dir, "aile.tr", "TR_import \"tr/pretrained\"\nTR_var m = "+load+"\n"+body+"\n")
+	writeTR(t, dir, "aile.tr", familyImport+"\nTR_var m = "+load+"\n"+body+"\n")
 	s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "aile.tr"))
 	return strings.TrimSpace(s.Stdout + s.Stderr)
 }
