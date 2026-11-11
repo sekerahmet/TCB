@@ -1608,7 +1608,7 @@ const (
 	H7171 Code = 7171 // {@pretrained_model}: {key|q} = {value} desteklenmiyor: TR bu ayarı uygulamaz, bu model TR'de yüklenmez; config'i değiştirmek modeli değiştirir
 	H7172 Code = 7172 // {@generate}: {@eos} durma kimliklerinin listesidir, tek sayı ({value}) verildi: `{#eos}: [{value}]` yazın
 	H7173 Code = 7173 // {@generate}: {@eos}'a bir fonksiyon verildi, durma kimliklerinin listesi değil: metodu parantezle çağırın, `{#eos}: model.{#eos_tokens}()`
-	H7174 Code = 7174 // {@generate}: {@eos} durma kimliklerinin listesidir; {index, plural, =0 {liste değil, {type} verildi} other {#. öğe {type}, Tam değil}}: durma kimliği `p.{#token_id}("...")` ile alınır, dağarcıkta olmayan ad `none` verir
+	H7174 Code = 7174 // {@generate}: {@eos} durma kimliklerinin listesidir; {index, plural, =0 {liste değil, {type} verildi} other {#. öğe {type}, Tam değil}}: durma kimliği `p.{#token_id}("...")` ile alınır, dağarcıkta olmayan ad `{#none}` verir
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi

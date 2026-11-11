@@ -278,10 +278,13 @@ func TestGenerateEosItemsAreInts(t *testing.T) {
 		if len(lines) != 3 || lines[0] != "H7174" {
 			t.Fatalf("TR_eos: %s:\n%s", c.eos, got)
 		}
-		if !strings.Contains(lines[1], c.tr) || strings.Contains(lines[1], "NoneType") || !strings.Contains(lines[1], "`p.TR_token_id(\"...\")`") {
+		// Yokluk değeri de kimlik yuvasıdır ({#none}): düz sözcük `none` yazılmaz (TCB 20:38).
+		if !strings.Contains(lines[1], c.tr) || strings.Contains(lines[1], "NoneType") || strings.Contains(lines[1], "`none`") ||
+			!strings.Contains(lines[1], "`TR_none`") || !strings.Contains(lines[1], "`p.TR_token_id(\"...\")`") {
 			t.Errorf("TR_eos: %s, Türkçe ileti:\n%s", c.eos, lines[1])
 		}
-		if !strings.Contains(lines[2], c.en) || !strings.Contains(lines[2], "`p.TR_token_id(\"...\")`") {
+		if !strings.Contains(lines[2], c.en) || strings.Contains(lines[2], "`none`") || !strings.Contains(lines[2], "`TR_none`") ||
+			!strings.Contains(lines[2], "`p.TR_token_id(\"...\")`") {
 			t.Errorf("TR_eos: %s, İngilizce ileti:\n%s", c.eos, lines[2])
 		}
 	}
