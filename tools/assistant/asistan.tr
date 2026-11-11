@@ -82,16 +82,16 @@ TR_struct Asistan {
 }
 
 # asistan_kur: modeller yüklenir, sistem iletisi önbelleğe okunur (ısıt): ilk tur onu yeniden okumaz.
-# Konuşma dili Türkçe değilken öntanımlı sistem iletisi (Türkçe cevap ister) sessizce kalmaz.
+# Konuşma dili Türkçe değilken öntanımlı sistem iletisi (Türkçe cevap ister) sessizce kalmaz;
+# yan etkilerden (deneme kaydı, belirteç, sunucu) önce, kipin hemen ardından çağrılır.
 TR_func _dil_denetle() {
     TR_var konuşma = TR_String(ayar["konuşma_dili"])
     TR_if konuşma != "tr" TR_and TR_String(ayar["sistem"]) == _SİSTEM {
-        TR_throw "--konuşma_dili \(konuşma) verildi ama --sistem verilmedi: öntanımlı sistem iletisi Türkçe cevap ister; --sistem ile \(konuşma) dilinde bir ileti verin"
+        TR_throw "--konuşma_dili \(konuşma) verildi ama --sistem verilmedi: öntanımlı sistem iletisi Türkçe cevap ister. İki yol: --sistem \"<\(konuşma) dilinde kısa cevap isteyen ileti>\" ya da --konuşma_dili tr"
     }
 }
 
 TR_func asistan_kur() -> Asistan {
-    _dil_denetle()
     TR_var dil = _gerekli("dil_modeli")
     TR_var başla = şimdi()
     TR_var z = Zincir(p: TR_load_tokenizer(dil), model: TR_pretrained_gguf(dil), sistem: TR_String(ayar["sistem"]),
@@ -428,6 +428,7 @@ TR_func tur_ölçüleri(t: Tur) -> TR_JSON {
 }
 
 TR_var kip = _gerekli("kip")
+_dil_denetle()
 TR_var deneme_yeri = TR_String(ayar["deneme_klasörü"])
 TR_if deneme_yeri != "" {
     TR_var hata = deneme_klasörü_hatası(deneme_yeri)
