@@ -80,7 +80,7 @@ codegraph deleted | group: names: => K102  removed 020a98a7 | src: deneme 6, 202
 codegraph query "ölü" | not: bölüm | not: Bölüm | contains: source.langName | src: deneme 6 (N1: metin araması önce bütün sözcük), 2026-10-23
 
 # Bağımsız denetim: "bu bir test mi / bu test neyi sınıyor" tek kural (Y1, Y3, T3) (2026-10-23)
-codegraph tests-for pretrained.ayar_değeri | not: no tests found | group: tests, indirect => lib/pretrained_test.tr | src: bağımsız denetim Y1, 2026-10-23
+codegraph tests-for hugging_face.ayar_değeri | not: no tests found | group: tests, indirect => lib/pretrained_test.tr | src: bağımsız denetim Y1, 2026-10-23
 codegraph tests-for layers.GPT.göm | not: no tests found | first-of: tests, indirect => lib/layers_test.tr | src: bağımsız denetim Y1, 2026-10-23
 codegraph changed 99f04289~1..99f04289 | contains: training.TR_type_Run.TR_mem_finish | not: none found for the changed code | group: tests that exercise the changed code => lib/training_test.tr | src: bağımsız denetim Y3, 2026-10-23
 trlang index tested_by ayar_değeri | contains: lib/pretrained_test.tr | src: bağımsız denetim T3 (trlang index ile tests-for aynı zincir kuralı), 2026-10-23
@@ -131,7 +131,7 @@ codegraph path layers.Doğrusal.ileri tensor.MatMulOut | contains: (directed | c
 trlang index references field:lib/layers.tr#TR_type_GPT.TR_mem_config --all | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/pretrained_test.tr#m.TR_config["rope_tabanı"]} | contains: @{lib/pretrained_test.tr#ll.TR_config["rope_tabanı"]} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)
-codegraph who-uses interp.Value.Inspect --all | group: implemented_by => training.TR_type_Run.TR_mem_finish | group: implemented_by => pretrained.TR_fn_map_hugging_face | src: değer dili 3. tur, 2026-10-25
+codegraph who-uses interp.Value.Inspect --all | group: implemented_by => training.TR_type_Run.TR_mem_finish | group: implemented_by => hugging_face.TR_fn_map_hugging_face | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses hint.TypeTextComparisonError | group: calls => checker.Checker.checkTypeTextComparison | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)

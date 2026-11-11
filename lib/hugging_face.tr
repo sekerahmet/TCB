@@ -1,0 +1,67 @@
+# TR 4
+# tr/hugging_face — Hugging Face biçimindeki modellerin config.json'undan değer okur (ayar_değeri) ve ağırlık
+# adlarını TR'nin GPT parametre adlarına eşler (hugging_face_eşle, BLOK_ADLARI). tr/pretrained hazır modeli bunlarla yükler.
+
+# ayar_değeri ayarda (config.json'un JSON nesnesi ya da sözlük) anahtar varsa ve değeri yok (JSON null)
+# değilse onu, yoksa öntanımlıyı verir. Değer JSON olabilir: çağıran tip çağrısıyla açar (Tam(...), 3.7a).
+TR_func TR_config_value(TR_config, TR_key: TR_String, TR_fallback) {
+    TR_var v = TR_config.TR_get(TR_key)
+    TR_if v == TR_none TR_or TR_Type(v) == TR_NoneType { TR_return TR_fallback }
+    TR_return v
+}
+
+# Blok içi Hugging Face adı → [TR adı, devrik mi, birleşik katmandaki parça (-1: tek başına)].
+# Parçalı ağırlıklar (devrildikten sonra) son eksende sırayla bitiştirilir: [K | V], [G | U].
+TR_const TR_BLOCK_NAMES = {
+    "self_attn.q_proj.weight": ["TR_mem_attention.TR_mem_q_proj.TR_mem_weight", TR_true, -1],
+    "self_attn.k_proj.weight": ["TR_mem_attention.TR_mem_kv_proj.TR_mem_weight", TR_true, 0],
+    "self_attn.v_proj.weight": ["TR_mem_attention.TR_mem_kv_proj.TR_mem_weight", TR_true, 1],
+    "self_attn.o_proj.weight": ["TR_mem_attention.TR_mem_o_proj.TR_mem_weight", TR_true, -1],
+    "self_attn.q_norm.weight": ["TR_mem_attention.TR_mem_q_norm.TR_mem_weight", TR_false, -1],
+    "self_attn.k_norm.weight": ["TR_mem_attention.TR_mem_k_norm.TR_mem_weight", TR_false, -1],
+    "mlp.gate_proj.weight": ["TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", TR_true, 0],
+    "mlp.up_proj.weight": ["TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", TR_true, 1],
+    "mlp.down_proj.weight": ["TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight", TR_true, -1],
+    "input_layernorm.weight": ["TR_mem_input_norm.TR_mem_weight", TR_false, -1],
+    "post_attention_layernorm.weight": ["TR_mem_post_attention_norm.TR_mem_weight", TR_false, -1]
+}
+
+# hugging_face_eşle Hugging Face adlı ağırlık sözlüğünü TR parametre adlarına çevirir. Paylaşımlı
+# gömmede lm_head.weight varsa gömmeyle aynı olmalıdır ve atlanır; dönüş tabloları
+# (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır.
+TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config) -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var paylaşımlı = TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", TR_false))
+    TR_var sonuç_sözlük = {}
+    TR_var parçalı = {} # TR adı → [ilk parça, ikinci parça]
+    TR_for ad, t TR_in TR_weights {
+        TR_if ad.TR_ends_with("rotary_emb.inv_freq") { TR_continue }
+        TR_if ad == "model.embed_tokens.weight" {
+            sonuç_sözlük["TR_mem_embedding.TR_mem_table"] = t
+        } TR_else TR_if ad == "model.norm.weight" {
+            sonuç_sözlük["TR_mem_final_norm.TR_mem_weight"] = t
+        } TR_else TR_if ad == "lm_head.weight" {
+            TR_if TR_not paylaşımlı { sonuç_sözlük["TR_mem_logit_layer.TR_mem_weight"] = t.TR_transpose() }
+        } TR_else TR_if ad.TR_starts_with("model.layers.") {
+            TR_var parçalar = ad.TR_split(".")
+            TR_var iç = parçalar[3..parçalar.TR_length].TR_join(".")
+            TR_if TR_not TR_BLOCK_NAMES.TR_contains(iç) { TR_throw TR_Message("H6945", "model", ad) }
+            TR_var hedef = TR_BLOCK_NAMES[iç]
+            TR_var tr_ad = "TR_mem_blocks.\(parçalar[2]).\(hedef[0])"
+            TR_var w = t
+            TR_if hedef[1] { w = t.TR_transpose() }
+            TR_if hedef[2] < 0 {
+                sonuç_sözlük[tr_ad] = w
+            } TR_else {
+                TR_if TR_not parçalı.TR_contains(tr_ad) { parçalı[tr_ad] = [TR_none, TR_none] }
+                parçalı[tr_ad][hedef[2]] = w
+            }
+        } TR_else {
+            TR_throw TR_Message("H6945", "model", ad)
+        }
+    }
+    TR_for tr_ad, p TR_in parçalı {
+        TR_if p[0] == TR_none TR_or p[1] == TR_none { TR_throw TR_Message("H6946", "model", tr_ad) }
+        sonuç_sözlük[tr_ad] = TR_concat(p, TR_dim: -1)
+    }
+    TR_return sonuç_sözlük
+}

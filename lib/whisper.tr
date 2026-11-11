@@ -13,6 +13,7 @@
 # Çevirme özgün `transcribe`'ı izler: `temperature=0.0`, `beam_size=None`, `fp16=False` (25.2–25.8).
 
 TR_import "tr/audio"
+TR_import "tr/hugging_face"
 TR_import "tr/layers"
 TR_import "tr/pretrained"
 

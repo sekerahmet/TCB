@@ -112,7 +112,7 @@ func TestLibraryExceptionsAreUsed(t *testing.T) {
 // kitaplığın başka bir dosyasında hata verir.
 func TestLibraryExceptionIsOnlyTheLibraryFiles(t *testing.T) {
 	src := "TR_func TR_fn_config_value(TR_arg_config, TR_arg_key: TR_String, TR_arg_fallback) {\n    TR_return TR_arg_fallback\n}\n"
-	for _, library := range []string{"", "layers.tr", "pretrained.tr"} {
+	for _, library := range []string{"", "layers.tr", "hugging_face.tr"} {
 		p := parser.New(lexer.NewBody(src, true))
 		prog := p.ParseModule()
 		c := New()
@@ -120,7 +120,7 @@ func TestLibraryExceptionIsOnlyTheLibraryFiles(t *testing.T) {
 		c.SetLibraryFile(library)
 		c.CheckProgram(prog)
 		got := len(gateErrors(c))
-		if want := map[string]int{"": 3, "layers.tr": 3, "pretrained.tr": 0}[library]; got != want {
+		if want := map[string]int{"": 3, "layers.tr": 3, "hugging_face.tr": 0}[library]; got != want {
 			t.Errorf("kitaplık dosyası %q: %d kapı hatası bekleniyordu, %d: %v", library, want, got, c.Errors())
 		}
 	}

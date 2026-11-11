@@ -78,12 +78,12 @@ var uncoveredLibraryNames = map[string]string{
 	"training.aşıyor()":                "iç yardımcı: lib/README.md'de belgelenmemiş",
 	"training.geçmiş_uzunluğu()":       "belgeli ad; yazılacak: sıçrama bekçisinin ayrıntıları (44 yalnız TAMAM ile karşılaştırır)",
 	"pretrained.DESTEKLENEN_MİMARİLER": "iç yardımcı: lib/README.md'de belgelenmemiş",
-	"pretrained.ayar_değeri":           "iç yardımcı: lib/README.md'de belgelenmemiş",
+	"hugging_face.ayar_değeri":         "iç yardımcı: lib/README.md'de belgelenmemiş",
 	"pretrained.hazır_model_kur":       "belgeli ad; yazılacak: hazır modelin iç yapısı (hazır_model_kur, eşleme) örneği",
 	"pretrained.rope_tabanı":           "belgeli ad; yazılacak: hazır modelin iç yapısı (hazır_model_kur, eşleme) örneği",
 	"pretrained.rope_ölçekleme_var_mı": "iç yardımcı: lib/README.md'de belgelenmemiş",
-	"pretrained.BLOK_ADLARI":           "iç yardımcı: lib/README.md'de belgelenmemiş",
-	"pretrained.hugging_face_eşle":     "belgeli ad; yazılacak: hazır modelin iç yapısı (hazır_model_kur, eşleme) örneği",
+	"hugging_face.BLOK_ADLARI":         "iç yardımcı: lib/README.md'de belgelenmemiş",
+	"hugging_face.hugging_face_eşle":   "belgeli ad; yazılacak: hazır modelin iç yapısı (hazır_model_kur, eşleme) örneği",
 }
 
 var (

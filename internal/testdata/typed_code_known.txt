@@ -4,6 +4,10 @@
 # yer silinir (-update-typed). Kitaplık dışındaki satır eklenmez: orada tipsiz yer denetim hatasıdır.
 
 ## 4c'yi bekleyen, genel tip (6.10): tek bir tip parametresiyle yazılır (her değer, genel T)
+lib/hugging_face.tr:7 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
+lib/hugging_face.tr:7 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
+lib/hugging_face.tr:7 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
+lib/hugging_face.tr:32 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
 lib/optimizers.tr:265 parametre TR_fn_parameter_groups.TR_arg_model — model TR_parameters'ın okuduğu her değerdir (yapı, liste, sözlük; 13.8a)
 lib/optimizers.tr:276 parametre parametre_kümeleri.model — model TR_parameters'ın okuduğu her değerdir
 lib/optimizers.tr:371 parametre TR_ctx_init.TR_arg_model — model TR_parameters'ın okuduğu her değerdir
@@ -24,14 +28,10 @@ lib/optimizers.tr:362 alan TR_type_MuonAndAdamW.TR_mem_muon — TR_Muon ya da TR
 lib/optimizers_test.tr:195 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
 lib/optimizers_test.tr:396 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
 lib/optimizers_test.tr:396 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
-lib/pretrained.tr:32 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
-lib/pretrained.tr:32 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
-lib/pretrained.tr:32 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
-lib/pretrained.tr:57 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
-lib/pretrained.tr:86 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
-lib/pretrained.tr:94 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
-lib/pretrained.tr:120 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
-lib/pretrained_test.tr:7 dönüş qwen3_ayarı — Hugging Face ayarının sözlüğü: değerleri metin, sayı, mantık, sözlük ve yok
+lib/pretrained.tr:50 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:79 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:87 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained_test.tr:8 dönüş qwen3_ayarı — Hugging Face ayarının sözlüğü: değerleri metin, sayı, mantık, sözlük ve yok
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_config — config.json'a yazılan ayar sözlüğü: değer tipi birden çok (tam sayı, ondalık, metin ...)
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_folder — klasör TR_String ya da TR_Path (ikisi de çağrılıyor; TR_Path ikisini de alır)
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_objects — kontrol noktasının nesneleri: model, iyileştirici, okuyucu, sözlük karışık (20.2)

@@ -81,11 +81,11 @@ TR_feed_forward.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_d
 TR_feed_forward.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 TR_feed_forward.TR_gate_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_up_proj
 TR_fn_build_pretrained_model.TR_arg_config	ok	0	tr:param:lib/pretrained.tr:TR_fn_build_pretrained_model.TR_arg_config
-TR_fn_config_value.TR_arg_config	ok	0	tr:param:lib/pretrained.tr:TR_fn_config_value.TR_arg_config
-TR_fn_config_value.TR_arg_fallback	ok	0	tr:param:lib/pretrained.tr:TR_fn_config_value.TR_arg_fallback
+TR_fn_config_value.TR_arg_config	ok	0	tr:param:lib/hugging_face.tr:TR_fn_config_value.TR_arg_config
+TR_fn_config_value.TR_arg_fallback	ok	0	tr:param:lib/hugging_face.tr:TR_fn_config_value.TR_arg_fallback
 TR_fn_has_rope_scaling.TR_arg_config	ok	0	tr:param:lib/pretrained.tr:TR_fn_has_rope_scaling.TR_arg_config
 TR_fn_lr_schedule.TR_arg_num_steps	ok	0	tr:param:lib/optimizers.tr:TR_fn_lr_schedule.TR_arg_num_steps
-TR_fn_map_hugging_face.TR_arg_config	ok	0	tr:param:lib/pretrained.tr:TR_fn_map_hugging_face.TR_arg_config
+TR_fn_map_hugging_face.TR_arg_config	ok	0	tr:param:lib/hugging_face.tr:TR_fn_map_hugging_face.TR_arg_config
 TR_fn_parameter_groups.TR_arg_model	ok	0	tr:param:lib/optimizers.tr:TR_fn_parameter_groups.TR_arg_model
 TR_fn_rope_theta.TR_arg_config	ok	0	tr:param:lib/pretrained.tr:TR_fn_rope_theta.TR_arg_config
 TR_folder.TR_lower	ok	0	name:TR_mem_lower

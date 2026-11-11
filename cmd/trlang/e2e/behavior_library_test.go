@@ -55,7 +55,7 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	testkit.Wait(t, testkit.RunBinary(t, exit, other, "", nil), 0, []string{expected}, nil)
 
 	writeTR(t, project, "hatali.tr", "TR_import \"tr/olmayan\"\n")
-	testkit.Wait(t, tr(t, project, "check", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/audio, tr/chat, tr/layers, tr/optimizers, tr/pretrained, tr/training`})
+	testkit.Wait(t, tr(t, project, "check", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/audio, tr/chat, tr/hugging_face, tr/layers, tr/optimizers, tr/pretrained, tr/training`})
 	testkit.Wait(t, tr(t, project, "build", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }
 

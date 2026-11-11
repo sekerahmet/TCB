@@ -10,6 +10,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/optimizers` | [`optimizers.tr`](optimizers.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
 | `tr/training` | [`training.tr`](training.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
+| `tr/hugging_face` | [`hugging_face.tr`](hugging_face.tr) | Hugging Face `config.json`'undan değer okumak (`TR_fn_config_value`) ve ağırlık adlarını GPT'nin parametre adlarına eşlemek (`TR_fn_map_hugging_face`); `tr/pretrained` bunlarla yükler |
 | `tr/audio` | [`audio.tr`](audio.tr) | Ses dosyası (WAV okumak ve yazmak, `TR_type_Sound`) ve Whisper'ın girdisi (`TR_fn_whisper_log_mel`) |
 | `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |
 | `tr/turkish` | [`turkish.tr`](turkish.tr) | Türkçe sözcüğün sözlük biçimi (`TR_fn_lemma`), türü ve ekleri (`TR_fn_analyze_word`); kendi sözlüğü olan bulucu (`TR_type_Lemmatizer`) |
@@ -179,10 +180,10 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 
 - **Mimariler:** `llama` (Llama, SmolLM2, TinyLlama ...) ve `qwen3`. İkisi de `GPT`'nin iskeletidir (transformers `modeling_llama.py`, `modeling_qwen3.py`): ön-norm blok, RMSNorm, GQA ve yarı döndürmeli RoPE, `aşağı(silu(kapı(x)) · yukarı(x))`; qwen3'te QK-norm.
 - **Ayarlar:** `hidden_size` → `TR_arg_embed_dim`, `num_attention_heads` → `TR_arg_num_heads`, `num_key_value_heads` → `TR_arg_num_kv_heads`, `head_dim` → `TR_arg_head_dim` (yoksa `boyut / bakış_sayısı`), `intermediate_size` → `TR_arg_intermediate_dim`, `rms_norm_eps` → `TR_arg_eps`, `tie_word_embeddings` → `TR_arg_tied`, `rope_theta` (ya da transformers 5.x'te `rope_parameters.rope_theta`) → `TR_fn_rope_theta`. Sapmalı katmanlar, RoPE ölçekleme, kayan pencere ve `silu` dışı etkinleştirme açık hatadır; sessizce yanlış model kurulmaz. Mimarinin yapı tanımında olmayan config ya da GGUF anahtarı da yükleme hatasıdır (H7160; GGUF'ta `general.`, `tokenizer.`, `split.`, `quantize.` dışındaki her anahtar, dil tanımı 15.55): okunmayan bir anahtar hesabı değiştirebilir. Bir ayarın iki yazımı (`rope_theta`, `rope_parameters.rope_theta`) ayrı değer verirse H7161'dir. Değeri denetlenen ya da iki yolu karşılaştırılan anahtarın değeri beklenen JSON türünde değilse (`"attention_dropout": "0"`) H7175'tir: ileti anahtarı, iki türü ve dosyayı söyler, TR değeri çevirmez.
-- **Ağırlıklar:** `TR_fn_map_hugging_face` adları TR parametre adlarına çevirir; Hugging Face `nn.Linear` ağırlığı `[çıkış, giriş]`, TR `TR_type_Linear` `[giriş, çıkış]` tuttuğu için doğrusal katmanlar devrilir. Tanınmayan ad hatadır.
+- **Ağırlıklar:** `TR_fn_map_hugging_face` (`tr/hugging_face`) adları TR parametre adlarına çevirir; Hugging Face `nn.Linear` ağırlığı `[çıkış, giriş]`, TR `TR_type_Linear` `[giriş, çıkış]` tuttuğu için doğrusal katmanlar devrilir. Tanınmayan ad hatadır.
 - **Doğruluk:** küçük rastgele Llama ve Qwen3 modellerinde transformers'la en büyük logit farkı ~3·10⁻⁷ (`cmd/trlang/e2e` `TestReadyModelMatchesTransformers`, `tools/hf/`).
 
-`TR_fn_build_pretrained_model(ayar)` yalnızca kurar (ağırlıksız); `TR_fn_map_hugging_face(ağırlıklar, ayar)` yalnızca eşler.
+`TR_fn_build_pretrained_model(ayar)` yalnızca kurar (ağırlıksız); `TR_fn_map_hugging_face(ağırlıklar, ayar)` (`tr/hugging_face`) yalnızca eşler.
 
 ## `tr/whisper`
 
