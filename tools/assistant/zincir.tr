@@ -168,19 +168,24 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur, her: (TR_Int, TR_In
     t.istem = kimlikler.TR_length
     TR_var dur = [z.p.TR_token_id("<|im_end|>"), z.p.TR_token_id("<|endoftext|>")]
     TR_var ü = Üretim()
+    # Üretimde GPU'daki matris çarpımları üreticinin kitaplığıyla yapılır (15.53b): bloğun dışında kendi
+    # çekirdek istem okumasını 1,15–1,32 kat yavaşlatıyordu (T1 0b, U5 koşu 2); bitler blokta da koşudan
+    # koşuya aynıdır, yalnız kitaplığın sürümüne bağlıdır. İşlemcide blok etkisizdir.
     TR_no_grad {
-        TR_var kalan = kimlikler[ortak..kimlikler.TR_length]
-        TR_var x = z.model.TR_hidden_states([kalan], TR_cache: ö)
-        TR_var logit = z.model.TR_logits(x.TR_slice(1, kalan.TR_length - 1, kalan.TR_length))[0][0]
-        TR_for ü.kimlikler.TR_length < z.en_çok {
-            TR_var k = seç(logit, ü)
-            TR_var an = şimdi()
-            ü.anlar.TR_append(an)
-            ü.kimlikler.TR_append(k)
-            TR_if dur.TR_contains(k) { TR_break }
-            her(k, an)
-            logit = z.model.TR_logits(z.model.TR_hidden_states([[k]], TR_cache: ö))[0][0]
-            z.okunan.TR_append(k)
+        TR_vendor_matmul {
+            TR_var kalan = kimlikler[ortak..kimlikler.TR_length]
+            TR_var x = z.model.TR_hidden_states([kalan], TR_cache: ö)
+            TR_var logit = z.model.TR_logits(x.TR_slice(1, kalan.TR_length - 1, kalan.TR_length))[0][0]
+            TR_for ü.kimlikler.TR_length < z.en_çok {
+                TR_var k = seç(logit, ü)
+                TR_var an = şimdi()
+                ü.anlar.TR_append(an)
+                ü.kimlikler.TR_append(k)
+                TR_if dur.TR_contains(k) { TR_break }
+                her(k, an)
+                logit = z.model.TR_logits(z.model.TR_hidden_states([[k]], TR_cache: ö))[0][0]
+                z.okunan.TR_append(k)
+            }
         }
     }
     TR_return ü
