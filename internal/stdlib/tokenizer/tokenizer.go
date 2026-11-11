@@ -183,11 +183,13 @@ func loadError(path string, err error, tried []string) error {
 		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.New(messages.H5612), interp.SearchedPlaces(tried))
 	}
-	switch {
-	case messages.Has(err, messages.H5650):
+	if m, ok := messages.As(err); ok && m.Code == messages.H5650 {
 		// Parçalayıcısız GGUF sarılmaz: kitaplık bu kodu TR_error_code ile tanır ve modeli ailesiz
-		// sayar (15.55); H5620'nin içinde kalsaydı öbür yükleme hatalarından ayrılmazdı.
+		// sayar (15.55); H5620'nin içinde kalsaydı öbür yükleme hatalarından ayrılmazdı. Yalnız üst
+		// kod sayılır: içinde H5650 taşıyan başka bir hata sarılır (DENETİM 446 N7).
 		return err
+	}
+	switch {
 	case isUnsupported(err):
 		// Çekirdeğin iletisi kendi başına tamdır ("desteklenmeyen ... türü"); metni değiştirilmez.
 		return messages.New(messages.H5614, fn, path, err)

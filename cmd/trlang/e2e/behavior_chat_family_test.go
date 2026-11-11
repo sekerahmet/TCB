@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -81,7 +82,10 @@ func TestGGUFChatFamilyStopList(t *testing.T) {
 		{"dosya bildirmiyor", llamaTiny, "llama-bpe", llama3, nil, "TR_print(m.TR_eos_tokens())", "[42, 43, 41]"},
 		// Dağarcık dışı eom hata değildir (16.1) ama listede değildir: H7163.
 		{"bildirilen listede yok", llamaTiny, "llama-bpe", llama3, map[string]uint32{"eos": 42, "eom": 7}, "", "H7163"},
-		{"ad dağarcıkta yok", llamaTiny, "llama-bpe", llama3[:3], nil, "", "H7162"},
+		// Ailenin ilk adı zorunludur, öbürleri dağarcıkta yoksa atlanır (DENETİM 446 Ş1): <|eom_id|>'siz
+		// llama-bpe dağarcığında liste iki öğedir; <|eot_id|>'siz dağarcık H7162'dir.
+		{"eom yok", llamaTiny, "llama-bpe", llama3[:3], map[string]uint32{"eos": 42}, "TR_print(m.TR_eos_tokens())", "[42, 41]"},
+		{"ilk ad yok", llamaTiny, "llama-bpe", []string{"<|begin_of_text|>", "<|end_of_text|>", "<|eom_id|>"}, nil, "", "H7162"},
 		{"tabloda olmayan etiket", llamaTiny, "smollm", llama3, map[string]uint32{"eos": 7}, codeOf, "H7170"},
 	}
 	for _, c := range cases {
@@ -98,11 +102,48 @@ func TestGGUFChatFamilyStopList(t *testing.T) {
 			}
 		})
 	}
+	// H7162 ve H7163 H7160 gibi dosyanın yolunu yazar (DENETİM 446 N11).
+	for name, c := range map[string]struct {
+		special  []string
+		declared map[string]uint32
+	}{
+		"H7162": {[]string{"<|begin_of_text|>", "<|end_of_text|>"}, nil},
+		"H7163": {llama3, map[string]uint32{"eos": 7}},
+	} {
+		dir := t.TempDir()
+		file := familyGGUF(t, dir, llamaTiny, "llama-bpe", c.special, c.declared)
+		if got := runFamily(t, dir, fmt.Sprintf("TR_pretrained_gguf(%q)", file), ""); !strings.Contains(got, file) {
+			t.Errorf("%s iletisi dosyanın yolunu yazmıyor:\n%s", name, got)
+		}
+	}
 }
 
-// TestFamilylessModelGeneratesWithExplicitStops: üç ailesiz yolda (parçalayıcısız GGUF, tabloda
-// olmayan etiket, tokenizer_config'siz klasör) m.TR_eos_tokens() H7170'tir, ileti kimliklerin
-// açık yazımını söyler; TR_eos: [...] ile üretim sürer.
+// TestChatTableIsUnique: sohbet tanımı tablosunda (mimari, etiket) ve (mimari, işaret) ikilileri
+// tekildir; seçim ilk eşleşmede durur (DENETİM 446 N5). Tablo kitaplığın özel fonksiyonudur, TR
+// testinden görünmez: test kaynağın satırlarını okur.
+func TestChatTableIsUnique(t *testing.T) {
+	src, err := os.ReadFile(reporoot.Path("lib", "pretrained.tr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := regexp.MustCompile(`_Sohbet\("([^"]*)", "([^"]*)", "([^"]*)", "([^"]*)", \[`).FindAllStringSubmatch(string(src), -1)
+	if len(rows) < 2 {
+		t.Fatalf("tablonun satırları okunamadı: %d", len(rows))
+	}
+	seen := map[string]string{}
+	for _, r := range rows {
+		for _, key := range []string{"etiket " + r[2] + " " + r[3], "işaret " + r[2] + " " + r[4]} {
+			if prev, dup := seen[key]; dup {
+				t.Errorf("%s iki ailede: %s ve %s", key, prev, r[1])
+			}
+			seen[key] = r[1]
+		}
+	}
+}
+
+// TestFamilylessModelGeneratesWithExplicitStops: dört ailesiz yolda (parçalayıcısız GGUF, tabloda
+// olmayan etiket, tokenizer_config'siz klasör, tokenizer.json'suz klasör) m.TR_eos_tokens()
+// H7170'tir, ileti kimliklerin açık yazımını söyler; TR_eos: [...] ile üretim sürer.
 func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	body := "TR_print(TR_error_code { m.TR_eos_tokens() })\nTR_print(m.TR_generate([1, 2], 3, TR_temperature: 0, TR_eos: [5]).TR_length > 2)"
 	dir := t.TempDir()
@@ -113,10 +154,18 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 		t.Fatal(err)
 	}
 	llamaTiny.writeHF(t, folder, llamaTiny.randomWeights(1))
+	// Sohbet tanımı bulunan ama tokenizer.json'u olmayan klasör de ailesizdir (DENETİM 446 Ş2).
+	noVocab := filepath.Join(dir, "sözlüksüz")
+	if err := os.MkdirAll(noVocab, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	qwenTiny.writeHF(t, noVocab, qwenTiny.randomWeights(1))
+	writeBytes(t, filepath.Join(noVocab, "tokenizer_config.json"), []byte(`{"tokenizer_class": "Qwen2TokenizerFast"}`))
 	loads := map[string]string{
-		"parçalayıcısız GGUF": fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
-		"smollm etiketi":      fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
-		"klasör":              fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
+		"parçalayıcısız GGUF":       fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
+		"smollm etiketi":            fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
+		"klasör":                    fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
+		"tokenizer.json'suz klasör": fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
 	}
 	for name, load := range loads {
 		t.Run(name, func(t *testing.T) {
@@ -132,7 +181,8 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 }
 
 // TestFolderChatFamily: klasörde aile (model_type, tokenizer_class'ın Fast'sız adı) ile seçilir;
-// kimlikler klasörün tokenizer.json'undan, bildirilen kimlik generation_config.json'dan.
+// kimlikler klasörün tokenizer.json'undan, bildirilen kimlik generation_config.json'dan, o yoksa
+// config.json'un eos_token_id'sinden (DENETİM 446 N4).
 func TestFolderChatFamily(t *testing.T) {
 	tok, err := os.ReadFile(reporoot.Path("tests", "data", "qwen3_chat", "tokenizer.json"))
 	if err != nil {
@@ -142,13 +192,19 @@ func TestFolderChatFamily(t *testing.T) {
 		{"liste", "[573, 571]", "[573, 571]"},
 		{"tek sayı", "573", "[573, 571]"},
 		{"listede yok", "[573, 7]", "H7163"},
+		{"config.json'dan", "config:573", "[573, 571]"},
+		{"config.json'da listede yok", "config:7", "H7163"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()
 			qwenTiny.writeHF(t, dir, qwenTiny.randomWeights(1))
 			writeBytes(t, filepath.Join(dir, "tokenizer.json"), tok)
 			writeBytes(t, filepath.Join(dir, "tokenizer_config.json"), []byte(`{"tokenizer_class": "Qwen2TokenizerFast"}`))
-			writeBytes(t, filepath.Join(dir, "generation_config.json"), []byte(`{"eos_token_id": `+c.eos+`}`))
+			if id, inConfig := strings.CutPrefix(c.eos, "config:"); inConfig {
+				addConfigKey(t, filepath.Join(dir, "config.json"), "eos_token_id", id)
+			} else {
+				writeBytes(t, filepath.Join(dir, "generation_config.json"), []byte(`{"eos_token_id": `+c.eos+`}`))
+			}
 			load := fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(dir))
 			body := "TR_print(m.TR_eos_tokens())"
 			if c.want == "H7163" {
@@ -161,18 +217,50 @@ func TestFolderChatFamily(t *testing.T) {
 	}
 }
 
+// addConfigKey config.json'a bir anahtar ekler (değer JSON metni olarak).
+func addConfigKey(t *testing.T, path, key, value string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := strings.TrimRight(string(data), " \n")
+	if !strings.HasSuffix(s, "}") {
+		t.Fatalf("config.json bir nesneyle bitmiyor: %q", s)
+	}
+	writeBytes(t, path, []byte(s[:len(s)-1]+fmt.Sprintf(", %q: %s}", key, value)))
+}
+
 // TestGenerateEosMethodWithoutParentheses: TR_eos:'a parantezsiz metot (fonksiyon değeri) verilince
-// ileti parantezli yazımı önerir (H7173); önerilen yazım ailesi olan modelde çalışır.
+// ileti parantezli yazımı önerir (H7173, `model.`: DENETİM 446 N1); önerilen yazım ailesi olan
+// modelde çalışır ve modelin durma listesini verir (DENETİM 440 N1).
 func TestGenerateEosMethodWithoutParentheses(t *testing.T) {
 	dir := t.TempDir()
 	file := familyGGUF(t, dir, llamaTiny, "llama-bpe", llama3, nil)
 	load := fmt.Sprintf("TR_pretrained_gguf(%q)", file)
-	got := runFamily(t, dir, load, "m.TR_generate([1], 2, TR_temperature: 0, TR_eos: m.TR_eos_tokens)")
-	if !strings.Contains(got, "`TR_eos: m.TR_eos_tokens()`") {
+	got := runFamily(t, dir, load, "TR_var model = m\nmodel.TR_generate([1], 2, TR_temperature: 0, TR_eos: model.TR_eos_tokens)")
+	if !strings.Contains(got, "`TR_eos: model.TR_eos_tokens()`") {
 		t.Fatalf("ileti parantezli yazımı önermiyor:\n%s", got)
 	}
-	// Önerilen yazım kopyalanınca çalışır ve modelin durma listesini verir (DENETİM 440 N1).
-	if got := runFamily(t, dir, load, "TR_print(m.TR_eos_tokens())\nTR_print(m.TR_generate([1], 2, TR_temperature: 0, TR_eos: m.TR_eos_tokens()).TR_length > 1)"); got != "[42, 43, 41]\ntrue" {
+	if got := runFamily(t, dir, load, "TR_var model = m\nTR_print(model.TR_eos_tokens())\nTR_print(model.TR_generate([1], 2, TR_temperature: 0, TR_eos: model.TR_eos_tokens()).TR_length > 1)"); got != "[42, 43, 41]\ntrue" {
 		t.Errorf("önerilen yazım: %q", got)
+	}
+}
+
+// TestGenerateEosItemsAreInts: TR_eos:'un her öğesi Tam'dır; Tam olmayan öğe (dağarcıkta olmayan
+// adın p.TR_token_id'sinin TR_none'ı, metin) ve liste olmayan TR_eos: TR_none H7174'tür; ileti
+// öğenin sırasını ve türünü, kimliğin p.TR_token_id(...) ile alındığını söyler (DENETİM 446 N2).
+func TestGenerateEosItemsAreInts(t *testing.T) {
+	dir := t.TempDir()
+	load := "TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 2)"
+	for _, c := range []struct{ eos, want string }{
+		{"[1, TR_none]", "2. öğe"},
+		{`["a"]`, "1. öğe"},
+		{"TR_none", "liste değil"},
+	} {
+		got := runFamily(t, dir, load, "TR_print(TR_error_code { m.TR_generate([1], 2, TR_temperature: 0, TR_eos: "+c.eos+") })\nm.TR_generate([1], 2, TR_temperature: 0, TR_eos: "+c.eos+")")
+		if !strings.HasPrefix(got, "H7174") || !strings.Contains(got, c.want) || !strings.Contains(got, "`p.TR_token_id(\"...\")`") {
+			t.Errorf("TR_eos: %s:\n%s", c.eos, got)
+		}
 	}
 }

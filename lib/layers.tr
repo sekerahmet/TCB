@@ -619,6 +619,10 @@ TR_struct TR_GPT {
         # Adlı argümanın tipi bugün denetlenmiyor (docs/status.md, 6.5): tek sayı burada adıyla durur.
         TR_if TR_Type(TR_eos) == TR_Int { TR_throw TR_Message("H7172", "\(TR_eos)") }
         TR_if TR_Type(TR_eos) == TR_Function { TR_throw TR_Message("H7173") }
+        TR_if TR_Type(TR_eos) != TR_List { TR_throw TR_Message("H7174", 0, "\(TR_Type(TR_eos))") }
+        TR_for i TR_in 0..TR_eos.TR_length {
+            TR_if TR_Type(TR_eos[i]) != TR_Int { TR_throw TR_Message("H7174", i + 1, "\(TR_Type(TR_eos[i]))") }
+        }
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
         TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none

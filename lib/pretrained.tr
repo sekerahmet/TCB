@@ -454,23 +454,26 @@ TR_func _sohbet_tablosu() -> TR_List[_Sohbet] {
 
 TR_const _GENEL_SINIFLAR = ["PreTrainedTokenizer", "PreTrainedTokenizerFast"]
 
-# _aileyi_kur modele ailenin durma listesini yazar: adı dağarcıkta olmayan durma parçası H7162,
-# dosyanın bildirdiği ama listede olmayan kimlik H7163. Aile yoksa (s TR_none) model ailesizdir:
+# _aileyi_kur modele ailenin durma listesini yazar. Ailenin ilk durma adı zorunludur: dağarcıkta
+# yoksa H7162; öbür adlar dağarcıkta varsa listeye girer, yoksa atlanır (DENETİM 446 Ş1: aynı
+# etiketli eski dağarcık <|eom_id|> taşımayabilir). Dosyanın bildirdiği ama listede olmayan kimlik
+# H7163. İki ileti dosyanın yolunu yazar. Aile yoksa (s TR_none) model ailesizdir:
 # m.TR_eos_tokens() H7170 verir, dosyanın bildirdiği kimlik denetlenmez.
-TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR_List[TR_Int]?, yol: TR_String) -> TR_GPT {
+TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR_List[TR_Int]?, yol: TR_String, dosya: TR_String) -> TR_GPT {
     model.TR_config["aileler"] = [a.aile TR_for a TR_in _sohbet_tablosu()].TR_join(", ")
     TR_if s == TR_none TR_or p == TR_none { TR_return model }
-    TR_var durma: TR_List[TR_Int] = []
-    TR_for ad TR_in s.durma {
+    TR_var ilk = p.TR_token_id(s.durma[0])
+    TR_if ilk == TR_none { TR_throw TR_Message("H7162", yol, s.aile, s.durma[0], dosya) }
+    TR_var durma: TR_List[TR_Int] = [ilk]
+    TR_for ad TR_in s.durma[1..s.durma.TR_length] {
         TR_var k = p.TR_token_id(ad)
-        TR_if k == TR_none { TR_throw TR_Message("H7162", yol, s.aile, ad) }
-        durma.TR_append(k)
+        TR_if k != TR_none { durma.TR_append(k) }
     }
     TR_if bildirilen != TR_none {
         TR_for k TR_in bildirilen {
             TR_if TR_not durma.TR_contains(k) {
                 TR_var ad = TR_if k >= 0 TR_and k < p.TR_vocab_size { p.TR_decode([k], TR_special_tokens: TR_true) } TR_else { "" }
-                TR_throw TR_Message("H7163", yol, s.aile, k, ad, "\(durma)")
+                TR_throw TR_Message("H7163", yol, s.aile, k, ad, "\(durma)", dosya)
             }
         }
     }
@@ -485,21 +488,25 @@ TR_func _gguf_ailesi(model: TR_GPT, yol: TR_String, mimari: TR_String) -> TR_GPT
     TR_try { p = TR_load_tokenizer(yol) } TR_catch e {
         TR_var kod = TR_error_code { TR_throw e }
         TR_if kod != "H5650" { TR_throw e }
-        TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "gguf")
+        TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "gguf", yol)
     }
     TR_var s: _Sohbet? = TR_none
     TR_for a TR_in _sohbet_tablosu() {
-        TR_if a.mimari == mimari TR_and a.etiket == p.TR_pretokenizer_tag { s = a }
+        TR_if a.mimari == mimari TR_and a.etiket == p.TR_pretokenizer_tag {
+            s = a
+            TR_break
+        }
     }
-    TR_return _aileyi_kur(model, s, p, p.TR_declared_eos_tokens, "gguf")
+    TR_return _aileyi_kur(model, s, p, p.TR_declared_eos_tokens, "gguf", yol)
 }
 
 # _klasör_ailesi safetensors klasöründe aileyi (model_type, işaret) ile seçer; işaret
-# tokenizer_config.json'dan gelir, dosya yoksa model ailesizdir. Dosyanın bildirdiği kimlik
+# tokenizer_config.json'dan gelir, dosya yoksa model ailesizdir. Aile bulunup tokenizer.json yoksa da
+# model ailesizdir: bugün yüklenen klasör kapanmaz (DENETİM 446 Ş2). Dosyanın bildirdiği kimlik
 # generation_config.json'un, o yoksa config.json'un eos_token_id'sidir (tek sayı ya da liste).
 TR_func _klasör_ailesi(model: TR_GPT, k: TR_Path, ayar: TR_JSON) -> TR_GPT {
     TR_var yapılandırma = TR_Path(k, "tokenizer_config.json")
-    TR_if TR_not yapılandırma.TR_exists { TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "model") }
+    TR_if TR_not yapılandırma.TR_exists { TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "model", "\(k)") }
     TR_var t = TR_json_parse(TR_read_file(yapılandırma))
     TR_var sınıf = TR_String(TR_config_value(t, "tokenizer_class", ""))
     TR_var işaret = TR_if sınıf.TR_ends_with("Fast") { sınıf[0..sınıf.TR_length - 4] } TR_else { sınıf }
@@ -510,12 +517,16 @@ TR_func _klasör_ailesi(model: TR_GPT, k: TR_Path, ayar: TR_JSON) -> TR_GPT {
     TR_var mimari = TR_String(TR_config_value(ayar, "model_type", ""))
     TR_var s: _Sohbet? = TR_none
     TR_for a TR_in _sohbet_tablosu() {
-        TR_if a.mimari == mimari TR_and a.işaret == işaret { s = a }
+        TR_if a.mimari == mimari TR_and a.işaret == işaret {
+            s = a
+            TR_break
+        }
     }
-    TR_if s == TR_none { TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "model") }
+    TR_var sözlük = TR_Path(k, "tokenizer.json")
+    TR_if s == TR_none TR_or TR_not sözlük.TR_exists { TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "model", "\(k)") }
     TR_var nesil = TR_Path(k, "generation_config.json")
     TR_var kaynak = TR_if nesil.TR_exists { TR_json_parse(TR_read_file(nesil)) } TR_else { ayar }
     TR_var e = TR_config_value(kaynak, "eos_token_id", TR_none)
     TR_var bildirilen: TR_List[TR_Int]? = TR_if e == TR_none { TR_none } TR_else TR_if TR_Type(e) == TR_List { [TR_Int(x) TR_for x TR_in e] } TR_else { [TR_Int(e)] }
-    TR_return _aileyi_kur(model, s, TR_load_tokenizer(TR_Path(k, "tokenizer.json")), bildirilen, "model")
+    TR_return _aileyi_kur(model, s, TR_load_tokenizer(sözlük), bildirilen, "model", "\(k)")
 }
