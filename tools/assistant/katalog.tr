@@ -458,17 +458,24 @@ TR_func uygunluk(k: Katalog, ayar: Ayar?, toplam: TR_Int, bağlam: TR_Int) -> TR
     TR_return l
 }
 
-# öneri: `fits` ve ölçülü olanların en büyüğü (ağırlığıyla); yoksa "".
-TR_func öneri(l: TR_List[Uygunluk]) -> TR_String {
+TR_func _en_büyük(l: TR_List[Uygunluk], uyum: TR_String) -> TR_String {
     TR_var en = ""
     TR_var bayt = -1
     TR_for u TR_in l {
-        TR_if u.uyum == "fits" TR_and u.ölçülü TR_and u.ağırlık > bayt {
+        TR_if u.uyum == uyum TR_and u.ölçülü TR_and u.ağırlık > bayt {
             en = u.kimlik
             bayt = u.ağırlık
         }
     }
     TR_return en
+}
+
+# öneri: ölçülü `fits` olanların en büyüğü (ağırlığıyla); hiçbiri `fits` değilse ölçülü `tight` olanların en büyüğü;
+# hepsi `too_large` (ya da ölçüsüz) ise "" (tasarımın defteri 57). Eşikler (0,6 ve 0,85) tahmindir.
+TR_func öneri(l: TR_List[Uygunluk]) -> TR_String {
+    TR_var ö = _en_büyük(l, "fits")
+    TR_if ö == "" { ö = _en_büyük(l, "tight") }
+    TR_return ö
 }
 
 # ayar_yaz: öneriyi ayar olarak yazar: geçici adla (`<yol>.tmp`), sonra son adına taşıyarak; ortada kesilen yazma eski
@@ -507,7 +514,11 @@ TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, t
         satırlar.TR_append("UYGUNLUK \(u.kimlik) \(u.uyum) gereken_bayt=\(u.gereken) esik_bayt=\(u.eşik) olcu=\(ölçü)")
     }
     TR_var ö = öneri(l)
-    satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)" })
+    TR_var sıkı = ""
+    TR_for u TR_in l {
+        TR_if u.kimlik == ö TR_and u.uyum == "tight" { sıkı = " fit=tight" }
+    }
+    satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)\(sıkı)" })
     TR_if yaz TR_and ö != "" {
         ayar_yaz(yol, k, a, ö, toplam, bağlam)
         satırlar.TR_append("AYAR_YAZILDI \(yol)")

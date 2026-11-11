@@ -249,7 +249,22 @@ TR_test "fit'in eşikleri: gereken tam 0,6 × toplamda fits, bir bayt azında ti
     TR_var sıkı = (n * 100 + 84) // 85
     TR_assert_equal("tight", uygunluk(k, TR_none, sıkı, 8192)[0].uyum)
     TR_assert_equal("too_large", uygunluk(k, TR_none, sıkı - 1, 8192)[0].uyum)
-    TR_assert_equal("", öneri(uygunluk(k, TR_none, en_az - 1, 8192)))
+    # fits yokken tight olan önerilir; hepsi too_large iken öneri yok (tasarımın defteri 57).
+    TR_assert_equal("qwen3-4b-q4km", öneri(uygunluk(k, TR_none, en_az - 1, 8192)))
+    TR_assert_equal("", öneri(uygunluk(k, TR_none, sıkı - 1, 8192)))
+    TR_var kat = _dosya("katalog.json", _örnek_katalog())
+    TR_assert_equal("ONERILEN qwen3-4b-q4km fit=tight", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, en_az - 1, 0, TR_false)[2])
+    TR_assert_equal("ONERILEN yok", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, sıkı - 1, 0, TR_false)[2])
+}
+
+TR_test "iki noktalı ölçüde en büyük context'li ölçü alınır" {
+    TR_var tek = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var iki = katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(),
+        "[{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]",
+        "[{\"context\":45,\"private_bytes\":2600000000,\"measured_on\":\"sınama\"},{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]")))
+    TR_var küçük = küçükler(tek, TR_none)
+    TR_assert_equal(gereken(tek.girdiler[0], 8192, küçük), gereken(iki.girdiler[0], 8192, küçük))
+    TR_assert_equal(gereken(tek.girdiler[0], 4096, küçük), gereken(iki.girdiler[0], 4096, küçük))
 }
 
 TR_test "bağlamın önceliği: seçenek, ayar, 8192" {
