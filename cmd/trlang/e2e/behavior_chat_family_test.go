@@ -516,4 +516,33 @@ func TestPretrainedConfigMessages(t *testing.T) {
 		strings.Count(text, "metin_dropout/config.json") != 2 {
 		t.Errorf("H7175 anahtarı, iki türü ve config.json'un yolunu söylemeli:\n%s", text)
 	}
+	// Teslim B: kuruluşun dönüşümleri de (mantık, metin) dosyanın yoluyla; anahtarlar llamaTiny'nin config'inde yok.
+	for _, c := range []struct{ name, key, value, tr, en string }{
+		{"metin_sapma", "attention_bias", `"false"`, "Metin; Mantık", "String, the key needs type Bool"},
+		{"tam_etkinlestirme", "hidden_act", `1`, "Tam; Metin", "Int, the key needs type String"},
+		{"tam_pencere", "use_sliding_window", `0`, "Tam; Mantık", "Int, the key needs type Bool"},
+	} {
+		got = load(folder(c.name, c.key, c.value))
+		if text := strings.Join(got, "\n"); len(got) != 3 || got[0] != "H7175" ||
+			!strings.Contains(got[1], fmt.Sprintf("%q anahtarının değerinin türü %s olmalı (", c.key, c.tr)) ||
+			!strings.Contains(got[2], fmt.Sprintf("the value of %q has type %s (", c.key, c.en)) ||
+			strings.Count(text, c.name+"/config.json") != 2 {
+			t.Errorf("%s: H7175 anahtarı, iki türü ve config.json'un yolunu söylemeli:\n%s", c.key, text)
+		}
+	}
+	// RoPE tabanının tek yolu (_rope_tabanı, TCB 02:05): üst düzeydeki rope_theta metin.
+	taban := folder("metin_taban", "attention_dropout", `0`)
+	config := filepath.Join(dir, "metin_taban", "config.json")
+	data, err := os.ReadFile(config)
+	if err != nil || !strings.Contains(string(data), `"rope_theta":10000`) {
+		t.Fatalf("config.json'da rope_theta yok: %v\n%s", err, data)
+	}
+	writeBytes(t, config, []byte(strings.Replace(string(data), `"rope_theta":10000`, `"rope_theta":"10000"`, 1)))
+	got = load(taban)
+	if text := strings.Join(got, "\n"); len(got) != 3 || got[0] != "H7175" ||
+		!strings.Contains(got[1], `"rope_theta" anahtarının değerinin türü Metin; Ondalık olmalı (`) ||
+		!strings.Contains(got[2], `the value of "rope_theta" has type String, the key needs type Float (`) ||
+		strings.Count(text, "metin_taban/config.json") != 2 {
+		t.Errorf("rope_theta: H7175 anahtarı, iki türü ve config.json'un yolunu söylemeli:\n%s", text)
+	}
 }

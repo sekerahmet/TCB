@@ -1608,7 +1608,7 @@
 "H7172": { "param": ["value"], "slots": {"generate": "TR_mem_generate", "eos": "TR_arg_eos"} },
 "H7173": { "slots": {"generate": "TR_mem_generate", "eos": "TR_arg_eos", "eos_tokens": "TR_mem_eos_tokens"} },
 "H7174": { "param": ["index", "type"], "slots": {"generate": "TR_mem_generate", "eos": "TR_arg_eos", "token_id": "TR_mem_token_id", "none": "TR_kw_none", "eos_tokens": "TR_mem_eos_tokens"} },
-"H7175": { "param": ["key", "given", "expected", "file"], "slots": {"pretrained_model": "TR_fn_pretrained_model"} },
+"H7175": { "param": ["via", "key", "given", "expected", "file"], "slots": {"pretrained_model": "TR_fn_pretrained_model", "pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7200": { "param": ["error", "command", "help"] },
 "H7201": { "param": ["index", "size"] },
 "H7202": { "param": ["name"] },

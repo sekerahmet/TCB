@@ -38,8 +38,9 @@ TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "
     TR_if TR_folder.TR_lower().TR_ends_with(".gguf") { TR_throw TR_Message("H6996", TR_folder) }
     TR_var k = TR_Path(TR_folder)
     TR_var ayar = TR_json_parse(TR_read_file(TR_Path(k, "config.json")))
-    TR_if TR_String(TR_config_value(ayar, "model_type", "")) == "whisper" { TR_throw TR_Message("H7090", TR_folder) }
-    TR_var model = _kur(ayar, TR_weight_dtype, "\(TR_Path(k, "config.json"))")
+    TR_var dosya = "\(TR_Path(k, "config.json"))"
+    TR_if _metin(TR_config_value(ayar, "model_type", TR_JSON("")), "model_type", dosya) == "whisper" { TR_throw TR_Message("H7090", TR_folder) }
+    TR_var model = _kur(ayar, TR_weight_dtype, dosya)
     TR_var ağırlıklar = TR_load_tensors(TR_Path(k, "model.safetensors"))
     TR_load_parameters(model, TR_map_hugging_face(ağırlıklar, ayar))
     TR_return _klasör_ailesi(model, k, TR_JSON(ayar))
@@ -48,47 +49,26 @@ TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "
 # hazır_model_kur config.json sözlüğünden (ağırlıklar yüklenmeden) GPT'yi kurar. Ağırlıklar sıfırdır
 # (başlangıç sapması 0): rastgele ilkleme yüklemenin %40'ıydı ve değerleri yüklemeyle silinirdi.
 TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype: TR_String = "float32") -> TR_GPT {
-    TR_var mimari = TR_String(TR_config_value(TR_config, "model_type", ""))
-    TR_var y = _yapı(mimari, "model")
-    _ayar_kapısı(TR_JSON(TR_config), y, "")
-    _ayar_değerleri(TR_JSON(TR_config), "")
-    TR_if TR_Bool(TR_config_value(TR_config, "attention_bias", TR_false)) TR_or TR_Bool(TR_config_value(TR_config, "mlp_bias", TR_false)) {
-        TR_throw TR_Message("H6941", "model")
-    }
-    TR_if TR_String(TR_config_value(TR_config, "hidden_act", "silu")) != "silu" {
-        TR_throw TR_Message("H6942", "model", TR_String(TR_config_value(TR_config, "hidden_act", "")))
-    }
-    TR_if TR_has_rope_scaling(TR_config) {
-        TR_throw TR_Message("H6943", "model", "rope_scaling")
-    }
-    TR_if TR_Bool(TR_config_value(TR_config, "use_sliding_window", TR_false)) {
-        TR_throw TR_Message("H6944", "model", "use_sliding_window")
-    }
-    TR_var boyut = TR_Int(TR_config["hidden_size"])
-    TR_var bakış = TR_Int(TR_config["num_attention_heads"])
-    TR_return TR_GPT(TR_Int(TR_config["vocab_size"]), TR_context: TR_Int(TR_config_value(TR_config, "max_position_embeddings", 2048)), TR_embed_dim: boyut,
-        TR_num_layers: TR_Int(TR_config["num_hidden_layers"]), TR_num_heads: bakış,
-        TR_num_kv_heads: TR_Int(TR_config_value(TR_config, "num_key_value_heads", bakış)), TR_intermediate_dim: TR_Int(TR_config["intermediate_size"]),
-        TR_tied: TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", TR_false)), TR_eps: TR_Float(TR_config_value(TR_config, "rms_norm_eps", 0.000001)),
-        TR_qk_norm: y.qk_normu, TR_head_dim: TR_Int(TR_config_value(TR_config, "head_dim", TR_Int(boyut // bakış))),
-        TR_rope_theta: TR_rope_theta(TR_config), TR_merged_kv: TR_true, TR_merged_gate: TR_true, TR_weight_dtype: TR_weight_dtype, TR_init_std: 0.0)
+    TR_return _kur(TR_JSON(TR_config), TR_weight_dtype, "")
 }
 
 # rope_tabanı: üst düzeyde rope_theta (eski transformers) ya da rope_parameters.rope_theta (5.x);
 # ikisi de yoksa Llama'nın varsayılanı 10000.
-TR_func TR_rope_theta(TR_config) -> TR_Float {
+TR_func TR_rope_theta(TR_config) -> TR_Float { TR_return _rope_tabanı(TR_JSON(TR_config), "") }
+TR_func _rope_tabanı(TR_config: TR_JSON, dosya: TR_String) -> TR_Float {
     TR_var üst = TR_config_value(TR_config, "rope_theta", TR_none)
-    TR_if üst != TR_none { TR_return TR_Float(üst) }
+    TR_if üst != TR_none { TR_return _ondalık(üst, "rope_theta", dosya) }
     TR_var p = TR_config_value(TR_config, "rope_parameters", TR_none)
-    TR_if p != TR_none TR_and TR_config_value(p, "rope_theta", TR_none) != TR_none { TR_return TR_Float(p["rope_theta"]) }
+    TR_if p != TR_none TR_and TR_config_value(p, "rope_theta", TR_none) != TR_none { TR_return _ondalık(p["rope_theta"], "rope_parameters.rope_theta", dosya) }
     TR_return 10000.0
 }
 
-TR_func TR_has_rope_scaling(TR_config) -> TR_Bool {
+TR_func TR_has_rope_scaling(TR_config) -> TR_Bool { TR_return _rope_ölçekli(TR_JSON(TR_config), "") }
+TR_func _rope_ölçekli(TR_config: TR_JSON, dosya: TR_String) -> TR_Bool {
     TR_var ölçek = TR_config_value(TR_config, "rope_scaling", TR_none)
     TR_if ölçek != TR_none { TR_return TR_true }
     TR_var p = TR_config_value(TR_config, "rope_parameters", TR_none)
-    TR_return p != TR_none TR_and TR_String(TR_config_value(p, "rope_type", "default")) != "default"
+    TR_return p != TR_none TR_and _metin(TR_config_value(p, "rope_type", TR_JSON("default")), "rope_parameters.rope_type", dosya) != "default"
 }
 
 # hazır_gguf modeli tek GGUF dosyasından kurar (dil tanımı 15.55): boyutlar üstveriden gelir, her
@@ -99,26 +79,28 @@ TR_func TR_has_rope_scaling(TR_config) -> TR_Bool {
 # ayrılmaz; Qwen3-4B'de 16 GB olurdu [hesap]. Türev izlenmez: ağırlıklar yapraktır, türevsizdir.
 TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var üst = TR_load_metadata(yol)
-    TR_var mimari = TR_String(TR_config_value(üst, "general.architecture", ""))
+    TR_var mimari = _metin(TR_config_value(üst, "general.architecture", TR_JSON("")), "general.architecture", yol, "gguf")
     # Kapıların sırası (15.55): mimari (H6940), bilinmeyen anahtar (H7160), değerler, tensörler.
     TR_var y = _yapı(mimari, "gguf")
     _gguf_anahtar_kapısı(üst, y, yol)
-    _gguf_kapıları(üst, mimari)
-    TR_var boyut = TR_Int(_gguf_gerekli(üst, "\(mimari).embedding_length"))
-    TR_var bakış = TR_Int(_gguf_gerekli(üst, "\(mimari).attention.head_count"))
-    TR_var kv = TR_Int(TR_config_value(üst, "\(mimari).attention.head_count_kv", bakış))
-    TR_var bb = TR_Int(TR_config_value(üst, "\(mimari).attention.key_length", TR_Int(boyut // bakış)))
+    _gguf_kapıları(üst, mimari, yol)
+    TR_var boyut = _gguf_tam(üst, "\(mimari).embedding_length", TR_none, yol)
+    TR_var bakış = _gguf_tam(üst, "\(mimari).attention.head_count", TR_none, yol)
+    TR_var kv = _gguf_tam(üst, "\(mimari).attention.head_count_kv", TR_JSON(bakış), yol)
+    TR_var bb = _gguf_tam(üst, "\(mimari).attention.key_length", TR_JSON(boyut // bakış), yol)
     # RoPE bütün bakış boyutuna uygulanır: dosya daha azını isterse model hatasız kurulur, yanlış metin üretir.
     TR_var dönen = "\(mimari).rope.dimension_count"
-    TR_if TR_Int(TR_config_value(üst, dönen, bb)) != bb { TR_throw TR_Message("H6943", "gguf", dönen) }
-    TR_var ara = TR_Int(_gguf_gerekli(üst, "\(mimari).feed_forward_length"))
-    TR_var eps = TR_Float(_gguf_gerekli(üst, "\(mimari).attention.layer_norm_rms_epsilon"))
-    TR_var katman = TR_Int(_gguf_gerekli(üst, "\(mimari).block_count"))
+    TR_if _gguf_tam(üst, dönen, TR_JSON(bb), yol) != bb { TR_throw TR_Message("H6943", "gguf", dönen) }
+    TR_var ara = _gguf_tam(üst, "\(mimari).feed_forward_length", TR_none, yol)
+    TR_var eps_anahtarı = "\(mimari).attention.layer_norm_rms_epsilon"
+    TR_var eps = _ondalık(_gguf_gerekli(üst, eps_anahtarı), eps_anahtarı, yol, "gguf")
+    TR_var katman = _gguf_tam(üst, "\(mimari).block_count", TR_none, yol)
     TR_var tensörler = TR_load_tensors(yol)
-    TR_var dağarcık = TR_Int(TR_config_value(üst, "\(mimari).vocab_size", _gguf_tensör(tensörler, "token_embd.weight").TR_shape[0]))
+    TR_var dağarcık = _gguf_tam(üst, "\(mimari).vocab_size", TR_JSON(_gguf_tensör(tensörler, "token_embd.weight").TR_shape[0]), yol)
     TR_var alınan: TR_Dict[TR_String, TR_Bool] = {}
-    TR_var bağlam = TR_Int(TR_config_value(üst, "\(mimari).context_length", 2048))
-    TR_var taban = TR_Float(TR_config_value(üst, "\(mimari).rope.freq_base", 10000.0))
+    TR_var bağlam = _gguf_tam(üst, "\(mimari).context_length", TR_JSON(2048), yol)
+    TR_var taban_anahtarı = "\(mimari).rope.freq_base"
+    TR_var taban = _ondalık(TR_config_value(üst, taban_anahtarı, TR_JSON(10000.0)), taban_anahtarı, yol, "gguf")
     TR_var model = TR_GPT(1, TR_context: bağlam, TR_embed_dim: 2, TR_num_layers: 1,
         TR_num_heads: bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_tied: TR_true, TR_eps: eps, TR_qk_norm: y.qk_normu,
         TR_head_dim: bb, TR_rope_theta: taban, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_init_std: 0.0)
@@ -144,6 +126,13 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_return _gguf_ailesi(model, yol, mimari)
 }
 
+# _gguf_tam üstverinin tam sayısını verir: yedek TR_none ise anahtar zorunludur (H6699); yanlış türde
+# H7175 dosyanın yoluyla (15.55).
+TR_func _gguf_tam(üst: TR_JSON, anahtar: TR_String, yedek: TR_JSON?, yol: TR_String) -> TR_Int {
+    TR_var v = TR_if yedek == TR_none { _gguf_gerekli(üst, anahtar) } TR_else { TR_config_value(üst, anahtar, yedek) }
+    TR_return _tam(v, anahtar, yol, "gguf")
+}
+
 # _gguf_gerekli üstverinin zorunlu anahtarını verir.
 TR_func _gguf_gerekli(üst: TR_JSON, anahtar: TR_String) -> TR_JSON {
     TR_var v = TR_config_value(üst, anahtar, TR_none)
@@ -155,16 +144,16 @@ TR_func _gguf_gerekli(üst: TR_JSON, anahtar: TR_String) -> TR_JSON {
 # geçmezler. RoPE ölçeği uygulanmazsa model hatasız yüklenir, yanlış metin üretir. Bulunan anahtar
 # iletide yazılır; llama.cpp'de ölçek 0 ve 1 etkisizdir. Bağlam yoksa 2048'dir; 0 ve eksi, tabloyu
 # boş kurar, hata uzaktaki bir çarpımda çıkardı.
-TR_func _gguf_kapıları(üst: TR_JSON, mimari: TR_String) {
+TR_func _gguf_kapıları(üst: TR_JSON, mimari: TR_String, yol: TR_String) {
     TR_var uzunluk = "\(mimari).context_length"
-    TR_var bağlam = TR_Int(TR_config_value(üst, uzunluk, 2048))
+    TR_var bağlam = _gguf_tam(üst, uzunluk, TR_JSON(2048), yol)
     TR_if bağlam < 1 { TR_throw TR_Message("H7155", uzunluk, bağlam) }
     TR_var pencere = "\(mimari).attention.sliding_window"
     TR_if TR_config_value(üst, pencere, TR_none) != TR_none { TR_throw TR_Message("H6944", "gguf", pencere) }
     TR_var çeşit = "\(mimari).rope.scaling.type"
-    TR_if TR_String(TR_config_value(üst, çeşit, "none")) != "none" { TR_throw TR_Message("H6943", "gguf", çeşit) }
+    TR_if _metin(TR_config_value(üst, çeşit, TR_JSON("none")), çeşit, yol, "gguf") != "none" { TR_throw TR_Message("H6943", "gguf", çeşit) }
     TR_for anahtar TR_in ["\(mimari).rope.scaling.factor", "\(mimari).rope.scale_linear"] {
-        TR_var ölçek = TR_Float(TR_config_value(üst, anahtar, 1.0))
+        TR_var ölçek = _ondalık(TR_config_value(üst, anahtar, TR_JSON(1.0)), anahtar, yol, "gguf")
         TR_if ölçek != 0.0 TR_and ölçek != 1.0 { TR_throw TR_Message("H6943", "gguf", anahtar) }
     }
 }
@@ -368,31 +357,54 @@ TR_func _ayar_değerleri(TR_config: TR_JSON, dosya: TR_String) {
 # Ayar değerinin dönüşümleri (15.55): değer beklenen JSON türünde değilse yükleme hatasıdır (H7175):
 # ileti anahtarı (alt anahtarda yolu), değerin türünü, beklenen türü ve dosyayı söyler. TR değeri
 # çevirmez: "0"'ı 0.0 saymak sessiz bir yanlış olabilirdi; türü düzeltmek modeli değiştirmez.
-TR_func _tür_hatası(v: TR_JSON, beklenen: TR_Type, anahtar: TR_String, dosya: TR_String) -> TR_Message { TR_return TR_Message("H7175", anahtar, TR_Type(v), beklenen, dosya) }
-TR_func _ondalık(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_Float {
-    TR_try { TR_return TR_Float(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Float, anahtar, dosya) }
+# kaynak "model" (config) ya da "gguf": GGUF'ta değer üstveridedir, ileti başka bir dönüştürmeyi önerir.
+TR_func _tür_hatası(v: TR_JSON, beklenen: TR_Type, anahtar: TR_String, dosya: TR_String, kaynak: TR_String) -> TR_Message {
+    TR_return TR_Message("H7175", kaynak, anahtar, TR_Type(v), beklenen, dosya)
 }
-TR_func _tam(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_Int {
-    TR_try { TR_return TR_Int(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Int, anahtar, dosya) }
+TR_func _ondalık(v: TR_JSON, anahtar: TR_String, dosya: TR_String, kaynak: TR_String = "model") -> TR_Float {
+    TR_try { TR_return TR_Float(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Float, anahtar, dosya, kaynak) }
+}
+TR_func _tam(v: TR_JSON, anahtar: TR_String, dosya: TR_String, kaynak: TR_String = "model") -> TR_Int {
+    TR_try { TR_return TR_Int(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Int, anahtar, dosya, kaynak) }
 }
 TR_func _mantık(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_Bool {
-    TR_try { TR_return TR_Bool(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Bool, anahtar, dosya) }
+    TR_try { TR_return TR_Bool(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Bool, anahtar, dosya, "model") }
 }
-TR_func _metin(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_String {
-    TR_try { TR_return TR_String(v) } TR_catch e { TR_throw _tür_hatası(v, TR_String, anahtar, dosya) }
+TR_func _metin(v: TR_JSON, anahtar: TR_String, dosya: TR_String, kaynak: TR_String = "model") -> TR_String {
+    TR_try { TR_return TR_String(v) } TR_catch e { TR_throw _tür_hatası(v, TR_String, anahtar, dosya, kaynak) }
 }
 TR_func _anahtarlar(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_List[TR_String] {
-    TR_try { TR_return v.TR_keys() } TR_catch e { TR_throw _tür_hatası(v, TR_Dict, anahtar, dosya) }
+    TR_try { TR_return v.TR_keys() } TR_catch e { TR_throw _tür_hatası(v, TR_Dict, anahtar, dosya, "model") }
 }
 TR_func _öğeler(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_List[TR_JSON] {
-    TR_try { TR_return [x TR_for x TR_in v] } TR_catch e { TR_throw _tür_hatası(v, TR_List, anahtar, dosya) }
+    TR_try { TR_return [x TR_for x TR_in v] } TR_catch e { TR_throw _tür_hatası(v, TR_List, anahtar, dosya, "model") }
 }
 
-# _kur hazır_model'in kuruluşudur: anahtar kapısı ve değerlerin türü config.json'un yoluyla, sonra hazır_model_kur.
+# _kur hazır_model'in ve hazır_model_kur'un kuruluşudur: anahtar kapısı, değerlerin türü ve kapılar; her
+# dönüşüm yanlış türde H7175 verir, ileti config.json'un yolunu söyler (sözlükten kuruluşta dosya boş).
 TR_func _kur(ayar: TR_JSON, tür: TR_String, dosya: TR_String) -> TR_GPT {
-    _ayar_kapısı(ayar, _yapı(TR_String(TR_config_value(ayar, "model_type", "")), "model"), dosya)
+    TR_var y = _yapı(_metin(TR_config_value(ayar, "model_type", TR_JSON("")), "model_type", dosya), "model")
+    _ayar_kapısı(ayar, y, dosya)
     _ayar_değerleri(ayar, dosya)
-    TR_return TR_build_pretrained_model(ayar, TR_weight_dtype: tür)
+    TR_var yok = TR_JSON(TR_false)
+    TR_if _mantık(TR_config_value(ayar, "attention_bias", yok), "attention_bias", dosya) TR_or _mantık(TR_config_value(ayar, "mlp_bias", yok), "mlp_bias", dosya) {
+        TR_throw TR_Message("H6941", "model")
+    }
+    TR_var etkinleştirme = _metin(TR_config_value(ayar, "hidden_act", TR_JSON("silu")), "hidden_act", dosya)
+    TR_if etkinleştirme != "silu" { TR_throw TR_Message("H6942", "model", etkinleştirme) }
+    TR_if _rope_ölçekli(ayar, dosya) { TR_throw TR_Message("H6943", "model", "rope_scaling") }
+    TR_if _mantık(TR_config_value(ayar, "use_sliding_window", yok), "use_sliding_window", dosya) { TR_throw TR_Message("H6944", "model", "use_sliding_window") }
+    TR_var boyut = _tam(ayar["hidden_size"], "hidden_size", dosya)
+    TR_var bakış = _tam(ayar["num_attention_heads"], "num_attention_heads", dosya)
+    TR_return TR_GPT(_tam(ayar["vocab_size"], "vocab_size", dosya),
+        TR_context: _tam(TR_config_value(ayar, "max_position_embeddings", TR_JSON(2048)), "max_position_embeddings", dosya), TR_embed_dim: boyut,
+        TR_num_layers: _tam(ayar["num_hidden_layers"], "num_hidden_layers", dosya), TR_num_heads: bakış,
+        TR_num_kv_heads: _tam(TR_config_value(ayar, "num_key_value_heads", TR_JSON(bakış)), "num_key_value_heads", dosya),
+        TR_intermediate_dim: _tam(ayar["intermediate_size"], "intermediate_size", dosya),
+        TR_tied: _mantık(TR_config_value(ayar, "tie_word_embeddings", yok), "tie_word_embeddings", dosya),
+        TR_eps: _ondalık(TR_config_value(ayar, "rms_norm_eps", TR_JSON(0.000001)), "rms_norm_eps", dosya),
+        TR_qk_norm: y.qk_normu, TR_head_dim: _tam(TR_config_value(ayar, "head_dim", TR_JSON(boyut // bakış)), "head_dim", dosya),
+        TR_rope_theta: _rope_tabanı(ayar, dosya), TR_merged_kv: TR_true, TR_merged_gate: TR_true, TR_weight_dtype: tür, TR_init_std: 0.0)
 }
 
 # Sohbet tanımı (15.55, "Sohbet tanımının seçimi"): aile kimliği, mimari, GGUF'un ön bölme etiketi,
