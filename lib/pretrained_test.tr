@@ -118,7 +118,7 @@ TR_test "yapı tanımı: değeri denetlenen anahtarlar (H7171, layer_types H6944
         TR_var b = qwen3_ayarı()
         b[k] = v
         TR_assert_equal("H7171", TR_error_code { TR_build_pretrained_model(b) }, k)
-        TR_assert(kur_iletisi(TR_JSON(b)).TR_contains(k), k)
+        TR_assert_equal("Message(\"H7171\", \"\(k)\", \"\(v)\")", kur_iletisi(TR_JSON(b)), k)
     }
     a["layer_types"] = ["sliding_attention"]
     TR_assert_equal("H6944", TR_error_code { TR_build_pretrained_model(a) })

@@ -421,10 +421,10 @@ TR_func _ayar_değerleri(TR_config: TR_JSON) {
         TR_if TR_String(tür) != "full_attention" { TR_throw TR_Message("H6944", "model", "layer_types") }
     }
     TR_var bırakma = TR_Float(TR_config_value(TR_config, "attention_dropout", 0.0))
-    TR_if bırakma != 0.0 { TR_throw TR_Message("H7171", "attention_dropout", "\(bırakma)", "0.0") }
+    TR_if bırakma != 0.0 { TR_throw TR_Message("H7171", "attention_dropout", "\(bırakma)") }
     TR_var tp = TR_Int(TR_config_value(TR_config, "pretraining_tp", 1))
-    TR_if tp != 1 { TR_throw TR_Message("H7171", "pretraining_tp", "\(tp)", "1") }
-    TR_if TR_Bool(TR_config_value(TR_config, "rope_interleaved", TR_false)) { TR_throw TR_Message("H7171", "rope_interleaved", "true", "false") }
+    TR_if tp != 1 { TR_throw TR_Message("H7171", "pretraining_tp", "\(tp)") }
+    TR_if TR_Bool(TR_config_value(TR_config, "rope_interleaved", TR_false)) { TR_throw TR_Message("H7171", "rope_interleaved", "true") }
 }
 
 # _kur hazır_model'in kuruluşudur: anahtar kapısı config.json'un yoluyla (iletide yazılır), sonra
