@@ -262,17 +262,27 @@ func TestGenerateEosMethodWithoutParentheses(t *testing.T) {
 // TestGenerateEosItemsAreInts: TR_eos:'un her öğesi Tam'dır; Tam olmayan öğe (dağarcıkta olmayan
 // adın p.TR_token_id'sinin TR_none'ı, metin) ve liste olmayan TR_eos: TR_none H7174'tür; ileti
 // öğenin sırasını ve türünü, kimliğin p.TR_token_id(...) ile alındığını söyler (DENETİM 446 N2).
+// Tür iletiye kimliğiyle girer, her dilde kendi görünüm adıyla yazılır: Türkçede YokTipi ve Metin,
+// İngilizcede NoneType ve String; düz metin olarak sızmaz (TCB 2026-11-11, kapanış öncesi).
 func TestGenerateEosItemsAreInts(t *testing.T) {
 	dir := t.TempDir()
 	load := "TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 2)"
-	for _, c := range []struct{ eos, want string }{
-		{"[1, TR_none]", "2. öğe"},
-		{`["a"]`, "1. öğe"},
-		{"TR_none", "liste değil"},
+	for _, c := range []struct{ eos, tr, en string }{
+		{"[1, TR_none]", "2. öğe YokTipi, Tam değil", "item 2 is a NoneType, not an Int"},
+		{`["a"]`, "1. öğe Metin, Tam değil", "item 1 is a String, not an Int"},
+		{"TR_none", "liste değil, YokTipi verildi", "a NoneType was given, not a list"},
 	} {
-		got := runFamily(t, dir, load, "TR_print(TR_error_code { m.TR_generate([1], 2, TR_temperature: 0, TR_eos: "+c.eos+") })\nm.TR_generate([1], 2, TR_temperature: 0, TR_eos: "+c.eos+")")
-		if !strings.HasPrefix(got, "H7174") || !strings.Contains(got, c.want) || !strings.Contains(got, "`p.TR_token_id(\"...\")`") {
-			t.Errorf("TR_eos: %s:\n%s", c.eos, got)
+		got := runFamily(t, dir, load, "TR_try { m.TR_generate([1], 2, TR_temperature: 0, TR_eos: "+c.eos+") } TR_catch e {\n"+
+			"    TR_print(e.TR_code)\n    TR_print(e.TR_text(\"tr\"))\n    TR_print(e.TR_text(\"en\"))\n}")
+		lines := strings.Split(got, "\n")
+		if len(lines) != 3 || lines[0] != "H7174" {
+			t.Fatalf("TR_eos: %s:\n%s", c.eos, got)
+		}
+		if !strings.Contains(lines[1], c.tr) || strings.Contains(lines[1], "NoneType") || !strings.Contains(lines[1], "`p.TR_token_id(\"...\")`") {
+			t.Errorf("TR_eos: %s, Türkçe ileti:\n%s", c.eos, lines[1])
+		}
+		if !strings.Contains(lines[2], c.en) || !strings.Contains(lines[2], "`p.TR_token_id(\"...\")`") {
+			t.Errorf("TR_eos: %s, İngilizce ileti:\n%s", c.eos, lines[2])
 		}
 	}
 }
