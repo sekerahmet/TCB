@@ -46,7 +46,7 @@ TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "
     TR_var k = TR_Path(TR_folder)
     TR_var ayar = TR_json_parse(TR_read_file(TR_Path(k, "config.json")))
     TR_if TR_String(TR_config_value(ayar, "model_type", "")) == "whisper" { TR_throw TR_Message("H7090", TR_folder) }
-    TR_var model = TR_build_pretrained_model(ayar, TR_weight_dtype: TR_weight_dtype)
+    TR_var model = _kur(ayar, TR_weight_dtype, "\(TR_Path(k, "config.json"))")
     TR_var ağırlıklar = TR_load_tensors(TR_Path(k, "model.safetensors"))
     TR_load_parameters(model, TR_map_hugging_face(ağırlıklar, ayar))
     TR_return model
@@ -56,9 +56,9 @@ TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "
 # (başlangıç sapması 0): rastgele ilkleme yüklemenin %40'ıydı ve değerleri yüklemeyle silinirdi.
 TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype: TR_String = "float32") -> TR_GPT {
     TR_var mimari = TR_String(TR_config_value(TR_config, "model_type", ""))
-    TR_if TR_not TR_SUPPORTED_ARCHITECTURES.TR_contains(mimari) {
-        TR_throw TR_Message("H6940", "model", mimari, TR_SUPPORTED_ARCHITECTURES)
-    }
+    TR_var y = _yapı(mimari, "model")
+    _ayar_kapısı(TR_JSON(TR_config), y, "")
+    _ayar_değerleri(TR_JSON(TR_config))
     TR_if TR_Bool(TR_config_value(TR_config, "attention_bias", TR_false)) TR_or TR_Bool(TR_config_value(TR_config, "mlp_bias", TR_false)) {
         TR_throw TR_Message("H6941", "model")
     }
@@ -77,7 +77,7 @@ TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype: TR_String = "float
         TR_num_layers: TR_Int(TR_config["num_hidden_layers"]), TR_num_heads: bakış,
         TR_num_kv_heads: TR_Int(TR_config_value(TR_config, "num_key_value_heads", bakış)), TR_intermediate_dim: TR_Int(TR_config["intermediate_size"]),
         TR_tied: TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", TR_false)), TR_eps: TR_Float(TR_config_value(TR_config, "rms_norm_eps", 0.000001)),
-        TR_qk_norm: mimari == "qwen3", TR_head_dim: TR_Int(TR_config_value(TR_config, "head_dim", TR_Int(boyut // bakış))),
+        TR_qk_norm: y.qk_normu, TR_head_dim: TR_Int(TR_config_value(TR_config, "head_dim", TR_Int(boyut // bakış))),
         TR_rope_theta: TR_rope_theta(TR_config), TR_merged_kv: TR_true, TR_merged_gate: TR_true, TR_weight_dtype: TR_weight_dtype, TR_init_std: 0.0)
 }
 
@@ -163,9 +163,9 @@ TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config
 TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var üst = TR_load_metadata(yol)
     TR_var mimari = TR_String(TR_config_value(üst, "general.architecture", ""))
-    TR_if TR_not TR_SUPPORTED_ARCHITECTURES.TR_contains(mimari) {
-        TR_throw TR_Message("H6940", "gguf", mimari, TR_SUPPORTED_ARCHITECTURES)
-    }
+    # Kapıların sırası (15.55): mimari (H6940), bilinmeyen anahtar (H7160), değerler, tensörler.
+    TR_var y = _yapı(mimari, "gguf")
+    _gguf_anahtar_kapısı(üst, y, yol)
     _gguf_kapıları(üst, mimari)
     TR_var boyut = TR_Int(_gguf_gerekli(üst, "\(mimari).embedding_length"))
     TR_var bakış = TR_Int(_gguf_gerekli(üst, "\(mimari).attention.head_count"))
@@ -183,9 +183,9 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var bağlam = TR_Int(TR_config_value(üst, "\(mimari).context_length", 2048))
     TR_var taban = TR_Float(TR_config_value(üst, "\(mimari).rope.freq_base", 10000.0))
     TR_var model = TR_GPT(1, TR_context: bağlam, TR_embed_dim: 2, TR_num_layers: 1,
-        TR_num_heads: bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_tied: TR_true, TR_eps: eps, TR_qk_norm: mimari == "qwen3",
+        TR_num_heads: bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_tied: TR_true, TR_eps: eps, TR_qk_norm: y.qk_normu,
         TR_head_dim: bb, TR_rope_theta: taban, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_init_std: 0.0)
-    TR_if mimari == "llama" TR_and tensörler.TR_contains("rope_freqs.weight") {
+    TR_if y.rope_bölenleri TR_and tensörler.TR_contains("rope_freqs.weight") {
         _gguf_rope_bölenleri(model, _gguf_al(tensörler, alınan, "rope_freqs.weight", [bb // 2]), bağlam, bb, taban)
     }
     model.TR_embedding.TR_table = _gguf_al(tensörler, alınan, "token_embd.weight", [dağarcık, boyut])
@@ -195,7 +195,7 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
         model.TR_logit_layer = TR_Linear(1, 1, TR_init_std: 0.0)
         model.TR_logit_layer.TR_weight = _gguf_al(tensörler, alınan, "output.weight", [dağarcık, boyut]).TR_transpose()
     }
-    model.TR_blocks = [_gguf_blok(tensörler, alınan, mimari, [boyut, bakış, kv, bb, ara], eps, i) TR_for i TR_in 0..katman]
+    model.TR_blocks = [_gguf_blok(tensörler, alınan, y, [boyut, bakış, kv, bb, ara], eps, i) TR_for i TR_in 0..katman]
     TR_for ad, t TR_in tensörler {
         TR_if TR_not alınan.TR_contains(ad) { TR_throw TR_Message("H6945", "gguf", ad) }
     }
@@ -287,7 +287,7 @@ TR_func _gguf_satır_sırası(bakış: TR_Int, bakış_boyutu: TR_Int) -> TR_Ten
 TR_func _gguf_doğrusal(k: TR_Linear, t: TR_Tensor) { k.TR_weight = t.TR_transpose() }
 
 # _gguf_blok N. bloğu dosyanın tensörleriyle kurar. boyutlar: [boyut, bakış, kv, bakış boyutu, ara].
-TR_func _gguf_blok(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_String, TR_Bool], mimari: TR_String, boyutlar: TR_List[TR_Int], eps: TR_Float, i: TR_Int) -> TR_TransformerBlock {
+TR_func _gguf_blok(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_String, TR_Bool], y: _Yapı, boyutlar: TR_List[TR_Int], eps: TR_Float, i: TR_Int) -> TR_TransformerBlock {
     TR_var boyut = boyutlar[0]
     TR_var bakış = boyutlar[1]
     TR_var kv = boyutlar[2]
@@ -295,13 +295,12 @@ TR_func _gguf_blok(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[T
     TR_var ara = boyutlar[4]
     TR_var q_boy = bakış * bb
     TR_var kv_boy = kv * bb
-    TR_var qwen3 = mimari == "qwen3"
     TR_var b = TR_TransformerBlock(2, bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_init_std: 0.0, TR_output_init_std: 0.0,
-        TR_eps: eps, TR_qk_norm: qwen3, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_head_dim: bb)
+        TR_eps: eps, TR_qk_norm: y.qk_normu, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_head_dim: bb)
     TR_var ön = "blk.\(i)."
     TR_var q = _gguf_al(tensörler, alınan, ön + "attn_q.weight", [q_boy, boyut])
     TR_var k = _gguf_al(tensörler, alınan, ön + "attn_k.weight", [kv_boy, boyut])
-    TR_if mimari == "llama" {
+    TR_if y.gguf_satır_sırası {
         q = q[_gguf_satır_sırası(bakış, bb)]
         k = k[_gguf_satır_sırası(kv, bb)]
     }
@@ -310,7 +309,7 @@ TR_func _gguf_blok(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[T
     _gguf_doğrusal(dikkat.TR_k_proj, k)
     _gguf_doğrusal(dikkat.TR_v_proj, _gguf_al(tensörler, alınan, ön + "attn_v.weight", [kv_boy, boyut]))
     _gguf_doğrusal(dikkat.TR_o_proj, _gguf_al(tensörler, alınan, ön + "attn_output.weight", [boyut, q_boy]))
-    TR_if qwen3 {
+    TR_if y.qk_normu {
         dikkat.TR_q_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "attn_q_norm.weight", [bb])
         dikkat.TR_k_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "attn_k_norm.weight", [bb])
     }
@@ -321,4 +320,116 @@ TR_func _gguf_blok(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[T
     b.TR_input_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "attn_norm.weight", [boyut])
     b.TR_post_attention_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "ffn_norm.weight", [boyut])
     TR_return b
+}
+
+# Yapı tanımı (15.55): mimariyle seçilir (config.json'un model_type'ı, GGUF'un general.architecture'ı);
+# modelin bilinen anahtarlarını ve kuruluş seçeneklerini verir. Tanımda olmayan anahtar yükleme
+# hatasıdır (H7160): okunmayan bir anahtar hesabı değiştirebilir, model hatasız yüklenip yanlış metin
+# üretirdi. Sohbet tanımı (durma adları, sohbet biçimi) ayrı bir tablodur.
+TR_struct _Yapı {
+    mimari: TR_String
+    ayar: TR_List[TR_String] # config.json'un bilinen üst düzey anahtarları
+    alt: TR_Dict[TR_String, TR_List[TR_String]] # sözlük değerli anahtarların bilinen alt anahtarları
+    gguf: TR_List[TR_String] # GGUF'ta "<mimari>." önekinden sonraki bilinen adlar
+    qk_normu: TR_Bool # q ve k bakış boyutunda RMS normundan geçer (qwen3)
+    gguf_satır_sırası: TR_Bool # dönüştürücü attn_q ile attn_k'nın satırlarını dizmiştir (llama)
+    rope_bölenleri: TR_Bool # GGUF'un rope_freqs.weight tensörü okunur (llama)
+}
+
+# Okunan config anahtarları (hazır_model_kur ve hugging_face_eşle).
+TR_const _AYAR_OKUNUR = ["model_type", "vocab_size", "hidden_size", "intermediate_size", "num_hidden_layers", "num_attention_heads",
+    "num_key_value_heads", "head_dim", "max_position_embeddings", "rms_norm_eps", "rope_theta", "rope_parameters", "tie_word_embeddings"]
+# Değeri denetlenen anahtarlar: desteklenmeyen değer hatadır (H6941–H6944, H7171).
+TR_const _AYAR_DENETLENİR = ["attention_bias", "mlp_bias", "hidden_act", "use_sliding_window", "rope_scaling", "attention_dropout",
+    "pretraining_tp", "rope_interleaved"]
+# Etkisiz anahtarlar: değeri değişince logitler bit bit aynıdır. architectures, _name_or_path ve
+# transformers_version kaydı anlatır; torch_dtype ve dtype transformers'ın yükleme türüdür (TR türü
+# safetensors başlığından alır, ayrıca TR_weight_dtype:); use_cache transformers'ın üretim seçeneğidir;
+# initializer_range yalnız sıfırdan ilklemededir; pad_token_id ve bos_token_id'yi parçalayıcı ya da
+# sohbet biçimi koyar, model değil; is_llama_config, unsloth_fixed ve transformers.js_config dışa
+# aktaran aracın işaretidir. eos_token_id durma kimliğinin kaynağıdır, modelin hesabına girmez.
+TR_const _AYAR_ETKİSİZ = ["architectures", "_name_or_path", "torch_dtype", "dtype", "transformers_version", "use_cache",
+    "initializer_range", "pad_token_id", "bos_token_id", "is_llama_config", "unsloth_fixed", "transformers.js_config", "eos_token_id"]
+# RoPE ölçeğinin alt anahtarları; ölçek desteklenmez (H6943), ama anahtarı bilinir: ileti ölçeği söyler.
+TR_const _ÖLÇEK_ALT = ["rope_type", "type", "factor", "low_freq_factor", "high_freq_factor", "original_max_position_embeddings"]
+# GGUF'un "<mimari>." anahtarları: okunanlar ve değeri denetlenenler (_gguf_kapıları; value_length
+# V ağırlığının şekliyle denetlenir, H6698).
+TR_const _GGUF_ANAHTARLARI = ["block_count", "embedding_length", "feed_forward_length", "attention.head_count", "attention.head_count_kv",
+    "attention.key_length", "attention.value_length", "attention.layer_norm_rms_epsilon", "context_length", "rope.freq_base", "vocab_size",
+    "rope.dimension_count", "rope.scaling.type", "rope.scaling.factor", "rope.scale_linear", "rope.scaling.original_context_length",
+    "attention.sliding_window"]
+# GGUF'un kapıya girmeyen önekleri: üstveri, parçalayıcı (16.1), bölünmüş dosya ve nicemleme kaydı.
+TR_const _GGUF_SERBEST = ["general", "tokenizer", "split", "quantize"]
+
+# _yapı mimarinin yapı tanımını verir; tabloda olmayan mimari H6940'tır (yol: "gguf" ya da "model").
+TR_func _yapı(mimari: TR_String, yol: TR_String) -> _Yapı {
+    TR_var ayar = _AYAR_OKUNUR + _AYAR_DENETLENİR + _AYAR_ETKİSİZ
+    TR_var alt = {"rope_scaling": _ÖLÇEK_ALT, "rope_parameters": ["rope_theta"] + _ÖLÇEK_ALT}
+    TR_if mimari == "llama" {
+        TR_return _Yapı(mimari: mimari, ayar: ayar, alt: alt, gguf: _GGUF_ANAHTARLARI, qk_normu: TR_false, gguf_satır_sırası: TR_true, rope_bölenleri: TR_true)
+    }
+    TR_if mimari == "qwen3" {
+        # sliding_window ve max_window_layers yalnız use_sliding_window doğruyken okunur, o da H6944'tür;
+        # layer_types (transformers 5) katman başına dikkat türüdür, yalnız "full_attention" desteklenir.
+        TR_return _Yapı(mimari: mimari, ayar: ayar + ["sliding_window", "max_window_layers", "layer_types"], alt: alt, gguf: _GGUF_ANAHTARLARI,
+            qk_normu: TR_true, gguf_satır_sırası: TR_false, rope_bölenleri: TR_false)
+    }
+    TR_throw TR_Message("H6940", yol, mimari, TR_SUPPORTED_ARCHITECTURES)
+}
+
+# _ayar_kapısı config.json'un tanımda olmayan anahtarlarını (alt anahtarlar dahil) hepsiyle birlikte
+# söyler (H7160) ve bir ayarın iki yolu ayrı değer verirse durur (H7161). dosya iletide yazılır ("" yazılmaz).
+TR_func _ayar_kapısı(TR_config: TR_JSON, y: _Yapı, dosya: TR_String) {
+    TR_var bilinmeyen: TR_List[TR_String] = []
+    TR_for anahtar TR_in TR_config.TR_keys() {
+        TR_var ad = TR_String(anahtar)
+        TR_if TR_not y.ayar.TR_contains(ad) {
+            bilinmeyen.TR_append(ad)
+        } TR_else TR_if y.alt.TR_contains(ad) TR_and TR_config_value(TR_config, ad, TR_none) != TR_none {
+            TR_for a TR_in TR_config[ad].TR_keys() {
+                TR_if TR_not y.alt[ad].TR_contains(TR_String(a)) { bilinmeyen.TR_append("\(ad).\(a)") }
+            }
+        }
+    }
+    TR_if bilinmeyen.TR_length > 0 { TR_throw TR_Message("H7160", "model", y.mimari, dosya, bilinmeyen.TR_length, bilinmeyen.TR_join(", ")) }
+    TR_var üst = TR_config_value(TR_config, "rope_theta", TR_none)
+    TR_var p = TR_config_value(TR_config, "rope_parameters", TR_none)
+    TR_if üst != TR_none TR_and p != TR_none TR_and TR_config_value(p, "rope_theta", TR_none) != TR_none {
+        TR_if TR_Float(üst) != TR_Float(p["rope_theta"]) {
+            TR_throw TR_Message("H7161", "model", "rope_theta", "rope_parameters.rope_theta", TR_Float(üst), TR_Float(p["rope_theta"]))
+        }
+    }
+}
+
+# _gguf_anahtar_kapısı dört serbest önekin dışındaki her GGUF anahtarına bakar: "<mimari>." ile başlayıp
+# tanımda olmayan, başka bir mimarinin öneki (qwen3 dosyasında llama.) ve yeni bir önek H7160'tır.
+TR_func _gguf_anahtar_kapısı(üst: TR_JSON, y: _Yapı, yol: TR_String) {
+    TR_var bilinen = y.gguf.TR_map((s) => "\(y.mimari).\(s)")
+    TR_var bilinmeyen: TR_List[TR_String] = []
+    TR_for anahtar TR_in üst.TR_keys() {
+        TR_var ad = TR_String(anahtar)
+        TR_if TR_not _GGUF_SERBEST.TR_contains(ad.TR_split(".")[0]) TR_and TR_not bilinen.TR_contains(ad) { bilinmeyen.TR_append(ad) }
+    }
+    TR_if bilinmeyen.TR_length > 0 { TR_throw TR_Message("H7160", "gguf", y.mimari, yol, bilinmeyen.TR_length, bilinmeyen.TR_join(", ")) }
+}
+
+# _ayar_değerleri transformers'ta hesabı değiştiren ama TR'nin uygulamadığı üç ayarın değerini
+# denetler: dikkat bırakması (eğitimde), bölünmüş doğrusal katman (pretraining_tp) ve iç içe RoPE;
+# qwen3'ün layer_types'ı (transformers 5) katman başına dikkat türüdür, yalnız "full_attention" desteklenir.
+TR_func _ayar_değerleri(TR_config: TR_JSON) {
+    TR_for tür TR_in TR_config_value(TR_config, "layer_types", []) {
+        TR_if TR_String(tür) != "full_attention" { TR_throw TR_Message("H6944", "model", "layer_types") }
+    }
+    TR_var bırakma = TR_Float(TR_config_value(TR_config, "attention_dropout", 0.0))
+    TR_if bırakma != 0.0 { TR_throw TR_Message("H7171", "attention_dropout", "\(bırakma)", "0.0") }
+    TR_var tp = TR_Int(TR_config_value(TR_config, "pretraining_tp", 1))
+    TR_if tp != 1 { TR_throw TR_Message("H7171", "pretraining_tp", "\(tp)", "1") }
+    TR_if TR_Bool(TR_config_value(TR_config, "rope_interleaved", TR_false)) { TR_throw TR_Message("H7171", "rope_interleaved", "true", "false") }
+}
+
+# _kur hazır_model'in kuruluşudur: anahtar kapısı config.json'un yoluyla (iletide yazılır), sonra
+# hazır_model_kur.
+TR_func _kur(ayar: TR_JSON, tür: TR_String, dosya: TR_String) -> TR_GPT {
+    _ayar_kapısı(ayar, _yapı(TR_String(TR_config_value(ayar, "model_type", "")), "model"), dosya)
+    TR_return TR_build_pretrained_model(ayar, TR_weight_dtype: tür)
 }
