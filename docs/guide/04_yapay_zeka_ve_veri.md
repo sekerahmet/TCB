@@ -147,8 +147,9 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.
   yazar (adım başına süreler, hangi çekirdeğin GPU zamanının ne kadarını aldığı, bellek).
   `TR_cmd_watch` ve `TR_cmd_profile` aynı ölçümü canlı tabloda ve raporda gösterir (bkz. §11).
 - Matris çarpımı, makinede NVIDIA'nın cuBLASLt kitaplığı kuruluysa (CUDA araç takımı ya da
-  PyTorch ile gelir) onunla yapılır; yoksa TR'nin kendi çekirdeğiyle. İki yolun sonucu son bitlerde
-  farklı olabilir; öntanımlının TR'nin kendi çekirdeği olması kararlaştırıldı (dil tanımının bekleyenleri, 15.22a).
+  PyTorch ile gelir) onunla yapılır; yoksa TR'nin kendi çekirdeğiyle. İki yolun sonucu küçük farklarla
+  ayrılabilir (aynı kartta ölçülen en büyük fark 2,08e-3). Bu davranış değişecek: öntanımlı yol TR'nin
+  kendi çekirdeği olacak.
   Kitaplık başka bir yerdeyse yolu `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12` ile verilir
   (çalışma klasörü hiçbir zaman aranmaz); hangi yolun kullanıldığı profil özetinin ilk
   satırında görünür.
