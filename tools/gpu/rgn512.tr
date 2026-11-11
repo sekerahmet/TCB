@@ -114,60 +114,64 @@ TR_var adım = TR_if kn == TR_none { 0 } TR_else { kn.TR_resume_step }
 TR_var nan_adımı = arg["nan_adımı"]
 TR_var son_dönüş = -1 # aynı noktaya art arda dönüşler sayılır: kalıcı bir bozulmada sonsuz döngü olmasın
 TR_var dönüş_sayısı = 0
-TR_for adım < arg["step"] {
-    op.TR_set_multiplier(TR_max(0.000001, iyileştirici.TR_lr_schedule(adım, arg["step"], TR_warmup: ısınma, TR_decay_fraction: 0.2)))
-    TR_var t0 = TR_time_ms()
-    TR_var toplam_kayıp = 0.0
-    TR_for m TR_in 0..birikim {
-        TR_var xy = örnekler.TR_next()
-        TR_var kayıp = TR_none
-        TR_if arg["hassasiyet"] == "fp32" {
-            kayıp = model.TR_loss(xy[0], xy[1]) / birikim
-        } TR_else {
-            TR_mixed_precision(arg["hassasiyet"]) {
+# Eğitim döngüsü `TR_vendor_matmul` bloğundadır (15.53b): GPU'da matris çarpımları üreticinin kitaplığıyla (NVIDIA cuBLASLt)
+# yapılır, bf16 çarpımı blok dışında float32'ye açılır ve yavaştır. Sonuç kitaplığın sürümüne ve kartın SM sayısına bağlı olabilir.
+TR_vendor_matmul {
+    TR_for adım < arg["step"] {
+        op.TR_set_multiplier(TR_max(0.000001, iyileştirici.TR_lr_schedule(adım, arg["step"], TR_warmup: ısınma, TR_decay_fraction: 0.2)))
+        TR_var t0 = TR_time_ms()
+        TR_var toplam_kayıp = 0.0
+        TR_for m TR_in 0..birikim {
+            TR_var xy = örnekler.TR_next()
+            TR_var kayıp = TR_none
+            TR_if arg["hassasiyet"] == "fp32" {
                 kayıp = model.TR_loss(xy[0], xy[1]) / birikim
+            } TR_else {
+                TR_mixed_precision(arg["hassasiyet"]) {
+                    kayıp = model.TR_loss(xy[0], xy[1]) / birikim
+                }
             }
+            TR_if adım + 1 == nan_adımı {
+                kayıp = kayıp * TR_Float("nan")
+                nan_adımı = -1
+            }
+            TR_backward(kayıp)
+            toplam_kayıp += kayıp.TR_tolist
         }
-        TR_if adım + 1 == nan_adımı {
-            kayıp = kayıp * TR_Float("nan")
-            nan_adımı = -1
+        TR_var norm = TR_clip_grad(ağırlıklar, TR_max: 1.0)
+        op.TR_step()
+        op.TR_zero_grad()
+        TR_var ms = TR_time_ms() - t0
+        TR_var karar = bekçi.TR_observe(toplam_kayıp, norm.TR_tolist)
+        TR_if karar != eğitim.TR_OK {
+            TR_print("  \(karar) adım \(adım + 1): kayıp \(toplam_kayıp), grad \(norm.TR_tolist)")
+            TR_if kn != TR_none {
+                adım = kn.TR_rollback()
+                TR_if adım == son_dönüş { dönüş_sayısı += 1 } TR_else { son_dönüş = adım; dönüş_sayısı = 1 }
+                TR_assert(dönüş_sayısı < 3, "aynı kontrol noktasına (\(adım). adım) üç kez dönüldü ve sorun sürüyor; eğitim durduruldu (öğrenme oranını, veriyi ya da --bekçi_eşik'i inceleyin)")
+                TR_print("  \(adım). adıma dönüldü, \(örnekler.TR_skip(arg["skip"])) toplu iş atlandı")
+                TR_continue
+            }
+            TR_assert(karar != eğitim.TR_NONFINITE, "eğitim bozuldu (NaN ya da sonsuz) ve dönülecek kontrol noktası yok; --koşu KLASÖR ile kontrol noktası kurun")
         }
-        TR_backward(kayıp)
-        toplam_kayıp += kayıp.TR_tolist
-    }
-    TR_var norm = TR_clip_grad(ağırlıklar, TR_max: 1.0)
-    op.TR_step()
-    op.TR_zero_grad()
-    TR_var ms = TR_time_ms() - t0
-    TR_var karar = bekçi.TR_observe(toplam_kayıp, norm.TR_tolist)
-    TR_if karar != eğitim.TR_OK {
-        TR_print("  \(karar) adım \(adım + 1): kayıp \(toplam_kayıp), grad \(norm.TR_tolist)")
-        TR_if kn != TR_none {
-            adım = kn.TR_rollback()
-            TR_if adım == son_dönüş { dönüş_sayısı += 1 } TR_else { son_dönüş = adım; dönüş_sayısı = 1 }
-            TR_assert(dönüş_sayısı < 3, "aynı kontrol noktasına (\(adım). adım) üç kez dönüldü ve sorun sürüyor; eğitim durduruldu (öğrenme oranını, veriyi ya da --bekçi_eşik'i inceleyin)")
-            TR_print("  \(adım). adıma dönüldü, \(örnekler.TR_skip(arg["skip"])) toplu iş atlandı")
-            TR_continue
+        süreler.TR_append(ms)
+        pencere.TR_append(ms)
+        kayıt.TR_append({"loss": toplam_kayıp, "grad_norm": norm.TR_tolist})
+        TR_if (adım + 1) % arg["logger"] == 0 TR_or adım + 1 == arg["step"] {
+            TR_var ort = TR_mean(pencere)
+            TR_print("adım \(adım + 1) / \(arg["step"])  kayıp \(TR_round(toplam_kayıp, 4))  grad \(TR_round(norm.TR_tolist, 3)) | \(TR_round(ort)) ms/adım  \(TR_round(adım_başına / ort * 1000)) parça/sn")
+            pencere = []
         }
-        TR_assert(karar != eğitim.TR_NONFINITE, "eğitim bozuldu (NaN ya da sonsuz) ve dönülecek kontrol noktası yok; --koşu KLASÖR ile kontrol noktası kurun")
+        TR_if doğrulama_kümesi != TR_none TR_and ((adım + 1) % arg["değerlendirme"] == 0 TR_or adım + 1 == arg["step"]) {
+            TR_var d = değerlendir()
+            doğrulama_kaydı.TR_append({"step": adım + 1, "loss": d})
+            TR_print("  DEĞERLENDİRME adım \(adım + 1): kayıp \(TR_round(d, 4))")
+            # Kayıp kaydı her değerlendirmede yazılır: koşu sonra bir hatayla biterse ölçülenler kalır.
+            TR_if arg["losses"] != "" { TR_write_file(arg["losses"], TR_json_string({"steps": kayıt, "valid": doğrulama_kaydı})) }
+        }
+        adım += 1
+        TR_if kn != TR_none { kn.TR_update(adım) }
     }
-    süreler.TR_append(ms)
-    pencere.TR_append(ms)
-    kayıt.TR_append({"loss": toplam_kayıp, "grad_norm": norm.TR_tolist})
-    TR_if (adım + 1) % arg["logger"] == 0 TR_or adım + 1 == arg["step"] {
-        TR_var ort = TR_mean(pencere)
-        TR_print("adım \(adım + 1) / \(arg["step"])  kayıp \(TR_round(toplam_kayıp, 4))  grad \(TR_round(norm.TR_tolist, 3)) | \(TR_round(ort)) ms/adım  \(TR_round(adım_başına / ort * 1000)) parça/sn")
-        pencere = []
-    }
-    TR_if doğrulama_kümesi != TR_none TR_and ((adım + 1) % arg["değerlendirme"] == 0 TR_or adım + 1 == arg["step"]) {
-        TR_var d = değerlendir()
-        doğrulama_kaydı.TR_append({"step": adım + 1, "loss": d})
-        TR_print("  DEĞERLENDİRME adım \(adım + 1): kayıp \(TR_round(d, 4))")
-        # Kayıp kaydı her değerlendirmede yazılır: koşu sonra bir hatayla biterse ölçülenler kalır.
-        TR_if arg["losses"] != "" { TR_write_file(arg["losses"], TR_json_string({"steps": kayıt, "valid": doğrulama_kaydı})) }
-    }
-    adım += 1
-    TR_if kn != TR_none { kn.TR_update(adım) }
 }
 
 # Ağırlıklar sonuç dosyalarından önce yazılır: en pahalı sonuç odur, sonraki bir hata onu kaybettirmez.
