@@ -22,7 +22,7 @@ sha256sum trlang   # cf0cac08b85962ebc3b37dab8d312ff6b4286eba51642ee4531f83b7acf
 
 If you cannot run it where you saved it, copy it to `/tmp`. For Windows, the same release has `trlang-windows-amd64.exe`: https://github.com/sekerahmet/TCB/releases/tag/v0.2.0
 
-The binary can be behind `main`. To build from source, you need Go 1.25 or newer. No cgo, no CUDA toolkit. `go.mod` asks for toolchain 1.26.10 and Go downloads it by itself.
+The binary can be behind `main`. To build from source, you need Go 1.25 or newer. No cgo, no CUDA toolkit. `go.mod` asks for toolchain 1.26.11 and Go downloads it by itself.
 
 ```bash
 git clone https://github.com/sekerahmet/TCB

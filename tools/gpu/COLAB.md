@@ -62,7 +62,7 @@ echo "$AD başladı (durum: hücre 3)"
 EOF
 mkdir -p /content/is/kur && rm -f /content/is/kur/bitti
 setsid nohup bash -c "( set -e
-  [ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+  [ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.11.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
   export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local
   rm -rf /content/TCB && git clone -q --depth 2 -b $DAL https://github.com/sekerahmet/TCB /content/TCB && cd /content/TCB
   git log -1 --format='commit: %h %s' | cut -c1-80
@@ -171,7 +171,7 @@ cd /content/TCB && bash /content/is_baslat.sh dil-kiyasi "Dil kıyası TR / Pyth
 ```bash
 %%bash
 # Go (oturumda bir kez, ~1 dk); sürüm go.mod'daki araç zinciridir.
-[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.11.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
 export PATH=/usr/local/go/bin:$PATH
 rm -rf /content/TCB && git clone -q --depth 1 https://github.com/sekerahmet/TCB /content/TCB
 cd /content/TCB && git log -1 --format='commit: %h (%cd)' --date=iso
@@ -208,7 +208,7 @@ sınamalar paketin kaynak dosyalarını okur (`TestEveryEmittedInstructionIsSimu
 %%bash
 # KART SINAMASI, KAYITLI (ARKA PLANDA, ~5 DK) · GPU — DAL değiştirilir; durum: hücre C
 DAL=gpu-dogrulama
-[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.11.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
 export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
 rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
 cd /content/TCB && git log -1 --format='commit: %h %s' | cut -c1-80 && rm -f /content/kosu_bitti
@@ -488,7 +488,7 @@ Kurallar:
 # 1 · KURULUM: KODU ÇEK VE TR'Yİ DERLE · CPU
 # DAL: main (GPU işi sınanırken gpu-dogrulama)
 DAL=main
-[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.11.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
 export PATH=/usr/local/go/bin:$PATH
 rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
 cd /content/TCB && git log -1 --format='commit: %h %s'
