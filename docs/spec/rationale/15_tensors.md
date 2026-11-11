@@ -601,3 +601,29 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 - *Gerekçe (yanlış türdeki değerin kapsamı ve GGUF, 2026-11-12, TCB 01:38, 01:50; DENETİM 473 Ş1):* H7175 kitaplığın modeli kurarken okuduğu her config ve GGUF üstveri değerinde verilir; önceden yalnız değeri denetlenen anahtarlarda veriliyordu, öbür dönüşümler genel iletiyle (H2652) kapalıydı, ajana dosyayı değil kitaplığın satırını gösteriyordu. Tek kod kalır, metin yola göre seçilir (`via`, H6940–H6945 gibi): GGUF'ta değeri dönüştürücü yazmıştır, "config'de yazın" yanlış düzeltme olurdu; ileti dosyanın başka bir dönüştürmesini önerir. İkinci bir kod aynı hata sınıfını ikiye bölerdi (TCB 01:38).
 - *Gerekçe (Sınır A: `llama` GGUF'unun RoPE bölenleri, 2026-11-12, TCB 23:03, 23:26, 02:09, 02:19):* bölenleri yazılmadan dönüştürülmüş eski bir Llama 3.1 GGUF'u bugün hatasız yükleniyor ve uzun bağlamda sessizce yanlış sonuç veriyordu: 3.2-3B'yi bölenler olmadan koşan TR, 4096 token'lık istemde llama.cpp'den konum 4095'te 3,61 ayrılır, açgözlü üretim 6. token'da ayrılır; bölenlerle 0,472'dir ve 16/16 eştir [ölçüldü: D1 koşu 2]. Eksik tensör dosyadan doğrudan bilinmez (llama.cpp de bilmez); kapsamı Llama 3 parçalayıcısı (`llama-bpe`, `smaug-bpe`), 3.1 ve 3.2'nin tabanı (500000) ve 8192'den uzun bağlam belirler. 8192 Llama 3.0'ın bağlamı ve 3.1'in `original_max_position_embeddings`'idir; bölenler bu uzunluğun ötesinde etkilidir. Kapsamı ailesizlik değil parçalayıcı belirler: SentencePiece'li `llama` dosyaları (Mistral, CodeLlama, Llama 2) bugün de ailesiz yüklenir, onları kapatmak "bugün yüklenen dosya kapanmaz" ilkesine aykırıydı (TCB 23:03). Taban koşulu Llama 3.0 türevini dışarıda tutar: `Llama-3-8B-Instruct-Gradient-1048k`'nın tabanı 2 804 339 712'dir, 3.1'in bölenlerini kullanmaz [ölçüldü: D1 koşu 3]; bölensiz doğru olduğu bir hipotezdir, logiti ölçülmedi. Bilinen bedel: tabanı 500000 kalıp bağlamı ölçeksiz uzatılmış bir 3.0 türevi kapanır (TCB 02:09). Etiket parçalayıcıdan bağımsız, üstveriden okunur: `smaug-bpe`'nin parçalayıcısı yüklenmez ama dosyası aynı eksiği taşır (TCB 02:19; `TR_load_metadata` yalnız bu kısa metni geçirir, büyük diziler yine girmez).
 - *Gerekçe (desteklenmeyen etkinleştirme, 2026-11-11, TCB 23:16):* H6942 desteklenen değeri (silu) önermez: ayardaki `hidden_act`'ı silu yapan kullanıcının modeli hatasız yüklenir, ama eğitildiği etkinleştirmeyle değil silu ile hesaplar [hesap]. İleti H7171 gibi TR'nin bu modeli yüklemediğini söyler (DENETİM 440 Ş3'ün H7171'de kapattığı tuzak).
+- *Gerekçe (etkisiz anahtarlar, K6; 2026-11-12, DENETİM 446 N3, TCB 22:52, 02:19):* "etkisiz" sınıfı, değeri değişince logitlerin bit bit aynı kalması demektir. K6 testi bunu TR tarafında sınar ama yanlış sınıflamayı yakalamaz, çünkü TR bu anahtarları hiç okumaz (DENETİM 446 N3). Bu yüzden her anahtarın transformers'ta okunduğu yer kaynaktan yazıldı. 5.17.0 kurulu paketten okundu [ölçüldü: `grep -n`]; v4.56.2 WebFetch ile okundu, satırları yaklaşıktır (`~`) [kanıtlı: WebFetch, `raw.githubusercontent.com/huggingface/transformers/v4.56.2/src/transformers/...`]:
+  - `architectures`, `_name_or_path`, `transformers_version`: yalnız config nesnesinde, uyarıda ve kaydetmede okunur.
+    - 5.17: `configuration_utils.py:264`, `:327`, `:263`, `:1096`.
+    - v4.56.2: `configuration_utils.py` ~`:288`, ~`:318`, ~`:326`, ~`:598`.
+  - `torch_dtype`, `dtype`: ağırlıkların yüklendiği türü seçer.
+    - 5.17: `configuration_utils.py:281`, `modeling_utils.py:1408`.
+    - v4.56.2: `_get_dtype` `config.dtype`'ı yalnız `dtype="auto"` iken alır, verilmezse float32 kullanır.
+    - TR türü dosyadan ve `TR_weight_dtype:`'tan alır; hesap aynı formüldür (15.55).
+  - `use_cache`: üretimde önbelleği açar; logitler aynı kalır.
+    - 5.17: `models/llama/modeling_llama.py:383`, `models/qwen3/modeling_qwen3.py:383`.
+    - v4.56.2: ~`:360`, qwen3 ~`:375`.
+  - `initializer_range`: yalnız rastgele ilklemede okunur (`_init_weights`); yüklenen ağırlıklar ilklemenin üstüne yazılır.
+    - 5.17: `modeling_utils.py:2298-2306`.
+    - v4.56.2: aynı satırlar var [kanıtlı: WebFetch, satır numarası verilmedi].
+  - `pad_token_id`: `nn.Embedding`'in `padding_idx`'idir.
+    - 5.17: `models/llama/modeling_llama.py:350`, `:353`; `models/qwen3/modeling_qwen3.py:349`, `:352`; dolgu uyarısı `modeling_utils.py:4562-4584`.
+    - v4.56.2: ~`:328`, ~`:331`; qwen3 ~`:341`, ~`:344`. `_init_weights` o satırı sıfırlar.
+    - İleri hesabı değiştirmez: yüklenen tablonun satırı aynen okunur.
+    - Sıfırdan ilklemede o satır sıfırla başlar; hazır ağırlık yüklenince üstüne yazılır [kanıtlı: `torch/nn/modules/sparse.py:178-185`, `reset_parameters` → `_fill_padding_idx_with_zero`; DENETİM 481 N2].
+    - İnce ayarda o satırın türevi sıfırdır [kanıtlı: `torch/nn/modules/sparse.py:24-25`, "do not contribute to the gradient"]. TR'nin ince ayarı satırı da günceller; etkisizlik çıkarım içindir.
+  - `bos_token_id`, `eos_token_id`: modelin hesabında okunmaz; config'in varsayılanıdır ve dolgu uyarısında geçer.
+    - 5.17: `modeling_utils.py:4578-4584`.
+    - TR'de BOS'u parçalayıcı ya da sohbet biçimi koyar; `eos_token_id` durma kimliğinin kaynağıdır (15.55).
+  - `is_llama_config`, `unsloth_fixed`, `transformers.js_config`: transformers'ta hiç geçmez.
+    - 5.17: paketin tamamında 0 dosya [ölçüldü: `grep -rl`].
+    - v4.56.2: `PretrainedConfig.__init__` bilinmeyen anahtarı `setattr` ile saklar ama okumaz (~`:340-346`).
