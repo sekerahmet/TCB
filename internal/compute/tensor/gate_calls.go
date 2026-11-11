@@ -10,23 +10,6 @@ import "runtime"
 // Kapı depolarını çağrı bitene dek canlı tutar: öbek dışı blokta duran depoyu çekirdek dilimiyle
 // okurken derleyici ölü sayabilir (host_block.go).
 
-// viewStorage isteğe bağlı görünümün deposudur (yoksa nil).
-func viewStorage(v *View) Storage {
-	if v == nil {
-		return nil
-	}
-	return v.S
-}
-
-// viewStorages görünümlerin depolarıdır.
-func viewStorages(vs []View) []Storage {
-	out := make([]Storage, len(vs))
-	for i, v := range vs {
-		out[i] = v.S
-	}
-	return out
-}
-
 func gateAttentionGradSet(be AttentionGradSetter, gq Storage, gk Storage, gv Storage, g Storage, q View, k View, v View, mask Storage, o Storage, lse Storage, p AttentionParams, fresh [3]bool) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{gq, gk, gv}, []Storage{g, q.S, k.S, v.S, mask, o, lse})
