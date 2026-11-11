@@ -19,7 +19,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 
 ## Zincir
 
-`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language: "tr"`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). `--ekran <kapı>` ile ekrana bağlanır (aşağıda, "Ekranlı kip"). Yarım çift yönlüdür: mikrofon açık kalır, ama çalınırken gelen ses atılır (aşağıda, "Dinleme").
+`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language`: `--konuşma_dili`, öntanımlı `tr`; başka dilde `--ses_modeli` ve `--sistem` de o dilde verilir, örneğin `en` ile `mms-tts-eng`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). `--ekran <kapı>` ile ekrana bağlanır (aşağıda, "Ekranlı kip"). Yarım çift yönlüdür: mikrofon açık kalır, ama çalınırken gelen ses atılır (aşağıda, "Dinleme").
 
 - **Kipler:** `--kip dosya` bir klasördeki WAV'ları sırayla söz olarak okur ve cevapları WAV olarak yazar; `--kip canlı` mikrofonu (`--aygıt`, dshow adı) ya da `--sahte_mikrofon`'u (bir WAV'ı `ffmpeg -re` ile gerçek zaman hızında akıtır; yeniden başlarken ilk başlatmadan bu yana geçen süreden açar) dinler ve `--çalıcı` ile çalar. `--ffmpeg`'in ve `--çalıcı`'nın programı PATH'teki ad (`ffmpeg`) ya da dosyanın yoludur: `/` ya da `\` içeren değer yol sayılır. `--çalıcı` boşluklardan bölündüğü için onun yolunda boşluk olamaz.
 - **Varsayılan yol yoktur:** `--dil_modeli`, `--whisper`, `--vad`, `--ses_modeli` ve kipin girdileri verilmezse program hata verir. Seçeneklerin hepsi `--help`'tedir.

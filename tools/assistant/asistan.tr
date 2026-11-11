@@ -14,7 +14,7 @@
 #   trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevaplar --dil_modeli Qwen3-4B-Q4_K_M.gguf \
 #       --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 #
-# Zincir: VAD kesiti → Whisper (`TR_language: "tr"`) → `TR_qwen3_format` (düşünmeden) → açgözlü üretim →
+# Zincir: VAD kesiti → Whisper (`TR_language: --konuşma_dili`, öntanımlı "tr") → `TR_qwen3_format` (düşünmeden) → açgözlü üretim →
 # `TR_qwen3_reply` → içerik cümlelere bölünür → her cümle `tr/vits` ile sese çevrilir → çalınır.
 # Zincirin modelsiz parçaları, tur ve önbellek zincir.tr'dedir; zincir_test.tr sınar.
 
@@ -45,7 +45,7 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
     "en_çok_parça": 160, "bağlam": 8192, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
-    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": ""},
+    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr"},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
@@ -56,7 +56,8 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "en_çok_tur": "canlı kipte bu kadar turdan sonra durur (0: sınırsız)",
         "ekran": "canlı kipte ekranın kapısı (127.0.0.1; 0: işletim sistemi seçer; verilmezse ekran yok)",
         "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)",
-        "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok"})
+        "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok",
+        "konuşma_dili": "Whisper'ın dil kodu (tr, en, ...); --ses_modeli ve --sistem aynı dilde verilir"})
 
 TR_func _gerekli(ad: TR_String) -> TR_String {
     TR_var v = TR_String(ayar[ad])
@@ -137,7 +138,7 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     TR_if söz != TR_none {
         yazı = söz
     } TR_else TR_if kesit != TR_none {
-        yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: "tr").TR_text
+        yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: TR_String(ayar["konuşma_dili"])).TR_text
     }
     t.yazı_ms = şimdi() - t0
     t.duyulan = yazı
