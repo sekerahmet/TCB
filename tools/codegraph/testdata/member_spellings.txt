@@ -5,6 +5,7 @@ A.TR_GPT	not_found	4	-
 A.TR_shape	ambiguous	3	name:TR_mem_shape[H8878],tr:struct:tests/negative/ic_ifade_tipleri.tr:A[H8877]
 A.TR_tolist	ambiguous	3	name:TR_mem_tolist[H8878],tr:struct:tests/negative/ic_ifade_tipleri.tr:A[H8877]
 A.TR_transpose	ambiguous	3	name:TR_mem_transpose[H8878],tr:struct:tests/negative/ic_ifade_tipleri.tr:A[H8877]
+AİLELER.TR_contains	ok	0	name:TR_mem_contains
 Blok.TR_ctx_init	ok	0	tr:method:tools/gpu/measurement_model.tr:Blok.TR_ctx_init
 Dikkat.TR_ctx_init	not_found	4	-
 Doğrusal.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
@@ -290,6 +291,7 @@ _GGUF_SERBEST.TR_contains	ok	0	name:TR_mem_contains
 _KALIN_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
 _KENAR.TR_contains	ok	0	name:TR_mem_contains
 _KÜÇÜK_HARF.TR_contains	ok	0	name:TR_mem_contains
+_ONALTILIK.TR_contains	ok	0	name:TR_mem_contains
 _SERT_ÜNSÜZLER.TR_contains	ok	0	name:TR_mem_contains
 _SINIR.TR_contains	ok	0	name:TR_mem_contains
 _YOR_SONLARI.TR_split	ok	0	name:TR_mem_split
@@ -382,6 +384,7 @@ akış.TR_send_event	ok	0	name:TR_mem_send_event
 akış.TR_step	ok	0	name:TR_mem_step
 akışlar.TR_append	ok	0	name:TR_mem_append
 alanlar.TR_append	ok	0	name:TR_mem_append
+alanlar.TR_contains	ok	0	name:TR_mem_contains
 alanlar.TR_join	ok	0	name:TR_mem_join
 algılayıcı.TR_reset_state	ok	0	tr:method:lib/vad.tr:TR_type_VoiceDetector.TR_mem_reset_state
 alt.TR_append	ok	0	name:TR_mem_append
@@ -640,6 +643,7 @@ dilimler.TR_append	ok	0	name:TR_mem_append
 dilimler.TR_length	ok	0	name:TR_mem_length
 diller.TR_append	ok	0	name:TR_mem_append
 diller.TR_contains	ok	0	name:TR_mem_contains
+diller.TR_length	ok	0	name:TR_mem_length
 diller.TR_sort	ok	0	name:TR_mem_sort
 dizi.TR_contains	ok	0	name:TR_mem_contains
 dizi.TR_length	ok	0	name:TR_mem_length
@@ -650,6 +654,7 @@ dolgulu.TR_shape	ok	0	name:TR_mem_shape
 dolu.TR_grad	ok	0	name:TR_mem_grad
 donuk.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 donuk.TR_tolist	ok	0	name:TR_mem_tolist
+dosyalar.TR_length	ok	0	name:TR_mem_length
 doğru_konum.TR_append	ok	0	name:TR_mem_append
 doğrulama.TR_next	ok	0	name:TR_mem_next
 doğrulama_kaydı.TR_append	ok	0	name:TR_mem_append
@@ -768,6 +773,7 @@ genişlemeli.TR_append	ok	0	name:TR_mem_append
 genişlemeli.TR_length	ok	0	name:TR_mem_length
 geo.TR_Linear	not_found	4	-
 geri.TR_append	ok	0	name:TR_mem_append
+geri.TR_starts_with	ok	0	name:TR_mem_starts_with
 gerçek.TR_append	ok	0	name:TR_mem_append
 gerçek.TR_shape	ok	0	name:TR_mem_shape
 gerçek.TR_slice	ok	0	name:TR_mem_slice
@@ -782,6 +788,7 @@ girdi.TR_shape	ok	0	name:TR_mem_shape
 girdi.TR_slice	ok	0	name:TR_mem_slice
 girdi.TR_tolist	ok	0	name:TR_mem_tolist
 girdiler.TR_append	ok	0	name:TR_mem_append
+girdiler.TR_length	ok	0	name:TR_mem_length
 giriş.TR_shape	ok	0	name:TR_mem_shape
 giriş.TR_tolist	ok	0	name:TR_mem_tolist
 girişler.TR_append	ok	0	name:TR_mem_append
@@ -797,6 +804,7 @@ görev.TR_done	ok	0	name:TR_mem_done
 görev.TR_length	ok	0	name:TR_mem_length
 görev.TR_wait	ok	0	name:TR_mem_wait
 görülen.TR_append	ok	0	name:TR_mem_append
+görülen.TR_contains	ok	0	name:TR_mem_contains
 görülen.TR_sort	ok	0	name:TR_mem_sort
 görünüm.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 gövde.TR_ends_with	ok	0	name:TR_mem_ends_with
@@ -887,6 +895,7 @@ ileti.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_ca
 iletiler.TR_append	ok	0	name:TR_mem_append
 iletiler.TR_length	ok	0	name:TR_mem_length
 ilk.TR_code	ok	0	name:TR_mem_code
+ilk.TR_ends_with	ok	0	name:TR_mem_ends_with
 ilk.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 ilk.TR_length	ok	0	name:TR_mem_length
 ilk.TR_shape	ok	0	name:TR_mem_shape
@@ -919,6 +928,7 @@ iyileştirici.TR_step	ok	0	name:TR_mem_step
 iyileştirici.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 iz.TR_append	ok	0	name:TR_mem_append
 iz.TR_length	ok	0	name:TR_mem_length
+izinli.TR_contains	ok	0	name:TR_mem_contains
 izlenen.TR_grad	ok	0	name:TR_mem_grad
 izler.TR_append	ok	0	name:TR_mem_append
 iç.TR_strip	ok	0	name:TR_mem_strip
@@ -927,6 +937,7 @@ içeride.TR_tolist	ok	0	name:TR_mem_tolist
 içerik.TR_contains	ok	0	name:TR_mem_contains
 içerik.TR_ends_with	ok	0	name:TR_mem_ends_with
 içerik.TR_length	ok	0	name:TR_mem_length
+içerik.TR_replace	ok	0	name:TR_mem_replace
 içerik.TR_split	ok	0	name:TR_mem_split
 içinde.TR_contains	ok	0	name:TR_mem_contains
 j.TR_append	ok	0	name:TR_mem_append
@@ -1030,6 +1041,8 @@ kn.TR_update	ok	0	name:TR_mem_update
 kn2.TR_resume_step	ok	0	name:TR_mem_resume_step
 kn2.TR_rollback	ok	0	name:TR_mem_rollback
 kn2.TR_update	ok	0	name:TR_mem_update
+kodlar.TR_append	ok	0	name:TR_mem_append
+kodlar.TR_contains	ok	0	name:TR_mem_contains
 konum.TR_dtype	ok	0	name:TR_mem_dtype
 konum.TR_slice	ok	0	name:TR_mem_slice
 kopya.TR_append	ok	0	name:TR_mem_append
@@ -1145,6 +1158,7 @@ m.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 m.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
 m.TR_step	ok	0	name:TR_mem_step
 m.TR_strip	ok	0	name:TR_mem_strip
+m.TR_text	ok	0	name:TR_mem_text
 m.TR_tolist	ok	0	name:TR_mem_tolist
 m.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 m.TR_transpose	ok	0	name:TR_mem_transpose
@@ -1332,6 +1346,7 @@ p.TR_mem_shape	not_found	4	-
 p.TR_mem_token_id	not_found	4	-
 p.TR_mem_vocab_size	not_found	4	-
 p.TR_name	ok	0	name:TR_mem_name
+p.TR_parent	ok	0	name:TR_mem_parent
 p.TR_pretokenizer_tag	ok	0	name:TR_mem_pretokenizer_tag
 p.TR_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_proj
 p.TR_read	ok	0	name:TR_mem_read
@@ -1779,6 +1794,7 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 çıkış.TR_permute	ok	0	name:TR_mem_permute
 ö.TR_advance	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_advance
 ö.TR_capacity	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_capacity
+ö.TR_get	ok	0	name:TR_mem_get
 ö.TR_load_state	ok	0	name:TR_mem_load_state
 ö.TR_mem_advance	not_found	4	-
 ö.TR_mem_next	not_found	4	-
@@ -1799,6 +1815,8 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 öb.TR_next	ok	0	name:TR_mem_next
 öbür.TR_append	ok	0	name:TR_mem_append
 ölçülen_ms.TR_append	ok	0	name:TR_mem_append
+ölçüler.TR_append	ok	0	name:TR_mem_append
+ölçüler.TR_length	ok	0	name:TR_mem_length
 ön.TR_length	ok	0	name:TR_mem_length
 ön.TR_tolist	ok	0	name:TR_mem_tolist
 önbellek.TR_advance	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_advance

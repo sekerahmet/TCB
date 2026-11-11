@@ -494,7 +494,8 @@ TR_func _ailesiz(model: TR_GPT, neden: TR_String, aile: TR_String, ayrıntı: TR
 }
 
 # _gguf_ailesi GGUF'ta aileyi (mimari, p.TR_pretokenizer_tag) ile seçer. Parçalayıcı yüklenemezse
-# model ailesizdir; hatayı yalnız TR_load_tokenizer verir. Dosya okuma hatası (H2107) buraya gelmez:
+# model ailesizdir; yakalanan hata saklanır, H7170 onu nedeni olarak taşır (e.TR_cause). Dosya okuma
+# hatası (H2107) buraya gelmez:
 # TR_pretrained_gguf aynı dosyanın üstverisini ve tensörlerini önce okur, okunamayan dosyada o hatayla
 # durur. Kod listesine bakılmaz: tanınmayan bir sonraki biçim de modeli kapatmaz. Dosyanın
 # bildirdiği kimliklerin hatası (yanlış türde eot, H6681) da aynı yoldan ailesiz bırakır.

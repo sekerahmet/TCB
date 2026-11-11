@@ -770,6 +770,7 @@ for mode in $modes; do
 		if build_tr; then
 			summarize "trlang test tests" "$TR" test tests
 			summarize "trlang test lib" "$TR" test lib
+			summarize "trlang test tools/assistant" "$TR" test tools/assistant
 			format_checks
 			run_examples
 			[ "$mode" = v3 ] || extension_tests

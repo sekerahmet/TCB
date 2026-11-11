@@ -202,8 +202,8 @@ func TestChatTableIsUnique(t *testing.T) {
 // olmayan etiket, parçalayıcının tanımadığı etiket, SentencePiece'li GGUF, etiketi mimarisiyle
 // çelişen GGUF, tokenizer_config'siz klasör, tokenizer.json'suz klasör) model.TR_eos_tokens()
 // H7170'tir, ileti kimliklerin açık yazımını söyler; TR_eos: [...] ile üretim sürer. GGUF'ta
-// parçalayıcı yüklenemezse model ailesizdir; hatayı yalnız TR_load_tokenizer verir, işlevin adı ve
-// dosyanın yoluyla (H5620'nin içinde). Okunamayan dosya yine hatadır (DENETİM 453 Ş1, N2).
+// parçalayıcı yüklenemezse model ailesizdir; yakalanan hata (H5620, işlevin adı ve dosyanın yoluyla)
+// H7170'in nedenidir (e.TR_cause). Okunamayan dosya yine hatadır (DENETİM 453 Ş1, N2; 457 N4).
 func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	body := "TR_print(TR_error_code { m.TR_eos_tokens() })\nTR_print(m.TR_generate([1, 2], 3, TR_temperature: 0, TR_eos: [5]).TR_length > 2)"
 	dir := t.TempDir()
