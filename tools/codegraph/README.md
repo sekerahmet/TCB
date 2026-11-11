@@ -54,7 +54,8 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | which message or name codes existed once and are gone | `deleted` |
 | functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
 | methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) |
-| is there something like this | `similar <function>`, `dups --in <folder>` |
+| is there a function like this one | `similar <function>` |
+| which code in a folder is repeated | `dups --in <folder>` |
 | tests with a wall-clock ceiling | `time-ceilings --in DIR` |
 | broken references to language-definition items | `spec-refs` |
 

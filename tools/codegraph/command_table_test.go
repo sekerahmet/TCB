@@ -11,9 +11,9 @@ import (
 var usageAlias = regexp.MustCompile(`\(or ([a-z-]+)\)`)
 
 // Kural: README.md'deki soru-komut tablosu ("Which command answers which question") ile usage sabitindeki
-// komut listesi (gerekçeli muaflar dışında) aynı kümede kalır: usage'daki her komut tablonun komut
-// sütunundaki ters tırnaklı bir parçanın ilk sözcüğü olarak geçer; her tablo satırının komut sütunundaki
-// ilk ters tırnaklı parçanın ilk sözcüğü de bilinen bir komuttur.
+// komut listesi (gerekçeli muaflar dışında) aynı kümede kalır: usage'daki her komutun kendi satırı vardır,
+// yani bir satırın komut sütunundaki ilk ters tırnaklı parçanın ilk sözcüğüdür; her satırın o sözcüğü de
+// bilinen bir komuttur.
 func TestCommandTableMatchesUsage(t *testing.T) {
 	// Tabloda yer alması gerekmeyen usage komutları:
 	// - explain: query komutunun takma adıdır (README.md:35).
@@ -64,11 +64,9 @@ func TestCommandTableMatchesUsage(t *testing.T) {
 		if !inUsage[first] && first != helpCommand {
 			t.Errorf("README.md command table row %d starts with %q, which is not in usage (or %q)", i+1, first, helpCommand)
 		}
-		for _, m := range spans {
-			if f := strings.Fields(m[1]); len(f) > 0 {
-				inTable[f[0]] = true
-			}
-		}
+		// Yalnız satırın ilk parçası sayılır: notlarda geçen komut adları (untested satırındaki
+		// `tests-for <function>` gibi) o komutun kendi satırının yerini tutmaz (DENETİM 423 N1).
+		inTable[first] = true
 	}
 
 	for _, c := range cmds {
