@@ -29,7 +29,9 @@ import (
 // bıraktıysa derleyici depoyu ölü sayabilir: bu yüzden her kapı depolarını çağrı bitene dek canlı
 // tutar (gate_calls.go) ve kapı dışından depoya bakan tensör yöntemleri tensörü canlı tutar.
 // TestHostBlockReadersKeepTheirTensors ikisini yapısal olarak sınar. Deponun dilimi başka depoya
-// verilmez: blok bir depoya aittir, yalnız görünümler paylaşır.
+// verilmez: blok bir depoya aittir, yalnız görünümler paylaşır. Her blok temizleyicisi bitene kadar
+// bir kayıtta durur; yükleyici büyük bir dosyadan önce ölü blokların temizleyicilerini o kayıtla
+// bekler (host_settle.go).
 
 // hostBlockMin bundan küçük tensör öbekte kalır: norm vektörleri kilobayt mertebesindedir, her biri
 // için sayfa ve sistem çağrısı harcanmaz.
@@ -85,10 +87,11 @@ func NewHostBlock(n int) *HostBlock {
 	hostMemory.blocks.Add(1)
 	hostMemory.address.Add(int64(n))
 	hostMemory.live.Add(int64(n))
-	runtime.AddCleanup(b, func(size int) {
+	runtime.AddCleanup(b, func(c hostCleanup) {
 		free()
-		hostMemory.live.Add(-int64(size))
-	}, n)
+		hostMemory.live.Add(-c.size)
+		hostUnregister(c.id)
+	}, hostCleanup{size: int64(n), id: hostRegister(b, n)})
 	return b
 }
 

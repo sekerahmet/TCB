@@ -1384,6 +1384,7 @@ const (
 	H6724 Code = 6724 // {fn} {{ ... }} bloğu GPU'da yok (15.53a, 15.41): "{dtype}" ağırlık GPU'da; çarpımı bloğun dışına alın ya da girdiyi ve ağırlığı CPU'ya taşıyın
 	H6725 Code = 6725 // {fn} {{ ... }} yalnız bir blok alır, {given} parametre verildi
 	H6726 Code = 6726 // {fn} {{ ... }} bir blok bekler, {given} verildi
+	H6730 Code = 6730 // Uyarı: {fn}: bırakılan tensörlerin {waiting_bytes} baytlık belleği {seconds} sn içinde geri verilmedi; yükleme sürüyor, bellek tepesi bu kadar yüksek olabilir.
 	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
 	H6801 Code = 6801 // {fn}() cihaz adını metin olarak bekler ("cpu" ya da "gpu"), {given} verildi
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler
@@ -1970,11 +1971,12 @@ const (
 	H8166 Code = 8166 // {file}: `{path}` şunlardan biri olmalı: {allowed}; `{got}` geldi.
 	H8167 Code = 8167 // {file}: `{path}` `{pattern}` biçimine uymuyor: `{got}`.
 	H8168 Code = 8168 // Ayardaki `{field}`: `{id}` kullanılamaz: {reason, select, not_in_catalog {katalogda bu kimlikte bir girdi yok} wrong_kind {katalogdaki girdinin türü bu alana uymuyor} other {bu alana uymuyor}}. Bu alana uyan katalog girdileri: {known}.
-	H8169 Code = 8169 // Katalog: `{path}` (`{id}`): {reason, select, duplicate_id {bu kimlik katalogda daha önce de geçiyor; her kimlik bir kez yazılır} missing_entry {katalogda bu kimlikte bir girdi yok} wrong_kind {bu kimliğin girdisi bu alanın istediği türde değil} private_below_weights {ölçülen özel bellek `weights_bytes`'tan küçük; ölçü ağırlıkları da içerir, değeri ölçüden yazın} weights_not_file_size {`weights_bytes` girdinin `.gguf` dosyasının `bytes`'ına eşit olmalı} vad_count {katalogda `vad` türünde tam bir girdi olmalı} other {katalog kendi içinde tutarsız}}.
+	H8169 Code = 8169 // Katalog: `{path}` (`{id}`): {reason, select, duplicate_id {bu kimlik katalogda daha önce de geçiyor; her kimlik bir kez yazılır} missing_entry {katalogda bu kimlikte bir girdi yok} wrong_kind {bu kimliğin girdisi bu alanın istediği türde değil} private_below_weights {ölçülen özel bellek `weights_bytes`'tan küçük; ölçü ağırlıkları da içerir, değeri ölçüden yazın} weights_not_file_size {`weights_bytes` girdinin `.gguf` dosyasının `bytes`'ına eşit olmalı} vad_count {katalogda `vad` türünde tam bir girdi olmalı} no_language_model {katalogda en az bir `language_model` girdisi olmalı; Dost dil modelsiz çalışmaz} other {katalog kendi içinde tutarsız}}.
 	H8170 Code = 8170 // `{id}`'nin ailesi `{family}` desteklenmiyor. Desteklenenler: {known}.
 	H8171 Code = 8171 // `--toplam_bellek` verilmedi ya da geçersiz ({given}): makinenin toplam belleğini bayt olarak verin (en az 1073741824, 1 GiB), örneğin `--toplam_bellek 17179869184` (16 GiB).
 	H8172 Code = 8172 // Ayar dosyasının öntanımlı yeri bu makinede kurulamadı: `LOCALAPPDATA` ortam değişkeni yok. `--ayar <yol>` verin, örneğin `--ayar ayar.json`.
 	H8173 Code = 8173 // `--bağlam` geçersiz ({given}): bağlamı 0'dan büyük bir parça sayısı olarak verin, örneğin `--bağlam 8192`; verilmezse ayarın `context`'i, o da yoksa 8192 kullanılır.
+	H8174 Code = 8174 // {source, select, option {`--bağlam {given}` katalogdaki bütün dil modellerinin bağlam sınırını aşıyor; en büyük sınır {max} parça. Daha küçük bir bağlam verin, örneğin `--bağlam {max}`.} setting {Ayarın `context`'i ({given}) katalogdaki bütün dil modellerinin bağlam sınırını aşıyor; en büyük sınır {max} parça. Ayardaki `context`'i en çok {max} yapın, örneğin `"context": {max}`.} other {Bağlam ({given}) katalogdaki bütün dil modellerinin bağlam sınırını aşıyor; en büyük sınır {max} parça.}}
 	H8200 Code = 8200 // adım bilgisi yok: eğitim döngüsünde {progress}(...) ve .{update}(...) kullanın
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)
