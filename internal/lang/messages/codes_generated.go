@@ -1602,6 +1602,7 @@ const (
 	H7160 Code = 7160 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisinin tanımında olmayan {count, plural, one {anahtar} other {# anahtar}}: {keys}{file, select, empty {} other { ({file|q})}}; tanınmayan anahtar hesabı değiştirebilir, model okunmadan yüklenmez: modelin başka bir dönüştürmesini kullanın
 	H7161 Code = 7161 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {first|q} ile {second|q} aynı ayarın iki yazımı ama değerleri ayrı ({a} ve {b}); config.json'da yalnız birini bırakın
 	H7171 Code = 7171 // {@pretrained_model}: {key|q} = {value} desteklenmiyor; desteklenen değer {supported}: bu ayar transformers'ta hesabı değiştirir, TR onu uygulamaz ve bu model yüklenmez
+	H7172 Code = 7172 // {@generate}: {@eos} durma kimliklerinin listesidir, tek sayı ({value}) verildi: `{#eos}: [{value}]` yazın
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi

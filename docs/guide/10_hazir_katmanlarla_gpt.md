@@ -29,7 +29,7 @@ TR_import "tr/layers"
 TR_var model = TR_GPT(4096, TR_context: 64, TR_embed_dim: 64, TR_num_layers: 4, TR_num_heads: 4, TR_num_kv_heads: 2, TR_intermediate_dim: 96, TR_tied: TR_true,
     TR_windows: TR_layer_windows("YGYG", [8, 16]), TR_qk_norm: TR_true, TR_merged_kv: TR_true, TR_merged_gate: TR_true,
     TR_ff_use_bias: TR_true, TR_eps: 0.000001, TR_ple_dim: 32)
-TR_print(model.TR_generate([1, 2, 3], 10, TR_temperature: 0, TR_eos: 0)) # eos örneklenirse üretim durur
+TR_print(model.TR_generate([1, 2, 3], 10, TR_temperature: 0, TR_eos: [0])) # listedeki bir kimlik örneklenirse üretim durur
 ```
 
 `.TR_generate` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `TR_cache_kind: "sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `TR_none` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `TR_var ö = model.TR_build_cache()` ile `model.TR_forward(kimlikler, TR_cache: ö)` çağırır; `ö.TR_truncate(n)` önbelleği ilk `n` parçaya indirir (sonrakileri geri alır).

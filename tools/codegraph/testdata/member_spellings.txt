@@ -74,6 +74,7 @@ TR_cos_table.TR_shape	ok	0	name:TR_mem_shape
 TR_down_proj.TR_bias	ok	0	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_bias
 TR_down_proj.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_weight
 TR_embedding.TR_table	ok	0	tr:field:lib/layers.tr:TR_type_Embedding.TR_mem_table
+TR_eos.TR_contains	ok	0	name:TR_mem_contains
 TR_feed_forward.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 TR_feed_forward.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 TR_feed_forward.TR_gate_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_up_proj

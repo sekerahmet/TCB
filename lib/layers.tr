@@ -598,8 +598,9 @@ TR_struct TR_GPT {
         TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
-    # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
-    # parça kimliği) o parça örneklenince eklenir ve üretim durur (adetten önce). Model
+    # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos durma kimliklerinin
+    # listesidir (varsayılan boş: durmaz): örneklenen parça listedeyse eklenir ve üretim durur
+    # (adetten önce); birden çok kimlik dönüş sonu parçalarıdır (Llama 3'te üç). Model
     # bağlamdan uzun diziyi görmez: son `bağlam` parça kullanılır. önbellek_çeşidi: "sabit"
     # (varsayılan) ya da "büyüyen" KV önbelleği; ilk adım başlangıcı bir kez işler, sonraki
     # adımlar yalnızca yeni parçayı. Dizi bağlamı doldurunca son `bağlam` parça yeniden işlenir
@@ -612,9 +613,11 @@ TR_struct TR_GPT {
     # dağarcık_boyutu verilirse (parçalayıcının p.dağarcık_boyutu'su) örnekleme, sıcaklık 0 ve en_iyi_k
     # dahil, logitlerin ilk dağarcık_boyutu sütunundandır: çıktısı dolgulu model dağarcık dışı kimlik
     # üretmez (16.3). yok ise bütün çıktıdan; unutulursa çöz'ün dağarcık dışı kimlik hatası yakalar.
-    TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_Int? = TR_none, TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true, TR_vocab_size: TR_Int? = TR_none) -> TR_List[TR_Int] {
+    TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_List[TR_Int] = [], TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true, TR_vocab_size: TR_Int? = TR_none) -> TR_List[TR_Int] {
         TR_var çıkış = TR_self.TR_config["dağarcık"]
         TR_assert(TR_vocab_size == TR_none TR_or (TR_vocab_size >= 1 TR_and TR_vocab_size <= çıkış), TR_Message("H5648", TR_vocab_size, çıkış))
+        # Adlı argümanın tipi bugün denetlenmiyor (docs/status.md, 6.5): tek sayı burada adıyla durur.
+        TR_if TR_Type(TR_eos) == TR_Int { TR_throw TR_Message("H7172", "\(TR_eos)") }
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
         TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none
@@ -652,7 +655,7 @@ TR_struct TR_GPT {
                 TR_var t = TR_if TR_seed == TR_none { TR_none } TR_else { TR_seed + i }
                 TR_var yeni = TR_sample(son, TR_temperature: TR_temperature, TR_top_k: TR_top_k, TR_seed: t).TR_tolist
                 kimlikler.TR_append(yeni)
-                TR_if TR_eos != TR_none TR_and yeni == TR_eos { TR_break }
+                TR_if TR_eos.TR_contains(yeni) { TR_break }
             }
         }
         TR_return kimlikler
