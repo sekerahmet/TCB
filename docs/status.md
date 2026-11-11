@@ -764,6 +764,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar:** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
 - **Mevcut durum (2026-11-11, D1):** dil tanımı `TR_attention`'ın imzasında `TR_bias:`'ı yazıyor (`15_tensorler.md:353`, `:359`); motorda yok, çağrı "'sapma' adında bir parametre almaz (geçerli adlar: nedensel, pencere, maske)" hatası veriyor [ölçüldü: D1, main `ae73b3b9`].
 - **Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_bias:` argümanı (aşağıdaki −∞ sapma maddesi de buna bağlı).
+- **Mevcut durum (2026-11-11, D1):** ölçek sabit `1/√dh`; Gemma 3n ve Gemma 4'ün ölçeği 1,0, Gemma 3 27B'ninki `1/√168` (`dh` 128). Kitaplık `q`'yu çarparak yazabiliyor: `q · 16` ile fark 7,15e-07 [ölçüldü: D1, koşu 4]. Dil tanımı değişmeden Gemma diliminin işi; 27B'de yuvarlama farkı.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** tamamen −∞ sapmalı satır 0 verir; CPU ve GPU (T2). CPU'da tamamen maskeli `TR_Bool` satırı zaten `[0.0, 0.0, 0.0, 0.0]` [ölçüldü: DENETİM istek 61, `30b44b01`]; GPU ölçülmedi.
 
 ### 15.27
@@ -927,9 +928,8 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md).
 
 ### 16.2
 
-- **Mevcut durum (2026-11-11, D1; TCB yeniden üretti):** Gemma 3 ve 3n'nin `tokenizer.json`'u TR'de yükleniyor; `TR_special_tokens: TR_false` ile 64 metnin 7'sinde Hugging Face'in kimliklerinden hatasız ayrılıyor, çünkü Gemma'nın özel olmayan eklenmiş parçaları biçim metni (`\n`, `\n\n`, art arda boşluk, sekme, `<b>`) ve kural onları kapatıyor; `TR_true` ile ayrılık yalnız baştaki sınır parçası [ölçüldü: D1, Colab koşu 1–4, Drive `olcumler/d1ma*`]. Bu kimliklerle Gemma için veri hazırlayan program sessizce yanlış girdi üretir.
-- **Yapılacaklar (A, Ö1; Gemma dilimi; sahip model aileleri kolu, TCB atar; `pending.md` kritik satırı, DENETİM 424):** ailenin tanımına eşlenecek biçim parçaları listesi; `TR_false` yalnız onları eşler, öbür eklenmiş parçaları kapatmaya devam eder; listenin ailenin sohbet etiketleriyle kesişmediğini sınayan test; gerçek Gemma parçalayıcısında 64/64 ölçüsü.
-
+- **Mevcut durum (2026-11-11, D1; TCB eklenmiş `\n\n` ve `<b>` taşıyan küçük fikstürde yeniden üretti):** Gemma 3 ve 3n'nin `tokenizer.json`'u TR'de yükleniyor; `TR_special_tokens: TR_false` ile 64 metnin 7'sinde Hugging Face'in kimliklerinden hatasız ayrılıyor, çünkü Gemma'nın özel olmayan eklenmiş parçaları biçim metni (`\n`, `\n\n`, art arda boşluk, sekme, `<b>`) ve kural onları kapatıyor; `TR_true` ile ayrılık yalnız baştaki sınır parçası [ölçüldü: D1, Colab koşu 1–4, Drive `olcumler/d1ma*`]. Bu kimliklerle Gemma için veri hazırlayan program sessizce yanlış girdi üretir.
+- **Yapılacaklar (A, Ö1; Gemma dilimi; sahip model aileleri kolu, TCB atar; `pending.md` kritik satırı, DENETİM 424 ve 425):** ailenin tanımına eşlenecek biçim parçaları listesi (sayılı ya da dar biçim kuralı); `TR_false` yalnız onları eşler, öbür eklenmiş parçaları kapatmaya devam eder; ailesiz yolda biçim parçasının yazımı çalışma hatası; listenin özel işaretli parçalarla ve ailenin protokol etiketleriyle kesişmediğini gerçek dosyada sınayan test; gerçek Gemma parçalayıcısında (`tokenizer.json` ve GGUF) 64/64 ölçüsü. İnce ayar verisi (24.4) ve ham derlem (16.2) de bu kuralla.
 
 - **Bulgu (T1, 2026-11-03, D, Ö3):** `splitFn` aynı konumda atlanan uzun bir eklenmiş parçanın içindeki kısa eklenmiş parçaya bakmıyor; yalnız `DontParseSpecial`'ın (HF anlamı) çağıranını etkiler, TR'nin `TR_false`'u (`DontParseAdded`) hepsini atladığı için etkilemez; bugünkü fikstürlerde sonuç aynı [ölçüldü: T1, altın testi].
 
