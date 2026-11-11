@@ -431,9 +431,7 @@ TR_func _ayar_değerleri(TR_config: TR_JSON, dosya: TR_String) {
 # Ayar değerinin dönüşümleri (15.55): değer beklenen JSON türünde değilse yükleme hatasıdır (H7175):
 # ileti anahtarı (alt anahtarda yolu), değerin türünü, beklenen türü ve dosyayı söyler. TR değeri
 # çevirmez: "0"'ı 0.0 saymak sessiz bir yanlış olabilirdi; türü düzeltmek modeli değiştirmez.
-TR_func _tür_hatası(v: TR_JSON, beklenen: TR_Type, anahtar: TR_String, dosya: TR_String) -> TR_Message {
-    TR_return TR_Message("H7175", anahtar, TR_Type(v), beklenen, dosya)
-}
+TR_func _tür_hatası(v: TR_JSON, beklenen: TR_Type, anahtar: TR_String, dosya: TR_String) -> TR_Message { TR_return TR_Message("H7175", anahtar, TR_Type(v), beklenen, dosya) }
 TR_func _ondalık(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_Float {
     TR_try { TR_return TR_Float(v) } TR_catch e { TR_throw _tür_hatası(v, TR_Float, anahtar, dosya) }
 }
@@ -453,8 +451,7 @@ TR_func _öğeler(v: TR_JSON, anahtar: TR_String, dosya: TR_String) -> TR_List[T
     TR_try { TR_return [x TR_for x TR_in v] } TR_catch e { TR_throw _tür_hatası(v, TR_List, anahtar, dosya) }
 }
 
-# _kur hazır_model'in kuruluşudur: anahtar kapısı ve değerlerin türü config.json'un yoluyla (iletide
-# yazılır), sonra hazır_model_kur.
+# _kur hazır_model'in kuruluşudur: anahtar kapısı ve değerlerin türü config.json'un yoluyla, sonra hazır_model_kur.
 TR_func _kur(ayar: TR_JSON, tür: TR_String, dosya: TR_String) -> TR_GPT {
     _ayar_kapısı(ayar, _yapı(TR_String(TR_config_value(ayar, "model_type", "")), "model"), dosya)
     _ayar_değerleri(ayar, dosya)
