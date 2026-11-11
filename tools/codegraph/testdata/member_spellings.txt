@@ -1029,6 +1029,7 @@ kesin.TR_tolist	ok	0	name:TR_mem_tolist
 kesintisiz.TR_state	ok	0	name:TR_mem_state
 kesit.TR_reshape	ok	0	name:TR_mem_reshape
 kesit.TR_shape	ok	0	name:TR_mem_shape
+kesit.TR_to_device	ok	0	name:TR_mem_to_device
 kesit.TR_tolist	ok	0	name:TR_mem_tolist
 kesitler.TR_append	ok	0	name:TR_mem_append
 kesitler.TR_length	ok	0	name:TR_mem_length
@@ -1785,6 +1786,8 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 çağrılar.TR_append	ok	0	name:TR_mem_append
 çağrılar.TR_contains	ok	0	name:TR_mem_contains
 çağrılar.TR_length	ok	0	name:TR_mem_length
+çerçeve.TR_device	ok	0	name:TR_mem_device
+çerçeve.TR_dtype	ok	0	name:TR_mem_dtype
 çiftler.TR_append	ok	0	name:TR_mem_append
 çubuk.TR_stop	ok	0	name:TR_mem_stop
 çubuk.TR_update	ok	0	name:TR_mem_update
@@ -1845,6 +1848,7 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 örnekler.TR_shape	ok	0	name:TR_mem_shape
 örnekler.TR_skip	ok	0	name:TR_mem_skip
 örnekler.TR_slice	ok	0	name:TR_mem_slice
+örnekler.TR_to_device	ok	0	name:TR_mem_to_device
 özel.TR_remove	ok	0	name:TR_mem_remove
 özet.TR_append	ok	0	name:TR_mem_append
 özet.TR_contains	ok	0	name:TR_mem_contains

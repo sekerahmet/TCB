@@ -120,5 +120,6 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 
 ## Testler
 
+- `behavior_device_test.go`: zincirin cihaz geçişleri (`zincir.tr`'nin `işlemcide`, `çerçeve_örnekleri`, `kesit_cihazda`): modelsiz bir programı `trlang` ile kart benzeticisinde (`TR_GPU_SIM=1`) koşar; varsayılan cihaz kartken kesitleyicinin örnekleri ve mikrofonun 16 bitlik çerçevesi işlemcide, kesit kartta; işlemcideyken üçü de işlemcide.
 - `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
 - `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı.

@@ -147,7 +147,7 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     TR_if söz != TR_none {
         yazı = söz
     } TR_else TR_if kesit != TR_none {
-        yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: TR_String(ayar["konuşma_dili"])).TR_text
+        yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit_cihazda(kesit).TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: TR_String(ayar["konuşma_dili"])).TR_text
     }
     t.yazı_ms = şimdi() - t0
     t.duyulan = yazı
@@ -180,7 +180,7 @@ TR_func dosya_kipi(a: Asistan) {
     TR_for yol TR_in yollar {
         TR_var ses = TR_read_wav(yol)
         TR_if ses.TR_sample_rate != _HIZ TR_or ses.TR_samples.TR_shape[0] != 1 { TR_throw "\(yol): 16 kHz tek kanallı WAV bekleniyor" }
-        TR_var kesit = kesitle(kesici, ses.TR_samples[0])
+        TR_var kesit = kesitle(kesici, işlemcide(ses.TR_samples[0]))
         algılayıcı.TR_reset_state()
         TR_if kesit == TR_none {
             TR_print("söz yok:", TR_Path(yol).TR_name)
@@ -253,7 +253,7 @@ TR_func canlı_kip(a: Asistan) {
             TR_print("OLCU_MIKROFON tur=\(z.tur) acilis_ms=\(şimdi() - açılış)")
             dinlemede = TR_true
         }
-        TR_return TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
+        TR_return çerçeve_örnekleri(parça)
     }
     TR_func aç() {
         mikrofon.TR_cancel()
@@ -336,7 +336,7 @@ TR_func ekranlı_kip() -> TR_Int {
             e.mic = TR_true
             TR_if e.tur == "" { e.boşta() }
         }
-        TR_return TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
+        TR_return çerçeve_örnekleri(parça)
     }
     TR_func mikrofonu_aç() -> TR_Bool {
         TR_if başlangıç < 0 { başlangıç = şimdi() }

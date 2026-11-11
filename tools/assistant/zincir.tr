@@ -425,6 +425,20 @@ TR_func kesitle(kesici: TR_SpeechSplitter, örnekler: TR_Tensor) -> TR_Tensor? {
     TR_return TR_concat(kesitler)
 }
 
+# Cihaz geçişleri: kurucular varsayılan cihazda kurar (15.38), kesitleyici yalnız işlemcide çalışır (25.11). Giriş ve
+# çıkışı burada açıkça taşınır, kitaplık değişmez. Varsayılan cihaz işlemciyken üçü de boş taşımadır (15.39).
+# işlemcide: kesitleyiciye giden örnekler işlemciye.
+TR_func işlemcide(örnekler: TR_Tensor) -> TR_Tensor { TR_return örnekler.TR_to_device("cpu") }
+
+# çerçeve_örnekleri: mikrofonun 16 bitlik çerçevesi [-1, 1) örneklere; tam sayılar önce işlemciye alınır, çevirme orada.
+TR_func çerçeve_örnekleri(parça: TR_Bytes) -> TR_Tensor {
+    TR_var tam = TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little").TR_to_device("cpu")
+    TR_return TR_Tensor[TR_Float](tam) / 32768.0
+}
+
+# kesit_cihazda: kesitleyicinin kesiti yazıya çevrilmeden önce varsayılan cihaza.
+TR_func kesit_cihazda(kesit: TR_Tensor) -> TR_Tensor { TR_return kesit.TR_to_device(TR_default_device()) }
+
 TR_const _ÇERÇEVE_MS = 32 # 512 örnek, 16 kHz
 
 # ÇalmaAralığı: bir turun çalma aralığı (saat, ms): ilk çalmanın başından son çalmanın sonuna; çalma yoksa -1.
