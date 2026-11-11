@@ -272,16 +272,16 @@ TR_func canlı_kip(a: Asistan) {
         sürsün: () => en_çok_tur == 0 TR_or z.tur < en_çok_tur, kuyruk_ms: _KUYRUK_MS))
 }
 
-# ekranlı_kip: canlı kip, ekranla (`--ekran`). Açılış sırası: belirteç üretilir, --belirteç_dosyası'na yalnız sahibine
-# yazılır, sunucu açılır, adres ve dosyanın yolu yazılır (belirtecin kendisi hiçbir yere yazılmaz), sonra modeller
+# ekranlı_kip: canlı kip, ekranla (`--ekran`). Açılış sırası: belirteç bellekte üretilir, sunucu onunla açılır (kapı
+# tutulamazsa açılış durur, dosyaya dokunulmaz), belirteç --belirteç_dosyası'na yalnız sahibine yazılır, adres ve
+# dosyanın yolu yazılır (belirtecin kendisi hiçbir yere yazılmaz), sonra modeller
 # bir görevde yüklenir; o sürede ekran `loading` görür, metin turu `not_ready` alır. Mikrofon kapalı başlar.
 # Komutların kararı ana döngüdedir (`işle`): çerçeveler arasında, mikrofon kapalıyken 50 ms'de bir, tur sürerken
 # `tur_yürüt`'ün bakışında. Döngü `dinle`'dir; metin turları ve mikrofonun açılması `ara`'dadır. Cevaplanan tur sayısını verir.
 TR_func ekranlı_kip() -> TR_Int {
     TR_var dosya = _gerekli("belirteç_dosyası")
-    TR_var belirteç = belirteç_yaz(dosya)
     TR_var e = ekran_kur(ekran_klasörü(), TR_Path(_gerekli("dil_modeli")).TR_name)
-    TR_var s = ekran_aç(e, TR_Int(ayar["ekran"]), belirteç)
+    TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
     TR_defer { s.TR_close() }
     TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
     TR_var yük = TR_async asistan_kur()

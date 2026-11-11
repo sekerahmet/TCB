@@ -481,12 +481,18 @@ TR_func gösterilebilir(metin: TR_String) -> (TR_String, TR_Bool) {
     TR_return m[0..m.TR_length - tut], etiketli
 }
 
-# belirteç_yaz: yeni bir belirteç (28.2a) ve onu yalnız sahibinin okuyabileceği dosyaya yazar (18.13); belirtecin
-# kendisi hiçbir yere yazılmaz (standart çıktı, günlük, URL), program yalnız dosyanın yolunu söyler.
-TR_func belirteç_yaz(dosya: TR_String) -> TR_String {
+# belirteçle_aç: yeni bir belirteç (28.2a) üretir, sunucuyu onunla açar ve kapı tutulduktan sonra belirteci yalnız sahibinin
+# okuyabileceği dosyaya yazar (18.13); kapı tutulamazsa dosyaya dokunmaz. Belirtecin kendisi hiçbir yere yazılmaz.
+TR_func belirteçle_aç(e: Ekran, kapı: TR_Int, dosya: TR_String) -> TR_HTTPServer {
     TR_var b = TR_secret_token()
-    TR_write_file(dosya, b, TR_owner_only: TR_true)
-    TR_return b
+    TR_var s = ekran_aç(e, kapı, b)
+    TR_try {
+        TR_write_file(dosya, b, TR_owner_only: TR_true)
+    } TR_catch h {
+        s.TR_close()
+        TR_throw h
+    }
+    TR_return s
 }
 
 # nesne: JSON değeri bir nesne mi.

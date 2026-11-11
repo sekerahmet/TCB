@@ -181,11 +181,15 @@ TR_test "bitiş her turda bir kez, turn_end'den sonra, nedeni ve hatanın koduyl
     }, -1))
 }
 
-TR_test "belirteç dosyası yalnız sahibine yazılır; belirteç dosyadakiyle aynıdır" {
+TR_test "belirteçle_aç: kapı tutulunca belirteç dosyaya yazılır; kapı doluyken H7625, dosya aynı kalır" {
     TR_var yol = TR_String(TR_Path(TR_temp_dir(), "belirtec"))
-    TR_var b = belirteç_yaz(yol)
-    TR_assert_equal(b, TR_read_file(yol))
+    TR_var s = belirteçle_aç(ekran(), 0, yol)
+    TR_var b = TR_read_file(yol)
     TR_assert(b.TR_length >= 16)
+    TR_write_file(yol, "eski")
+    TR_assert_equal("H7625", TR_error_code { belirteçle_aç(ekran(), s.TR_port, yol) })
+    TR_assert_equal("eski", TR_read_file(yol))
+    TR_assert(s.TR_close())
 }
 
 TR_test "ekranın adresi sorgusuz köktür: kaynak sayfanın kendi kökü" {

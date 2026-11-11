@@ -26,7 +26,7 @@ TR_func yavaş_katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
 }
 
 TR_var e = ekran_kur(ekran_klasörü(), "sahte", TR_if bekleme > 0.0 { yavaş_katla } TR_else { katla })
-TR_var s = ekran_aç(e, TR_Int(ayar["ekran"]), belirteç_yaz(dosya))
+TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
 TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
 e.hazır = TR_true
 e.boşta()
