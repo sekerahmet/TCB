@@ -343,7 +343,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - **Hassasiyet:** `x`, `w` ve `b` birlikte 15.6c'deki gibi birleşir (15.24'teki `TR_bias` gibi): `x` ve `w` bf16, `b` float32 ise sonuç float32'dir, sapmasız evrişime `b`'yi eklemekle aynı tür; blokta 15.4.
 - Hesap `@` gibidir: float32 biriktirme, `TR_mixed_precision` bloğunda blok türü (15.4); türev girdiye, ağırlığa ve sapmaya gider.
 - Şekil uymazsa (kanal sayısı, gruplar, çekirdek girdiden büyük) çalışma hatasıdır; ileti şekilleri söyler.
-- *Test:* TR testi (`TR_conv1d`); `TR_conv2d` uygulanınca TR testi.
+- *Test:* TR testi (`TR_conv1d`); kartta Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`; `TR_conv2d` uygulanınca TR testi.
 
 **15.23d** `TR_dropout(x, oran)` her öğeyi `oran` olasılıkla sıfırlar, kalanları `1 / (1 − oran)` ile ölçekler; türev aynı maskeden geçer.
 - `oran` 0 ile 1 arasındadır (1 hariç); 0'da sonuç `x`'in kendisidir (kopyasız).

@@ -454,6 +454,24 @@ func gateEmbeddingAt(be IndexReader, out Storage, w View, idx View, D int) {
 	runtime.KeepAlive(idx.S)
 }
 
+func gateUnfold1d(be Conv1dFolder, cols Storage, x View, f Conv1dLayout) {
+	if unlockedOps.Load() != 0 {
+		gate([]Storage{cols}, []Storage{x.S})
+	}
+	be.Unfold1d(cols, x, f)
+	runtime.KeepAlive(cols)
+	runtime.KeepAlive(x.S)
+}
+
+func gateFold1d(be Conv1dFolder, dx Storage, cols View, f Conv1dLayout) {
+	if unlockedOps.Load() != 0 {
+		gate([]Storage{dx}, []Storage{cols.S})
+	}
+	be.Fold1d(dx, cols, f)
+	runtime.KeepAlive(dx)
+	runtime.KeepAlive(cols.S)
+}
+
 func gateOpenQuant(be QuantOpener, out Storage, src View) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{out}, []Storage{src.S})
