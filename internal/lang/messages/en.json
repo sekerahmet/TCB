@@ -1603,7 +1603,7 @@
 "H7171": "{@pretrained_model}: {key|q} = {value} is not supported: TR does not apply this setting and does not load this model; changing the config changes the model",
 "H7172": "{@generate}: {@eos} is a list of stop ids, a single number ({value}) was given: write `{#eos}: [{value}]`",
 "H7173": "{@generate}: {@eos} was given a function, not a list of stop ids: call the method with parentheses, `{#eos}: model.{#eos_tokens}()`",
-"H7174": "{@generate}: {@eos} is a list of stop ids; {index, plural, =0 {a {type} was given, not a list} other {item # is a {type}, not an Int}}: a stop id comes from `p.{#token_id}(\"...\")`, and a name not in the vocabulary gives `{#none}`",
+"H7174": "{@generate}: {@eos} is a list of stop ids; {index, plural, =0 {a {type} was given, not a list} other {item # is a {type}, not an Int}}: a stop id comes from `p.{#token_id}(\"...\")`, and a name not in the vocabulary gives `{#none}`; or the model's own list: `{#eos}: model.{#eos_tokens}()`",
 "H7200": "Error: {error} For options: {command} {help}",
 "H7201": "argument {index} is too long ({size} bytes; at most 1 MB)",
 "H7202": "'--{name}' was given twice",

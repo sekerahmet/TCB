@@ -458,7 +458,7 @@ TR_const _GENEL_SINIFLAR = ["PreTrainedTokenizer", "PreTrainedTokenizerFast"]
 # yoksa H7162; öbür adlar dağarcıkta varsa listeye girer, yoksa atlanır (DENETİM 446 Ş1: aynı
 # etiketli eski dağarcık <|eom_id|> taşımayabilir). Dosyanın bildirdiği ama listede olmayan kimlik
 # H7163. İki ileti dosyanın yolunu yazar. Aile yoksa (s TR_none) model ailesizdir:
-# m.TR_eos_tokens() H7170 verir, dosyanın bildirdiği kimlik denetlenmez.
+# model.TR_eos_tokens() H7170 verir, dosyanın bildirdiği kimlik denetlenmez.
 TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR_List[TR_Int]?, yol: TR_String, dosya: TR_String) -> TR_GPT {
     model.TR_config["aileler"] = [a.aile TR_for a TR_in _sohbet_tablosu()].TR_join(", ")
     TR_if s == TR_none TR_or p == TR_none { TR_return model }
@@ -481,14 +481,13 @@ TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR
     TR_return model
 }
 
-# _gguf_ailesi GGUF'ta aileyi (mimari, p.TR_pretokenizer_tag) ile seçer. Parçalayıcı taşımayan dosya
-# (H5650) ve parçalayıcısı tanınmayan ön bölme etiketi yüzünden yüklenemeyen dosya (H6679) ailesizdir:
-# bugün yüklenen dosya kapanmaz. Parçalayıcının öbür her hatası yukarı çıkar.
+# _gguf_ailesi GGUF'ta aileyi (mimari, p.TR_pretokenizer_tag) ile seçer. Parçalayıcı yüklenemezse
+# model ailesizdir; hatayı yalnız TR_load_tokenizer verir. Dosya okuma hatası (H2107) buraya gelmez:
+# TR_pretrained_gguf aynı dosyanın üstverisini ve tensörlerini önce okur, okunamayan dosyada o hatayla
+# durur. Kod listesine bakılmaz: tanınmayan bir sonraki biçim de modeli kapatmaz.
 TR_func _gguf_ailesi(model: TR_GPT, yol: TR_String, mimari: TR_String) -> TR_GPT {
     TR_var p: TR_Tokenizer? = TR_none
     TR_try { p = TR_load_tokenizer(yol) } TR_catch e {
-        TR_var kod = TR_error_code { TR_throw e }
-        TR_if kod != "H5650" TR_and kod != "H6679" { TR_throw e }
         TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "gguf", yol)
     }
     TR_var s: _Sohbet? = TR_none

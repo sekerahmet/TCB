@@ -16,12 +16,20 @@ import (
 // tanımındaki adlardan parçalayıcının kimliğiyle kurulur; m.TR_eos_tokens() onu verir. GGUF'ta aile
 // (mimari, p.TR_pretokenizer_tag), klasörde (model_type, tokenizer_config.json'un işareti) ile
 // seçilir. Adı dağarcıkta olmayan durma parçası H7162, dosyanın bildirdiği ama listede olmayan
-// kimlik H7163. Ailesiz modelde (parçalayıcısız GGUF, tabloda olmayan etiket, tokenizer_config'siz
-// klasör) çağrı H7170'tir, dosyanın kimliği denetlenmez, TR_eos: [...] ile üretim sürer.
+// kimlik H7163. Ailesiz modelde (parçalayıcısı yüklenemeyen GGUF, tabloda olmayan etiket,
+// tokenizer_config'siz ya da tokenizer.json'suz klasör) çağrı H7170'tir, dosyanın kimliği
+// denetlenmez, TR_eos: [...] ile üretim sürer.
 
 // familyGGUF küçük modelin GGUF'una parçalayıcı anahtarlarını ekler: tek karakterli parçalar,
 // sonra özel adlar (kimlikleri 40'tan başlar). declared dosyanın bildirdiği durma kimlikleridir.
 func familyGGUF(t *testing.T, dir string, c tinyConfig, pre string, special []string, declared map[string]uint32) string {
+	t.Helper()
+	return familyGGUFOf(t, dir, c, "gpt2", pre, special, declared)
+}
+
+// familyGGUFOf familyGGUF'tur, parçalayıcının türü (tokenizer.ggml.model) verilerek: "llama"
+// SentencePiece'li GGUF'tur (Llama 2, Mistral), TR'nin parçalayıcısı onu yüklemez (H6678).
+func familyGGUFOf(t *testing.T, dir string, c tinyConfig, kind, pre string, special []string, declared map[string]uint32) string {
 	t.Helper()
 	b := c.ggufFile(c.randomWeights(1))
 	tokens := make([]string, 0, 40+len(special))
@@ -36,7 +44,7 @@ func familyGGUF(t *testing.T, dir string, c tinyConfig, pre string, special []st
 			kinds[i] = 3
 		}
 	}
-	b.KV("tokenizer.ggml.model", "gpt2").KV("tokenizer.ggml.pre", pre).KV("tokenizer.ggml.tokens", tokens).
+	b.KV("tokenizer.ggml.model", kind).KV("tokenizer.ggml.pre", pre).KV("tokenizer.ggml.tokens", tokens).
 		KV("tokenizer.ggml.token_type", kinds).KV("tokenizer.ggml.merges", []string{}).KV("tokenizer.ggml.bos_token_id", uint32(0))
 	for _, key := range []string{"eos", "eot", "eom"} {
 		if id, ok := declared[key]; ok {
@@ -141,11 +149,12 @@ func TestChatTableIsUnique(t *testing.T) {
 	}
 }
 
-// TestFamilylessModelGeneratesWithExplicitStops: beş ailesiz yolda (parçalayıcısız GGUF, tabloda
-// olmayan etiket, parçalayıcının tanımadığı etiket, tokenizer_config'siz klasör, tokenizer.json'suz
-// klasör) m.TR_eos_tokens() H7170'tir, ileti kimliklerin açık yazımını söyler; TR_eos: [...] ile
-// üretim sürer. Tanınmayan etiketin H6679'unu yalnız TR_load_tokenizer verir; parçalayıcının öbür
-// hataları modelin yüklemesinden yukarı çıkar (TCB 2026-11-11 20:00).
+// TestFamilylessModelGeneratesWithExplicitStops: yedi ailesiz yolda (parçalayıcısız GGUF, tabloda
+// olmayan etiket, parçalayıcının tanımadığı etiket, SentencePiece'li GGUF, etiketi mimarisiyle
+// çelişen GGUF, tokenizer_config'siz klasör, tokenizer.json'suz klasör) model.TR_eos_tokens()
+// H7170'tir, ileti kimliklerin açık yazımını söyler; TR_eos: [...] ile üretim sürer. GGUF'ta
+// parçalayıcı yüklenemezse model ailesizdir; hatayı yalnız TR_load_tokenizer verir, işlevin adı ve
+// dosyanın yoluyla (H5620'nin içinde). Okunamayan dosya yine hatadır (DENETİM 453 Ş1, N2).
 func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	body := "TR_print(TR_error_code { m.TR_eos_tokens() })\nTR_print(m.TR_generate([1, 2], 3, TR_temperature: 0, TR_eos: [5]).TR_length > 2)"
 	dir := t.TempDir()
@@ -168,6 +177,8 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 		"parçalayıcısız GGUF":       fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
 		"smollm etiketi":            fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
 		"tanınmayan etiket":         fmt.Sprintf("TR_pretrained_gguf(%q)", unknownTag),
+		"SentencePiece'li GGUF":     fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUFOf(t, t.TempDir(), llamaTiny, "llama", "llama-bpe", llama3, nil)),
+		"mimarisiyle çelişen etiket": fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "qwen2", llama3, nil)),
 		"klasör":                    fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
 		"tokenizer.json'suz klasör": fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
 	}
@@ -182,13 +193,17 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	if !strings.Contains(got, "`TR_eos: [...]`") || !strings.Contains(got, "llama3, qwen3") {
 		t.Errorf("H7170'in iletisi aileleri ve açık yazımı söylemiyor:\n%s", got)
 	}
-	if got := runFamily(t, dir, loads["tanınmayan etiket"], fmt.Sprintf("TR_print(TR_error_code { TR_load_tokenizer(%q) })", unknownTag)); got != "H6679" {
-		t.Errorf("tanınmayan etiketin parçalayıcısı: %q", got)
+	// Hatayı TR_load_tokenizer verir: H5620, işlevin adı, dosyanın yolu ve etiket.
+	got = runFamily(t, dir, loads["tanınmayan etiket"], fmt.Sprintf("TR_try { TR_load_tokenizer(%q) } TR_catch e {\n    TR_print(e.TR_code)\n    TR_print(e.TR_text(\"tr\"))\n}", unknownTag))
+	if lines := strings.Split(got, "\n"); len(lines) != 2 || lines[0] != "H5620" || !strings.Contains(lines[1], "parçalayıcı_yükle") ||
+		!strings.Contains(lines[1], unknownTag) || !strings.Contains(lines[1], "smaug-bpe") {
+		t.Errorf("tanınmayan etiketin parçalayıcısı:\n%s", got)
 	}
-	// qwen2 etiketi llama mimarisinde parçalayıcının başka bir hatasıdır (H6680): model yüklenmez.
-	wrongArch := familyGGUF(t, t.TempDir(), llamaTiny, "qwen2", llama3, nil)
-	if got := runFamily(t, dir, fmt.Sprintf("TR_error_code { TR_pretrained_gguf(%q) }", wrongArch), "TR_print(m)"); got != "H5620" {
-		t.Errorf("parçalayıcının öbür hatası yukarı çıkmıyor: %q", got)
+	// Okunamayan dosya ailesiz sayılmaz: yükleme hatadır (H2107; TR_error_code en içteki nedeni,
+	// "dosya yok"u, H2132'yi verir).
+	missing := filepath.ToSlash(filepath.Join(dir, "yok.gguf"))
+	if got := runFamily(t, dir, fmt.Sprintf("TR_error_code { TR_pretrained_gguf(%q) }", missing), "TR_print(m)"); got != "H2132" {
+		t.Errorf("okunamayan dosya: %q", got)
 	}
 }
 
@@ -263,7 +278,8 @@ func TestGenerateEosMethodWithoutParentheses(t *testing.T) {
 // adın p.TR_token_id'sinin TR_none'ı, metin) ve liste olmayan TR_eos: TR_none H7174'tür; ileti
 // öğenin sırasını ve türünü, kimliğin p.TR_token_id(...) ile alındığını söyler (DENETİM 446 N2).
 // Tür iletiye kimliğiyle girer, her dilde kendi görünüm adıyla yazılır: Türkçede YokTipi ve Metin,
-// İngilizcede NoneType ve String; düz metin olarak sızmaz (TCB 2026-11-11, kapanış öncesi).
+// İngilizcede NoneType ve String; düz metin olarak sızmaz (TCB 2026-11-11, kapanış öncesi). Yokluk
+// değeri kimlik yuvasıdır (`TR_none`, her dilde kimlik yazımı); ileti modelin listesini de önerir.
 func TestGenerateEosItemsAreInts(t *testing.T) {
 	dir := t.TempDir()
 	load := "TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 2)"
@@ -287,5 +303,16 @@ func TestGenerateEosItemsAreInts(t *testing.T) {
 			!strings.Contains(lines[2], "`p.TR_token_id(\"...\")`") {
 			t.Errorf("TR_eos: %s, İngilizce ileti:\n%s", c.eos, lines[2])
 		}
+		for _, l := range lines[1:] {
+			if !strings.Contains(l, "`TR_eos: model.TR_eos_tokens()`") {
+				t.Errorf("TR_eos: %s: ileti modelin listesini önermiyor:\n%s", c.eos, l)
+			}
+		}
+	}
+	// Önerilen yazım ailesi olan modelde koşar ve modelin listesiyle üretir (DENETİM 453 N1).
+	fam := fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, dir, llamaTiny, "llama-bpe", llama3, nil))
+	if got := runFamily(t, dir, fam, "TR_var model = m\nTR_print(TR_error_code { model.TR_generate([1], 2, TR_eos: [TR_none]) })\n"+
+		"TR_print(model.TR_generate([1], 2, TR_temperature: 0, TR_eos: model.TR_eos_tokens()).TR_length > 1)"); got != "H7174\ntrue" {
+		t.Errorf("önerilen yazım: %q", got)
 	}
 }
