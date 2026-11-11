@@ -33,15 +33,15 @@
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=commit      commit öncesi denetim (~35 sn; yan oturumların ve TCB'nin tek commit öncesi komutu,
 #                     CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi (format_checks), tekrar
-#                     adayları, düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests). Bu makinede koşan
+#                     adayları, dil tanımı atıfları, düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
 #                     ileti kullanımı), öbür paketlerdeki depo taramaları, .tr dosyalarının biçimi, dil
 #                     tanımı testleri (trlang test tests), değişen
 #                     paketlerin kısa testleri, değişen dosyaları koruyan testler (codegraph changed
-#                     --go-tests; veri dosyası değişse de) ve yeni tekrar adayları (codegraph dups --changed;
-#                     yeni aday denetimi düşürür, tam denetimde de).
+#                     --go-tests; veri dosyası değişse de), yeni tekrar adayları (codegraph dups --changed;
+#                     yeni aday denetimi düşürür, tam denetimde de) ve dil tanımı atıfları (codegraph spec-refs).
 #                     Yan oturumlar devir notundan, ana oturum GPU yan dalına göndermeden önce
 #                     koşar; tam denetimin yerini tutmaz.
 #
@@ -416,12 +416,14 @@ compare_base() {
 	fi
 }
 
+codegraph_built=""
 # dups_check ana dala göre eklenen ya da değişen satırlara dokunan tekrar adaylarını arar; yeni bir
 # aday denetimi düşürür (CLAUDE.md, Sadelik 10): aynı işte giderilir ya da bilerek kalan kopya
 # tools/codegraph/dups_exclude.go'ya gerekçesiyle yazılır. Taban compare_base'dir; ortak ata yoksa
 # (sığ klon) adım atlanır.
 dups_check() {
 	local base out n
+	codegraph_built=""
 	base=$(compare_base)
 	step "Tekrar adayları (codegraph dups --changed $base)"
 	if ! git merge-base "$base" HEAD >/dev/null 2>&1; then
@@ -433,6 +435,7 @@ dups_check() {
 		fail "codegraph dups çalışmadı"
 		return
 	}
+	codegraph_built=1
 	printf '%s\n' "$out" | head -40
 	n=$(printf '%s\n' "$out" | sed -n 's/^\([0-9][0-9]*\) duplicate candidate.*/\1/p' | head -1)
 	if [ -z "$n" ]; then
@@ -442,9 +445,37 @@ dups_check() {
 	fi
 }
 
+# spec_refs_check dil tanımı (docs/spec) madde atıflarını denetler: olmayan maddeye atıf ve
+# madde numarasından sonraki ekin ses uyumsuzluğu denetimi düşürür. dups_check bu koşuda
+# codegraph'ı derlediyse (.codegraph/last-codegraph) o ikiliyi doğrudan koşar; ortak ata yoksa
+# ya da ikili bulunamazsa edithook üzerinden go run'a düşer.
+spec_refs_check() {
+	local bin="" out
+	step "Dil tanımı atıfları (codegraph spec-refs)"
+	if [ "${codegraph_built:-}" = 1 ] && [ -f .codegraph/last-codegraph ]; then
+		IFS= read -r bin <.codegraph/last-codegraph || true
+		bin=${bin%$'\r'}
+	fi
+	if [ -n "$bin" ] && [ -f "$bin" ]; then
+		out=$("$bin" spec-refs 2>&1) || {
+			printf '%s\n' "$out" | head -40
+			fail "dil tanımı atıfları (codegraph spec-refs)"
+			return
+		}
+	else
+		out=$(go run ./tools/edithook codegraph spec-refs 2>&1) || {
+			printf '%s\n' "$out" | head -40
+			fail "dil tanımı atıfları (codegraph spec-refs)"
+			return
+		}
+	fi
+	printf '%s\n' "$out" | head -40
+}
+
 static_checks() {
 	quick_static_checks
 	dups_check
+	spec_refs_check
 
 	step "ARM (arm64) derlemesi ve vet"
 	for os in linux darwin windows; do
@@ -791,6 +822,7 @@ for mode in $modes; do
 			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
 		dups_check
+		spec_refs_check
 		;;
 	on)
 		quick_static_checks
@@ -822,6 +854,7 @@ for mode in $modes; do
 		fi
 		selected_tests "${changed[@]}"
 		dups_check
+		spec_refs_check
 		;;
 	esac
 done
