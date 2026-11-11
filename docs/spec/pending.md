@@ -11,6 +11,7 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
+- **16.2 ve 24.2, özel olmayan biçim parçası (2026-11-11, D1'in model aileleri tasarımı, DENETİM 424; TCB yeniden üretti):** 16.2'nin `TR_special_tokens: TR_false`'u metindeki bütün eklenmiş parçaları kapatıyor; kural Qwen3'ün protokol etiketlerinden kuruldu (`rationale/16_data.md:24`). Gemma 3 ve 3n'nin eklenmiş parçalarının çoğu biçim metni (`\n`, `\n\n`, art arda boşluk, sekme, `<b>`): `TR_false` onları baytlara bölüyor, model eğitildiği kimliklerden sessizce ayrı girdi görüyor; 24.2 içeriği bu ayarla kodladığı için Gemma'ya giden çok satırlı her ileti etkilenir [ölçüldü: D1, Colab, 64 metnin 7'si; TCB, eklenmiş `\n\n` ve `<b>` taşıyan küçük parçalayıcıda `TR_false` ikisini de böldü, `TR_true` tek kimlik verdi]. **Karar (TCB, yön; DENETİM 424'ün ters yönü):** `TR_false`'un varsayılanı değişmez, bütün eklenmiş parçalar kapatılır; yalnız modelin aile tanımının saydığı biçim parçaları eşlenir; aile tanımı olmayan parçalayıcıda istisna yok; bir protokol etiketi biçim listesine giremez (ailenin testi: liste ile sohbet biçiminin etiketleri kesişmez). Neden bu yön: listeden unutulan bir biçim parçası ölçülen bir ayrılık olur, unutulan bir protokol etiketi ise sessiz enjeksiyon olurdu. Metin ve uygulama Gemma dilimiyle (sıra: Llama 3.x'ten sonra).
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 

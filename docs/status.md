@@ -762,6 +762,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** `TR_mask:`'in cins hatası (H6985) çalışma anında: denetleyici tensörün cinsini bilmiyor (`TR_Tensor[TR_Float]` tipli değişken de `TR_Tensor`) [ölçüldü: T1 `claude/kolB-o0-3`, 9 yazım].
 - **Yapılacaklar:** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
+- **Mevcut durum (2026-11-11, D1):** dil tanımı `TR_attention`'ın imzasında `TR_bias:`'ı yazıyor (`15_tensorler.md:353`, `:359`); motorda yok, çağrı "'sapma' adında bir parametre almaz (geçerli adlar: nedensel, pencere, maske)" hatası veriyor [ölçüldü: D1, main `ae73b3b9`].
+- **Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_bias:` argümanı (aşağıdaki −∞ sapma maddesi de buna bağlı).
 - **Gemini 15/2 (2026-10-29), uygulanacak:** tamamen −∞ sapmalı satır 0 verir; CPU ve GPU (T2). CPU'da tamamen maskeli `TR_Bool` satırı zaten `[0.0, 0.0, 0.0, 0.0]` [ölçüldü: DENETİM istek 61, `30b44b01`]; GPU ölçülmedi.
 
 ### 15.27
@@ -912,7 +914,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister. Safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni]. Llama 3.1 ölçülmedi.
 - **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları: bugün iki biçime de yazmak H6687, ileti açmayı söyler; kod gelince `.safetensors` iletisi TR biçimini de önerir; GGUF `Q4_0`'ı ("q4") H6674; `F8_E4M3` okuma; kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi.
 - **Yapılacaklar (C, Ö3; sahip H1; DENETİM istek 161):** F32 GGUF'ta tepe dosyanın 3,5 katı (4,95 GB dosya, kısa prompt 17,3 GB) [ölçüldü: T1, `t1l4`]; F32 yolunda `readValues` ve `FromHost` iki kopya kuruyor [kanıtlı: `load_gguf.go`, `cpu_memory.go:128`], ikisi aynı anda canlı olabilir [hipotez: DENETİM 161]. Safetensors F32'de de. Çözüm önerisi sahipliği devralan kurma.
-- **Yapılacaklar (E, Ö3; sahip T1; DENETİM istek 161):** `TR_pretrained_model` Llama 3 safetensors'unda `rope_scaling` H6943 veriyor [kanıtlı: `lib/pretrained.tr:67-68`]; GGUF çalışıyor.
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM istek 161):** `TR_pretrained_model` Llama 3 safetensors'unda `rope_scaling` H6943 veriyor [kanıtlı: `lib/pretrained.tr:68-70`]; GGUF çalışıyor.
 - **Yapılacaklar (F, Ö3; sahip T1, önce ölç; DENETİM istek 161):** GGUF yüklemesinde tablo iki kez kuruluyor; süresi ölçülmedi. Repoda uçtan uca dış kanıt yok: küçük fikstürün llama.cpp logitleri altın dosya olabilir.
 - **Sınır (A, sınır; T1, 2026-11-05; DENETİM istek 149 Ş1, 161):** llama.cpp de aynı; tensörü yazılmadan dönüştürülmüş eski Llama 3.1 GGUF'u tanınamaz: üstveriden "tensör olmalıydı" bilinmez, bölen 1 kurulur, uzun bağlamda sessiz yanlış olur [hipotez].
 - **Yapılacaklar (D, Ö3; sahip H1, hız kuyruğu; H1 CPU kıyası):** prompt işlemede TR transformers'ın 0,50–0,54 katı, 16 bit float32'den hızlı değil (0,94 ve 0,96) [ölçüldü: H1, AMD EPYC]. Çok satırlı çarpımda ağırlık hâlâ float32 tampona açılıyor [kanıtlı: `Gemm`]; sebep bu mu [hipotez: profil çıkmadı].
@@ -924,6 +926,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md).
 
 ### 16.2
+
+- **Mevcut durum (2026-11-11, D1; TCB yeniden üretti):** Gemma 3 ve 3n'nin `tokenizer.json`'u TR'de yükleniyor; `TR_special_tokens: TR_false` ile 64 metnin 7'sinde Hugging Face'in kimliklerinden hatasız ayrılıyor, çünkü Gemma'nın özel olmayan eklenmiş parçaları biçim metni (`\n`, `\n\n`, art arda boşluk, sekme, `<b>`) ve kural onları kapatıyor; `TR_true` ile ayrılık yalnız baştaki sınır parçası [ölçüldü: D1, Colab koşu 1–4, Drive `olcumler/d1ma*`]. Bu kimliklerle Gemma için veri hazırlayan program sessizce yanlış girdi üretir.
+- **Yapılacaklar (A, Ö1; Gemma dilimi; sahip model aileleri kolu, TCB atar; `pending.md` kritik satırı, DENETİM 424):** ailenin tanımına eşlenecek biçim parçaları listesi; `TR_false` yalnız onları eşler, öbür eklenmiş parçaları kapatmaya devam eder; listenin ailenin sohbet etiketleriyle kesişmediğini sınayan test; gerçek Gemma parçalayıcısında 64/64 ölçüsü.
 
 
 - **Bulgu (T1, 2026-11-03, D, Ö3):** `splitFn` aynı konumda atlanan uzun bir eklenmiş parçanın içindeki kısa eklenmiş parçaya bakmıyor; yalnız `DontParseSpecial`'ın (HF anlamı) çağıranını etkiler, TR'nin `TR_false`'u (`DontParseAdded`) hepsini atladığı için etkilemez; bugünkü fikstürlerde sonuç aynı [ölçüldü: T1, altın testi].
