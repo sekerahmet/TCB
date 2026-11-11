@@ -1,5 +1,5 @@
 # TR 4
-# Katalog ve ayarın modelsiz sınaması: her ileti kodu (H8160–H8172) ve H8168, H8169'un her `reason` dalı, uygunluk
+# Katalog ve ayarın modelsiz sınaması: her ileti kodu (H8160–H8174) ve H8168, H8169'un her `reason` dalı, uygunluk
 # hesabı, öneri, ayarın yazılması ve depodaki katalog.json'un kendisi. Testler iletinin metnini değil kodunu ve
 # dilden bağımsız metnini (`TR_String(e)`, iletiyi kuran çağrı) sınar (8.3, 8.5).
 TR_import "katalog"
@@ -9,7 +9,7 @@ TR_func _örnek_katalog() -> TR_String {
     TR_var r = "0123456789abcdef0123456789abcdef01234567"
     TR_var h = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     TR_var g: TR_JSON = {"v": 1, "entries": [
-        {"id": "qwen3-4b-q4km", "kind": "language_model", "family": "qwen3", "name": "Qwen3 4B Q4_K_M",
+        {"id": "qwen3-4b-q4km", "kind": "language_model", "family": "qwen3", "context_max": 40960, "name": "Qwen3 4B Q4_K_M",
          "source": {"host": "huggingface", "repo": "Qwen/Qwen3-4B-GGUF", "revision": r,
                     "files": [{"path": "Qwen3-4B-Q4_K_M.gguf", "bytes": 2497280256, "sha256": h, "target": "Qwen3-4B-Q4_K_M.gguf"}]},
          "license": {"name": "Apache-2.0", "url": "https://example.org/l", "gated": TR_false},
@@ -327,4 +327,139 @@ TR_test "depodaki katalog.json okunur ve tutarlıdır" {
         TR_assert(TR_String(g["verified"]["trlang"]) != "")
         TR_assert(TR_List(g["memory"]["measured"]).TR_length > 0, TR_String(g["id"]))
     }
+}
+
+# _dil_modeli: örnek katalogun dil modeli girdisinin metni.
+TR_func _dil_modeli() -> TR_String {
+    TR_return _örnek_katalog().TR_split(",{\"id\":\"whisper-small\"")[0].TR_split("\"entries\":[")[1]
+}
+
+# _iki_dil_modeli: örneğe sınırı `sınır` olan ikinci bir dil modeli (`qwen3-kisa`) ekler; ağırlıkları aynı.
+TR_func _iki_dil_modeli(sınır: TR_Int) -> TR_String {
+    TR_var ikinci = _değiş(_değiş(_dil_modeli(), "\"id\":\"qwen3-4b-q4km\"", "\"id\":\"qwen3-kisa\""),
+        "\"context_max\":40960", "\"context_max\":\(sınır)")
+    TR_return _değiş(_örnek_katalog(), "\"entries\":[", "\"entries\":[\(ikinci),")
+}
+
+# _yok_ayar: var olmayan bir ayar dosyasının yolu (ilk kurulum).
+TR_func _yok_ayar() -> TR_String {
+    TR_return TR_String(TR_Path(TR_temp_dir(), "yok-ayar.json"))
+}
+
+TR_test "context_max: eksik H8164 (yazımı kopyalanınca kalkar), metin H8165, 0 ve eksi H8167, öbür türde H8163" {
+    TR_var yazım = alan_örneği("context_max")
+    TR_assert_equal("\"context_max\": 40960", yazım)
+    TR_assert_equal(TR_String(TR_Message("H8164", "K", "entries[0].context_max", yazım)), _katalog_hatası(",\"context_max\":40960", ""))
+    TR_assert_equal("hata yok", _katalog_hatası(",\"context_max\":40960", ",\(yazım)"))
+    TR_assert_equal("Message(\"H8165\", \"K\", \"entries[0].context_max\", \"integer\", \"string\")",
+        _katalog_hatası("\"context_max\":40960", "\"context_max\":\"40960\""))
+    TR_for v TR_in [0, -5] {
+        TR_assert_equal("Message(\"H8167\", \"K\", \"entries[0].context_max\", \"[1-9][0-9]*\", \"\(v)\")",
+            _katalog_hatası("\"context_max\":40960", "\"context_max\":\(v)"))
+    }
+    TR_assert(_katalog_hatası("\"id\":\"whisper-small\",\"kind\":\"transcriber\",", "\"id\":\"whisper-small\",\"kind\":\"transcriber\",\"context_max\":40960,").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].context_max\""))
+    TR_assert_equal(40960, katalog_oku(_dosya("katalog.json", _örnek_katalog())).girdiler[0].bağlam_sınırı)
+}
+
+TR_test "katalogun sayıları: 0 ve eksi H8167 (measured[].context yalnız eksi; küçük modellerde 0 geçer)" {
+    # Her satır: örnekteki tek yer, `$`'lı yeni hâli, yol.
+    TR_var alanlar = [["\"bytes\":2497280256,\"sha256\"", "\"bytes\":$,\"sha256\"", "entries[0].source.files[0].bytes"],
+        ["\"weights_bytes\":2497280256", "\"weights_bytes\":$", "entries[0].memory.weights_bytes"],
+        ["\"layers\":36", "\"layers\":$", "entries[0].memory.kv.layers"],
+        ["\"kv_heads\":8", "\"kv_heads\":$", "entries[0].memory.kv.kv_heads"],
+        ["\"head_dim\":128", "\"head_dim\":$", "entries[0].memory.kv.head_dim"],
+        ["\"private_bytes\":5000000000", "\"private_bytes\":$", "entries[0].memory.measured[0].private_bytes"]]
+    TR_for a TR_in alanlar {
+        TR_for v TR_in [0, -5] {
+            TR_assert_equal("Message(\"H8167\", \"K\", \"\(a[2])\", \"[1-9][0-9]*\", \"\(v)\")", _katalog_hatası(a[0], a[1].TR_replace("$", "\(v)")))
+        }
+    }
+    TR_assert_equal("Message(\"H8167\", \"K\", \"entries[0].memory.measured[0].context\", \"[0-9]+\", \"-5\")",
+        _katalog_hatası("\"context\":8192", "\"context\":-5"))
+    TR_assert_equal("hata yok", _katalog_hatası("\"context\":8192", "\"context\":0"))
+    # Depodaki katalogun küçük modelleri 0 taşır (tasarımın defteri 58).
+    TR_assert_equal(5, katalog_oku("tools/assistant/katalog.json").girdiler.TR_length)
+}
+
+TR_test "dil modelsiz katalog H8169 (no_language_model); dalın metni öbürlerinden ve other'dan ayrı" {
+    TR_assert_equal("Message(\"H8169\", \"entries\", \"language_model\", \"no_language_model\")",
+        _katalog_hatası("\(_dil_modeli()),", ""))
+    TR_var anahtarlar = ["duplicate_id", "missing_entry", "wrong_kind", "private_below_weights", "weights_not_file_size", "vad_count",
+        "no_language_model", "başka"]
+    TR_for dil TR_in ["tr", "en"] {
+        TR_var görülen: TR_List[TR_String] = []
+        TR_for a TR_in anahtarlar {
+            TR_var t = TR_Message("H8169", "p", "i", a).TR_text(dil)
+            TR_assert(TR_not görülen.TR_contains(t), "\(a) \(dil)")
+            görülen.TR_append(t)
+        }
+    }
+}
+
+TR_test "ayarın context'i 0 ve eksi H8167; --bağlam verilse de (DENETİM 461 N4)" {
+    TR_for v TR_in [0, -5] {
+        TR_assert_equal("Message(\"H8167\", \"A\", \"context\", \"[1-9][0-9]*\", \"\(v)\")", _ayar_hatası("\"context\":8192", "\"context\":\(v)"))
+    }
+    TR_var kat = _dosya("katalog.json", _örnek_katalog())
+    TR_var ayar = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\":0"))
+    TR_assert_equal("H8167", TR_error_code { kur(kat, ayar, TR_none, 17179869184, 8192, TR_false) })
+}
+
+TR_test "bağlam sınırı: context_max geçer, bir fazlası ve 1,6·10¹³ H8174 (option); önerisi kopyalanınca kalkar" {
+    TR_var kat = _dosya("katalog.json", _örnek_katalog())
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=40960", kur(kat, _yok_ayar(), TR_none, 17179869184, 40960, TR_false)[0])
+    # Son ikisi bugün gereken'in hesabında tam sayı taşması veriyordu (katalog.tr'nin eski :452 ve :444'ü).
+    TR_for v TR_in [40961, 16000000000000, 9223372036854775807] {
+        TR_try { kur(kat, _yok_ayar(), TR_none, 17179869184, v, TR_false) } TR_catch e {
+            TR_assert_equal("Message(\"H8174\", \"option\", \(v), 40960)", TR_String(e))
+            TR_assert(TR_Message("H8174", "option", v, 40960).TR_text("tr").TR_contains("`--bağlam 40960`"))
+            TR_assert(TR_Message("H8174", "option", v, 40960).TR_text("en").TR_contains("`--bağlam 40960`"))
+        }
+        TR_assert_equal("H8174", TR_error_code { kur(kat, _yok_ayar(), TR_none, 17179869184, v, TR_false) })
+    }
+    TR_var k = katalog_oku(kat)
+    TR_assert_equal(40960, bağlam_belirle(k, 40960, TR_none))
+    TR_assert_equal(8192, bağlam_belirle(k, TR_none, TR_none))
+}
+
+TR_test "bağlam sınırı: ayardan gelen bağlam bütün sınırları aşınca H8174 (setting); önerisi kopyalanınca kalkar" {
+    TR_var kat = _dosya("katalog.json", _örnek_katalog())
+    TR_var ayar = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\":40961"))
+    TR_try { kur(kat, ayar, TR_none, 17179869184, TR_none, TR_false) } TR_catch e {
+        TR_assert_equal("Message(\"H8174\", \"setting\", 40961, 40960)", TR_String(e))
+        TR_assert(TR_Message("H8174", "setting", 40961, 40960).TR_text("tr").TR_contains("`\"context\": 40960`"))
+        TR_assert(TR_Message("H8174", "setting", 40961, 40960).TR_text("en").TR_contains("`\"context\": 40960`"))
+    }
+    TR_assert_equal("H8174", TR_error_code { kur(kat, ayar, TR_none, 17179869184, TR_none, TR_false) })
+    TR_var düzelmiş = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\": 40960"))
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=40960", kur(kat, düzelmiş, TR_none, 17179869184, TR_none, TR_false)[0])
+    # Dalların metni birbirinden ve other'dan ayrı.
+    TR_for dil TR_in ["tr", "en"] {
+        TR_var t = [TR_Message("H8174", "option", 1, 2).TR_text(dil), TR_Message("H8174", "setting", 1, 2).TR_text(dil),
+            TR_Message("H8174", "başka", 1, 2).TR_text(dil)]
+        TR_assert(t[0] != t[1] TR_and t[0] != t[2] TR_and t[1] != t[2], dil)
+    }
+}
+
+TR_test "bağlam sınırı: kısa sınırlı dil modeli too_long, önerilmez; uzun sınırlı önerilir; satırın biçimi" {
+    TR_var kat = _dosya("katalog.json", _iki_dil_modeli(4096))
+    TR_var satırlar = kur(kat, _yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=8192", satırlar[0])
+    TR_assert_equal("UYGUNLUK qwen3-kisa too_long baglam_siniri=4096", satırlar[1])
+    TR_assert(satırlar[2].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
+    TR_assert_equal("ONERILEN qwen3-4b-q4km", satırlar[3])
+    TR_var l = uygunluk(katalog_oku(kat), TR_none, 17179869184, 8192)
+    TR_assert_equal(["too_long", "fits"], [l[0].uyum, l[1].uyum])
+    TR_assert_equal(0, l[0].gereken)
+    # Bağlam ikisinin sınırının da altındaysa ikisi de hesaplanır.
+    TR_assert_equal(["fits", "fits"], [uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[0].uyum,
+        uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[1].uyum])
+}
+
+TR_test "bağlam sınırı: bütün sınırlar 8192'den küçükse öntanımlı bağlam en büyük sınıra iner, hata yok" {
+    TR_var kat = _dosya("katalog.json", _değiş(_örnek_katalog(), "\"context_max\":40960", "\"context_max\":4096"))
+    TR_var satırlar = kur(kat, _yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=4096", satırlar[0])
+    TR_assert(satırlar[1].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
+    TR_assert_equal(4096, bağlam_belirle(katalog_oku(kat), TR_none, TR_none))
 }

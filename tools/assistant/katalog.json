@@ -5,6 +5,7 @@
       "id": "qwen3-4b-q4km",
       "kind": "language_model",
       "family": "qwen3",
+      "context_max": 40960,
       "name": "Qwen3 4B Q4_K_M",
       "source": {
         "host": "huggingface",
