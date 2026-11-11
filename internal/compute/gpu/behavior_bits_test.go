@@ -200,6 +200,23 @@ func TestSmCountDoesNotChangeBits(t *testing.T) {
 	}
 }
 
+// TestGemvConfigIsFixed: tek satırlık çarpımın ayarı (L) yalnız (N, toplu) ile seçilir; değerler
+// sabittir (eşik 2·fixedSMs = 128 blok). Eşik ya da seçim değişirse bitler TR sürümleri arasında
+// değişir: bu test o değişikliği görünür kılar.
+func TestGemvConfigIsFixed(t *testing.T) {
+	g := newSimBackend(1 << 20)
+	if fixedSMs != 64 || gemvMinBlocks != 128 {
+		t.Fatalf("fixedSMs %d, gemvMinBlocks %d: değer değiştiyse sürüm notu gerekir (15.22a)", fixedSMs, gemvMinBlocks)
+	}
+	for _, c := range []struct{ batch, N, L int }{
+		{1, 576, 2}, {1, 1536, 2}, {1, 2560, 4}, {1, 4096, 8}, {1, 9728, 8}, {2, 1536, 4}, {8, 1536, 8},
+	} {
+		if got := g.pickGemv(c.batch, c.N); got != (gemvConfig{L: c.L, T: 512}) {
+			t.Errorf("toplu %d, N %d: ayar %+v, L = %d bekleniyordu", c.batch, c.N, got, c.L)
+		}
+	}
+}
+
 // TestGemmPaddingKeepsNegativeZero: K dışındaki dolgu adımı −0'ı +0'a çevirmez. K = 24 (8'in katı,
 // 16'nın değil): BK = 16'lık döşeme 8 dolgu adımı atar, BK = 8'lik hiç atmaz. Bütün çarpımları
 // sıfıra yuvarlanan küçük eksi sayılar (−1e-30 · 1e-30) olan öğe −0'da biter; iki ayarda da −0'dır
@@ -216,6 +233,10 @@ func TestGemmPaddingKeepsNegativeZero(t *testing.T) {
 		b[i] = 1e-30
 	}
 	defer g.gemmTile(nil)
+	// Döşemeli çekirdeğin dolgusu sınanır: kitaplık (gerçek kartta varsa) devre dışı.
+	lt := g.lt
+	g.lt = nil
+	defer func() { g.lt = lt }()
 	var got [][]uint32
 	for _, cfg := range []gemmConfig{defaultGemm, {64, 64, 8, 4, 4}} {
 		g.gemmTile(&cfg)
