@@ -31,6 +31,9 @@ var uncoveredNames = map[string]string{
 	"TR_type_Any": "denetleyicinin iç tipi, program metninde yazılmaz",
 	// GGUF dosyası ister: depoya GGUF girmez, testler dosyalarını Go ile kurar (15.55).
 	"TR_fn_load_metadata": "GGUF dosyası ister, depoda yok",
+	// Parçalayıcının iki üyesi yalnız GGUF'tan yüklenende değer taşır, tokenizer.json'da TR_none (16.1).
+	"TR_mem_pretokenizer_tag":    "GGUF parçalayıcısının üyesi, depoda GGUF yok",
+	"TR_mem_declared_eos_tokens": "GGUF parçalayıcısının üyesi, depoda GGUF yok",
 	// Örnek dış programa bağlıdır: her makinede bulunan bir program yok. Go testleri kendi ikililerini
 	// dış program yapar (internal/stdlib/process).
 	"TR_fn_run_process":   "dış program ister",
