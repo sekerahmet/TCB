@@ -1,0 +1,516 @@
+# TR 4
+# Dost'un model kataloğu ve ayarı (tek tık kurulumu, A dilimi). İki dosya da JSON'dur ve `"v": 1` taşır: bilinmeyen
+# alan, eksik alan, yanlış tür, izinli kümede olmayan değer ve bilinmeyen sürüm açık hatadır (H8160–H8172). Modül
+# her dil modelinin bu makineye sığıp sığmadığını hesaplar ve öneriyi ayar olarak yazar; model yüklemez, ağa çıkmaz.
+# kur.tr komut olarak kullanır, katalog_test.tr sınar (README, "Kurulum").
+
+TR_const SÜRÜM = 1
+# A'nın sohbet aileleri: D1'in listesi dışarıya açık değil (lib/pretrained.tr'nin `_sohbet_tablosu()`); D1 Teslim B
+# iki listeyi karşılaştıran testi ekler.
+TR_const AİLELER = ["qwen3"]
+TR_const _TÜRLER = ["language_model", "transcriber", "vad", "voice"]
+TR_const _KONAKLAR = ["huggingface", "github"]
+TR_const _GİB = 1073741824
+# pay: tarayıcı ve sistem dışında Dost'un tepe belleği için (tahmin; ölçülerek seçilir).
+TR_const PAY = 1073741824
+TR_const ÖNTANIMLI_BAĞLAM = 8192
+TR_const ÖNTANIMLI_KAPI = 47863
+# Önbelleğin cinsinin baytı: işlemcide tampon gelen parçanın cinsiyle (float32) ayrılır (lib/layers.tr, TR_new_chunk).
+TR_const _CİNS_BAYTI = 4
+TR_const _ONALTILIK = "0123456789abcdef"
+
+TR_struct Ölçü {
+    bağlam: TR_Int
+    özel: TR_Int
+}
+
+TR_struct Girdi {
+    kimlik: TR_String
+    tür: TR_String
+    ağırlık: TR_Int
+    katman: TR_Int
+    kv_başlık: TR_Int
+    başlık_boyu: TR_Int
+    ölçüler: TR_List[Ölçü]
+}
+
+TR_struct Dil {
+    kod: TR_String
+    yazıcı: TR_String
+    ses: TR_String
+}
+
+TR_struct Katalog {
+    girdiler: TR_List[Girdi]
+    diller: TR_List[Dil]
+}
+
+TR_struct Ayar {
+    dil_modeli: TR_String
+    konuşma_dili: TR_String
+    sistem: TR_JSON
+    bağlam: TR_Int
+    kapı: TR_Int
+}
+
+# Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`).
+TR_struct Uygunluk {
+    kimlik: TR_String
+    uyum: TR_String
+    gereken: TR_Int
+    eşik: TR_Int
+    ölçülü: TR_Bool
+    ağırlık: TR_Int
+}
+
+TR_struct Bellek {
+    bayt: TR_Int
+    ölçülü: TR_Bool
+}
+
+# dosya_oku: dosyanın JSON değeri. Okunamayan dosya H8160, JSON olmayan H8161; motorun hatası yeni hatanın
+# nedenidir (TR_cause, 8.2): iletiye değer olarak girmez.
+TR_func dosya_oku(yol: TR_String, seçenek: TR_String) -> TR_JSON {
+    TR_var içerik = ""
+    TR_try { içerik = TR_read_file(yol) } TR_catch e { TR_throw TR_Error(TR_Message("H8160", yol, seçenek), TR_cause: e) }
+    TR_var j = TR_json_parse("null")
+    TR_try { j = TR_json_parse(içerik) } TR_catch e { TR_throw TR_Error(TR_Message("H8161", yol), TR_cause: e) }
+    TR_return j
+}
+
+TR_func _tür(j: TR_JSON) -> TR_String {
+    TR_var t = TR_Type(j)
+    TR_if t == TR_Dict { TR_return "object" }
+    TR_if t == TR_List { TR_return "array" }
+    TR_if t == TR_String { TR_return "string" }
+    TR_if t == TR_Int { TR_return "integer" }
+    TR_if t == TR_Float { TR_return "number" }
+    TR_if t == TR_Bool { TR_return "boolean" }
+    TR_return "null"
+}
+
+TR_func _alt(yol: TR_String, alan: TR_String) -> TR_String {
+    TR_if yol == "" { TR_return alan }
+    TR_return "\(yol).\(alan)"
+}
+
+# _sıra: iletinin listesi, her öğe ters tırnakta (`a`, `b`); öğeler kimlik ya da alan adıdır, dilden bağımsız.
+TR_func _sıra(öğeler: TR_List[TR_String]) -> TR_String {
+    TR_var l: TR_List[TR_String] = []
+    TR_for ö TR_in öğeler { l.TR_append("`\(ö)`") }
+    TR_return l.TR_join(", ")
+}
+
+# alan_örneği: H8164'ün kopyalanınca yerine oturan alan yazımı (README, "Kurulum"'daki örnekle aynı biçim).
+TR_func alan_örneği(alan: TR_String) -> TR_String {
+    TR_var ö: TR_Dict[TR_String, TR_String] = {"v": "\"v\": 1", "entries": "\"entries\": []", "languages": "\"languages\": []",
+        "id": "\"id\": \"qwen3-4b-q4km\"", "kind": "\"kind\": \"language_model\"", "family": "\"family\": \"qwen3\"",
+        "name": "\"name\": \"Qwen3 4B Q4_K_M\"", "source": "\"source\": {\"host\": \"huggingface\", \"repo\": \"Qwen/Qwen3-4B-GGUF\", \"revision\": \"<40 onaltılık>\", \"files\": []}",
+        "host": "\"host\": \"huggingface\"", "repo": "\"repo\": \"Qwen/Qwen3-4B-GGUF\"", "revision": "\"revision\": \"<40 onaltılık>\"",
+        "files": "\"files\": [{\"path\": \"…\", \"bytes\": 0, \"sha256\": \"<64 onaltılık>\", \"target\": \"…\"}]",
+        "path": "\"path\": \"Qwen3-4B-Q4_K_M.gguf\"", "bytes": "\"bytes\": 2497280256", "sha256": "\"sha256\": \"<64 onaltılık>\"",
+        "target": "\"target\": \"Qwen3-4B-Q4_K_M.gguf\"", "license": "\"license\": {\"name\": \"…\", \"url\": \"…\", \"gated\": false}",
+        "url": "\"url\": \"…\"", "gated": "\"gated\": false", "verified": "\"verified\": {\"trlang\": \"…\", \"date\": \"…\", \"gates\": []}",
+        "trlang": "\"trlang\": \"…\"", "date": "\"date\": \"2026-11-11\"", "gates": "\"gates\": []",
+        "memory": "\"memory\": {\"weights_bytes\": 0, \"measured\": []}", "weights_bytes": "\"weights_bytes\": 2497280256",
+        "kv": "\"kv\": {\"layers\": 36, \"kv_heads\": 8, \"head_dim\": 128}", "layers": "\"layers\": 36", "kv_heads": "\"kv_heads\": 8",
+        "head_dim": "\"head_dim\": 128", "measured": "\"measured\": []", "context": "\"context\": 8192", "private_bytes": "\"private_bytes\": 0",
+        "measured_on": "\"measured_on\": \"colab-cpu-highram-linux\"", "code": "\"code\": \"tr\"", "whisper_language": "\"whisper_language\": \"tr\"",
+        "transcriber": "\"transcriber\": \"whisper-small\"", "voice": "\"voice\": \"mms-tts-tur\"", "system_prompt": "\"system_prompt\": {\"source\": \"catalog\"}",
+        "language_model": "\"language_model\": \"qwen3-4b-q4km\"", "speech_language": "\"speech_language\": \"tr\"",
+        "source_kind": "\"source\": \"catalog\"", "text": "\"text\": \"…\"", "language": "\"language\": \"tr\"", "device": "\"device\": \"cpu\"",
+        "port": "\"port\": 47863", "machine": "\"machine\": {\"memory_bytes\": 17179869184, \"memory_source\": \"option\"}",
+        "memory_bytes": "\"memory_bytes\": 17179869184", "memory_source": "\"memory_source\": \"option\""}
+    TR_return ö.TR_get(alan) ?? "\"\(alan)\": …"
+}
+
+TR_func _tip(dosya: TR_String, j: TR_JSON, yol: TR_String, beklenen: TR_String) {
+    TR_var gelen = _tür(j)
+    TR_if gelen != beklenen { TR_throw TR_Message("H8165", dosya, yol, beklenen, gelen) }
+}
+
+# _nesne: j bir nesnedir, yalnız `alanlar`'ı taşır ve `zorunlu`'ların hepsi vardır.
+TR_func _nesne(dosya: TR_String, j: TR_JSON, yol: TR_String, alanlar: TR_List[TR_String], zorunlu: TR_List[TR_String]) {
+    _tip(dosya, j, TR_if yol == "" { "$" } TR_else { yol }, "object")
+    TR_for k TR_in j.TR_keys() {
+        TR_if TR_not alanlar.TR_contains(k) { TR_throw TR_Message("H8163", dosya, _alt(yol, k), _sıra(alanlar)) }
+    }
+    TR_for z TR_in zorunlu {
+        TR_if j.TR_get(z) == TR_none { TR_throw TR_Message("H8164", dosya, _alt(yol, z), alan_örneği(z)) }
+    }
+}
+
+TR_func _metin(dosya: TR_String, j: TR_JSON, yol: TR_String, alan: TR_String) -> TR_String {
+    _tip(dosya, j[alan], _alt(yol, alan), "string")
+    TR_return TR_String(j[alan])
+}
+
+TR_func _tam(dosya: TR_String, j: TR_JSON, yol: TR_String, alan: TR_String) -> TR_Int {
+    _tip(dosya, j[alan], _alt(yol, alan), "integer")
+    TR_return TR_Int(j[alan])
+}
+
+TR_func _dizi(dosya: TR_String, j: TR_JSON, yol: TR_String, alan: TR_String) -> TR_List[TR_JSON] {
+    _tip(dosya, j[alan], _alt(yol, alan), "array")
+    TR_return TR_List(j[alan])
+}
+
+TR_func _seçim(dosya: TR_String, j: TR_JSON, yol: TR_String, alan: TR_String, izinli: TR_List[TR_String]) -> TR_String {
+    TR_var v = _metin(dosya, j, yol, alan)
+    TR_if TR_not izinli.TR_contains(v) { TR_throw TR_Message("H8166", dosya, _alt(yol, alan), _sıra(izinli), v) }
+    TR_return v
+}
+
+# _onaltılık: commit karması (40) ve sha256 (64) küçük onaltılık karakterlerdir.
+TR_func _onaltılık(dosya: TR_String, j: TR_JSON, yol: TR_String, alan: TR_String, uzunluk: TR_Int) {
+    TR_var v = _metin(dosya, j, yol, alan)
+    TR_var uyar = v.TR_length == uzunluk
+    TR_for i TR_in 0..v.TR_length {
+        TR_if TR_not _ONALTILIK.TR_contains(v[i]) { uyar = TR_false }
+    }
+    TR_if TR_not uyar { TR_throw TR_Message("H8167", dosya, _alt(yol, alan), "[0-9a-f]{\(uzunluk)}", v) }
+}
+
+# _sürüm: kök nesnedir ve `v` 1'dir; bilinmeyen alanlardan önce bakılır (yeni sürümün yeni alanı H8162 versin).
+TR_func _sürüm(dosya: TR_String, j: TR_JSON) {
+    _tip(dosya, j, "$", "object")
+    TR_if j.TR_get("v") == TR_none { TR_throw TR_Message("H8164", dosya, "v", alan_örneği("v")) }
+    TR_var v = _tam(dosya, j, "", "v")
+    TR_if v != SÜRÜM { TR_throw TR_Message("H8162", dosya, v) }
+}
+
+# _kaynak: `source`'u denetler; dosyaların toplam baytını ve girdinin tek `.gguf` dosyalı olup olmadığını verir.
+TR_func _kaynak(dosya: TR_String, j: TR_JSON, yol: TR_String) -> (TR_Int, TR_Bool) {
+    TR_var alanlar = ["host", "repo", "revision", "files"]
+    _nesne(dosya, j, yol, alanlar, alanlar)
+    _seçim(dosya, j, yol, "host", _KONAKLAR)
+    _metin(dosya, j, yol, "repo")
+    _onaltılık(dosya, j, yol, "revision", 40)
+    TR_var dosyalar = _dizi(dosya, j, yol, "files")
+    TR_if dosyalar.TR_length == 0 { TR_throw TR_Message("H8164", dosya, _alt(yol, "files[0]"), alan_örneği("files")) }
+    TR_var toplam = 0
+    TR_var ilk = ""
+    TR_for i TR_in 0..dosyalar.TR_length {
+        TR_var d = dosyalar[i]
+        TR_var dy = _alt(yol, "files[\(i)]")
+        TR_var da = ["path", "bytes", "sha256", "target"]
+        _nesne(dosya, d, dy, da, da)
+        TR_var p = _metin(dosya, d, dy, "path")
+        TR_if i == 0 { ilk = p }
+        toplam = toplam + _tam(dosya, d, dy, "bytes")
+        _onaltılık(dosya, d, dy, "sha256", 64)
+        _metin(dosya, d, dy, "target")
+    }
+    TR_return (toplam, dosyalar.TR_length == 1 TR_and ilk.TR_ends_with(".gguf"))
+}
+
+# _lisans_ve_doğrulama: `license` ve `verified`. Kapılı model (`gated: true`) ilk sürüme girmez: H8166.
+TR_func _lisans_ve_doğrulama(dosya: TR_String, j: TR_JSON, yol: TR_String) {
+    TR_var ly = _alt(yol, "license")
+    TR_var la = ["name", "url", "gated"]
+    _nesne(dosya, j["license"], ly, la, la)
+    _metin(dosya, j["license"], ly, "name")
+    _metin(dosya, j["license"], ly, "url")
+    _tip(dosya, j["license"]["gated"], _alt(ly, "gated"), "boolean")
+    TR_if TR_Bool(j["license"]["gated"]) { TR_throw TR_Message("H8166", dosya, _alt(ly, "gated"), "`false`", "true") }
+    TR_var vy = _alt(yol, "verified")
+    TR_var va = ["trlang", "date", "gates"]
+    _nesne(dosya, j["verified"], vy, va, va)
+    _metin(dosya, j["verified"], vy, "trlang")
+    _metin(dosya, j["verified"], vy, "date")
+    _dizi(dosya, j["verified"], vy, "gates")
+}
+
+# _bellek: `memory`. Dil modelinde `{weights_bytes, kv, measured}`, öbür türlerde `{weights_bytes, measured}`; öbür
+# türde `kv` H8163 (TCB, tasarımın defteri 53). Ölçü ağırlıkları içerir: `private_bytes < weights_bytes` H8169.
+TR_func _bellek(dosya: TR_String, j: TR_JSON, yol: TR_String, kimlik: TR_String, tür: TR_String) -> Girdi {
+    TR_var alanlar = TR_if tür == "language_model" { ["weights_bytes", "kv", "measured"] } TR_else { ["weights_bytes", "measured"] }
+    _nesne(dosya, j, yol, alanlar, alanlar)
+    TR_var g = Girdi(kimlik: kimlik, tür: tür, ağırlık: _tam(dosya, j, yol, "weights_bytes"), katman: 0, kv_başlık: 0,
+        başlık_boyu: 0, ölçüler: [])
+    TR_if tür == "language_model" {
+        TR_var ky = _alt(yol, "kv")
+        TR_var ka = ["layers", "kv_heads", "head_dim"]
+        _nesne(dosya, j["kv"], ky, ka, ka)
+        g.katman = _tam(dosya, j["kv"], ky, "layers")
+        g.kv_başlık = _tam(dosya, j["kv"], ky, "kv_heads")
+        g.başlık_boyu = _tam(dosya, j["kv"], ky, "head_dim")
+    }
+    TR_var ölçüler = _dizi(dosya, j, yol, "measured")
+    TR_for i TR_in 0..ölçüler.TR_length {
+        TR_var my = _alt(yol, "measured[\(i)]")
+        TR_var ma = ["context", "private_bytes", "measured_on"]
+        _nesne(dosya, ölçüler[i], my, ma, ma)
+        TR_var ö = Ölçü(bağlam: _tam(dosya, ölçüler[i], my, "context"), özel: _tam(dosya, ölçüler[i], my, "private_bytes"))
+        _metin(dosya, ölçüler[i], my, "measured_on")
+        TR_if ö.özel < g.ağırlık { TR_throw TR_Message("H8169", _alt(my, "private_bytes"), kimlik, "private_below_weights") }
+        g.ölçüler.TR_append(ö)
+    }
+    TR_return g
+}
+
+TR_func _girdi(dosya: TR_String, j: TR_JSON, yol: TR_String) -> Girdi {
+    _tip(dosya, j, yol, "object")
+    TR_if j.TR_get("kind") == TR_none { TR_throw TR_Message("H8164", dosya, _alt(yol, "kind"), alan_örneği("kind")) }
+    TR_var tür = _seçim(dosya, j, yol, "kind", _TÜRLER)
+    TR_var ortak = ["id", "kind", "name", "source", "license", "verified", "memory"]
+    TR_var alanlar = TR_if tür == "language_model" { ["id", "kind", "family", "name", "source", "license", "verified", "memory"] } TR_else { ortak }
+    _nesne(dosya, j, yol, alanlar, alanlar)
+    TR_var kimlik = _metin(dosya, j, yol, "id")
+    TR_if tür == "language_model" {
+        TR_var aile = _metin(dosya, j, yol, "family")
+        TR_if TR_not AİLELER.TR_contains(aile) { TR_throw TR_Message("H8170", kimlik, aile, _sıra(AİLELER)) }
+    }
+    _metin(dosya, j, yol, "name")
+    TR_var kaynak = _kaynak(dosya, j["source"], _alt(yol, "source"))
+    _lisans_ve_doğrulama(dosya, j, yol)
+    TR_var g = _bellek(dosya, j["memory"], _alt(yol, "memory"), kimlik, tür)
+    TR_if kaynak.1 TR_and g.ağırlık != kaynak.0 {
+        TR_throw TR_Message("H8169", _alt(yol, "memory.weights_bytes"), kimlik, "weights_not_file_size")
+    }
+    TR_return g
+}
+
+TR_func _dil(dosya: TR_String, j: TR_JSON, yol: TR_String) -> Dil {
+    TR_var alanlar = ["code", "whisper_language", "transcriber", "voice", "system_prompt"]
+    _nesne(dosya, j, yol, alanlar, alanlar)
+    TR_for a TR_in alanlar { _metin(dosya, j, yol, a) }
+    TR_return Dil(kod: TR_String(j["code"]), yazıcı: TR_String(j["transcriber"]), ses: TR_String(j["voice"]))
+}
+
+TR_func girdi_bul(k: Katalog, kimlik: TR_String) -> Girdi? {
+    TR_for g TR_in k.girdiler {
+        TR_if g.kimlik == kimlik { TR_return g }
+    }
+    TR_return TR_none
+}
+
+TR_func _türdekiler(k: Katalog, tür: TR_String) -> TR_List[TR_String] {
+    TR_var l: TR_List[TR_String] = []
+    TR_for g TR_in k.girdiler {
+        TR_if g.tür == tür { l.TR_append(g.kimlik) }
+    }
+    TR_return l
+}
+
+# _gösterilen: dilin `transcriber`'ı ya da `voice`'u katalogda o türde bir girdi olmalı (H8169).
+TR_func _gösterilen(k: Katalog, yol: TR_String, kimlik: TR_String, tür: TR_String) {
+    TR_var g = girdi_bul(k, kimlik)
+    TR_if g == TR_none { TR_throw TR_Message("H8169", yol, kimlik, "missing_entry") }
+    TR_if g.tür != tür { TR_throw TR_Message("H8169", yol, kimlik, "wrong_kind") }
+}
+
+# _tutarlılık: kimlik bir kez; tam bir `vad` girdisi (birden çokta seçim sessiz olurdu); dillerin gösterdikleri.
+TR_func _tutarlılık(k: Katalog) {
+    TR_var görülen: TR_List[TR_String] = []
+    TR_for i TR_in 0..k.girdiler.TR_length {
+        TR_var id = k.girdiler[i].kimlik
+        TR_if görülen.TR_contains(id) { TR_throw TR_Message("H8169", "entries[\(i)].id", id, "duplicate_id") }
+        görülen.TR_append(id)
+    }
+    TR_if _türdekiler(k, "vad").TR_length != 1 { TR_throw TR_Message("H8169", "entries", "vad", "vad_count") }
+    TR_for i TR_in 0..k.diller.TR_length {
+        _gösterilen(k, "languages[\(i)].transcriber", k.diller[i].yazıcı, "transcriber")
+        _gösterilen(k, "languages[\(i)].voice", k.diller[i].ses, "voice")
+    }
+}
+
+TR_func katalog_oku(yol: TR_String) -> Katalog {
+    TR_var j = dosya_oku(yol, "katalog")
+    _sürüm(yol, j)
+    TR_var alanlar = ["v", "entries", "languages"]
+    _nesne(yol, j, "", alanlar, alanlar)
+    TR_var k = Katalog(girdiler: [], diller: [])
+    TR_var girdiler = _dizi(yol, j, "", "entries")
+    TR_for i TR_in 0..girdiler.TR_length { k.girdiler.TR_append(_girdi(yol, girdiler[i], "entries[\(i)]")) }
+    TR_var diller = _dizi(yol, j, "", "languages")
+    TR_for i TR_in 0..diller.TR_length { k.diller.TR_append(_dil(yol, diller[i], "languages[\(i)]")) }
+    _tutarlılık(k)
+    TR_return k
+}
+
+# ayar_yolu: `--ayar` verildiyse o; yoksa %LOCALAPPDATA%\Dost\ayar.json; değişken yoksa H8172 (yer uydurulmaz,
+# işletim sistemi sorulmaz). `yer` TR_env("LOCALAPPDATA")'dır; test onu verir.
+TR_func ayar_yolu(verilen: TR_String, yer: TR_String?) -> TR_String {
+    TR_if verilen != "" { TR_return verilen }
+    TR_var y = yer ?? ""
+    TR_if y == "" { TR_throw TR_Message("H8172") }
+    TR_return TR_String(TR_Path(y, "Dost", "ayar.json"))
+}
+
+# _ayar_kimliği: ayardaki kimlik katalogda olmalı ve alanın istediği türde olmalı (H8168).
+TR_func _ayar_kimliği(k: Katalog, alan: TR_String, kimlik: TR_String, tür: TR_String) {
+    TR_var uyanlar = _türdekiler(k, tür)
+    TR_var g = girdi_bul(k, kimlik)
+    TR_if g == TR_none { TR_throw TR_Message("H8168", alan, kimlik, "not_in_catalog", _sıra(uyanlar)) }
+    TR_if g.tür != tür { TR_throw TR_Message("H8168", alan, kimlik, "wrong_kind", _sıra(uyanlar)) }
+}
+
+TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
+    TR_var y = "system_prompt"
+    _tip(dosya, j, y, "object")
+    TR_if j.TR_get("source") == TR_none { TR_throw TR_Message("H8164", dosya, "system_prompt.source", alan_örneği("source_kind")) }
+    TR_var kaynak = _seçim(dosya, j, y, "source", ["catalog", "user"])
+    TR_var alanlar = TR_if kaynak == "user" { ["source", "text", "language"] } TR_else { ["source"] }
+    _nesne(dosya, j, y, alanlar, alanlar)
+    TR_if kaynak == "user" {
+        _metin(dosya, j, y, "text")
+        _metin(dosya, j, y, "language")
+    }
+}
+
+# ayar_oku: ayar dosyası yoksa ilk kurulumdur (TR_none); varsa bütünü denetlenir. Kesilmiş bir yazmadan kalan
+# `<yol>.tmp` okunmaz.
+TR_func ayar_oku(yol: TR_String, k: Katalog) -> Ayar? {
+    TR_if TR_not TR_Path(yol).TR_exists { TR_return TR_none }
+    TR_var j = dosya_oku(yol, "ayar")
+    _sürüm(yol, j)
+    TR_var alanlar = ["v", "language_model", "speech_language", "system_prompt", "context", "device", "port", "machine"]
+    _nesne(yol, j, "", alanlar, alanlar)
+    TR_var lm = _metin(yol, j, "", "language_model")
+    _ayar_kimliği(k, "language_model", lm, "language_model")
+    TR_var dil = _metin(yol, j, "", "speech_language")
+    TR_var kodlar: TR_List[TR_String] = []
+    TR_for d TR_in k.diller { kodlar.TR_append(d.kod) }
+    TR_if TR_not kodlar.TR_contains(dil) { TR_throw TR_Message("H8168", "speech_language", dil, "not_in_catalog", _sıra(kodlar)) }
+    _sistem_iletisi(yol, j["system_prompt"])
+    TR_var bağlam = _tam(yol, j, "", "context")
+    _seçim(yol, j, "", "device", ["cpu"])
+    TR_var kapı = _tam(yol, j, "", "port")
+    TR_var ma = ["memory_bytes", "memory_source"]
+    _nesne(yol, j["machine"], "machine", ma, ma)
+    _tam(yol, j["machine"], "machine", "memory_bytes")
+    _seçim(yol, j["machine"], "machine", "memory_source", ["option", "system"])
+    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı)
+}
+
+# bağlam_seç: `--bağlam` verildiyse (0'dan büyük) o, yoksa ayarın `context`'i, yoksa 8192.
+TR_func bağlam_seç(verilen: TR_Int, ayar: Ayar?) -> TR_Int {
+    TR_if verilen > 0 { TR_return verilen }
+    TR_var a = ayar
+    TR_if a != TR_none { TR_return a.bağlam }
+    TR_return ÖNTANIMLI_BAĞLAM
+}
+
+TR_func kv_baytı(g: Girdi) -> TR_Int {
+    TR_return g.katman * g.kv_başlık * g.başlık_boyu * 2 * _CİNS_BAYTI
+}
+
+# _küçük_bellek: küçük modelin değeri en büyük ölçüsüdür; ölçüsü yoksa ağırlıkları, ölçüsüz sayılır.
+TR_func _küçük_bellek(k: Katalog, kimlik: TR_String) -> Bellek {
+    TR_var g = girdi_bul(k, kimlik)
+    TR_if g == TR_none { TR_return Bellek(bayt: 0, ölçülü: TR_false) }
+    TR_if g.ölçüler.TR_length == 0 { TR_return Bellek(bayt: g.ağırlık, ölçülü: TR_false) }
+    TR_var en = 0
+    TR_for ö TR_in g.ölçüler {
+        TR_if ö.özel > en { en = ö.özel }
+    }
+    TR_return Bellek(bayt: en, ölçülü: TR_true)
+}
+
+# küçükler: dil modeline eklenen takım: `vad` girdisi, dilin `transcriber`'ı ve `voice`'u (TCB, defter 53). Dil
+# ayarın `speech_language`'ıdır; ayar yoksa dillerin en büyük toplamı.
+TR_func küçükler(k: Katalog, ayar: Ayar?) -> Bellek {
+    TR_var vad = _küçük_bellek(k, _türdekiler(k, "vad")[0])
+    TR_var a = ayar
+    TR_var en = Bellek(bayt: -1, ölçülü: TR_false)
+    TR_for d TR_in k.diller {
+        TR_if a != TR_none TR_and a.konuşma_dili != d.kod { TR_continue }
+        TR_var y = _küçük_bellek(k, d.yazıcı)
+        TR_var s = _küçük_bellek(k, d.ses)
+        TR_var b = Bellek(bayt: vad.bayt + y.bayt + s.bayt, ölçülü: vad.ölçülü TR_and y.ölçülü TR_and s.ölçülü)
+        TR_if b.bayt > en.bayt { en = b }
+    }
+    TR_if en.bayt < 0 { TR_return vad }
+    TR_return en
+}
+
+# gereken: need = ölçü(c₀) + kv × (bağlam − c₀) + geçici + pay + küçükler; ölçü yoksa ağırlıklar + kv × bağlam.
+# geçici = kv × bağlam: tur hatasında yeni önbellek eskisi ölmeden ayrılır (zincir.tr, geri_al).
+TR_func gereken(g: Girdi, bağlam: TR_Int, küçük: Bellek) -> TR_Int {
+    TR_var kv = kv_baytı(g)
+    TR_var taban = g.ağırlık + kv * bağlam
+    TR_if g.ölçüler.TR_length > 0 {
+        TR_var c = g.ölçüler[0]
+        TR_for ö TR_in g.ölçüler {
+            TR_if ö.bağlam > c.bağlam { c = ö }
+        }
+        taban = c.özel + kv * (bağlam - c.bağlam)
+    }
+    TR_return taban + kv * bağlam + PAY + küçük.bayt
+}
+
+# uygunluk: her dil modelinin sınıfı. `need ≤ 0,6 × toplam` fits, `≤ 0,85 × toplam` tight, üstü too_large.
+# Toplam bellek verilmemişse (0), eksiyse ya da 1 GiB'den küçükse H8171: tahmin edilmez.
+TR_func uygunluk(k: Katalog, ayar: Ayar?, toplam: TR_Int, bağlam: TR_Int) -> TR_List[Uygunluk] {
+    TR_if toplam < _GİB { TR_throw TR_Message("H8171", "\(toplam)") }
+    TR_var küçük = küçükler(k, ayar)
+    TR_var sığar = toplam * 60 // 100
+    TR_var sıkı = toplam * 85 // 100
+    TR_var l: TR_List[Uygunluk] = []
+    TR_for g TR_in k.girdiler {
+        TR_if g.tür != "language_model" { TR_continue }
+        TR_var n = gereken(g, bağlam, küçük)
+        TR_var uyum = TR_if n <= sığar { "fits" } TR_else TR_if n <= sıkı { "tight" } TR_else { "too_large" }
+        l.TR_append(Uygunluk(kimlik: g.kimlik, uyum: uyum, gereken: n, eşik: sığar,
+            ölçülü: g.ölçüler.TR_length > 0 TR_and küçük.ölçülü, ağırlık: g.ağırlık))
+    }
+    TR_return l
+}
+
+# öneri: `fits` ve ölçülü olanların en büyüğü (ağırlığıyla); yoksa "".
+TR_func öneri(l: TR_List[Uygunluk]) -> TR_String {
+    TR_var en = ""
+    TR_var bayt = -1
+    TR_for u TR_in l {
+        TR_if u.uyum == "fits" TR_and u.ölçülü TR_and u.ağırlık > bayt {
+            en = u.kimlik
+            bayt = u.ağırlık
+        }
+    }
+    TR_return en
+}
+
+# ayar_yaz: öneriyi ayar olarak yazar: geçici adla (`<yol>.tmp`), sonra son adına taşıyarak; ortada kesilen yazma eski
+# ayarı bozmaz, kalan `.tmp`'yi sonraki yazma ezer. Var olan ayarın dili, sistem iletisi, bağlamı ve kapısı korunur.
+TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int) {
+    TR_var dil = k.diller[0].kod
+    TR_var sistem: TR_JSON = {"source": "catalog"}
+    TR_var kapı = ÖNTANIMLI_KAPI
+    TR_var a = ayar
+    TR_if a != TR_none {
+        dil = a.konuşma_dili
+        sistem = a.sistem
+        kapı = a.kapı
+    }
+    TR_var j: TR_JSON = {"v": SÜRÜM, "language_model": dil_modeli, "speech_language": dil, "system_prompt": sistem,
+        "context": bağlam, "device": "cpu", "port": kapı, "machine": {"memory_bytes": toplam, "memory_source": "option"}}
+    TR_var p = TR_Path(yol)
+    TR_if TR_not p.TR_parent.TR_exists { TR_make_dir(p.TR_parent) }
+    TR_var geçici = "\(yol).tmp"
+    TR_write_file(geçici, TR_json_string(j) + "\n")
+    TR_move(geçici, yol, TR_overwrite: TR_true)
+}
+
+# kur: kur.tr'nin bütün işi; çıktı satırlarını verir (S3'ün biçimi, satırdaki değerler ASCII). `yaz` yoksa ayar
+# dosyasına dokunulmaz.
+TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, toplam: TR_Int, bağlam_verilen: TR_Int,
+        yaz: TR_Bool) -> TR_List[TR_String] {
+    TR_var k = katalog_oku(katalog_yolu)
+    TR_var yol = ayar_yolu(ayar_verilen, yer)
+    TR_var a = ayar_oku(yol, k)
+    TR_var bağlam = bağlam_seç(bağlam_verilen, a)
+    TR_var l = uygunluk(k, a, toplam, bağlam)
+    TR_var satırlar = ["MAKINE toplam_bayt=\(toplam) kaynak=elle"]
+    TR_for u TR_in l {
+        TR_var ölçü = TR_if u.ölçülü { "olculdu" } TR_else { "hesap" }
+        satırlar.TR_append("UYGUNLUK \(u.kimlik) \(u.uyum) gereken_bayt=\(u.gereken) esik_bayt=\(u.eşik) olcu=\(ölçü)")
+    }
+    TR_var ö = öneri(l)
+    satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)" })
+    TR_if yaz TR_and ö != "" {
+        ayar_yaz(yol, k, a, ö, toplam, bağlam)
+        satırlar.TR_append("AYAR_YAZILDI \(yol)")
+    }
+    TR_return satırlar
+}

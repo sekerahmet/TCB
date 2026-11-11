@@ -1,0 +1,21 @@
+# TR 4
+# kur: Dost'un model kataloğunu ve ayarını okur, bu makineye hangi dil modelinin sığdığını ve önerileni yazar; model
+# yüklemez, ağa çıkmaz (tek tık kurulumu, A dilimi; işi katalog.tr'nin `kur`'u yapar).
+#
+# Kullanım (proje kökünden; toplam bellek bayt olarak):
+#   trlang tools/assistant/kur.tr --ayar ayar.json --toplam_bellek 17179869184
+#   trlang tools/assistant/kur.tr --ayar ayar.json --toplam_bellek 17179869184 --ayarı_yaz
+TR_import "katalog"
+
+TR_var seç = TR_command_line({"katalog": "katalog.json", "ayar": "", "toplam_bellek": 0, "bağlam": 0, "ayarı_yaz": TR_false},
+    TR_description: "Dost'un model kataloğunu ve ayarını okur, bu makineye hangi dil modelinin sığdığını ve önerileni yazar; model yüklemez",
+    TR_descriptions: {"katalog": "model kataloğu (JSON); verilmezse programın yanındaki katalog.json",
+        "ayar": "ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json, LOCALAPPDATA yoksa zorunlu",
+        "toplam_bellek": "makinenin toplam belleği, bayt, en az 1073741824 (1 GiB) (0: verilmedi; uygunluk hesabı onu ister)",
+        "bağlam": "uygunluk hesabının bağlamı, parça; verilmezse ayarın context'i, o da yoksa 8192",
+        "ayarı_yaz": "önerilen ayarı --ayar dosyasına yazar (geçici adla, sonra taşıyarak)"})
+
+TR_for satır TR_in kur(TR_String(seç["katalog"]), TR_String(seç["ayar"]), TR_env("LOCALAPPDATA"), TR_Int(seç["toplam_bellek"]),
+        TR_Int(seç["bağlam"]), TR_Bool(seç["ayarı_yaz"])) {
+    TR_print(satır)
+}

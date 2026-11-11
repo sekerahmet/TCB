@@ -1,0 +1,271 @@
+{
+  "v": 1,
+  "entries": [
+    {
+      "id": "qwen3-4b-q4km",
+      "kind": "language_model",
+      "family": "qwen3",
+      "name": "Qwen3 4B Q4_K_M",
+      "source": {
+        "host": "huggingface",
+        "repo": "Qwen/Qwen3-4B-GGUF",
+        "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+        "files": [
+          {
+            "path": "Qwen3-4B-Q4_K_M.gguf",
+            "bytes": 2497280256,
+            "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+            "target": "Qwen3-4B-Q4_K_M.gguf"
+          }
+        ]
+      },
+      "license": {
+        "name": "apache-2.0",
+        "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/blob/bc640142c66e1fdd12af0bd68f40445458f3869b/LICENSE",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-11",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 2497280256,
+        "kv": {
+          "layers": 36,
+          "kv_heads": 8,
+          "head_dim": 128
+        },
+        "measured": [
+          {
+            "context": 45,
+            "private_bytes": 2641043456,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "whisper-small",
+      "kind": "transcriber",
+      "name": "Whisper small",
+      "source": {
+        "host": "huggingface",
+        "repo": "openai/whisper-small",
+        "revision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+        "files": [
+          {
+            "path": "config.json",
+            "bytes": 1967,
+            "sha256": "e6a2b489da1b5aed65a8eb8d1e7466fa867ad5643a8bc138ba708bd56b2875c4",
+            "target": "config.json"
+          },
+          {
+            "path": "generation_config.json",
+            "bytes": 3868,
+            "sha256": "71565b8ef50d0bf7a1193ed4bbed195b94e70c18894d81bba2f1233dcec3ab53",
+            "target": "generation_config.json"
+          },
+          {
+            "path": "model.safetensors",
+            "bytes": 966995080,
+            "sha256": "1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b",
+            "target": "model.safetensors"
+          },
+          {
+            "path": "tokenizer.json",
+            "bytes": 2480466,
+            "sha256": "27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566",
+            "target": "tokenizer.json"
+          }
+        ]
+      },
+      "license": {
+        "name": "apache-2.0",
+        "url": "https://huggingface.co/openai/whisper-small/blob/973afd24965f72e36ca33b3055d56a652f456b4d/README.md",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-11",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 969481381,
+        "measured": [
+          {
+            "context": 0,
+            "private_bytes": 990814208,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "silero-vad-16k",
+      "kind": "vad",
+      "name": "Silero VAD 16 kHz",
+      "source": {
+        "host": "github",
+        "repo": "snakers4/silero-vad",
+        "revision": "5cd7945676eb32225748052e2e6a0580e4686a08",
+        "files": [
+          {
+            "path": "src/silero_vad/data/silero_vad_16k.safetensors",
+            "bytes": 1239748,
+            "sha256": "c59271c284ae9c8335d795d60e0bfdb71aaaceec578d9bd9ffc1b8153c319ea1",
+            "target": "silero_vad_16k.safetensors"
+          }
+        ]
+      },
+      "license": {
+        "name": "MIT",
+        "url": "https://github.com/snakers4/silero-vad/blob/5cd7945676eb32225748052e2e6a0580e4686a08/LICENSE",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-11",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 1239748,
+        "measured": [
+          {
+            "context": 0,
+            "private_bytes": 1257472,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mms-tts-tur",
+      "kind": "voice",
+      "name": "MMS-TTS tur",
+      "source": {
+        "host": "huggingface",
+        "repo": "facebook/mms-tts-tur",
+        "revision": "7e364479c307f06733ca865b0a5269e0209cf82d",
+        "files": [
+          {
+            "path": "config.json",
+            "bytes": 1641,
+            "sha256": "d0378ee0c78342b0e6ccaa43a2c7d93949ca93cd6e74ea5ede0937533c8d9b2a",
+            "target": "config.json"
+          },
+          {
+            "path": "model.safetensors",
+            "bytes": 145231352,
+            "sha256": "927a00f1d0a3b3ae41ddd8f0d196be8343ceb2a13599cd6e84ef7e882ca58525",
+            "target": "model.safetensors"
+          },
+          {
+            "path": "vocab.json",
+            "bytes": 476,
+            "sha256": "4aa3eb05485270578ba8445a0ba9b61e3b748aef733b35bbf927d3e46a47412c",
+            "target": "vocab.json"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "bytes": 287,
+            "sha256": "a07edf50f10b44ece48b92649fea4a59aa2b45466bc91ded8278960d8e36c530",
+            "target": "tokenizer_config.json"
+          }
+        ]
+      },
+      "license": {
+        "name": "cc-by-nc-4.0",
+        "url": "https://huggingface.co/facebook/mms-tts-tur/blob/7e364479c307f06733ca865b0a5269e0209cf82d/README.md",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-11",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 145233756,
+        "measured": [
+          {
+            "context": 0,
+            "private_bytes": 253636608,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mms-tts-eng",
+      "kind": "voice",
+      "name": "MMS-TTS eng",
+      "source": {
+        "host": "huggingface",
+        "repo": "facebook/mms-tts-eng",
+        "revision": "c71de0fe7204c83f1c10820a7d696d0b450048ba",
+        "files": [
+          {
+            "path": "config.json",
+            "bytes": 1641,
+            "sha256": "c2a93c1dfbf33b640163f2ade16345b9a5194fa54de9a04a04272b76a97fe171",
+            "target": "config.json"
+          },
+          {
+            "path": "model.safetensors",
+            "bytes": 145227512,
+            "sha256": "69cf8b651c1493f1801dfd2311c298d694a38357bc9a1e41f410491ea6f0e1be",
+            "target": "model.safetensors"
+          },
+          {
+            "path": "vocab.json",
+            "bytes": 413,
+            "sha256": "304f7e71c40d601f9b89d81904609512eebe96b2a941f0a251fc0c9f397bcc45",
+            "target": "vocab.json"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "bytes": 287,
+            "sha256": "77c74b93b1d36f29248926dbd7714bda59990159cd14cd7ba45fd0115bff905b",
+            "target": "tokenizer_config.json"
+          }
+        ]
+      },
+      "license": {
+        "name": "cc-by-nc-4.0",
+        "url": "https://huggingface.co/facebook/mms-tts-eng/blob/c71de0fe7204c83f1c10820a7d696d0b450048ba/README.md",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-11",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 145229853,
+        "measured": [
+          {
+            "context": 0,
+            "private_bytes": 252952576,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    }
+  ],
+  "languages": [
+    {
+      "code": "tr",
+      "whisper_language": "tr",
+      "transcriber": "whisper-small",
+      "voice": "mms-tts-tur",
+      "system_prompt": "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe cevap ver, bir iki cümleyi geçme. Sayıları rakamla değil yazıyla yaz."
+    },
+    {
+      "code": "en",
+      "whisper_language": "en",
+      "transcriber": "whisper-small",
+      "voice": "mms-tts-eng",
+      "system_prompt": "You are a helpful voice assistant. Answer briefly and in English, in no more than one or two sentences. Write numbers in words, not digits."
+    }
+  ]
+}
