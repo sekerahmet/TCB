@@ -667,12 +667,17 @@ TR_struct TR_GPT {
     }
 
     # durma_parçaları modelin sohbet ailesinin durma kimlikleridir (15.55): hazır_gguf ve hazır_model
-    # onları sohbet tanımından kurar. Ailesiz modelde (tabloda olmayan dosya ya da elle kurulan GPT)
-    # çağrı H7170'tir: boş liste sessizce sınıra kadar üretirdi; kimlikler TR_eos: [...] ile yazılır.
+    # onları sohbet tanımından kurar. Ailesiz modelde (aile bulunmayan ya da aileyle uyuşmayan dosya,
+    # ya da elle kurulan GPT) çağrı H7170'tir: boş liste sessizce sınıra kadar üretirdi; kimlikler
+    # TR_eos: [...] ile yazılır. İleti modelin neden ailesiz kaldığını söyler (hazır_* yazar).
     TR_func TR_eos_tokens() -> TR_List[TR_Int] {
         TR_if TR_not TR_self.TR_config.TR_contains("durma") {
-            TR_var aileler = TR_if TR_self.TR_config.TR_contains("aileler") { TR_String(TR_self.TR_config["aileler"]) } TR_else { "" }
-            TR_throw TR_Message("H7170", aileler)
+            TR_var c = TR_self.TR_config
+            TR_var aileler = TR_if c.TR_contains("aileler") { TR_String(c["aileler"]) } TR_else { "" }
+            TR_var neden = TR_if c.TR_contains("ailesiz") { TR_String(c["ailesiz"]) } TR_else { "none" }
+            TR_var aile = TR_if c.TR_contains("aile") { TR_String(c["aile"]) } TR_else { "" }
+            TR_var ayrıntı = TR_if c.TR_contains("ayrıntı") { TR_String(c["ayrıntı"]) } TR_else { "" }
+            TR_throw TR_Message("H7170", aileler, neden, aile, ayrıntı)
         }
         TR_return [TR_Int(k) TR_for k TR_in TR_self.TR_config["durma"]]
     }

@@ -15,10 +15,10 @@ import (
 // Kural (15.55, sohbet tanımının seçimi ve durma kimlikleri): hazır modelin durma listesi sohbet
 // tanımındaki adlardan parçalayıcının kimliğiyle kurulur; m.TR_eos_tokens() onu verir. GGUF'ta aile
 // (mimari, p.TR_pretokenizer_tag), klasörde (model_type, tokenizer_config.json'un işareti) ile
-// seçilir. Adı dağarcıkta olmayan durma parçası H7162, dosyanın bildirdiği ama listede olmayan
-// kimlik H7163. Ailesiz modelde (parçalayıcısı yüklenemeyen GGUF, tabloda olmayan etiket,
-// tokenizer_config'siz ya da tokenizer.json'suz klasör) çağrı H7170'tir, dosyanın kimliği
-// denetlenmez, TR_eos: [...] ile üretim sürer.
+// seçilir. Ailesiz modelde (parçalayıcısı yüklenemeyen GGUF, tabloda olmayan etiket,
+// tokenizer_config'siz ya da tokenizer.json'suz klasör, aileyle uyuşmayan dosya: ilk durma adı
+// dağarcıkta yok ya da bildirilen kimlik listede yok) çağrı H7170'tir, ileti nedeni söyler; dosyanın
+// kimliği denetlenmez, TR_eos: [...] ile üretim sürer.
 
 // familyGGUF küçük modelin GGUF'una parçalayıcı anahtarlarını ekler: tek karakterli parçalar,
 // sonra özel adlar (kimlikleri 40'tan başlar). declared dosyanın bildirdiği durma kimlikleridir.
@@ -73,56 +73,81 @@ var (
 	llama3    = []string{"<|begin_of_text|>", "<|end_of_text|>", "<|eot_id|>", "<|eom_id|>"}
 )
 
+// reasonText H7170'in Türkçe metninde her nedenin cümlesidir (reason).
+var reasonText = map[string]string{
+	"table":     "dosyanın ailesi sohbet tablosunda yok",
+	"name":      "ailenin ilk durma adı dağarcıkta yok",
+	"id":        "dosyanın bildirdiği durma kimliği ailenin listesinde yok",
+	"tokenizer": "parçalayıcısı yüklenemedi",
+	"none":      "model hazır bir dosyadan yüklenmedi",
+}
+
+// familylessBody H7170'in kodunu ve Türkçe metnini yazar.
+const familylessBody = "TR_try { m.TR_eos_tokens() } TR_catch e {\n    TR_print(e.TR_code)\n    TR_print(e.TR_text(\"tr\"))\n}"
+
+// checkFamilyless çıktının H7170 olduğunu, nedenin cümlesini ve verilen parçaları taşıdığını, öbür
+// nedenlerin cümlesini taşımadığını sınar.
+func checkFamilyless(t *testing.T, got, reason string, parts ...string) {
+	t.Helper()
+	lines := strings.Split(got, "\n")
+	if len(lines) != 2 || lines[0] != "H7170" {
+		t.Errorf("H7170 bekleniyordu (%s):\n%s", reason, got)
+		return
+	}
+	for r, text := range reasonText {
+		if strings.Contains(lines[1], text) != (r == reason) {
+			t.Errorf("neden %s değil ya da %s de geçiyor:\n%s", reason, r, lines[1])
+		}
+	}
+	for _, p := range parts {
+		if !strings.Contains(lines[1], p) {
+			t.Errorf("%q yok:\n%s", p, lines[1])
+		}
+	}
+}
+
 func TestGGUFChatFamilyStopList(t *testing.T) {
-	codeOf := "TR_print(TR_error_code { m.TR_eos_tokens() })"
 	cases := []struct {
 		name     string
 		c        tinyConfig
 		pre      string
 		special  []string
 		declared map[string]uint32
-		body     string
-		want     string
+		want     string   // modelin durma listesi; boşsa model ailesizdir
+		reason   string   // ailesizde H7170'in nedeni
+		parts    []string // ailesizde iletide geçenler
 	}{
 		// Llama 3'ün üç adı, sohbet tanımının sırasıyla: <|eot_id|> 42, <|eom_id|> 43, <|end_of_text|> 41.
-		{"llama3", llamaTiny, "llama-bpe", llama3, map[string]uint32{"eos": 42, "eot": 42, "eom": 43}, "TR_print(m.TR_eos_tokens())", "[42, 43, 41]"},
-		{"qwen3", qwenTiny, "qwen2", []string{"<|endoftext|>", "<|im_end|>"}, map[string]uint32{"eos": 41}, "TR_print(m.TR_eos_tokens())", "[41, 40]"},
-		{"dosya bildirmiyor", llamaTiny, "llama-bpe", llama3, nil, "TR_print(m.TR_eos_tokens())", "[42, 43, 41]"},
-		// Dağarcık dışı eom hata değildir (16.1) ama listede değildir: H7163.
-		{"bildirilen listede yok", llamaTiny, "llama-bpe", llama3, map[string]uint32{"eos": 42, "eom": 7}, "", "H7163"},
-		// Ailenin ilk adı zorunludur, öbürleri dağarcıkta yoksa atlanır (DENETİM 446 Ş1): <|eom_id|>'siz
-		// llama-bpe dağarcığında liste iki öğedir; <|eot_id|>'siz dağarcık H7162'dir.
-		{"eom yok", llamaTiny, "llama-bpe", llama3[:3], map[string]uint32{"eos": 42}, "TR_print(m.TR_eos_tokens())", "[42, 41]"},
-		{"ilk ad yok", llamaTiny, "llama-bpe", []string{"<|begin_of_text|>", "<|end_of_text|>", "<|eom_id|>"}, nil, "", "H7162"},
-		{"tabloda olmayan etiket", llamaTiny, "smollm", llama3, map[string]uint32{"eos": 7}, codeOf, "H7170"},
+		{"llama3", llamaTiny, "llama-bpe", llama3, map[string]uint32{"eos": 42, "eot": 42, "eom": 43}, "[42, 43, 41]", "", nil},
+		{"qwen3", qwenTiny, "qwen2", []string{"<|endoftext|>", "<|im_end|>"}, map[string]uint32{"eos": 41}, "[41, 40]", "", nil},
+		{"dosya bildirmiyor", llamaTiny, "llama-bpe", llama3, nil, "[42, 43, 41]", "", nil},
+		// Ailenin ilk adı dağarcıkta olmalıdır, öbürleri yoksa atlanır (DENETİM 446 Ş1): <|eom_id|>'siz
+		// llama-bpe dağarcığında liste iki öğedir.
+		{"eom yok", llamaTiny, "llama-bpe", llama3[:3], map[string]uint32{"eos": 42}, "[42, 41]", "", nil},
+		// Aileyle uyuşmayan dosya kapanmaz, ailesiz yüklenir (DENETİM 454 Ş1). Dağarcık dışı eom hata
+		// değildir (16.1) ama listede değildir.
+		{"bildirilen listede yok", llamaTiny, "llama-bpe", llama3, map[string]uint32{"eos": 42, "eom": 7}, "", "id", []string{`"llama3"`, `7 "H" ∉ [42, 43, 41]`}},
+		{"ilk ad yok", llamaTiny, "llama-bpe", []string{"<|begin_of_text|>", "<|end_of_text|>", "<|eom_id|>"}, nil, "", "name", []string{`"llama3"`, `"<|eot_id|>"`}},
+		// ChatML'e geçmiş Llama 3 ince ayarı: llama-bpe etiketli, durmayı <|im_end|> (44) ile bildirir.
+		{"ChatML'li llama-bpe", llamaTiny, "llama-bpe", []string{"<|begin_of_text|>", "<|end_of_text|>", "<|eot_id|>", "<|eom_id|>", "<|im_end|>"}, map[string]uint32{"eos": 44}, "", "id", []string{`44 "<|im_end|>" ∉ [42, 43, 41]`}},
+		{"tabloda olmayan etiket", llamaTiny, "smollm", llama3, map[string]uint32{"eos": 7}, "", "table", []string{"llama3, qwen3"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()
-			file := familyGGUF(t, dir, c.c, c.pre, c.special, c.declared)
-			load := fmt.Sprintf("TR_pretrained_gguf(%q)", file)
-			if c.body == "" {
-				load = "TR_none"
-				c.body = fmt.Sprintf("TR_print(TR_error_code { TR_pretrained_gguf(%q) })", file)
+			load := fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, dir, c.c, c.pre, c.special, c.declared))
+			if c.reason != "" {
+				checkFamilyless(t, runFamily(t, dir, load, familylessBody), c.reason, c.parts...)
+				// Ailesiz model açık kimliklerle üretir.
+				if got := runFamily(t, dir, load, "TR_print(m.TR_generate([1], 2, TR_temperature: 0, TR_eos: [5]).TR_length > 1)"); got != "true" {
+					t.Errorf("ailesiz üretim: %q", got)
+				}
+				return
 			}
-			if got := runFamily(t, dir, load, c.body); got != c.want {
+			if got := runFamily(t, dir, load, "TR_print(m.TR_eos_tokens())"); got != c.want {
 				t.Errorf("çıktı %q; %q olmalı", got, c.want)
 			}
 		})
-	}
-	// H7162 ve H7163 H7160 gibi dosyanın yolunu yazar (DENETİM 446 N11).
-	for name, c := range map[string]struct {
-		special  []string
-		declared map[string]uint32
-	}{
-		"H7162": {[]string{"<|begin_of_text|>", "<|end_of_text|>"}, nil},
-		"H7163": {llama3, map[string]uint32{"eos": 7}},
-	} {
-		dir := t.TempDir()
-		file := familyGGUF(t, dir, llamaTiny, "llama-bpe", c.special, c.declared)
-		if got := runFamily(t, dir, fmt.Sprintf("TR_pretrained_gguf(%q)", file), ""); !strings.Contains(got, file) {
-			t.Errorf("%s iletisi dosyanın yolunu yazmıyor:\n%s", name, got)
-		}
 	}
 }
 
@@ -182,13 +207,21 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 		"klasör":                     fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
 		"tokenizer.json'suz klasör":  fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
 	}
+	// H7170'in her yoldaki nedeni (DENETİM 454 Ş1); elle kurulan GPT hazır bir dosyadan gelmez.
+	reasons := map[string]string{
+		"parçalayıcısız GGUF": "tokenizer", "smollm etiketi": "table", "tanınmayan etiket": "tokenizer",
+		"SentencePiece'li GGUF": "tokenizer", "mimarisiyle çelişen etiket": "tokenizer", "klasör": "table",
+		"tokenizer.json'suz klasör": "tokenizer",
+	}
 	for name, load := range loads {
 		t.Run(name, func(t *testing.T) {
 			if got := runFamily(t, dir, load, body); got != "H7170\ntrue" {
 				t.Errorf("çıktı %q", got)
 			}
+			checkFamilyless(t, runFamily(t, dir, load, familylessBody), reasons[name])
 		})
 	}
+	checkFamilyless(t, runFamily(t, dir, "TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)", familylessBody), "none")
 	got := runFamily(t, dir, loads["klasör"], "m.TR_eos_tokens()")
 	if !strings.Contains(got, "`TR_eos: [...]`") || !strings.Contains(got, "llama3, qwen3") {
 		t.Errorf("H7170'in iletisi aileleri ve açık yazımı söylemiyor:\n%s", got)
@@ -209,7 +242,8 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 
 // TestFolderChatFamily: klasörde aile (model_type, tokenizer_class'ın Fast'sız adı) ile seçilir;
 // kimlikler klasörün tokenizer.json'undan, bildirilen kimlik generation_config.json'dan, o yoksa
-// config.json'un eos_token_id'sinden (DENETİM 446 N4).
+// config.json'un eos_token_id'sinden (DENETİM 446 N4). Listede olmayan bildirilen kimlik modeli
+// ailesiz bırakır (DENETİM 454 Ş1).
 func TestFolderChatFamily(t *testing.T) {
 	tok, err := os.ReadFile(reporoot.Path("tests", "data", "qwen3_chat", "tokenizer.json"))
 	if err != nil {
@@ -218,9 +252,9 @@ func TestFolderChatFamily(t *testing.T) {
 	for _, c := range []struct{ name, eos, want string }{
 		{"liste", "[573, 571]", "[573, 571]"},
 		{"tek sayı", "573", "[573, 571]"},
-		{"listede yok", "[573, 7]", "H7163"},
+		{"listede yok", "[573, 7]", "id"},
 		{"config.json'dan", "config:573", "[573, 571]"},
-		{"config.json'da listede yok", "config:7", "H7163"},
+		{"config.json'da listede yok", "config:7", "id"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -233,11 +267,12 @@ func TestFolderChatFamily(t *testing.T) {
 				writeBytes(t, filepath.Join(dir, "generation_config.json"), []byte(`{"eos_token_id": `+c.eos+`}`))
 			}
 			load := fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(dir))
-			body := "TR_print(m.TR_eos_tokens())"
-			if c.want == "H7163" {
-				load, body = "TR_none", fmt.Sprintf("TR_print(TR_error_code { TR_pretrained_model(%q) })", filepath.ToSlash(dir))
+			// Listede olmayan kimlik: dosya aileyle uyuşmuyor, model ailesiz (DENETİM 454 Ş1).
+			if c.want == "id" {
+				checkFamilyless(t, runFamily(t, dir, load, familylessBody), "id", `"qwen3"`, "7 ", "∉ [573, 571]")
+				return
 			}
-			if got := runFamily(t, dir, load, body); got != c.want {
+			if got := runFamily(t, dir, load, "TR_print(m.TR_eos_tokens())"); got != c.want {
 				t.Errorf("çıktı %q; %q olmalı", got, c.want)
 			}
 		})
