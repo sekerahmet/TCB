@@ -174,13 +174,13 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	writeBytes(t, filepath.Join(noVocab, "tokenizer_config.json"), []byte(`{"tokenizer_class": "Qwen2TokenizerFast"}`))
 	unknownTag := familyGGUF(t, t.TempDir(), llamaTiny, "smaug-bpe", llama3, nil)
 	loads := map[string]string{
-		"parçalayıcısız GGUF":       fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
-		"smollm etiketi":            fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
-		"tanınmayan etiket":         fmt.Sprintf("TR_pretrained_gguf(%q)", unknownTag),
-		"SentencePiece'li GGUF":     fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUFOf(t, t.TempDir(), llamaTiny, "llama", "llama-bpe", llama3, nil)),
+		"parçalayıcısız GGUF":        fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
+		"smollm etiketi":             fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
+		"tanınmayan etiket":          fmt.Sprintf("TR_pretrained_gguf(%q)", unknownTag),
+		"SentencePiece'li GGUF":      fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUFOf(t, t.TempDir(), llamaTiny, "llama", "llama-bpe", llama3, nil)),
 		"mimarisiyle çelişen etiket": fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "qwen2", llama3, nil)),
-		"klasör":                    fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
-		"tokenizer.json'suz klasör": fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
+		"klasör":                     fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
+		"tokenizer.json'suz klasör":  fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
 	}
 	for name, load := range loads {
 		t.Run(name, func(t *testing.T) {
