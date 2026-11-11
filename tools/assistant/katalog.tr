@@ -528,7 +528,7 @@ TR_func _en_büyük(l: TR_List[Uygunluk], uyum: TR_String) -> TR_String {
 }
 
 # öneri: ölçülü `fits` olanların en büyüğü (ağırlığıyla); hiçbiri `fits` değilse ölçülü `tight` olanların en büyüğü;
-# hepsi `too_large` (ya da ölçüsüz) ise "" (tasarımın defteri 57). Eşikler (0,6 ve 0,85) tahmindir.
+# hepsi `too_large` ya da `too_long` (ya da ölçüsüz) ise "" (tasarımın defteri 57). Eşikler (0,6 ve 0,85) tahmindir.
 TR_func öneri(l: TR_List[Uygunluk]) -> TR_String {
     TR_var ö = _en_büyük(l, "fits")
     TR_if ö == "" { ö = _en_büyük(l, "tight") }
