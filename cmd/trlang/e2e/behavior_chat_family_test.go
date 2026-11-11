@@ -485,3 +485,35 @@ func TestFamilyStateIsNotInConfig(t *testing.T) {
 		})
 	}
 }
+
+// TestPretrainedConfigMessages: config.json'un iki yükleme hatasının iletisi (15.55). H6942
+// desteklenen etkinleştirmeyi önermez, TR'nin bu modeli yüklemediğini söyler (TCB 23:16, H7171'in
+// kalıbı); H7175 yanlış türdeki değerin anahtarını, iki türü ve config.json'un yolunu söyler.
+func TestPretrainedConfigMessages(t *testing.T) {
+	dir := t.TempDir()
+	folder := func(name, key, value string) string {
+		d := filepath.Join(dir, name)
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		llamaTiny.writeHF(t, d, llamaTiny.randomWeights(1))
+		addConfigKey(t, filepath.Join(d, "config.json"), key, value)
+		return filepath.ToSlash(d)
+	}
+	load := func(model string) []string {
+		return strings.Split(runFamily(t, dir, "0", fmt.Sprintf("TR_try { TR_pretrained_model(%q) } TR_catch e {\n    TR_print(e.TR_code)\n"+
+			"    TR_print(e.TR_text(\"tr\"))\n    TR_print(e.TR_text(\"en\"))\n}", model)), "\n")
+	}
+	got := load(folder("gelu", "hidden_act", `"gelu"`))
+	if text := strings.Join(got, "\n"); len(got) != 3 || got[0] != "H6942" || strings.Contains(text, "silu") || !strings.Contains(text, `"gelu"`) ||
+		!strings.Contains(got[1], "bu model TR'de yüklenmez") || !strings.Contains(got[2], "does not load this model") {
+		t.Errorf("H6942 öneri yazmamalı, modelin yüklenmediğini söylemeli:\n%s", text)
+	}
+	got = load(folder("metin_dropout", "attention_dropout", `"0"`))
+	if text := strings.Join(got, "\n"); len(got) != 3 || got[0] != "H7175" ||
+		!strings.Contains(got[1], `"attention_dropout" anahtarının değerinin türü Metin; Ondalık olmalı (`) ||
+		!strings.Contains(got[2], `the value of "attention_dropout" has type String, the key needs type Float (`) ||
+		strings.Count(text, "metin_dropout/config.json") != 2 {
+		t.Errorf("H7175 anahtarı, iki türü ve config.json'un yolunu söylemeli:\n%s", text)
+	}
+}

@@ -1426,7 +1426,7 @@ const (
 	H6933 Code = 6933 // {@Run} provası: {file|q} yazılmadı ({folder|q})
 	H6940 Code = 6940 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisi desteklenmiyor (desteklenenler: {supported|list})
 	H6941 Code = 6941 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: sapmalı dikkat ya da MLP katmanları desteklenmiyor
-	H6942 Code = 6942 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {activation|q} etkinleştirmesi desteklenmiyor (silu bekleniyordu)
+	H6942 Code = 6942 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {activation|q} etkinleştirmesi desteklenmiyor: TR bu etkinleştirmeyi uygulamaz, bu model TR'de yüklenmez; config'de etkinleştirmeyi değiştirmek modeli değiştirir
 	H6943 Code = 6943 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: desteklenmeyen RoPE ayarı ({key|q})
 	H6944 Code = 6944 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: kayan pencereli dikkat ({key|q}) henüz desteklenmiyor
 	H6945 Code = 6945 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: tanınmayan ağırlık {weight|q}
@@ -1607,6 +1607,7 @@ const (
 	H7172 Code = 7172 // {@generate}: {@eos} durma kimliklerinin listesidir, tek sayı ({value}) verildi: `{#eos}: [{value}]` yazın
 	H7173 Code = 7173 // {@generate}: {@eos}'a bir fonksiyon verildi, durma kimliklerinin listesi değil: metodu parantezle çağırın, `{#eos}: model.{#eos_tokens}()`
 	H7174 Code = 7174 // {@generate}: {@eos} durma kimliklerinin listesidir; {index, plural, =0 {liste değil, {type} verildi} other {#. öğe {type}, Tam değil}}: durma kimliği `p.{#token_id}("...")` ile alınır, dağarcıkta olmayan ad `{#none}` verir; ya da modelin listesi: `{#eos}: model.{#eos_tokens}()`
+	H7175 Code = 7175 // {@pretrained_model}: {key|q} anahtarının değerinin türü {given}; {expected} olmalı{file, select, empty {} other { ({file|q})}}: TR değeri çevirmez, config'de {expected} olarak yazın
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi
