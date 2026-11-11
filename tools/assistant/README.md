@@ -14,7 +14,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 - `deneme.tr`, `deneme_test.tr`: canlı denemenin kaydı (aşağıda, "Deneme kaydı"); test modelsizdir.
 - `screen_demo.tr`: ekranı modelsiz açar (sahte zincir: metin turu sözü yineleyen cevabı sözcük sözcük akıtır); ekranı gerçek sunucuyla denemek ve uçtan uca test içindir.
 - `behavior_screen_server_test.go`: `screen_demo.tr`'yi `trlang` ile açar, gerçek bağlantıyla konuşur: belirteçsiz yollar, `401`, `403`, akıştan bir tur, `Last-Event-ID` ile yeniden bağlanma, katlama yavaşken aboneliğin bir gönderime denk gelmesi (parça ekranda tam bir kez).
-- `ekran.tr`, `ekran_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; test modelsizdir.
+- `ekran.tr`, `ekran_test.tr`, `ekran_tur_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; testler modelsizdir (`ekran_test.tr` katlama, komutlar, sunulan dosyalar; `ekran_tur_test.tr` tur ve cevap metni). İki testin ortak yardımcıları `screen_helpers.tr`'de.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 - `katalog.json`: Dost'un indirebileceği modellerin ve konuşma dillerinin kataloğu (aşağıda, "Kurulum").
 - `katalog.tr`, `katalog_test.tr`: katalogu ve ayarı okur, denetler, makineye uygunluğu hesaplar; test modelsizdir.
@@ -55,7 +55,7 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
 - **Görüntü yalnız olaylardan katlanır** (`katla`, 28.7'nin `TR_reduce:`'u): son `state` başta, son `metrics` sonda, bir konuşma parçası tek `turn_text` (`replace`), kapanan onay düşer, `error` girmez. Yeni tur açılırken görüntü 512 KiB'ı aşıyorsa eski turlar düşer, açık onay düşmez: görüntü olayın 1 MiB sınırının altında kalır.
 - **Komutun kararı ana döngüdedir** (`komutları_işle`). İşleyici biçimi denetler (`415`, bozuk JSON, sürüm, bilinmeyen komut, eksik alan), komutu tek bir `TR_append` ile bırakır ve cevabı bekler; `turn_busy`, `not_ready`, `text_too_long` ve `command_id` tekrarı ana döngüde verilir. İşleyicide "oku, sonra yaz" iki deyim olurdu ve 10.2'nin devir noktası arada iki `send_text`'i birden kabul ettirirdi. Son 1024 `command_id`'nin cevabı tutulur.
 
-`ekran_test.tr` modelsiz sınar: katlama (rastgele olay dizisinde görüntüyü işleyen ekran ile olayların hepsini işleyen ekran aynı durumu görür), olayın ve görüntünün 1 MiB sınırı, aynı anda iki `send_text`, aynı `command_id`'nin iki kez gelmesi, komutların kodları ve biçimi, sunulan dosyalar.
+`ekran_test.tr` modelsiz sınar: katlama (rastgele olay dizisinde görüntüyü işleyen ekran ile olayların hepsini işleyen ekran aynı durumu görür), olayın ve görüntünün 1 MiB sınırı, aynı anda iki `send_text`, aynı `command_id`'nin iki kez gelmesi, komutların kodları ve biçimi, sunulan dosyalar. `ekran_tur_test.tr` turu ve cevap metnini sınar: ekrana giden metin, turun tek sonu, bitiş, belirteç dosyası, ekranın adresi, mikrofonlu çerçevede metin turu.
 
 ## Açmak
 
@@ -121,5 +121,6 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 ## Testler
 
 - `behavior_device_test.go`: zincirin cihaz geçişleri (`zincir.tr`'nin `işlemcide`, `çerçeve_örnekleri`, `kesit_cihazda`): modelsiz bir programı `trlang` ile kart benzeticisinde (`TR_GPU_SIM=1`) koşar; varsayılan cihaz kartken kesitleyicinin örnekleri ve mikrofonun 16 bitlik çerçevesi işlemcide, kesit kartta; işlemcideyken üçü de işlemcide.
+- `behavior_screen_files_test.go`: ekranın iki TR testinin (`ekran_test.tr`, `ekran_tur_test.tr`) ve ortak yardımcılarının (`screen_helpers.tr`) burada anıldığını, iki testin ekranı ve yardımcıları aktardığını, yardımcı modülün test bloğu taşımadığını sınar.
 - `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
 - `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı.
