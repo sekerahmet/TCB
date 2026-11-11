@@ -1379,6 +1379,7 @@
 "H6724": { "param": ["fn", "dtype"] },
 "H6725": { "param": ["fn", "given"] },
 "H6726": { "param": ["fn", "given"] },
+"H6730": { "param": ["fn", "waiting_bytes", "seconds"] },
 "H6800": { "param": ["name"] },
 "H6801": { "param": ["fn", "given"] },
 "H6802": { "param": ["fn"] },

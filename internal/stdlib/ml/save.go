@@ -3,10 +3,12 @@ package ml
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"hash"
 	"hash/crc32"
 	"io"
 	"os"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -342,11 +344,14 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	}
 	decoded, tried := bind.ResolvePathTried(m, fpath)
 	var inputs []fileEntry
+	var settled tensor.HostSettle
 	var readErr, osErr error
-	// Dosyadan yükleme programın durumunu değiştirmez: durdurma onu bırakır (1.5).
-	if waitErr := m.Abandonable(func() { inputs, readErr, osErr = readFromFile(decoded) }); waitErr != nil {
+	// Dosyadan yükleme programın durumunu değiştirmez: durdurma onu bırakır (1.5). Bırakılırsa
+	// beklemenin uyarısı da yazılmaz; iş arka planda biter, sonucu atılır.
+	if waitErr := m.Abandonable(func() { inputs, settled, readErr, osErr = readSettled(decoded) }); waitErr != nil {
 		return nil, waitErr
 	}
+	hostSettleWarning(m.Err, fn, settled)
 	if osErr != nil {
 		return nil, interp.ReadError(fn, fpath, messages.H2107, osErr, tried)
 	}
@@ -371,18 +376,36 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 // readFromFile dosyayı çözer. İlk hata dosya biçimi hatası, ikincisi işletim sistemi
 // hatasıdır.
 func readFromFile(fpath string) ([]fileEntry, error, error) {
+	inputs, _, readErr, osErr := readSettled(fpath)
+	return inputs, readErr, osErr
+}
+
+// readSettled readFromFile'ın işidir; ayrıca çözmeden önceki beklemenin sonucunu verir. Büyük
+// dosyadan önce bırakılan blokların temizleyicileri beklenir: model değiştirirken yeni ağırlıklar
+// eskilerin üstüne ayrılmasın (tensor.SettleHostBlocks).
+func readSettled(fpath string) ([]fileEntry, tensor.HostSettle, error, error) {
 	f, err := os.Open(fpath)
 	if err != nil {
-		return nil, nil, err
+		return nil, tensor.HostSettle{}, nil, err
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return nil, nil, err
+		return nil, tensor.HostSettle{}, nil, err
 	}
 	if info.IsDir() {
-		return nil, messages.New(messages.H6629), nil
+		return nil, tensor.HostSettle{}, messages.New(messages.H6629), nil
 	}
+	settled := tensor.SettleHostBlocks(info.Size())
 	inputs, err := decodeTensorFile(f, info.Size())
-	return inputs, err, nil
+	return inputs, settled, err, nil
+}
+
+// hostSettleWarning beklemenin sınırı aşıldıysa uyarıyı programın hata akışına yazar (H6730):
+// yükleme sürer, uyarı tepenin nedenini söyler. Yükleme başına bir kez.
+func hostSettleWarning(w io.Writer, fn codes.Ref, r tensor.HostSettle) {
+	if !r.TimedOut || w == nil {
+		return
+	}
+	fmt.Fprintln(w, messages.Text(messages.H6730, fn, r.Waiting, int64(r.Elapsed/time.Second)))
 }

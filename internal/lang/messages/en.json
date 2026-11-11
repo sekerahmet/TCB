@@ -1379,6 +1379,7 @@
 "H6724": "the {fn} {{ ... }} block is not on the GPU (15.53a, 15.41): the \"{dtype}\" weight is on the GPU; move the product out of the block or move the input and the weight to the CPU",
 "H6725": "{fn} {{ ... }} takes only a block, {given} {given, plural, one {parameter} other {parameters}} given",
 "H6726": "{fn} {{ ... }} expects a block, {given} given",
+"H6730": "Warning: {fn}: memory of released tensors ({waiting_bytes} bytes) was not returned within {seconds} s; loading continues, and peak memory may be that much higher.",
 "H6800": "unknown device {name|q}; give a name such as \"cpu\", \"gpu\" or \"gpu:1\"",
 "H6801": "{fn}() expects the device name as a string (\"cpu\" or \"gpu\"), {given} given",
 "H6802": "{fn}(\"cpu\") expects 1 parameter",

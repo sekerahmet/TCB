@@ -283,6 +283,13 @@ TR_test "bağlamın önceliği: seçenek, ayar, 8192" {
     TR_assert_equal("H8173", TR_error_code { bağlam_oku("dört") })
 }
 
+TR_test "bağlam_oku: boş metin ve Int64'ü aşan sayı H8173; ileti verilen metni yazar (DENETİM 457 N6)" {
+    TR_for m TR_in ["", "99999999999999999999"] {
+        TR_assert_equal("H8173", TR_error_code { bağlam_oku(m) })
+        TR_try { bağlam_oku(m) } TR_catch e { TR_assert_equal("Message(\"H8173\", \"\(m)\")", TR_String(e)) }
+    }
+}
+
 TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca geçici adla taşınır, eski ayar korunur" {
     TR_var kat = _dosya("katalog.json", _örnek_katalog())
     TR_var klasör = TR_temp_dir()

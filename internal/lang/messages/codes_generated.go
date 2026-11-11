@@ -1384,6 +1384,7 @@ const (
 	H6724 Code = 6724 // {fn} {{ ... }} bloğu GPU'da yok (15.53a, 15.41): "{dtype}" ağırlık GPU'da; çarpımı bloğun dışına alın ya da girdiyi ve ağırlığı CPU'ya taşıyın
 	H6725 Code = 6725 // {fn} {{ ... }} yalnız bir blok alır, {given} parametre verildi
 	H6726 Code = 6726 // {fn} {{ ... }} bir blok bekler, {given} verildi
+	H6730 Code = 6730 // Uyarı: {fn}: bırakılan tensörlerin {waiting_bytes} baytlık belleği {seconds} sn içinde geri verilmedi; yükleme sürüyor, bellek tepesi bu kadar yüksek olabilir.
 	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
 	H6801 Code = 6801 // {fn}() cihaz adını metin olarak bekler ("cpu" ya da "gpu"), {given} verildi
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler

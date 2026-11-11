@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"hash/crc32"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
@@ -280,4 +284,59 @@ func TestSaveCopiesBeforeReleasingTheLock(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Büyük tensörlü dosya yüklenir ve bırakılır; ikinci yüklemeden önce bekleme yapılır, bloğun
+// temizleyicisi beklenir ya da taramadan önce bitmiştir, bekleme sınıra varmaz (status C satırı).
+func TestLoadWaitsForTheReleasedBlocks(t *testing.T) {
+	needBlocks(t)
+	values := bigFloats()
+	data := f32Bytes(values...)
+	header := fmt.Sprintf(`{"w":{"dtype":"F32","shape":[%d],"data_offsets":[0,%d]}}`, len(values), len(data))
+	path := filepath.Join(t.TempDir(), "w.safetensors")
+	if err := os.WriteFile(path, safetensorsBytes(header, data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	entries, _, readErr, osErr := readSettled(path)
+	if readErr != nil || osErr != nil {
+		t.Fatal(readErr, osErr)
+	}
+	if entries[0].block == nil {
+		t.Fatal("tensör blokta değil")
+	}
+	entries = nil
+	keep := tensor.NewHostBlock(1 << 20) // live > 0 kalsın: temizleyici önce koşsa da bekleme yapılır
+	_, r, readErr, osErr := readSettled(path)
+	runtime.KeepAlive(keep)
+	if readErr != nil || osErr != nil {
+		t.Fatal(readErr, osErr)
+	}
+	if r == (tensor.HostSettle{}) {
+		t.Fatal("blok canlıyken büyük dosyadan önce bekleme yapılmadı")
+	}
+	if r.TimedOut || r.Waiting != 0 {
+		t.Fatalf("bekleme sınıra vardı: %+v", r)
+	}
+}
+
+// Sınır aşılınca H6730 programın hata akışına değiştirgeleriyle bir kez yazılır; aşılmayınca yazılmaz.
+func TestHostSettleWarning(t *testing.T) {
+	fn := codes.NameRef(codes.FnLoadTensors)
+	var out bytes.Buffer
+	hostSettleWarning(&out, fn, tensor.HostSettle{Dead: 1, DeadBytes: 1 << 21})
+	if out.Len() != 0 {
+		t.Fatalf("sınır aşılmadı, uyarı yazıldı: %q", out.String())
+	}
+	r := tensor.HostSettle{Dead: 1, DeadBytes: 1 << 21, Waiting: 1 << 21, Elapsed: 10*time.Second + 3*time.Millisecond, TimedOut: true}
+	hostSettleWarning(&out, fn, r)
+	if want := messages.Text(messages.H6730, fn, int64(1<<21), int64(10)) + "\n"; out.String() != want {
+		t.Fatalf("uyarı %q, beklenen %q", out.String(), want)
+	}
+	for _, lang := range []string{"tr", "en"} {
+		text := messages.TextIn(lang, messages.H6730, fn, int64(1<<21), int64(10))
+		if !strings.Contains(text, "2097152") || !strings.Contains(text, "10 s") {
+			t.Errorf("%s: değiştirgeler metinde yok: %q", lang, text)
+		}
+	}
+	hostSettleWarning(nil, fn, r)
 }
