@@ -77,6 +77,11 @@ type Tokenizer struct {
 	// Düzenli ifade kullanan adım sayısı: kodlamada (normalleştirici ve ön
 	// bölücü) ve çözmede. Bir çağrının adım bütçesi bununla ölçeklenir.
 	encodeRegex, parseRegex int
+
+	// Yalnız GGUF'tan yüklenende (16.1): dosyanın ön bölme etiketi ve bildirdiği durma kimlikleri.
+	// tokenizer.json'da ikisi de boştur.
+	pretokenizerTag string
+	declaredEOS     []int32
 }
 
 // exprCount bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.

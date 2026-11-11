@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/gguf"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -29,7 +30,12 @@ const (
 	ggufKeyBOS    = "tokenizer.ggml.bos_token_id"
 	ggufKeyEOS    = "tokenizer.ggml.eos_token_id"
 	ggufKeyArch   = "general.architecture"
+	ggufKeyPrefix = "tokenizer.ggml." // hiçbir anahtar bununla başlamıyorsa dosyada parçalayıcı yoktur (H5650)
 )
+
+// ggufDeclaredEOSKeys dosyanın bildirdiği durma kimliklerinin anahtarları, bu sırayla (16.1).
+// eot ve eom dağarcıkla denetlenmez: dağarcık dışı kimlik örneklenmez, üretim onda durmaz (15.55).
+var ggufDeclaredEOSKeys = []string{ggufKeyEOS, "tokenizer.ggml.eot_token_id", "tokenizer.ggml.eom_token_id"}
 
 // ggufSpecialIDKeys sözlükte olması gereken özel kimliklerin anahtarlarıdır. "seperator" llama.cpp'nin yazımıdır.
 var ggufSpecialIDKeys = []string{ggufKeyBOS, ggufKeyEOS, "tokenizer.ggml.unknown_token_id",
@@ -113,6 +119,9 @@ func loadGGUF(f *os.File) (*Tokenizer, error) {
 
 // FromGGUF parçalayıcıyı GGUF üstverisinden kurar.
 func FromGGUF(f *gguf.File) (*Tokenizer, error) {
+	if !hasTokenizerKey(f) {
+		return nil, messages.New(messages.H5650, ggufKeyPrefix)
+	}
 	tag, err := ggufTagOf(f)
 	if err != nil {
 		return nil, err
@@ -158,7 +167,59 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 	if err != nil {
 		return nil, messages.Internal("gguf tokenizer document: " + err.Error())
 	}
-	return Parse(data)
+	declared, err := ggufDeclaredEOS(f)
+	if err != nil {
+		return nil, err
+	}
+	p, err := Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	p.pretokenizerTag, _ = f.Values[ggufKeyPre].Data.(string) // ggufTagOf denetledi
+	p.declaredEOS = declared
+	return p, nil
+}
+
+// hasTokenizerKey dosyada tokenizer.ggml. ile başlayan bir anahtar olup olmadığını söyler.
+func hasTokenizerKey(f *gguf.File) bool {
+	for key := range f.Values {
+		if strings.HasPrefix(key, ggufKeyPrefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// ggufDeclaredEOS dosyanın bildirdiği durma kimlikleridir: üç anahtardan dosyada olanlar, sırayla
+// ve tekrarsız; hiçbiri yoksa nil.
+func ggufDeclaredEOS(f *gguf.File) ([]int32, error) {
+	var out []int32
+	for _, key := range ggufDeclaredEOSKeys {
+		v, ok := f.Values[key]
+		if !ok {
+			continue
+		}
+		id, isID := v.Data.(uint32)
+		if !isID || id > uint32(1<<31-1) {
+			return nil, messages.New(messages.H6681, key)
+		}
+		if !slices.Contains(out, int32(id)) {
+			out = append(out, int32(id))
+		}
+	}
+	return out, nil
+}
+
+// PretokenizerTag GGUF'tan yüklenen parçalayıcıda dosyanın ön bölme etiketidir (tokenizer.ggml.pre);
+// tokenizer.json'dan yüklenende yoktur (16.1).
+func (p *Tokenizer) PretokenizerTag() (string, bool) {
+	return p.pretokenizerTag, p.pretokenizerTag != ""
+}
+
+// DeclaredEOSTokens GGUF'un bildirdiği durma kimlikleridir (ggufDeclaredEOSKeys); dosya hiçbirini
+// bildirmiyorsa ya da parçalayıcı tokenizer.json'dan yüklendiyse yoktur (16.1). Boş liste dönmez.
+func (p *Tokenizer) DeclaredEOSTokens() ([]int32, bool) {
+	return slices.Clone(p.declaredEOS), len(p.declaredEOS) > 0
 }
 
 // ggufTagOf modeli ve etiketi denetler.

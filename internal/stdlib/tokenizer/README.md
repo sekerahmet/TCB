@@ -1,7 +1,7 @@
 # tokenizer
 
 Genel `tokenizer.json` parçalayıcısını TR diline bağlar: `TR_fn_load_tokenizer` ve parçalayıcı
-nesnesinin kodlama, çözme, dağarcık boyutu ve parça kimliği üyeleri.
+nesnesinin kodlama, çözme, dağarcık boyutu ve parça kimliği üyeleri; GGUF'tan yüklenende dosyanın ön bölme etiketi ve bildirdiği durma kimlikleri.
 
 ## Standartlar
 

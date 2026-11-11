@@ -12,6 +12,14 @@ TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_assert_equal(TR_none, p.TR_token_id("böyle-bir-parça-yok"))
 }
 
+TR_test "16.1 ön_bölme_etiketi ve bildirilen_durma_parçaları tokenizer.json'dan yüklenen parçalayıcıda yok" {
+    TR_for yol TR_in ["data/tokenizer.json", "data/qwen3_chat/tokenizer.json"] {
+        TR_var p = TR_load_tokenizer(yol)
+        TR_assert_equal(TR_none, p.TR_pretokenizer_tag, yol)
+        TR_assert_equal(TR_none, p.TR_declared_eos_tokens, yol)
+    }
+}
+
 TR_test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
     TR_var k = p.TR_encode("Merhaba dünya!")

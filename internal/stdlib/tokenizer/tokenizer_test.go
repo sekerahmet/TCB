@@ -301,9 +301,18 @@ func TestLoadTokenizerFromGGUF(t *testing.T) {
 	}
 	m, err := run(t, `TR_var p = TR_load_tokenizer("`+file("smollm")+`")
 TR_var k = p.TR_encode("ab")
-TR_var n = p.TR_vocab_size`)
+TR_var n = p.TR_vocab_size
+TR_var etiket = p.TR_pretokenizer_tag
+TR_var durma = p.TR_declared_eos_tokens`)
 	if err != nil {
 		t.Fatal(err)
+	}
+	// 16.1: GGUF'ta etiket dosyanınkidir; dosya durma kimliği bildirmiyorsa üye yoktur (boş liste değil).
+	if got := al(t, m, "etiket").Inspect(); got != "smollm" {
+		t.Errorf("etiket %s", got)
+	}
+	if got := al(t, m, "durma"); got != interp.Null {
+		t.Errorf("bildirilen durma kimlikleri %s; yok olmalı", got.Inspect())
 	}
 	if got := al(t, m, "n").Inspect(); got != "94" {
 		t.Errorf("dağarcık %s", got)
