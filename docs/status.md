@@ -917,6 +917,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.55
 
+- **Yapılacaklar (sınıfsız: hız; Ö3; sahip H1, hız kuyruğu; D1'in bulgusu):** 4096 token'lık istemde TR, llama.cpp `b12124`'ten yaklaşık 2 kat yavaş: Llama 3.1-8B'de 730 sn, llama.cpp 370 sn; açgözlü üretim 16/16 aynı [ölçüldü: D1, Colab CPU High-RAM koşu 2/8, 2026-11-11 16:31–17:21, Drive `d1a2`]. Profil H1'in kuyruğunda.
 - **Mevcut durum:** ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister. Safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni]. Llama 3.1 ölçülmedi.
 - **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları: bugün iki biçime de yazmak H6687, ileti açmayı söyler; kod gelince `.safetensors` iletisi TR biçimini de önerir; GGUF `Q4_0`'ı ("q4") H6674; `F8_E4M3` okuma; kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi.
 - **Yapılacaklar (C, Ö3; sahip H1; DENETİM istek 161):** F32 GGUF'ta tepe dosyanın 3,5 katı (4,95 GB dosya, kısa prompt 17,3 GB) [ölçüldü: T1, `t1l4`]; F32 yolunda `readValues` ve `FromHost` iki kopya kuruyor [kanıtlı: `load_gguf.go`, `cpu_memory.go:128`], ikisi aynı anda canlı olabilir [hipotez: DENETİM 161]. Safetensors F32'de de. Çözüm önerisi sahipliği devralan kurma.
