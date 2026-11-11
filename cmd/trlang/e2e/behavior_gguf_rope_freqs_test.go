@@ -284,7 +284,7 @@ func TestGGUFLlama3WithoutRopeFreqs(t *testing.T) {
 	for i, k := range cases {
 		name := fmt.Sprintf("s%d.gguf", i)
 		writeBytes(t, filepath.Join(dir, name), ropeFile(k.c, k.edit))
-		writeTR(t, dir, "s.tr", fmt.Sprintf("TR_import \"tr/pretrained\"\nTR_try { TR_pretrained_gguf(%q)\n    TR_print(\"yüklendi\")\n"+
+		writeTR(t, dir, "s.tr", "TR_import \"tr/pretrained\"\n"+fmt.Sprintf("TR_try { TR_pretrained_gguf(%q)\n    TR_print(\"yüklendi\")\n"+
 			"} TR_catch e {\n    TR_print(e.TR_code)\n    TR_print(e.TR_text(\"tr\"))\n    TR_print(e.TR_text(\"en\"))\n}\n", name))
 		s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "s.tr"))
 		got := strings.Split(strings.TrimSpace(s.Stdout+s.Stderr), "\n")
