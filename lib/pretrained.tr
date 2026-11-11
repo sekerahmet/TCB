@@ -101,6 +101,14 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var bağlam = _gguf_tam(üst, "\(mimari).context_length", TR_JSON(2048), yol)
     TR_var taban_anahtarı = "\(mimari).rope.freq_base"
     TR_var taban = _ondalık(TR_config_value(üst, taban_anahtarı, TR_JSON(10000.0)), taban_anahtarı, yol, "gguf")
+    # Sınır A (15.55): Llama 3 parçalayıcılı, tabanı 3.1 ve 3.2'ninki (500000), bağlamı 8192'den uzun ve
+    # bölensiz llama dosyası yükleme hatasıdır: bölensiz model uzun bağlamda sessizce yanlıştır. Etiket ham
+    # üstveriden okunur; metin değilse Llama 3 sayılmaz (parçalayıcı o dosyayı ailesiz bırakır).
+    TR_var etiket = TR_config_value(üst, "tokenizer.ggml.pre", TR_none)
+    TR_var llama3 = etiket != TR_none TR_and TR_Type(etiket) == TR_String TR_and ["llama-bpe", "smaug-bpe"].TR_contains(TR_String(etiket))
+    TR_if mimari == "llama" TR_and llama3 TR_and bağlam > 8192 TR_and taban == 500000.0 TR_and TR_not tensörler.TR_contains("rope_freqs.weight") {
+        TR_throw TR_Message("H7169", bağlam, yol)
+    }
     TR_var model = TR_GPT(1, TR_context: bağlam, TR_embed_dim: 2, TR_num_layers: 1,
         TR_num_heads: bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_tied: TR_true, TR_eps: eps, TR_qk_norm: y.qk_normu,
         TR_head_dim: bb, TR_rope_theta: taban, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_init_std: 0.0)

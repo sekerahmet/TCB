@@ -18,14 +18,16 @@ func writeGGUF(t *testing.T, dir, name string, b *gguftest.Builder) {
 	}
 }
 
-// TestLoadMetadataGivesJSON: üstveri TR_JSON'dur; tokenizer.ggml. anahtarları girmez,
+// TestLoadMetadataGivesJSON: üstveri TR_JSON'dur; tokenizer.ggml. anahtarları girmez, yalnız
+// tokenizer.ggml.pre metin olarak girer (Sınır A'nın etiketi),
 // chat_template metindir, sayıların cinsi yazımdan gelir (15.55).
 func TestLoadMetadataGivesJSON(t *testing.T) {
 	dir := t.TempDir()
 	b := (&gguftest.Builder{}).KV("general.architecture", "qwen3").KV("qwen3.block_count", uint32(28)).
 		KV("qwen3.rope.freq_base", float32(1000000)).KV("qwen3.attention.layer_norm_rms_epsilon", float32(1e-6)).
 		KV("general.tags", []string{"a", "b"}).KV("tokenizer.chat_template", "{{ x }}").
-		KV("tokenizer.ggml.tokens", []string{"gizli"}).KV("ok", true).KV("neg", int64(-3)).
+		KV("tokenizer.ggml.tokens", []string{"gizli"}).KV("tokenizer.ggml.merges", []string{"a b"}).
+		KV("tokenizer.ggml.pre", "llama-bpe").KV("tokenizer.ggml.model", "gpt2").KV("ok", true).KV("neg", int64(-3)).
 		Tensor("w", gguf.TypeQ5_0, []uint64{32}, make([]byte, 22))
 	writeGGUF(t, dir, "m.gguf", b)
 	out, err := fromProgram(t, dir, `
@@ -39,14 +41,41 @@ TR_print(TR_String(m["tokenizer.chat_template"]))
 TR_print(TR_Bool(m["ok"]))
 TR_print(TR_Int(m["neg"]))
 TR_print(m.TR_get("tokenizer.ggml.tokens") == TR_none)
+TR_print(TR_String(m["tokenizer.ggml.pre"]), m.TR_get("tokenizer.ggml.model") == TR_none, m.TR_get("tokenizer.ggml.merges") == TR_none)
 TR_print(m.TR_keys().TR_length)
 `)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "qwen3\n29\n1000000.0\ntrue\n2\n{{ x }}\ntrue\n-3\ntrue\n8\n"
+	want := "qwen3\n29\n1000000.0\ntrue\n2\n{{ x }}\ntrue\n-3\ntrue\nllama-bpe true true\n9\n"
 	if out != want {
 		t.Errorf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
+// TestLoadMetadataSkipsNonTextPre: değeri metin olmayan tokenizer.ggml.pre (dizi, sayı) öbür
+// parçalayıcı anahtarları gibi girmez; dosya yine yüklenir (15.55, TCB 02:28).
+func TestLoadMetadataSkipsNonTextPre(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		pre  any
+	}{{"dizi", []string{"llama-bpe"}}, {"sayı", uint32(7)}} {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			b := (&gguftest.Builder{}).KV("general.architecture", "llama").KV("tokenizer.ggml.pre", c.pre).
+				Tensor("w", gguf.TypeQ5_0, []uint64{32}, make([]byte, 22))
+			writeGGUF(t, dir, "m.gguf", b)
+			out, err := fromProgram(t, dir, `
+TR_var m = TR_load_metadata("m.gguf")
+TR_print(m.TR_get("tokenizer.ggml.pre") == TR_none, m.TR_keys().TR_length)
+`)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := "true 1\n"; out != want {
+				t.Errorf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+			}
+		})
 	}
 }
 

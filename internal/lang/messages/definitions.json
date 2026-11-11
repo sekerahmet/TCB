@@ -1603,6 +1603,7 @@
 "H7155": { "param": ["key", "value"], "slots": {"pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7160": { "param": ["via", "architecture", "file", "count", "keys"], "slots": {"pretrained_model": "TR_fn_pretrained_model", "pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7161": { "param": ["via", "first", "second", "a", "b"], "slots": {"pretrained_model": "TR_fn_pretrained_model", "pretrained_gguf": "TR_fn_pretrained_gguf"} },
+"H7169": { "param": ["context", "file"], "slots": {"pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7170": { "param": ["families", "reason", "family", "detail", "caught"], "slots": {"eos_tokens": "TR_mem_eos_tokens", "eos": "TR_arg_eos", "cause": "TR_mem_cause"} },
 "H7171": { "param": ["key", "value"], "slots": {"pretrained_model": "TR_fn_pretrained_model"} },
 "H7172": { "param": ["value"], "slots": {"generate": "TR_mem_generate", "eos": "TR_arg_eos"} },

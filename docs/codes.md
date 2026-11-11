@@ -2493,7 +2493,7 @@ tr: klasör_oluştur("liste/alt"); dosya_yaz("liste/a.npy", "1"); dosya_yaz("lis
 
     üstveri_yükle(Metin | Yol) → JSON
 
-GGUF dosyasının üstverisini JSON olarak verir; parçalayıcının `tokenizer.ggml.` anahtarları girmez. `tokenizer.chat_template` metindir, kod olarak çalıştırılmaz. Tensör verisi okunmaz.
+GGUF dosyasının üstverisini JSON olarak verir; parçalayıcının `tokenizer.ggml.` anahtarları girmez, yalnız değeri metin olan `tokenizer.ggml.pre` girer. `tokenizer.chat_template` metindir, kod olarak çalıştırılmaz. Tensör verisi okunmaz.
 
 ```tr
 TR_write_file("bos.gguf", TR_Bytes([71, 71, 85, 70, 3, 0, 0, 0] + [0] * 16)); TR_var m = TR_load_metadata("bos.gguf"); TR_print(m.TR_keys())

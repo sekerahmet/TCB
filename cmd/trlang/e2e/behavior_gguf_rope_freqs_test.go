@@ -240,3 +240,65 @@ func TestGGUFRopeFreqsGates(t *testing.T) {
 		t.Errorf("fp16 bölen: %q", got)
 	}
 }
+
+// Kural (15.55, Sınır A; TCB 23:03, 23:26, 02:09): Llama 3 parçalayıcılı (`llama-bpe`, `smaug-bpe`),
+// tabanı 500000, bağlamı 8192'den uzun, rope_freqs'siz ve etkili ölçeksiz llama GGUF'u yükleme
+// hatasıdır (H7169): bölensiz dosya uzun bağlamda sessizce yanlıştır. Etkili ölçek H6943'te kalır;
+// bağlamı 8192 olan, tabanı başka olan (Llama 3.0 türevi), SentencePiece'li, smollm etiketli, etiketi
+// metin olmayan ve bölenli dosyalar yüklenir.
+func TestGGUFLlama3WithoutRopeFreqs(t *testing.T) {
+	long := ropeConfig
+	long.context = 131072
+	kv := func(pairs ...any) func(b *gguftest.Builder) {
+		return func(b *gguftest.Builder) {
+			for i := 0; i < len(pairs); i += 2 {
+				b.KV(pairs[i].(string), pairs[i+1])
+			}
+		}
+	}
+	gradient := long
+	gradient.theta = 2804339712
+	short := long
+	short.context = 8192
+	sp := long
+	sp.context = 32768
+	withDivisors := func(b *gguftest.Builder) { kv("tokenizer.ggml.pre", "llama-bpe")(b); divisorTensor(llama32Divisors)(b) }
+	cases := []struct {
+		name, want string
+		c          tinyConfig
+		edit       func(b *gguftest.Builder)
+	}{
+		{"llama-bpe", "H7169", long, kv("tokenizer.ggml.pre", "llama-bpe")},
+		{"ölçek none", "H7169", long, kv("tokenizer.ggml.pre", "llama-bpe", "llama.rope.scaling.type", "none")},
+		{"ölçek 1", "H7169", long, kv("tokenizer.ggml.pre", "llama-bpe", "llama.rope.scaling.factor", float32(1))},
+		{"smaug-bpe", "H7169", long, kv("tokenizer.ggml.pre", "smaug-bpe")},
+		{"etkili ölçek", "H6943", long, kv("tokenizer.ggml.pre", "llama-bpe", "llama.rope.scaling.type", "linear")},
+		{"bağlam 8192", "yüklendi", short, kv("tokenizer.ggml.pre", "llama-bpe")},
+		{"Llama 3.0 türevi", "yüklendi", gradient, kv("tokenizer.ggml.pre", "llama-bpe")},
+		{"SentencePiece", "yüklendi", sp, kv("tokenizer.ggml.model", "llama", "tokenizer.ggml.pre", "default")},
+		{"smollm", "yüklendi", sp, kv("tokenizer.ggml.pre", "smollm")},
+		{"etiket metin değil", "yüklendi", long, kv("tokenizer.ggml.pre", uint32(1))},
+		{"bölenli", "yüklendi", long, withDivisors},
+	}
+	dir := t.TempDir()
+	for i, k := range cases {
+		name := fmt.Sprintf("s%d.gguf", i)
+		writeBytes(t, filepath.Join(dir, name), ropeFile(k.c, k.edit))
+		writeTR(t, dir, "s.tr", fmt.Sprintf("TR_import \"tr/pretrained\"\nTR_try { TR_pretrained_gguf(%q)\n    TR_print(\"yüklendi\")\n"+
+			"} TR_catch e {\n    TR_print(e.TR_code)\n    TR_print(e.TR_text(\"tr\"))\n    TR_print(e.TR_text(\"en\"))\n}\n", name))
+		s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "s.tr"))
+		got := strings.Split(strings.TrimSpace(s.Stdout+s.Stderr), "\n")
+		if got[0] != k.want {
+			t.Errorf("%s: %q; beklenen %s", k.name, strings.Join(got, "\n"), k.want)
+			continue
+		}
+		if k.want == "H7169" {
+			all := strings.Join(got, "\n")
+			if len(got) != 3 || !strings.Contains(got[1], "RoPE bölenlerini (`rope_freqs.weight`) taşımıyor, bağlamı 131072") ||
+				!strings.Contains(got[1], "yeni bir dönüştürmesini indirin") || !strings.Contains(got[2], "its context is 131072") ||
+				!strings.Contains(got[2], "download a newer conversion") || strings.Count(all, name) != 2 {
+				t.Errorf("%s: H7169 bölenleri, bağlamı ve dosyayı söylemeli:\n%s", k.name, all)
+			}
+		}
+	}
+}

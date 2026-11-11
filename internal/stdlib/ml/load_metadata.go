@@ -18,10 +18,15 @@ import (
 )
 
 // TR_load_metadata (15.55): GGUF üstverisi TR_JSON olarak. Parçalayıcının anahtarları girmez
-// (16.1); değerler tensörlerden önce okunur, veri bölümüne bakılmaz.
+// (16.1), yalnız değeri metin olan ön bölme etiketi girer (Sınır A'nın etiketi; parçalayıcıdan
+// bağımsız okunur); değerler tensörlerden önce okunur, veri bölümüne bakılmaz.
 
-// ggufTokenizerPrefix üstveriye girmeyen anahtarların önekidir.
-const ggufTokenizerPrefix = "tokenizer.ggml."
+// ggufTokenizerPrefix üstveriye girmeyen anahtarların önekidir; ggufTokenizerPre o önekten giren tek
+// anahtardır, değeri metinse.
+const (
+	ggufTokenizerPrefix = "tokenizer.ggml."
+	ggufTokenizerPre    = "tokenizer.ggml.pre"
+)
 
 // metadataLoad TR_load_metadata yerleşiğidir.
 func metadataLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -85,7 +90,7 @@ func metadataJSON(f *gguf.File) ([]byte, error) {
 	out.WriteByte('{')
 	first := true
 	for _, key := range f.Keys {
-		if strings.HasPrefix(key, ggufTokenizerPrefix) {
+		if strings.HasPrefix(key, ggufTokenizerPrefix) && !isTokenizerPreText(f, key) {
 			continue
 		}
 		if !first {
@@ -100,6 +105,16 @@ func metadataJSON(f *gguf.File) ([]byte, error) {
 	}
 	out.WriteByte('}')
 	return out.Bytes(), nil
+}
+
+// isTokenizerPreText anahtar ön bölme etiketiyse ve değeri metinse doğrudur; metin olmayan etiket
+// (dizi, sayı) yalnız bozuk dosyada olur ve öbür parçalayıcı anahtarları gibi girmez (TCB 02:28).
+func isTokenizerPreText(f *gguf.File, key string) bool {
+	if key != ggufTokenizerPre {
+		return false
+	}
+	_, ok := f.Values[key].Data.(string)
+	return ok
 }
 
 // writeMetadataValue değeri yazar; dizi öğe öğe gider.
