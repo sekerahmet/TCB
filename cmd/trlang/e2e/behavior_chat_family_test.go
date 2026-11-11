@@ -141,9 +141,11 @@ func TestChatTableIsUnique(t *testing.T) {
 	}
 }
 
-// TestFamilylessModelGeneratesWithExplicitStops: dört ailesiz yolda (parçalayıcısız GGUF, tabloda
-// olmayan etiket, tokenizer_config'siz klasör, tokenizer.json'suz klasör) m.TR_eos_tokens()
-// H7170'tir, ileti kimliklerin açık yazımını söyler; TR_eos: [...] ile üretim sürer.
+// TestFamilylessModelGeneratesWithExplicitStops: beş ailesiz yolda (parçalayıcısız GGUF, tabloda
+// olmayan etiket, parçalayıcının tanımadığı etiket, tokenizer_config'siz klasör, tokenizer.json'suz
+// klasör) m.TR_eos_tokens() H7170'tir, ileti kimliklerin açık yazımını söyler; TR_eos: [...] ile
+// üretim sürer. Tanınmayan etiketin H6679'unu yalnız TR_load_tokenizer verir; parçalayıcının öbür
+// hataları modelin yüklemesinden yukarı çıkar (TCB 2026-11-11 20:00).
 func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	body := "TR_print(TR_error_code { m.TR_eos_tokens() })\nTR_print(m.TR_generate([1, 2], 3, TR_temperature: 0, TR_eos: [5]).TR_length > 2)"
 	dir := t.TempDir()
@@ -161,9 +163,11 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	}
 	qwenTiny.writeHF(t, noVocab, qwenTiny.randomWeights(1))
 	writeBytes(t, filepath.Join(noVocab, "tokenizer_config.json"), []byte(`{"tokenizer_class": "Qwen2TokenizerFast"}`))
+	unknownTag := familyGGUF(t, t.TempDir(), llamaTiny, "smaug-bpe", llama3, nil)
 	loads := map[string]string{
 		"parçalayıcısız GGUF":       fmt.Sprintf("TR_pretrained_gguf(%q)", filepath.ToSlash(bare)),
 		"smollm etiketi":            fmt.Sprintf("TR_pretrained_gguf(%q)", familyGGUF(t, t.TempDir(), llamaTiny, "smollm", llama3, nil)),
+		"tanınmayan etiket":         fmt.Sprintf("TR_pretrained_gguf(%q)", unknownTag),
 		"klasör":                    fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(folder)),
 		"tokenizer.json'suz klasör": fmt.Sprintf("TR_pretrained_model(%q)", filepath.ToSlash(noVocab)),
 	}
@@ -177,6 +181,14 @@ func TestFamilylessModelGeneratesWithExplicitStops(t *testing.T) {
 	got := runFamily(t, dir, loads["klasör"], "m.TR_eos_tokens()")
 	if !strings.Contains(got, "`TR_eos: [...]`") || !strings.Contains(got, "llama3, qwen3") {
 		t.Errorf("H7170'in iletisi aileleri ve açık yazımı söylemiyor:\n%s", got)
+	}
+	if got := runFamily(t, dir, loads["tanınmayan etiket"], fmt.Sprintf("TR_print(TR_error_code { TR_load_tokenizer(%q) })", unknownTag)); got != "H6679" {
+		t.Errorf("tanınmayan etiketin parçalayıcısı: %q", got)
+	}
+	// qwen2 etiketi llama mimarisinde parçalayıcının başka bir hatasıdır (H6680): model yüklenmez.
+	wrongArch := familyGGUF(t, t.TempDir(), llamaTiny, "qwen2", llama3, nil)
+	if got := runFamily(t, dir, fmt.Sprintf("TR_error_code { TR_pretrained_gguf(%q) }", wrongArch), "TR_print(m)"); got != "H5620" {
+		t.Errorf("parçalayıcının öbür hatası yukarı çıkmıyor: %q", got)
 	}
 }
 

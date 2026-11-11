@@ -183,10 +183,12 @@ func loadError(path string, err error, tried []string) error {
 		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.New(messages.H5612), interp.SearchedPlaces(tried))
 	}
-	if m, ok := messages.As(err); ok && m.Code == messages.H5650 {
-		// Parçalayıcısız GGUF sarılmaz: kitaplık bu kodu TR_error_code ile tanır ve modeli ailesiz
-		// sayar (15.55); H5620'nin içinde kalsaydı öbür yükleme hatalarından ayrılmazdı. Yalnız üst
-		// kod sayılır: içinde H5650 taşıyan başka bir hata sarılır (DENETİM 446 N7).
+	if m, ok := messages.As(err); ok && (m.Code == messages.H5650 || m.Code == messages.H6679) {
+		// Parçalayıcısız GGUF (H5650) ve ön bölme etiketi tanınmayan GGUF (H6679) sarılmaz: kitaplık
+		// bu iki kodu TR_error_code ile tanır ve modeli ailesiz yükler (15.55; H6679: TCB 2026-11-11
+		// 20:00, bugün yüklenen dosya kapanmaz); H5620'nin içinde kalsalardı öbür yükleme
+		// hatalarından ayrılmazlardı. Yalnız üst kod sayılır: içinde onları taşıyan başka bir hata
+		// sarılır (DENETİM 446 N7).
 		return err
 	}
 	switch {

@@ -482,12 +482,13 @@ TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR
 }
 
 # _gguf_ailesi GGUF'ta aileyi (mimari, p.TR_pretokenizer_tag) ile seçer. Parçalayıcı taşımayan dosya
-# (H5650) ailesizdir; parçalayıcının başka her hatası yukarı çıkar.
+# (H5650) ve parçalayıcısı tanınmayan ön bölme etiketi yüzünden yüklenemeyen dosya (H6679) ailesizdir:
+# bugün yüklenen dosya kapanmaz. Parçalayıcının öbür her hatası yukarı çıkar.
 TR_func _gguf_ailesi(model: TR_GPT, yol: TR_String, mimari: TR_String) -> TR_GPT {
     TR_var p: TR_Tokenizer? = TR_none
     TR_try { p = TR_load_tokenizer(yol) } TR_catch e {
         TR_var kod = TR_error_code { TR_throw e }
-        TR_if kod != "H5650" { TR_throw e }
+        TR_if kod != "H5650" TR_and kod != "H6679" { TR_throw e }
         TR_return _aileyi_kur(model, TR_none, TR_none, TR_none, "gguf", yol)
     }
     TR_var s: _Sohbet? = TR_none

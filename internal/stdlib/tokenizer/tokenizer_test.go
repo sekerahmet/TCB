@@ -320,8 +320,11 @@ TR_var durma = p.TR_declared_eos_tokens`)
 	if got := al(t, m, "k").Inspect(); got != "[64, 65]" {
 		t.Errorf("kimlikler %s", got)
 	}
-	if _, err := run(t, `TR_load_tokenizer("`+file("gpt-4o")+`")`); !messages.Has(err, messages.H6679) {
-		t.Errorf("bilinmeyen etiket: %v", err)
+	// Tanınmayan etiketin kodu da sarılmaz: kitaplık modeli ailesiz yükler (15.55, TCB 2026-11-11 20:00).
+	if _, err := run(t, `TR_load_tokenizer("`+file("gpt-4o")+`")`); err == nil {
+		t.Error("bilinmeyen etiket yüklendi")
+	} else if top, ok := messages.As(err); !ok || top.Code != messages.H6679 {
+		t.Errorf("bilinmeyen etiketin üst kodu H6679 değil: %v", err)
 	}
 	// Parçalayıcısız GGUF'un kodu sarılmaz: kitaplık onu TR_error_code ile ailesiz sayar (15.55).
 	bare := filepath.Join(t.TempDir(), "yalın.gguf")
