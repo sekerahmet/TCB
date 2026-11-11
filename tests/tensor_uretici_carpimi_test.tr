@@ -1,0 +1,55 @@
+# TR 4
+# docs/spec/15_tensorler.md 15.53b — TR_vendor_matmul bloğu. Bu testler işlemcide koşar: blok işlemcide etkisizdir.
+# Kartta kitaplığın seçimi, kapsamı, düşüşü ve geri yönün kaydedilen durumu Go testlerindedir
+# (internal/compute/gpu/behavior_vendor_matmul_test.go).
+
+TR_test "15.53b blok değerini verir, durum yalnız blokta açıktır" {
+    TR_assert_equal(TR_false, TR_vendor_matmul_on())
+    TR_assert_equal(TR_true, TR_vendor_matmul { TR_vendor_matmul_on() })
+    TR_assert_equal(TR_false, TR_vendor_matmul_on())
+    TR_assert_equal(3, TR_vendor_matmul { 1 + 2 })
+    TR_assert_equal(11.0, TR_vendor_matmul { TR_Tensor([[1.0, 2.0]]) @ TR_Tensor([[3.0], [4.0]]) }.TR_item())
+}
+
+TR_test "15.53b iç içe blok tek durumdur, hatayla bitince önceki durum gelir" {
+    TR_assert_equal(TR_true, TR_vendor_matmul { TR_vendor_matmul { TR_vendor_matmul_on() } })
+    TR_assert_equal(TR_true, TR_vendor_matmul {
+        TR_var iç = TR_vendor_matmul { 1 }
+        TR_vendor_matmul_on()
+    })
+    TR_assert_equal("H6126", TR_error_code { TR_vendor_matmul { TR_ones([2, 3]) @ TR_ones([2, 3]) } })
+    TR_assert_equal(TR_false, TR_vendor_matmul_on())
+}
+
+TR_test "15.53b işlemcide blok etkisizdir: bitler blok dışıyla aynı" {
+    TR_var x = TR_Tensor([0.1, -0.7, 2.3, 1e-3, 5.5])
+    TR_var w = TR_Tensor([[0.3, -1.1, 0.7], [2.0, 0.01, -0.5], [1e-4, 3.3, 0.9], [-2.2, 0.6, 1.7], [0.5, 0.5, -0.25]])
+    TR_assert_equal((x @ w).TR_tolist, TR_vendor_matmul { x @ w }.TR_tolist)
+    TR_var q = TR_ones([1, 4, 2, 8]) * 0.3
+    TR_var dış = TR_attention(q, q, q).TR_reshape([-1])
+    TR_var iç = TR_vendor_matmul { TR_attention(q, q, q) }.TR_reshape([-1])
+    TR_assert_equal(dış.TR_tolist, iç.TR_tolist)
+}
+
+TR_test "15.53b geri yön blokta da blok dışında da aynı türevi verir (işlemci)" {
+    TR_var w = TR_Tensor([[0.3, -1.1], [2.0, 0.01], [1e-4, 3.3]], TR_requires_grad: TR_true)
+    TR_var x = TR_Tensor([0.1, -0.7, 2.3])
+    TR_backward(TR_sum(TR_vendor_matmul { x @ w }))
+    TR_var içten = w.TR_grad.TR_reshape([-1]).TR_tolist
+    TR_var v = TR_Tensor([[0.3, -1.1], [2.0, 0.01], [1e-4, 3.3]], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(x @ v))
+    TR_assert_equal(v.TR_grad.TR_reshape([-1]).TR_tolist, içten)
+}
+
+TR_test "15.53b eşzamanlı görev açıldığı yerin durumunu alır" {
+    TR_var görevde = TR_false
+    TR_var a = []
+    TR_vendor_matmul {
+        a.TR_append(TR_async { görevde = TR_vendor_matmul_on() })
+    }
+    TR_wait_all(a)
+    TR_assert_equal(TR_true, görevde)
+    TR_var h = TR_async { görevde = TR_vendor_matmul_on() }
+    h.TR_wait()
+    TR_assert_equal(TR_false, görevde)
+}

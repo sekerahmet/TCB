@@ -2,7 +2,9 @@ package gpu
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -17,12 +19,15 @@ import (
 // Matris çarpımı kitaplığı (NVIDIA cuBLASLt; makinede varsa): yükleme ve kurulum
 // ============================================================================
 //
-// float32 matris çarpımı makinede kuruluysa üreticinin kitaplığıyla yapılır: kitaplık
-// sürücü gibi çalışma anında yüklenir (dağıtılmaz; arama yerleri carpim_kitaplik_yol.go'da).
-// Bulunamazsa, sürümü kartın mimarisi için eskiyse, kurulamazsa, bir şekil için algoritma
-// vermezse ya da bir çağrı hata dönerse aynı cihazda kendi çekirdeğimiz (cekirdek_carpim.go)
-// kullanılır: sonuç aynıdır, yalnızca hız farklıdır; düşüşler sayılır ve durumda görünür.
-// TR_GPU_OWN_GEMM=1 kendi çekirdeğimizi zorlar (sınama ve karşılaştırma).
+// Öntanımlı matris çarpımı TR'nin kendi çekirdeğidir (kernel_gemm.go, kernel_gemv.go); sonuç
+// kurulu bir kitaplığa bağlı olmaz (15.22a). Üreticinin kitaplığı yalnız TR_vendor_matmul
+// bloğundaki çarpımlarda kullanılır (15.53b): kitaplık sürücü gibi çalışma anında, bloğun
+// kitaplığa gidecek ilk kart çarpımında yüklenir (ltEnsure; dağıtılmaz; arama yerleri
+// gemm_lib_path.go'da). Bulunamazsa, sürümü kartın mimarisi için eskiyse ya da kurulamazsa
+// H4130, bir şekil için algoritma vermezse ya da bir çağrı hata dönerse H4131 süreçte bir kez
+// verilir ve aynı cihazda kendi çekirdeğimiz kullanılır; düşüşler sayılır ve durumda görünür.
+// Kitaplığın sonucu kendi çekirdeğimizinkinden farklı bitler verebilir (ölçü: L4, 17 şeklin
+// 13'ünde).
 //
 // Aday seçimi: açıkça verilen yol (TR_GPU_CUBLASLT) önce; öbür adayların hepsi açılır ve
 // sürümleri (cublasLtGetVersion, sayısal) büyükten küçüğe denenir; kartın mimarisinin istediği
@@ -137,28 +142,49 @@ func ltMinVersion(cc int) int {
 
 func versionText(v int) string { return fmt.Sprintf("%d.%d.%d", v/10000, v/100%100, v%100) }
 
-// ltSetup bu GPU için kitaplık bağlantısını kurar (kurulumda, bir kez). Kurulamazsa g.lt nil
-// kalır ve kendi çekirdeğimiz kullanılır; nedeni carpimYolu'nda görünür.
+// ltEnsure kitaplık bağlantısını bu arka uçta bir kez kurar (kilit tutulurken; bloğun kitaplığa
+// gidecek ilk çarpımında). Aynı anda gelen görevler kilitle sıralanır, kurulum bir kez yapılır.
+// Kayıt sürerken (TR_replay) çağrılırsa çalışma alanı kaydın havuzundan değil ana havuzdan alınır:
+// kitaplık kayıttan sonra da yaşar.
+func (g *backend) ltEnsure() {
+	g.ltOnce.Do(func() {
+		g.ltSetups++
+		priv := g.capturing
+		g.capturing = nil // çalışma alanı kaydın havuzuna girmez
+		defer func() { g.capturing = priv }()
+		if g.ltSetupHook != nil {
+			g.ltSetupHook()
+			return
+		}
+		g.ltSetup()
+	})
+}
+
+// ltSetup bu GPU için kitaplık bağlantısını kurar (kilit tutulurken; ltEnsure'dan bir kez).
+// Kurulamazsa g.lt nil kalır, H4130 bir kez verilir ve kendi çekirdeğimiz kullanılır; nedeni
+// gemmPath'te görünür. Benzeticide kitaplık hiç yüklenmez (benzeticinin adresleri kartın değildir).
 func (g *backend) ltSetup() {
-	if os.Getenv("TR_GPU_OWN_GEMM") == "1" {
-		g.ltReason = messages.Text(messages.H4037, "TR_GPU_OWN_GEMM=1")
-		return
+	var candidates []*ltLibrary
+	notes := []string{messages.Text(messages.H4028)}
+	reason := messages.New(messages.H4028) // H4130'un nedeni: son reddedilen adayınki (hepsi durum satırında)
+	if _, sim := g.sr.(*simDriver); !sim {
+		var shared []string
+		candidates, shared = ltOpenCandidates()
+		notes = append([]string(nil), shared...) // süreç genelindeki listeyi değiştirmeden
 	}
-	candidates, shared := ltOpenCandidates()
-	notes := append([]string(nil), shared...) // süreç genelindeki listeyi değiştirmeden
 	cc, _ := g.sr.capability()
 	minN := ltMinVersion(cc)
-	g.enter()
-	defer g.exit()
 	for _, kitLib := range candidates {
 		if kitLib.version < minN {
 			notes = append(notes, messages.Text(messages.H4029, kitLib.path,
 				versionText(kitLib.version), cc, versionText(minN)))
+			reason = messages.New(messages.H4029, kitLib.path, versionText(kitLib.version), cc, versionText(minN))
 			continue
 		}
 		l := &ltGemm{kitLib: kitLib, o: &ltOutput{}, plan: map[ltKey]*ltPlanFor{}}
 		if s := l.call(ltCreate, uintptr(unsafe.Pointer(&l.o.handle))); s != 0 {
 			notes = append(notes, messages.Text(messages.H4030, kitLib.path, s))
+			reason = messages.New(messages.H4030, kitLib.path, s)
 			continue
 		}
 		l.h = l.o.handle
@@ -170,6 +196,84 @@ func (g *backend) ltSetup() {
 		return
 	}
 	g.ltReason = messages.Text(messages.H4037, strings.Join(notes, "; "))
+	warnOnce(messages.H4130, reason, exampleFor(runtime.GOOS))
+}
+
+// vendorMul TR_vendor_matmul bloğundaki çarpımın kitaplık girişidir (15.53b): kitaplık gerekirse
+// kurulur, çarpım ona verilir. Kitaplık yoksa ya da çağrıyı yapamazsa yanlış döner (çağıran
+// kendi çekirdekle sürer); bir çağrıdaki ilk düşüş H4131'i süreçte bir kez verir.
+func (g *backend) vendorMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool, c uint64, over bool, ab, ct uintptr) bool {
+	if K == 0 {
+		return false
+	}
+	g.vendorCalls++
+	if g.vendorHook == nil {
+		g.ltEnsure()
+		if g.lt == nil {
+			return false
+		}
+		if g.ltMul(batch, M, N, K, a, ta, b, tb, c, over, ab, ct) {
+			return true
+		}
+	} else if g.vendorHook(batch, M, N, K) {
+		return true
+	} else {
+		g.ltLastErr = messages.New(messages.H4136)
+	}
+	shape := fmt.Sprintf("[%d, %d] @ [%d, %d]", M, K, K, N)
+	if batch > 1 {
+		shape = fmt.Sprintf("[%d, %d, %d] @ [%d, %d, %d]", batch, M, K, batch, K, N)
+	}
+	warnOnce(messages.H4131, shape, g.ltLastErr)
+	return false
+}
+
+// exampleFor H4130'un önerisidir: kitaplığın tam yolunu veren komut, işletim sisteminin kabuğunda
+// (Windows'ta PowerShell). Dilden bağımsızdır; yer tutucular "...".
+func exampleFor(goos string) string {
+	if goos == "windows" {
+		return `$env:TR_GPU_CUBLASLT="C:\...\cublasLt64_12.dll"; trlang ...`
+	}
+	return "export TR_GPU_CUBLASLT=/.../libcublasLt.so.12; trlang ..."
+}
+
+// gemmLibPresent kitaplığı yüklemeden bir adayın diskte olup olmadığına bakar (blok dışı: H4132
+// ve durum satırı). Yalnız mutlak adaylar ve TR_GPU_CUBLASLT'nin dosyası (os.Stat); Linux'ta
+// standart arama yolunun dosya adıyla verilen adayları sayılmaz (onu ancak dlopen bilir).
+func gemmLibPresent() (string, bool) {
+	open, candidates, err := gemmLibCandidates()
+	if err == nil && open != "" {
+		if _, err := os.Stat(open); err == nil {
+			return open, true
+		}
+	}
+	for _, p := range candidates {
+		if filepath.IsAbs(p) {
+			return p, true
+		}
+	}
+	return "", false
+}
+
+// warnedCodes süreçte verilmiş uyarı kodlarıdır (her kod bir kez); warnOut uyarıların yazıldığı
+// yerdir (sınama kancası).
+var (
+	warnedCodes sync.Map
+	warnOut     io.Writer = os.Stderr
+)
+
+// warnOnce kodlu uyarıyı süreçte bir kez yazar ("süreçte bir kez" her kod için ayrı sayılır).
+func warnOnce(code messages.Code, args ...any) {
+	if _, loaded := warnedCodes.LoadOrStore(code, true); loaded {
+		return
+	}
+	fmt.Fprintln(warnOut, messages.Text(code, args...))
+}
+
+// warned kodun bu süreçte verilip verilmediğidir.
+func warned(code messages.Code) bool {
+	_, ok := warnedCodes.Load(code)
+	return ok
 }
 
 // gemmPath matris çarpımının hangi yoldan yapıldığı (teşhis ve profil).
@@ -192,7 +296,10 @@ func (g *backend) gemmPath() string {
 	if g.ltReason != "" {
 		return g.ltReason
 	}
-	return messages.Text(messages.H4036)
+	if path, ok := gemmLibPresent(); ok {
+		return messages.Text(messages.H4133, path)
+	}
+	return messages.Text(messages.H4135)
 }
 
 // ltClose plan tanımlarını ve kitaplık tutamacını yok eder (program sonu).

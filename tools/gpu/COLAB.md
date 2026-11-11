@@ -182,16 +182,16 @@ cp tools/gpu/compare_gpu.tr tools/gpu/measurement_model.tr tools/gpu/gpt_trainin
    tools/gpu/phase3_tr.tr tools/gpu/phase3_torch.py tools/gpu/phase3_table.py tools/gpu/phase3_nsys.py tools/gpu/phase3_config.json /content/tr/
 cp -r tests /content/tr/
 nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader
-# GPU durumu ve matris çarpımının yolu (cuBLASLt bulunduysa yolu yazılır):
+# GPU durumu ve matris çarpımının yolu (kendi çekirdek; cuBLASLt bulunduysa yolu da yazılır):
 cd /content/tr && ./gpu_sinama -test.run '^$' 2>&1 | head -1
 ```
 
 GPU'ya dokunan bir iş ana dala gitmeden önce yan dalda sınanır (bkz. [`docs/development.md`](../../docs/development.md#gönderim-sırası-cpu-ve-gpu)): `git clone` satırına `-b gpu-dogrulama` ekleyin. Belirli bir commit'i sınamak için `git clone` satırından sonra `git fetch -q --depth 1 origin
 COMMIT && git checkout -q COMMIT` ekleyin.
 
-İlk satır `matris çarpımı: cuBLASLt 12.8.x (/usr/local/cuda/lib64/libcublasLt.so.12)` gibi
-olmalıdır (Blackwell için en az 12.8; eski sürümlü adaylar `atlanan:` diye yazılır). `kendi çekirdeği (cuBLASLt bulunamadı ...)` yazıyorsa kitaplığın yolu açıkça
-verilebilir (PyTorch'un kurduğu kopya da olur):
+İlk satır `matris çarpımı: kendi çekirdek; cuBLASLt bulundu (/usr/local/cuda/lib64/libcublasLt.so.12), yalnız üretici_çarpımı bloğunda`
+gibi olmalıdır. `cuBLASLt bulunamadı` yazıyorsa ve `TR_vendor_matmul` bloğuyla ölçmek isteniyorsa kitaplığın yolu açıkça
+verilebilir (PyTorch'un kurduğu kopya da olur; Blackwell için blokta yüklenen sürüm en az 12.8):
 `export TR_GPU_CUBLASLT=$(python -c "import nvidia.cublas, os; print(os.path.join(nvidia.cublas.__path__[0], 'lib', 'libcublasLt.so.12'))")`.
 
 ## 2. Kart sınaması (GPU testleri, dil tanımı testleri, hız)
@@ -221,7 +221,7 @@ gönderin (`cat /tmp/tr_gpu_*.ptx | head -200`).
 
 ## 4. Mikro kıyaslar (TR ve PyTorch, işlem işlem)
 
-Matris çarpımı TR'de iki yolla ölçülür (cuBLASLt ve kendi çekirdeğimiz). Tablo süre ve
+Matris çarpımı TR'de iki yolla ölçülür: öntanımlı kendi çekirdeğimiz ve `TR_vendor_matmul` bloğunun yolu olan cuBLASLt. Tablo süre ve
 GFLOPS/GB/s verir; son sütun TR'nin en iyi süresinin PyTorch'a oranıdır (< 1: TR daha hızlı).
 
 ```bash
@@ -267,9 +267,6 @@ for boyut in kucuk buyuk; do
 done
 ```
 
-Kendi matris çarpımı çekirdeğimizle karşılaştırmak için (isteğe bağlı) TR satırının önüne
-`TR_GPU_OWN_GEMM=1` ekleyin.
-
 ## 7. Profil: büyük modelin kernel dökümü
 
 `TR_GPU_PROFILE=1` her çekirdeği GPU olaylarıyla ölçer; program sonunda standart hataya özet
@@ -302,7 +299,7 @@ Tek bir çekirdeğin donanım sayaçları (ör. kendi matris çarpımımız):
 ```bash
 %%bash
 cd /content/tr
-TR_GPU_MICRO=1 TR_GPU_OWN_GEMM=1 ncu --target-processes all -k regex:carpim --launch-count 2 \
+TR_GPU_MICRO=1 ncu --target-processes all -k regex:carpim --launch-count 2 \
   --section SpeedOfLight ./gpu_sinama -test.run 'TestMicroBench$' 2>&1 | grep -E 'carpim|Throughput|Duration' | head -20
 ```
 
@@ -868,12 +865,7 @@ cat /content/yaris/sonuc.txt 2>/dev/null; [ -f /content/yaris/bitti ] && echo B�
 - `TR_GPU_PROFILE=1`: kernel ölçümü ve program sonunda özet (bkz. 7).
 - `TR_GPU_SYNC=1`: her kernelden sonra eşzamanlar; eşzamansız bir hata tam olarak onu
   üreten kernelde bildirilir. Yavaştır; yalnızca teşhis için.
-- `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: matris çarpımı kitaplığının yolu.
-- `TR_GPU_OWN_GEMM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.
-- `TR_GPU_GEMV=0`: tek satırlık çarpımlar (M = 1) gemv çekirdeği yerine kitaplığa ya da döşemeli
-  çekirdeğe gider (karşılaştırma; mikro kıyas üç yolu da ölçer, `gemv ...` satırları).
-- `TR_GPU_ATTENTION=carpim`: dikkat birleşik kernel yerine matris çarpımı yolundan (karşılaştırma;
-  mikro kıyas iki yolu da ölçer, `dikkat ... (matris yolu)` satırları).
+- `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: `TR_vendor_matmul` bloğunda kullanılacak matris çarpımı kitaplığının yolu.
 - `TR_GPU_MICRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MICRO_BAND` kuramsal bant
   genişliği, GB/s; varsayılan 1800).
 - `TR_GPU_SIM=1`: gerçek GPU yokken PTX benzetimini `"gpu"` cihazı olarak kurar.

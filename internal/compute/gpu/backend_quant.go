@@ -40,7 +40,7 @@ func (g *backend) refuseQuantCopy(ds ...*storage) {
 
 // quantGemm c (+)= a·aç(w)ᵀ'dir: a [M, K], b [N, K] deposu (15.53). a float32'ye okunur, hesap
 // float32'dedir, 16 bitlik c'ye bir kez yuvarlanır; CPU'nun Gemm'iyle aynı düzen.
-func (g *backend) quantGemm(M, N, K int, a, b tensor.View, c tensor.Storage, over bool) {
+func (g *backend) quantGemm(M, N, K int, a, b tensor.View, c tensor.Storage, over, vendor bool) {
 	gt := g.temp()
 	defer gt.finish()
 	cd, last := gt.write(c, !over)
@@ -61,7 +61,7 @@ func (g *backend) quantGemm(M, N, K int, a, b tensor.View, c tensor.Storage, ove
 		g.quantGemv(gt, N, K, av, b, cd, over)
 		return
 	}
-	g.quantGemmRows(gt, M, N, K, av, b, cd, over)
+	g.quantGemmRows(gt, M, N, K, av, b, cd, over, vendor)
 }
 
 // quantTileFloats çok satırlı çarpımın bir parçasında açılan ağırlık ve çıktı tamponlarının float32
@@ -79,20 +79,20 @@ func (g *backend) quantTileRows(M, N, K int) int {
 
 // quantGemmRows M > 1 çarpımıdır: ağırlık satır parçaları sırayla geçici tampona açılır, parça
 // float32 çarpımla c'nin sütunlarına gider. Bütün ağırlık hiç açılmaz; CPU'nun quantGemm'iyle aynı yol.
-func (g *backend) quantGemmRows(gt *temp, M, N, K int, a, b tensor.View, c *storage, over bool) {
+func (g *backend) quantGemmRows(gt *temp, M, N, K int, a, b tensor.View, c *storage, over, vendor bool) {
 	bd := g.storageOf(b.S)
 	rows := g.quantTileRows(M, N, K)
 	tile := gt.buffer(rows*K, false)
 	if rows == N && over {
 		g.openQuant(tile, 0, bd, b.Offset, N*K)
-		g.gemm(1, M, N, K, a, false, plainV(tile), true, c, 0, true)
+		g.gemm(1, M, N, K, a, false, plainV(tile), true, c, 0, true, vendor)
 		return
 	}
 	part := gt.buffer(M*rows, false)
 	for n0 := 0; n0 < N; n0 += rows {
 		t := min(rows, N-n0)
 		g.openQuant(tile, 0, bd, b.Offset+n0*K, t*K)
-		g.gemm(1, M, t, K, a, false, plainV(tile), true, part, 0, true)
+		g.gemm(1, M, t, K, a, false, plainV(tile), true, part, 0, true, vendor)
 		band := tensor.View{S: c, Offset: n0, Shape: []int{M, t}, Strides: []int{N, 1}}
 		g.copyStrided(band, tensor.View{S: part, Shape: []int{M, t}, Strides: []int{t, 1}}, !over, 1)
 	}

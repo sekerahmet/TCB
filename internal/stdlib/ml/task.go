@@ -32,6 +32,7 @@ func taskFork(parent, task *interp.VM) {
 	task.SetTaskValue(gradKey{}, taskGradContext(parent).Fork())
 	task.SetTaskValue(mixedKey{}, parent.TaskValue(mixedKey{}))
 	task.SetTaskValue(actQuantKey{}, parent.TaskValue(actQuantKey{}))
+	task.SetTaskValue(vendorMatmulKey{}, parent.TaskValue(vendorMatmulKey{}))
 }
 
 // taskHook, kilidi alan görevin türev bağlamını çekirdekte etkin yapar.

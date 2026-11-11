@@ -709,7 +709,6 @@ const (
 	H4033 Code = 4033 // kendi çekirdeğe düşen çağrı {count}
 	H4034 Code = 4034 // son hata: {last}
 	H4035 Code = 4035 // atlanan: {notes}
-	H4036 Code = 4036 // kendi çekirdeği
 	H4037 Code = 4037 // kendi çekirdeği ({reasons})
 	H4038 Code = 4038 // cuBLASLt durum {status} ({m}×{n}×{k}, toplu {batch})
 	H4039 Code = 4039 // == GPU profili ({device}: {card}; matris çarpımı: {path}) ==
@@ -768,6 +767,12 @@ const (
 	H4126 Code = 4126 // {kernel}: {bytes} bayt devingen paylaşımlı bellek (izin {allowed}, .extern {dynamic})
 	H4127 Code = 4127 // benzetim: PTX satır {line} ({text|q}): {error}
 	H4128 Code = 4128 // benzetim: {bytes} bayt statik paylaşımlı bellek (sınır {limit}; üstü devingen diziyle)
+	H4130 Code = 4130 // `{#vendor_matmul} {{ ... }}` bloğu: üreticinin matris çarpımı kitaplığı yüklenemedi ({reason}); bloktaki çarpımlar TR'nin kendi çekirdeğiyle yapılıyor, sonuç bloğun dışındakiyle aynı. Kitaplık başka yerdeyse tam yolunu verin: `{command}`
+	H4131 Code = 4131 // `{#vendor_matmul} {{ ... }}` bloğu: kitaplık {shape} şekilli bir çarpımı yapamadı ({reason}); o çarpım TR'nin kendi çekirdeğiyle yapıldı, bu koşunun sonucu iki yolun karışımı. Düşen çarpımların sayısı profil özetinde görünür (`TR_GPU_PROFILE=1`)
+	H4132 Code = 4132 // 16 bitlik ({dtype}) matris çarpımı TR'nin kendi çekirdeğinde float32'ye açılarak yapılıyor, bu yol yavaş; makinede üreticinin kitaplığı var. Hız için çarpımı bloğa alın: `{#vendor_matmul} {{ ... }}`; o zaman sonuç kitaplığın sürümüne ve kartın SM sayısına bağlı olabilir
+	H4133 Code = 4133 // kendi çekirdek; cuBLASLt bulundu ({path}), yalnız `{#vendor_matmul} {{ ... }}` bloğunda
+	H4135 Code = 4135 // kendi çekirdek; cuBLASLt bulunamadı
+	H4136 Code = 4136 // bu şekle uygun algoritma yok
 	H5001 Code = 5001 // {index} konumundaki parça kimliği {id}, 16 bite sığmıyor
 	H5002 Code = 5002 // önbellek kotası yetersiz
 	H5003 Code = 5003 // önbellek dizini kilitli

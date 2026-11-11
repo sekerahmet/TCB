@@ -39,8 +39,8 @@ type backend struct {
 	gemm2      gemmConfig
 	// gemmConst doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).
 	gemmConst *gemmConfig
-	// gemvOff tek satırlık çarpım çekirdeğini kapatır (TR_GPU_GEMV=0; karşılaştırma): M = 1
-	// çarpımları da kitaplığa ya da döşemeli çekirdeğe gider. gemvConst doluysa tek satırlık
+	// gemvOff tek satırlık çarpım çekirdeğini kapatır (yalnız sınama ve ölçüm; ortamdan
+	// okunmaz): M = 1 çarpımları döşemeli çekirdeğe gider. gemvConst doluysa tek satırlık
 	// çarpımın ayarı otomatik seçilmez (sınama ve ölçüm).
 	gemvOff bool
 	// quantTile doluysa çok satırlı nicemli çarpımın parça sınırıdır (sınama: küçük parça).
@@ -55,16 +55,25 @@ type backend struct {
 	profiler profile
 	// volume son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
 	volume uint64
-	// lt matris çarpımı kitaplığı (yüklenemediyse nil: kendi çekirdeğimiz).
+	// lt matris çarpımı kitaplığı: yalnız TR_vendor_matmul bloğunda, kitaplığa gidecek ilk
+	// çarpımda kurulur (ltEnsure, ltOnce; kurulmadıysa ya da yüklenemediyse nil).
 	lt       *ltGemm
-	ltReason string // lt nil ise nedeni (teşhis)
-	// ltNotes kurulumda atlanan kitaplık adayları; ltSonHata kitaplığın son reddettiği çağrı.
+	ltOnce   sync.Once
+	ltReason string // kurulum denendi ve lt nil ise nedeni (teşhis)
+	// ltNotes kurulumda atlanan kitaplık adayları; ltLastError kitaplığın son reddettiği çağrı.
 	ltNotes     []string
 	ltLastError string
-	// attnPath TR_GPU_ATTENTION: boş (varsayılan: 16 bitlik girdilerde sm_80+ tensör çekirdekli,
-	// öbürlerinde SIMT birleşik yol), "birlesik" (SIMT birleşik yolu zorlar), "carpim" (matris
-	// çarpımı yolu) ya da "tensor" (tensör çekirdekli yolu sm denetimi olmadan zorlar; benzetimde
-	// sınama için). Ölçüm ve karşılaştırma içindir.
+	ltLastErr   error // H4131'in nedeni (kodlu hata: H4136 ya da H4038)
+	// ltSetups kurulumun kaç kez yapıldığı, vendorCalls kitaplık girişine kaç çarpım geldiği
+	// (sınama). vendorHook ve ltSetupHook doluysa kitaplığın ve kurulumun yerine çağrılır
+	// (yalnız sınama: benzeticide kitaplık yoktur).
+	ltSetups, vendorCalls int
+	vendorHook            func(batch, M, N, K int) bool
+	ltSetupHook           func()
+	// attnPath dikkatin yolunu zorlar (yalnız sınama ve ölçüm; ortamdan okunmaz): boş
+	// (varsayılan: 16 bitlik girdilerde sm_80+ tensör çekirdekli, öbürlerinde SIMT birleşik
+	// yol), "birlesik" (SIMT birleşik yol), "carpim" (matris çarpımı yolu) ya da "tensor"
+	// (tensör çekirdekli yolu sm denetimi olmadan zorlar; benzetimde sınama için).
 	attnPath string
 	// gcThreshold son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır
 	// (bkz. copEsigiSec; TR_GPU_GC_THRESHOLD ile MB olarak değiştirilir).
@@ -122,9 +131,7 @@ func setupFn(order int) tensor.Backend {
 		writeSetupError(err)
 		return nil
 	}
-	g := save(newBackend(tensor.GPU(order), s))
-	g.ltSetup()
-	return g
+	return save(newBackend(tensor.GPU(order), s))
 }
 
 // Status sürücünün yüklenme durumunu açıklar (teşhis: GPU neden görünmüyor).
@@ -147,9 +154,7 @@ func newBackend(dev tensor.Device, sr driver) *backend {
 	g := &backend{dev: dev, sr: sr, kernels: map[string]*kernel{}}
 	g.pool.empty = map[uint64][]uint64{}
 	g.concurrent = os.Getenv("TR_env_GPU_SYNC") == "1"
-	g.attnPath = os.Getenv("TR_GPU_ATTENTION")
 	g.gemm2 = defaultGemm
-	g.gemvOff = os.Getenv("TR_GPU_GEMV") == "0"
 	g.gcThreshold = pickGCThreshold(sr.totalMemory(), os.Getenv("TR_GPU_GC_THRESHOLD"))
 	return g
 }

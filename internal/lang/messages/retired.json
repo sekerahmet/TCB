@@ -163,6 +163,10 @@
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
  },
+ "H4036": {
+  "commit": "83d7991",
+  "reason": "deleted: gpu: the status text without a library is H4135 (0b, 15.22a)"
+ },
  "H4062": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"

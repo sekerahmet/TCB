@@ -16,20 +16,34 @@ import (
 type actQuantKey struct{}
 
 // actQuantOn görevin TR_quantized_activations bloğunun içinde olup olmadığıdır.
-func actQuantOn(m *interp.VM) bool {
+func actQuantOn(m *interp.VM) bool { return taskFlag(m, actQuantKey{}) }
+
+// quantizedActivations TR_quantized_activations { ... } yerleşiğidir: bloğu, nicemlenmiş ağırlıkla çarpımda
+// etkinleştirmenin nicemlendiği kipte çalıştırır ve bloğun son ifadesinin değerini döndürür (15.53a).
+func quantizedActivations(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	return flagBlock(m, actQuantKey{}, codes.FnQuantizedActivations, args, named)
+}
+
+// quantizedActivationsOn TR_quantized_activations_on() yerleşiğidir: görev TR_quantized_activations bloğunun
+// içindeyse doğru (kitaplık ve koşu kaydı hangi yolun koştuğunu bilsin; 15.53a).
+func quantizedActivationsOn(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	return flagQuery(m, actQuantKey{}, codes.FnQuantizedActivationsOn, args, named)
+}
+
+// taskFlag görev durumundaki bir blok bayrağıdır (15.53a, 15.53b).
+func taskFlag(m *interp.VM, key any) bool {
 	if m == nil {
 		return false
 	}
-	on, _ := m.TaskValue(actQuantKey{}).(bool)
+	on, _ := m.TaskValue(key).(bool)
 	return on
 }
 
-// quantizedActivations TR_quantized_activations { ... } yerleşiğidir: bloğu, nicemlenmiş ağırlıkla çarpımda
-// etkinleştirmenin nicemlendiği kipte çalıştırır ve bloğun son ifadesinin değerini döndürür (15.53a). İç içe
-// bloklar tek durumdur; blok bitince (hata ile bitse de) önceki durum geri gelir; TR_async ile açılan görev
-// açıldığı yerin durumunu alır (taskFork).
-func quantizedActivations(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.FnQuantizedActivations)
+// flagBlock görev bayrağı açan bir bloğun yerleşiğidir (15.53a, 15.53b): bloğu bayrak açıkken çalıştırır ve
+// bloğun son ifadesinin değerini döndürür. İç içe bloklar tek durumdur; blok bitince (hata ile bitse de) önceki
+// durum geri gelir; TR_async ile açılan görev açıldığı yerin durumunu alır (taskFork).
+func flagBlock(m *interp.VM, key any, code codes.Code, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	fn := codes.NameRef(code)
 	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
@@ -41,9 +55,9 @@ func quantizedActivations(m *interp.VM, args []interp.Value, named map[string]in
 	default:
 		return nil, messages.New(messages.H6726, fn, typeName(args[0]))
 	}
-	prev := m.TaskValue(actQuantKey{})
-	m.SetTaskValue(actQuantKey{}, true)
-	defer m.SetTaskValue(actQuantKey{}, prev)
+	prev := m.TaskValue(key)
+	m.SetTaskValue(key, true)
+	defer m.SetTaskValue(key, prev)
 	result, err := applyFunction(m, args[0], nil, nil)
 	if err != nil {
 		return nil, err
@@ -54,17 +68,15 @@ func quantizedActivations(m *interp.VM, args []interp.Value, named map[string]in
 	return result, nil
 }
 
-// quantizedActivationsOn TR_quantized_activations_on() yerleşiğidir: görev TR_quantized_activations bloğunun
-// içindeyse doğru (kitaplık ve koşu kaydı hangi yolun koştuğunu bilsin; 15.53a).
-func quantizedActivationsOn(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.FnQuantizedActivationsOn)
-	if err := bind.CheckNamed(fn.Called(), named); err != nil {
+// flagQuery bir blok bayrağının argümansız sorgusudur: görev bloğun içindeyse doğru.
+func flagQuery(m *interp.VM, key any, code codes.Code, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	if err := bind.CheckNamed(codes.NameRef(code).Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.FnQuantizedActivationsOn, 0, len(args))
+		return nil, interp.ArgCountError(code, 0, len(args))
 	}
-	if actQuantOn(m) {
+	if taskFlag(m, key) {
 		return interp.True, nil
 	}
 	return interp.False, nil

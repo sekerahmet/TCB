@@ -226,6 +226,8 @@
   "TR_fn_temp_dir": { "name": "temp_dir" },
   "TR_fn_time_ms": { "name": "time_ms" },
   "TR_fn_topk": { "name": "topk" },
+  "TR_fn_vendor_matmul": { "name": "vendor_matmul" },
+  "TR_fn_vendor_matmul_on": { "name": "vendor_matmul_on" },
   "TR_fn_wait_all": { "name": "wait_all" },
   "TR_fn_where": { "name": "where" },
   "TR_fn_whisper_log_mel": { "name": "whisper_log_mel" },

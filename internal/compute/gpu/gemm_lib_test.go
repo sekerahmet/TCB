@@ -111,9 +111,15 @@ func TestGemmLibraryMissingUsesOwnKernel(t *testing.T) {
 	if g.lt != nil {
 		t.Skip("bu makinede kitaplık bulundu")
 	}
-	if y := g.gemmPath(); !strings.HasPrefix(y, messages.Text(messages.H4036)) {
+	if y := g.gemmPath(); !strings.HasPrefix(y, ownKernelPrefix()) {
 		t.Fatalf("çarpım yolu: %q", y)
 	}
+}
+
+// ownKernelPrefix kitaplık yüklenemeyince yolun (H4037) nedenlerden önceki başıdır.
+func ownKernelPrefix() string {
+	s := messages.Text(messages.H4037, "")
+	return s[:strings.Index(s, "(")]
 }
 
 // TestGemmLibrarySearchPath arama yolunun yalnızca mutlak yerlerden oluştuğunu ve göreli

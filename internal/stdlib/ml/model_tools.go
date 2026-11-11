@@ -208,6 +208,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 		}
 	}
 	mixed := mixedDType(m)
+	opt.Vendor = vendorMatmulOn(m) // TR_vendor_matmul bloğu (15.53b): çarpımlı yolun çarpımları
 	r, err := safe(func() *tensor.Tensor {
 		if mixed != tensor.Float32 {
 			// Karışık hassasiyet: girdiler blok türüne çevrilir; biriktirme float32, sonuç blok

@@ -16,21 +16,22 @@ c18972b54ded447791e7b88f9d5392c0175bd9e48e04e8819e6c840efe5be68c birikim:32:true
 31ec0177316e133d9f5c3a929a4bf004a17b9135eda225198398e6da3bcf7267 birikim:64:false:false
 0cc528fe83a01084ffcd447397faa3e29bb68a5766b9637531e2a1119bf12244 birikim:64:true:true
 03fd592216c4fe94867b4bea107596ef911d14d7f07f03f21222397f02a50cbb bozuk
-9f2c2e1ba286dc6e2411a8a32f4f0ffc47e297a7eef6a151639bb84cabbc6c00 carpim:{BM:1 BN:1 BK:1 TM:1 TN:1}:false:false:true
-8d44127430264f89f8982a0797ecb5fe31f879014a78f4e757774da0adb8bc44 carpim:{BM:1 BN:1 BK:1 TM:1 TN:1}:false:true:true
-0aa32a0ec4b4629dd822545f25ded1632ee798efdb543b6d746b8cf03b27aaf4 carpim:{BM:1 BN:1 BK:1 TM:1 TN:1}:true:false:true
-3410e9801a5d88589c0b6512ae73e881fb0569bc6f3a68ec198022deaf5db267 carpim:{BM:128 BN:128 BK:8 TM:8 TN:8}:false:false:true
-0efdbeb29599f3a4c7113877e5095ed0fc4d41ae60884f690a84e1357e2e7884 carpim:{BM:128 BN:128 BK:8 TM:8 TN:8}:false:true:true
-d85eccfd7419b44ff2b279d8cbfdcd2e7e5674157bf52645de94bb180064920f carpim:{BM:128 BN:128 BK:8 TM:8 TN:8}:true:false:true
-69234166f77dd45bd5736ef254c4b3ea5c9c4a7cdc0ff403ace3b96ada00a9f5 carpim:{BM:32 BN:16 BK:8 TM:2 TN:4}:false:false:true
-7d83cdb6fb42d8255ebaf5f351d8d6668a1111db5f748ff1a287527e22e6d5c0 carpim:{BM:32 BN:16 BK:8 TM:2 TN:4}:false:true:true
-bdbc7d2028f7af7db722f59b36744ea4ad3acb685692610ff5fe629000dca401 carpim:{BM:32 BN:16 BK:8 TM:2 TN:4}:true:false:true
-286504d7d2e9035e517dcc318c1fd22d44b4a718574c5d5090ca5c85a34132dc carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:false:false
-ea25d706281e6908bb3ae88528c0b0b0e83047dacfb6e306a7979a5d092f73d6 carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:false:true
-8b9848174f2b92054e7816fcb238b08b3a732b2416425dfcf0740d319d2a2daf carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:true:false
-577b07510a30dfa1804a60aa470d65828cee97d5149411fa1fd9332ad5f6a74a carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:true:true
-ca3eda6637a33e98cc22aeff8611b0fc376f1d87b5b98e8e6bcd3b9dba63186c carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:true:false:false
-441de9b49865988a40537842b817c7d3468c3398373a154300af69cfe0776b80 carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:true:false:true
+a18512a6fcb8f6994a20ff4896c24dbbe20fb1ae36afae47ba5ec81932b5be49 carpim:{BM:1 BN:1 BK:1 TM:1 TN:1}:false:false:true
+26896705849f3c35845fc0c1dc3cb7f33d8daba8d637dd44efcaaa0041b91966 carpim:{BM:1 BN:1 BK:1 TM:1 TN:1}:false:true:true
+782ff05344302ee8ede93cc7b8e7f7baadcab4b84af53ff1120090e20a21030b carpim:{BM:1 BN:1 BK:1 TM:1 TN:1}:true:false:true
+c81336e37fbe35bacc2f23fdd9cf940c00e34726af361efdf072409bdc6b8775 carpim:{BM:128 BN:128 BK:8 TM:8 TN:8}:false:false:true
+564153f67bd2b324d0bfd32f323ab9d975fcd1f106d94ac56b20ef8b7a94c58b carpim:{BM:128 BN:128 BK:8 TM:8 TN:8}:false:true:true
+53f66bfb094ffcdb186152ecc9f75bce28f8fed9e8a390b41ef867ff03a225b0 carpim:{BM:128 BN:128 BK:8 TM:8 TN:8}:true:false:true
+56e6a50e6d39d2b20196ca759e88e7262127f76befd3d7bd7d95690883495253 carpim:{BM:32 BN:16 BK:8 TM:2 TN:4}:false:false:true
+a0a47abc181ab47c4949770aa64a676eefddcf8e966cce38f8f97eb026104355 carpim:{BM:32 BN:16 BK:8 TM:2 TN:4}:false:true:true
+1f761ab650e433723528acf7cd088dd888dbfc1386068f5d4d85624d52897fba carpim:{BM:32 BN:16 BK:8 TM:2 TN:4}:true:false:true
+5337dc48cb30ff68c627f70e7aedc9c1df62d6b029db9afe25161446efd8403d carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:false:false
+e83df220d5b5307ca1601e0da22831fa90d803885d3a0093eb3373715588c759 carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:false:true
+2d42eb1011b45a64944e11ffbb65c4eac295d94e3b3ee3f4a1f10e5bbf58c237 carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:true:false
+713504953120f2e92672c37e6c6b08f6e5c191004fa590710e1669d37bbb0402 carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:false:true:true
+56b1a5f66ef226b74d080ff4c925fcfc4ec130e73c61f6e9fdf6c82827f94c49 carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:true:false:false
+3d9a7483f6d1091cc16300187fb893435d23ab2c0c779b5848ccef58f936176f carpim:{BM:64 BN:64 BK:16 TM:4 TN:4}:true:false:true
+802187d3adb6f62ff45c6c742ddce9209cf1a2c5985d4f66f41d5ff60edb2218 carpim:{BM:64 BN:64 BK:8 TM:4 TN:4}:false:false:true
 c34f4baebf6d3d47320efb75783d8c7e89fa0ea256b96ce6a9bc0723f73cd36b ce_geri:bfloat16:bfloat16:false:true
 b2302919c59dabc6c18ce254bcc6c87471f56819869985026dfd35bc55dcdb66 ce_geri:bfloat16:bfloat16:true:true
 b8de7aad9ce9b964e0c67cbf1adaf150414e33ffdeb54d1b74245187d2802597 ce_geri:bfloat16:float32:false:false
@@ -155,60 +156,54 @@ c2ae6da19a97d3e0ed4797973027601a7cfe882885ebe7c3f9a65fc4dc2372cb dikkat_satir:32
 6133fada7d7bace9dec8ec9f7df8960042c9819a26591450595f2f3607615f11 doldur:float16
 62af928445ad77731a9546806d3055a7ab658f692dd24f6871e0491b26710a85 doldur:float32x
 1c07944f45f2aa775ac5f44039fd8c811abb8071aab292dd7ce356a804b6378d engelli
-becf6dfa89e27f782b5bcebfeff118cdb26bb704aaf216f9728984513ae0a854 gemv:{L:1 T:32}:1:false:float32
-de440cda8cc5f8d78242f38011ec8f7c1fd453520b9d1a89d7a261c8697fdc4c gemv:{L:1 T:32}:1:true:float32
-10bd324511cd6c0a173c75e66a31618aeb3e0236385d4f798e24b5686ff6c2d5 gemv:{L:1 T:32}:4:false:float32
-35e11adc7990a779339241500757936242c8d69d16017846b5f21a14f4cbe66d gemv:{L:1 T:32}:4:true:float32
-434be7f1ac8f5125819e013856081ecb617d593ba66fb6cc60c4631688c4e4eb gemv:{L:2 T:32}:1:false:bfloat16
-36b11e28025796ac8b324c105de83683e441a460a520bb6403c23997fd8469f6 gemv:{L:2 T:32}:1:false:float16
-d6049926bfa2fb89efe11b60258be39fada358fd2e210f88f17b6937fb81f639 gemv:{L:2 T:32}:1:false:float32
-34168a1e442df11351eabcdfb1dfe239caa15c0f959038a09b8f710b76a61062 gemv:{L:2 T:32}:1:true:bfloat16
-29caaf50df0458cc6cdd3e31400b56068125119455c85fff8dbc802b072622ed gemv:{L:2 T:32}:1:true:float16
-4f25cc599657729d1d9b58a727cf5a1f0593a78c3054730d904f70205cc40e38 gemv:{L:2 T:32}:1:true:float32
-08d22baffd76fdd3ed1eb621a9c92b77bc9db9e0fe0064384412b0df6695f4fd gemv:{L:2 T:32}:4:false:bfloat16
-35d4da77c1551e612076123c7f73964fe3b6fa07575835968bf6a9c89d16c435 gemv:{L:2 T:32}:4:false:float16
-2a2f545ce0ba8d07a9dd9c293ee6cad35f4b7af49f6feacdcc6009a680e0fd63 gemv:{L:2 T:32}:4:false:float32
-ffd2a362a4d631c8cbb10ef28ba3e11fdf4ee13096a592b435d693911c9514eb gemv:{L:2 T:32}:4:true:bfloat16
-c27605b0beb18484d32446ebf9db4234e9b4c4f3670ebbd99f2cbf8a950cec22 gemv:{L:2 T:32}:4:true:float16
-a8367d5ac7fcdc9a83da891c3cf2843373170ff3fc671a03eb8d3572d9e3738e gemv:{L:2 T:32}:4:true:float32
-073d7da5116b731153f10b87a553532ea5a237420d215b12e81ad5da7c56fa99 gemv:{L:2 T:512}:4:false:bfloat16
-82d9e5da22f1394f5dcd8999777f357626de6953bd6a6f6be2e74606d2dbe8a1 gemv:{L:2 T:512}:4:false:float16
-968bf9a78f96a1296172f2887f7ec987b819820b8e3de59f6ebd3212232f3178 gemv:{L:2 T:512}:4:false:float32
-5e0b9538fcd9bd34d06b9a46863c26e4cad7aae2c828fc7c9a4e2f58f8d1bb30 gemv:{L:2 T:512}:4:true:bfloat16
-7adadce5388d59ad7e2b4e09bdc97a17c6497656d0e73d054005150836b0834f gemv:{L:2 T:512}:4:true:float16
-0327ebf214307881efbae91acdd6f83f344368ee9257c5300d1cf88f73c09aa2 gemv:{L:2 T:512}:4:true:float32
-d5dc04792ab711c0a695a472954985d98b399f8c61e2f402e466cb1e354d2d26 gemv:{L:32 T:128}:1:false:float32
-b8c6891bc54af8895d5b02ed79833ab3a0b1d377198d05e4e8e46be9a837e198 gemv:{L:32 T:128}:1:true:float32
-a2c990a86f4fd8def07295c0367705fcff17d3415fb7829f6e5faaa971632cae gemv:{L:32 T:128}:4:false:float32
-1376cec6f2a82cd9dd58e0d3ae7e6dadbf1cd089bf47c6f9666cf40409edb6f7 gemv:{L:32 T:128}:4:true:float32
-a264c9b3fcde45b51795f380d56895541ed6026237731318b8f773c5c756831c gemv:{L:8 T:512}:1:false:bfloat16
-7d4e8890369a5e208f5d5a8d305466c3bfd0a342a5982eb8c954f55c5ceee463 gemv:{L:8 T:512}:1:false:float16
-855b860825ac6c5ba72be8d932916ff911d0d32d9c5c06fb1d8509940568310c gemv:{L:8 T:512}:1:false:float32
-769d14a713e357afd923d2be52fe7fb96d1cf9d67b6436daaec59ad2bacb2224 gemv:{L:8 T:512}:1:true:bfloat16
-946ccee4d3e0936a2736bea94bffd3d4e4e8a8d0cf230f1a9abae9cb6f21e421 gemv:{L:8 T:512}:1:true:float16
-0b4a7785396a80d676232bd8b1d296d96fccc4da6d53b0a00aae62e171f8126d gemv:{L:8 T:512}:1:true:float32
-a9f206fa21430d27f17bb94681a8de036573f44aca8650510ed236eeadfbc375 gemv:{L:8 T:512}:4:false:bfloat16
-23527ca1363aa1e8a2d5b6a93ce659a21cd99b7766bc6a2e8ec9f403d559e835 gemv:{L:8 T:512}:4:false:float16
-799482aa0b8e30aa891435014f89789bf704d2d304e06d76414457c4c0dac0f7 gemv:{L:8 T:512}:4:false:float32
-7d25cdeba785f27919a24535158b56b6de003bc4503aa913f97dfd41abbf9110 gemv:{L:8 T:512}:4:true:bfloat16
-f62583850f4868edf7999bdbbfc70dd62d3a17c3d0aced2b766a3960df3b0620 gemv:{L:8 T:512}:4:true:float16
-bcc2b65ec8f8c0a296165f05c5fc36e0ac1e8917eabd89ca0625ca73ea671e2a gemv:{L:8 T:512}:4:true:float32
-27152a54a6c6b3874928e34ba6ad52eefef2f4dd90ba72857d0f6cae480db2d8 gemv:{L:8 T:64}:1:false:float32
-b9e14bea3b0e00a1acd22316677583f7cb1f90afe2ed6518a627d63ad3ae323f gemv:{L:8 T:64}:1:true:float32
-8d4156327527ac12c3eafa02f7a9da5f1227bb080c2bcfe5a0630d7a063fccaf gemv:{L:8 T:64}:4:false:float32
-e73e3dab31bad8988e517d1f6049c0e11597e8eb9daa4c78ecd50c83405ae9af gemv:{L:8 T:64}:4:true:float32
-df862ec53d4667f1fbc9eec996cc38838a607a6353188a18f09ff3c1a6f9a669 gemv_t:1:false:bfloat16
-56852a11b398d4f9e44efc5bb56e08c86c0a766038b994ef427240dabfa123fb gemv_t:1:false:float16
-e34c123b8053a20f73577629f6c947c1f7a260eb01d7ec6b646ac60178807a70 gemv_t:1:false:float32
-6636e5a4bc351259d6c9e508103d0143a7d51d3451afb7a4660d0a78e0509496 gemv_t:1:true:bfloat16
-9a430f16ee90f6a3e56630ede954f26c191b6710a45e75d69f416a3b6dae6f34 gemv_t:1:true:float16
-98345f8e9ca2cdb34171055aae3b6aadb1b429206770b00ce4b357a5bcda169c gemv_t:1:true:float32
-47d67a51cdda7e46e7979f5b06f620583672434719019871875fdd285084ce27 gemv_t:4:false:bfloat16
-30d2da12983cf6c6cf1a4270cd31bcc570830592a88b182d69c8e9d7c98a5e83 gemv_t:4:false:float16
-014e8444bff067e937470de249946567a4713c1fef123bbda21153b2c7c7b78a gemv_t:4:false:float32
-6f190808832b52671090be9eda6865db6ac84d521db0d8b04cfc2c80ad55c266 gemv_t:4:true:bfloat16
-bfb3de6c8cf5b411c9619638e93800ec6796c311c15fabc6256e00c8c4334e22 gemv_t:4:true:float16
-24d4642a868944709357059ce5115ef9b9346875bb273e3b9c723f20f3d2e5ee gemv_t:4:true:float32
+ab9e5d503bc04be9960f4c96d6f897f084fbbce31a12917f9153591f1898ddaf gemv:{L:1 T:32}:false:false:float32
+117c9e1d63e2cda17df7a3ac8328501f5fcb7d9a7e9be618fb10c077595fd954 gemv:{L:1 T:32}:false:true:float32
+10bd324511cd6c0a173c75e66a31618aeb3e0236385d4f798e24b5686ff6c2d5 gemv:{L:1 T:32}:true:false:float32
+35e11adc7990a779339241500757936242c8d69d16017846b5f21a14f4cbe66d gemv:{L:1 T:32}:true:true:float32
+b3a1cc94f2538b5f2fad7f3d2be1a4cded2f8a51c34806c11849a36ff85ee3a8 gemv:{L:2 T:32}:false:false:bfloat16
+bfb22cd42ac037ae0169877a1409aa99c55abb9c2b5c779103c71ada1de65286 gemv:{L:2 T:32}:false:false:float16
+1f2e50c8599679444dc4350b1f71174c3cf72cf4e84b9313fea3f000d9ce69e6 gemv:{L:2 T:32}:false:false:float32
+4f78217911b213919b47f627852feadb95f3dbad9c2a921e2579c1d6bf777ae7 gemv:{L:2 T:32}:false:true:bfloat16
+2cc206bd25fff57e92729b3d45faa9d32526dd103d24c4c5ab0476e324db7e04 gemv:{L:2 T:32}:false:true:float16
+5e2caa2f87f95600fe9f9f5f7e60eafdf3ba9a546407288120882f910d248a58 gemv:{L:2 T:32}:false:true:float32
+08d22baffd76fdd3ed1eb621a9c92b77bc9db9e0fe0064384412b0df6695f4fd gemv:{L:2 T:32}:true:false:bfloat16
+35d4da77c1551e612076123c7f73964fe3b6fa07575835968bf6a9c89d16c435 gemv:{L:2 T:32}:true:false:float16
+2a2f545ce0ba8d07a9dd9c293ee6cad35f4b7af49f6feacdcc6009a680e0fd63 gemv:{L:2 T:32}:true:false:float32
+ffd2a362a4d631c8cbb10ef28ba3e11fdf4ee13096a592b435d693911c9514eb gemv:{L:2 T:32}:true:true:bfloat16
+c27605b0beb18484d32446ebf9db4234e9b4c4f3670ebbd99f2cbf8a950cec22 gemv:{L:2 T:32}:true:true:float16
+a8367d5ac7fcdc9a83da891c3cf2843373170ff3fc671a03eb8d3572d9e3738e gemv:{L:2 T:32}:true:true:float32
+6483340abce6a765f27bac148f8939ef32d7172d943d5793def3140f6f3d5952 gemv:{L:2 T:512}:false:false:bfloat16
+ead0a1aa9be2604eb01b5cef348d32be35cb4de831d313691bc9ad5f4fa113d5 gemv:{L:2 T:512}:false:false:float16
+3eb524c3294e9267779f0a4d54793d78138502e8ec3770b89c50ea1fb90a26b2 gemv:{L:2 T:512}:false:false:float32
+14c2fad2e164edabaee4fe0df74478e2d59a8489d9693d1d2047d1f9355d9509 gemv:{L:2 T:512}:false:true:bfloat16
+b45044b479948c4cb6645ad149e8042fda2d60d932edcba3f1e566a2751b3689 gemv:{L:2 T:512}:false:true:float16
+1358604a359c33fad6ea468eb437228f2a943c6e8fa70a3ffffe02d2b169ac7a gemv:{L:2 T:512}:false:true:float32
+073d7da5116b731153f10b87a553532ea5a237420d215b12e81ad5da7c56fa99 gemv:{L:2 T:512}:true:false:bfloat16
+82d9e5da22f1394f5dcd8999777f357626de6953bd6a6f6be2e74606d2dbe8a1 gemv:{L:2 T:512}:true:false:float16
+968bf9a78f96a1296172f2887f7ec987b819820b8e3de59f6ebd3212232f3178 gemv:{L:2 T:512}:true:false:float32
+5e0b9538fcd9bd34d06b9a46863c26e4cad7aae2c828fc7c9a4e2f58f8d1bb30 gemv:{L:2 T:512}:true:true:bfloat16
+7adadce5388d59ad7e2b4e09bdc97a17c6497656d0e73d054005150836b0834f gemv:{L:2 T:512}:true:true:float16
+0327ebf214307881efbae91acdd6f83f344368ee9257c5300d1cf88f73c09aa2 gemv:{L:2 T:512}:true:true:float32
+5a3bf5127f2565bc849607f6fc725bd2e3364e996939941a6c4ba630c62dfc44 gemv:{L:32 T:128}:false:false:float32
+b761e19eb149fde6e37c0910b1935c18d70fb2d29d6870a0d7c30759568b02c7 gemv:{L:32 T:128}:false:true:float32
+a2c990a86f4fd8def07295c0367705fcff17d3415fb7829f6e5faaa971632cae gemv:{L:32 T:128}:true:false:float32
+1376cec6f2a82cd9dd58e0d3ae7e6dadbf1cd089bf47c6f9666cf40409edb6f7 gemv:{L:32 T:128}:true:true:float32
+07512fc7ca83e86866ecd24737750ed9fa1da3c4ade36888eebf9b162309c940 gemv:{L:8 T:64}:false:false:float32
+741f4cd0d1759a73951ef174017432512eab21f47c174ed64566d5f1f519bcd1 gemv:{L:8 T:64}:false:true:float32
+8d4156327527ac12c3eafa02f7a9da5f1227bb080c2bcfe5a0630d7a063fccaf gemv:{L:8 T:64}:true:false:float32
+e73e3dab31bad8988e517d1f6049c0e11597e8eb9daa4c78ecd50c83405ae9af gemv:{L:8 T:64}:true:true:float32
+ee4362e1f2c660a09892f1873fe12d18709adcc629234ff574052b3ef5b122e1 gemv_t:false:false:bfloat16
+d17786d6693b4a81424fcee0be8413029e8dcadc77c845ccb294abb5092d47a4 gemv_t:false:false:float16
+c6967d3c9af35852152a39e12dc162bef3cc23df24ad4fb811f831669eaa5131 gemv_t:false:false:float32
+6ff5f1afd0629c3569501c496528368d6c8eaf7ada5cac405adf7f7dbcfad489 gemv_t:false:true:bfloat16
+47e4d516c8a5c1ac05b3d23575fe5e94a17b424dc9e3fcd6a4569c3a8b8809e4 gemv_t:false:true:float16
+0e17e408ddaf9903620533dc3b3fda6c9aadece9639f600ef4be8bd239bbb37b gemv_t:false:true:float32
+9b7573bf2f2858e325de033beb9e66f343b6cfb6790a61c6e6a6a42baff3de19 gemv_t:true:false:bfloat16
+f6f0e1749d397f8e20bc39185cd94cf796b717c9627d2829b85c76d2edf931c3 gemv_t:true:false:float16
+8a63d2757ded4195849f7f0f3a3a7a9184382c698c424e8305f2b59164f7fb76 gemv_t:true:false:float32
+e4dab165b634b85dbea99681a042add3bd8337bb02509c9e2de8767068dece8a gemv_t:true:true:bfloat16
+6f25391aa51d95401a1cc745f72c3e5dde3f587b19d1fb81070aece8f824f744 gemv_t:true:true:float16
+ab88704941c6acaf11ecfaec5a378dbefeb5e5443c065657e6b32b6f209635bb gemv_t:true:true:float32
 f3d2afd1afa3c44be624d2e4daa5f55ec5cf7b8400909c3d11a6763d12314b2d gomme:bfloat16
 143b8b69be360d1f7221b284dc14032b9e369e618370b6ea8f33afa40b57f67e gomme:float32
 b6824cc5590ac2b3bfdc1dcc8098b4b2837e9ae36bcd0bccb954c2397bca4c14 gomme:q4_k
@@ -493,6 +488,8 @@ f29b0796d9ea0c1e6d6def3daa1c5fb3153a038755ce8c827af16cfcc60539cd norm_geri_parca
 b148394466dff538998608933f78f53fa9426bd45f748971c1cec8f280c5edfe norm_geri_parcali:yaz:32:true:true:false:true:true:[float16 float16 float16 float32 float32]:1
 d6e838a954429b1fe31f12650d6fdb495e0ec117fff84c625bc7fd84b4dffee6 norm_geri_parcali:yaz:32:true:true:false:true:true:[float16 float16 float32 float32 float32]:1
 6ea2c8ff0a4112d4d84c90dbbd8609410a03051e02c4095b6008dc59525449db norm_geri_parcali:yaz:32:true:true:false:true:true:[float32 float32 float32 float32 float32]:1
+bd5fb12dd83ad612fb52cdf5d947b60ef2583cc646bdfe67fd156f46aa27db6d norm_geri_parcali:yaz:64:false:true:false:true:true:[float32 float32 float32 float32 float32]:1
+618e78c416e890d4a52a295b0cbc974864a04b5ef9b23927aa58f567b38df29b norm_geri_parcali:yaz:64:true:true:false:true:true:[float32 float32 float32 float32 float32]:1
 e2b20b518801eb03681f992e8545053d981ffe0703201998a78833afdfdd9ca1 norm_ileri:256:false:true:false:false:false:[bfloat16 bfloat16 bfloat16 float32 float32]
 6c51cd7cfeb30e06b84f6658acc4917db517dd10d3d0a485cfc16605bab194e3 norm_ileri:256:false:true:false:false:false:[float16 float16 float16 float32 float32]
 9c2d13693e76ac3c0ab40b4b28bd548d8ef8fe8d4a4447f6266a4ba2e6f465e8 norm_ileri:256:false:true:false:false:false:[float32 bfloat16 float32 float32 float32]
@@ -519,6 +516,8 @@ adcc9553aa4805327ed2a5f16baaafce69e5a521d19b3af3f3c93fc0fb83bf75 norm_ileri:32:t
 848aa58fb776abe8b53f2ab8d48e50fe4521a39a47a74c09ee8291a236a6ff33 norm_ileri:32:true:true:true:false:false:[float32 bfloat16 float32 float32 float32]
 c2d18e6eb63052d227cb6dfac6be1861799ecc8ed8cf8cf98720edc45d7ef3be norm_ileri:32:true:true:true:false:false:[float32 float16 float32 float32 float32]
 b48bb107ec8de1ae0ed512b756b018fe065851e33b6a8e72c94b447dbd5751de norm_ileri:32:true:true:true:false:false:[float32 float32 float32 float32 float32]
+c30abd959fab103d672d39dbd529f6d9eb7b5b9623b91a9e07c908ab108eaac7 norm_ileri:64:false:true:false:false:false:[float32 float32 float32 float32 float32]
+1b7bc18d6c2a36a124ebbc8d117fee69c6f4203ed28a536bfe1f948e59d84c3d norm_ileri:64:true:true:false:false:false:[float32 float32 float32 float32 float32]
 ea02f634d833f5926f1cd93a429d1ffa3cf644a5cda64c024ffa1f92fb8712fe norm_ileri:w256:false:true:false:false:false:[bfloat16 bfloat16 bfloat16 float32 float32]
 981f8d9c2625865478c2351ac45042239198784b64ecc0faa3e3e47b90b4413e norm_ileri:w256:false:true:false:false:false:[float16 float16 float16 float32 float32]
 c9b08a75fabdea8476cf36cb45536bb87c4eee3db81d50b9e2e3c1ac4308e3b8 norm_ileri:w256:false:true:false:false:false:[float32 bfloat16 float32 float32 float32]

@@ -26,13 +26,24 @@ const LinearCrossEntropyChunk = 8192
 // türündedir (karışık hassasiyette çağıran ikisini blok türüne çevirir). Geri yayılımda
 // saklanan gradyanlar gelen gradyanla (kaybın ölçeği, ör. birikimde 1/n) çarpılır.
 func LinearCrossEntropy(x, w *Tensor, targets []int) *Tensor {
-	return LinearCrossEntropyChunked(x, w, targets, LinearCrossEntropyChunk)
+	return linearCrossEntropy(x, w, targets, LinearCrossEntropyChunk, false)
+}
+
+// LinearCrossEntropyVendor LinearCrossEntropy'nin TR_vendor_matmul bloğundaki eşidir (15.53b):
+// arka uç VendorGemmer'sa ileri ve geri çarpımlar üreticinin kitaplığına verilebilir (gradyanlar
+// ileri hesapta çıktığı için geri yön de bu yoldandır). İşlemcide blok etkisizdir.
+func LinearCrossEntropyVendor(x, w *Tensor, targets []int) *Tensor {
+	return linearCrossEntropy(x, w, targets, LinearCrossEntropyChunk, true)
 }
 
 // LinearCrossEntropyChunked LinearCrossEntropy'dir; dilim boyu (satır) açıkça verilir.
 // Sonuç dilim boyundan bağımsızdır (yuvarlama sırası dışında); küçük dilim, birden çok dilimi
 // az satırla sınamak içindir.
 func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
+	return linearCrossEntropy(x, w, targets, chunk, false)
+}
+
+func linearCrossEntropy(x, w *Tensor, targets []int, chunk int, vendor bool) *Tensor {
 	if chunk < 1 {
 		panic(messages.Internal("LinearCrossEntropyChunked: chunk must be positive"))
 	}
@@ -61,7 +72,10 @@ func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
 	if wantW {
 		gw = be.Alloc(D*C, Float32)
 	}
-	gs, writer := be.(GemmSetter)
+	var vg VendorGemmer
+	if vendor {
+		vg, _ = be.(VendorGemmer)
+	}
 	for r0 := 0; r0 < R; r0 += chunk {
 		n := min(chunk, R-r0)
 		tg := targets[r0 : r0+n]
@@ -77,19 +91,14 @@ func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
 		}
 		xc := View{S: xv.S, Offset: xv.Offset + r0*D, Shape: []int{n, D}, Strides: []int{D, 1}}
 		logits := allocUninit(be, n*C, dt)
-		if writer {
-			gateGemmSet(gs, 1, n, C, D, xc, false, wv, false, logits)
-		} else {
-			gateFill(be, logits, 0)
-			gateGemm(be, 1, n, C, D, xc, false, wv, false, logits)
-		}
+		lceGemm(be, vg, true, n, C, D, xc, false, wv, false, logits)
 		lv := DenseView(logits, []int{n, C})
 		lc, lse := gateCrossEntropy(be, lv, tg, C)
 		share := float32(vc) / float32(valid)
 		gateAddTo(be, loss, lc, share) // dilimin ortalaması × geçerli payı
 		giveBack(be, lc)
 		if wantX || wantW {
-			linearCEChunkGrad(be, lv, lse, tg, share, xc, wv, gx, gw, r0, D, C, writer)
+			linearCEChunkGrad(be, vg, lv, lse, tg, share, xc, wv, gx, gw, r0, D, C)
 		}
 		giveBack(be, lse)
 		giveBack(be, logits)
@@ -134,7 +143,7 @@ func validTargets(targets []int, R, C int) int {
 // linearCEChunkGrad bir dilimin logit gradyanını (kaybın geçerli hedefler üzerinden
 // ortalamasına göre: share = dilimin geçerli payı) çıkarır ve x'in (gx'in r0. satırından)
 // ve w'nin (gw'ye eklenerek) gradyanına götürür.
-func linearCEChunkGrad(be Backend, lv View, lse Storage, tg []int, share float32, xc, wv View, gx, gw Storage, r0, D, C int, writer bool) {
+func linearCEChunkGrad(be Backend, vg VendorGemmer, lv View, lse Storage, tg []int, share float32, xc, wv View, gx, gw Storage, r0, D, C int) {
 	n := len(tg)
 	seed := scalarStorage(be, share)
 	dl := allocUninit(be, n*C, lv.DType())
@@ -149,20 +158,32 @@ func linearCEChunkGrad(be Backend, lv View, lse Storage, tg []int, share float32
 	if gx != nil {
 		// dX (n×D) = dL (n×C) · Wᵀ
 		part := allocUninit(be, n*D, gx.DType())
-		if gs, ok := be.(GemmSetter); ok && writer {
-			gateGemmSet(gs, 1, n, D, C, dv, false, wv, true, part)
-		} else {
-			gateFill(be, part, 0)
-			gateGemm(be, 1, n, D, C, dv, false, wv, true, part)
-		}
+		lceGemm(be, vg, true, n, D, C, dv, false, wv, true, part)
 		gateCopy(be, gx, r0*D, DenseView(part, []int{n, D}))
 		giveBack(be, part)
 	}
 	if gw != nil {
 		// dW (D×C) += Xᵀ (D×n) · dL (n×C)
-		gateGemm(be, 1, D, C, n, xc, true, dv, false, gw)
+		lceGemm(be, vg, false, D, C, n, xc, true, dv, false, gw)
 	}
 	giveBack(be, dl)
+}
+
+// lceGemm C = op(A)·op(B) (set) ya da C += op(A)·op(B); vg doluysa TR_vendor_matmul bloğunun yolu
+// (15.53b), değilse arka ucun kendi çarpımı (GemmSet yoksa önce sıfırlanır).
+func lceGemm(be Backend, vg VendorGemmer, set bool, M, N, K int, a View, ta bool, b View, tb bool, c Storage) {
+	gs, ok := be.(GemmSetter)
+	switch {
+	case vg != nil:
+		gateGemmVendor(vg, 1, M, N, K, a, ta, b, tb, c, set)
+	case set && ok:
+		gateGemmSet(gs, 1, M, N, K, a, ta, b, tb, c)
+	default:
+		if set {
+			gateFill(be, c, 0)
+		}
+		gateGemm(be, 1, M, N, K, a, ta, b, tb, c)
+	}
 }
 
 // releaseAll nil olmayan depoları arka uca iade eder.

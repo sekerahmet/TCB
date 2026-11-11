@@ -668,11 +668,13 @@ durum.TR_get	ok	0	name:TR_mem_get
 durum.TR_keys	ok	0	name:TR_mem_keys
 döngü.TR_cancel	ok	0	name:TR_mem_cancel
 döngü.TR_wait	ok	0	name:TR_mem_wait
+düz.TR_append	ok	0	name:TR_mem_append
 düz.TR_attention	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_attention
 düz.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 düz.TR_input_norm	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_input_norm
 düz.TR_ple	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_ple
 düz.TR_reshape	ok	0	name:TR_mem_reshape
+dış.TR_tolist	ok	0	name:TR_mem_tolist
 dış.TR_update	ok	0	name:TR_mem_update
 e.TR_Run	not_found	4	-
 e.TR_append	ok	0	name:TR_mem_append
@@ -932,6 +934,7 @@ izinli.TR_contains	ok	0	name:TR_mem_contains
 izlenen.TR_grad	ok	0	name:TR_mem_grad
 izler.TR_append	ok	0	name:TR_mem_append
 iç.TR_strip	ok	0	name:TR_mem_strip
+iç.TR_tolist	ok	0	name:TR_mem_tolist
 iç.TR_update	ok	0	name:TR_mem_update
 içeride.TR_tolist	ok	0	name:TR_mem_tolist
 içerik.TR_contains	ok	0	name:TR_mem_contains
@@ -1636,6 +1639,7 @@ verildi.TR_append	ok	0	name:TR_mem_append
 verilen.TR_append	ok	0	name:TR_mem_append
 verilen.TR_contains	ok	0	name:TR_mem_contains
 verilen.TR_length	ok	0	name:TR_mem_length
+vy.TR_item	ok	0	name:TR_mem_item
 w.TR_cancel	ok	0	name:TR_mem_cancel
 w.TR_device	ok	0	name:TR_mem_device
 w.TR_dtype	ok	0	name:TR_mem_dtype
@@ -1698,6 +1702,7 @@ y.TR_detach	ok	0	spec:15.27a	tr_index:not_found:4
 y.TR_dtype	ok	0	name:TR_mem_dtype
 y.TR_extension	ok	0	name:TR_mem_extension
 y.TR_grad	ok	0	name:TR_mem_grad
+y.TR_item	ok	0	name:TR_mem_item
 y.TR_keys	ok	0	name:TR_mem_keys
 y.TR_length	ok	0	name:TR_mem_length
 y.TR_name	ok	0	name:TR_mem_name

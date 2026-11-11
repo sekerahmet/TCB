@@ -37,7 +37,21 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 // ve hesap çizgesine kayıt); çarpımın kendisi dönen çekirdektir. Çekirdek çalışmadan çıktı
 // okunmamalıdır: k.Run (izinler alınmışsa, kilitsiz) ya da k.RunLocked.
 func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
-	return matMulKernel(a, b, outType, false)
+	return matMulKernel(a, b, outType, false, false)
+}
+
+// MatMulVendorKernel MatMulKernel'in TR_vendor_matmul bloğundaki eşidir (15.53b): arka uç
+// VendorGemmer'sa çarpım üreticinin kitaplığına verilebilir (değilse, ör. CPU'da, blok etkisizdir).
+// Durum düğüme kaydedilir: geri yön de aynı yoldan yapılır, bloğun dışında çağrılsa da.
+func MatMulVendorKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
+	return matMulKernel(a, b, outType, false, true)
+}
+
+// MatMulVendor MatMulOut'un TR_vendor_matmul bloğundaki eşidir (MatMulVendorKernel).
+func MatMulVendor(a, b *Tensor, outType DType) *Tensor {
+	r, k := MatMulVendorKernel(a, b, outType)
+	k.RunLocked()
+	return r
 }
 
 // ActQuantGemmer etkinleştirmesi nicemlenen çarpımı yapan arka uçtur (15.53a'nın TR_quantized_activations bloğu):
@@ -57,10 +71,10 @@ func MatMulActQuant(a, b *Tensor, outType DType) *Tensor {
 
 // MatMulActQuantKernel MatMulActQuant'ın hazırlığıdır (MatMulKernel gibi): çekirdek dönen değerdir.
 func MatMulActQuantKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
-	return matMulKernel(a, b, outType, true)
+	return matMulKernel(a, b, outType, true, false)
 }
 
-func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel) {
+func matMulKernel(a, b *Tensor, outType DType, actQuant, vendor bool) (*Tensor, *Kernel) {
 	be := sameDevice("matmul", a, b)
 	if b.dtyp.IsQuantized() {
 		CheckQuantWeight(a, b)
@@ -107,6 +121,10 @@ func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel)
 	release := func() { ra(); rb() }
 	gs, writer := be.(GemmSetter)
 	writer = writer && !actQuant // nicemli yol c'ye ekler: çıktı sıfırla başlar
+	vg, _ := be.(VendorGemmer)
+	if !vendor {
+		vg = nil
+	}
 	var out *Tensor
 	if writer {
 		out = emptyOf(isMatMul, be, outShape, outType)
@@ -117,6 +135,8 @@ func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel)
 	k := newKernel(be, []Storage{c}, []Storage{av.S, bv.S}, []*Tensor{a, b, out}, func() {
 		if actQuant {
 			aq.GemmActQuant(M, N, K, av, bv, c)
+		} else if vg != nil {
+			vg.GemmVendor(batch, M, N, K, av, false, bv, tb, c, writer)
 		} else if writer {
 			gs.GemmSet(batch, M, N, K, av, false, bv, tb, c)
 		} else {
@@ -125,7 +145,7 @@ func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel)
 		sy.finish()
 	})
 
-	r := track(out, "matmul", []*Tensor{a, b}, matMulGrad(be, batch, M, N, K, av, bv, tb, a.dtyp, b.dtyp, release), a, b)
+	r := track(out, "matmul", []*Tensor{a, b}, matMulGrad(be, vg, batch, M, N, K, av, bv, tb, a.dtyp, b.dtyp, release), a, b)
 	if r.IsLeaf() {
 		k.end = release
 	}
@@ -133,11 +153,18 @@ func matMulKernel(a, b *Tensor, outType DType, actQuant bool) (*Tensor, *Kernel)
 }
 
 // matMulGrad çarpımın geri hesabıdır: dA (M×K) += dC·Bᵀ, dB (K×N) += Aᵀ·dC. release bitişik
-// kopyaları geri hesap bitince iade eder.
-func matMulGrad(be Backend, batch, M, N, K int, av, bv View, tb bool, ad, bd DType, release func()) func(o *node) {
+// kopyaları geri hesap bitince iade eder. vg nil değilse (ileri yön TR_vendor_matmul bloğunda
+// kaydedildi, 15.53b) geri yönün iki çarpımı da onunla yapılır: geri yön kaydedilen durumu
+// kullanır, arka ucun o anki durumunu değil.
+func matMulGrad(be Backend, vg VendorGemmer, batch, M, N, K int, av, bv View, tb bool, ad, bd DType, release func()) func(o *node) {
 	gs, writer := be.(GemmSetter)
 	// carp gradyanın ilkiyse (taze) üzerine yazar, değilse ekler.
 	mulFn := func(t *node, M, N, K int, a View, ta bool, b View, tb bool) {
+		if vg != nil {
+			c, fresh := t.freshGrad(true)
+			gateGemmVendor(vg, batch, M, N, K, a, ta, b, tb, c, fresh)
+			return
+		}
 		if c, fresh := t.freshGrad(writer); fresh {
 			gateGemmSet(gs, batch, M, N, K, a, ta, b, tb, c)
 		} else {

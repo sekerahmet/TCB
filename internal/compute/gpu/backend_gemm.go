@@ -24,8 +24,11 @@ func (g *backend) pickGemm(batch, M, N int) gemmConfig {
 }
 
 // gemm C (+)= op(A)·op(B), batch toplu; uzerine doğruysa C'nin eski içeriği okunmaz.
-// Görünümler float32 bitişiktir.
-func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c *storage, cOf int, over bool) {
+// Görünümler float32 bitişiktir. vendor doğruysa (TR_vendor_matmul bloğu, 15.53b) M > 1
+// çarpımı önce üreticinin kitaplığına verilir; değilse ya da kitaplık yapamazsa kendi
+// çekirdeğimiz. M = 1 her zaman kendi çekirdektir: gemv yapamazsa (gemvOff, 32 bitlik toplu
+// ofset) döşemeli çekirdeğe, kitaplığa değil.
+func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c *storage, cOf int, over, vendor bool) {
 	if batch == 0 || M == 0 || N == 0 {
 		return
 	}
@@ -35,7 +38,7 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 	if M == 1 && g.gemv(batch, N, K, a, b, transB, c, cOf, over) {
 		return
 	}
-	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
+	if M > 1 && vendor && g.vendorMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
 		c.dropShadow()
 		return
 	}
@@ -58,9 +61,10 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 
 // gemv M = 1 çarpımını tek satırlık çekirdekle yapar (kernel_gemv.go); kapalıysa ya da K = 0
 // ise yanlış döner. M = 1'de transA önemsizdir: A [1, K] de [K, 1] de bitişik K elemandır.
-// Dörtlü vektörel okuma satırlar dört elemana hizalıysa seçilir (devrik değilken B'nin satırları:
-// N 4'ün katı; devrikken A ile B'nin satırları: K 4'ün katı). A ve C float32'dir; B float32 ya da
-// 16 bitlik olabilir (ağırlık açılmadan okunur, kernel_gemv.go).
+// Toplama sırası her zaman dört bitişik öğeyle tanımlıdır; vektörel okuma yalnız yükleme
+// biçimidir ve satırlar dört elemana hizalıysa seçilir (devrik değilken B'nin satırları: N 4'ün
+// katı; devrikken A ile B'nin satırları: K 4'ün katı). Hiza bitleri değiştirmez (15.22a). A ve C
+// float32'dir; B float32 ya da 16 bitlik olabilir (ağırlık açılmadan okunur, kernel_gemv.go).
 func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB bool, c *storage, cOf int, over bool) bool {
 	if g.gemvOff || K == 0 {
 		return false
@@ -74,20 +78,15 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 	ad, bd := g.storageOf(a.S), g.storageOf(b.S)
 	bt := bd.dtype
 	alignA, alignB := align(g.addressOf(a)) >= 16, align(g.addressOf(b)) >= uint32(4*dtypeSize(bt))
-	vw := 1
 	var pull *kernel
 	var cfg gemvConfig
 	if transB {
-		if K%4 == 0 && alignA && alignB {
-			vw = 4
-		}
-		pull = g.takeKernel(fmt.Sprintf("gemv_t:%d:%v:%s", vw, over, bt), gemvTKernel(vw, over, bt))
+		vec := K%4 == 0 && alignA && alignB
+		pull = g.takeKernel(fmt.Sprintf("gemv_t:%v:%v:%s", vec, over, bt), gemvTKernel(vec, over, bt))
 	} else {
-		if N%4 == 0 && alignB {
-			vw = 4
-		}
-		cfg = g.pickGemv(batch, N, vw)
-		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%d:%v:%s", cfg, vw, over, bt), gemvKernel(cfg, vw, over, bt))
+		vec := N%4 == 0 && alignB
+		cfg = g.pickGemv(batch, N)
+		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%v:%v:%s", cfg, vec, over, bt), gemvKernel(cfg, vec, over, bt))
 	}
 	for z0 := 0; z0 < batch; z0 += 65535 {
 		nz := min(batch-z0, 65535)
@@ -95,54 +94,71 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 		if transB {
 			g.launch(pull, [3]uint32{blocks(N, gemvTWarps), uint32(nz), 1}, [3]uint32{32 * gemvTWarps, 1, 1}, p)
 		} else {
-			g.launch(pull, [3]uint32{blocks(N, cfg.L*vw), uint32(nz), 1}, [3]uint32{uint32(cfg.T), 1, 1}, p)
+			g.launch(pull, [3]uint32{blocks(N, cfg.L*gemvCols), uint32(nz), 1}, [3]uint32{uint32(cfg.T), 1, 1}, p)
 		}
 	}
 	return true
 }
 
+// fixedSMs toplama sırasını belirleyen ayarlarda kartın SM sayısının yerine geçen sabittir
+// (15.22a: ayar yalnız boydan seçilir; SM sayısı başlatma ızgarasını değiştirebilir, toplama
+// sırasını değiştiremez): gemv'nin şerit sayısı (gemvMinBlocks) ve norm geri yönünün parça
+// sayısı (backend_row.go). Değeri 0b'nin önce-sonra ölçüsünde L4'te gözden geçirilir.
+const fixedSMs = 64
+
+// gemvMinBlocks devrik olmayan tek satırlık çarpımın şeritlerini daraltma eşiğidir (eski 2·SM).
+const gemvMinBlocks = 2 * fixedSMs
+
 // pickGemv devrik olmayan tek satırlık çarpımın ayarı: blok önce 32 sütun (satır başına 128
-// bayt) okur; bloklar SM sayısının iki katını doldurmuyorsa sütun sayısı 8'e kadar
-// yarılanır (satır başına en az bir 32 baytlık kesim). Blokta 512 iş parçacığı: ölçüm (RTX PRO
-// 6000, SmolLM2 ve Qwen3 boyları) 256 ve 128'den hızlı ya da eşit (1536×576: 4,1 / 6,2 /
-// 12,3 µs), kitaplıktan hızlı ya da eşit.
-func (g *backend) pickGemv(batch, N, vw int) gemvConfig {
+// bayt) okur; bloklar gemvMinBlocks'u doldurmuyorsa sütun sayısı 8'e kadar yarılanır (satır
+// başına en az bir 32 baytlık kesim). Seçim yalnız (N, batch) iledir. Blokta 512 iş parçacığı:
+// ölçüm (RTX PRO 6000, SmolLM2 ve Qwen3 boyları) 256 ve 128'den hızlı ya da eşit (1536×576:
+// 4,1 / 6,2 / 12,3 µs), kitaplıktan hızlı ya da eşit.
+func (g *backend) pickGemv(batch, N int) gemvConfig {
 	if a := g.gemvConst; a != nil {
 		if a.L < 1 || a.L > 32 || a.L&(a.L-1) != 0 || a.T < 32 || a.T > 1024 || a.T%32 != 0 {
 			panic(internalf("invalid matrix-vector setting %+v", *a))
 		}
 		return *a
 	}
-	_, sm := g.sr.capability()
-	L := 32 / vw
-	for L*vw > 8 && int(blocks(N, L*vw))*batch < 2*max(sm, 1) {
+	L := 32 / gemvCols
+	for L*gemvCols > 8 && int(blocks(N, L*gemvCols))*batch < gemvMinBlocks {
 		L /= 2
 	}
 	return gemvConfig{L: L, T: 512}
 }
 
-// Gemm (Backend) her toplu eleman için C += op(A)·op(B).
+// Gemm (Backend) her toplu eleman için C += op(A)·op(B); her zaman kendi çekirdeğimiz (15.22a).
 func (g *backend) Gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage) {
 	g.enter()
 	defer g.exit()
-	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, false)
+	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, false, false)
 }
 
 // GemmSet (tensor.GemmSetter) C = op(A)·op(B); C'nin eski içeriği okunmaz.
 func (g *backend) GemmSet(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage) {
 	g.enter()
 	defer g.exit()
-	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, true)
+	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, true, false)
 }
 
-func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, over bool) {
+// GemmVendor (tensor.VendorGemmer) TR_vendor_matmul bloğundaki çarpımdır (15.53b): M > 1
+// çarpımı üreticinin kitaplığına verilir, kitaplık yoksa ya da yapamazsa kendi çekirdeğimiz.
+// set doğruysa C'nin eski içeriği okunmaz.
+func (g *backend) GemmVendor(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, set bool) {
+	g.enter()
+	defer g.exit()
+	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, set, true)
+}
+
+func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, over, vendor bool) {
 	if g.storageOf(b.S).dtype.IsQuantized() {
-		g.quantGemm(M, N, K, a, b, c, over)
+		g.quantGemm(M, N, K, a, b, c, over, vendor)
 		return
 	}
 	// 16 bitlik C, girdilerle aynı türdeyse kitaplık onu doğrudan yazar (float32 ara tampon
 	// ve iki kopya yok).
-	if cd := g.storageOf(c); cd.dtype != tensor.Float32 && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
+	if cd := g.storageOf(c); vendor && cd.dtype != tensor.Float32 && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
 		return
 	}
 	gt := g.temp()
@@ -155,20 +171,37 @@ func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b te
 		last()
 		return
 	}
-	if !g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
-		g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over)
+	switch {
+	case vendor && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over):
+	default:
+		if !vendor {
+			g.warnWidened16(M, a, b)
+		}
+		g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over, vendor)
 	}
 	last()
 }
 
-// gemm16 bitişik 16 bitlik (bf16 ya da f16) girdileri float32'ye açmadan kitaplığa verir:
-// tensör çekirdekleri girdileri 16 bit okur, float32 biriktirir ve C'ye (float32 ya da
-// girdilerle aynı 16 bitlik tür) bir kez yuvarlayıp yazar. Kitaplık yoksa, girdilerin türü
-// farklıysa, C başka bir türdeyse ya da girdilerden biri adımlıysa yanlış döner; o zaman
-// girdiler float32'ye açılıp çarpılır (karışık hassasiyette her çarpım eskiden böyleydi:
-// bf16 adım float32'den yavaştı).
+// warnWidened16 blok dışında 16 bitlik girdili çarpım float32'ye açılarak yapılırken makinede
+// kitaplık varsa H4132'yi süreçte bir kez verir (hız için blok önerilir). Kitaplık yüklenmez:
+// yalnız aday dosyaların varlığına bakılır (gemmLibPresent).
+func (g *backend) warnWidened16(M int, a, b tensor.View) {
+	da, db := g.storageOf(a.S).dtype, g.storageOf(b.S).dtype
+	if M < 2 || da != db || (da != tensor.BFloat16 && da != tensor.Float16) || warned(messages.H4132) {
+		return
+	}
+	if _, ok := gemmLibPresent(); ok {
+		warnOnce(messages.H4132, da.Name())
+	}
+}
+
+// gemm16 bitişik 16 bitlik (bf16 ya da f16) girdileri float32'ye açmadan kitaplığa verir
+// (yalnız TR_vendor_matmul bloğunda, 15.53b): tensör çekirdekleri girdileri 16 bit okur, float32
+// biriktirir ve C'ye (float32 ya da girdilerle aynı 16 bitlik tür) bir kez yuvarlayıp yazar.
+// Kitaplık yoksa, girdilerin türü farklıysa, C başka bir türdeyse ya da girdilerden biri
+// adımlıysa yanlış döner; o zaman girdiler float32'ye açılıp kendi çekirdeğimizle çarpılır.
 func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.View, tb bool, c *storage, over bool) bool {
-	if g.lt == nil || batch == 0 || M == 0 || N == 0 || K == 0 || !a.IsContiguous() || !b.IsContiguous() {
+	if batch == 0 || M < 2 || N == 0 || K == 0 || !a.IsContiguous() || !b.IsContiguous() {
 		return false
 	}
 	da, db := g.storageOf(a.S), g.storageOf(b.S)
@@ -195,7 +228,7 @@ func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.Vi
 	for _, n := range []int{M * K, K * N, M * N} {
 		checkSize(n)
 	}
-	if !g.ltMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab, ct) {
+	if !g.vendorMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab, ct) {
 		return false
 	}
 	c.dropShadow()

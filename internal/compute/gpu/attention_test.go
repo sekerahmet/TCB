@@ -134,7 +134,7 @@ func TestAttentionLongContextLimit(t *testing.T) {
 	})
 }
 
-// TestAttentionPathForced TR_GPU_ATTENTION=carpim'in matris yolunu seçtiğini (sonuç aynı) sınar.
+// TestAttentionPathForced attnPath = "carpim"'in matris yolunu seçtiğini (sonuç aynı) sınar.
 func TestAttentionPathForced(t *testing.T) {
 	g := gpuBackend()
 	old := g.attnPath
