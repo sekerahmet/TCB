@@ -164,11 +164,12 @@ func TestGenerateEosMethodWithoutParentheses(t *testing.T) {
 	dir := t.TempDir()
 	file := familyGGUF(t, dir, llamaTiny, "llama-bpe", llama3, nil)
 	load := fmt.Sprintf("TR_pretrained_gguf(%q)", file)
-	got := runFamily(t, dir, load, "TR_var model = m\nm.TR_generate([1], 2, TR_temperature: 0, TR_eos: m.TR_eos_tokens)")
-	if !strings.Contains(got, "`TR_eos: model.TR_eos_tokens()`") {
+	got := runFamily(t, dir, load, "m.TR_generate([1], 2, TR_temperature: 0, TR_eos: m.TR_eos_tokens)")
+	if !strings.Contains(got, "`TR_eos: m.TR_eos_tokens()`") {
 		t.Fatalf("ileti parantezli yazımı önermiyor:\n%s", got)
 	}
-	if got := runFamily(t, dir, load, "TR_var model = m\nTR_print(model.TR_generate([1], 2, TR_temperature: 0, TR_eos: model.TR_eos_tokens()).TR_length > 1)"); got != "true" {
+	// Önerilen yazım kopyalanınca çalışır ve modelin durma listesini verir (DENETİM 440 N1).
+	if got := runFamily(t, dir, load, "TR_print(m.TR_eos_tokens())\nTR_print(m.TR_generate([1], 2, TR_temperature: 0, TR_eos: m.TR_eos_tokens()).TR_length > 1)"); got != "[42, 43, 41]\ntrue" {
 		t.Errorf("önerilen yazım: %q", got)
 	}
 }

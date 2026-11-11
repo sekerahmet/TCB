@@ -1607,7 +1607,7 @@ const (
 	H7170 Code = 7170 // {@eos_tokens}: model bir sohbet ailesine bağlı değil{families, select, empty {} other { (tablodaki aileler: {families})}}, durma listesi yok; durma kimliklerini açıkça yazın: `{#eos}: [...]`
 	H7171 Code = 7171 // {@pretrained_model}: {key|q} = {value} desteklenmiyor: TR bu ayarı uygulamaz, bu model TR'de yüklenmez; config'i değiştirmek modeli değiştirir
 	H7172 Code = 7172 // {@generate}: {@eos} durma kimliklerinin listesidir, tek sayı ({value}) verildi: `{#eos}: [{value}]` yazın
-	H7173 Code = 7173 // {@generate}: {@eos}'a bir fonksiyon verildi, durma kimliklerinin listesi değil: metodu parantezle çağırın, `{#eos}: model.{#eos_tokens}()`
+	H7173 Code = 7173 // {@generate}: {@eos}'a bir fonksiyon verildi, durma kimliklerinin listesi değil: metodu parantezle çağırın, `{#eos}: m.{#eos_tokens}()`
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi
