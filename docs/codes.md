@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 750 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 167 fonksiyon, 11 sabit, 93 metot, 132 özellik, 193 adlı argüman.
+Toplam 752 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 169 fonksiyon, 11 sabit, 93 metot, 132 özellik, 193 adlı argüman.
 
 ## İçindekiler
 
@@ -3885,6 +3885,44 @@ tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].
 ```
 
 İlişkili: `TR_argsort(...)`, `TR_argmax(...)`
+
+#### `TR_vendor_matmul(...)` (`TR_fn_vendor_matmul`, `üretici_çarpımı`)
+
+    üretici_çarpımı(Fonksiyon | YerleşikFonksiyon) → Herhangi
+
+üretici_çarpımı { ... } bloğunda GPU'daki matris çarpımları üreticinin kitaplığıyla (NVIDIA cuBLASLt, makinede varsa) yapılır (15.53b); sonuç kitaplığın sürümüne ve kartın SM sayısına bağlı olabilir. Tek satırlık çarpım, Fourier dönüşümü ve CPU bloğun dışındaki gibidir; kitaplık yoksa çarpım TR'nin kendi çekirdeğiyle sürer ve bir kez uyarılır.
+
+```tr
+TR_var y = TR_vendor_matmul { TR_Tensor([[1.0, 2.0]]) @ TR_Tensor([[3.0], [4.0]]) }; TR_print(y.TR_item())
+```
+
+Görünümü:
+
+```text
+en: var y = vendor_matmul { Tensor([[1.0, 2.0]]) @ Tensor([[3.0], [4.0]]) }; print(y.item())
+tr: değişken y = üretici_çarpımı { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.tek_değer())
+```
+
+İlişkili: `TR_vendor_matmul_on(...)`, `TR_quantized_activations(...)`, `TR_mixed_precision(...)`
+
+#### `TR_vendor_matmul_on(...)` (`TR_fn_vendor_matmul_on`, `üretici_çarpımı_açık_mı`)
+
+    üretici_çarpımı_açık_mı() → Mantık
+
+Görev üretici_çarpımı bloğunun içindeyse doğru, dışındaysa yanlış verir.
+
+```tr
+TR_print(TR_vendor_matmul_on(), TR_vendor_matmul { TR_vendor_matmul_on() })
+```
+
+Görünümü:
+
+```text
+en: print(vendor_matmul_on(), vendor_matmul { vendor_matmul_on() })
+tr: yazdır(üretici_çarpımı_açık_mı(), üretici_çarpımı { üretici_çarpımı_açık_mı() })
+```
+
+İlişkili: `TR_vendor_matmul(...)`
 
 #### `TR_wait_all(...)` (`TR_fn_wait_all`, `bekle_hepsi`)
 

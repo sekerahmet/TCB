@@ -146,14 +146,17 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.
 - Hız dökümü: `TR_GPU_PROFILE=1` ile çalışan program sonunda standart hataya GPU profilini
   yazar (adım başına süreler, hangi çekirdeğin GPU zamanının ne kadarını aldığı, bellek).
   `TR_cmd_watch` ve `TR_cmd_profile` aynı ölçümü canlı tabloda ve raporda gösterir (bkz. §11).
-- Matris çarpımı, makinede NVIDIA'nın cuBLASLt kitaplığı kuruluysa (CUDA araç takımı ya da
-  PyTorch ile gelir) onunla yapılır; yoksa TR'nin kendi çekirdeğiyle. İki yolun sonucu küçük farklarla
-  ayrılabilir (aynı kartta ölçülen en büyük fark 2,08e-3). Bu davranış değişecek: öntanımlı yol TR'nin
-  kendi çekirdeği olacak.
-  Kitaplık başka bir yerdeyse yolu `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12` ile verilir
-  (çalışma klasörü hiçbir zaman aranmaz); hangi yolun kullanıldığı profil özetinin ilk
+- Matris çarpımı GPU'da TR'nin kendi çekirdeğiyle yapılır; sonuç makinede kurulu bir kitaplığa
+  bağlı olmaz. Hız gereken yerde çarpım `TR_vendor_matmul { ... }` bloğuna alınır: blokta NVIDIA'nın
+  cuBLASLt kitaplığı (CUDA araç takımı ya da PyTorch ile gelir) kullanılır, sonuç kitaplığın sürümüne
+  ve kartın SM sayısına bağlı olabilir ve kendi çekirdekten küçük farklarla ayrılabilir (aynı kartta
+  ölçülen en büyük fark 2,08e-3). Kitaplık yoksa blok kendi çekirdekle sürer ve bir kez uyarır.
+  Blokta kullanılacak kitaplık başka bir yerdeyse yolu `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`
+  ile verilir (çalışma klasörü hiçbir zaman aranmaz); hangi yolun kullanıldığı profil özetinin ilk
   satırında görünür.
-- Kurallar: `docs/spec/15_tensorler.md` **15.37–15.41**.
+- Karışık hassasiyetli (bf16, fp16) eğitimde çarpım blok dışında float32'ye açılarak yapılır ve
+  yavaştır; hız için `TR_vendor_matmul` bloğu kullanılır.
+- Kurallar: `docs/spec/15_tensorler.md` **15.22a, 15.37–15.41, 15.53b**.
 
 ## D. Veri ve Parçalayıcı
 Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `examples/tr/39_veri_ile_egitim.tr`.

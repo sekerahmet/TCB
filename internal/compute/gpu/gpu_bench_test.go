@@ -222,7 +222,7 @@ func microAttn(g *backend, divide int) {
 	backward := func() {
 		g.AttentionGradSet(gq, gk, gv, dO, see(q), see(k), see(v), nil, out, lse, p, [3]bool{true, true, true})
 	}
-	// İki yol da ölçülür (TR_GPU_ATTENTION ile seçilen): birleşik çekirdek ve matris çarpımı yolu.
+	// İki yol da ölçülür (attnPath ile seçilen): birleşik çekirdek ve matris çarpımı yolu.
 	old := g.attnPath
 	for _, y := range []struct{ path, ek, ad string }{{"birlesik", "", "birleşik"}, {"carpim", " (matris yolu)", "kendi"}} {
 		g.attnPath = y.path

@@ -249,7 +249,10 @@ func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]inte
 	mixed := mixedDType(m)
 	r, err := safe(func() *tensor.Tensor {
 		if mixed != tensor.Float32 {
-			return tensor.LinearCrossEntropy(x.CastShared(mixed), w.CastShared(mixed), target)
+			x, w = x.CastShared(mixed), w.CastShared(mixed)
+		}
+		if vendorMatmulOn(m) && x.Device() != tensor.CPU {
+			return tensor.LinearCrossEntropyVendor(x, w, target) // TR_vendor_matmul bloğu (15.53b)
 		}
 		return tensor.LinearCrossEntropy(x, w, target)
 	})

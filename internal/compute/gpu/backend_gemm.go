@@ -24,8 +24,11 @@ func (g *backend) pickGemm(batch, M, N int) gemmConfig {
 }
 
 // gemm C (+)= op(A)·op(B), batch toplu; uzerine doğruysa C'nin eski içeriği okunmaz.
-// Görünümler float32 bitişiktir.
-func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c *storage, cOf int, over bool) {
+// Görünümler float32 bitişiktir. vendor doğruysa (TR_vendor_matmul bloğu, 15.53b) M > 1
+// çarpımı önce üreticinin kitaplığına verilir; değilse ya da kitaplık yapamazsa kendi
+// çekirdeğimiz. M = 1 her zaman kendi çekirdektir: gemv yapamazsa (gemvOff, 32 bitlik toplu
+// ofset) döşemeli çekirdeğe, kitaplığa değil.
+func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c *storage, cOf int, over, vendor bool) {
 	if batch == 0 || M == 0 || N == 0 {
 		return
 	}
@@ -35,7 +38,7 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 	if M == 1 && g.gemv(batch, N, K, a, b, transB, c, cOf, over) {
 		return
 	}
-	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
+	if M > 1 && vendor && g.vendorMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
 		c.dropShadow()
 		return
 	}
@@ -125,28 +128,37 @@ func (g *backend) pickGemv(batch, N int) gemvConfig {
 	return gemvConfig{L: L, T: 512}
 }
 
-// Gemm (Backend) her toplu eleman için C += op(A)·op(B).
+// Gemm (Backend) her toplu eleman için C += op(A)·op(B); her zaman kendi çekirdeğimiz (15.22a).
 func (g *backend) Gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage) {
 	g.enter()
 	defer g.exit()
-	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, false)
+	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, false, false)
 }
 
 // GemmSet (tensor.GemmSetter) C = op(A)·op(B); C'nin eski içeriği okunmaz.
 func (g *backend) GemmSet(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage) {
 	g.enter()
 	defer g.exit()
-	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, true)
+	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, true, false)
 }
 
-func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, over bool) {
+// GemmVendor (tensor.VendorGemmer) TR_vendor_matmul bloğundaki çarpımdır (15.53b): M > 1
+// çarpımı üreticinin kitaplığına verilir, kitaplık yoksa ya da yapamazsa kendi çekirdeğimiz.
+// set doğruysa C'nin eski içeriği okunmaz.
+func (g *backend) GemmVendor(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, set bool) {
+	g.enter()
+	defer g.exit()
+	g.gemmOuter(batch, M, N, K, a, transA, b, transB, c, set, true)
+}
+
+func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, over, vendor bool) {
 	if g.storageOf(b.S).dtype.IsQuantized() {
-		g.quantGemm(M, N, K, a, b, c, over)
+		g.quantGemm(M, N, K, a, b, c, over, vendor)
 		return
 	}
 	// 16 bitlik C, girdilerle aynı türdeyse kitaplık onu doğrudan yazar (float32 ara tampon
 	// ve iki kopya yok).
-	if cd := g.storageOf(c); cd.dtype != tensor.Float32 && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
+	if cd := g.storageOf(c); vendor && cd.dtype != tensor.Float32 && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
 		return
 	}
 	gt := g.temp()
@@ -159,20 +171,37 @@ func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b te
 		last()
 		return
 	}
-	if !g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
-		g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over)
+	switch {
+	case vendor && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over):
+	default:
+		if !vendor {
+			g.warnWidened16(M, a, b)
+		}
+		g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over, vendor)
 	}
 	last()
 }
 
-// gemm16 bitişik 16 bitlik (bf16 ya da f16) girdileri float32'ye açmadan kitaplığa verir:
-// tensör çekirdekleri girdileri 16 bit okur, float32 biriktirir ve C'ye (float32 ya da
-// girdilerle aynı 16 bitlik tür) bir kez yuvarlayıp yazar. Kitaplık yoksa, girdilerin türü
-// farklıysa, C başka bir türdeyse ya da girdilerden biri adımlıysa yanlış döner; o zaman
-// girdiler float32'ye açılıp çarpılır (karışık hassasiyette her çarpım eskiden böyleydi:
-// bf16 adım float32'den yavaştı).
+// warnWidened16 blok dışında 16 bitlik girdili çarpım float32'ye açılarak yapılırken makinede
+// kitaplık varsa H4132'yi süreçte bir kez verir (hız için blok önerilir). Kitaplık yüklenmez:
+// yalnız aday dosyaların varlığına bakılır (gemmLibPresent).
+func (g *backend) warnWidened16(M int, a, b tensor.View) {
+	da, db := g.storageOf(a.S).dtype, g.storageOf(b.S).dtype
+	if M < 2 || da != db || (da != tensor.BFloat16 && da != tensor.Float16) || warned(messages.H4132) {
+		return
+	}
+	if _, ok := gemmLibPresent(); ok {
+		warnOnce(messages.H4132, da.Name())
+	}
+}
+
+// gemm16 bitişik 16 bitlik (bf16 ya da f16) girdileri float32'ye açmadan kitaplığa verir
+// (yalnız TR_vendor_matmul bloğunda, 15.53b): tensör çekirdekleri girdileri 16 bit okur, float32
+// biriktirir ve C'ye (float32 ya da girdilerle aynı 16 bitlik tür) bir kez yuvarlayıp yazar.
+// Kitaplık yoksa, girdilerin türü farklıysa, C başka bir türdeyse ya da girdilerden biri
+// adımlıysa yanlış döner; o zaman girdiler float32'ye açılıp kendi çekirdeğimizle çarpılır.
 func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.View, tb bool, c *storage, over bool) bool {
-	if g.lt == nil || batch == 0 || M == 0 || N == 0 || K == 0 || !a.IsContiguous() || !b.IsContiguous() {
+	if batch == 0 || M < 2 || N == 0 || K == 0 || !a.IsContiguous() || !b.IsContiguous() {
 		return false
 	}
 	da, db := g.storageOf(a.S), g.storageOf(b.S)
@@ -199,7 +228,7 @@ func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.Vi
 	for _, n := range []int{M * K, K * N, M * N} {
 		checkSize(n)
 	}
-	if !g.ltMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab, ct) {
+	if !g.vendorMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab, ct) {
 		return false
 	}
 	c.dropShadow()

@@ -210,6 +210,7 @@ func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool
 	p := l.takePlan(ltKey{batch: batch, M: M, N: N, K: K, ta: ta, tb: tb, alignA: align(b), alignB: align(a), alignC: align(c), ab: ab, ct: ct})
 	if !p.valid {
 		l.fallthroughCase++
+		g.ltLastErr = messages.New(messages.H4136) // H4131'in nedeni; şekil H4131'de
 		return false
 	}
 	o := l.o
@@ -236,6 +237,7 @@ func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool
 		p.valid = false
 		l.fallthroughCase++
 		g.ltLastError = messages.Text(messages.H4038, s, M, N, K, batch)
+		g.ltLastErr = messages.New(messages.H4038, s, M, N, K, batch)
 		return false
 	}
 	g.lastKernel = l.names[ad]

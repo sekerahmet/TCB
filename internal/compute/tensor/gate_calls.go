@@ -442,6 +442,16 @@ func gateGemmSet(be GemmSetter, batch int, M int, N int, K int, a View, transA b
 	runtime.KeepAlive(c)
 }
 
+func gateGemmVendor(be VendorGemmer, batch int, M int, N int, K int, a View, transA bool, b View, transB bool, c Storage, set bool) {
+	if unlockedOps.Load() != 0 {
+		gate([]Storage{c}, []Storage{a.S, b.S})
+	}
+	be.GemmVendor(batch, M, N, K, a, transA, b, transB, c, set)
+	runtime.KeepAlive(a.S)
+	runtime.KeepAlive(b.S)
+	runtime.KeepAlive(c)
+}
+
 func gateClipGradAll(be GradClipper, grads []Storage, maxNorm float32) (norm Storage, ok bool) {
 	if unlockedOps.Load() != 0 {
 		gate(append([]Storage{}, grads...), nil)

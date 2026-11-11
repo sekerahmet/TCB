@@ -32,6 +32,10 @@ type AttentionOptions struct {
 	Mask *Tensor
 	// Scale puanların ölçeğidir; 0 ise 1/√dh.
 	Scale float32
+	// Vendor çağrının TR_vendor_matmul bloğunda olduğudur (15.53b): arka uç dikkatin matris
+	// çarpımı yolundaki çarpımları üreticinin kitaplığına verebilir. Düğüm kaydedilirken
+	// parametrelere girer; geri yön ileri yöndeki durumu kullanır.
+	Vendor bool
 }
 
 // AttentionParams arka uca verilen, şekilleri çözülmüş dikkat tanımıdır. q, k,
@@ -47,6 +51,7 @@ type AttentionParams struct {
 	Causal                        bool
 	Window                        int
 	Scale                         float32
+	Vendor                        bool // AttentionOptions.Vendor (15.53b)
 	// Maske (varsa) float32 bitişik bir depolamadır; (b, h) çifti için ilk
 	// eleman MaskBase + MaskOffsets[b*H+h], sorgu ve anahtar adımları MaskStrideQ,
 	// MaskStrideK'dır (yayınlanan eksenlerde 0). MaskBase görünümün depolamadaki
@@ -254,7 +259,7 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	}
 	p := AttentionParams{Batch: NumelOf(q.shape[:lead]), H: 1, Hkv: 1,
 		Tq: q.shape[tAxis], Dh: q.shape[nd-1], Tk: k.shape[tAxis], Dv: v.shape[nd-1],
-		Causal: opt.Causal, Window: opt.Window, Scale: opt.Scale}
+		Causal: opt.Causal, Window: opt.Window, Scale: opt.Scale, Vendor: opt.Vendor}
 	if nd >= 3 {
 		p.H, p.Hkv = q.shape[nd-2], k.shape[nd-2]
 		if v.shape[nd-2] != p.Hkv {

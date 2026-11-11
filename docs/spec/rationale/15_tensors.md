@@ -256,8 +256,11 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 ### 15.22a
 
-- *Emsal:* yok: taslakta başka araçla karşılaştırılmadı.
-- *Gerekçe:* CLAUDE.md: "**Güvenilir.** Aynı program aynı veriyle aynı sonucu verir; kesilen bir eğitim kaldığı yerden aynı sonuçla sürer." Söz verilebilen yerde söz verilir: aynı cihaz türünde aynı bit, toplama sırası yalnız şekle bağlı. Söz verilemeyen yerde sınır açıkça yazılır: CPU ile GPU'nun ondalık biriktirmesi ayrıdır, SM'ye bağlı yollar kart modeline göre ayrılır. Robotta (Makinenin içinde çalıştırmak) aynı cihazda yeniden üretilebilir davranış için gerekir; kesilen eğitimin aynı sonuçla sürmesi de buna dayanır.
+- *Emsal:* cuBLAS 13.5 belgesi (2.1.4 "Results reproducibility"): aynı araç takımı sürümü, aynı mimari ve aynı SM sayısında aynı bitler; sürümler arasında söz yok (https://docs.nvidia.com/cuda/cublas/index.html). PyTorch'un `torch.use_deterministic_algorithms` belgesi de belirlenimciliği aynı donanım ve yazılımla sınırlar [hipotez: sürümlü alıntı okunmadı]. TR'nin öntanımlı yoldaki sözü bunlardan geniştir: blok dışında hiza ve SM sayısı da sonucu değiştirmez; `TR_vendor_matmul` bloğunda söz kitaplığınkine iner (15.53b).
+- *Gerekçe:* CLAUDE.md: "**Güvenilir.** Aynı program aynı veriyle aynı sonucu verir; kesilen bir eğitim kaldığı yerden aynı sonuçla sürer." Söz verilebilen yerde söz verilir: aynı cihaz türünde aynı bit, toplama sırası yalnız şekle bağlı. Söz verilemeyen yerde sınır açıkça yazılır: CPU ile GPU'nun ondalık biriktirmesi ayrıdır, kartın mimarisine göre seçilen yollar kart modeline göre ayrılır. Robotta (Makinenin içinde çalıştırmak) aynı cihazda yeniden üretilebilir davranış için gerekir; kesilen eğitimin aynı sonuçla sürmesi de buna dayanır.
+  - Hiza programın görmediği bir şeydir; L4'te tek satırlık çarpımda 9728 öğenin 7619'u kayık görünümle farklıydı [ölçüldü: T1, 2026-11-11, main `32dbaaab`]. SM sayısı aynı modelin bir MIG bölümünde ya da kısılmış bir bulut kartında değişir; programcı bunu seçmez. Bu yüzden öntanımlı yolda SM sayısı sonucu değiştirmez; `TR_vendor_matmul` bloğunda değiştirebilir (15.53b), çünkü o yolu programcı kendisi seçer.
+  - SM sayısının yerine geçen sabit (`fixedSMs` = 64; gemv'nin eşiği 2 · 64 = 128 blok, norm geri yönünün parça sayısı da bu sabitten) toplama sırasını belirler; değer bir kez seçilince sözün parçasıdır. Değer değişirse bitler TR sürümleri arasında değişir: bu bir sürüm notudur, söz "aynı sürüm" içindir.
+- *Reddedilen:* "aynı SM sayısı"nı 15.22a'ya yazmak (sözü bulut ve MIG'de anlamsız bırakırdı); kitaplığı öntanımlı bırakıp kendi çekirdeği seçenek yapmak (sonucu programın dışındaki bir kuruluma, sürüme, yola, `LD_LIBRARY_PATH`'e bağlıyordu; 23.5 Fourier'de bunu zaten reddetmişti); bitleri değiştiren süreç geneli ortam değişkenleri (`TR_GPU_OWN_GEMM`, `TR_GPU_GEMV`, `TR_GPU_ATTENTION`): seçim programı okuyan ajana görünmezdi, kaldırıldı.
 
 ### 15.22b
 
@@ -564,6 +567,14 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Kitaplık:** `lib/` bloğu sessizce açmaz, varsayılan kapalıdır; seçimi program yazar (asistanın zinciri kendi kodunda).
   - **Açık konu:** blok kendi içinde kapatılamaz (15.4'ün `"float32"` bloğunun karşılığı yok); kitaplık kesin sonuç istediği yerde kendini koruyamaz. Bugün gerek görülmedi.
 - *Belirlenimcilik:* üç x86 makinede (Windows ve Linux, Intel ve AMD) logit baytları aynı [ölçüldü: H1, `fcadf73c`; sonraki iki düzeltme commit'inde yalnız dizüstünde]; AVX2'siz yol (Go eşi) birim testinde çekirdekle bit bit aynıdır (`TestQ8KernelsMatchGo`); ARM'de ölçülmedi, Go eşi açık `float32` dönüşümleriyle kaynaştırmasızdır. Söz bu yüzden 15.22a'nınkidir (aynı CPU özellik kümesi).
+
+### 15.53b
+
+- *Emsal:* 15.53a (aynı blok kalıbı, aynı durum kuralları). PyTorch'un `torch.backends.cudnn.deterministic` ve `torch.backends.cuda.matmul.allow_tf32` bayrakları süreç genelindedir, kapsam bloğu değildir [hipotez: sürüm ve belge yolu okunmadı].
+- *Gerekçe:* hız gereken yer seçimi kendisi yazar, seçim çağrının yerinde görünür (15.53a'nın "Blok, model değil"i). Ölçülen bedel: kendi çekirdek kitaplığın 1,38 katı süre, L4'te 16 şeklin karışımı [ölçüldü: T1, 2026-11-11, profil].
+  - **Hata değil, uyarı:** 15.53a'da desteklenmeyen tür hatadır, çünkü etkisiz kalsaydı tür ileride desteklenince bitler sessizce değişirdi. Burada kitaplığın yokluğu programın değil makinenin durumudur; aynı program kitaplıklı ve kitaplıksız makinede çalışmalı; uyarı sonucun hangi yoldan geldiğini söyler.
+  - **Geri yön kaydedilen durumla:** geri yön çoğu zaman bloğun dışında çağrılır (`TR_backward`); o anki durumu izleseydi ileri ve geri yön ayrı yollardan geçerdi; dikkatin geri yönü skorları yeniden hesapladığı için olasılıklar aynı bitler olmazdı.
+  - **Kapsam:** kitaplığa gidebilen bütün çarpımlar; `TR_linear_cross_entropy` de: blokta dışarıda kalsaydı aynı blokta iki ayrı bit sözü olurdu, ajan bunu blok adından tahmin edemezdi (TCB, 2026-11-11).
 
 ### 15.54
 

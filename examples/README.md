@@ -163,7 +163,7 @@ Ortam değişkenleri (kimlik adıyla yazılır ve okunur, 17.9):
 | `TR_GPU_SYNC` | `1` ise her GPU kernelinden sonra beklenir; kernel hatası tam yerinde bildirilir (yavaş) | `TR_GPU_SYNC=1 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 | `TR_GPU_PROFILE` | `1` ise GPU kernel süreleri ölçülür (`watch` ve `profile` kendileri açar) | `TR_GPU_PROFILE=1 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 | `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 trlang examples/tr/23_tensor.tr` |
-| `TR_GPU_CUBLASLT` | Bulunamazsa cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_GPU_CUBLASLT` | `TR_vendor_matmul` bloğunda kullanılacak cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 
 Etkileşimli kabuk `trlang` ile açılır (dosya verilmeden); kabuktan `exit` ile çıkılır.
 

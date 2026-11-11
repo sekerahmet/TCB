@@ -273,9 +273,9 @@ func (g *backend) attnMatrix(gt *temp, od, lse *storage, q, k, v tensor.View, md
 	qv, kv, vv := gt.read(q), gt.read(k), gt.read(v)
 	s := gt.buffer(R*p.Tk, false)
 	sv := tensor.View{S: s}
-	g.gemm(Z, G*p.Tq, p.Tk, p.Dh, qv, false, kv, true, s, 0, true)
+	g.gemm(Z, G*p.Tq, p.Tk, p.Dh, qv, false, kv, true, s, 0, true, p.Vendor)
 	g.attnRows(s, lse, md, mo, p, true)
-	g.gemm(Z, G*p.Tq, p.Dv, p.Tk, sv, false, vv, false, od, 0, true)
+	g.gemm(Z, G*p.Tq, p.Dv, p.Tk, sv, false, vv, false, od, 0, true, p.Vendor)
 }
 
 // attnMatrixBackward dikkatin matris çarpımı yolu (geri); gradyanlar eklenir.
@@ -286,18 +286,18 @@ func (g *backend) attnMatrixBackward(gt *temp, gq, gk, gv, gs tensor.Storage, q,
 	qv, kv, vv := gt.read(q), gt.read(k), gt.read(v)
 	dO := tensor.View{S: gt.readD(gs)}
 	s := gt.buffer(R*p.Tk, false)
-	g.gemm(Z, Mq, p.Tk, p.Dh, qv, false, kv, true, s, 0, true)
+	g.gemm(Z, Mq, p.Tk, p.Dh, qv, false, kv, true, s, 0, true, p.Vendor)
 	g.attnRows(s, g.storageOf(lse), md, mo, p, false)
 	if gv != nil {
 		dv, last := gt.write(gv, true)
-		g.gemm(Z, p.Tk, p.Dv, Mq, tensor.View{S: s}, true, dO, false, dv, 0, false)
+		g.gemm(Z, p.Tk, p.Dv, Mq, tensor.View{S: s}, true, dO, false, dv, 0, false, p.Vendor)
 		last()
 	}
 	if gq == nil && gk == nil {
 		return
 	}
 	dp := gt.buffer(R*p.Tk, false)
-	g.gemm(Z, Mq, p.Tk, p.Dv, dO, false, vv, true, dp, 0, true)
+	g.gemm(Z, Mq, p.Tk, p.Dv, dO, false, vv, true, dp, 0, true, p.Vendor)
 	B := powerOfTwo(max(p.Tk, p.Dv), 32, 256)
 	od := gt.readD(o) // zincirden önce: 16 bitlik o açılırken kopya çekirdeği başlatılır
 	c := g.takeKernel(fmt.Sprintf("dikkat_geri:%d", B), attnBackwardKernel(B))
@@ -306,12 +306,12 @@ func (g *backend) attnMatrixBackward(gt *temp, gq, gk, gv, gs tensor.Storage, q,
 	dsv := tensor.View{S: dp}
 	if gq != nil {
 		dq, last := gt.write(gq, true)
-		g.gemm(Z, Mq, p.Dh, p.Tk, dsv, false, kv, false, dq, 0, false)
+		g.gemm(Z, Mq, p.Dh, p.Tk, dsv, false, kv, false, dq, 0, false, p.Vendor)
 		last()
 	}
 	if gk != nil {
 		dk, last := gt.write(gk, true)
-		g.gemm(Z, p.Tk, p.Dh, Mq, dsv, true, qv, false, dk, 0, false)
+		g.gemm(Z, p.Tk, p.Dh, Mq, dsv, true, qv, false, dk, 0, false, p.Vendor)
 		last()
 	}
 }

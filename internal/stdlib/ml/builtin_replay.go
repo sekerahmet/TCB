@@ -510,9 +510,10 @@ func sliceFits(src, dst []int, axis int) bool {
 	return true
 }
 
-// replayKeyPrefix kaydın anahtarının görev durumundan gelen başıdır: karışık hassasiyetin türü ve
-// TR_quantized_activations bloğu (15.53a). Blokta ve dışında ayrı kayıt tutulur: blok dışında yapılan kayıt blokta
-// oynatılsaydı GPU'daki nicemli ağırlığın hatası (H6724) atlanırdı.
+// replayKeyPrefix kaydın anahtarının görev durumundan gelen başıdır: karışık hassasiyetin türü,
+// TR_quantized_activations bloğu (15.53a) ve TR_vendor_matmul bloğu (15.53b). Blokta ve dışında ayrı
+// kayıt tutulur: blok dışında yapılan kayıt blokta oynatılsaydı GPU'daki nicemli ağırlığın hatası
+// (H6724) atlanır, kendi çekirdekle kaydedilen çarpım kitaplığın yerine oynatılırdı.
 func replayKeyPrefix(m *interp.VM) string {
-	return fmt.Sprintf("%s|%v|", mixedDType(m), actQuantOn(m))
+	return fmt.Sprintf("%s|%v|%v|", mixedDType(m), actQuantOn(m), vendorMatmulOn(m))
 }

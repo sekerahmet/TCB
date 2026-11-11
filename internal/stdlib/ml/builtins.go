@@ -46,6 +46,8 @@ func Register(v *interp.VM) {
 	wrap(v, codes.FnComputeDtype, newBuiltin(computeDType))
 	wrap(v, codes.FnQuantizedActivations, newBuiltin(quantizedActivations)) // quant_activations.go (15.53a)
 	wrap(v, codes.FnQuantizedActivationsOn, newBuiltin(quantizedActivationsOn))
+	wrap(v, codes.FnVendorMatmul, newBuiltin(vendorMatmul)) // vendor_matmul.go (15.53b)
+	wrap(v, codes.FnVendorMatmulOn, newBuiltin(vendorMatmulOnBuiltin))
 
 	// --- Cihazlar (cihaz.go) ---
 	wrap(v, codes.FnDefaultDevice, newBuiltin(defaultDeviceBuiltin))
@@ -199,6 +201,7 @@ var gradFree = map[codes.Code]bool{
 	codes.FnFloatToBytes: true, codes.FnIntToBytes: true, codes.FnFromBytes: true,
 	codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnComputeDtype: true,
 	codes.FnQuantizedActivations: true, codes.FnQuantizedActivationsOn: true,
+	codes.FnVendorMatmul: true, codes.FnVendorMatmulOn: true,
 	codes.FnDefaultDevice: true, codes.FnDevices: true,
 	codes.FnCustomGrad: true, codes.FnFuse: true, codes.FnReplay: true,
 	// Yazma: türevi izlenen kaynağı checkWrite reddeder (H6956).
@@ -287,6 +290,7 @@ var retaining = map[codes.Code]bool{
 	codes.FnSGD:                  true, // SGD
 	codes.FnMixedPrecision:       true, // karışık_hassasiyet: blok
 	codes.FnQuantizedActivations: true, // nicemli_etkinleştirme: blok
+	codes.FnVendorMatmul:         true, // üretici_çarpımı: blok
 }
 
 // guarded fn'i safe içinde çağırır: çekirdeğin paniği (ör. GPU belleği yetmedi) dene/yakala ile

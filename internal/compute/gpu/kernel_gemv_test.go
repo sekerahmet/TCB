@@ -105,7 +105,7 @@ func TestGemvLinearGrad(t *testing.T) {
 	})
 }
 
-// TR_GPU_GEMV=0 karşılığı (gemvOff) M = 1 çarpımını döşemeli yola bırakır.
+// gemvOff (yalnız sınama; ortamdan okunmaz) M = 1 çarpımını döşemeli yola bırakır.
 func TestGemvOff(t *testing.T) {
 	g := gpuBackend()
 	g.gemvOff = true

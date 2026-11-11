@@ -187,7 +187,7 @@ func (c *Checker) exprNoValue(expr ast.Expression) bool {
 }
 
 // valueThrough bloğun değerini geçiren yerleşiklerdir: blok değer vermiyorsa çağrı da vermez (3.5).
-var valueThrough = map[codes.Code]bool{codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnQuantizedActivations: true}
+var valueThrough = map[codes.Code]bool{codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnQuantizedActivations: true, codes.FnVendorMatmul: true}
 
 // callNoValue çağrının değer vermediğini söyler; objType metodun nesnesinin tipidir.
 func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {

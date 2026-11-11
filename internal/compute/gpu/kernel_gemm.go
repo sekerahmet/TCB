@@ -21,8 +21,8 @@ import (
 // sütunları çakışmasız). Paylaşımlı dizilerin satırları 4 elemanla dolgulanır (yükleme
 // sırasında bank çakışmalarını azaltır, 16 bayt hizayı korur). Döşeme boyları arka ucun
 // ayarıdır (pickGemm), kullanıcıya görünmez ve yalnız hızı değiştirir: her çıktı öğesi tek
-// toplayıcıda k = 0, 1, …, K−1 sırasıyla birikir. Makinede üreticinin kitaplığı varsa çarpım
-// onunla yapılır (gemm_lib.go); bu çekirdek yedektir.
+// toplayıcıda k = 0, 1, …, K−1 sırasıyla birikir. Öntanımlı matris çarpımı budur; üreticinin
+// kitaplığı yalnız TR_vendor_matmul bloğunda kullanılır (gemm_lib.go).
 
 // gemmConfig matris çarpımı döşeme boyları (hepsi ikinin kuvveti).
 type gemmConfig struct {

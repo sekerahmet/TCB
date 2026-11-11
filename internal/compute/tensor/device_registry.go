@@ -194,6 +194,13 @@ type GemmSetter interface {
 	GemmSet(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage)
 }
 
+// VendorGemmer TR_vendor_matmul bloğundaki çarpımı (15.53b) üreticinin kitaplığına verebilen arka
+// uçtur: C (+)= op(A)·op(B), set doğruysa C'nin eski içeriği okunmaz. Uygulamayan arka uçta (CPU)
+// blok etkisizdir: çarpım Gemm ya da GemmSet'le yapılır.
+type VendorGemmer interface {
+	GemmVendor(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage, set bool)
+}
+
 // AttentionGradSetter AttentionGrad'ın taze (ilk) gradyanların üzerine yazan biçimini veren
 // arka uçların isteğe bağlı arayüzüdür: taze[i] doğruysa gq, gk, gv'nin i.'si sıfırlanmadan
 // ayrılmıştır ve üzerine yazılır, değilse eklenir.

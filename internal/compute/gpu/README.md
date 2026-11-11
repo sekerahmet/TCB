@@ -67,5 +67,6 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_attention_nan_test.go`: puanı NaN bir sorgu satırı bakmadığı anahtarlara NaN sızdırmaz (dikkat geri yönü, skaler ve tensör çekirdekli yol; dil tanımı 15.24)
 - `behavior_grad_parity_test.go`: gradyan kapısının GPU ayağı: başka testte GPU-CPU gradyan karşılaştırması olmayan türevli işlemler (tür dönüşümü, cihaz aktarımı, kopya, dış işlem)
 - `behavior_bits_test.go`: sonucun bellek hizasına ve SM sayısına bağlı olmaması (dil tanımı 15.22a): kayık görünümle her çekirdek ailesinde aynı bitler, SM 1 ve 128'lik benzeticide aynı bitler, döşemeli çarpımın K dolgusunun −0'ı koruması
+- `behavior_vendor_matmul_test.go`: `TR_vendor_matmul` bloğu (dil tanımı 15.53b): bloktaki çarpımların kitaplık girişine gitmesi, dışındakilerin gitmemesi, kapsamın aileleri, M = 1'in kendi çekirdekte kalması, geri yönün kaydedilen durumu kullanması, kitaplık yokken ve düşüşte birer kez uyarı, kurulumun bir kez ve kaydın havuzu dışında yapılması
 - `behavior_ptx_digest_test.go`: benzeticide derlenen her çekirdeğin PTX özetinin `testdata/ptx_ozet.txt` ile aynı olması (TestMain'den sonra)
 - `behavior_sim_instruction_coverage_test.go`: kernellerin ürettiği her PTX komut adının benzetici tarafından tanınması

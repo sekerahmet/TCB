@@ -97,6 +97,9 @@ func onCPU(ts []*tensor.Tensor) bool {
 
 // matMulOn a @ b'dir; iş büyükse ve CPU'daysa kilit bırakılarak.
 func matMulOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
+	if a.Device() != tensor.CPU && vendorMatmulOn(m) {
+		return tensor.MatMulVendor(a, b, outType) // TR_vendor_matmul bloğu (15.53b); işlemcide etkisiz
+	}
 	if m == nil || a.Device() != tensor.CPU || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {
 		return tensor.MatMulOut(a, b, outType)
 	}
