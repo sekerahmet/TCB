@@ -36,9 +36,9 @@ TR_var örnek_1 = model.TR_generate(başlangıç, 6, TR_temperature: 0.8, TR_top
 TR_var örnek_2 = model.TR_generate(başlangıç, 6, TR_temperature: 0.8, TR_top_k: 5, TR_seed: 3, TR_vocab_size: p.TR_vocab_size)
 TR_print("örnekleme:", örnek_1, "| aynı tohum aynı sonuç:", örnek_1 == örnek_2)
 
-# eos: bir parça kimliğidir; o parça üretilince dizide kalır ve üretim adet dolmadan durur.
+# eos: durma kimliklerinin listesidir; listedeki bir parça üretilince dizide kalır ve üretim adet dolmadan durur.
 TR_var ilk_üretilen = açgözlü[başlangıç.TR_length]
-TR_print("eos ile:", model.TR_generate(başlangıç, 6, TR_temperature: 0, TR_eos: ilk_üretilen))
+TR_print("eos ile:", model.TR_generate(başlangıç, 6, TR_temperature: 0, TR_eos: [ilk_üretilen]))
 
 # önbellek_çeşidi: üret, KV önbelleğiyle çalışır (başlangıç bir kez işlenir, sonra yalnızca yeni parça).
 # "sabit" (varsayılan) bir kez ayrılır ve yerine yazılır, "büyüyen" her adımda uzar, yok her adımda

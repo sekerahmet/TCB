@@ -1043,6 +1043,7 @@ const (
 	H5646 Code = 5646 // {fn}: tensör 2 boyutlu olmalıdır (her satır bir dizi), {dims} boyutlu verildi
 	H5647 Code = 5647 // {fn}: {id} kimliği {place, select, gap {sözlükte boş: sınırın içinde ama parçası yok} other {dağarcıkta yok}} (dağarcık boyutu {size}){place, select, gap {} other {. Kimlikler çıktısı dağarcıktan büyük bir modelin üretimiyse örneklemeyi dağarcığa sınırlayın: `model.{#generate}(başlangıç, adet, {#vocab_size}: p.{#tok_vocab_size})`}}
 	H5648 Code = 5648 // {@generate}: {@vocab_size} 1 ile modelin çıktı boyu ({out}) arasında olmalıdır, {given} verildi
+	H5650 Code = 5650 // GGUF dosyası parçalayıcı taşımıyor: hiçbir anahtarı {prefix|q} ile başlamıyor
 	H6001 Code = 6001 // {example} en az 1 parametre bekler
 	H6002 Code = 6002 // {example} en fazla 2 parametre alır, {given} verildi
 	H6006 Code = 6006 // tensör işlemi başarısız: {reason}
@@ -1599,6 +1600,13 @@ const (
 	H7153 Code = 7153 // {fn}: {path|q} {place}; TR bunu silmez
 	H7154 Code = 7154 // {fn}: {path|q} içindeki {open|q} bu programda bir {type} ile okunuyor; önce okuyucuyu kapatın (x.{close}()) ya da dosyayı sonuna kadar okuyun
 	H7155 Code = 7155 // {@pretrained_gguf}: dosyada {key|q} {value} yazıyor; bağlam uzunluğu pozitif olmazsa modelin konumu olmaz: dosya hatalı, modeli yeniden indirin
+	H7160 Code = 7160 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisinin tanımında olmayan {count, plural, one {anahtar} other {# anahtar}}: {keys}{file, select, empty {} other { ({file|q})}}; tanınmayan anahtar hesabı değiştirebilir, model okunmadan yüklenmez: modelin başka bir dönüştürmesini kullanın
+	H7161 Code = 7161 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {first|q} ile {second|q} aynı ayarın iki yazımı ama değerleri ayrı ({a} ve {b}); config.json'da yalnız birini bırakın
+	H7170 Code = 7170 // {@eos_tokens}: model bir sohbet ailesine bağlı değil: {reason, select, table {dosyanın ailesi sohbet tablosunda yok} marker {aileyi seçen `tokenizer_config.json` yok} name {ailenin ilk durma adı dağarcıkta yok} id {dosyanın bildirdiği durma kimliği ailenin listesinde yok} tokenizer {parçalayıcısı yüklenemedi, nedeni hatanın nedenindedir} none {model hazır bir dosyadan yüklenmedi} other {nedeni bilinmiyor}}{family, select, empty {} other { ({family|q} ailesi)}}{detail, select, empty {} other {: {detail}}}{families, select, empty {} other { (tablodaki aileler: {families})}}; durma listesi yok, durma kimliklerini açıkça yazın: `{#eos}: [...]`
+	H7171 Code = 7171 // {@pretrained_model}: {key|q} = {value} desteklenmiyor: TR bu ayarı uygulamaz, bu model TR'de yüklenmez; config'i değiştirmek modeli değiştirir
+	H7172 Code = 7172 // {@generate}: {@eos} durma kimliklerinin listesidir, tek sayı ({value}) verildi: `{#eos}: [{value}]` yazın
+	H7173 Code = 7173 // {@generate}: {@eos}'a bir fonksiyon verildi, durma kimliklerinin listesi değil: metodu parantezle çağırın, `{#eos}: model.{#eos_tokens}()`
+	H7174 Code = 7174 // {@generate}: {@eos} durma kimliklerinin listesidir; {index, plural, =0 {liste değil, {type} verildi} other {#. öğe {type}, Tam değil}}: durma kimliği `p.{#token_id}("...")` ile alınır, dağarcıkta olmayan ad `{#none}` verir; ya da modelin listesi: `{#eos}: model.{#eos_tokens}()`
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi

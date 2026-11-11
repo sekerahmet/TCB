@@ -301,9 +301,18 @@ func TestLoadTokenizerFromGGUF(t *testing.T) {
 	}
 	m, err := run(t, `TR_var p = TR_load_tokenizer("`+file("smollm")+`")
 TR_var k = p.TR_encode("ab")
-TR_var n = p.TR_vocab_size`)
+TR_var n = p.TR_vocab_size
+TR_var etiket = p.TR_pretokenizer_tag
+TR_var durma = p.TR_declared_eos_tokens`)
 	if err != nil {
 		t.Fatal(err)
+	}
+	// 16.1: GGUF'ta etiket dosyanınkidir; dosya durma kimliği bildirmiyorsa üye yoktur (boş liste değil).
+	if got := al(t, m, "etiket").Inspect(); got != "smollm" {
+		t.Errorf("etiket %s", got)
+	}
+	if got := al(t, m, "durma"); got != interp.Null {
+		t.Errorf("bildirilen durma kimlikleri %s; yok olmalı", got.Inspect())
 	}
 	if got := al(t, m, "n").Inspect(); got != "94" {
 		t.Errorf("dağarcık %s", got)
@@ -311,8 +320,33 @@ TR_var n = p.TR_vocab_size`)
 	if got := al(t, m, "k").Inspect(); got != "[64, 65]" {
 		t.Errorf("kimlikler %s", got)
 	}
-	if _, err := run(t, `TR_load_tokenizer("`+file("gpt-4o")+`")`); !messages.Has(err, messages.H6679) {
-		t.Errorf("bilinmeyen etiket: %v", err)
+	// Tanınmayan etiket ve parçalayıcısız GGUF H5620'nin içindedir: ileti işlevin adını ve dosyanın
+	// yolunu yazar (DENETİM 453 N2). Yalnız dosya okuma hatası ayrıdır: H5620 değil, işlevin adıyla
+	// (H2000) H2107; içinde H5620 yoktur (15.55).
+	bare := filepath.Join(t.TempDir(), "yalın.gguf")
+	if err := os.WriteFile(bare, (&gguftest.Builder{}).KV("general.architecture", "llama").Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	missing := filepath.Join(t.TempDir(), "yok.gguf")
+	for _, c := range []struct {
+		name, path string
+		top, inner messages.Code
+	}{
+		{"bilinmeyen etiket", file("gpt-4o"), messages.H5620, messages.H6679},
+		{"parçalayıcısız", filepath.ToSlash(bare), messages.H5620, messages.H5650},
+		{"okunamayan dosya", filepath.ToSlash(missing), messages.H2000, messages.H2107},
+	} {
+		_, err := run(t, `TR_load_tokenizer("`+c.path+`")`)
+		top, ok := messages.As(err)
+		if !ok || top.Code != c.top || !messages.Has(err, c.inner) || (c.top == messages.H2000 && messages.Has(err, messages.H5620)) {
+			t.Errorf("%s: üst kod %v, içinde %v beklendi: %v", c.name, c.top, c.inner, err)
+			continue
+		}
+		text := err.Error()
+		named := strings.Contains(text, "parçalayıcı_yükle") || strings.Contains(text, "load_tokenizer")
+		if c.top == messages.H5620 && (!named || !strings.Contains(text, filepath.Base(c.path))) {
+			t.Errorf("%s: ileti işlevin adını ve yolu yazmıyor: %v", c.name, err)
+		}
 	}
 }
 

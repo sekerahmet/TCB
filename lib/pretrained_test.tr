@@ -66,3 +66,97 @@ TR_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devri
     TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"model.layers.0.mlp.gate_proj.bias": w}, {}) })
     TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"vision.x": w}, {}) })
 }
+
+# kur_iletisi hazır_model_kur'un hata iletisini verir ("" hata yoksa).
+TR_func kur_iletisi(a: TR_JSON) -> TR_String {
+    TR_try { TR_build_pretrained_model(a) } TR_catch e { TR_return TR_String(e) }
+    TR_return ""
+}
+
+TR_test "yapı tanımı: tanımda olmayan config anahtarı yükleme hatasıdır, ileti hepsini sayar (H7160)" {
+    TR_var a = qwen3_ayarı()
+    a["yeni_anahtar"] = 1
+    a["rope_parameters"] = {"rope_theta": 1000000.0, "rope_type": "default", "beta_fast": 32}
+    TR_assert_equal("H7160", TR_error_code { TR_build_pretrained_model(a) })
+    TR_var m = kur_iletisi(TR_JSON(a))
+    TR_assert(m.TR_contains("yeni_anahtar") TR_and m.TR_contains("rope_parameters.beta_fast") TR_and m.TR_contains("qwen3"), m)
+    # Bir mimarinin anahtarı öbüründe bilinmez: sliding_window ve layer_types qwen3'ündür.
+    TR_var l = {"model_type": "llama", "vocab_size": 16, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 1,
+        "num_attention_heads": 2, "rope_theta": 100000.0, "sliding_window": 4096}
+    TR_assert_equal("H7160", TR_error_code { TR_build_pretrained_model(l) })
+    # Kapının sırası: mimari önce (H6940), bilinmeyen anahtar değer kapılarından önce (H6941).
+    a["model_type"] = "gpt2"
+    TR_assert_equal("H6940", TR_error_code { TR_build_pretrained_model(a) })
+    TR_var b = qwen3_ayarı()
+    b["yeni_anahtar"] = 1
+    b["attention_bias"] = TR_true
+    TR_assert_equal("H7160", TR_error_code { TR_build_pretrained_model(b) })
+    # Bilinen ama boş (JSON null) anahtar geçer: Qwen3'ün config'i rope_scaling: null yazar.
+    TR_var c = qwen3_ayarı()
+    c["rope_scaling"] = TR_none
+    TR_assert_equal(1, TR_build_pretrained_model(c).TR_blocks.TR_length)
+}
+
+TR_test "yapı tanımı: bir ayarın iki yazımı ayrı değer verirse yükleme hatasıdır (H7161); aynı değer geçer" {
+    TR_var a = qwen3_ayarı()
+    a["rope_theta"] = 1000000.0
+    TR_assert_equal(1000000.0, TR_build_pretrained_model(a).TR_config["rope_tabanı"])
+    a["rope_theta"] = 10000.0
+    TR_assert_equal("H7161", TR_error_code { TR_build_pretrained_model(a) })
+    TR_var m = kur_iletisi(TR_JSON(a))
+    TR_assert(m.TR_contains("rope_parameters.rope_theta") TR_and m.TR_contains("10000"), m)
+}
+
+TR_test "yapı tanımı: değeri denetlenen anahtarlar (H7171, layer_types H6944); varsayılan değerler geçer" {
+    TR_var a = qwen3_ayarı()
+    a["attention_dropout"] = 0.0
+    a["pretraining_tp"] = 1
+    a["rope_interleaved"] = TR_false
+    a["layer_types"] = ["full_attention"]
+    TR_assert_equal(1, TR_build_pretrained_model(a).TR_blocks.TR_length)
+    TR_for k, v TR_in {"attention_dropout": 0.1, "pretraining_tp": 2, "rope_interleaved": TR_true} {
+        TR_var b = qwen3_ayarı()
+        b[k] = v
+        TR_assert_equal("H7171", TR_error_code { TR_build_pretrained_model(b) }, k)
+        TR_assert_equal("Message(\"H7171\", \"\(k)\", \"\(v)\")", kur_iletisi(TR_JSON(b)), k)
+    }
+    a["layer_types"] = ["sliding_attention"]
+    TR_assert_equal("H6944", TR_error_code { TR_build_pretrained_model(a) })
+}
+
+# k6_logit hf_tiny'nin ağırlıklarıyla ayardan kurulan modelin sabit kimliklerdeki logitleri.
+TR_func k6_logit(a: TR_JSON, w: TR_Dict[TR_String, TR_Tensor]) -> TR_List[TR_List[TR_Float]] {
+    TR_var m = TR_build_pretrained_model(a)
+    TR_load_parameters(m, TR_map_hugging_face(w, a))
+    TR_return m.TR_forward(TR_Tensor([[3, 1, 4, 1, 5, 9, 2, 6]]))[0].TR_tolist
+}
+
+TR_test "yapı tanımı: etkisiz her anahtarın değeri değişince logitler bit bit aynıdır (K6)" {
+    TR_var kök = TR_Path("..", "tests", "data", "hf_tiny")
+    TR_var ayar = TR_json_parse(TR_read_file(TR_Path(kök, "config.json")))
+    TR_var w = TR_load_tensors(TR_Path(kök, "model.safetensors"))
+    TR_var taban = k6_logit(ayar, w)
+    TR_var değişen: TR_Dict[TR_String, TR_JSON] = {"architectures": ["BaşkaModel"], "_name_or_path": "x", "torch_dtype": "float32", "dtype": "bfloat16",
+        "transformers_version": "0.0.1", "use_cache": TR_false, "initializer_range": 0.5, "pad_token_id": 0, "bos_token_id": 7,
+        "is_llama_config": TR_true, "unsloth_fixed": TR_true, "transformers.js_config": {"kv_cache_dtype": "q4"}, "eos_token_id": [2, 9]}
+    TR_for k, v TR_in değişen {
+        TR_var a = TR_Dict(ayar)
+        a[k] = v
+        TR_assert_equal(taban, k6_logit(TR_JSON(a), w), k)
+    }
+    # qwen3'ün iki etkisiz anahtarı: use_sliding_window yanlışken okunmaz. Aynı ağırlıklar qwen3 olarak,
+    # q ve k normlarıyla.
+    TR_var q = TR_Dict(ayar)
+    q["model_type"] = TR_JSON("qwen3")
+    TR_var qw: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for ad, t TR_in w { qw[ad] = t }
+    qw["model.layers.0.self_attn.q_norm.weight"] = TR_Tensor([1.0, 0.5, 2.0, 1.5])
+    qw["model.layers.0.self_attn.k_norm.weight"] = TR_Tensor([0.5, 1.0, 1.5, 2.0])
+    TR_var qtaban = k6_logit(TR_JSON(q), qw)
+    TR_var qdeğişen: TR_Dict[TR_String, TR_JSON] = {"sliding_window": TR_JSON(4), "max_window_layers": TR_JSON(1)}
+    TR_for k, v TR_in qdeğişen {
+        TR_var a = TR_Dict(TR_JSON(q))
+        a[k] = v
+        TR_assert_equal(qtaban, k6_logit(TR_JSON(a), qw), k)
+    }
+}

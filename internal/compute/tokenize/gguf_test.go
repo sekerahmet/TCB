@@ -186,7 +186,8 @@ func TestGGUFRejects(t *testing.T) {
 		b    *gguftest.Builder
 		code messages.Code
 	}{
-		{"model yok", bare(), messages.H6681},
+		{"parçalayıcı yok", bare(), messages.H5650},
+		{"model yok", bare().KV(ggufKeyPre, "qwen2"), messages.H6681},
 		{"başka model", bare().KV(ggufKeyModel, "llama"), messages.H6678},
 		{"etiket yok", bare().KV(ggufKeyModel, "gpt2"), messages.H6681},
 		{"bilinmeyen etiket", bare().KV(ggufKeyModel, "gpt2").KV(ggufKeyPre, "deepseek-llm"), messages.H6679},
@@ -269,6 +270,60 @@ func TestLoadRecognisesGGUFFromContent(t *testing.T) {
 	}
 	if p.VocabSize() != 256 {
 		t.Errorf("dağarcık %d", p.VocabSize())
+	}
+}
+
+// TestGGUFPretokenizerTag: GGUF'tan yüklenen parçalayıcı dosyanın etiketini taşır; GGUF'ta her
+// zaman vardır, `pre`'siz dosya yüklenmez (TestGGUFRejects, "etiket yok": H6681). tokenizer.json'da
+// yokluğu TR testinde (tests/veri_parcalayici_test.tr).
+func TestGGUFPretokenizerTag(t *testing.T) {
+	for _, v := range []ggufVocab{{arch: "qwen3", pre: "qwen2"}, {arch: "llama", pre: "llama-bpe"}, {arch: "llama", pre: "smollm"}} {
+		if tag, ok := mustGGUF(t, v).PretokenizerTag(); !ok || tag != v.pre {
+			t.Errorf("%s: etiket %q, %v", v.pre, tag, ok)
+		}
+	}
+}
+
+// TestGGUFDeclaredEosTokens: dosyanın bildirdiği durma kimlikleri eos, eot, eom sırasıyla ve
+// tekrarsızdır; hiçbiri yoksa yoktur, boş liste dönmez. eot ve eom dağarcıkla denetlenmez:
+// dağarcık dışı kimlik hata değildir (15.55, durma kimlikleri).
+func TestGGUFDeclaredEosTokens(t *testing.T) {
+	base := ggufVocab{arch: "llama", pre: "llama-bpe"}
+	eot, eom := "tokenizer.ggml.eot_token_id", "tokenizer.ggml.eom_token_id"
+	cases := []struct {
+		name string
+		b    *gguftest.Builder
+		want []int32
+	}{
+		{"yalnız eos", base.builder(), []int32{2}},
+		{"üçü sırayla", base.builder().KV(eom, uint32(4)).KV(eot, uint32(3)), []int32{2, 3, 4}},
+		{"tekrar atılır", base.builder().KV(eot, uint32(2)).KV(eom, uint32(5)), []int32{2, 5}},
+		{"dağarcık dışı eom", base.builder().KV(eom, uint32(999999)), []int32{2, 999999}},
+		{"hiçbiri", (&gguftest.Builder{}).KV("general.architecture", "llama").KV(ggufKeyModel, "gpt2").KV(ggufKeyPre, "smollm").
+			KV(ggufKeyTokens, byteTokens()).KV(ggufKeyTypes, make([]int32, 256)).KV(ggufKeyMerges, []string{}), nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p, err := parseGGUF(t, c.b)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, ok, err := p.DeclaredEOSTokens()
+			if err != nil || ok != (c.want != nil) || !slices.Equal(got, c.want) {
+				t.Errorf("%v, %v, %v; %v olmalı", got, ok, err, c.want)
+			}
+		})
+	}
+	// Yanlış türdeki eot parçalayıcıyı kapatmaz (bu dilimden önce okunmuyordu); hata yalnız
+	// bildirilen kimliklerde çıkar (DENETİM 456 taraması).
+	for _, v := range []any{"3", int32(3)} {
+		p, err := parseGGUF(t, base.builder().KV(eot, v))
+		if err != nil {
+			t.Fatalf("%T kimlik: parçalayıcı yüklenmedi: %v", v, err)
+		}
+		if _, _, err := p.DeclaredEOSTokens(); !messages.Has(err, messages.H6681) {
+			t.Errorf("%T kimlik: %v; H6681 olmalı", v, err)
+		}
 	}
 }
 

@@ -574,8 +574,19 @@ TR_test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet ka
     # beklenen: eos'un ilk üretildiği konuma kadar (ikisi dahil)
     TR_var j = 1
     TR_for dizi[j] != eos { j += 1 }
-    TR_assert_equal(dizi[0..j + 1], m.TR_generate([1], 6, TR_temperature: 0, TR_eos: eos))
-    TR_assert_equal(dizi, m.TR_generate([1], 6, TR_temperature: 0, TR_eos: -5)) # hiç örneklenmeyen kimlik: durmaz
+    TR_assert_equal(dizi[0..j + 1], m.TR_generate([1], 6, TR_temperature: 0, TR_eos: [eos]))
+    TR_assert_equal(dizi, m.TR_generate([1], 6, TR_temperature: 0, TR_eos: [-5])) # hiç örneklenmeyen kimlik: durmaz
+}
+
+TR_test "GPT.üret: eos bir listedir; listedeki herhangi bir kimlikte durur, boş liste durmaz, tek sayı adıyla hatadır (H7172)" {
+    TR_var m = TR_GPT(6, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 2)
+    TR_var dizi = m.TR_generate([1], 6, TR_temperature: 0)
+    # Listenin ikinci kimliği ilk görülendir: üretim onda durur (Llama 3'ün dönüş sonu parçaları gibi).
+    TR_var ilk = dizi[1]
+    TR_assert_equal([1, ilk], m.TR_generate([1], 6, TR_temperature: 0, TR_eos: [-5, ilk]))
+    TR_assert_equal(dizi, m.TR_generate([1], 6, TR_temperature: 0, TR_eos: []))
+    TR_assert_equal("H7172", TR_error_code { m.TR_generate([1], 2, TR_temperature: 0, TR_eos: 4) })
+    TR_assert_equal(3, m.TR_generate([1], 2, TR_temperature: 0, TR_eos: [4]).TR_length) # iletinin önerdiği yazım çalışır
 }
 
 TR_test "NedenselDikkat: bakış_boyutu gizli boyuttan bağımsızdır (Hugging Face head_dim); verilmezse boyut / bakış_sayısı" {

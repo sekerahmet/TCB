@@ -598,8 +598,9 @@ TR_struct TR_GPT {
         TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
-    # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
-    # parça kimliği) o parça örneklenince eklenir ve üretim durur (adetten önce). Model
+    # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos durma kimliklerinin
+    # listesidir (varsayılan boş: durmaz): örneklenen parça listedeyse eklenir ve üretim durur
+    # (adetten önce); birden çok kimlik dönüş sonu parçalarıdır (Llama 3'te üç). Model
     # bağlamdan uzun diziyi görmez: son `bağlam` parça kullanılır. önbellek_çeşidi: "sabit"
     # (varsayılan) ya da "büyüyen" KV önbelleği; ilk adım başlangıcı bir kez işler, sonraki
     # adımlar yalnızca yeni parçayı. Dizi bağlamı doldurunca son `bağlam` parça yeniden işlenir
@@ -612,9 +613,16 @@ TR_struct TR_GPT {
     # dağarcık_boyutu verilirse (parçalayıcının p.dağarcık_boyutu'su) örnekleme, sıcaklık 0 ve en_iyi_k
     # dahil, logitlerin ilk dağarcık_boyutu sütunundandır: çıktısı dolgulu model dağarcık dışı kimlik
     # üretmez (16.3). yok ise bütün çıktıdan; unutulursa çöz'ün dağarcık dışı kimlik hatası yakalar.
-    TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_Int? = TR_none, TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true, TR_vocab_size: TR_Int? = TR_none) -> TR_List[TR_Int] {
+    TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_List[TR_Int] = [], TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true, TR_vocab_size: TR_Int? = TR_none) -> TR_List[TR_Int] {
         TR_var çıkış = TR_self.TR_config["dağarcık"]
         TR_assert(TR_vocab_size == TR_none TR_or (TR_vocab_size >= 1 TR_and TR_vocab_size <= çıkış), TR_Message("H5648", TR_vocab_size, çıkış))
+        # Adlı argümanın tipi bugün denetlenmiyor (docs/status.md, 6.5): tek sayı burada adıyla durur.
+        TR_if TR_Type(TR_eos) == TR_Int { TR_throw TR_Message("H7172", "\(TR_eos)") }
+        TR_if TR_Type(TR_eos) == TR_Function { TR_throw TR_Message("H7173") }
+        TR_if TR_Type(TR_eos) != TR_List { TR_throw TR_Message("H7174", 0, TR_Type(TR_eos)) }
+        TR_for i TR_in 0..TR_eos.TR_length {
+            TR_if TR_Type(TR_eos[i]) != TR_Int { TR_throw TR_Message("H7174", i + 1, TR_Type(TR_eos[i])) }
+        }
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
         TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none
@@ -652,9 +660,28 @@ TR_struct TR_GPT {
                 TR_var t = TR_if TR_seed == TR_none { TR_none } TR_else { TR_seed + i }
                 TR_var yeni = TR_sample(son, TR_temperature: TR_temperature, TR_top_k: TR_top_k, TR_seed: t).TR_tolist
                 kimlikler.TR_append(yeni)
-                TR_if TR_eos != TR_none TR_and yeni == TR_eos { TR_break }
+                TR_if TR_eos.TR_contains(yeni) { TR_break }
             }
         }
         TR_return kimlikler
+    }
+
+    # durma_parçaları modelin sohbet ailesinin durma kimlikleridir (15.55): hazır_gguf ve hazır_model
+    # onları sohbet tanımından kurar. Ailesiz modelde (aile bulunmayan ya da aileyle uyuşmayan dosya,
+    # ya da elle kurulan GPT) çağrı H7170'tir: boş liste sessizce sınıra kadar üretirdi; kimlikler
+    # TR_eos: [...] ile yazılır. İleti modelin neden ailesiz kaldığını söyler (hazır_* yazar).
+    TR_func TR_eos_tokens() -> TR_List[TR_Int] {
+        TR_if TR_not TR_self.TR_config.TR_contains("durma") {
+            TR_var c = TR_self.TR_config
+            TR_var aileler = TR_if c.TR_contains("aileler") { TR_String(c["aileler"]) } TR_else { "" }
+            TR_var neden = TR_if c.TR_contains("ailesiz") { TR_String(c["ailesiz"]) } TR_else { "none" }
+            TR_var aile = TR_if c.TR_contains("aile") { TR_String(c["aile"]) } TR_else { "" }
+            TR_var ayrıntı = TR_if c.TR_contains("ayrıntı") { TR_String(c["ayrıntı"]) } TR_else { "" }
+            TR_var ileti = TR_Message("H7170", aileler, neden, aile, ayrıntı)
+            # Parçalayıcının ya da aile dosyasının hatası H7170'in nedenidir (TCB 21:51, 8.2).
+            TR_if c.TR_contains("ailesiz_hata") { TR_throw TR_Error(ileti, TR_cause: c["ailesiz_hata"]) }
+            TR_throw ileti
+        }
+        TR_return [TR_Int(k) TR_for k TR_in TR_self.TR_config["durma"]]
     }
 }

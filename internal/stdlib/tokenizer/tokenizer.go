@@ -85,9 +85,11 @@ const (
 	memberBatchDecode = codes.MemBatchDecode
 	memberVocabSize   = codes.MemVocabSize
 	memberTokenID     = codes.MemTokenId
+	memberPreTag      = codes.MemPretokenizerTag
+	memberDeclaredEOS = codes.MemDeclaredEosTokens
 )
 
-var members = []codes.Code{memberEncode, memberDecode, memberBatchDecode, memberVocabSize, memberTokenID}
+var members = []codes.Code{memberEncode, memberDecode, memberBatchDecode, memberVocabSize, memberTokenID, memberPreTag, memberDeclaredEOS}
 
 func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
@@ -101,6 +103,20 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 		return interp.NewInt(int64(n.p.VocabSize())), nil
 	case memberTokenID:
 		return bind.CodeMethod(memberTokenID, false, n.tokenID), nil
+	case memberPreTag: // 16.1: yalnız GGUF'ta var
+		if tag, ok := n.p.PretokenizerTag(); ok {
+			return &interp.StringVal{Val: tag}, nil
+		}
+		return interp.Null, nil
+	case memberDeclaredEOS:
+		ids, ok, err := n.p.DeclaredEOSTokens()
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return bind.IntList(ids), nil
+		}
+		return interp.Null, nil
 	}
 	return nil, bind.MemberError(interp.ValueType(TypeName), prop, members)
 }

@@ -267,6 +267,14 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H7162": {
+  "commit": "0c7bcc89",
+  "reason": "deleted: lib/pretrained: a file that does not match its chat family (the family's first stop name not in the vocabulary, or a declared stop id not in the family's list) loads family-less; H7170 gives the reason (DENETİM 454 Ş1)"
+ },
+ "H7163": {
+  "commit": "0c7bcc89",
+  "reason": "deleted: lib/pretrained: a file that does not match its chat family (the family's first stop name not in the vocabulary, or a declared stop id not in the family's list) loads family-less; H7170 gives the reason (DENETİM 454 Ş1)"
+ },
  "H7222": {
   "commit": "claude/katman2-deger-12bdf3",
   "reason": "deleted: process: an option may be named like a dict member; the settings are read with brackets (3.7)"

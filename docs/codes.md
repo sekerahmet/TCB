@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 747 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 167 fonksiyon, 11 sabit, 92 metot, 130 özellik, 193 adlı argüman.
+Toplam 750 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 167 fonksiyon, 11 sabit, 93 metot, 132 özellik, 193 adlı argüman.
 
 ## İçindekiler
 
@@ -1291,7 +1291,7 @@ en: var p = load_tokenizer("tests/data/tokenizer.json"); print(Type(p) == Tokeni
 tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(Tip(p) == Parçalayıcı)
 ```
 
-Üyeleri: `.TR_batch_decode(...)`, `.TR_decode(...)`, `.TR_encode(...)`, `.TR_token_id(...)`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
+Üyeleri: `.TR_batch_decode(...)`, `.TR_declared_eos_tokens`, `.TR_decode(...)`, `.TR_encode(...)`, `.TR_pretokenizer_tag`, `.TR_token_id(...)`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
 
 #### `TR_ToolCall` (`TR_type_ToolCall`, `AraçÇağrısı`)
 
@@ -6250,6 +6250,25 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 
 
 
+#### `.TR_declared_eos_tokens` (`TR_mem_declared_eos_tokens`, `bildirilen_durma_parçaları`)
+
+    Parçalayıcı.bildirilen_durma_parçaları → Liste | YokTipi
+
+GGUF'tan yüklenen parçalayıcıda dosyanın bildirdiği durma kimliklerini (eos, eot, eom; bu sırayla, tekrarsız) Liste olarak verir; dosya hiçbirini bildirmiyorsa ya da parçalayıcı tokenizer.json'dan yüklendiyse yok döner. Parantezsiz yazılan bir özelliktir.
+
+```tr
+TR_print(TR_load_tokenizer("tests/data/tokenizer.json").TR_declared_eos_tokens == TR_none)
+```
+
+Görünümü:
+
+```text
+en: print(load_tokenizer("tests/data/tokenizer.json").declared_eos_tokens == none)
+tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").bildirilen_durma_parçaları == yok)
+```
+
+İlişkili: `.TR_pretokenizer_tag`
+
 #### `.TR_decode(...)` (`TR_mem_decode`, `çöz`)
 
     Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin
@@ -6392,6 +6411,10 @@ tr: yazdır("rapor.tr".biter(".tr"))
 ```
 
 İlişkili: `.TR_starts_with(...)`, `.TR_contains(...)`
+
+#### `.TR_eos_tokens(...)` (`TR_mem_eos_tokens`, `durma_parçaları`)
+
+
 
 #### `.TR_eps` (`TR_mem_eps`, `epsilon`)
 
@@ -7229,6 +7252,25 @@ tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; deği�
 #### `.TR_post_attention_norm` (`TR_mem_post_attention_norm`, `norm2`)
 
 
+
+#### `.TR_pretokenizer_tag` (`TR_mem_pretokenizer_tag`, `ön_bölme_etiketi`)
+
+    Parçalayıcı.ön_bölme_etiketi → Metin | YokTipi
+
+GGUF'tan yüklenen parçalayıcıda dosyanın ön bölme etiketini (tokenizer.ggml.pre) Metin olarak verir; parçalayıcı tokenizer.json'dan yüklendiyse yok döner. Parantezsiz yazılan bir özelliktir.
+
+```tr
+TR_print(TR_load_tokenizer("tests/data/tokenizer.json").TR_pretokenizer_tag == TR_none)
+```
+
+Görünümü:
+
+```text
+en: print(load_tokenizer("tests/data/tokenizer.json").pretokenizer_tag == none)
+tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").ön_bölme_etiketi == yok)
+```
+
+İlişkili: `.TR_declared_eos_tokens`
 
 #### `.TR_probability(...)` (`TR_mem_probability`, `olasılık`)
 
