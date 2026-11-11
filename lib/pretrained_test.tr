@@ -124,6 +124,45 @@ TR_test "yapı tanımı: değeri denetlenen anahtarlar (H7171, layer_types H6944
     TR_assert_equal("H6944", TR_error_code { TR_build_pretrained_model(a) })
 }
 
+# tür_sına hazır_model_kur'un H7175'ini, iletinin anahtarını ve iki türünü iki dilde sınar; sözlükten
+# kurulan modelin dosyası yoktur, ileti onu yazmaz.
+TR_func tür_sına(a: TR_JSON, anahtar: TR_String, türler: TR_List[TR_String]) {
+    TR_var r = ["geçti", "", ""]
+    TR_try { TR_build_pretrained_model(a) } TR_catch e { r = [TR_error_code { TR_throw e }, e.TR_text("tr"), e.TR_text("en")] }
+    TR_assert_equal("H7175", r[0], anahtar)
+    TR_var tr = "\"\(anahtar)\" anahtarının değerinin türü \(türler[0]); \(türler[1]) olmalı: TR değeri çevirmez, config'de \(türler[1]) olarak yazın"
+    TR_assert(r[1].TR_ends_with(tr), r[1])
+    TR_var en = "the value of \"\(anahtar)\" has type \(türler[2]), the key needs type \(türler[3]): TR does not convert values, write it with type \(türler[3]) in the config"
+    TR_assert(r[2].TR_ends_with(en), r[2])
+}
+
+TR_test "yapı tanımı: değer beklenen JSON türünde değilse yükleme hatasıdır, ileti anahtarı ve iki türü söyler; TR değeri çevirmez (H7175)" {
+    TR_var türler = {"attention_dropout": ["Metin", "Ondalık", "String", "Float"], "pretraining_tp": ["Ondalık", "Tam", "Float", "Int"],
+        "rope_interleaved": ["Metin", "Mantık", "String", "Bool"], "rope_parameters": ["Metin", "Sözlük", "String", "Dict"],
+        "layer_types": ["Metin", "Liste", "String", "List"], "rope_theta": ["Metin", "Ondalık", "String", "Float"]}
+    TR_var yanlış = {"attention_dropout": "0", "pretraining_tp": 1.5, "rope_interleaved": "false", "rope_parameters": "default",
+        "layer_types": "full_attention", "rope_theta": "1000000"}
+    TR_for k, v TR_in yanlış {
+        TR_var b = qwen3_ayarı()
+        b[k] = v
+        tür_sına(TR_JSON(b), k, türler[k])
+    }
+    TR_var c = qwen3_ayarı()
+    c["layer_types"] = ["full_attention", 1]
+    tür_sına(TR_JSON(c), "layer_types[1]", ["Tam", "Metin", "Int", "String"])
+    TR_var d = qwen3_ayarı()
+    d["rope_theta"] = 1000000.0
+    d["rope_parameters"] = {"rope_theta": "1000000", "rope_type": "default"}
+    tür_sına(TR_JSON(d), "rope_parameters.rope_theta", ["Metin", "Ondalık", "String", "Float"])
+    # Doğru türdeki değerler geçer; JSON'un tam sayısı ondalık yerinde de doğru türdür (config'ler 0 yazar).
+    TR_var g = qwen3_ayarı()
+    g["attention_dropout"] = 0
+    g["pretraining_tp"] = 1
+    g["rope_interleaved"] = TR_false
+    g["layer_types"] = ["full_attention"]
+    TR_assert_equal(1, TR_build_pretrained_model(g).TR_blocks.TR_length)
+}
+
 # k6_logit hf_tiny'nin ağırlıklarıyla ayardan kurulan modelin sabit kimliklerdeki logitleri.
 TR_func k6_logit(a: TR_JSON, w: TR_Dict[TR_String, TR_Tensor]) -> TR_List[TR_List[TR_Float]] {
     TR_var m = TR_build_pretrained_model(a)
