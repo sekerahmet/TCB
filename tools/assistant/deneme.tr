@@ -6,7 +6,7 @@
 TR_import "zincir"
 
 TR_const _SAAT_FARKI_SN = 10800 # TSS, UTC+3
-TR_const _DENEME_BAŞLIĞI = ["kip", "dil_modeli", "whisper", "vad", "ses_modeli", "en_çok_tur", "ekran"]
+TR_const _DENEME_BAŞLIĞI = ["kip", "dil_modeli", "whisper", "vad", "ses_modeli", "en_çok_tur", "ekran", "nicemli_etkinleştirme"]
 TR_const _DENEME_SÜRELERİ = ["bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms"]
 # Eşitlenen bulut klasörlerinin adları, küçük harfle: OneDrive, Google Drive (İngilizce ve Türkçe adı, düz ve kıvrık
 # kesmeyle), Dropbox, iCloud Drive.

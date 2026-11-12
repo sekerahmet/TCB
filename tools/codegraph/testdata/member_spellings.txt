@@ -1032,7 +1032,6 @@ k2.TR_tolist	ok	0	name:TR_mem_tolist
 k_ham.TR_reshape	ok	0	name:TR_mem_reshape
 ka.TR_tolist	ok	0	name:TR_mem_tolist
 kalan.TR_append	ok	0	name:TR_mem_append
-kalan.TR_length	ok	0	name:TR_mem_length
 kalıcı.TR_next	ok	0	name:TR_mem_next
 kalıntı.TR_tolist	ok	0	name:TR_mem_tolist
 kartta.TR_to_device	ok	0	name:TR_mem_to_device

@@ -32,7 +32,7 @@ TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her 
     TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "deneme"))
     TR_var d = Deneme(klasör: klasör, başı: 1000)
     d.başla(deneme_başlığı({"kip": "canlı", "dil_modeli": "C:/modeller/Qwen3-4B-Q4_K_M.gguf", "ekran": "8123",
-        "belirteç": "gizli-belirtec-k396", "belirteç_dosyası": "C:/kullanici/belirtec-dosyasi.txt"}))
+        "nicemli_etkinleştirme": "true", "belirteç": "gizli-belirtec-k396", "belirteç_dosyası": "C:/kullanici/belirtec-dosyasi.txt"}))
     # Sesli tur: sentetik kesit (0,5 sn), sözün sonu 608 ms önce, 40 ms geç okundu.
     TR_var t = Tur(sıra: 1, söz_ms: 500, geride_ms: 40)
     t.yazı_ms = 900
@@ -53,6 +53,7 @@ TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her 
     TR_var satırlar = [TR_json_parse(s) TR_for s TR_in TR_read_file(TR_Path(klasör, "turlar.jsonl")).TR_lines() TR_if s != ""]
     TR_assert_equal(3, satırlar.TR_length)
     TR_assert_equal("Qwen3-4B-Q4_K_M.gguf", TR_String(satırlar[0]["dil_modeli"]))
+    TR_assert_equal("true", TR_String(satırlar[0]["nicemli_etkinleştirme"]))
     TR_var s1 = satırlar[1]
     TR_for a TR_in ["kayit", "tur", "saat", "kaynak", "son", "kesit_basi_ms", "kesit_sonu_ms", "soz_ms", "wav", "duyulan", "giden",
             "cevap", "dusunce", "seslendirilen", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn"] {
@@ -107,6 +108,7 @@ TR_test "kaydın kendi yazma hatası turu bozmaz: fırlatmaz, DENEME HATASI yaza
     TR_var klasör = TR_String(TR_Path(kök, "d"))
     TR_var d = Deneme(klasör: klasör, başı: 0)
     d.başla(deneme_başlığı({"kip": "canlı"}))
+    TR_assert(TR_not TR_json_string(deneme_başlığı({"kip": "canlı"})).TR_contains("nicemli_etkinleştirme")) # verilmeyen seçenek başlığa girmez
     # Klasörün yerinde bir dosya: kayıt yazılamaz (klasör silindi ya da disk doldu gibi).
     TR_remove(klasör, TR_recursive: TR_true)
     TR_write_file(TR_Path(kök, "d"), "dosya")

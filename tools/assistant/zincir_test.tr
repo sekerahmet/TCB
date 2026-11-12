@@ -166,6 +166,84 @@ TR_test "ısıtmanın hatası programı durdurmaz: önbellek boşalır, ilk tur 
     TR_assert_equal(0, t.önek)
 }
 
+# bloklar: model_çağrısı'nın içinde blokların durumu: [nicemli etkinleştirme, üreticinin kitaplığı], 1.0 açık.
+TR_func bloklar() -> TR_Tensor {
+    TR_var n = TR_if TR_quantized_activations_on() { 1.0 } TR_else { 0.0 }
+    TR_var v = TR_if TR_vendor_matmul_on() { 1.0 } TR_else { 0.0 }
+    TR_return TR_Tensor([n, v])
+}
+
+TR_test "model_çağrısı üreticinin kitaplığının bloğundadır; nicemli açıkken nicemli etkinleştirme bloğunda da" {
+    TR_var z = küçük_zincir(256, TR_false)
+    TR_assert_equal([0.0, 1.0], model_çağrısı(z) { bloklar() }.TR_tolist)
+    z.nicemli = TR_true
+    TR_assert_equal([1.0, 1.0], model_çağrısı(z) { bloklar() }.TR_tolist)
+    TR_assert_equal(TR_false, TR_quantized_activations_on())
+}
+
+# Float ağırlığa blok etkisizdir (15.53a): fark ancak gerçek nicemlenmiş modelde görünür, bu bir duman testidir.
+TR_test "nicemli açıkken float ağırlıklı modelde ısıtma ve ilk tur kapalıyla aynı kimlikleri verir" {
+    TR_var kapalı = küçük_zincir(256, TR_false)
+    ısıt(kapalı)
+    TR_var açık = küçük_zincir(256, TR_false)
+    açık.nicemli = TR_true
+    ısıt(açık)
+    TR_assert(açık.ısıtılan > 0)
+    TR_assert_equal(kapalı.ısıtılan, açık.ısıtılan)
+    TR_assert_equal(ilk_tur(kapalı, Tur(sıra: 1, söz_ms: 0)), ilk_tur(açık, Tur(sıra: 1, söz_ms: 0)))
+}
+
+TR_test "nicemli seçeneğin cihaz denetimi: işlemcide hata yok, kartta cihazı söyleyen metin" {
+    TR_assert_equal(TR_none, nicemli_hatası("cpu"))
+    TR_var h = TR_String(nicemli_hatası("gpu:0"))
+    TR_assert(h.TR_contains("--nicemli_etkinleştirme"))
+    TR_assert(h.TR_contains("gpu:0"))
+}
+
+# çevrilen: hata nicemli_hatasını_at'tan geçince atılanın metni ve nedeninin kodu; atmazsa ["", ""].
+TR_func çevrilen(e: TR_Error) -> TR_List[TR_String] {
+    TR_try { nicemli_hatasını_at(e) } TR_catch h { TR_return [TR_String(h.TR_value), TR_String(h.TR_cause.TR_code)] }
+    TR_return ["", ""]
+}
+
+TR_test "nicemli_hatasını_at: H6723 kullanıcının metni olur, nedeni H6723; q4_k çarpımı hata vermez; başka hata dokunulmaz" {
+    TR_var w = TR_zeros([2, 32], TR_dtype: "q8")
+    TR_var s: TR_List[TR_String] = []
+    TR_try { TR_quantized_activations { TR_zeros([1, 32]) @ w.TR_transpose() } } TR_catch e { s = çevrilen(e) }
+    TR_assert(s[0].TR_contains("q4_k ve q6_k ağırlıklı bir GGUF verin"))
+    TR_assert_equal("H6723", s[1])
+    TR_var w4 = TR_zeros([3, 256], TR_dtype: "q4_k")
+    TR_assert_equal(TR_none, TR_error_code { TR_quantized_activations { TR_ones([2, 256]) @ w4.TR_transpose() } })
+    TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { s = çevrilen(e) }
+    TR_assert_equal(["", ""], s)
+    TR_try { TR_throw "x" } TR_catch e { s = çevrilen(e) }
+    TR_assert_equal(["", ""], s)
+}
+
+# q8_çıkışlı_zincir: gömme 32 (q8'de son eksen 32'nin katı); çıkış katmanı q8 sıfır ağırlık, yükleyicinin biçimiyle
+# devrik görünüm (lib/pretrained.tr); bloklar float.
+TR_func q8_çıkışlı_zincir(nicemli: TR_Bool) -> Zincir {
+    TR_var p = parçalayıcı()
+    TR_var m = TR_GPT(p.TR_vocab_size, TR_context: 512, TR_embed_dim: 32, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 7)
+    m.TR_logit_layer = TR_Linear(1, 1, TR_init_std: 0.0)
+    m.TR_logit_layer.TR_weight = TR_zeros([p.TR_vocab_size, 32], TR_dtype: "q8").TR_transpose()
+    TR_var z = Zincir(p: p, model: m, sistem: _SİSTEM, en_çok: 8, bağlam: 256, önbelleksiz: TR_false, nicemli: nicemli)
+    z.yeni_konuşma()
+    TR_return z
+}
+
+# Isıtma çıkış katmanını da koşar: yalnız gizli durumu okuyan ısıtma bu testte geçerdi.
+TR_test "çıkış ağırlığı q8 olan modelde nicemli ısıtma kullanıcının metnini atar, nedeni H6723; kapalıyken ısıtma geçer" {
+    TR_var s: TR_List[TR_String] = []
+    TR_try { ısıt(q8_çıkışlı_zincir(TR_true)) } TR_catch h { s = [TR_String(h.TR_value), TR_String(h.TR_cause.TR_code)] }
+    TR_assert_equal(2, s.TR_length)
+    TR_assert(s[0].TR_contains("q4_k ve q6_k ağırlıklı bir GGUF verin"))
+    TR_assert_equal("H6723", s[1])
+    TR_var kapalı = q8_çıkışlı_zincir(TR_false)
+    ısıt(kapalı) # hata yutulsaydı ısıtılan 0 kalırdı
+    TR_assert(kapalı.ısıtılan > 0)
+}
+
 # Konuşma: söyle hemen döner (çalma ayrı görevde); her çalma öncekinin bitmesini bekler. Sahte çalıcı bırakılana
 # kadar bekler, böylece sıra zamana bağlı olmadan sınanır.
 TR_test "cümleler söylendikçe sırayla çalınır, söyle çalmayı beklemez" {
