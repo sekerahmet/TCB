@@ -766,6 +766,7 @@
 "H4131": "`{#vendor_matmul} {{ ... }}` block: the library could not run a multiply of shape {shape} ({reason}); that multiply ran on TR's own kernel, so this run's result mixes the two paths. The number of fallen-back multiplies is in the profile summary (`TR_GPU_PROFILE=1`)",
 "H4132": "16-bit ({dtype}) matrix multiply runs on TR's own kernel by widening to float32, which is slow; the vendor's library is on this machine. For speed put the multiply in a block: `{#vendor_matmul} {{ ... }}`; the result may then depend on the library's version and the card's SM count",
 "H4133": "own kernel; cuBLASLt found ({path}), only in the `{#vendor_matmul} {{ ... }}` block",
+"H4134": "{fn}: on the GPU the Fourier transform length is at most {limit}, got {n}; move the tensor to the CPU: `x.{#to_device}(\"cpu\")`",
 "H4135": "own kernel; cuBLASLt not found",
 "H4136": "no suitable algorithm for this shape",
 "H5001": "the token id at position {index} is {id}, which does not fit in 16 bits",

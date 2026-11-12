@@ -4,8 +4,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Fourier dönüşümü, pencere ve STFT (23.1–23.3). Ağırlıklı toplamlar CPU'dadır; GPU'daki tensör
-// hata verir, CPU'ya düşmez (23.5). Sonuç (gerçek, sanal) iki ondalık tensördür.
+// Fourier dönüşümü, pencere ve STFT (23.1–23.3). CPU'da ağırlıklı toplamlar (fourier.go); kartta
+// taban matrisli DFT (fourier_card.go), CPU'ya düşmez (23.5). Sonuç (gerçek, sanal) iki ondalık
+// tensördür.
 
 // fourierCost bir satırın yaklaşık öğe maliyetidir (işçi sayısı için).
 const fourierCost = 64
@@ -17,7 +18,8 @@ type FourierCall struct {
 	Trig Trig
 }
 
-// checkDevice girdinin CPU'da olmasını ister: GPU'da hata verir, CPU'ya düşmez (23.5).
+// checkDevice CPU yolundaki tensörün CPU'da olmasını ister: başka cihazda hata verir, oraya
+// düşmez (23.5).
 func (c FourierCall) checkDevice(t *Tensor) {
 	if t.Device() != CPU {
 		panic(messages.New(messages.H7076, c.Fn, t.Device().String(), "gpu", c.Move))
@@ -46,7 +48,9 @@ func fromSignal[T floatType](data []T, shape []int) *Tensor {
 
 // Rfft t'nin son ekseni boyunca n uzunluklu Fourier dönüşümüdür (23.1): kısa sinyal sıfırla dolar.
 func Rfft(t *Tensor, n int, c FourierCall) (*Tensor, *Tensor) {
-	c.checkDevice(t)
+	if c.onCard(t, n) {
+		return rfftOnCard(t, n, c.Trig)
+	}
 	if t.dtyp == Float64 {
 		return rfft[float64](t, n, c.Trig)
 	}
@@ -115,7 +119,10 @@ func StftFrames(signal int, o StftOptions) (padded, frames int) {
 
 // Stft x'in son ekseninin kısa süreli dönüşümüdür; şekil [..., n/2+1, çerçeve]'dir.
 func Stft(x, window *Tensor, o StftOptions, c FourierCall) (*Tensor, *Tensor) {
-	c.checkDevice(x)
+	if c.onCard(x, o.N) {
+		c.onCard(window, o.N)
+		return stftOnCard(x, window, o, c.Trig)
+	}
 	c.checkDevice(window)
 	if x.dtyp == Float64 {
 		return stft[float64](x, window, o, c.Trig)
