@@ -62,7 +62,7 @@ func cumSumBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		if err != nil {
 			return nil, err
 		}
-		return typedResult(ad, "+", r, f)
+		return typedResult(m, ad, "+", r, f)
 	}
 	// Karışık hassasiyet bloğunda 16 bitlik girdi float32'ye açılır (15.4), TR_sum gibi.
 	t, err := highPrecision(m, d.t)
@@ -95,7 +95,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if _, err := safe(func() *tensor.Tensor { vals, idx = d.t.TopK(int(k.Val), e); return vals }); err != nil {
 		return nil, err
 	}
-	return &interp.ListVal{Elements: []interp.Value{New(vals), NewInt(idx)}}, nil
+	return &interp.ListVal{Elements: []interp.Value{New(vals), sortIndex(idx)}}, nil
 }
 
 // argsortBuiltin sıralama_indeksi(t, eksen: -1): kararlı, küçükten büyüğe.
@@ -109,5 +109,5 @@ func argsortBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 	if err != nil {
 		return nil, err
 	}
-	return NewInt(r), nil
+	return sortIndex(r), nil
 }

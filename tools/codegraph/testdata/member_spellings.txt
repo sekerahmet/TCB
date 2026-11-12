@@ -990,6 +990,7 @@ k.TR_batch_decode	ok	0	name:TR_mem_batch_decode
 k.TR_bias	ok	0	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_bias
 k.TR_contains	ok	0	name:TR_mem_contains
 k.TR_decode	ok	0	name:TR_mem_decode
+k.TR_device	ok	0	name:TR_mem_device
 k.TR_dtype	ok	0	name:TR_mem_dtype
 k.TR_end	ok	0	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_end
 k.TR_exists	ok	0	name:TR_mem_exists
@@ -1016,6 +1017,7 @@ k.TR_size	ok	0	name:TR_mem_size
 k.TR_slice	ok	0	name:TR_mem_slice
 k.TR_start	ok	0	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_start
 k.TR_text	ok	0	name:TR_mem_text
+k.TR_to_device	ok	0	name:TR_mem_to_device
 k.TR_tolist	ok	0	name:TR_mem_tolist
 k.TR_transpose	ok	0	name:TR_mem_transpose
 k.TR_update	ok	0	name:TR_mem_update
@@ -1278,6 +1280,8 @@ norm.TR_tolist	ok	0	name:TR_mem_tolist
 not_yolu.TR_exists	ok	0	name:TR_mem_exists
 o.TR_close	ok	0	name:TR_mem_close
 o.TR_contains	ok	0	name:TR_mem_contains
+o.TR_device	ok	0	name:TR_mem_device
+o.TR_dtype	ok	0	name:TR_mem_dtype
 o.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 o.TR_keys	ok	0	name:TR_mem_keys
 o.TR_length	ok	0	name:TR_mem_length
@@ -1285,6 +1289,7 @@ o.TR_next	ok	0	name:TR_mem_next
 o.TR_remove	ok	0	name:TR_mem_remove
 o.TR_shape	ok	0	name:TR_mem_shape
 o.TR_step	ok	0	name:TR_mem_step
+o.TR_to_device	ok	0	name:TR_mem_to_device
 o.TR_tolist	ok	0	name:TR_mem_tolist
 o.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 o1.TR_step	ok	0	name:TR_mem_step

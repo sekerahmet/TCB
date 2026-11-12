@@ -111,6 +111,9 @@ func TestIntSumOverflowMessage(t *testing.T) {
 	for code, want := range map[string]string{
 		"TR_sum(TR_Tensor([9223372036854775807, 1]))":       ": 9223372036854775808 ",
 		"TR_sum(TR_Tensor([-9223372036854775807 - 1, -1]))": ": -9223372036854775809 ",
+		// Boyutu koruyan toplamda da (T1 dilim 2b; eskiden H6006, nil göstergeç).
+		"TR_sum(TR_Tensor([[9223372036854775807, 1]]), TR_dim: 1, TR_keepdim: TR_true)": ": 9223372036854775808 ",
+		"TR_sum(TR_Tensor([[9223372036854775807, 1]]), TR_keepdim: TR_true)":            ": 9223372036854775808 ",
 	} {
 		_, err := run(t, code)
 		if !messages.Has(err, messages.H6961) {

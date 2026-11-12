@@ -2,7 +2,30 @@ package gpu
 
 import (
 	"math"
+	"math/bits"
 )
+
+// mulHi tam sayı çarpımının üst yarısı (mul.hi): 64 bitte 128 bitlik çarpımın, 32 bitte 64
+// bitlik çarpımın üst yarısı; işaretli türde işaretli çarpımın.
+func mulHi(a, b uint64, t simType) uint64 {
+	switch t {
+	case simS64:
+		hi, _ := bits.Mul64(a, b)
+		if int64(a) < 0 {
+			hi -= b
+		}
+		if int64(b) < 0 {
+			hi -= a
+		}
+		return hi
+	case simU64:
+		hi, _ := bits.Mul64(a, b)
+		return hi
+	case simS32:
+		return uint64(int64(int32(a))*int64(int32(b))) >> 32
+	}
+	return uint64(uint32(a)) * uint64(uint32(b)) >> 32
+}
 
 // PTX benzetimi: kayan noktalı işlemler ve dönüşümler. Yaklaşık komutlar (ex2, lg2, sin,
 // cos) tam doğrulukla hesaplanır; donanım birkaç ulp farklı olabilir, sınamalar bu yüzden

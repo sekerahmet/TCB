@@ -153,8 +153,11 @@ func lineSuffix(line int, err error) error {
 	return &LineError{Line: line, Err: err}
 }
 
-// hookOperator ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.
+// hookOperator ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar. İşlecin satırı
+// yerleşiğin satırı gibi yazılır (BuiltinLine; calls.go'nun kuralı): kancanın TR_replay kaydında
+// bıraktığı hata yuvası işlecin satırını söyler (T1 dilim 2b, TCB 2026-11-12 12:15).
 func (v *VM) hookOperator(op string, left, right Value, line int) (Value, bool, error) {
+	v.builtinLine = line
 	if val, ok, err := v.tryOperandHook(op, left, right, false); ok {
 		return val, true, lineSuffix(line, err)
 	}

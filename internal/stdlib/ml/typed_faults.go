@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -53,11 +54,20 @@ func faultError(fn any, op string, f *tensor.ElemFault) error {
 }
 
 // typedResult cinsli işlemin sonucunu sarar ya da hatasını iletiye çevirir.
-func typedResult(fn any, op string, r *tensor.Tensor, f *tensor.ElemFault) (*TensorValue, error) {
-	if f != nil {
-		return nil, faultError(fn, op, f)
+func typedResult(m *interp.VM, fn any, op string, r *tensor.Tensor, f *tensor.ElemFault) (*TensorValue, error) {
+	switch {
+	case f == nil:
+		return New(r), nil
+	case f.Kind == tensor.FaultRecorded:
+		// Kayıtta kartın hatası beklenmez: yuvanın yeri (satır, ileti) yazılır, ileti
+		// oynatmanın sonunda (replay_faults.go); m nil ise yer yazılamaz (H4065).
+		if err := recordFault(m, f, func(f *tensor.ElemFault) error { return faultError(fn, op, f) }); err != nil {
+			r.Drop()
+			return nil, err
+		}
+		return New(r), nil
 	}
-	return New(r), nil
+	return nil, faultError(fn, op, f)
 }
 
 // kindMismatch iki yanı başka cinsten olan işlemin iletisidir (H6966). İleti mantıktan sayı

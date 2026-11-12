@@ -111,7 +111,7 @@ func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*ten
 				return oldCall(ad, old, m, args, named)
 			}
 			if keepInts && d.t.DType().IsTyped() {
-				return typedRounding(kd, d)
+				return typedRounding(m, kd, d)
 			}
 			r, err := safe(func() *tensor.Tensor { return fn(d.t) })
 			if err != nil {
@@ -125,7 +125,7 @@ func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*ten
 // typedRounding taban, tavan, işaret ve mutlak'ın cinsli tensör yolu (15.12, 15.16): TR_Int'te
 // taban ve tavan girdinin kendisidir, işaret ve mutlak aynı cinsi verir (en küçük değerin mutlak
 // değeri taşmadır); float64'te işaret ve mutlak, taban ve tavan bu sürümde hassasiyet hatası.
-func typedRounding(kd codes.Code, d *TensorValue) (interp.Value, error) {
+func typedRounding(m *interp.VM, kd codes.Code, d *TensorValue) (interp.Value, error) {
 	ad := codes.NameRef(kd)
 	switch kd {
 	case codes.FnSign:
@@ -140,7 +140,7 @@ func typedRounding(kd codes.Code, d *TensorValue) (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return typedResult(ad, "", r, f)
+		return typedResult(m, ad, "", r, f)
 	}
 	if d.t.Elem() == tensor.ElemInt {
 		return d, nil

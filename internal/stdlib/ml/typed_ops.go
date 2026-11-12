@@ -113,10 +113,10 @@ func (d *TensorValue) typedOperator(m *interp.VM, op string, other interp.Value,
 		return New(r), nil
 	}
 	if _, ok := logicOps[op]; ok {
-		return typedLogic(op, a, b)
+		return typedLogic(m, op, a, b)
 	}
 	if _, ok := arithOps[op]; ok {
-		return typedArith(op, a, b)
+		return typedArith(m, op, a, b)
 	}
 	if op == "@" {
 		return nil, messages.New(messages.H6967, op, d.t.DType().Name(), "matmul")
@@ -125,7 +125,7 @@ func (d *TensorValue) typedOperator(m *interp.VM, op string, other interp.Value,
 }
 
 // typedLogic & | ^ << >> (TR_Int'te bit, TR_Bool'da mantık; kaydırma yalnız TR_Int'te).
-func typedLogic(op string, a, b *tensor.Tensor) (interp.Value, error) {
+func typedLogic(m *interp.VM, op string, a, b *tensor.Tensor) (interp.Value, error) {
 	lop := logicOps[op]
 	var dt tensor.DType
 	switch {
@@ -145,11 +145,11 @@ func typedLogic(op string, a, b *tensor.Tensor) (interp.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return typedResult(op, op, r, f)
+	return typedResult(m, op, op, r, f)
 }
 
 // typedArith + - * / // % ** (TR_Int ve float64; TR_Bool'da tanımsız).
-func typedArith(op string, a, b *tensor.Tensor) (interp.Value, error) {
+func typedArith(m *interp.VM, op string, a, b *tensor.Tensor) (interp.Value, error) {
 	if a.Elem() == tensor.ElemBool {
 		return nil, messages.New(messages.H6967, op, a.DType().Name(), "other")
 	}
@@ -171,7 +171,7 @@ func typedArith(op string, a, b *tensor.Tensor) (interp.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return typedResult(op, op, r, f)
+	return typedResult(m, op, op, r, f)
 }
 
 var _ interp.Invertible = (*TensorValue)(nil)

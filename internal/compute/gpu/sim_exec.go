@@ -463,6 +463,9 @@ func computeInt(k *simInst, a, b, c uint64) (uint64, error) {
 	case simSub:
 		return a - b, nil
 	case simMul:
+		if k.mode2 == simHi {
+			return mulHi(a, b, k.dtype), nil
+		}
 		return a * b, nil
 	case simMad:
 		return a*b + c, nil

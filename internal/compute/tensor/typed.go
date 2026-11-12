@@ -102,6 +102,14 @@ type TypedBackend interface {
 	Typed(op TypedOp, out Storage, outShape []int, ins []View) (fault *ElemFault, ok bool)
 }
 
+// TypedReducer (isteğe bağlı) "int64" toplamını cihazda yapan arka uç (T1 dilim 2b): in bitişik
+// "int64" görünümü, (outer, n, inner) şeklinde orta eksen boyunca toplanır; out bitişik
+// "int64", outer·inner öğe. Toplam 128 bitte kesindir; sığmayan çıktıların ilki (düz konumu en
+// küçük, 15.6) Sum'ıyla döner, kayıtta FaultRecorded. Desteklemediği girdide ok=false.
+type TypedReducer interface {
+	SumInt64(out Storage, in View, outer, n, inner int) (fault *ElemFault, ok bool)
+}
+
 // FaultKind öğeye bağlı cinsli işlem hatasının çeşidi.
 type FaultKind uint8
 
@@ -388,6 +396,23 @@ func Convert(t *Tensor, dt DType) (*Tensor, *ElemFault) {
 		return t.Cast(dt), nil
 	}
 	return typed(TypedOp{Kind: TConvert}, dt, t.shape, t)
+}
+
+// ConvertIntegral, TConvert'in alt türü (TypedOp.Sub): kaynağın değerleri tam sayıdır ve hedefe
+// sığar, dönüşüm hata veremez. Kartta yuvası ve beklemesi yoktur (TR_replay kaydında da
+// çalışır); işlemcide Convert'in yoludur.
+const ConvertIntegral uint8 = 1
+
+// ConvertSortIndex sıralamanın float32 indeksini (Backend.Sort'un sözleşmesi: değerler tam sayı,
+// sıralanan eksen en çok MaxSortLen = 2²⁴ öğe, float32'de tam) dt'ye çevirir; T1 dilim 2b, A15.
+// Yalnız sıralamanın indeksi içindir: başka bir kaynakta NaN ya da aralık dışı değer kartta
+// hatasız yazılırdı (DENETİM 503 N1).
+func ConvertSortIndex(t *Tensor, dt DType) *Tensor {
+	r, f := typed(TypedOp{Kind: TConvert, Sub: ConvertIntegral}, dt, t.shape, t)
+	if f != nil {
+		panic("tensor: ConvertSortIndex: the sort index is not integral (Backend.Sort contract broken)")
+	}
+	return r
 }
 
 // WhereTyped c (Bool) doğruysa a'yı, değilse b'yi seçer (üçü yayınlanır); a ve b aynı türdendir.

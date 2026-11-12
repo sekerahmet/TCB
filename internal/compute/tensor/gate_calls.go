@@ -576,6 +576,16 @@ func gateTyped(be TypedBackend, op TypedOp, out Storage, outShape []int, ins []V
 	return fault, ok
 }
 
+func gateSumInt64(be TypedReducer, out Storage, in View, outer, n, inner int) (fault *ElemFault, ok bool) {
+	if unlockedOps.Load() != 0 {
+		gate([]Storage{out}, []Storage{in.S})
+	}
+	fault, ok = be.SumInt64(out, in, outer, n, inner)
+	runtime.KeepAlive(out)
+	runtime.KeepAlive(in.S)
+	return fault, ok
+}
+
 func gateUnaryGradSet(be UnaryGradSetter, op UnOp, p float32, gx Storage, g Storage, x View, y Storage) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{gx}, []Storage{g, x.S, y})

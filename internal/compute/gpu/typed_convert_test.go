@@ -215,3 +215,16 @@ func TestWideningConversionHasNoFaultSlot(t *testing.T) {
 		}
 	}
 }
+
+// Kural (15.41; T1 dilim 2b, A15): sıralamanın indeksi (değerleri tam sayı, en çok 2²⁴) kartta
+// yuvasız iç dönüşümle int64'e çevrilir: yuva ve bekleme yok, değerler işlemcininkiyle aynı.
+func TestSortIndexConversionHasNoFaultSlot(t *testing.T) {
+	if typedFaults(tensor.TypedOp{Kind: tensor.TConvert, Sub: tensor.ConvertIntegral}, tensor.Int64, []tensor.DType{tensor.Float32}) {
+		t.Fatal("sıralamanın indeksi yuva almamalı")
+	}
+	vals := []float32{0, 3, 16777215, 16777216, 1}
+	g := tensor.ConvertSortIndex(tensor.NewOn(gpuDevice, vals, 5), tensor.Int64)
+	if g.Device() != gpuDevice || g.DType() != tensor.Int64 || !slices.Equal(g.Int64s(), []int64{0, 3, 16777215, 16777216, 1}) {
+		t.Fatalf("kartta indeks: %v %s %v", g.Device(), g.DType(), g.Int64s())
+	}
+}

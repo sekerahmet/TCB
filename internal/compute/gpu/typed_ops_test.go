@@ -60,10 +60,12 @@ func TestTypedMaskPathsOnGPU(t *testing.T) {
 	}
 }
 
-// Kural (15.48; 2a): GPU'da adım 8'in dışındaki cinsli işlem hassasiyet hatasıdır.
+// Kural (15.48; 2a): GPU'da adım 8'in dışındaki cinsli işlem hassasiyet hatasıdır. T1 dilim
+// 2b'den beri "int64" aritmetiği kartta (typed_arith_test.go); dar tam sayıların aritmetiği
+// kapsam dışında kaldığı için hata yolu int32 + ile sınanır (A16, TCB 11:28: test istisnası).
 func TestTypedArithOnGPUIsPrecisionError(t *testing.T) {
-	a := tensor.Int64sOn(gpuDevice, tensor.Int64, []int64{1, 2}, 2)
-	err := testkit.PanicError(func() { tensor.Arith(a, a, tensor.ArithAdd, tensor.Int64) })
+	a := tensor.Int64sOn(gpuDevice, tensor.Int32, []int64{1, 2}, 2)
+	err := testkit.PanicError(func() { tensor.Arith(a, a, tensor.ArithAdd, tensor.Int32) })
 	if !messages.Has(err, messages.H6969) {
 		t.Fatalf("hassasiyet hatası bekleniyordu: %v", err)
 	}

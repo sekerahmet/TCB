@@ -208,6 +208,17 @@ TR_test "15.6 işleçler ve yayınlama" {
     TR_assert_equal([5.0, 2.0], w.TR_tolist)
 }
 
+TR_test "15.6 tam sayı birikimli toplamda birden çok taşma varsa ileti düz konumu en küçük olanı söyler" {
+    # Eksen 0'da 0. sütun 3. satırda (konum 4, 9223372036854775807 + 5), 1. sütun 2. satırda
+    # (konum 3, 9223372036854775807 + 1) taşar; ileti konum 3'ünkidir.
+    TR_var x = TR_Tensor([[1, 9223372036854775807], [9223372036854775806, 1], [5, 0]])
+    TR_var ileti = ""
+    TR_try { TR_cumsum(x, TR_dim: 0) } TR_catch h { ileti = TR_String(h) }
+    TR_assert(ileti.TR_contains("9223372036854775807 + 1"))
+    TR_assert_equal("H6961", TR_error_code { TR_cumsum(x, TR_dim: 0) })
+    TR_assert_equal([[1, 2], [4, 6], [9, 12]], TR_cumsum(TR_Tensor([[1, 2], [3, 4], [5, 6]]), TR_dim: 0).TR_tolist)
+}
+
 TR_test "15.6d bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
     TR_var t = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_var d = t.TR_transpose()

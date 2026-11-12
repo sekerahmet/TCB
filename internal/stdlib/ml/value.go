@@ -92,6 +92,18 @@ func intTensor(t *tensor.Tensor) *tensor.Tensor {
 	return tensor.Int64sOn(t.Device(), tensor.Int64, vals, t.Shape()...)
 }
 
+// sortIndex sıralamanın (TR_topk, TR_argsort) float32 indeksini TR_Int tensörü olarak sarar.
+// Kartta indeks konağa okunmaz: değerleri tam sayı olduğu sıralamanın sözleşmesinden bilinen
+// kaynak için yuvasız iç dönüşümle kartta çevrilir, TR_replay kaydında da çalışır (T1 dilim 2b,
+// A15; DENETİM 501 Ş1). Yuvasız giriş yalnız buradadır, NewInt'in genel yolu değişmez (DENETİM
+// 503 N1). İşlemcide NewInt'in yoludur.
+func sortIndex(t *tensor.Tensor) *TensorValue {
+	if t.Device() == tensor.CPU {
+		return NewInt(t)
+	}
+	return New(tensor.ConvertSortIndex(t, tensor.Int64))
+}
+
 // Tensor sarılı çekirdek tensörünü verir.
 func (d *TensorValue) Tensor() *tensor.Tensor { return d.t }
 

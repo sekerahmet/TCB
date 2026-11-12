@@ -3,6 +3,9 @@ package gpu
 // simNaNProp min/max'ın .NaN eki (mode2): girdilerden biri NaN ise sonuç kanonik NaN.
 const simNaNProp = 6
 
+// simHi tam sayı çarpımının .hi eki (mode2): çift genişlikteki çarpımın üst yarısı.
+const simHi = 2
+
 // extras komutun nokta eklerini (tür, kip, alan) çözer.
 func (a *simParser) extras(k *simInst, ek []string) error {
 	var dtypes []simType
@@ -14,6 +17,11 @@ func (a *simParser) extras(k *simInst, ek []string) error {
 		switch e {
 		case "lo":
 			k.mode2 = 1
+		case "hi":
+			if k.op != simMul {
+				return internalf("suffix .hi outside mul in simulator")
+			}
+			k.mode2 = simHi
 		case "wide":
 			if k.op == simMul {
 				k.op = simMulWide
@@ -64,8 +72,8 @@ func (a *simParser) extras(k *simInst, ek []string) error {
 	if len(dtypes) > 1 {
 		k.source = dtypes[1]
 	}
-	if (k.op == simMul || k.op == simMad) && k.dtype != simF32 && k.dtype != simF64 && k.mode2 != 1 {
-		return internalf("integer multiply needs .lo or .wide")
+	if (k.op == simMul || k.op == simMad) && k.dtype != simF32 && k.dtype != simF64 && k.mode2 != 1 && k.mode2 != simHi {
+		return internalf("integer multiply needs .lo, .hi or .wide")
 	}
 	return nil
 }

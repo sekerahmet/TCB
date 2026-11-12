@@ -15,9 +15,11 @@ import (
 // GPU'da yalnız şunlar vardır: karşılaştırma (hesap ondalıkları, "int64", mantıkta == ve !=) →
 // TR_Bool; mantık tensöründe &, |, ^ ve ~; TR_where (koşul TR_Bool, dallar aynı türde, her tür);
 // dönüşüm (T1 dilim 2a, typed_convert.go): tam sayı hedefine ondalıktan ve tam sayıdan, float32
-// hedefine tam sayıdan ve mantıktan. Öbürleri ok=false döner: çağıran 15.48'in hassasiyet
-// hatasını verir (aritmetik 2b'de). Çekirdekler cihaz içidir: TR_replay kaydında da çalışır;
-// tam sayıya dönüşümün hatası cihaz içi bayrağa yazılır (fault_slot.go).
+// hedefine tam sayıdan ve mantıktan; "int64" aritmetiği (T1 dilim 2b, typed_arith.go): + - * //
+// % **, tekli eksi ve mutlak değer. Öbürleri (dar tam sayıların aritmetiği, işaret) ok=false
+// döner: çağıran 15.48'in hassasiyet hatasını verir. Çekirdekler cihaz içidir: TR_replay
+// kaydında da çalışır; öğeye bağlı hata (taşma, sığmama, sıfıra bölme, eksi üs) cihaz içi
+// bayrağa yazılır (fault_slot.go).
 
 // gpuTypedOK işlemin bu dilimde GPU'da olup olmadığı.
 func gpuTypedOK(op tensor.TypedOp, out tensor.DType, ins []tensor.DType) bool {
@@ -42,6 +44,10 @@ func gpuTypedOK(op tensor.TypedOp, out tensor.DType, ins []tensor.DType) bool {
 		return ins[0] == tensor.Bool && ins[1] == out && ins[2] == out
 	case tensor.TConvert:
 		return convertOK(out, ins[0])
+	case tensor.TArith:
+		return out == tensor.Int64 && ins[0] == tensor.Int64 && ins[1] == tensor.Int64 && tensor.ArithOp(op.Sub) != tensor.ArithDiv
+	case tensor.TNeg, tensor.TAbs:
+		return out == tensor.Int64 && ins[0] == tensor.Int64
 	}
 	return false
 }
@@ -172,6 +178,10 @@ func typedKernel(op tensor.TypedOp, nd int, ins []tensor.DType, out tensor.DType
 			k.e("st.global."+rawSuffix(out), mem(to, 0), r)
 		case tensor.TConvert:
 			k.convertElem(ins[0], out, addr(0), to, i, flag)
+		case tensor.TArith:
+			k.int64Arith(tensor.ArithOp(op.Sub), addr(0), addr(1), to, i, flag)
+		case tensor.TNeg, tensor.TAbs:
+			k.int64Unary(op.Kind, addr(0), to, i, flag)
 		}
 		k.put(last)
 		return k

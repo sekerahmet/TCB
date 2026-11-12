@@ -50,7 +50,6 @@ func axisRuns(shape []int, axis int) (outer, length, inner int) {
 // girdinin türü; birikimli toplamda şekil korunur. Boş eksende en büyük ve en küçüğü çağıran
 // denetler.
 func ReduceTyped(t *Tensor, kind ReduceKind, axis int) (*Tensor, *ElemFault) {
-	cpuOnly(t)
 	shape := copyInts(t.shape)
 	if axis < 0 {
 		shape, axis = []int{t.Numel()}, 0
@@ -60,14 +59,48 @@ func ReduceTyped(t *Tensor, kind ReduceKind, axis int) (*Tensor, *ElemFault) {
 	if kind == ReduceCumSum {
 		outShape = shape
 	}
+	if t.Device() != CPU {
+		if r, f, ok := sumInt64OnDevice(t, kind, outer, n, inner, outShape); ok {
+			return r, f
+		}
+		cpuOnly(t)
+	}
 	if t.Elem() == ElemFloat {
 		return reduceFloat64(t.Float64s(), kind, outer, n, inner, outShape, t.dtyp), nil
 	}
 	return reduceInt64(t.Int64s(), kind, outer, n, inner, outShape, t.dtyp)
 }
 
+// sumInt64OnDevice "int64" toplamı cihazda (TypedReducer; T1 dilim 2b): değer ve hata
+// işlemcininkiyle aynı (hata konumsuz, Sum'lı). Başka işlem, tür ya da arka uç ok=false (çağıran
+// hassasiyet hatası verir). Kayıtta sonuç ve Kind'ı FaultRecorded olan hata birlikte döner.
+func sumInt64OnDevice(t *Tensor, kind ReduceKind, outer, n, inner int, outShape []int) (*Tensor, *ElemFault, bool) {
+	tr, isReducer := t.be.(TypedReducer)
+	if kind != ReduceSum || t.dtyp != Int64 || !isReducer {
+		return nil, nil, false
+	}
+	c := t.Contiguous()
+	out := zerosOf(isCreate, t.be, outShape, Int64)
+	fault, ok := gateSumInt64(tr, out.storage, c.view(), outer, n, inner)
+	switch {
+	case !ok:
+		out.Drop()
+		return nil, nil, false
+	case fault != nil && fault.Kind != FaultRecorded:
+		out.Drop()
+		return nil, fault, true
+	}
+	return out, fault, true
+}
+
 func reduceInt64(vals []int64, kind ReduceKind, outer, n, inner int, outShape []int, dt DType) (*Tensor, *ElemFault) {
 	out := make([]int64, NumelOf(outShape))
+	if kind == ReduceCumSum {
+		if f := cumSumInt64(vals, out, outer, n, inner); f != nil {
+			return nil, f
+		}
+		return Int64sOn(CPU, Int64, out, outShape...), nil
+	}
 	for o := 0; o < outer; o++ {
 		for i := 0; i < inner; i++ {
 			if kind == ReduceSum {
@@ -87,26 +120,15 @@ func reduceInt64(vals []int64, kind ReduceKind, outer, n, inner int, outShape []
 			for k := 0; k < n; k++ {
 				v := vals[(o*n+k)*inner+i]
 				switch {
-				case k == 0 && kind != ReduceCumSum:
+				case k == 0:
 					acc = v
 				case kind == ReduceMax:
 					acc = max(acc, v)
-				case kind == ReduceMin:
-					acc = min(acc, v)
 				default:
-					r, _, ok := intArith(ArithAdd, acc, v)
-					if !ok {
-						return nil, &ElemFault{Kind: FaultOverflow, Index: (o*n+k)*inner + i, A: acc, B: v, DType: Int64}
-					}
-					acc = r
-				}
-				if kind == ReduceCumSum {
-					out[(o*n+k)*inner+i] = acc
+					acc = min(acc, v)
 				}
 			}
-			if kind != ReduceCumSum {
-				out[o*inner+i] = acc
-			}
+			out[o*inner+i] = acc
 		}
 	}
 	rdt := Int64
@@ -114,6 +136,29 @@ func reduceInt64(vals []int64, kind ReduceKind, outer, n, inner int, outShape []
 		rdt = dt
 	}
 	return Int64sOn(CPU, rdt, out, outShape...), nil
+}
+
+// cumSumInt64 tam sayı birikimli toplamı (o, k, i) sırasıyla: çıktının düz (satır öncelikli)
+// konum sırası, iç döngü bitişik belleği okur, eksenin her iç konumu kendi biriktiricisinde.
+// Taşma ilk hatalı öğeyle (düz konumu en küçük, 15.6) döner; eski (o, i, k) sırası eksen 0'da
+// daha büyük konumdaki taşmayı önce söyleyebiliyordu (T1 dilim 2b). Değerler sıradan bağımsız.
+func cumSumInt64(vals, out []int64, outer, n, inner int) *ElemFault {
+	acc := make([]int64, inner)
+	for o := 0; o < outer; o++ {
+		clear(acc)
+		for k := 0; k < n; k++ {
+			row := (o*n + k) * inner
+			for i := 0; i < inner; i++ {
+				r, _, ok := intArith(ArithAdd, acc[i], vals[row+i])
+				if !ok {
+					return &ElemFault{Kind: FaultOverflow, Index: row + i, A: acc[i], B: vals[row+i], DType: Int64}
+				}
+				acc[i] = r
+				out[row+i] = r
+			}
+		}
+	}
+	return nil
 }
 
 func reduceFloat64(vals []float64, kind ReduceKind, outer, n, inner int, outShape []int, dt DType) *Tensor {
