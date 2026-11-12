@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_LANG=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 99
+const extractorRevision = 100
 
 // Düğüm türleri.
 const (
@@ -159,6 +159,8 @@ type builder struct {
 	nodes    map[string]*Node
 	edges    map[edgeKey]*Edge
 	warnings []string
+	trIdx    *codeindex.Index
+	trIDs    map[string]string
 }
 
 func newBuilder(module string) *builder {

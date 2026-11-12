@@ -70,6 +70,8 @@ func extractTR(root string, b *builder, m *module) {
 	namedArgumentEdges(idx, ids, b)
 	libraryCodeEdges(idx, ids, b)
 	trMessageTexts(root, idx, ids, b)
+	b.trIdx = idx
+	b.trIDs = ids
 	if m != nil {
 		linkConstructs(b, readDispatch(m), idx, ids, m.Path+"/internal/lang/interp")
 	}
