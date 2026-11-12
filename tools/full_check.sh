@@ -470,6 +470,8 @@ spec_refs_check() {
 		}
 	fi
 	printf '%s\n' "$out" | head -40
+	# G4'ün sınavı "0 note(s)" bekler (planning_questions.txt); kapı da notu kalan sayar (DENETİM 483 N5).
+	printf '%s\n' "$out" | grep -qE '(^|[^0-9])0 note\(s\)' || fail "dil tanımı atıfları: not var (codegraph spec-refs)"
 }
 
 static_checks() {
@@ -543,6 +545,13 @@ slowest_packages() {
 	local list
 	list=$(awk '$1 == "ok" && $3 ~ /^[0-9.]+s$/ { sub(/s$/, "", $3); printf "%8.1f sn  %s\n", $3, $2 }' "$1" | sort -rn | head -5)
 	[ -z "$list" ] || printf 'En yavaş paketler:\n%s\n' "$list"
+}
+
+# no_base_note birleşme tabanı yoksa (sığ klon) değişen paketlere bağlı adımların atlandığını yazar: changed_packages
+# ve selected_tests o durumda hiçbir şey yazmadan boş dönüyordu (T1 B4, DENETİM 544 N3, 555 N4).
+no_base_note() {
+	git merge-base "$(compare_base)" HEAD >/dev/null 2>&1 && return 0
+	echo "not: $(compare_base) ile ortak ata yok (sığ klon): değişen paketlerin testleri, değişen dosyaları koruyan testler ve GPU yarışı atlanıyor"
 }
 
 # changed_packages ana dala göre (birleşme tabanından, çalışma ağacındaki ve izlenmeyen dosyalar
@@ -765,7 +774,7 @@ for mode in $modes; do
 		step "Derleme (go build, GOAMD64=$GOAMD64)"
 		go build ./... || fail "go build"
 		go_tests "$mode" -short
-		[ "$mode" = v3 ] || gpu_race
+		[ "$mode" = v3 ] || { no_base_note; gpu_race; }
 		step "TR testleri ve örnekler ($mode)"
 		if build_tr; then
 			summarize "trlang test tests" "$TR" test tests
@@ -844,6 +853,7 @@ for mode in $modes; do
 			format_checks
 			summarize "trlang test tests" "$TR" test tests
 		else fail "trlang derlenemedi"; fi
+		no_base_note
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
