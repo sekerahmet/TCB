@@ -603,27 +603,27 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 - *Gerekçe (desteklenmeyen etkinleştirme, 2026-11-11, TCB 23:16):* H6942 desteklenen değeri (silu) önermez: ayardaki `hidden_act`'ı silu yapan kullanıcının modeli hatasız yüklenir, ama eğitildiği etkinleştirmeyle değil silu ile hesaplar [hesap]. İleti H7171 gibi TR'nin bu modeli yüklemediğini söyler (DENETİM 440 Ş3'ün H7171'de kapattığı tuzak).
 - *Gerekçe (etkisiz anahtarlar, K6; 2026-11-12, DENETİM 446 N3, TCB 22:52, 02:19):* "etkisiz" sınıfı, değeri değişince logitlerin bit bit aynı kalması demektir. K6 testi bunu TR tarafında sınar ama yanlış sınıflamayı yakalamaz, çünkü TR bu anahtarları hiç okumaz (DENETİM 446 N3). Bu yüzden her anahtarın transformers'ta okunduğu yer kaynaktan yazıldı. 5.17.0 kurulu paketten okundu [ölçüldü: `grep -n`]; v4.56.2 WebFetch ile okundu, satırları yaklaşıktır (`~`) [kanıtlı: WebFetch, `raw.githubusercontent.com/huggingface/transformers/v4.56.2/src/transformers/...`]:
   - `architectures`, `_name_or_path`, `transformers_version`: yalnız config nesnesinde, uyarıda ve kaydetmede okunur.
-    - 5.17: `configuration_utils.py:264`, `:327`, `:263`, `:1096`.
+    - v5.17.0: `configuration_utils.py:264`, `:327`, `:263`, `:1096`.
     - v4.56.2: `configuration_utils.py` ~`:288`, ~`:318`, ~`:326`, ~`:598`.
   - `torch_dtype`, `dtype`: ağırlıkların yüklendiği türü seçer.
-    - 5.17: `configuration_utils.py:281`, `modeling_utils.py:1408`.
+    - v5.17.0: `configuration_utils.py:281`, `modeling_utils.py:1408`.
     - v4.56.2: `_get_dtype` `config.dtype`'ı yalnız `dtype="auto"` iken alır, verilmezse float32 kullanır.
     - TR türü dosyadan ve `TR_weight_dtype:`'tan alır; hesap aynı formüldür (15.55).
   - `use_cache`: üretimde önbelleği açar; logitler aynı kalır.
-    - 5.17: `models/llama/modeling_llama.py:383`, `models/qwen3/modeling_qwen3.py:383`.
+    - v5.17.0: `models/llama/modeling_llama.py:383`, `models/qwen3/modeling_qwen3.py:383`.
     - v4.56.2: ~`:360`, qwen3 ~`:375`.
   - `initializer_range`: yalnız rastgele ilklemede okunur (`_init_weights`); yüklenen ağırlıklar ilklemenin üstüne yazılır.
-    - 5.17: `modeling_utils.py:2298-2306`.
+    - v5.17.0: `modeling_utils.py:2298-2306`.
     - v4.56.2: aynı satırlar var [kanıtlı: WebFetch, satır numarası verilmedi].
   - `pad_token_id`: `nn.Embedding`'in `padding_idx`'idir.
-    - 5.17: `models/llama/modeling_llama.py:350`, `:353`; `models/qwen3/modeling_qwen3.py:349`, `:352`; dolgu uyarısı `modeling_utils.py:4562-4584`.
+    - v5.17.0: `models/llama/modeling_llama.py:350`, `:353`; `models/qwen3/modeling_qwen3.py:349`, `:352`; dolgu uyarısı `modeling_utils.py:4562-4584`.
     - v4.56.2: ~`:328`, ~`:331`; qwen3 ~`:341`, ~`:344`. `_init_weights` o satırı sıfırlar.
     - İleri hesabı değiştirmez: yüklenen tablonun satırı aynen okunur.
     - Sıfırdan ilklemede o satır sıfırla başlar; hazır ağırlık yüklenince üstüne yazılır [kanıtlı: `torch/nn/modules/sparse.py:178-185`, `reset_parameters` → `_fill_padding_idx_with_zero`; DENETİM 481 N2].
     - İnce ayarda o satırın türevi sıfırdır [kanıtlı: `torch/nn/modules/sparse.py:24-25`, "do not contribute to the gradient"]. TR'nin ince ayarı satırı da günceller; etkisizlik çıkarım içindir.
   - `bos_token_id`, `eos_token_id`: modelin hesabında okunmaz; config'in varsayılanıdır ve dolgu uyarısında geçer.
-    - 5.17: `modeling_utils.py:4578-4584`.
+    - v5.17.0: `modeling_utils.py:4578-4584`.
     - TR'de BOS'u parçalayıcı ya da sohbet biçimi koyar; `eos_token_id` durma kimliğinin kaynağıdır (15.55).
   - `is_llama_config`, `unsloth_fixed`, `transformers.js_config`: transformers'ta hiç geçmez.
-    - 5.17: paketin tamamında 0 dosya [ölçüldü: `grep -rl`].
+    - v5.17.0: paketin tamamında 0 dosya [ölçüldü: `grep -rl`].
     - v4.56.2: `PretrainedConfig.__init__` bilinmeyen anahtarı `setattr` ile saklar ama okumaz (~`:340-346`).
