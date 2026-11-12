@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 755 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 171 fonksiyon, 11 sabit, 93 metot, 132 özellik, 194 adlı argüman.
+Toplam 757 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 173 fonksiyon, 11 sabit, 93 metot, 132 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -2199,6 +2199,12 @@ tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).değer)
 
 İlişkili: `TR_ceil(...)`, `TR_round(...)`
 
+#### `TR_folder_chat_family(...)` (`TR_fn_folder_chat_family`, `klasör_sohbet_ailesi`)
+
+    klasör_sohbet_ailesi()
+
+
+
 #### `TR_from_bytes(...)` (`TR_fn_from_bytes`, `baytlardan`)
 
     baytlardan(Baytlar, tür: Metin = yok, bayt_sırası: Metin = yok) → Tensör
@@ -2255,6 +2261,12 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 ```
 
 İlişkili: `TR_relu(...)`
+
+#### `TR_gguf_chat_family(...)` (`TR_fn_gguf_chat_family`, `gguf_sohbet_ailesi`)
+
+    gguf_sohbet_ailesi()
+
+
 
 #### `TR_grad_check(...)` (`TR_fn_grad_check`, `türev_denetle`)
 

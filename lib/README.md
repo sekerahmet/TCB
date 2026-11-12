@@ -10,6 +10,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/optimizers` | [`optimizers.tr`](optimizers.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
 | `tr/training` | [`training.tr`](training.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
+| `tr/model_family` | [`model_family.tr`](model_family.tr) | Hazır modelin sohbet ailesi: aile tablosu ve modele ailenin durma listesini yazan iki adım (`TR_fn_gguf_chat_family`, `TR_fn_folder_chat_family`); `tr/pretrained`'in iç adımıdır |
 | `tr/hugging_face` | [`hugging_face.tr`](hugging_face.tr) | Hugging Face `config.json`'undan değer okumak (`TR_fn_config_value`) ve ağırlık adlarını GPT'nin parametre adlarına eşlemek (`TR_fn_map_hugging_face`); `tr/pretrained` bunlarla yükler |
 | `tr/audio` | [`audio.tr`](audio.tr) | Ses dosyası (WAV okumak ve yazmak, `TR_type_Sound`) ve Whisper'ın girdisi (`TR_fn_whisper_log_mel`) |
 | `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |

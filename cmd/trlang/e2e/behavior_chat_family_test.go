@@ -184,7 +184,7 @@ func TestGGUFChatFamilyStopList(t *testing.T) {
 // tekildir; seçim ilk eşleşmede durur (DENETİM 446 N5). Tablo kitaplığın özel fonksiyonudur, TR
 // testinden görünmez: test kaynağın satırlarını okur.
 func TestChatTableIsUnique(t *testing.T) {
-	src, err := os.ReadFile(reporoot.Path("lib", "pretrained.tr"))
+	src, err := os.ReadFile(reporoot.Path("lib", "model_family.tr"))
 	if err != nil {
 		t.Fatal(err)
 	}
