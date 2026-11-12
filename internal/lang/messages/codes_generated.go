@@ -1990,6 +1990,8 @@ const (
 	H8172 Code = 8172 // Ayar dosyasının öntanımlı yeri bu makinede kurulamadı: `LOCALAPPDATA` ortam değişkeni yok. `--ayar <yol>` verin, örneğin `--ayar ayar.json`.
 	H8173 Code = 8173 // `--bağlam` geçersiz ({given}): bağlamı 0'dan büyük bir parça sayısı olarak verin, örneğin `--bağlam 8192`; verilmezse ayarın `context`'i, o da yoksa 8192 kullanılır.
 	H8174 Code = 8174 // {source, select, option {`--bağlam {given}` katalogdaki bütün dil modellerinin bağlam sınırını aşıyor; en büyük sınır {max} parça. Daha küçük bir bağlam verin, örneğin `--bağlam {max}`.} setting {Ayarın `context`'i ({given}) katalogdaki bütün dil modellerinin bağlam sınırını aşıyor; en büyük sınır {max} parça. Ayardaki `context`'i en çok {max} yapın, örneğin `"context": {max}`.} other {Bağlam ({given}) katalogdaki bütün dil modellerinin bağlam sınırını aşıyor; en büyük sınır {max} parça.}}
+	H8175 Code = 8175 // Son {seconds} saniyede {count} yanlış eşleme kodu geldi (bilinmeyen ya da süresi dolmuş). Dost'un açtığı sayfa bir kez kod gönderir; çok sayıda yanlış kod başka bir programın kod denediğini gösterebilir.
+	H8176 Code = 8176 // Bir eşleme kodu ikinci kez kullanıldı: kodu önce başka bir program kullanmış ve belirteci almış olabilir. Belirteci geçersiz kılmak için Dost'u kapatıp yeniden açın.
 	H8200 Code = 8200 // adım bilgisi yok: eğitim döngüsünde {progress}(...) ve .{update}(...) kullanın
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)

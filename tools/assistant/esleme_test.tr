@@ -1,0 +1,163 @@
+# TR 4
+# Eşleme kodunun modelsiz sınaması (esleme.tr; dil tanımı 28.2b; tek tık G): sahte saat ve sahte açıcı. İşleyici
+# isteği bırakır, ana döngü (`eşlemeleri_işle`) cevaplar; `iste` ikisini sırayla yapar.
+TR_import "esleme"
+TR_import "ekran"
+TR_import "screen_helpers"
+
+TR_struct Saat {
+    an: TR_Int = 1000000
+}
+
+TR_struct Açılan {
+    adresler: TR_List[TR_String] = []
+}
+
+TR_func eşleme(s: Saat, a: Açılan) -> Eşleme {
+    TR_return Eşleme(açıcı: (adres) => { a.adresler.TR_append(adres) }, saat: () => s.an,
+        belirteç: "sinama-belirteci-0123456789", adres: "http://127.0.0.1:1/", kayıt: TR_true)
+}
+
+# kodu: açılan adresin parçasındaki kod.
+TR_func kodu(adres: TR_String) -> TR_String {
+    TR_var i = adres.TR_index_of("#p=")
+    TR_assert(i != TR_none)
+    TR_return adres[i + 3..adres.TR_length]
+}
+
+TR_func iste(eş: Eşleme, istek: TR_Request) -> TR_Response {
+    TR_var g = TR_async eşleme_cevabı(eş, istek)
+    TR_var baş = TR_monotonic_ns()
+    TR_for TR_not g.TR_done() TR_and eş.bekleyen.TR_length == 0 {
+        TR_assert(TR_monotonic_ns() - baş < 2000000000)
+        TR_sleep(0.001)
+    }
+    eşlemeleri_işle(eş)
+    TR_return g.TR_wait()
+}
+
+TR_func kodla(kod: TR_String) -> TR_Request { TR_return TR_Request(TR_path: "/pair", TR_headers: {"Dost-Pair-Code": kod}) }
+
+TR_func hata(c: TR_Response) -> TR_String { TR_return TR_String(gövde(c)["error"]["code"]) }
+
+TR_test "eşleme: geçerli kod belirteci bir kez verir, önbelleksiz; ikinci kullanım pair_code_used ve kodlu satır H8176" {
+    TR_var s = Saat()
+    TR_var a = Açılan()
+    TR_var eş = eşleme(s, a)
+    TR_assert(eş.yenile_ve_aç())
+    TR_assert_equal(1, a.adresler.TR_length)
+    TR_assert(a.adresler[0].TR_starts_with("http://127.0.0.1:1/#p="))
+    TR_var kod = kodu(a.adresler[0])
+    TR_assert_equal(43, kod.TR_length)
+    TR_var c = iste(eş, kodla(kod))
+    TR_assert_equal(200, c.TR_status)
+    TR_assert_equal("sinama-belirteci-0123456789", TR_String(gövde(c)["token"]))
+    TR_assert_equal(2, TR_Int(gövde(c)["v"]))
+    TR_assert_equal("no-store", c.TR_headers["Cache-Control"])
+    TR_assert_equal("nosniff", c.TR_headers["X-Content-Type-Options"])
+    TR_assert_equal("2", c.TR_headers["Dost-Contract"])
+    TR_var ikinci = iste(eş, kodla(kod))
+    TR_assert_equal(401, ikinci.TR_status)
+    TR_assert_equal("pair_code_used", hata(ikinci))
+    TR_assert_equal([TR_String(TR_Message("H8176"))], eş.satırlar)
+}
+
+TR_test "eşleme: üstbilgisiz istek 400 alır ve sayılmaz; sınır 10 yanlış kod, sonra 429; sınır doluyken geçerli kod 200" {
+    TR_var s = Saat()
+    TR_var a = Açılan()
+    TR_var eş = eşleme(s, a)
+    eş.yenile_ve_aç()
+    TR_for _ TR_in 0..3 {
+        TR_var c = eşleme_cevabı(eş, TR_Request(TR_path: "/pair"))
+        TR_assert_equal(400, c.TR_status)
+        TR_assert_equal("bad_request", hata(c))
+    }
+    TR_assert_equal(0, eş.bekleyen.TR_length)
+    TR_assert_equal(0, eş.yanlış)
+    TR_for i TR_in 0..10 {
+        TR_var c = iste(eş, kodla("bilinmeyen-\(i)"))
+        TR_assert_equal(401, c.TR_status)
+        TR_assert_equal("pair_code_unknown", hata(c))
+    }
+    TR_var fazla = iste(eş, kodla("bilinmeyen-11"))
+    TR_assert_equal(429, fazla.TR_status)
+    TR_assert_equal("too_many_requests", hata(fazla))
+    TR_assert_equal(200, iste(eş, kodla(kodu(a.adresler[0]))).TR_status)
+}
+
+TR_test "eşleme: kod 120 sn yaşar; pencere bitince bilinmeyen ve süresi dolmuş kodların toplu satırı H8175" {
+    TR_var s = Saat()
+    TR_var a = Açılan()
+    TR_var eş = eşleme(s, a)
+    eş.yenile_ve_aç()
+    s.an += 119999
+    TR_var kod = kodu(a.adresler[0])
+    s.an += 1
+    TR_var c = iste(eş, kodla(kod))
+    TR_assert_equal(401, c.TR_status)
+    TR_assert_equal("pair_code_expired", hata(c))
+    TR_assert_equal("pair_code_unknown", hata(iste(eş, kodla("yok"))))
+    TR_assert_equal(0, eş.satırlar.TR_length)
+    s.an += 60000
+    eşlemeleri_işle(eş)
+    TR_assert_equal([TR_String(TR_Message("H8175", 2, 60))], eş.satırlar)
+    TR_assert_equal(0, eş.yanlış)
+}
+
+TR_test "eşleme: yenileme Dost-Pair-Renew: 1 ister, 10 sn'de bir kod üretir; 202 gövdesizdir, kod cevapta yok" {
+    TR_var s = Saat()
+    TR_var a = Açılan()
+    TR_var eş = eşleme(s, a)
+    eş.yenile_ve_aç()
+    TR_assert_equal(400, eşleme_cevabı(eş, TR_Request(TR_path: "/pair/renew")).TR_status)
+    TR_assert_equal(400, eşleme_cevabı(eş, TR_Request(TR_path: "/pair/renew", TR_headers: {"Dost-Pair-Renew": "2"})).TR_status)
+    TR_var yenile = TR_Request(TR_path: "/pair/renew", TR_headers: {"Dost-Pair-Renew": "1"})
+    s.an += 9999
+    TR_var erken = iste(eş, yenile)
+    TR_assert_equal(429, erken.TR_status)
+    TR_assert_equal("too_many_requests", hata(erken))
+    TR_assert_equal("2", erken.TR_headers["Dost-Contract"])
+    TR_assert_equal(1, a.adresler.TR_length)
+    s.an += 1
+    TR_var c = iste(eş, yenile)
+    TR_assert_equal(202, c.TR_status)
+    TR_assert_equal(0, c.TR_body.TR_length)
+    TR_assert_equal("2", c.TR_headers["Dost-Contract"])
+    TR_assert_equal(2, a.adresler.TR_length)
+    TR_assert(kodu(a.adresler[0]) != kodu(a.adresler[1]))
+    TR_assert_equal(200, iste(eş, kodla(kodu(a.adresler[0]))).TR_status)
+    TR_assert_equal(200, iste(eş, kodla(kodu(a.adresler[1]))).TR_status)
+}
+
+TR_test "eşleme: son 16 kod tutulur; on yedincide ilk kod bilinmez" {
+    TR_var s = Saat()
+    TR_var a = Açılan()
+    TR_var eş = eşleme(s, a)
+    TR_for _ TR_in 0..17 {
+        TR_assert(eş.yenile_ve_aç())
+        s.an += 10000
+    }
+    TR_assert_equal(16, eş.kodlar.TR_length)
+    TR_assert_equal("pair_code_unknown", hata(iste(eş, kodla(kodu(a.adresler[0])))))
+    TR_assert_equal(200, iste(eş, kodla(kodu(a.adresler[16]))).TR_status)
+}
+
+TR_test "eşleme yolları ekranda yalnız eşleme varken: yoksa 404; varken kararı komutlarla aynı ana döngü verir" {
+    TR_var e = ekran()
+    TR_assert_equal(404, ekran_cevabı(e, kodla("x")).TR_status)
+    TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_path: "/pair/renew", TR_headers: {"Dost-Pair-Renew": "1"})).TR_status)
+    TR_var s = Saat()
+    TR_var a = Açılan()
+    TR_var eş = eşleme(s, a)
+    e.eşleme = eş
+    eş.yenile_ve_aç()
+    TR_var g = TR_async ekran_cevabı(e, kodla(kodu(a.adresler[0])))
+    TR_var baş = TR_monotonic_ns()
+    TR_for eş.bekleyen.TR_length == 0 {
+        TR_assert(TR_monotonic_ns() - baş < 2000000000)
+        TR_sleep(0.001)
+    }
+    komutları_işle(e)
+    TR_assert_equal(200, g.TR_wait().TR_status)
+    TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_method: "POST", TR_path: "/pair")).TR_status)
+}

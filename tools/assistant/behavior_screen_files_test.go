@@ -32,3 +32,23 @@ func TestScreenTestFilesAreListed(t *testing.T) {
 		t.Errorf("%s holds a test block; tests go to %s or %s", screenHelpers, screenTest, screenTurnTest)
 	}
 }
+
+// Ekranın eşleme kodu (tek tık G, dil tanımı 28.2b): modül ve testi README'de anılır; test modülü aktarır, ekran da.
+const (
+	pairingModule = "tools/assistant/esleme.tr"
+	pairingTest   = "tools/assistant/esleme_test.tr"
+)
+
+func TestPairingFilesAreListed(t *testing.T) {
+	readme := readFile(t, readmePath)
+	for _, f := range []string{pairingModule, pairingTest} {
+		if name := f[strings.LastIndex(f, "/")+1:]; !strings.Contains(readme, "`"+name+"`") {
+			t.Errorf("%s does not name %s", readmePath, name)
+		}
+	}
+	for _, f := range []string{pairingTest, screenModule} {
+		if !strings.Contains(readFile(t, f), `TR_import "esleme"`) {
+			t.Errorf("%s does not import the pairing module", f)
+		}
+	}
+}

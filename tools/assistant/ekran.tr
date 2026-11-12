@@ -9,6 +9,7 @@
 #   bekleyen tarafta, `.TR_wait()`'in sonucuna bağlı yazılır: tur kendi `turn_end`'ini yazmaz.
 
 TR_import "zincir"
+TR_import "esleme"
 
 TR_const _SÜRÜM = 2
 TR_const _KAPASİTE = 1024 # sözleşme: en az son 1024 olay
@@ -59,6 +60,7 @@ TR_struct Ekran {
     metin_turu: TR_String = "" # bekleyen metin turunun kabulde verilen kimliği
     durdur: TR_Bool = TR_false # süren tur için `stop` geldi
     kayıt: TR_Bool = TR_false # sınama: gönderilen olaylar `giden`'e de yazılır
+    eşleme: Eşleme? = TR_none # `--tarayıcıyla_eşle` ile: `/pair` ve `/pair/renew` (esleme.tr)
     giden: TR_List[TR_JSON] = []
 
     TR_func gönder(tür: TR_String, veri: TR_JSON) {
@@ -228,6 +230,7 @@ TR_func ekran_klasörü() -> TR_String { TR_return TR_String(TR_Path("ekran.tr")
 # (`TR_tokenless_paths:`; tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez), akış ve komut belirteç ister.
 TR_func ekran_aç(e: Ekran, kapı: TR_Int, belirteç: TR_String) -> TR_HTTPServer {
     TR_var açık = ["/"] + ["/lang/" + d + ".js" TR_for d TR_in e.diller]
+    TR_if e.eşleme != TR_none { açık = açık + ["/pair", "/pair/renew"] }
     TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return ekran_cevabı(e, istek) }
     TR_return TR_serve_http(cevapla, TR_port: kapı, TR_token: belirteç, TR_tokenless_paths: açık, TR_max_body_bytes: 65536)
 }
@@ -243,6 +246,8 @@ TR_func ekran_cevabı(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_if istek.TR_method == "GET" TR_and yol.TR_starts_with("/lang/") TR_and yol.TR_ends_with(".js") {
         TR_if e.diller.TR_contains(yol[6..yol.TR_length - 3]) { TR_return dosya(e, yol, {}) }
     }
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none TR_and eşleme_yolu(yol) { TR_return eşleme_cevabı(eş, istek) }
     TR_var akış = istek.TR_method == "GET" TR_and yol == "/events"
     TR_var komut = istek.TR_method == "POST" TR_and yol == "/command"
     TR_if TR_not akış TR_and TR_not komut { TR_return TR_Response(TR_status: 404, TR_headers: {"Cache-Control": "no-store"}) }
@@ -322,6 +327,8 @@ TR_func geçerli(ad: TR_String, d: TR_JSON) -> TR_Bool {
 # komutları_işle: bekleyen komutları sırayla cevaplar (ana döngü). Aynı `command_id` yeniden gelirse iş yinelenmez,
 # ilk cevap döner; son 1024 kimlik tutulur.
 TR_func komutları_işle(e: Ekran) {
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none { eşlemeleri_işle(eş) }
     TR_for e.bekleyen.TR_length > 0 {
         TR_var k = e.bekleyen.TR_remove_at(0)
         TR_var önceki = e.cevaplar.TR_get(k.kimlik)
@@ -561,6 +568,11 @@ TR_func gösterilebilir(metin: TR_String) -> (TR_String, TR_Bool) {
 TR_func belirteçle_aç(e: Ekran, kapı: TR_Int, dosya: TR_String) -> TR_HTTPServer {
     TR_var b = TR_secret_token()
     TR_var s = ekran_aç(e, kapı, b)
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none {
+        eş.belirteç = b
+        eş.adres = ekran_adresi(s)
+    }
     TR_try {
         TR_write_file(dosya, b, TR_owner_only: TR_true)
     } TR_catch h {

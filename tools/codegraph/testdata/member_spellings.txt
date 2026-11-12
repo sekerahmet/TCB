@@ -379,6 +379,10 @@ adlar.TR_append	ok	0	name:TR_mem_append
 adlar.TR_contains	ok	0	name:TR_mem_contains
 adlar.TR_keys	ok	0	name:TR_mem_keys
 adlar.TR_length	ok	0	name:TR_mem_length
+adres.TR_index_of	ok	0	name:TR_mem_index_of
+adres.TR_length	ok	0	name:TR_mem_length
+adresler.TR_append	ok	0	name:TR_mem_append
+adresler.TR_length	ok	0	name:TR_mem_length
 adımlar.TR_length	ok	0	name:TR_mem_length
 ak.TR_length	ok	0	name:TR_mem_length
 akış.TR_finish	ok	0	name:TR_mem_finish
@@ -719,6 +723,8 @@ eklenen.TR_join	ok	0	name:TR_mem_join
 ekler.TR_length	ok	0	name:TR_mem_length
 ekler_ters.TR_length	ok	0	name:TR_mem_length
 elle.TR_tolist	ok	0	name:TR_mem_tolist
+erken.TR_headers	ok	0	name:TR_mem_headers
+erken.TR_status	ok	0	name:TR_mem_status
 es.TR_append	ok	0	name:TR_mem_append
 es.TR_contains	ok	0	name:TR_mem_contains
 es.TR_sort	ok	0	name:TR_mem_sort
@@ -742,6 +748,7 @@ f.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 f.TR_tolist	ok	0	name:TR_mem_tolist
 f.TR_word_kind	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_word_kind
 farklar.TR_append	ok	0	name:TR_mem_append
+fazla.TR_status	ok	0	name:TR_mem_status
 fiiller.TR_contains	ok	0	name:TR_mem_contains
 fiyatlar.TR_contains	ok	0	name:TR_mem_contains
 fiyatlar.TR_get	ok	0	name:TR_mem_get
@@ -897,6 +904,7 @@ iki.TR_shape	ok	0	name:TR_mem_shape
 iki.TR_tolist	ok	0	name:TR_mem_tolist
 iki_satır.TR_split	ok	0	name:TR_mem_split
 ikinci.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
+ikinci.TR_status	ok	0	name:TR_mem_status
 ikinci.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 ikizler.TR_contains	ok	0	name:TR_mem_contains
 ileri.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
@@ -1060,8 +1068,12 @@ kn.TR_update	ok	0	name:TR_mem_update
 kn2.TR_resume_step	ok	0	name:TR_mem_resume_step
 kn2.TR_rollback	ok	0	name:TR_mem_rollback
 kn2.TR_update	ok	0	name:TR_mem_update
+kod.TR_length	ok	0	name:TR_mem_length
 kodlar.TR_append	ok	0	name:TR_mem_append
 kodlar.TR_contains	ok	0	name:TR_mem_contains
+kodlar.TR_get	ok	0	name:TR_mem_get
+kodlar.TR_length	ok	0	name:TR_mem_length
+kodlar.TR_remove	ok	0	name:TR_mem_remove
 konum.TR_dtype	ok	0	name:TR_mem_dtype
 konum.TR_slice	ok	0	name:TR_mem_slice
 kopya.TR_append	ok	0	name:TR_mem_append

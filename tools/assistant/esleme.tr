@@ -1,0 +1,147 @@
+# TR 4
+# Ekranın eşleme kodu (dil tanımı 28.2b; contract.md, "Eşleme"; tek tık G). Dost tarayıcıyı `#p=<kod>`'lu adresle açar;
+# sayfa kodu `GET /pair`'in `Dost-Pair-Code` üstbilgisinde gönderir ve belirteci alır. Kullanıcı belirteç görmez.
+# - Kod `TR_secret_token()`'dır (28.2a; değeri gizlidir, 19.4), 120 sn yaşar, tek kullanımlıktır. Son 16 kod tutulur:
+#   kod en çok 10 sn'de bir üretilir, 16 × 10 = 160 sn ≥ 120 sn.
+# - Kodlar sözlükte, kodun kendisiyle anahtarlanır; listede `==` ile aranmaz.
+# - Durum değiştiren istek üstbilgi ister; üstbilgisiz istek `400` alır, sayılmaz, durum değişmez. `HEAD` işleyiciye
+#   `GET` olarak gelir (28.3): üstbilgili `HEAD` kodu tüketir, cevabı gövdesizdir.
+# - Kararı ana döngü verir (`eşlemeleri_işle`): işleyici isteği tek bir `TR_append` ile bırakır, cevabı bekler
+#   (ekran.tr'nin komutları gibi; iki istek aynı kodu birden tüketemez).
+# - Günlük satırları kodludur: yanlış kodların pencere başına toplu satırı H8175, kullanılmış kod H8176. Kod
+#   günlüğe girmez.
+
+TR_const _SÜRÜM = 2
+TR_const _ÖMÜR_MS = 120000
+TR_const _TUTULAN = 16
+TR_const _YENİLEME_MS = 10000
+# Yanlış kod sınırı: 60 sn'lik pencerede en çok 10 yanlış kod, fazlası `429`. Sayı güvenlik sağlamaz: kod 256 bittir
+# (43 base64url karakter = 32 bayt), tahminle bulunamaz; sınır günlüğü ve işlemciyi korur. Sayı tahmindir (TCB 10:26).
+TR_const _PENCERE_MS = 60000
+TR_const _YANLIŞ_SINIRI = 10
+TR_const _BEKLEME = 0.005 # işleyicinin ana döngünün cevabına bakışı (sn)
+
+# Kod: üretilmiş bir eşleme kodu.
+TR_struct Kod {
+    doğum: TR_Int # ms (saat)
+    kullanıldı: TR_Bool = TR_false
+}
+
+# Eşİstek: işleyicinin bıraktığı, ana döngünün cevapladığı istek; `tür` "pair" ya da "renew".
+TR_struct Eşİstek {
+    tür: TR_String
+    kod: TR_String = ""
+    cevap: TR_Response? = TR_none
+}
+
+# Eşleme: kodlar, sınırlar ve bekleyen istekler. Alanları yalnız ana döngü yazar; işleyici yalnız `bekleyen`'e ekler.
+# `açıcı` tarayıcıyı kodlu adresle açar; `saat` ms verir (sınamada sahte).
+TR_struct Eşleme {
+    açıcı: (TR_String) -> TR_NoneType
+    saat: () -> TR_Int = () => TR_monotonic_ns() // 1000000
+    belirteç: TR_String = "" # sunucu açılınca konur (ekran.tr, `belirteçle_aç`)
+    adres: TR_String = "" # sayfanın adresi, `http://127.0.0.1:<kapı>/`
+    kodlar: TR_Dict[TR_String, Kod] = {}
+    sıra: TR_List[TR_String] = [] # tutulan kodlar, eskiden yeniye
+    son_üretim: TR_Int = -1
+    pencere_başı: TR_Int = -1
+    yanlış: TR_Int = 0 # penceredeki yanlış kodlar (sınır)
+    toplu: TR_Int = 0 # penceredeki bilinmeyen ve süresi dolmuş kodlar (H8175)
+    bekleyen: TR_List[Eşİstek] = []
+    kayıt: TR_Bool = TR_false # sınama: günlük satırları `satırlar`'a da yazılır
+    satırlar: TR_List[TR_String] = []
+
+    # günlük: kodlu bir satır (kod içermez).
+    TR_func günlük(m: TR_String) {
+        TR_print("EŞLEME", m)
+        TR_if TR_self.kayıt { TR_self.satırlar.TR_append(m) }
+    }
+
+    # yenile_ve_aç: yeni kod üretir ve tarayıcıyı onunla açar. Son üretimden 10 sn geçmediyse TR_false (açılış da sayılır).
+    TR_func yenile_ve_aç() -> TR_Bool {
+        TR_var an = TR_self.saat()
+        TR_if TR_self.son_üretim >= 0 TR_and an - TR_self.son_üretim < _YENİLEME_MS { TR_return TR_false }
+        TR_var kod = TR_secret_token()
+        TR_self.kodlar[kod] = Kod(doğum: an)
+        TR_self.sıra.TR_append(kod)
+        TR_if TR_self.sıra.TR_length > _TUTULAN { TR_self.kodlar.TR_remove(TR_self.sıra.TR_remove_at(0)) }
+        TR_self.son_üretim = an
+        TR_self.açıcı(TR_self.adres + "#p=" + kod)
+        TR_return TR_true
+    }
+
+    # pencere: süresi biten pencerenin toplu satırını yazar, sayaçları sıfırlar.
+    TR_func pencere(an: TR_Int) {
+        TR_if TR_self.pencere_başı >= 0 TR_and an - TR_self.pencere_başı < _PENCERE_MS { TR_return }
+        TR_if TR_self.toplu > 0 { TR_self.günlük(TR_String(TR_Message("H8175", TR_self.toplu, _PENCERE_MS // 1000))) }
+        TR_self.pencere_başı = -1
+        TR_self.yanlış = 0
+        TR_self.toplu = 0
+    }
+
+    # kod_cevabı: `GET /pair`'in kararı. Geçerli kod sınır doluyken de belirteci alır ve tüketilir.
+    TR_func kod_cevabı(kod: TR_String) -> TR_Response {
+        TR_var an = TR_self.saat()
+        TR_self.pencere(an)
+        TR_var k = TR_self.kodlar.TR_get(kod)
+        TR_var hata = "pair_code_unknown"
+        TR_if k != TR_none {
+            TR_if k.kullanıldı {
+                hata = "pair_code_used"
+            } TR_else TR_if an - k.doğum >= _ÖMÜR_MS {
+                hata = "pair_code_expired"
+            } TR_else {
+                k.kullanıldı = TR_true
+                TR_return TR_Response(TR_json: TR_JSON({"v": _SÜRÜM, "token": TR_self.belirteç}), TR_headers: _başlıklar())
+            }
+        }
+        TR_if TR_self.pencere_başı < 0 { TR_self.pencere_başı = an }
+        TR_self.yanlış += 1
+        TR_if hata == "pair_code_used" { TR_self.günlük(TR_String(TR_Message("H8176"))) } TR_else { TR_self.toplu += 1 }
+        TR_if TR_self.yanlış > _YANLIŞ_SINIRI { TR_return eşleme_reddi(429, "too_many_requests") }
+        TR_return eşleme_reddi(401, hata)
+    }
+
+    # yenileme_cevabı: `GET /pair/renew`'un kararı: yeni kod ve sekme (`202`, gövdesiz) ya da 10 sn dolmadıysa `429`.
+    TR_func yenileme_cevabı() -> TR_Response {
+        TR_if TR_not TR_self.yenile_ve_aç() { TR_return eşleme_reddi(429, "too_many_requests") }
+        TR_return TR_Response(TR_status: 202, TR_headers: {"Cache-Control": "no-store", "Dost-Contract": "\(_SÜRÜM)"})
+    }
+}
+
+TR_func _başlıklar() -> TR_Dict[TR_String, TR_String] {
+    TR_return {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Dost-Contract": "\(_SÜRÜM)"}
+}
+
+# eşleme_reddi: eşleme yolunun hatası; gövde sözleşmenin hata nesnesidir (komut kimliği yok).
+TR_func eşleme_reddi(durum: TR_Int, kod: TR_String) -> TR_Response {
+    TR_return TR_Response(TR_status: durum, TR_json: TR_JSON({"v": _SÜRÜM, "error": {"code": kod, "values": {}}}), TR_headers: _başlıklar())
+}
+
+# eşleme_yolu: yol eşlemenin mi.
+TR_func eşleme_yolu(yol: TR_String) -> TR_Bool { TR_return yol == "/pair" TR_or yol == "/pair/renew" }
+
+# eşleme_cevabı: işleyici. Üstbilgiyi işleyici denetler (durum okumaz); kararı ana döngü verir.
+TR_func eşleme_cevabı(eş: Eşleme, istek: TR_Request) -> TR_Response {
+    TR_if istek.TR_method != "GET" { TR_return TR_Response(TR_status: 404, TR_headers: {"Cache-Control": "no-store"}) }
+    TR_var i = Eşİstek(tür: "renew")
+    TR_if istek.TR_path == "/pair" {
+        TR_var kod = istek.TR_headers.TR_get("Dost-Pair-Code")
+        TR_if kod == TR_none { TR_return eşleme_reddi(400, "bad_request") }
+        i = Eşİstek(tür: "pair", kod: kod)
+    } TR_else TR_if istek.TR_headers.TR_get("Dost-Pair-Renew") != "1" {
+        TR_return eşleme_reddi(400, "bad_request")
+    }
+    eş.bekleyen.TR_append(i)
+    TR_for i.cevap == TR_none { TR_sleep(_BEKLEME) }
+    TR_return i.cevap
+}
+
+# eşlemeleri_işle: bekleyen istekleri sırayla cevaplar (ana döngü); süresi biten pencerenin satırını yazar.
+TR_func eşlemeleri_işle(eş: Eşleme) {
+    eş.pencere(eş.saat())
+    TR_for eş.bekleyen.TR_length > 0 {
+        TR_var i = eş.bekleyen.TR_remove_at(0)
+        i.cevap = TR_if i.tür == "pair" { eş.kod_cevabı(i.kod) } TR_else { eş.yenileme_cevabı() }
+    }
+}

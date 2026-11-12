@@ -1985,6 +1985,8 @@
 "H8172": "The default place of the settings file cannot be found on this computer: the `LOCALAPPDATA` environment variable is not set. Give `--ayar <path>`, for example `--ayar ayar.json`.",
 "H8173": "`--bağlam` is not valid ({given}): give the context as a number of tokens greater than 0, for example `--bağlam 8192`; if it is not given, the settings' `context` is used, or 8192.",
 "H8174": "{source, select, option {`--bağlam {given}` exceeds the context limit of every language model in the catalog; the largest limit is {max} tokens. Give a smaller context, for example `--bağlam {max}`.} setting {The settings' `context` ({given}) exceeds the context limit of every language model in the catalog; the largest limit is {max} tokens. Set `context` in the settings to at most {max}, for example `\"context\": {max}`.} other {The context ({given}) exceeds the context limit of every language model in the catalog; the largest limit is {max} tokens.}}",
+"H8175": "In the last {seconds} seconds {count} wrong pairing codes arrived (unknown or expired). The page Dost opens sends a code once; many wrong codes may mean another program is guessing codes.",
+"H8176": "A pairing code was used a second time: another program may have used it first and received the token. To make the token invalid, close Dost and open it again.",
 "H8200": "no step information: use {progress}(...) and .{update}(...) in the training loop",
 "H8201": "(in the imported module)",
 "H8202": "(top level)",
