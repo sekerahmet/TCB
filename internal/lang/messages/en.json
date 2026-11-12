@@ -1615,7 +1615,7 @@
 "H7173": "{@generate}: {@eos} was given a function, not a list of stop ids: call the method with parentheses, `{#eos}: model.{#eos_tokens}()`",
 "H7174": "{@generate}: {@eos} is a list of stop ids; {index, plural, =0 {a {type} was given, not a list} other {item # is a {type}, not an Int}}: a stop id comes from `p.{#token_id}(\"...\")`, and a name not in the vocabulary gives `{#none}`; or the model's own list: `{#eos}: model.{#eos_tokens}()`",
 "H7175": "{via, select, gguf {{@pretrained_gguf}: the value of {key|q} has type {given}, the key needs type {expected} ({file|q}): the value is in the file's metadata and TR does not convert values; download another conversion of the file} other {{@pretrained_model}: the value of {key|q} has type {given}, the key needs type {expected}{file, select, empty {} other { ({file|q})}}: TR does not convert values, write it with type {expected} in the config}}",
-"H7176": "{@llama3_format}: message {index} carries both content and a tool call; Llama 3 writes no content in a message with a call, and the content is not dropped silently: write the call with `{#content}: \"\"` and put the content in a separate assistant message (24.5)",
+"H7176": "{@llama3_format}: message {index} carries both content and a tool call; Llama 3 writes no content in a message with a call, and the content is not dropped silently: write the call with `{#content}: \"\"` and put the content in a separate assistant message before the call (24.5)",
 "H7200": "Error: {error} For options: {command} {help}",
 "H7201": "argument {index} is too long ({size} bytes; at most 1 MB)",
 "H7202": "'--{name}' was given twice",
