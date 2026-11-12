@@ -70,9 +70,9 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 ## Belirlenimcilik
 
 **23.5** Bu bölümün işlemleri 15.22a'ya uyar: aynı cihaz türünde aynı girdi ve şekil aynı bitleri verir. Cihaz türleri arasında 15.41'in üçüncü basamağındadır (ondalık indirgeme).
-- GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez. Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. Çekirdek gelene kadar GPU'daki tensörde 23.1 ve 23.3 hata verir, CPU'ya düşmez (15.41).
+- GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez, `TR_vendor_matmul` bloğu da dönüşümün çarpımını kitaplığa vermez (15.53b). Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. GPU'da dönüşümün uzunluğu (23.1'in ve 23.3'ün `n`'i) en çok 4096'dır; üstü çalışma hatasıdır, ileti sınırı söyler ve tensörü CPU'ya taşımayı önerir (15.41'in istisnası). Sınır bu uygulamanındır, kaynak sınırı değildir (15.42); TR'nin kendi FFT çekirdeği gelince kalkar.
 - Toplu verilen seslerin sonucu tek tek hesaplananla aynı bitleri vermeyebilir: şekil değişir (15.22a "aynı şekil").
-- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`.
+- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`; GPU'da `TestRfftOnTheCardMatchesCPU`, `TestStftOnTheCardMatchesCPU`, `TestFourierNeverCallsTheLibrary`, `TestFourierLengthLimitOnTheCard`, `TestFourierRunsOnTheCard` (blokta aynı bitler, H4134 ve önerisi).
 
 ## Whisper'ın girdisi
 
