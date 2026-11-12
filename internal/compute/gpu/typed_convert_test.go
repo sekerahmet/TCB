@@ -143,7 +143,11 @@ func TestConvertFirstFaultIsSmallestFlatIndex(t *testing.T) {
 	}
 	n := 1 << 20
 	rng := rand.New(rand.NewSource(7))
-	for run := 0; run < 3; run++ {
+	runs := 3
+	if raceEnabled { // yarış dedektöründe tek koşu (skipUnderRace'in gerekçesi); koşular yalnız konumlarla ayrılır
+		runs = 1
+	}
+	for run := 0; run < runs; run++ {
 		x := make([]float32, n)
 		want := n
 		for k := 0; k < 64; k++ {
