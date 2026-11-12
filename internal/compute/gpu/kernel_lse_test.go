@@ -13,7 +13,8 @@ import (
 // 3. basamağında aynıdır (ondalık indirgeme), özel değerler (−∞, +∞, NaN; boş satır) aynen. Kartın
 // bitleri yalnız satırın uzunluğuna bağlıdır: aynı satır tek başına ve başka satırlarla aynı
 // bitleri verir (15.22a). Sınır girdileri: boş eksen, tek öğe, 0 boyutlu tensör, iki +∞ (türev
-// ilkine), +∞ ile NaN, 16 bitlik girdi, uzun satır, birden çok ve karışık eksen.
+// ilkine), +∞ ile NaN, 16 bitlik girdi, uzun satır, birden çok ve karışık eksen. Uzun satır
+// yarış dedektöründe koşmaz; öbür kiplerde ve gerçek kartta koşar.
 
 var nan32, inf32 = float32(math.NaN()), float32(math.Inf(1))
 
@@ -27,11 +28,18 @@ func TestLogSumExpMatchesCPU(t *testing.T) {
 		{[]int{3, 300}, []int{1}, false},
 		{[]int{2, 3, 4}, []int{0, 2}, true},
 		{[]int{2, 3, 4}, nil, false},
-		{[]int{1, 70000}, []int{1}, false}, // Whisper'ın satırı gibi uzun
 		{[]int{4, 1}, []int{1}, false},
 		{[]int{}, nil, false},
 		{[]int{3, 0}, []int{1}, false}, // boş satır: −∞
 		{[]int{0, 5}, []int{1}, false},
+	}
+	if !raceEnabled {
+		// Whisper'ın satırı gibi uzun; ağır boylar yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi).
+		cases = append(cases, struct {
+			shape []int
+			axes  []int
+			keep  bool
+		}{[]int{1, 70000}, []int{1}, false})
 	}
 	for _, c := range cases {
 		n := 1

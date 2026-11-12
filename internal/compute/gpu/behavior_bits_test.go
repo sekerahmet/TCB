@@ -61,9 +61,10 @@ func sameBitsAt(t *testing.T, name string, got, want []uint32) {
 
 // bitFamily bir çekirdek ailesidir: off kaymalı girdilerle sonucu kurar.
 type bitFamily struct {
-	name string
-	cpu  bool // yalnız işlemcide (kartta bu işlem yok)
-	run  func(dev tensor.Device, off int) *tensor.Tensor
+	name  string
+	cpu   bool // yalnız işlemcide (kartta bu işlem yok)
+	heavy bool // yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi): benzetimde ağır
+	run   func(dev tensor.Device, off int) *tensor.Tensor
 }
 
 func bitFamilies(t *testing.T) []bitFamily {
@@ -106,11 +107,11 @@ func bitFamilies(t *testing.T) []bitFamily {
 		{name: "TR_logsumexp", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return tensor.LogSumExp(shiftedOn(dev, row, tensor.Float32, off, 3, 130), []int{1}, false)
 		}},
-		{name: "TR_rfft (tek satır)", run: func(dev tensor.Device, off int) *tensor.Tensor {
+		{name: "TR_rfft (tek satır)", heavy: true, run: func(dev tensor.Device, off int) *tensor.Tensor {
 			re, _ := tensor.Rfft(shiftedOn(dev, row, tensor.Float32, off, 1, 390), 390, fourierCall)
 			return re
 		}},
-		{name: "TR_stft", run: func(dev tensor.Device, off int) *tensor.Tensor {
+		{name: "TR_stft", heavy: true, run: func(dev tensor.Device, off int) *tensor.Tensor {
 			w := tensor.NewOn(dev, row[:64], 64)
 			_, im := tensor.Stft(shiftedOn(dev, row, tensor.Float32, off, 1, 390), w, tensor.StftOptions{N: 64, Hop: 16, Center: true, Reflect: true}, fourierCall)
 			return im
@@ -146,7 +147,7 @@ func TestMisalignedViewsMatchBits(t *testing.T) {
 	fams := bitFamilies(t)
 	for _, dev := range []tensor.Device{tensor.CPU, gpuDevice} {
 		for _, f := range fams {
-			if f.cpu && dev != tensor.CPU {
+			if f.cpu && dev != tensor.CPU || f.heavy && raceEnabled {
 				continue
 			}
 			want := bitsOf(f.run(dev, 0))
