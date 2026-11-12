@@ -13,7 +13,8 @@ import (
 // 3. basamağında aynıdır (ondalık indirgeme), özel değerler (−∞, +∞, NaN; boş satır) aynen. Kartın
 // bitleri yalnız satırın uzunluğuna bağlıdır: aynı satır tek başına ve başka satırlarla aynı
 // bitleri verir (15.22a). Sınır girdileri: boş eksen, tek öğe, 0 boyutlu tensör, iki +∞ (türev
-// ilkine), +∞ ile NaN, 16 bitlik girdi, uzun satır, birden çok ve karışık eksen.
+// ilkine), +∞ ile NaN, 16 bitlik girdi, uzun satır, birden çok ve karışık eksen. Uzun satır
+// yarış dedektöründe koşmaz; öbür kiplerde ve gerçek kartta koşar.
 
 var nan32, inf32 = float32(math.NaN()), float32(math.Inf(1))
 

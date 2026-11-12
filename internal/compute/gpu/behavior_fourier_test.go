@@ -16,7 +16,8 @@ import (
 // kalır, işlemcininkiyle 15.41'in 3. basamağında aynıdır. Kartta çarpım kitaplık girişine hiç
 // uğramaz (TR'nin kendi çekirdeği, ileri ve geri). Kartta uzunluk en çok 4096'dır: 4096 geçer,
 // 4097 H4134 verir ve taşımanın yazımını söyler. Sınır girdileri: n = 1, tek çerçeve, yansıtmada
-// sinyal n/2 + 1, kısa sinyal (sıfır dolgu), toplu girdi.
+// sinyal n/2 + 1, kısa sinyal (sıfır dolgu), toplu girdi. Ağır boylar (Whisper'ın n'si ve log-Mel'i,
+// n = 4096) yarış dedektöründe koşmaz; öbür kiplerde ve gerçek kartta koşar.
 
 var fourierTrig = tensor.Trig{Sin: math.Sin, Cos: math.Cos}
 
@@ -24,10 +25,15 @@ var fourierCall = tensor.FourierCall{Fn: "fourier", Move: "x", Trig: fourierTrig
 
 func TestRfftOnTheCardMatchesCPU(t *testing.T) {
 	rng := rand.New(rand.NewSource(11))
-	for _, c := range []struct {
+	type rfftCase struct {
 		shape []int
 		n     int
-	}{{[]int{1}, 1}, {[]int{5}, 8}, {[]int{2, 3, 7}, 12}, {[]int{1, 400}, 400}} {
+	}
+	cases := []rfftCase{{[]int{1}, 1}, {[]int{5}, 8}, {[]int{2, 3, 7}, 12}}
+	if !raceEnabled { // Whisper'ın n'si; ağır boylar yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi)
+		cases = append(cases, rfftCase{[]int{1, 400}, 400})
+	}
+	for _, c := range cases {
 		n := 1
 		for _, d := range c.shape {
 			n *= d
@@ -77,16 +83,23 @@ func TestFourierNeverCallsTheLibrary(t *testing.T) {
 	if !inSim() {
 		t.Skip("giriş sayacı benzeticide sınanır; gerçek kartta bitler ml'nin bloklu testinde")
 	}
+	sig, n := 300, 64
+	if raceEnabled { // yarış dedektöründe küçük boy (skipUnderRace'in gerekçesi); satır sayısı ve yollar aynı
+		sig, n = 40, 16
+	}
 	rng := rand.New(rand.NewSource(13))
-	x := tensor.NewOn(gpuDevice, random(rng, 3*300, 1), 3, 300).SetRequiresGrad(true)
-	w := tensor.NewOn(gpuDevice, random(rng, 64, 1), 64).SetRequiresGrad(true)
+	x := tensor.NewOn(gpuDevice, random(rng, 3*sig, 1), 3, sig).SetRequiresGrad(true)
+	w := tensor.NewOn(gpuDevice, random(rng, n, 1), n).SetRequiresGrad(true)
 	if d := vendorDelta(func() {
-		re, _ := tensor.Rfft(x, 300, fourierCall)
-		sr, si := tensor.Stft(x, w, tensor.StftOptions{N: 64, Hop: 16, Center: true, Reflect: true}, fourierCall)
+		re, _ := tensor.Rfft(x, sig, fourierCall)
+		sr, si := tensor.Stft(x, w, tensor.StftOptions{N: n, Hop: n / 4, Center: true, Reflect: true}, fourierCall)
 		tensor.Add(tensor.Add(re.SumAll(), sr.SumAll()), si.SumAll()).Backward()
 	}); d != 0 {
 		t.Fatalf("Fourier'in %d çarpımı kitaplık girişine gitti", d)
 	}
+	// Sayaç çağrı anında artar; türevler indirilir ki benzeticinin eşzamansız işi bu testin süresinde kalsın.
+	x.Grad().Data()
+	w.Grad().Data()
 }
 
 func TestFourierLengthLimitOnTheCard(t *testing.T) {
