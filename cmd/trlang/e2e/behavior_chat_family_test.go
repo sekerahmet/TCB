@@ -203,6 +203,39 @@ func TestChatTableIsUnique(t *testing.T) {
 	}
 }
 
+// TestAssistantFamiliesAreInTheChatTable: Dost'un aile listesinin (tools/assistant/katalog.tr'nin
+// AİLELER'i) her ailesi kitaplığın sohbet tablosunda bir satırdır. Kural alt kümedir, eşitlik değil:
+// kitaplık Dost'tan fazla aile destekleyebilir; ters yönde Dost kullanıcıya yüklenemeyecek bir
+// model gösterirdi (TCB 2026-11-12 22:47, 23:00). İki liste de kaynaktan okunur.
+func TestAssistantFamiliesAreInTheChatTable(t *testing.T) {
+	katalog, err := os.ReadFile(reporoot.Path("tools", "assistant", "katalog.tr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	table, err := os.ReadFile(reporoot.Path("lib", "model_family.tr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := regexp.MustCompile(`(?m)^TR_const AİLELER = \[(.*)\]$`).FindAllSubmatch(katalog, -1)
+	if len(line) != 1 {
+		t.Fatalf("katalog.tr'de AİLELER satırı %d kez bulundu, bir olmalı", len(line))
+	}
+	families := regexp.MustCompile(`"([^"]*)"`).FindAllSubmatch(line[0][1], -1)
+	rows := regexp.MustCompile(`_Sohbet\("([^"]*)", "`).FindAllSubmatch(table, -1)
+	if len(families) == 0 || len(rows) < 2 {
+		t.Fatalf("listeler okunamadı: Dost'ta %d aile, tabloda %d satır", len(families), len(rows))
+	}
+	known := map[string]bool{}
+	for _, r := range rows {
+		known[string(r[1])] = true
+	}
+	for _, f := range families {
+		if !known[string(f[1])] {
+			t.Errorf("Dost'un ailesi %q kitaplığın sohbet tablosunda yok", f[1])
+		}
+	}
+}
+
 // TestFamilylessModelGeneratesWithExplicitStops: yedi ailesiz yolda (parçalayıcısız GGUF, tabloda
 // olmayan etiket, parçalayıcının tanımadığı etiket, SentencePiece'li GGUF, etiketi mimarisiyle
 // çelişen GGUF, tokenizer_config'siz klasör, tokenizer.json'suz klasör) model.TR_eos_tokens()
