@@ -103,7 +103,7 @@ assistantLanguages.en = {
   "error_unknown_entry": "There is no such model in the catalog: {entry_id}",
   "error_not_installed": "This model's files are not installed: {entry_id}",
   "error_setting_invalid": "This setting could not be changed: {key}",
-  "error_unknown_language": "The speech model does not recognize this language: {language}",
+  "error_unknown_language": "The speech model does not recognize this language, or the catalog has no models for it: {language}",
   "error_tool_failed": "The tool failed: {tool}",
   "error_tool_timeout": "The tool ran past its limit of {limit_ms}: {tool}",
   "error_internal": "The server hit an internal error.",

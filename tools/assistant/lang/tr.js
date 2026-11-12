@@ -103,7 +103,7 @@ assistantLanguages.tr = {
   "error_unknown_entry": "Katalogda böyle bir model yok: {entry_id}",
   "error_not_installed": "Bu modelin dosyaları kurulu değil: {entry_id}",
   "error_setting_invalid": "Bu ayar değiştirilemedi: {key}",
-  "error_unknown_language": "Konuşma modeli bu dili tanımıyor: {language}",
+  "error_unknown_language": "Konuşma modeli bu dili tanımıyor ya da katalogda bu dilin modelleri yok: {language}",
   "error_tool_failed": "Araç hata verdi: {tool}",
   "error_tool_timeout": "Araç {limit_ms} sınırını aştı: {tool}",
   "error_internal": "Sunucuda iç hata oluştu.",

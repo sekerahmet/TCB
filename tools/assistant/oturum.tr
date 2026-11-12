@@ -1,0 +1,254 @@
+# TR 4
+# Dost'un ekranlı kipinin oturumu: ana döngünün durumu ve işleri (yuvaya yükleme, dil değişimi, komutlar, mikrofon,
+# dinleme). asistan.tr açılışı yapar (belirteç, sunucu, katalog ve ayar), oturumu kurar ve `koş`'u çağırır. Modele,
+# mikrofona ve tura dokunan üç iş programındır (komut satırının seçeneklerini okurlar); oturum onları alan olarak alır.
+# Davranışı asistan.tr'nin ekranlı kipinin testleri sınar (behavior_model_load_test.go, behavior_token_file_test.go).
+TR_import "tr/vad"
+TR_import "ekran"
+TR_import "katalog"
+TR_import "yuva"
+TR_import "zincir"
+
+# Yüklü: ekranlı kipte yuvanın modeli: asistan ve VAD (oturumun tek alanı; yuva.tr takımı tutar).
+TR_struct Yüklü {
+    a: Asistan? = TR_none
+    kesici: TR_SpeechSplitter? = TR_none
+    algılayıcı: TR_VoiceDetector? = TR_none
+}
+
+# Oturum: ekranlı kipin durumu. Alanlarını yalnız ana döngü yazar. Komutların kararı ana döngüdedir (`işle`):
+# çerçeveler arasında, mikrofon kapalıyken 50 ms'de bir, tur sürerken `tur_yürüt`'ün bakışında. Döngü `dinle`'dir;
+# metin turları ve mikrofonun açılması `ara`'dadır.
+TR_struct Oturum {
+    e: Ekran
+    k: Katalog
+    kj: TR_JSON
+    klasör: TR_String # Dost klasörü
+    etkin: Ayar
+    ayar_verisi: TR_Dict[TR_String, TR_JSON]?
+    y: Yuva
+    yüklü: Yüklü
+    en_çok_tur: TR_Int
+    kuyruk_ms: TR_Int
+    çerçeve_bayt: TR_Int
+    açılış: TR_Int
+    kur: (Takım) -> Asistan # modelleri yükler, sistem iletisini ısıtır
+    mikrofon_aç: (TR_Int) -> TR_Process # mikrofonu açar; değer ilk açılışın anı
+    tur: (Asistan, TR_Tensor?, TR_String?, TR_Int, TR_Bool, TR_Int, () -> TR_NoneType) -> ÇalmaAralığı # ekranlı bir tur
+    önceki_turlar: TR_Int = 0
+    başlangıç: TR_Int = -1 # sahte mikrofonun WAV'ı ilk açılıştan bu yana geçen süreden açılır
+    mikrofon: TR_Process? = TR_none
+    dinlemede: TR_Bool = TR_false
+
+    TR_func cevaplanan() -> TR_Int {
+        TR_var a = TR_self.yüklü.a
+        TR_return TR_self.önceki_turlar + TR_if a == TR_none { 0 } TR_else { a.z.tur }
+    }
+
+    TR_func ayarı_gönder() {
+        TR_var v = TR_self.ayar_verisi
+        TR_if v != TR_none { TR_self.e.gönder("settings", TR_JSON(v)) }
+    }
+
+    TR_func kapat() {
+        TR_var m = TR_self.mikrofon
+        TR_if m != TR_none { m.TR_cancel() }
+        TR_self.mikrofon = TR_none
+        TR_self.dinlemede = TR_false
+        TR_if TR_self.e.mic {
+            TR_self.e.mic = TR_false
+            TR_if TR_self.e.tur == "" { TR_self.e.boşta() } TR_else { TR_self.e.durum("thinking") }
+        }
+    }
+
+    # bırak: oturum biterken açık mikrofonu kapatır (ekran durumu gönderilmez).
+    TR_func bırak() {
+        TR_var m = TR_self.mikrofon
+        TR_if m != TR_none { m.TR_cancel() }
+    }
+
+    # takımı_yükle: yuvaya yükler (yuva.tr, `yükle`); beklerken komutlar işlenir. Hata yakalanır: `model_load_failed`,
+    # yuva boş, durum `setup`.
+    TR_func takımı_yükle(t: Takım) {
+        TR_self.önceki_turlar = TR_self.cevaplanan()
+        TR_self.e.hazır = TR_false
+        TR_self.e.yükleniyor(t.giriş)
+        TR_var hata = yükle(TR_self.y, TR_self.klasör, t, () => {
+            TR_self.yüklü.a = TR_none
+            TR_self.yüklü.kesici = TR_none
+            TR_self.yüklü.algılayıcı = TR_none
+        }, (t) => {
+            TR_var a = TR_self.kur(t)
+            TR_var algılayıcı = TR_pretrained_vad(t.vad)
+            TR_self.yüklü.kesici = TR_SpeechSplitter(algılayıcı)
+            TR_self.yüklü.algılayıcı = algılayıcı
+            TR_self.yüklü.a = a
+        }) {
+            komutları_işle(TR_self.e)
+            TR_sleep(0.05)
+        }
+        TR_if hata == TR_none {
+            TR_self.e.hazır = TR_true
+            TR_self.e.boşta()
+            TR_return
+        }
+        TR_print("YÜKLEME HATASI:", hata)
+        TR_self.yüklü.a = TR_none
+        TR_self.e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": t.giriş}, "fatal": TR_false}))
+        TR_self.e.durum("setup")
+    }
+
+    # ayarı_uygula: kabul edilen `settings_set` (ekran.tr, `ayar_kararı`). Model yüklüyse dil değişimi atomiktir
+    # (yuva.tr, `dil_değiştir`): yeni ses (ve başka yazıcıysa Whisper) eskiler yerinde dururken yüklenir; düşerse
+    # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır.
+    # Ayar dosyasına yazılmaz; `settings` olayı yeni değeri taşır.
+    TR_func ayarı_uygula(anahtar: TR_String, değer: TR_JSON) {
+        TR_var ö = TR_self.etkin
+        TR_var yeni = Ayar(dil_modeli: ö.dil_modeli, konuşma_dili: ö.konuşma_dili, sistem: ö.sistem, bağlam: ö.bağlam, kapı: ö.kapı)
+        TR_if anahtar == "speech_language" { yeni.konuşma_dili = TR_String(değer) } TR_else { yeni.sistem = değer }
+        TR_var a = TR_self.yüklü.a
+        TR_var t = TR_self.y.takım
+        TR_if a != TR_none TR_and t != TR_none {
+            TR_var yt = dil_takımı(t, TR_self.kj, TR_self.klasör, yeni.sistem, yeni.konuşma_dili)
+            TR_var hata = dili_uygula(TR_self.y, a, t, yt)
+            TR_if hata != TR_none {
+                TR_print("DİL HATASI:", hata)
+                TR_self.e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": TR_Path(yt.ses).TR_name}, "fatal": TR_false}))
+                TR_return
+            }
+        }
+        TR_self.etkin = yeni
+        TR_self.e.konuşma_dili = yeni.konuşma_dili
+        TR_self.e.dil_cevabı = dil_cevapları(TR_self.kj, TR_self.klasör, yeni)
+        TR_self.e.yüklenebilir = yüklenebilirler(TR_self.k, TR_self.kj, TR_self.klasör, yeni)
+        TR_var v = TR_self.ayar_verisi
+        TR_if v != TR_none { v[anahtar] = değer }
+        TR_self.ayarı_gönder()
+    }
+
+    # işle: bekleyen komutlar; kapatılan mikrofon hemen kapanır, açılması `ara`'da (tur bittikten sonra) olur.
+    # Kabul edilen `model_load` burada koşar: mikrofon kapanır, takım yüklenir.
+    TR_func işle() {
+        TR_var e = TR_self.e
+        komutları_işle(e)
+        TR_if TR_not e.mikrofon_istendi TR_and TR_self.mikrofon != TR_none { TR_self.kapat() }
+        TR_var giriş = e.yüklenecek
+        TR_if giriş != TR_none {
+            e.yüklenecek = TR_none
+            e.mikrofon_istendi = TR_false
+            TR_self.kapat()
+            TR_var c = takım_kur(TR_self.k, TR_self.kj, TR_self.klasör, giriş, TR_self.etkin)
+            TR_var t = c.takım
+            TR_if t != TR_none { TR_self.takımı_yükle(t) }
+        }
+        TR_var istek = e.ayar_istendi
+        TR_if istek != TR_none {
+            e.ayar_istendi = TR_none
+            TR_self.ayarı_uygula(TR_String(istek["key"]), istek["value"])
+        }
+    }
+
+    TR_func oku() -> TR_Tensor? {
+        TR_self.işle()
+        TR_var e = TR_self.e
+        TR_var m = TR_self.mikrofon
+        TR_if m == TR_none { TR_throw "mikrofon kapalı" }
+        TR_var parça = m.TR_read(TR_self.çerçeve_bayt)
+        TR_if parça.TR_length < TR_self.çerçeve_bayt {
+            TR_self.kapat()
+            e.mikrofon_istendi = TR_false
+            e.gönder("error", TR_JSON({"code": "mic_unavailable", "values": {}, "fatal": TR_false}))
+            TR_throw "mikrofon kapandı"
+        }
+        TR_if TR_not TR_self.dinlemede {
+            TR_print("OLCU_MIKROFON tur=\(TR_self.cevaplanan()) acilis_ms=\(şimdi() - TR_self.açılış)")
+            TR_self.dinlemede = TR_true
+            e.mic = TR_true
+            TR_if e.tur == "" { e.boşta() }
+        }
+        TR_return çerçeve_örnekleri(parça)
+    }
+
+    TR_func mikrofonu_aç() -> TR_Bool {
+        TR_if TR_self.başlangıç < 0 { TR_self.başlangıç = şimdi() }
+        TR_try {
+            TR_self.açılış = şimdi()
+            TR_self.mikrofon = TR_self.mikrofon_aç(TR_self.başlangıç)
+            TR_return TR_true
+        } TR_catch hata {
+            TR_print("MİKROFON HATASI:", hata)
+            TR_self.e.mikrofon_istendi = TR_false
+            TR_self.e.gönder("error", TR_JSON({"code": "mic_unavailable", "values": {}, "fatal": TR_false}))
+            TR_return TR_false
+        }
+    }
+
+    TR_func aç() {
+        TR_self.kapat()
+        TR_if TR_self.e.mikrofon_istendi { TR_self.mikrofonu_aç() }
+    }
+
+    TR_func tur_kaldı() -> TR_Bool { TR_return TR_self.en_çok_tur == 0 TR_or TR_self.cevaplanan() < TR_self.en_çok_tur }
+
+    # sürsün: dinleme yuva doluyken sürer; yeni yükleme düşüp yuvayı boşaltınca `dinle` döner, kurulum beklenir.
+    TR_func sürsün() -> TR_Bool { TR_return TR_self.tur_kaldı() TR_and TR_self.yüklü.a != TR_none }
+
+    TR_func ara() -> Arada {
+        TR_var r = Arada()
+        TR_for {
+            TR_self.işle()
+            TR_var a = TR_self.yüklü.a
+            TR_if a == TR_none { TR_return Arada(dur: TR_true) }
+            TR_var metin = metni_al(TR_self.e)
+            TR_if metin != TR_none {
+                r.aralık = TR_self.tur(a, TR_none, metin, şimdi(), TR_false, 0, TR_self.işle)
+                TR_if TR_not TR_self.sürsün() { TR_return Arada(dur: TR_true) }
+                TR_if TR_self.mikrofon != TR_none { TR_return r }
+                TR_continue
+            }
+            TR_if TR_self.mikrofon != TR_none { TR_return r }
+            TR_if TR_self.e.mikrofon_istendi TR_and TR_self.mikrofonu_aç() {
+                r.açıldı = TR_true
+                TR_return r
+            }
+            TR_sleep(0.05)
+        }
+    }
+
+    TR_func sıfırla() {
+        TR_var kesici = TR_self.yüklü.kesici
+        TR_var algılayıcı = TR_self.yüklü.algılayıcı
+        TR_if kesici == TR_none TR_or algılayıcı == TR_none { TR_return }
+        TR_var atılan = TR_if kesici.TR_flush() != TR_none { 1 } TR_else { 0 }
+        algılayıcı.TR_reset_state()
+        TR_print("OLCU_ATILAN tur=\(TR_self.cevaplanan()) atilan=\(atılan)")
+    }
+
+    TR_func it(ç: TR_Tensor) -> TR_Tensor? {
+        TR_var kesici = TR_self.yüklü.kesici
+        TR_if kesici == TR_none { TR_return TR_none }
+        TR_return kesici.TR_push(ç)
+    }
+
+    # sesli_tur: dinlemenin kesiti; yuva boşaldıysa tur yok.
+    TR_func sesli_tur(kesit: TR_Tensor, t0: TR_Int, sonrası: TR_Bool, geride: TR_Int) -> ÇalmaAralığı {
+        TR_var a = TR_self.yüklü.a
+        TR_if a == TR_none { TR_return ÇalmaAralığı() }
+        TR_self.e.yeni_tur()
+        TR_return TR_self.tur(a, kesit, TR_none, t0, sonrası, geride, TR_self.işle)
+    }
+
+    # koş: ana döngü. Yuva boşken komutlar beklenir; doluyken `dinle`. Cevaplanan tur sayısını verir.
+    TR_func koş() -> TR_Int {
+        TR_print("DİNLİYORUM")
+        TR_for TR_self.tur_kaldı() {
+            TR_for TR_self.yüklü.a == TR_none {
+                TR_self.işle()
+                TR_if TR_self.yüklü.a == TR_none { TR_sleep(0.05) }
+            }
+            dinle(Dinleme(oku: TR_self.oku, aç: TR_self.aç, it: TR_self.it, sıfırla: TR_self.sıfırla, saat: () => şimdi(),
+                tur: TR_self.sesli_tur, sürsün: TR_self.sürsün, kuyruk_ms: TR_self.kuyruk_ms, ara: TR_self.ara))
+        }
+        TR_return TR_self.cevaplanan()
+    }
+}

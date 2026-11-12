@@ -253,7 +253,7 @@ Sunucudan gelenler:
 | `unknown_entry` | `entry_id` | Katalogda yok |
 | `not_installed` | `entry_id` | Yüklenecek dosyalar yok |
 | `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` üç değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış) |
-| `unknown_language` | `language` | Whisper bu dili tanımıyor (yükleme anında) |
+| `unknown_language` | `language` | Whisper bu dili tanımıyor ya da katalogda bu dilin modelleri yok |
 | `tool_failed` | `tool` | Araç hatayla bitti |
 | `tool_timeout` | `tool`, `limit_ms` | Araç süresini aştı |
 | `internal` | | Sunucunun iç hatası |

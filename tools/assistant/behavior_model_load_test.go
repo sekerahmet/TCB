@@ -15,7 +15,22 @@ const (
 	dostCatalog = "tools/assistant/katalog.json"
 	slotModule  = "tools/assistant/yuva.tr"
 	slotTest    = "tools/assistant/yuva_test.tr"
+	// Ekranlı kipin oturumu (tek tık G, DENETİM 489 N4): ayrı TR testi yok, bu dosyanın testleri onu koşturur.
+	sessionModule = "tools/assistant/oturum.tr"
 )
+
+// Oturumun modülü README'de anılır, program onu aktarır.
+func TestSessionFileIsListed(t *testing.T) {
+	if name := sessionModule[strings.LastIndex(sessionModule, "/")+1:]; !strings.Contains(readFile(t, readmePath), "`"+name+"`") {
+		t.Errorf("%s does not name %s", readmePath, name)
+	}
+	if !strings.Contains(readFile(t, chainProgram), `TR_import "oturum"`) {
+		t.Errorf("%s does not import the session module", chainProgram)
+	}
+	if !strings.Contains(readFile(t, sessionModule), "TR_struct Oturum {") {
+		t.Errorf("%s does not define Oturum", sessionModule)
+	}
+}
 
 // Yuvanın modülü ve testi README'de anılır; test modülü aktarır, program da.
 func TestSlotFilesAreListed(t *testing.T) {

@@ -17,6 +17,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 - `ekran.tr`, `ekran_test.tr`, `ekran_tur_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; testler modelsizdir (`ekran_test.tr` katlama, komutlar, sunulan dosyalar; `ekran_tur_test.tr` tur ve cevap metni). İki testin ortak yardımcıları `screen_helpers.tr`'de.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 - `yuva.tr`, `yuva_test.tr`: ekranlı kipin model yuvası (aşağıda, "Ekranlı kip"): Dost klasörü, kurulu takım, yükleme işareti, yükleme; test modelsizdir.
+- `oturum.tr`: ekranlı kipin oturumu: ana döngünün durumu ve işleri (yuvaya yükleme, dil değişimi, komutlar, mikrofon, dinleme); `asistan.tr` açılışı yapar ve oturumu kurar. Ayrı TR testi yok: `asistan.tr`'nin ekranlı kipini sınayan Go testleri (`behavior_model_load_test.go`, `behavior_token_file_test.go`) onu koşturur.
 - `katalog.json`: Dost'un indirebileceği modellerin ve konuşma dillerinin kataloğu (aşağıda, "Kurulum").
 - `katalog.tr`, `katalog_test.tr`: katalogu ve ayarı okur, denetler, makineye uygunluğu hesaplar; test modelsizdir.
 - `kur.tr`: bu makineye hangi dil modelinin sığdığını ve önerileni yazan komut (aşağıda, "Kurulum"); model yüklemez.
@@ -122,7 +123,7 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 ## Testler
 
 - `behavior_device_test.go`: zincirin cihaz geçişleri (`zincir.tr`'nin `işlemcide`, `çerçeve_örnekleri`, `kesit_cihazda`): modelsiz bir programı `trlang` ile kart benzeticisinde (`TR_GPU_SIM=1`) koşar; varsayılan cihaz kartken kesitleyicinin örnekleri ve mikrofonun 16 bitlik çerçevesi işlemcide, kesit kartta; işlemcideyken üçü de işlemcide.
-- `behavior_model_load_test.go`: `asistan.tr`'nin ekranlı kipi modelsiz açılır: kurulu takım yoksa `setup`, metin turu `not_ready`, katalogda olmayan ya da dil modeli olmayan girdi `unknown_entry`, dosyaları olmayan girdi `not_installed`; yarıda kalan yüklemenin işareti görüntüde `model_load_failed` olur ve silinir, bozuk işaret girdisizdir; yuvanın dosyaları burada anılır.
+- `behavior_model_load_test.go`: `asistan.tr`'nin ekranlı kipi modelsiz açılır: kurulu takım yoksa `setup`, metin turu `not_ready`, katalogda olmayan ya da dil modeli olmayan girdi `unknown_entry`, dosyaları olmayan girdi `not_installed`; yarıda kalan yüklemenin işareti görüntüde `model_load_failed` olur ve silinir, bozuk işaret girdisizdir; yuvanın dosyaları ve oturumun modülü (`oturum.tr`) burada anılır.
 - `behavior_token_file_test.go`: belirteç dosyasının sırası: kapı doluyken `asistan.tr`'nin ekranlı kipi ve `screen_demo.tr` H7625 ile düşer, var olan belirteç dosyasına dokunmaz.
 - `behavior_screen_files_test.go`: ekranın iki TR testinin (`ekran_test.tr`, `ekran_tur_test.tr`) ve ortak yardımcılarının (`screen_helpers.tr`) burada anıldığını, iki testin ekranı ve yardımcıları aktardığını, yardımcı modülün test bloğu taşımadığını sınar.
 - `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
