@@ -1,6 +1,9 @@
 package ml
 
 import (
+	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -163,6 +166,59 @@ TR_func g(k: TR_Tensor, s: TR_Tensor) -> TR_Tensor {
 			}
 			if !strings.Contains(out, "hata: "+c.code.String()+" ") || direct != out {
 				t.Fatalf("%s: kayıtta ve doğrudan çağrıda çıktı ve ileti aynı olmalı:\nkayıtta\n%s\ndoğrudan\n%s", bad, out, direct)
+			}
+		}
+	}
+}
+
+// Kural (15.8, 15.45; DENETİM 499 N2, T1 dilim 2b): dilim yazmanın sınır denetimi taşmaz. 2⁶³'e
+// yakın başlangıçta başlangıç + n toplamı eksiye dönüyordu: doğrudan çağrı hiçbir şey yazmadan
+// hatasız geçiyordu, kayıttaki kart H6442 veriyordu. Başlangıç sayı ya da 0 boyutlu int64 tensör,
+// n = 1 ve 2; boyut − n yazar, boyut − n + 1 ve 2⁶³ − n, 2⁶³ − 1 H6442 verir, kayıtta ve
+// doğrudan çağrıda aynı iletiyle ve satırla.
+func TestWriteSliceStartNearMaxInt64IsOutOfRange(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	const size = 4
+	for _, n := range []int{1, 2} {
+		src := fmt.Sprintf("TR_ones([2, %d])", n)
+		for _, c := range []struct {
+			start string
+			bad   bool
+		}{
+			{strconv.Itoa(size - n), false},
+			{strconv.Itoa(size - n + 1), true},
+			{strconv.Itoa(math.MaxInt64 - n + 1), true},
+			{strconv.Itoa(math.MaxInt64), true},
+		} {
+			number := `TR_default_device("gpu")
+TR_var c = TR_zeros([2, 4])
+TR_func g(k: TR_Tensor, s: TR_Tensor) -> TR_Tensor {
+    TR_write_slice(c, s, TR_dim: 1, TR_start: ` + c.start + `)
+    TR_return c * k
+}
+`
+			tensorStart := strings.Replace(number, "TR_start: "+c.start+")", "TR_start: k)", 1)
+			tensorStart = strings.Replace(tensorStart, "c * k", "c * 1.0", 1)
+			for _, h := range []struct{ head, k string }{{number, "TR_Tensor(1.0)"}, {tensorStart, "TR_Tensor(" + c.start + ")"}} {
+				program := h.head + "TR_var f = TR_replay(g)\nTR_no_grad {\n    TR_print(f(" + h.k + ", " + src + `).TR_to_device("cpu").TR_tolist)` + "\n}"
+				out, err := run(t, program)
+				direct, derr := run(t, strings.Replace(program, "TR_var f = TR_replay(g)", "TR_var f = g", 1))
+				name := fmt.Sprintf("n=%d, başlangıç %s (%s)", n, c.start, h.k)
+				if !c.bad {
+					if err != nil || derr != nil || out == "" || out != direct {
+						t.Fatalf("%s: yazmalıydı: kayıtta %q %v, doğrudan %q %v", name, out, err, direct, derr)
+					}
+					continue
+				}
+				for where, e := range map[string]error{"kayıtta": err, "doğrudan": derr} {
+					if line, _, ok := messages.Pos(e); !messages.Has(e, messages.H6442) || !ok || line != 4 {
+						t.Fatalf("%s %s: satır 4'te H6442 bekleniyordu: %v", name, where, e)
+					}
+				}
+				if out != direct || err.Error() != derr.Error() {
+					t.Fatalf("%s: kayıtta ve doğrudan çağrıda ileti aynı olmalı:\n%v\n%v", name, err, derr)
+				}
 			}
 		}
 	}

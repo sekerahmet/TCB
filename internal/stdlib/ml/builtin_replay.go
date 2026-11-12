@@ -490,7 +490,7 @@ func writeSliceStart(m *interp.VM, fn any, dst, src *tensor.Tensor, sv interp.Va
 		return err
 	case !integer:
 		return messages.New(messages.H6441, fn, interp.Shown(sv))
-	case start < 0 || start+n > size:
+	case start < 0 || start > size-n: // start+n 2⁶³'e yakın başlangıçta taşar (DENETİM 499 N2)
 		return messages.New(messages.H6442, fn, start, n, size)
 	}
 	_, err = safe(func() *tensor.Tensor {
