@@ -330,6 +330,84 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
     TR_assert_equal(m.TR_generate([1, 2, 3], 9, TR_temperature: 0, TR_cuda_graph: TR_false), m.TR_generate([1, 2, 3], 9, TR_temperature: 0))
 }
 
+TR_func pencereli_gpt(pencereler: TR_List[TR_Int]) -> TR_GPT {
+    TR_return TR_GPT(16, TR_context: 8, TR_embed_dim: 16, TR_num_layers: 2, TR_num_heads: 2, TR_num_kv_heads: 1, TR_windows: pencereler, TR_seed: 8)
+}
+
+# Gemma 3'ün seçenekleri (D1): _ alanlardır, yalnız tr/pretrained kurar; burada tanımlarıyla sınanır.
+TR_test "GPT'nin Gemma 3 seçenekleri: yokken model bit bit aynıdır; yerel tablo yalnız pencereli bloğa girer, önbellekli üretimde de" {
+    TR_var kimlik = [[1, 2, 3, 5]]
+    TR_no_grad {
+        TR_var taban = pencereli_gpt([2, 0]).TR_forward(kimlik).TR_tolist
+        TR_var m = pencereli_gpt([2, 0])
+        m._yerel_tablo = [m.TR_cos_table, m.TR_sin_table]
+        TR_assert_equal(taban, m.TR_forward(kimlik).TR_tolist)
+        TR_var yerel = TR_rotary_table(8, 8, TR_rope_theta: 7.0)
+        m._yerel_tablo = yerel
+        TR_assert(en_büyük_mutlak_fark(m.TR_forward(kimlik), TR_Tensor(taban)) > 0.000001, "yerel tablo pencereli bloğu değiştirmedi")
+        TR_assert_equal(m.TR_generate([1, 2, 3], 5, TR_temperature: 0, TR_cache_kind: TR_none), m.TR_generate([1, 2, 3], 5, TR_temperature: 0))
+        # Önbellekli gizli_durum ve tek_adım yerel tablonun da konumdaki satırını okur: önbelleksiz ileri ile aynı logit.
+        TR_var tam = m.TR_forward([[1, 2, 3, 5, 7]])[0]
+        TR_var ö1 = m.TR_build_cache(TR_capacity: 8)
+        m.TR_hidden_states([[1, 2, 3]], TR_cache: ö1)
+        TR_var parça = m.TR_logits(m.TR_hidden_states([[5, 7]], TR_cache: ö1))[0]
+        TR_for i TR_in 0..2 {
+            TR_assert(en_büyük_mutlak_fark(parça[i], tam[3 + i]) < 0.00001, "önbellekli gizli_durum yerel tabloyla farklı, konum \(3 + i)")
+        }
+        TR_var ö2 = m.TR_build_cache(TR_capacity: 8)
+        m.TR_hidden_states([[1, 2, 3]], TR_cache: ö2)
+        TR_for i, id TR_in [5, 7] {
+            TR_var l = m.TR_single_step(TR_Tensor([[id]]), TR_Tensor([ö2.TR_position]), ö2)
+            ö2.TR_advance(1)
+            TR_assert(en_büyük_mutlak_fark(l, tam[3 + i]) < 0.00001, "tek_adım yerel tabloyla farklı")
+        }
+        # Pencereli blok yoksa yerel tabloyu hiçbir blok okumaz.
+        TR_var g = pencereli_gpt([0, 0])
+        TR_var gtaban = g.TR_forward(kimlik).TR_tolist
+        g._yerel_tablo = yerel
+        TR_assert_equal(gtaban, g.TR_forward(kimlik).TR_tolist)
+        # Gömme ölçeği gömmenin çıktısını çarpar.
+        TR_var e = pencereli_gpt([2, 0])
+        e._gömme_ölçeği = 4.0
+        TR_var x, bağlamlar = e.TR_embed(kimlik)
+        TR_assert_equal((e.TR_embedding.TR_forward(kimlik) * 4.0).TR_tolist, x.TR_tolist)
+    }
+}
+
+TR_test "GeGLU ve bloğun iki çıktı normu (Gemma 3): tanımlarındaki hesap, ayrı ve birleşik kapıda" {
+    TR_no_grad {
+        TR_var h = TR_randn([1, 4, 16], TR_seed: 5)
+        TR_for birleşik TR_in [TR_false, TR_true] {
+            TR_var f = TR_SwiGLU(16, TR_intermediate_dim: 8, TR_seed: 3, TR_merged: birleşik)
+            TR_var silu = f.TR_forward(h)
+            f._gelu = TR_true
+            TR_var g = TR_none
+            TR_var u = TR_none
+            TR_if birleşik {
+                g, u = f.TR_gate_up_proj.TR_forward(h).TR_split(2, TR_dim: -1)
+            } TR_else {
+                g = f.TR_gate_proj.TR_forward(h)
+                u = f.TR_up_proj.TR_forward(h)
+            }
+            TR_var beklenen = f.TR_down_proj.TR_forward(TR_gelu(g, TR_approximate: TR_true) * u)
+            TR_assert(en_büyük_mutlak_fark(f.TR_forward(h), beklenen) < 0.000001, "GeGLU, birleşik: \(birleşik)")
+            TR_assert(en_büyük_mutlak_fark(f.TR_forward(h), silu) > 0.000001, "GeGLU silu'yla aynı çıktı")
+        }
+        TR_var b = TR_TransformerBlock(16, 2, TR_intermediate_dim: 8, TR_seed: 4)
+        TR_var t = TR_rotary_table(8, 8)
+        TR_var x = TR_randn([1, 4, 16], TR_seed: 6)
+        TR_var n1 = TR_RMSNorm(16)
+        n1.TR_weight = TR_randn([16], TR_seed: 7)
+        TR_var n2 = TR_RMSNorm(16)
+        n2.TR_weight = TR_randn([16], TR_seed: 9)
+        b._dikkat_çıkış_normu = n1
+        b._ileri_çıkış_normu = n2
+        TR_var a = x + n1.TR_forward(b.TR_attention.TR_forward(b.TR_input_norm.TR_forward(x), t[0], t[1]))
+        TR_var beklenen = a + n2.TR_forward(b.TR_feed_forward.TR_forward(b.TR_post_attention_norm.TR_forward(a)))
+        TR_assert(en_büyük_mutlak_fark(b.TR_forward(x, t[0], t[1]), beklenen) < 0.000001, "dörtlü norm")
+    }
+}
+
 # Kopyalama görevi: [a b c d | a b c d]; ikinci yarı ilk yarıdan tahmin edilebilir.
 TR_var kopya_tohumu = 11
 TR_func kopya_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
