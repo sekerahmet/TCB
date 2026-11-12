@@ -25,6 +25,7 @@ TR_import "tr/vad"
 TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
+TR_import "nicemli"
 TR_import "ekran"
 TR_import "ekran_sunucu"
 TR_import "deneme"
@@ -50,7 +51,7 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
-    "en_çok_parça": 160, "bağlam": TR_none, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
+    "en_çok_parça": 160, "bağlam": TR_none, "önbelleksiz": TR_false, "nicemli_etkinleştirme": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
     "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "ayar": "", "katalog": "katalog.json",
     "tarayıcıyla_eşle": TR_false},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
@@ -59,7 +60,8 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "aygıt": "canlı kipte mikrofonun dshow adı; ekranlı kipte ayarın microphone'u varsa o kullanılır","sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
         "ffmpeg": "ffmpeg programı: PATH'teki ad ya da dosyanın yolu", "çalıcı": "çalma komutu (program PATH'teki ad ya da dosyanın yolu); WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
         "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı, 0'dan büyük; dolacaksa yeni konuşma başlar; verilmezse ekranlı kipte ayarın context'i, öbür kiplerde 8192",
-        "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri (JSON satırları)",
+        "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri, en iyi iki logitin farkı ve her kimliğin seçildiği an (turun başından ms; JSON satırları)",
+        "nicemli_etkinleştirme": "dil modelinin q4_k ve q6_k ağırlıklı çarpımlarında girdiyi int8'e nicemler (nicemli_etkinleştirme bloğu, 15.53a): işlemcide daha hızlı, cevabın token'ları seçenek kapalıyken üretilenlerden biraz farklı olabilir; yalnız işlemcide ve q4_k, q6_k ağırlıklı modelde (öbüründe açılışta hata)",
         "en_çok_tur": "canlı kipte bu kadar turdan sonra durur (0: sınırsız)",
         "ekran": "canlı kipte ekranın kapısı (127.0.0.1; 0: işletim sistemi seçer; verilmezse ekran yok)",
         "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)",
@@ -111,12 +113,28 @@ TR_func komut_satırı_takımı() -> Takım {
 
 TR_func asistan_kur(t: Takım) -> Asistan {
     TR_var başla = şimdi()
+    TR_var nicemli = TR_Bool(ayar["nicemli_etkinleştirme"])
+    TR_if nicemli {
+        TR_var hata = nicemli_hatası(TR_default_device())
+        TR_if hata != TR_none { TR_throw hata }
+    }
     TR_var z = Zincir(p: TR_load_tokenizer(t.dil_modeli), model: TR_pretrained_gguf(t.dil_modeli), sistem: t.sistem,
-        en_çok: TR_Int(ayar["en_çok_parça"]), bağlam: bağlam, önbelleksiz: TR_Bool(ayar["önbelleksiz"]))
+        en_çok: TR_Int(ayar["en_çok_parça"]), bağlam: bağlam, önbelleksiz: TR_Bool(ayar["önbelleksiz"]), nicemli: nicemli)
+    TR_if nicemli { # üçüncü denetim, Whisper'dan önce: nicemlenmiş çarpım ağırlığı hiç yoksa seçenek etkisiz kalırdı (S2d)
+        TR_var hata = nicemli_ağırlık_hatası(z.model)
+        TR_if hata != TR_none { TR_throw hata }
+    }
     TR_var a = Asistan(z: z, yazıcı: TR_pretrained_whisper(t.yazıcı), ses: TR_pretrained_vits(t.ses), dil: t.dil)
     z.yeni_konuşma()
     TR_print("OLCU_YUKLEME ms=\(şimdi() - başla)")
     ısıt(z)
+    # Önbelleksiz kipte ısıtma koşmaz: nicemli seçeneğin ikinci denetimi tek token'lık okumayla (önbelleğe dokunmaz).
+    TR_if z.nicemli TR_and z.önbelleksiz {
+        TR_try { TR_no_grad { istem_oku(z, [z.p.TR_token_id("<|im_end|>")], TR_none) } } TR_catch e {
+            nicemli_hatasını_at(e)
+            TR_throw e
+        }
+    }
     TR_return a
 }
 
@@ -437,7 +455,7 @@ TR_if deneme_yeri != "" {
     TR_var d = Deneme(klasör: deneme_yeri, başı: şimdi())
     d.başla(deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]), "whisper": TR_String(ayar["whisper"]),
         "vad": TR_String(ayar["vad"]), "ses_modeli": TR_String(ayar["ses_modeli"]), "en_çok_tur": TR_String(ayar["en_çok_tur"]),
-        "ekran": TR_String(ayar["ekran"])}))
+        "ekran": TR_String(ayar["ekran"]), "nicemli_etkinleştirme": TR_String(ayar["nicemli_etkinleştirme"])}))
     deneme = d
     TR_print("DENEME", d.klasör)
 }

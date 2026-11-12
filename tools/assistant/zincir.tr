@@ -8,6 +8,7 @@ TR_import "tr/audio"
 TR_import "tr/chat"
 TR_import "tr/pretrained"
 TR_import "tr/vad"
+TR_import "nicemli" # nicemli_hatasını_at (ısıt)
 
 TR_const _ÇERÇEVE = 512
 TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
@@ -65,6 +66,7 @@ TR_struct Zincir {
     en_çok: TR_Int
     bağlam: TR_Int
     önbelleksiz: TR_Bool
+    nicemli: TR_Bool = TR_false # --nicemli_etkinleştirme: çağrılar `TR_quantized_activations` bloğunda da (model_çağrısı)
     geçmiş: TR_List[TR_ChatMessage] = []
     önbellek: TR_KVCache? = TR_none
     okunan: TR_List[TR_Int] = [] # önbellekteki kimlikler
@@ -82,9 +84,23 @@ TR_struct Zincir {
     }
 }
 
+# model_çağrısı: dil modelinin her çağrısı (ısıtma, istem, her yeni token) `TR_vendor_matmul` bloğundadır (15.53b):
+# GPU'da çarpımlar üreticinin kitaplığıyla; bloğun dışında kendi çekirdek istem okumasını 1,15–1,32 kat yavaşlatıyordu
+# (T1 0b, U5 koşu 2); bitler blokta da aynıdır, yalnız kitaplığın sürümüne bağlıdır; işlemcide blok etkisizdir. `nicemli`
+# açıkken `TR_quantized_activations` bloğunda da (15.53a): q4_k ve q6_k ağırlıklı çarpımda girdi int8'e nicemlenir.
+TR_func model_çağrısı(z: Zincir, f: () -> TR_Tensor) -> TR_Tensor {
+    TR_if z.nicemli { TR_return TR_vendor_matmul { TR_quantized_activations { f() } } }
+    TR_return TR_vendor_matmul { f() }
+}
+
+# istem_oku: `k`'yi önbelleğe okur, son konumun logitini verir; üretimin ve ısıtmanın tek yolu (çıkış katmanı dahil).
+TR_func istem_oku(z: Zincir, k: TR_List[TR_Int], ö: TR_KVCache?) -> TR_Tensor {
+    TR_return model_çağrısı(z) { z.model.TR_logits(z.model.TR_hidden_states([k], TR_cache: ö).TR_slice(1, k.TR_length - 1, k.TR_length))[0][0] }
+}
+
 # ısıt: sistem iletisini konuşmanın başında, ilk sözden önce önbelleğe okur; ilk tur yalnız kullanıcının iletisini
 # okur. Sistem iletisinin tek başına biçimi sistem + kullanıcı biçiminin önekidir (24; zincir_test sınar), ortak önek
-# onu bulur. Önbelleksiz kipte bir şey yapmaz. Hata olursa ısıtma yokmuş gibi sürer: önbellek boşaltılır, ilk tur
+# onu bulur. Önbelleksiz kipte bir şey yapmaz. Hata olursa (nicemli hata dışında) ısıtma yokmuş gibi sürer: önbellek boşaltılır, ilk tur
 # sistem iletisini de okur; sonuç aynı, yalnız yavaş.
 TR_func ısıt(z: Zincir) {
     TR_var ö = z.önbellek
@@ -95,9 +111,9 @@ TR_func ısıt(z: Zincir) {
     TR_var başla = şimdi()
     TR_try {
         ö.TR_truncate(0)
-        # Dil modelinin çağrıları `TR_vendor_matmul` bloğundadır, aşağıda `üret`'teki açıklama.
-        TR_no_grad { TR_vendor_matmul { z.model.TR_hidden_states([kimlikler], TR_cache: ö) } }
+        TR_no_grad { istem_oku(z, kimlikler, ö) } # üretimin istem okumasının aynısı; logit atılır
     } TR_catch e {
+        TR_if z.nicemli { nicemli_hatasını_at(e) }
         TR_print("ISITMA HATASI:", e)
         ö.TR_truncate(0)
         TR_return
@@ -169,15 +185,9 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur, her: (TR_Int, TR_In
     t.istem = kimlikler.TR_length
     TR_var dur = [z.p.TR_token_id("<|im_end|>"), z.p.TR_token_id("<|endoftext|>")]
     TR_var ü = Üretim()
-    # Dil modelinin çağrıları (ısıtma, istemin okunması, her yeni token) `TR_vendor_matmul` bloğundadır (15.53b):
-    # GPU'da matris çarpımları üreticinin kitaplığıyla yapılır. Bloğun dışında kendi çekirdek istem okumasını
-    # 1,15–1,32 kat yavaşlatıyordu (T1 0b, U5 koşu 2); bitler blokta da koşudan koşuya aynıdır, yalnız kitaplığın
-    # sürümüne bağlıdır. `her` (sesi kuran geri çağrı) ve modelin dışındaki işler blok dışında kalır.
-    # İşlemcide blok etkisizdir.
-    TR_no_grad {
+    TR_no_grad { # dil modelinin çağrıları `model_çağrısı`'nda; `her` (sesi kuran geri çağrı) onun dışında
         TR_var kalan = kimlikler[ortak..kimlikler.TR_length]
-        TR_var x = TR_vendor_matmul { z.model.TR_hidden_states([kalan], TR_cache: ö) }
-        TR_var logit = TR_vendor_matmul { z.model.TR_logits(x.TR_slice(1, kalan.TR_length - 1, kalan.TR_length))[0][0] }
+        TR_var logit = istem_oku(z, kalan, ö)
         TR_for ü.kimlikler.TR_length < z.en_çok {
             TR_var k = seç(logit, ü)
             TR_var an = şimdi()
@@ -185,7 +195,7 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur, her: (TR_Int, TR_In
             ü.kimlikler.TR_append(k)
             TR_if dur.TR_contains(k) { TR_break }
             her(k, an)
-            logit = TR_vendor_matmul { z.model.TR_logits(z.model.TR_hidden_states([[k]], TR_cache: ö))[0][0] }
+            logit = model_çağrısı(z) { z.model.TR_logits(z.model.TR_hidden_states([[k]], TR_cache: ö))[0][0] }
             z.okunan.TR_append(k)
         }
     }
@@ -311,7 +321,7 @@ TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_Str
     TR_if TR_not z.önbelleksiz TR_and t.önek < t.beklenen_önek {
         TR_print("ÖNEK_KISA tur=\(t.sıra) önek=\(t.önek) beklenen=\(t.beklenen_önek)")
     }
-    z.kimlik_satırları += TR_json_string({"tur": t.sıra, "ids": ü.kimlikler, "farklar": ü.farklar}) + "\n"
+    z.kimlik_satırları += TR_json_string({"tur": t.sıra, "ids": ü.kimlikler, "farklar": ü.farklar, "anlar_ms": [a - t0 TR_for a TR_in ü.anlar]}) + "\n"
     TR_var gövde = ü.kimlikler
     TR_if gövde.TR_length > 0 TR_and gövde[gövde.TR_length - 1] == z.p.TR_token_id("<|im_end|>") { gövde = gövde[0..gövde.TR_length - 1] }
     TR_var cevap, hatalar = TR_qwen3_reply(z.p, gövde)
