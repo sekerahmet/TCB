@@ -116,9 +116,12 @@ func TestDostStartsWithoutModels(t *testing.T) {
 		{"c-2", "model_load", `{"entry_id":"yok"}`, "unknown_entry"},
 		{"c-3", "model_load", `{"entry_id":"whisper-small"}`, "unknown_entry"},
 		{"c-4", "model_load", `{"entry_id":"qwen3-4b-q4km"}`, "not_installed"},
-		{"c-5", "settings_set", `{"key":"context","value":4096}`, "setting_invalid"},
+		{"c-5", "settings_set", `{"key":"yok_böyle_bir_anahtar","value":4096}`, "setting_invalid"},
 		{"c-6", "settings_set", `{"key":"speech_language","value":"en"}`, "not_installed"},
 		{"c-7", "settings_set", `{"key":"speech_language","value":"xx"}`, "unknown_language"},
+		// Bağlamın üst sınırı katalogun en büyük context_max'ıdır: modelsiz açılışta da tanımlı.
+		{"c-8", "settings_set", `{"key":"context","value":4096}`, "accepted"},
+		{"c-9", "settings_set", `{"key":"context","value":40961}`, "setting_invalid"},
 	} {
 		if got := s.command(t, c.id, c.typ, c.data); got != c.want {
 			t.Errorf("%s %s: %s, beklenen %s", c.typ, c.data, got, c.want)

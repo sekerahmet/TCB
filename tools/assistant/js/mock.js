@@ -129,6 +129,21 @@ function createMockTransport() {
   const setState = (state, extra) => emit("state", { state, mic: current.mic, ...extra });
   /** @type {Record<string, unknown>} */
   const mockSettings = { language_model: "mock-model", speech_language: "tr", system_prompt: { source: "catalog" }, context: 8192, device: "cpu", port: 47863, machine: { memory_bytes: 17179869184, memory_source: "option" } };
+  // Uydurma katalog: kurulu bir model, kurulu olmayan bir model ve bilinmeyen bir tür (ekran onu yok sayar).
+  const mockCatalog = { entries: [
+    { id: "mock-model", kind: "language_model", name: "mock-model", installed: true },
+    { id: "mock-model-large", kind: "language_model", name: "mock-model-large", installed: false },
+    { id: "mock-voice", kind: "voice", name: "mock-voice", installed: true },
+  ] };
+  const MOCK_CONTEXT_MAX = 40960;
+  /** @type {Record<string, (value: any) => boolean>} */
+  const mockSettingTypes = {
+    speech_language: (value) => typeof value === "string",
+    system_prompt: (value) => Boolean(value) && typeof value === "object" && (value.source === "catalog" || (value.source === "user" && typeof value.text === "string")),
+    context: (value) => Number.isInteger(value) && value > 0 && value <= MOCK_CONTEXT_MAX,
+    microphone: (value) => typeof value === "string" && value !== "",
+    recording: (value) => typeof value === "boolean",
+  };
 
   /** @param {string} source */
   function newTurn(source) {
@@ -254,12 +269,15 @@ function createMockTransport() {
   const scenes = {
     async setup(wait) {
       current.mic = false;
+      emit("catalog", mockCatalog);
       emit("settings", mockSettings);
       setState("setup");
       await wait(100);
     },
     async conversation(wait) {
       current.mic = true;
+      emit("catalog", mockCatalog);
+      emit("settings", mockSettings);
       setState("listening");
       await wait(500);
       newTurn("voice");
@@ -487,15 +505,25 @@ function createMockTransport() {
         return accepted;
       case "model_load":
         if (activeTurn) return rejected("turn_busy", { turn_id: activeTurn });
-        if (str(data.entry_id) !== mockSettings.language_model) return rejected("unknown_entry", { entry_id: str(data.entry_id) });
+        if (!mockCatalog.entries.some((entry) => entry.id === str(data.entry_id) && entry.kind === "language_model")) return rejected("unknown_entry", { entry_id: str(data.entry_id) });
+        if (!mockCatalog.entries.some((entry) => entry.id === str(data.entry_id) && entry.installed)) return rejected("not_installed", { entry_id: str(data.entry_id) });
         setState("loading", { model: str(data.entry_id) });
-        setTimeout(() => setState("idle"), 400);
+        setTimeout(() => {
+          mockSettings.language_model = str(data.entry_id);
+          emit("settings", mockSettings);
+          setState("idle");
+        }, 400);
         return accepted;
-      case "settings_set":
-        if (!["speech_language", "system_prompt"].includes(str(data.key))) return rejected("setting_invalid", { key: str(data.key), reason: "unknown_key" });
-        if (data.key === "speech_language" && typeof data.value !== "string") return rejected("setting_invalid", { key: "speech_language", reason: "invalid_value" });
+      case "settings_set": {
+        const check = mockSettingTypes[str(data.key)];
+        if (!check) return rejected("setting_invalid", { key: str(data.key), reason: "unknown_key" });
+        if (!check(data.value)) return rejected("setting_invalid", { key: str(data.key), reason: "invalid_value" });
         mockSettings[str(data.key)] = data.value;
         emit("settings", mockSettings);
+        return accepted;
+      }
+      case "devices_list":
+        setTimeout(() => emit("devices", { microphones: ["mock-microphone"] }), 60);
         return accepted;
       default:
         return rejected("unknown_command", { type: command.type });

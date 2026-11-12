@@ -545,6 +545,26 @@ body.focus .left, body.focus .right { display: none; }
     <select id="speechLanguage"></select>
     <button class="btn" id="loadButton" type="button" data-i18n="button_load"></button>
   </div>
+  <section class="switches" id="settingsBox" hidden aria-labelledby="settingsTitle">
+    <h2 class="label" id="settingsTitle" data-i18n="settings_title"></h2>
+    <label for="settingsLanguage" data-i18n="settings_language"></label>
+    <select id="settingsLanguage"></select>
+    <label for="settingsModel" data-i18n="settings_model"></label>
+    <select id="settingsModel"></select>
+    <button class="btn" id="settingsModelLoad" type="button" data-i18n="settings_model_load"></button>
+    <label for="settingsContext" data-i18n="settings_context"></label>
+    <input class="input" id="settingsContext" type="number" min="1" step="1" inputmode="numeric">
+    <label for="settingsMicrophone" data-i18n="settings_microphone"></label>
+    <select id="settingsMicrophone"></select>
+    <button class="btn" id="devicesRefresh" type="button" data-i18n="devices_refresh"></button>
+    <p id="devicesEmpty" data-i18n="devices_empty" hidden></p>
+    <label for="settingsRecording" data-i18n="settings_recording"></label>
+    <input id="settingsRecording" type="checkbox">
+    <p id="recordingNote" data-i18n="settings_recording_note" hidden></p>
+    <label for="settingsSystemPrompt" data-i18n="settings_system_prompt"></label>
+    <textarea class="input" id="settingsSystemPrompt" rows="3"></textarea>
+    <p data-i18n="settings_restart_note"></p>
+  </section>
 </aside>
 
 <script src="js/screen_state.js"></script>

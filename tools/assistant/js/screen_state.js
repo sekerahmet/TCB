@@ -167,6 +167,10 @@ const ui = {
   heartbeatMs: 15000,
   metrics: /** @type {Record<string, unknown>} */ ({}),
   settings: /** @type {Record<string, unknown>} */ ({}),
+  catalog: /** @type {{id: string, name: string, installed: boolean}[]} */ ([]),
+  microphones: /** @type {string[]|null} */ (null), // `devices`'in listesi; gelmediyse null
+  devicesAsked: false,
+  recordingNote: false, // kayıt bu sayfadan açıldı, bir sonraki tur başlamadı
   calls: /** @type {{tool: string, result: string, duration_ms: number|null}[]} */ ([]),
   droppedRows: 0,
   filter: "",

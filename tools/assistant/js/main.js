@@ -71,11 +71,13 @@ function start() {
     option.value = code;
     return option;
   }));
-  byId("speechLanguage").replaceChildren(...languages.map((code) => {
-    const option = /** @type {HTMLOptionElement} */ (el("option", "", dictionary[code].language_name));
-    option.value = code;
-    return option;
-  }));
+  for (const id of ["speechLanguage", "settingsLanguage"]) {
+    byId(id).replaceChildren(...languages.map((code) => {
+      const option = /** @type {HTMLOptionElement} */ (el("option", "", dictionary[code].language_name));
+      option.value = code;
+      return option;
+    }));
+  }
   wire();
   renderToggles();
   renderCalls();

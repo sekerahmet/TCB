@@ -68,6 +68,10 @@ function note(key, values, kind) {
 /** @param {any} error */
 function errorKey(error) {
   const code = str(error && error.code);
+  // Yükleme başarılı ama ayar yazılamadı: model yüklü kaldı, ileti sonucu söyler (contract.md, `settings_write_failed`).
+  if (code === "settings_write_failed" && error.values && error.values.command === "model_load") {
+    return { key: "settings_write_failed_load_note", values: error.values };
+  }
   const key = `error_${code}`;
   return t(key) !== key ? { key, values: (error && error.values) || {} } : { key: "error_unknown", values: { code } };
 }

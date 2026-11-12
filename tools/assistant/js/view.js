@@ -75,6 +75,7 @@ function renderStatus() {
   renderConnection();
   renderControls();
   renderSetup();
+  renderSettings();
 }
 
 // Kurulum: `setup` durumunda konuşma dili ve ayarın dil modelini yükleyen düğme (indirme ve katalog sonraki dilimde).
@@ -87,6 +88,63 @@ function renderSetup() {
   const current = str(ui.settings.speech_language);
   if (current !== "") speech.value = current;
   speech.disabled = !connected();
+}
+
+/** @param {HTMLSelectElement} select @param {{value: string, text: string}[]} items @param {string} chosen */
+function fillSelect(select, items, chosen) {
+  select.replaceChildren(...items.map((item) => {
+    const option = /** @type {HTMLOptionElement} */ (el("option", "", item.text));
+    option.value = item.value;
+    return option;
+  }));
+  if (items.some((item) => item.value === chosen)) select.value = chosen;
+}
+
+// Ayarlar: ayar dosyası varken (`settings` geldi), kurulum dışında. Değerler sunucudan gelir; her değişiklik bir
+// `settings_set`'tir, sunucu reddederse değer sunucununkine döner. Dil modeli yalnız kurulu girdilerden seçilir.
+function renderSettings() {
+  const shown = Object.keys(ui.settings).length > 0 && ui.state !== "setup";
+  byId("settingsBox").hidden = !shown;
+  const usable = connected();
+  const speech = /** @type {HTMLSelectElement} */ (byId("settingsLanguage"));
+  const current = str(ui.settings.speech_language);
+  if (current !== "") speech.value = current;
+  speech.disabled = !usable;
+  const installed = loadableModels(ui.catalog);
+  const modelSelect = /** @type {HTMLSelectElement} */ (byId("settingsModel"));
+  fillSelect(modelSelect, installed.map((entry) => ({ value: entry.id, text: entry.name })), modelSelect.value || str(ui.settings.language_model));
+  modelSelect.disabled = !usable || installed.length === 0;
+  const load = byId("settingsModelLoad");
+  load.hidden = installed.length === 0;
+  load.disabled = modelSelect.disabled;
+  const context = /** @type {HTMLInputElement} */ (byId("settingsContext"));
+  if (document.activeElement !== context) context.value = String(num(ui.settings.context) ?? "");
+  context.disabled = !usable;
+  const saved = str(ui.settings.microphone);
+  const names = ui.microphones === null ? [] : ui.microphones.slice();
+  if (saved !== "" && !names.includes(saved)) names.unshift(saved);
+  const micSelect = /** @type {HTMLSelectElement} */ (byId("settingsMicrophone"));
+  fillSelect(micSelect, names.map((value) => ({ value, text: value })), saved);
+  micSelect.disabled = !usable || names.length === 0;
+  byId("devicesRefresh").disabled = !usable;
+  byId("devicesEmpty").hidden = !(ui.microphones !== null && ui.microphones.length === 0);
+  const recording = /** @type {HTMLInputElement} */ (byId("settingsRecording"));
+  recording.checked = ui.settings.recording === true;
+  recording.disabled = !usable;
+  byId("recordingNote").hidden = !ui.recordingNote;
+  const prompt = /** @type {HTMLTextAreaElement} */ (byId("settingsSystemPrompt"));
+  const own = /** @type {any} */ (ui.settings.system_prompt);
+  if (document.activeElement !== prompt) prompt.value = own && own.source === "user" ? str(own.text) : "";
+  prompt.disabled = !usable;
+  if (shown && usable && !ui.devicesAsked) {
+    ui.devicesAsked = true;
+    command("devices_list", {});
+  }
+}
+
+/** @param {string} key @param {unknown} value */
+async function setSetting(key, value) {
+  if (!(await command("settings_set", { key, value }))) renderSettings();
 }
 
 function renderMetrics() {
@@ -173,6 +231,21 @@ function wire() {
   byId("speechLanguage").addEventListener("change", () => {
     const value = /** @type {HTMLSelectElement} */ (byId("speechLanguage")).value;
     command("settings_set", { key: "speech_language", value });
+  });
+  byId("settingsLanguage").addEventListener("change", () => setSetting("speech_language", /** @type {HTMLSelectElement} */ (byId("settingsLanguage")).value));
+  byId("settingsModelLoad").addEventListener("click", () => command("model_load", { entry_id: /** @type {HTMLSelectElement} */ (byId("settingsModel")).value }));
+  byId("settingsContext").addEventListener("change", () => setSetting("context", Number(/** @type {HTMLInputElement} */ (byId("settingsContext")).value)));
+  byId("settingsMicrophone").addEventListener("change", () => setSetting("microphone", /** @type {HTMLSelectElement} */ (byId("settingsMicrophone")).value));
+  byId("devicesRefresh").addEventListener("click", () => command("devices_list", {}));
+  byId("settingsRecording").addEventListener("change", async () => {
+    const value = /** @type {HTMLInputElement} */ (byId("settingsRecording")).checked;
+    const ok = await command("settings_set", { key: "recording", value });
+    ui.recordingNote = ok && value;
+    renderSettings();
+  });
+  byId("settingsSystemPrompt").addEventListener("change", () => {
+    const text = /** @type {HTMLTextAreaElement} */ (byId("settingsSystemPrompt")).value.trim();
+    setSetting("system_prompt", text === "" ? { source: "catalog" } : { source: "user", text, language: str(ui.settings.speech_language) });
   });
   byId("toolsButton").addEventListener("click", () => {
     const sheet = byId("toolSheet");

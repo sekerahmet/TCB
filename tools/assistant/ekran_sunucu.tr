@@ -73,7 +73,7 @@ TR_func komut_al(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_var veri = j.TR_get("data")
     TR_if t == TR_none TR_or TR_Type(t) != TR_String { TR_return ret(400, k, "bad_request", TR_JSON({})) }
     TR_var ad = TR_String(t)
-    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set"].TR_contains(ad) {
+    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set", "devices_list"].TR_contains(ad) {
         TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad}))
     }
     TR_var d = TR_if veri == TR_none { TR_JSON({}) } TR_else { veri }

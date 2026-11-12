@@ -34,7 +34,34 @@ on("session", (d) => {
 on("settings", (d) => {
   ui.settings = d;
   renderSetup();
+  renderSettings();
 });
+
+on("catalog", (d) => {
+  ui.catalog = catalogEntries(d);
+  renderSettings();
+});
+
+on("devices", (d) => {
+  ui.microphones = (Array.isArray(d.microphones) ? d.microphones : []).filter((name) => typeof name === "string" && name !== "");
+  renderSettings();
+});
+
+// ---------- Katalog ----------
+// catalogEntries: `catalog` olayının dil modelleri (contract.md); bilinmeyen alan ve bilinmeyen `kind` yok sayılır.
+/** @param {any} data @returns {{id: string, name: string, installed: boolean}[]} */
+function catalogEntries(data) {
+  const entries = data && Array.isArray(data.entries) ? data.entries : [];
+  return entries
+    .filter((entry) => entry && entry.kind === "language_model" && typeof entry.id === "string" && entry.id !== "")
+    .map((entry) => ({ id: entry.id, name: typeof entry.name === "string" && entry.name !== "" ? entry.name : entry.id, installed: entry.installed === true }));
+}
+// loadableModels: ayar sayfasının seçebildiği modeller: yalnız kurulu olanlar ("Yükle" kurulu olmayanı göstermez).
+/** @param {{id: string, name: string, installed: boolean}[]} entries */
+function loadableModels(entries) {
+  return entries.filter((entry) => entry.installed);
+}
+// ---------- Katalog sonu ----------
 
 on("state", (d) => {
   if (STATES.includes(d.state)) ui.state = d.state;
@@ -47,6 +74,10 @@ on("turn_start", (d) => {
   const id = str(d.turn_id);
   turnOf(id, str(d.source));
   ui.activeTurn = id;
+  if (ui.recordingNote) {
+    ui.recordingNote = false; // kayıt bu turla başladı
+    renderSettings();
+  }
   renderControls();
 });
 

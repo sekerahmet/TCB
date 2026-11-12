@@ -473,3 +473,37 @@ TR_test "bağlam sınırı: bütün sınırlar 8192'den küçükse öntanımlı 
     TR_assert(satırlar[1].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
     TR_assert_equal(4096, bağlam_belirle(katalog_oku(kat), TR_none, TR_none))
 }
+
+TR_test "ayarın iki yeni alanı: eski dosya okunur, microphone ve recording okunur; türü yanlışsa H8165, bilinmeyen alan H8163" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var eski = ayar_oku(_dosya("ayar.json", _örnek_ayar()), k)
+    TR_assert(eski != TR_none TR_and eski.mikrofon == "" TR_and TR_not eski.kayıt)
+    TR_var yeni = ayar_oku(_dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true")), k)
+    TR_assert(yeni != TR_none TR_and yeni.mikrofon == "Mikrofon (X)" TR_and yeni.kayıt)
+    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"microphone\":5").TR_starts_with("Message(\"H8165\", \"A\", \"microphone\""))
+    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"recording\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"recording\""))
+    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"mikrofon\":\"x\"").TR_starts_with("Message(\"H8163\", \"A\", \"mikrofon\""))
+}
+
+TR_test "ayarı_değiştir: yalnız bir alan değişir, öbürleri kalır; denetimden geçmeyen değer yazılmaz; yazılamazsa dosya aynı" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var y = _dosya("ayar.json", _örnek_ayar())
+    TR_var j = ayarı_değiştir(y, k, "context", TR_JSON(4096))
+    TR_assert_equal(4096, TR_Int(j["context"]))
+    TR_var okunan = dosya_oku(y, "ayar")
+    TR_assert_equal(4096, TR_Int(okunan["context"]))
+    TR_assert_equal("qwen3-4b-q4km", TR_String(okunan["language_model"]))
+    TR_assert_equal(17179869184, TR_Int(okunan["machine"]["memory_bytes"]))
+    ayarı_değiştir(y, k, "recording", TR_JSON(TR_true))
+    TR_assert(ayar_oku(y, k).kayıt)
+    TR_var önce = TR_read_file(y)
+    TR_assert_equal("H8168", TR_error_code { ayarı_değiştir(y, k, "speech_language", TR_JSON("de")) })
+    TR_assert_equal("H8167", TR_error_code { ayarı_değiştir(y, k, "context", TR_JSON(0)) })
+    TR_assert_equal(önce, TR_read_file(y))
+    # Geçici adın yerinde bir klasör: yazma düşer, son ad değişmez.
+    TR_make_dir("\(y).tmp")
+    TR_var düştü = TR_false
+    TR_try { ayarı_değiştir(y, k, "context", TR_JSON(2048)) } TR_catch _e { düştü = TR_true }
+    TR_assert(düştü)
+    TR_assert_equal(önce, TR_read_file(y))
+}

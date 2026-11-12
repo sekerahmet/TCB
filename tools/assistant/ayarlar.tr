@@ -31,6 +31,19 @@ TR_func ayar_dosyasına_yaz(yol: TR_String, j: TR_JSON) {
     TR_move(geçici, yol, TR_overwrite: TR_true)
 }
 
+# ayarı_değiştir: ayar dosyasının tek alanını değiştirir (ekranın `settings_set`'i ve kullanıcının `model_load`'u):
+# dosya yeniden okunur, yalnız `anahtar` değişir, öbür alanlar olduğu gibi kalır; yeni JSON `ayar_denetle`'den geçer
+# (okunamayacak dosya yazılmaz), sonra `ayar_dosyasına_yaz` ile yazılır. Okuma, denetim ya da yazma hatası çağırana
+# gider; o zaman dosya değişmemiştir. Yazılan JSON'u verir.
+TR_func ayarı_değiştir(yol: TR_String, k: Katalog, anahtar: TR_String, değer: TR_JSON) -> TR_JSON {
+    TR_var d = TR_Dict(dosya_oku(yol, "ayar"))
+    d[anahtar] = değer
+    TR_var j = TR_JSON(d)
+    ayar_denetle(yol, j, k)
+    ayar_dosyasına_yaz(yol, j)
+    TR_return j
+}
+
 # ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dili, sistem iletisi, bağlamı ve kapısı
 # korunur.
 TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int) {

@@ -75,7 +75,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 
 - `session`'ın `id`'si görüntüye katılan son olayınkidir; daha olay yoksa `<ön ek>-0`'dır.
 - `snapshot` öbür olayların aynısıdır, kimliksiz ve sıkıştırılmış: bir konuşma parçası tek `turn_text`, `heartbeat` ve `session` yoktur. Ekranda ikinci bir durum biçimi yok, aynı kod işler.
-- `snapshot` bir `state` olayı, son ölçüler için bir `metrics` olayı, ayar dosyası varsa son `settings` olayı, son yüklemenin `model_load_failed` hatası (sonraki başarılı yüklemeye kadar; önceki açılışta yarıda kalan yükleme de) ve **açık her onay için bir `approval_open`** taşır. Sığmazsa eski turlar düşer; açık onay düşmez.
+- `snapshot` bir `state` olayı, son ölçüler için bir `metrics` olayı, ayar dosyası varsa son `settings` olayı, katalog okunduysa son `catalog` olayı, son yüklemenin `model_load_failed` hatası (sonraki başarılı yüklemeye kadar; önceki açılışta yarıda kalan yükleme de) ve **açık her onay için bir `approval_open`** taşır. Sığmazsa eski turlar düşer; açık onay düşmez.
 - Ekranda açık kart varken gelen `snapshot` o kartı taşımıyorsa kart kalkar ve ekran onayın geçersiz kaldığını yazar: onaylanmış sayılmaz.
 
 ### `state`
@@ -189,7 +189,23 @@ Bir tura bağlı olmayan ya da sürmekte olan işi bitirmeyen hata.
 {"v":2,"type":"settings","data":{"language_model":"qwen3-4b-q4km","speech_language":"tr","system_prompt":{"source":"catalog"},"context":8192,"device":"cpu","port":47863,"machine":{"memory_bytes":17179869184,"memory_source":"option"}}}
 ```
 
-Ayarın hepsi (`ayar.json`'un alanları, `v` dışında) ve ayarın hesaplandığı makinenin özeti `machine`. `snapshot`'ta ve her değişimde gelir. Ayar dosyası yoksa gelmez; durum `setup`'tır.
+Ayarın hepsi (`ayar.json`'un alanları, `v` dışında) ve ayarın hesaplandığı makinenin özeti `machine`. `snapshot`'ta ve her değişimde gelir. Ayar dosyası yoksa gelmez; durum `setup`'tır. Değişim ayar dosyasına yazıldıktan sonra gelir.
+
+### `devices`
+
+```json
+{"v":2,"type":"devices","data":{"microphones":["Mikrofon (Realtek(R) Audio)"]}}
+```
+
+`devices_list`'in cevabıdır. Liste ffmpeg'in aygıt listesinden gelir; boş olabilir.
+
+### `catalog`
+
+```json
+{"v":2,"type":"catalog","data":{"entries":[{"id":"qwen3-4b-q4km","kind":"language_model","name":"Qwen3 4B Q4_K_M","installed":true}]}}
+```
+
+Katalogun dil modelleri: her girdinin `id`'si, `kind`'ı, adı (`name`) ve `installed`'ı. `installed` `true` ise `model_load` girdiyi kabul eder: girdinin ve konuşma dilinin modelleri kurulu. Bu sürümde yalnız `language_model` girdileri gelir; ekran bilmediği alanı ve bilmediği `kind`'ı yok sayar. `snapshot`'ta ve açılışta gelir; Dost modelsiz (`--dil_modeli`'yle) açıldıysa gelmez.
 
 ### `heartbeat`
 
@@ -225,8 +241,11 @@ Cevap her zaman JSON:
 | `mic_set` | `{"on":true}` | Mikrofonu açar ya da kapar |
 | `approval_answer` | `{"approval_id":"...","decision":"approve"}` | Onay cevabı: `approve` ya da `deny` |
 | `stop` | `{}` | Sürmekte olan turu durdurur; açık onaylar `stopped` ile kapanır |
-| `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy` |
-| `settings_set` | `{"key":"...","value":...}` | Listedeki bir ayarı değiştirir; listede olmayan `setting_invalid` |
+| `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy`. Yüklenince ayarın dil modelini ayar dosyasına yazar (dosya varsa; Dost'un açılışta kendiliğinden başlattığı yükleme yazmaz); yazma düşerse model yüklü kalır, ayar değişmez, `settings_write_failed` |
+| `settings_set` | `{"key":"...","value":...}` | Listedeki bir ayarı değiştirir ve ayar dosyasına yazar; listede olmayan `setting_invalid`; dosya yazılamazsa değişiklik geri alınır, `settings_write_failed` |
+| `devices_list` | `{}` | Mikrofonların listesini ister; cevap `devices` olayıdır, liste okunamazsa `devices_unavailable` |
+
+`settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `context` ve `microphone` bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
 
 Araçlar, arama ve odak ekranın yerel görünümleridir, komut göndermez: araç listesi `session`'dan gelir, arama ekrandaki satırlarda yapılır.
 
@@ -252,8 +271,10 @@ Sunucudan gelenler:
 | `out_of_memory` | `needed_bytes` | Bellek yetmedi |
 | `unknown_entry` | `entry_id` | Katalogda yok |
 | `not_installed` | `entry_id` | Yüklenecek dosyalar yok |
-| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` üç değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış) |
+| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` üç değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü ya da aralığı anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış) |
 | `unknown_language` | `language` | Whisper bu dili tanımıyor ya da katalogda bu dilin modelleri yok |
+| `devices_unavailable` | | Mikrofonların listesi okunamadı |
+| `settings_write_failed` | `path`, `message`, `command` | Ayar dosyası yazılamadı; `command` onu doğuran komuttur (`settings_set` ya da `model_load`). `settings_set`'te değişiklik geri alındı; `model_load`'da model yüklü kaldı, ayar eski: Dost yeniden açılınca ayardaki model yüklenir |
 | `tool_failed` | `tool` | Araç hatayla bitti |
 | `tool_timeout` | `tool`, `limit_ms` | Araç süresini aştı |
 | `internal` | | Sunucunun iç hatası |

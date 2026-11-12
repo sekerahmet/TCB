@@ -53,6 +53,8 @@ TR_struct Ayar {
     sistem: TR_JSON
     bağlam: TR_Int
     kapı: TR_Int
+    mikrofon: TR_String = "" # ayarın `microphone`'u; yoksa "" (ekranlı kip `--aygıt`'ı alır)
+    kayıt: TR_Bool = TR_false # ayarın `recording`'i; yoksa kapalı
 }
 
 # Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`; bağlam modelin
@@ -376,11 +378,12 @@ TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
 }
 
 # ayar_denetle: ayar dosyasının JSON'unun bütünü denetlenir (`yol` iletide görünür); ayarın tek denetimi budur:
-# ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir.
+# ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir. `microphone` (metin) ve `recording` (true/false) isteğe
+# bağlıdır: ikisi olmayan eski dosya da okunur; bilinmeyen alan yine H8163.
 TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     _sürüm(yol, j)
     TR_var alanlar = ["v", "language_model", "speech_language", "system_prompt", "context", "device", "port", "machine"]
-    _nesne(yol, j, "", alanlar, alanlar)
+    _nesne(yol, j, "", alanlar + ["microphone", "recording"], alanlar)
     TR_var lm = _metin(yol, j, "", "language_model")
     _ayar_kimliği(k, "language_model", lm, "language_model")
     TR_var dil = _metin(yol, j, "", "speech_language")
@@ -395,7 +398,13 @@ TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     _nesne(yol, j["machine"], "machine", ma, ma)
     _tam(yol, j["machine"], "machine", "memory_bytes")
     _seçim(yol, j["machine"], "machine", "memory_source", ["option", "system"])
-    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı)
+    TR_var mikrofon = TR_if j.TR_get("microphone") != TR_none { _metin(yol, j, "", "microphone") } TR_else { "" }
+    TR_var kayıt = TR_false
+    TR_if j.TR_get("recording") != TR_none {
+        _tip(yol, j["recording"], "recording", "boolean")
+        kayıt = TR_Bool(j["recording"])
+    }
+    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı, mikrofon: mikrofon, kayıt: kayıt)
 }
 
 # bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.

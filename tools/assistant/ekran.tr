@@ -22,6 +22,9 @@ TR_const _TUTULAN_KOMUT = 1024
 TR_const _BÜTÇE = 524288
 TR_const _TUR_BAKIŞI = 0.02 # tur sürerken ana döngünün komutlara bakışı (sn)
 TR_const _ETİKETLER = ["<think>", "</think>", "<tool_call>", "</tool_call>"]
+# `settings_set`'in anahtarları: dil ve sistem iletisi hemen; bağlam ve mikrofon bir sonraki açılışta; kayıt kapatılınca
+# hemen, açılınca bir sonraki turdan (tasarım, Aç28).
+TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording"]
 
 # Komut: işleyicinin bıraktığı, ana döngünün cevapladığı komut.
 TR_struct Komut {
@@ -52,6 +55,8 @@ TR_struct Ekran {
     dil_cevabı: TR_Dict[TR_String, TR_JSON] = {}
     konuşma_dili: TR_String = ""
     ayar_istendi: TR_JSON? = TR_none
+    aygıtlar_istendi: TR_Bool = TR_false # `devices_list` geldi: ana döngü mikrofonları listeler, `devices` gönderir
+    bağlam_sınırı: TR_Int = 0 # dil modellerinin en büyük `context_max`'ı; 0: katalog okunmadı, sınır yok
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
     mikrofon_istendi: TR_Bool = TR_false
     tur: TR_String = "" # süren ya da açılmak üzere olan tur; yoksa ""
@@ -116,7 +121,7 @@ TR_func sayfanın_betikleri(kök: TR_String, klasör: TR_String) -> TR_List[TR_S
 # ---------- Katlama (28.7) ----------
 
 # katla: bir olayı görüntünün `snapshot`'ına sözleşmenin sıkıştırma kuralıyla işler ("session"): son `state` başta,
-# son `metrics` sonda, bir konuşma parçası tek `turn_text`, kapanan onay düşer. Yeni tur açılırken görüntü bütçeyi
+# son `metrics` sonda, son `settings` ve son `catalog` tutulur, bir konuşma parçası tek `turn_text`, kapanan onay düşer. Yeni tur açılırken görüntü bütçeyi
 # aşıyorsa eski turlar düşer; açık onay düşmez. Zarf (`v`, `type`) başlangıç değerindedir.
 TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
     TR_var tür = TR_String(olay["type"])
@@ -129,7 +134,7 @@ TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
             TR_if l.TR_length > 0 TR_and TR_String(l[0]["type"]) == "state" { l[0] = giriş } TR_else { l = [giriş] + l }
             TR_if ["idle", "listening"].TR_contains(TR_String(veri["state"])) { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "error"] }
         }
-        "settings" => { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "settings"] + [giriş] }
+        "settings", "catalog" => { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != tür] + [giriş] }
         "error" => {
             # Yüklemenin hatası görüntüye girer: yarıda kalan yüklemenin işareti ekran bağlanmadan okunur (yuva.tr).
             # Sonraki başarılı yüklemeyle (`idle`, `listening`) düşer; öbür hatalar görüntüye girmez.
@@ -254,11 +259,14 @@ TR_func komutları_işle(e: Ekran) {
         e.sıra.TR_append(k.kimlik)
         TR_if e.sıra.TR_length > _TUTULAN_KOMUT { e.cevaplar.TR_remove(e.sıra.TR_remove_at(0)) }
         k.cevap = c
+        # Kabul edilen ayar uygulanmadan sonraki komut kararlaştırılmaz: tek yuvalı `ayar_istendi` ezilmez ve sonraki
+        # `settings_set` yeni ayara göre denetlenir (ör. dil, sonra o dil için yazılmış sistem iletisi).
+        TR_if e.ayar_istendi != TR_none { TR_break }
     }
 }
 
 # karar: bir komutun cevabı ve etkisi. Etkiyi ana döngü uygular: metin turu (`metin`), mikrofon (`mikrofon_istendi`),
-# durdurma (`durdur`), yükleme (`yüklenecek`).
+# durdurma (`durdur`), yükleme (`yüklenecek`), ayar (`ayar_istendi`), mikrofonların listesi (`aygıtlar_istendi`).
 TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
     TR_match k.tür {
         "send_text" => {
@@ -283,24 +291,30 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
             e.yüklenecek = giriş
         }
         "settings_set" => { TR_return ayar_kararı(e, k) }
+        "devices_list" => { e.aygıtlar_istendi = TR_true }
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
 }
 
-# ayar_kararı: `settings_set`'in cevabı. Anahtar B'nin listesinde değilse `unknown_key`, değerin türü anahtarın
-# istediği değilse `invalid_value` (`setting_invalid`); tur sürüyorsa `turn_busy`; dil katalogda yoksa
-# `unknown_language`; öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular.
+# ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın
+# istediği değilse `invalid_value` (`setting_invalid`). Bağlam, mikrofon ve kayıt tur sürerken de kabul edilir (modele
+# dokunmazlar). Dilde ve sistem iletisinde tur sürüyorsa `turn_busy`; dil katalogda yoksa `unknown_language`; öbür
+# retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular (oturum.tr, `ayarı_uygula`).
 TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_var anahtar = TR_String(k.veri["key"])
-    TR_if TR_not ["speech_language", "system_prompt"].TR_contains(anahtar) {
+    TR_if TR_not _AYARLAR.TR_contains(anahtar) {
         TR_return red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "unknown_key"}))
     }
     TR_var değer = k.veri.TR_get("value")
     TR_var geçersiz = red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "invalid_value"}))
-    TR_if değer == TR_none { TR_return geçersiz }
-    TR_if anahtar == "speech_language" TR_and TR_Type(değer) != TR_String { TR_return geçersiz }
-    TR_if anahtar == "system_prompt" TR_and TR_not sistem_iletisi_mi(değer) { TR_return geçersiz }
+    TR_if değer == TR_none TR_or TR_not ayar_değeri_mi(anahtar, değer) { TR_return geçersiz }
+    # Dil modellerinin en büyük bağlam sınırını aşan bağlam yazılmaz: Dost bir sonraki açılışta H8174 ile açılmazdı.
+    TR_if anahtar == "context" TR_and e.bağlam_sınırı > 0 TR_and TR_Int(değer) > e.bağlam_sınırı { TR_return geçersiz }
+    TR_if ["context", "microphone", "recording"].TR_contains(anahtar) {
+        e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
+        TR_return kabul(k.kimlik)
+    }
     TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
     TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
     TR_if anahtar == "speech_language" {
@@ -313,6 +327,37 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     }
     e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
     TR_return kabul(k.kimlik)
+}
+
+# ayar_değeri_mi: değerin türü anahtarın istediği mi: dil metin, sistem iletisi `sistem_iletisi_mi`, bağlam 0'dan büyük
+# tam sayı, mikrofon boş olmayan metin, kayıt true/false.
+TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
+    TR_var t = TR_Type(değer)
+    TR_match anahtar {
+        "speech_language" => { TR_return t == TR_String }
+        "system_prompt" => { TR_return sistem_iletisi_mi(değer) }
+        "context" => { TR_return t == TR_Int TR_and TR_Int(değer) > 0 }
+        "microphone" => { TR_return t == TR_String TR_and TR_String(değer) != "" }
+        _ => { TR_return t == TR_Bool }
+    }
+}
+
+# mikrofon_listesi: ffmpeg'in `-sources dshow` çıktısındaki ses aygıtlarının adları, sırasıyla (`devices`). İlk dolu
+# satır `Auto-detected sources for dshow:` değilse TR_none: liste okunamadı (Windows dışında dshow yok). Aygıt satırı
+# `  <kimlik> [<ad>] (<tür>)`; türünde `audio` geçen satırın adı ilk `[` ile son `] (` arasıdır (adda ayraç olabilir).
+TR_func mikrofon_listesi(çıktı: TR_String) -> TR_List[TR_String]? {
+    TR_var satırlar = [s.TR_strip() TR_for s TR_in çıktı.TR_lines() TR_if s.TR_strip() != ""]
+    TR_if satırlar.TR_length == 0 TR_or satırlar[0] != "Auto-detected sources for dshow:" { TR_return TR_none }
+    TR_var adlar: TR_List[TR_String] = []
+    TR_for s TR_in satırlar[1..satırlar.TR_length] {
+        TR_var parçalar = s.TR_split("] (")
+        TR_var n = parçalar.TR_length
+        TR_if n < 2 TR_or TR_not s.TR_ends_with(")") TR_or TR_not parçalar[n - 1].TR_contains("audio") { TR_continue }
+        TR_var baş = parçalar[0..n - 1].TR_join("] (")
+        TR_var ayraç = baş.TR_index_of("[")
+        TR_if ayraç != TR_none { adlar.TR_append(baş[ayraç + 1..baş.TR_length]) }
+    }
+    TR_return adlar
 }
 
 # sistem_iletisi_mi: `{"source": "catalog"}` ya da `{"source": "user", "text": <metin>, "language": <metin>}`.

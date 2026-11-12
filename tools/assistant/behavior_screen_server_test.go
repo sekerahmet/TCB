@@ -356,3 +356,55 @@ func TestScreenSubscriptionMeetsASend(t *testing.T) {
 		t.Fatalf("parça kayboldu ya da iki kez geldi: %q", got)
 	}
 }
+
+// Ayar sayfasının uçtan ucu (tek tık F1): ayar dosyalı ama modelsiz Dost'ta görüntü `catalog`'u taşır (dosyaları
+// kurulu olmayan model `installed: false`); `settings_set` ayar dosyasını `settings` olayından önce yazar; bilinmeyen
+// alan eklenmez, öbür alanlar kalır. Model yüklenmez: Dost klasörü geçicidir.
+func TestDostWritesTheSettingBeforeTheEvent(t *testing.T) {
+	dost := filepath.Join(t.TempDir(), "Dost")
+	if err := os.MkdirAll(dost, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(dost, "ayar.json")
+	settings := `{"v":1,"language_model":"qwen3-4b-q4km","speech_language":"tr","system_prompt":{"source":"catalog"},"context":8192,"device":"cpu","port":47863,"machine":{"memory_bytes":17179869184,"memory_source":"option"}}`
+	if err := os.WriteFile(file, []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := startDost(t, dost)
+	events := s.stream(t, "")
+	first := next(t, events)
+	snapshot, _ := first.Data["snapshot"].([]any)
+	catalogs := snapshotItems(snapshot, "catalog")
+	if len(catalogs) != 1 {
+		t.Fatalf("görüntüde bir catalog bekleniyordu: %v", snapshot)
+	}
+	entries, _ := catalogs[0]["entries"].([]any)
+	entry, _ := entries[0].(map[string]any)
+	if len(entries) != 1 || entry["id"] != "qwen3-4b-q4km" || entry["installed"] != false || entry["kind"] != "language_model" {
+		t.Errorf("catalog: %v", entries)
+	}
+	if got := s.command(t, "c-1", "settings_set", `{"key":"context","value":4096}`); got != "accepted" {
+		t.Fatalf("settings_set: %s", got)
+	}
+	for {
+		e := next(t, events)
+		if e.Type != "settings" {
+			continue
+		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var written map[string]any
+		if err := json.Unmarshal(data, &written); err != nil {
+			t.Fatalf("ayar dosyası: %v", err)
+		}
+		if e.Data["context"] != float64(4096) || written["context"] != float64(4096) {
+			t.Errorf("olayda %v, dosyada %v; ikisi de 4096 olmalı", e.Data["context"], written["context"])
+		}
+		if len(written) != 8 || written["language_model"] != "qwen3-4b-q4km" {
+			t.Errorf("öbür alanlar değişmemeli: %v", written)
+		}
+		return
+	}
+}

@@ -1,6 +1,10 @@
 package assistant_test
 
 import (
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -135,5 +139,45 @@ func TestModulesShareNoTopLevelName(t *testing.T) {
 	}
 	if len(where) < 50 {
 		t.Errorf("only %d top-level names read from the modules: the pattern no longer sees them", len(where))
+	}
+}
+
+// Ekran `catalog` olayında bilmediği alanı ve bilmediği `kind`'ı yok sayar (sözleşme, `catalog`; sonraki dilim alan ve
+// tür ekler); ayar sayfası yalnız kurulu modeli seçtirir. Kural js/events.js'in iki saf fonksiyonundadır
+// (catalogEntries, loadableModels); test onları işaretlerin arasından alıp node ile koşar, node yoksa atlanır.
+func TestPageIgnoresUnknownCatalogFieldsAndKinds(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node bulunamadı; ekranın katalog kuralı koşulmadı")
+	}
+	_, rest, ok := strings.Cut(readFile(t, eventsModule), "// ---------- Katalog ----------")
+	block, _, found := strings.Cut(rest, "// ---------- Katalog sonu ----------")
+	if !ok || !found {
+		t.Fatalf("%s: catalog block not found", eventsModule)
+	}
+	data := `{"entries":[{"id":"a","kind":"language_model","name":"A","installed":true,"size_bytes":5,"license":{"name":"x"}},` +
+		`{"id":"b","kind":"language_model","name":"B","installed":false},{"id":"c","kind":"voice","name":"C","installed":true},` +
+		`{"id":"d","kind":"image_model","name":"D","installed":true},{"kind":"language_model","name":"E"},"bozuk",null,` +
+		`{"id":"f","kind":"language_model","installed":"true"}],"extra":1}`
+	driver := block + "\nconst all = catalogEntries(JSON.parse(process.argv[2]));\n" +
+		"process.stdout.write(JSON.stringify({all, loadable: loadableModels(all)}));\n"
+	file := filepath.Join(t.TempDir(), "catalog.js")
+	if err := os.WriteFile(file, []byte(driver), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	output, err := exec.Command(node, file, data).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, output)
+	}
+	var got struct{ All, Loadable []map[string]any }
+	if err := json.Unmarshal(output, &got); err != nil {
+		t.Fatalf("node output %q: %v", output, err)
+	}
+	want := `[{"id":"a","installed":true,"name":"A"},{"id":"b","installed":false,"name":"B"},{"id":"f","installed":false,"name":"f"}]`
+	if all, _ := json.Marshal(got.All); string(all) != want {
+		t.Errorf("catalogEntries: %s, want %s", all, want)
+	}
+	if loadable, _ := json.Marshal(got.Loadable); string(loadable) != `[{"id":"a","installed":true,"name":"A"}]` {
+		t.Errorf("loadableModels: %s, want only the installed model", loadable)
 	}
 }

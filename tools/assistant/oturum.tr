@@ -6,8 +6,44 @@
 TR_import "tr/vad"
 TR_import "ekran"
 TR_import "katalog"
+TR_import "ayarlar"
 TR_import "yuva"
 TR_import "zincir"
+TR_import "deneme"
+
+TR_const _TSS_MS = 10800000 # UTC+3
+
+# kayıt_klasörü: konuşma kaydının klasörü: `<Dost klasörü>/kayit/<YYYYMMDD-HHMMSS>` (açılışın TSS saati).
+TR_func kayıt_klasörü(dost: TR_String, ms: TR_Int) -> TR_String {
+    TR_var u = utc_yazısı(ms + _TSS_MS)
+    TR_var ad = u[0..4] + u[5..7] + u[8..10] + "-" + u[11..13] + u[14..16] + u[17..19]
+    TR_return TR_String(TR_Path(dost, "kayit", ad))
+}
+
+# Kayıt: konuşma kaydı (`recording`): deneme kaydının biçimi (deneme.tr, `Deneme`), kesitsiz: WAV yok, yalnız metin ve
+# süreler. Klasör ilk yazılan turda kurulur. Tur, kayıt turun başında da sonunda da açıksa yazılır: açma bir sonraki
+# turdan, kapatma hemen geçerli. Kaydın kendi hatası turu bozmaz.
+TR_struct Kayıt {
+    klasör: TR_String
+    başlık: TR_JSON
+    d: Deneme? = TR_none
+
+    TR_func yaz(baştan: TR_Bool, sonda: TR_Bool, t: Tur, kaynak: TR_String, t0: TR_Int, son: TR_String, kod: TR_String) {
+        TR_if TR_not (baştan TR_and sonda) { TR_return }
+        TR_if TR_self.d == TR_none {
+            TR_try {
+                TR_var yeni = Deneme(klasör: TR_self.klasör, başı: şimdi())
+                yeni.başla(TR_self.başlık)
+                TR_self.d = yeni
+            } TR_catch h {
+                TR_print("KAYIT HATASI:", h)
+                TR_return
+            }
+        }
+        TR_var d = TR_self.d
+        TR_if d != TR_none { d.tur(t, kaynak, TR_none, t0, son, kod) }
+    }
+}
 
 # Yüklü: ekranlı kipte yuvanın modeli: asistan ve VAD (oturumun tek alanı; yuva.tr takımı tutar).
 TR_struct Yüklü {
@@ -34,7 +70,12 @@ TR_struct Oturum {
     açılış: TR_Int
     kur: (Takım) -> Asistan # modelleri yükler, sistem iletisini ısıtır
     mikrofon_aç: (TR_Int) -> TR_Process # mikrofonu açar; değer ilk açılışın anı
-    tur: (Asistan, TR_Tensor?, TR_String?, TR_Int, TR_Bool, TR_Int, () -> TR_NoneType) -> ÇalmaAralığı # ekranlı bir tur
+    # ekranlı bir tur; son değiştirge turun sonunda kayda yazandır (`kayda`'ya bağlı)
+    tur: (Asistan, TR_Tensor?, TR_String?, TR_Int, TR_Bool, TR_Int, () -> TR_NoneType, (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı
+    kayıt: Kayıt? = TR_none # konuşma kaydı; `etkin.kayıt` açıp kapar
+    ayar_dosyası: TR_String = "" # `ayar_verisi` varsa onun dosyası: değişen ayar buraya yazılır
+    # aygıtlar: mikrofonların adları; okunamazsa TR_none (`devices_unavailable`). Program verir (ffmpeg, asistan.tr).
+    aygıtlar: () -> TR_List[TR_String]? = () => TR_none
     önceki_turlar: TR_Int = 0
     başlangıç: TR_Int = -1 # sahte mikrofonun WAV'ı ilk açılıştan bu yana geçen süreden açılır
     mikrofon: TR_Process? = TR_none
@@ -48,6 +89,21 @@ TR_struct Oturum {
     TR_func ayarı_gönder() {
         TR_var v = TR_self.ayar_verisi
         TR_if v != TR_none { TR_self.e.gönder("settings", TR_JSON(v)) }
+    }
+
+    # kataloğu_gönder: `catalog`: katalogun dil modelleri, sözleşmenin alt kümesiyle (`id`, `kind`, `name`, `installed`);
+    # `installed`, `model_load`'un kabul edeceği takım demektir (`e.yüklenebilir`'in boş cevabı). Katalog okunmadıysa
+    # (`--dil_modeli`) gönderilmez.
+    TR_func kataloğu_gönder() {
+        TR_if TR_self.k.girdiler.TR_length == 0 { TR_return }
+        TR_var l: TR_List[TR_JSON] = []
+        TR_for g TR_in TR_self.kj["entries"] {
+            TR_if TR_String(g["kind"]) != "language_model" { TR_continue }
+            TR_var c = TR_self.e.yüklenebilir.TR_get(TR_String(g["id"]))
+            TR_var kurulu = c != TR_none TR_and c.TR_get("code") == TR_none
+            l.TR_append(TR_JSON({"id": g["id"], "kind": g["kind"], "name": g["name"], "installed": kurulu}))
+        }
+        TR_self.e.gönder("catalog", TR_JSON({"entries": l}))
     }
 
     TR_func kapat() {
@@ -67,9 +123,27 @@ TR_struct Oturum {
         TR_if m != TR_none { m.TR_cancel() }
     }
 
+    # dosyaya_yaz: ayar dosyasının tek alanını yazar (ayarlar.tr, `ayarı_değiştir`) ve `ayar_verisi`'ni yeniler; ayar
+    # dosyası yoksa yazılmaz. Okuma, denetim ya da yazma düşerse dosya ve `ayar_verisi` değişmez,
+    # `settings_write_failed` (`command`: onu doğuran komut) gönderilir, TR_false.
+    TR_func dosyaya_yaz(anahtar: TR_String, değer: TR_JSON, komut: TR_String) -> TR_Bool {
+        TR_if TR_self.ayar_verisi == TR_none { TR_return TR_true }
+        TR_try {
+            TR_self.ayar_verisi = TR_Dict(ayar_olayı(ayarı_değiştir(TR_self.ayar_dosyası, TR_self.k, anahtar, değer)))
+            TR_return TR_true
+        } TR_catch h {
+            TR_print("AYAR YAZILAMADI:", h)
+            # İleti konuşma dilinde (TR'nin iletileri Türkçe ve İngilizce), öbür dillerde İngilizce.
+            TR_var dil = TR_if TR_self.etkin.konuşma_dili == "tr" { "tr" } TR_else { "en" }
+            TR_self.e.gönder("error", TR_JSON({"code": "settings_write_failed", "values": {"path": TR_self.ayar_dosyası,
+                "message": h.TR_text(dil), "command": komut}, "fatal": TR_false}))
+            TR_return TR_false
+        }
+    }
+
     # takımı_yükle: yuvaya yükler (yuva.tr, `yükle`); beklerken komutlar işlenir. Hata yakalanır: `model_load_failed`,
-    # yuva boş, durum `setup`.
-    TR_func takımı_yükle(t: Takım) {
+    # yuva boş, durum `setup`. Yüklendiyse TR_true.
+    TR_func takımı_yükle(t: Takım) -> TR_Bool {
         TR_self.önceki_turlar = TR_self.cevaplanan()
         TR_self.e.hazır = TR_false
         TR_self.e.yükleniyor(t.giriş)
@@ -90,21 +164,38 @@ TR_struct Oturum {
         TR_if hata == TR_none {
             TR_self.e.hazır = TR_true
             TR_self.e.boşta()
-            TR_return
+            TR_return TR_true
         }
         TR_print("YÜKLEME HATASI:", hata)
         TR_self.yüklü.a = TR_none
         TR_self.e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": t.giriş}, "fatal": TR_false}))
         TR_self.e.durum("setup")
+        TR_return TR_false
     }
 
     # ayarı_uygula: kabul edilen `settings_set` (ekran.tr, `ayar_kararı`). Model yüklüyse dil değişimi atomiktir
     # (yuva.tr, `dil_değiştir`): yeni ses (ve başka yazıcıysa Whisper) eskiler yerinde dururken yüklenir; düşerse
     # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır.
-    # Ayar dosyasına yazılmaz; `settings` olayı yeni değeri taşır.
+    # Ayar dosyası varsa değişiklik önce ona yazılır (`dosyaya_yaz`); yazma düşerse hiçbir şey değişmez. Dilin
+    # modelleri yüklenemezse dosyanın eski hâli geri yazılır. Bağlam ve mikrofon yalnız dosyaya yazılır (bir sonraki
+    # açılışta geçerli); kayıt hemen `etkin`'e geçer (tur, kaydı turun başında ve sonunda okur). `settings` olayı yeni
+    # değeri taşır.
     TR_func ayarı_uygula(anahtar: TR_String, değer: TR_JSON) {
         TR_var ö = TR_self.etkin
-        TR_var yeni = Ayar(dil_modeli: ö.dil_modeli, konuşma_dili: ö.konuşma_dili, sistem: ö.sistem, bağlam: ö.bağlam, kapı: ö.kapı)
+        TR_var eski = TR_self.ayar_verisi
+        TR_if TR_not TR_self.dosyaya_yaz(anahtar, değer, "settings_set") { TR_return }
+        TR_if ["context", "microphone"].TR_contains(anahtar) {
+            TR_self.ayarı_gönder()
+            TR_return
+        }
+        TR_var yeni = Ayar(dil_modeli: ö.dil_modeli, konuşma_dili: ö.konuşma_dili, sistem: ö.sistem, bağlam: ö.bağlam, kapı: ö.kapı,
+            mikrofon: ö.mikrofon, kayıt: ö.kayıt)
+        TR_if anahtar == "recording" {
+            yeni.kayıt = TR_Bool(değer)
+            TR_self.etkin = yeni
+            TR_self.ayarı_gönder()
+            TR_return
+        }
         TR_if anahtar == "speech_language" { yeni.konuşma_dili = TR_String(değer) } TR_else { yeni.sistem = değer }
         TR_var a = TR_self.yüklü.a
         TR_var t = TR_self.y.takım
@@ -113,6 +204,7 @@ TR_struct Oturum {
             TR_var hata = dili_uygula(TR_self.y, a, t, yt)
             TR_if hata != TR_none {
                 TR_print("DİL HATASI:", hata)
+                TR_self.eskiyi_geri_yaz(eski, anahtar)
                 TR_self.e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": TR_Path(yt.ses).TR_name}, "fatal": TR_false}))
                 TR_return
             }
@@ -121,9 +213,30 @@ TR_struct Oturum {
         TR_self.e.konuşma_dili = yeni.konuşma_dili
         TR_self.e.dil_cevabı = dil_cevapları(TR_self.kj, TR_self.klasör, yeni)
         TR_self.e.yüklenebilir = yüklenebilirler(TR_self.k, TR_self.kj, TR_self.klasör, yeni)
-        TR_var v = TR_self.ayar_verisi
-        TR_if v != TR_none { v[anahtar] = değer }
+        TR_self.kataloğu_gönder()
         TR_self.ayarı_gönder()
+    }
+
+    # eskiyi_geri_yaz: dil değişimi yüklenemeyince dosyanın değişen alanı eski değerine döner; o da düşerse yalnız
+    # satır basılır (`settings_write_failed` iki kez gönderilmez; ayar olayı gönderilmedi, sayfa eski ayarı görür).
+    TR_func eskiyi_geri_yaz(eski: TR_Dict[TR_String, TR_JSON]?, anahtar: TR_String) {
+        TR_if eski == TR_none { TR_return }
+        TR_try {
+            ayarı_değiştir(TR_self.ayar_dosyası, TR_self.k, anahtar, eski[anahtar])
+            TR_self.ayar_verisi = eski
+        } TR_catch h {
+            TR_print("AYAR HATASI: eski ayar geri yazılamadı:", h)
+        }
+    }
+
+    # mikrofonları_gönder: `devices_list`'in cevabı: `devices` ya da liste okunamazsa `devices_unavailable`.
+    TR_func mikrofonları_gönder() {
+        TR_var l = TR_self.aygıtlar()
+        TR_if l == TR_none {
+            TR_self.e.gönder("error", TR_JSON({"code": "devices_unavailable", "values": {}, "fatal": TR_false}))
+            TR_return
+        }
+        TR_self.e.gönder("devices", TR_JSON({"microphones": l}))
     }
 
     # işle: bekleyen komutlar; kapatılan mikrofon hemen kapanır, açılması `ara`'da (tur bittikten sonra) olur.
@@ -139,13 +252,27 @@ TR_struct Oturum {
             TR_self.kapat()
             TR_var c = takım_kur(TR_self.k, TR_self.kj, TR_self.klasör, giriş, TR_self.etkin)
             TR_var t = c.takım
-            TR_if t != TR_none { TR_self.takımı_yükle(t) }
+            TR_if t != TR_none TR_and TR_self.takımı_yükle(t) { TR_self.yüklemeyi_yaz(giriş) }
         }
         TR_var istek = e.ayar_istendi
         TR_if istek != TR_none {
             e.ayar_istendi = TR_none
             TR_self.ayarı_uygula(TR_String(istek["key"]), istek["value"])
         }
+        TR_if e.aygıtlar_istendi {
+            e.aygıtlar_istendi = TR_false
+            TR_self.mikrofonları_gönder()
+        }
+    }
+
+    # yüklemeyi_yaz: kullanıcının başarılı `model_load`'u ayarın dil modelini dosyaya yazar (açılıştaki kendiliğinden
+    # yükleme buradan geçmez). Yazma düşerse model yüklü kalır, ayar eski: `settings_write_failed` `model_load`'la.
+    TR_func yüklemeyi_yaz(giriş: TR_String) {
+        TR_if TR_not TR_self.dosyaya_yaz("language_model", TR_JSON(giriş), "model_load") { TR_return }
+        TR_var ö = TR_self.etkin
+        TR_self.etkin = Ayar(dil_modeli: giriş, konuşma_dili: ö.konuşma_dili, sistem: ö.sistem, bağlam: ö.bağlam, kapı: ö.kapı,
+            mikrofon: ö.mikrofon, kayıt: ö.kayıt)
+        TR_self.ayarı_gönder()
     }
 
     TR_func oku() -> TR_Tensor? {
@@ -201,7 +328,7 @@ TR_struct Oturum {
             TR_if a == TR_none { TR_return Arada(dur: TR_true) }
             TR_var metin = metni_al(TR_self.e)
             TR_if metin != TR_none {
-                r.aralık = TR_self.tur(a, TR_none, metin, şimdi(), TR_false, 0, TR_self.işle)
+                r.aralık = TR_self.tur(a, TR_none, metin, şimdi(), TR_false, 0, TR_self.işle, TR_self.kayda(TR_self.etkin.kayıt))
                 TR_if TR_not TR_self.sürsün() { TR_return Arada(dur: TR_true) }
                 TR_if TR_self.mikrofon != TR_none { TR_return r }
                 TR_continue
@@ -235,7 +362,16 @@ TR_struct Oturum {
         TR_var a = TR_self.yüklü.a
         TR_if a == TR_none { TR_return ÇalmaAralığı() }
         TR_self.e.yeni_tur()
-        TR_return TR_self.tur(a, kesit, TR_none, t0, sonrası, geride, TR_self.işle)
+        TR_return TR_self.tur(a, kesit, TR_none, t0, sonrası, geride, TR_self.işle, TR_self.kayda(TR_self.etkin.kayıt))
+    }
+
+    # kayda: turun başında verilir (`baştan`: kayıt o an açık mı); dönen işlev turun sonunda kayda yazar, kayıt o an da
+    # açıksa.
+    TR_func kayda(baştan: TR_Bool) -> (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType {
+        TR_return (t, kaynak, t0, son, kod) => {
+            TR_var k = TR_self.kayıt
+            TR_if k != TR_none { k.yaz(baştan, TR_self.etkin.kayıt, t, kaynak, t0, son, kod) }
+        }
     }
 
     # koş: ana döngü. Yuva boşken komutlar beklenir; doluyken `dinle`. Cevaplanan tur sayısını verir.
