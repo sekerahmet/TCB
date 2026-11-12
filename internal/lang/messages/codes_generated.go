@@ -1017,8 +1017,7 @@ const (
 	H5607 Code = 5607 // Özel
 	H5608 Code = 5608 // {fn}(yol) 1 parametre bekler, {given} verildi
 	H5609 Code = 5609 // {fn}: yol bir metin olmalıdır (ör. "tokenizer.json"), {given} verildi
-	H5610 Code = 5610 // {fn}: {path|q} bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin
-	H5611 Code = 5611 // {fn}: {path|q} bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin; bu klasörde tokenizer.json var: {fn}({candidate|q}) deneyin
+	H5610 Code = 5610 // {fn}: {path|q} klasöründe tokenizer.json yok; tokenizer.json biçimindeki parçalayıcı dosyasının ya da tokenizer.json'u olan bir model klasörünün yolunu verin (16.1)
 	H5612 Code = 5612 // tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin
 	H5614 Code = 5614 // {fn}: {path|q} yüklenemedi, {detail}
 	H5615 Code = 5615 // {fn}: {path|q} yüklenemedi: {detail}; bu desen kötü niyetli bir metinde üstel süre harcayabileceği için güvenlik gereği kabul edilmiyor (desenin iç içe sınırsız niceleyici içermeyen bir biçimini kullanın)

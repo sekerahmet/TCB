@@ -174,6 +174,15 @@ func (e *FamilyOverlapError) MessageText(lang string) string {
 	return messages.ErrorIn(e.Message("tokenize.Load"), lang)
 }
 
+// ApplyFolderFamily klasörden açılan parçalayıcıya (model_type, işaret) çiftinin ailesini uygular
+// (TR_load_tokenizer(klasör), 16.1); çift tabloda yoksa parçalayıcı ailesiz kalır. Yalnız yüklemede.
+func (p *Tokenizer) ApplyFolderFamily(arch, marker string) error {
+	if f, ok := FolderFamily(arch, marker); ok {
+		return p.applyFamily(f)
+	}
+	return nil
+}
+
 // Family parçalayıcının ailesidir (ailesizse boş).
 func (p *Tokenizer) Family() string { return p.family }
 

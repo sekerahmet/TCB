@@ -126,7 +126,7 @@ TR_func TR_folder_chat_family(model: TR_GPT, k: TR_Path, ayar: TR_JSON) -> TR_GP
         TR_return _ailesiz(model, "file", s.aile, kaynak, e)
     }
     TR_var p: TR_Tokenizer? = TR_none
-    TR_try { p = TR_load_tokenizer(sözlük) } TR_catch e {
+    TR_try { p = TR_load_tokenizer(k) } TR_catch e {
         TR_return _ailesiz(model, "tokenizer", s.aile, "tokenizer.json", e)
     }
     TR_return _aileyi_kur(model, s, p, bildirilen)

@@ -18,6 +18,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
@@ -152,27 +153,67 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 	var p *tokenize.Tokenizer
 	var err error
 	var info os.FileInfo
+	file, shown := path, raw
 	// Dosyadan yükleme programın durumunu değiştirmez: durdurma onu bırakır (1.5).
 	if waitErr := m.Abandonable(func() {
-		info, err = os.Stat(path)
-		if err == nil && !info.IsDir() {
-			p, err = tokenize.Load(path)
+		if info, err = os.Stat(path); err != nil {
+			return
+		}
+		if info.IsDir() {
+			// Model klasörü (16.1): klasörün tokenizer.json'u; aile config.json ve tokenizer_config.json'dan.
+			file, shown = filepath.Join(path, "tokenizer.json"), filepath.ToSlash(filepath.Join(raw, "tokenizer.json"))
+			if _, e := os.Stat(file); e != nil {
+				return
+			}
+		}
+		if p, err = tokenize.Load(file); err == nil && info.IsDir() {
+			err = p.ApplyFolderFamily(folderKeys(path))
 		}
 	}); waitErr != nil {
 		return nil, waitErr
 	}
 	if err != nil {
-		return nil, loadError(raw, err, tried)
+		return nil, loadError(shown, err, tried)
 	}
-	if info.IsDir() {
-		candidate := filepath.Join(path, "tokenizer.json")
-		if _, e := os.Stat(candidate); e == nil {
-			return nil, messages.New(messages.H5611, fn, raw, filepath.ToSlash(filepath.Join(raw, "tokenizer.json")))
-		}
+	if p == nil {
 		return nil, messages.New(messages.H5610, fn, raw)
 	}
-	writeWarnings(path, p)
-	return &Object{p: p, path: path}, nil
+	writeWarnings(file, p)
+	return &Object{p: p, path: file}, nil
+}
+
+// genericTokenizerClasses tokenizer_class'ı aileyi söylemeyen sınıflardır: işaret bos_token'ın adıdır
+// (lib/model_family.tr'nin _GENEL_SINIFLAR'ı ve _klasör_işareti'yle aynı kural).
+var genericTokenizerClasses = map[string]bool{"PreTrainedTokenizer": true, "PreTrainedTokenizerFast": true}
+
+// folderKeys model klasörünün aile anahtarlarıdır (15.55'in seçimi): config.json'un model_type'ı ve
+// tokenizer_config.json'un işareti (tokenizer_class, sondaki Fast atılarak; genel sınıfta bos_token'ın
+// adı). Dosya yoksa ya da okunamıyorsa anahtar boştur: parçalayıcı ailesiz açılır.
+func folderKeys(dir string) (arch, marker string) {
+	var config struct {
+		ModelType string `json:"model_type"`
+	}
+	if b, err := os.ReadFile(filepath.Join(dir, "config.json")); err == nil {
+		_ = json.Unmarshal(b, &config)
+	}
+	var tc struct {
+		Class string          `json:"tokenizer_class"`
+		BOS   json.RawMessage `json:"bos_token"`
+	}
+	if b, err := os.ReadFile(filepath.Join(dir, "tokenizer_config.json")); err == nil {
+		_ = json.Unmarshal(b, &tc)
+	}
+	if !genericTokenizerClasses[tc.Class] {
+		return config.ModelType, strings.TrimSuffix(tc.Class, "Fast")
+	}
+	var name string
+	var obj struct {
+		Content string `json:"content"`
+	}
+	if json.Unmarshal(tc.BOS, &name) != nil && json.Unmarshal(tc.BOS, &obj) == nil {
+		name = obj.Content
+	}
+	return config.ModelType, name
 }
 
 // isUnsupported err'in, parçalayıcı dosyasındaki desteklenmeyen bir özelliği bildirip bildirmediğini

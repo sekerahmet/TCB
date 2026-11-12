@@ -2598,7 +2598,7 @@ tr: tensör_kaydet("a.trt", {"w": Tensör([1.0])}); yazdır(tensör_yükle("a.tr
 
     parçalayıcı_yükle(Metin) → Parçalayıcı
 
-tokenizer.json biçimindeki bir parçalayıcı dosyasını ya da GGUF dosyasının parçalayıcısını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
+tokenizer.json biçimindeki bir parçalayıcı dosyasını ya da GGUF dosyasının parçalayıcısını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz. Bir model klasörü verilirse klasörün tokenizer.json'unu yükler ve model ailesini klasörün config.json'u ile tokenizer_config.json'undan seçer; klasörde tokenizer.json yoksa hata verir.
 
 ```tr
 TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p)
