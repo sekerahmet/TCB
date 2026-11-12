@@ -741,7 +741,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** sınır dışı indeks H6305 veriyor [ölçüldü: main `8b115692`]. İndeks liste ya da ondalık tensör olabiliyor.
 - **Yapılacaklar:** indeks `TR_Tensor[TR_Int]`; göç 24 satır [ölçüldü: DENETİM, `git grep` main `8b115692`]; sınır dışı denetimi bekleyen işlem (15.6).
-- **Yapılacaklar (C, Ö2, Kol B (T1); TCB 2026-11-12 11:00, DENETİM 495 N1):** doğrudan çağrıda ondalık indeksin ve dilim başlangıcının "tam sayı mı" denetimi (`internal/stdlib/ml/value.go:150`, `builtin_nn.go:131`, `:135`, `builtin_replay.go:482`) Go'nun sığmayan float → int dönüşümüne dayanıyor: amd64'te tam 2⁶³ tam sayı sayılmaz (H6012, H6441), arm64'te sayılır (H6305, H6442) [hesap: dönüşüm uygulamaya bağlı, arm64 doyurur]; ikisi de hata. Kartın ölçütü mimariden bağımsız (T1 dilim 2c). Sıradaki: dönüşümden önce aralığın açık denetimi; testi arm64'te 2⁶³.
+- **Yapılacaklar (C, Ö2, Kol B (T1); TCB 2026-11-12 11:00, DENETİM 495 N1):** doğrudan çağrıda ondalık indeksin ve dilim başlangıcının "tam sayı mı" denetimi (ml paketinde `IntElements`, `tensorIndices`, `writeSliceStart`) Go'nun sığmayan float → int dönüşümüne dayanıyor: amd64'te tam 2⁶³ tam sayı sayılmaz (H6012, H6441), arm64'te sayılır (H6305, H6442) [hesap: dönüşüm uygulamaya bağlı, arm64 doyurur]; ikisi de hata. Kartın ölçütü mimariden bağımsız (T1 dilim 2c). Sıradaki: dönüşümden önce aralığın açık denetimi; testi arm64'te 2⁶³.
 
 ### 15.23a
 
