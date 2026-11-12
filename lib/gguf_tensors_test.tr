@@ -1,0 +1,41 @@
+# TR 4
+# tr/gguf_tensors testleri: tensör adıyla ve şekliyle alınır, alınan işaretlenir; olmayan ad H6697, yanlış
+# şekil H6698 verir. Doğrusal katman dosyadaki tensörün devriğini, norm dosyadaki ağırlığı ve eps'i alır.
+# Gerçek GGUF dosyasıyla yükleme cmd/trlang/e2e/behavior_ready_gguf_test.go'da Go ile kurulur.
+TR_import "tr/gguf_tensors"
+TR_import "tr/layers"
+
+TR_func tensörler() -> TR_Dict[TR_String, TR_Tensor] {
+    TR_return {"a.weight": TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "n.weight": TR_Tensor([0.5, 1.5])}
+}
+
+TR_test "gguf_tensörü: dosyadaki tensörü verir, olmayan adda H6697" {
+    TR_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], TR_gguf_tensor(tensörler(), "a.weight").TR_tolist)
+    TR_assert_equal("H6697", TR_error_code { TR_gguf_tensor(tensörler(), "yok.weight") })
+}
+
+TR_test "gguf_al: şekli tutan tensörü alır ve alınanlara işler; şekil tutmazsa H6698, işaret yok" {
+    TR_var alınan: TR_Dict[TR_String, TR_Bool] = {}
+    TR_var t = TR_gguf_take(tensörler(), alınan, "a.weight", [2, 3])
+    TR_assert_equal([2, 3], t.TR_shape)
+    TR_assert_equal({"a.weight": TR_true}, alınan)
+    TR_var boş: TR_Dict[TR_String, TR_Bool] = {}
+    TR_assert_equal("H6698", TR_error_code { TR_gguf_take(tensörler(), boş, "a.weight", [3, 2]) })
+    TR_assert_equal({}, boş)
+    TR_assert_equal("H6697", TR_error_code { TR_gguf_take(tensörler(), boş, "yok.weight", [2]) })
+}
+
+TR_test "gguf_doğrusal: Doğrusal'ın ağırlığı dosyadaki [çıkış, giriş] tensörün devriğidir" {
+    TR_var k = TR_Linear(3, 2)
+    TR_gguf_linear(k, tensörler()["a.weight"])
+    TR_assert_equal([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], k.TR_weight.TR_tolist)
+}
+
+TR_test "gguf_normu: normun ağırlığı dosyadaki tensör, eps verilen; alınana işler, yanlış boyda H6698" {
+    TR_var alınan: TR_Dict[TR_String, TR_Bool] = {}
+    TR_var n = TR_gguf_norm(tensörler(), alınan, "n.weight", 2, 0.001)
+    TR_assert_equal([0.5, 1.5], n.TR_weight.TR_tolist)
+    TR_assert_equal(0.001, n.TR_eps)
+    TR_assert_equal({"n.weight": TR_true}, alınan)
+    TR_assert_equal("H6698", TR_error_code { TR_gguf_norm(tensörler(), alınan, "n.weight", 3, 0.001) })
+}
