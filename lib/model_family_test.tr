@@ -1,0 +1,20 @@
+# TR 4
+# tr/model_family testleri: parçalayıcısı ya da aile dosyası olmayan model kapanmaz, ailesiz yüklenir;
+# durma listesi istenince ailesizliğin hatası (H7170) gelir. Ailesi olan GGUF ve klasör
+# cmd/trlang/e2e/behavior_chat_family_test.go'da Go ile kurulur.
+TR_import "tr/layers"
+TR_import "tr/model_family"
+
+TR_func küçük_model() -> TR_GPT {
+    TR_return TR_GPT(16, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)
+}
+
+TR_test "gguf_sohbet_ailesi: parçalayıcı yüklenemezse model kapanmaz, ailesiz kalır (H7170)" {
+    TR_var m = TR_gguf_chat_family(küçük_model(), "olmayan_dosya.gguf", "qwen3")
+    TR_assert_equal("H7170", TR_error_code { m.TR_eos_tokens() })
+}
+
+TR_test "klasör_sohbet_ailesi: klasörde tokenizer_config.json yoksa model ailesiz kalır (H7170)" {
+    TR_var m = TR_folder_chat_family(küçük_model(), TR_Path("olmayan_klasör"), TR_JSON({"model_type": "qwen3"}))
+    TR_assert_equal("H7170", TR_error_code { m.TR_eos_tokens() })
+}
