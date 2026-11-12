@@ -1,8 +1,10 @@
 # TR 4
 # Katalog ve ayarın modelsiz sınaması: her ileti kodu (H8160–H8174) ve H8168, H8169'un her `reason` dalı, uygunluk
 # hesabı, öneri, ayarın yazılması ve depodaki katalog.json'un kendisi. Testler iletinin metnini değil kodunu ve
-# dilden bağımsız metnini (`TR_String(e)`, iletiyi kuran çağrı) sınar (8.3, 8.5).
+# dilden bağımsız metnini (`TR_String(e)`, iletiyi kuran çağrı) sınar (8.3, 8.5). Ayar dosyasının fonksiyonları
+# ayarlar.tr'de; testleri burada, çünkü ortak örnekler (`_örnek_katalog`, `_dosya`, …) bu dosyaya özeldir (11.7).
 TR_import "katalog"
+TR_import "ayarlar"
 
 # _örnek_katalog: sınamanın katalogu; sayılar elle hesaplanabilsin diye yuvarlak. Dil modeli 8192 bağlamla ölçülü.
 TR_func _örnek_katalog() -> TR_String {
