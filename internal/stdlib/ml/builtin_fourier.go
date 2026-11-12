@@ -209,6 +209,9 @@ func stftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if padded, _ := tensor.StftFrames(last, o); padded < n {
 		return nil, messages.New(messages.H7078, fn, padded, n, "short")
 	}
+	if err := checkDevice(fn, x, w); err != nil { // kartta da çalışır; ikisi aynı cihazda olmalı (23.5)
+		return nil, err
+	}
 	return safe(func() interp.Value {
 		re, im := tensor.Stft(x, w, o, fourierCall(fn))
 		return complexResult(re, im)

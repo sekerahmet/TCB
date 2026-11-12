@@ -103,8 +103,17 @@ func bitFamilies(t *testing.T) []bitFamily {
 		{name: "TR_max", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return shiftedOn(dev, row, tensor.Float32, off, 3, 130).Max(1, false)
 		}},
-		{name: "TR_logsumexp", cpu: true, run: func(dev tensor.Device, off int) *tensor.Tensor {
+		{name: "TR_logsumexp", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return tensor.LogSumExp(shiftedOn(dev, row, tensor.Float32, off, 3, 130), []int{1}, false)
+		}},
+		{name: "TR_rfft (tek satır)", run: func(dev tensor.Device, off int) *tensor.Tensor {
+			re, _ := tensor.Rfft(shiftedOn(dev, row, tensor.Float32, off, 1, 390), 390, fourierCall)
+			return re
+		}},
+		{name: "TR_stft", run: func(dev tensor.Device, off int) *tensor.Tensor {
+			w := tensor.NewOn(dev, row[:64], 64)
+			_, im := tensor.Stft(shiftedOn(dev, row, tensor.Float32, off, 1, 390), w, tensor.StftOptions{N: 64, Hop: 16, Center: true, Reflect: true}, fourierCall)
+			return im
 		}},
 		{name: "üstel (öğe öğe)", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return shiftedOn(dev, row, tensor.Float32, off, 3, 130).Exp()

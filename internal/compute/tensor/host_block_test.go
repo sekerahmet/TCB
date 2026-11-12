@@ -357,7 +357,7 @@ func TestHostBlockReadersKeepTheirTensors(t *testing.T) {
 				}
 				return true
 			})
-			if name == "gate_calls.go" && strings.HasPrefix(fn.Name.Name, "gate") {
+			if gateFile(name) && strings.HasPrefix(fn.Name.Name, "gate") {
 				gates++
 				kept := keepAlives(fn.Body)
 				for _, p := range fn.Type.Params.List {

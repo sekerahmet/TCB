@@ -515,7 +515,7 @@ op.TR_zero_grad()
 **15.40** Farklı cihazlardaki iki tensörle işlem çalışma hatasıdır; ileti iki cihazı söyler ve `.TR_to_device(...)`'ı önerir. Sessizce kopyalanmaz.
 - *Test:* TR testi.
 
-**15.41** GPU'da hesap: tensör işlemlerinin ve gradyanlarının hepsi GPU'da çalışır; istisnası `TR_quantized_activations` bloğundaki nicemli ağırlıklı çarpımdır, GPU'da çalışma hatasıdır (15.53a). 15.22a'nın "aynı cihaz türü"nde (aynı GPU modeli; CPU'da aynı özellik kümesi, FMA dahil) bit bit aynıdır; `TR_vendor_matmul` bloğundaki çarpımlarda bu söz kitaplığın aynı sürümü ve kartın aynı SM sayısıyla sınırlıdır (15.53b).
+**15.41** GPU'da hesap: tensör işlemlerinin ve gradyanlarının hepsi GPU'da çalışır; iki istisnası vardır: `TR_quantized_activations` bloğundaki nicemli ağırlıklı çarpım GPU'da çalışma hatasıdır (15.53a); Fourier dönüşümünün (`TR_rfft`, `TR_stft`) uzunluğu GPU'da en çok 4096'dır, üstü çalışma hatasıdır (23.5). 15.22a'nın "aynı cihaz türü"nde (aynı GPU modeli; CPU'da aynı özellik kümesi, FMA dahil) bit bit aynıdır; `TR_vendor_matmul` bloğundaki çarpımlarda bu söz kitaplığın aynı sürümü ve kartın aynı SM sayısıyla sınırlıdır (15.53b).
 - **Cihaz türleri arasında** (CPU ile GPU, x86 ile ARM64, FMA'lı ile FMA'sız x86, iki GPU modeli) söz üç basamaklıdır:
   - **temel aritmetik** (`+ − * /`, `TR_sqrt`, karşılaştırma) IEEE 754'ün doğru yuvarlanmış işlemidir ve her cihazda **bit bit aynıdır**; tam sayı, mantık, sıralama ve arama da aynıdır (15.22a);
   - **matematik işlevleri** (15.9–15.11) her cihazda kendi ölçülmüş ulp sınırındadır; iki cihaz en çok iki sınırın toplamı kadar ayrılır. Sınırlar 15.10 ve 15.11'dedir;

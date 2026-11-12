@@ -766,6 +766,7 @@
 "H4131": { "param": ["shape", "reason"], "slots": {"vendor_matmul": "TR_fn_vendor_matmul"} },
 "H4132": { "param": ["dtype"], "slots": {"vendor_matmul": "TR_fn_vendor_matmul"} },
 "H4133": { "param": ["path"], "slots": {"vendor_matmul": "TR_fn_vendor_matmul"} },
+"H4134": { "param": ["fn", "n", "limit"], "slots": {"to_device": "TR_mem_to_device"} },
 "H4135": { "param": [] },
 "H4136": { "param": [] },
 "H5001": { "param": ["index", "id"] },

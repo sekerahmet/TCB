@@ -9,18 +9,33 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kural (25.9, 15.41): TR_logsumexp kartta hata verir, CPU'ya sessizce düşmez; ileti taşımanın
-// yazımını söyler. TR_conv1d kartta çalışır (TestConv1dRunsOnTheCard).
-func TestLogSumExpDoesNotFallBackFromTheCard(t *testing.T) {
+// Kural (25.9, 15.41, 15.18): TR_logsumexp kartta da çalışır: sonuç ve türev kartta kalır,
+// işlemciyle aynıdır (küçük tam değerler; Whisper'ın zaman damgası kuralının biçimi,
+// `lib/whisper.tr:118`). Kartta float64 yoktur: ileti taşımanın yazımını söyler, CPU'ya sessizce
+// düşmez; önerisi koşar.
+func TestLogSumExpRunsOnTheCard(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	for _, src := range []string{
-		`TR_logsumexp(TR_ones([2]).TR_to_device("gpu"))`,
-	} {
-		_, err := run(t, src)
-		if err == nil || !strings.Contains(err.Error(), ".TR_to_device(") {
-			t.Errorf("%s: kartta taşıma önerilmeliydi: %v", src, err)
-		}
+	out := mustRun(t, `TR_func lse(cihaz: TR_String) -> TR_List[TR_Tensor] {
+    TR_var x = TR_Tensor(TR_Tensor([[0.0, 1.0, 2.0, 3.0], [1.0, 1.0, 1.0, 1.0]]).TR_to_device(cihaz), TR_requires_grad: TR_true)
+    TR_var lp = TR_log_softmax(x)
+    TR_var y = TR_logsumexp(lp.TR_slice(1, 1, 4), TR_dim: 1)
+    TR_backward(TR_sum(TR_logsumexp(x, TR_dim: [0, 1])))
+    TR_return [y, x.TR_grad]
+}
+TR_var c = lse("cpu")
+TR_var g = lse("gpu")
+TR_print(g[0].TR_device, g[1].TR_device, TR_all_close(c[0], g[0].TR_to_device("cpu")), TR_all_close(c[1], g[1].TR_to_device("cpu")))`)
+	if want := "gpu:0 gpu:0 true true\n"; out != want {
+		t.Fatalf("kartta TR_logsumexp: %q, beklenen %q", out, want)
+	}
+	src := `TR_logsumexp(TR_Tensor([1.0, 2.0], TR_dtype: "float64").TR_to_device("gpu"))`
+	if _, err := run(t, src); !messages.Has(err, messages.H7081) || !strings.Contains(err.Error(), ".TR_to_device(") {
+		t.Errorf("%s: kartta float64 taşıma önermeliydi: %v", src, err)
+	}
+	if out := mustRun(t, `TR_var x = TR_Tensor([1.0, 2.0], TR_dtype: "float64").TR_to_device("gpu")
+TR_print(TR_logsumexp(x.TR_to_device("cpu")).TR_device)`); out != "cpu\n" {
+		t.Errorf("H7081'in önerisi: %q", out)
 	}
 }
 

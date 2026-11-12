@@ -766,6 +766,7 @@
 "H4131": "`{#vendor_matmul} {{ ... }}` bloğu: kitaplık {shape} şekilli bir çarpımı yapamadı ({reason}); o çarpım TR'nin kendi çekirdeğiyle yapıldı, bu koşunun sonucu iki yolun karışımı. Düşen çarpımların sayısı profil özetinde görünür (`TR_GPU_PROFILE=1`)",
 "H4132": "16 bitlik ({dtype}) matris çarpımı TR'nin kendi çekirdeğinde float32'ye açılarak yapılıyor, bu yol yavaş; makinede üreticinin kitaplığı var. Hız için çarpımı bloğa alın: `{#vendor_matmul} {{ ... }}`; o zaman sonuç kitaplığın sürümüne ve kartın SM sayısına bağlı olabilir",
 "H4133": "kendi çekirdek; cuBLASLt bulundu ({path}), yalnız `{#vendor_matmul} {{ ... }}` bloğunda",
+"H4134": "{fn}: kartta Fourier dönüşümünün boyu en çok {limit}, {n} verildi; tensörü işlemciye taşıyın: `x.{#to_device}(\"cpu\")`",
 "H4135": "kendi çekirdek; cuBLASLt bulunamadı",
 "H4136": "bu şekle uygun algoritma yok",
 "H5001": "{index} konumundaki parça kimliği {id}, 16 bite sığmıyor",

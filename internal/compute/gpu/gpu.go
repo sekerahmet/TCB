@@ -292,5 +292,6 @@ var (
 	_ tensor.CrossEntropyGradSetter = (*backend)(nil)
 	_ tensor.UnaryGradSetter        = (*backend)(nil)
 	_ tensor.GradClipper            = (*backend)(nil)
+	_ tensor.RowLogSumExper         = (*backend)(nil)
 	_ tensor.Storage                = (*storage)(nil)
 )

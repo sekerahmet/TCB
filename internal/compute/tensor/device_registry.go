@@ -227,3 +227,11 @@ type NormGradSetter interface {
 type CrossEntropyGradSetter interface {
 	CrossEntropyGradSet(gx, g Storage, x View, lse Storage, targets []int, C int)
 }
+
+// RowLogSumExper satırların log Σ exp'ini kendi cihazında veren arka uçların isteğe bağlı
+// arayüzüdür (15.18): x bitişik [rows, n], out [rows]. Grad gx'e (bitişik [rows, n]) ekler:
+// gx[r, i] += g[r]·∂y[r]/∂x[r, i]. Bitler yalnız (rows, n)'ye bağlıdır (15.22a).
+type RowLogSumExper interface {
+	RowLogSumExp(out Storage, x View, rows, n int)
+	RowLogSumExpGrad(gx Storage, g, x View, rows, n int)
+}
