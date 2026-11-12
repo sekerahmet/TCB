@@ -5,9 +5,9 @@ import (
 	"slices"
 )
 
-// log Σ exp (15.18). Hesap CPU'dadır: GPU'daki tensör çağıranda hata verir, CPU'ya düşmez (25.9).
-// Satır en büyük öğesi çıkarılarak toplanır; toplam float64'tedir, satırlar birbirinden bağımsızdır,
-// bir satırın toplama sırası yalnız şekle bağlıdır (15.22a).
+// log Σ exp (15.18). CPU'da satır en büyük öğesi çıkarılarak toplanır; toplam float64'tedir, satırlar
+// birbirinden bağımsızdır, bir satırın toplama sırası yalnız şekle bağlıdır (15.22a). Kartta hesap
+// arka ucun satır çekirdeğindedir (RowLogSumExper; float32 telafili toplam), CPU'ya düşmez (25.9).
 
 // lseCost bir öğenin yaklaşık maliyetidir (işçi sayısı için).
 const lseCost = 16
@@ -58,6 +58,9 @@ func (p lsePlan) read(t *Tensor) *Tensor {
 func LogSumExp(t *Tensor, axes []int, keep bool) *Tensor {
 	p := newLsePlan(t.shape, axes, keep)
 	allocSizeOn(t.be, isCreate, p.out, Float32)
+	if t.Device() != CPU {
+		return lseOnDevice(t, p)
+	}
 	v := p.read(t.Detach())
 	if t.dtyp == Float64 {
 		return Float64sOn(CPU, lseRows(v.Float64s(), p, lseRow64), p.out...)
@@ -172,6 +175,36 @@ func lseRowGrad(dx, x []float32, y, g float32) {
 			dx[i] = g * float32(float64(e)/sum)
 		}
 	}
+}
+
+// lseOnDevice kartın yoludur: indirgenen eksenler sona alınır (bitişik kopya), satır başına arka
+// ucun çekirdeği (RowLogSumExper). Türev kopyanın üzerinden girdiye döner (Permute, Contiguous).
+// float64 kartta yoktur; çağıran (ml) onu önce reddeder.
+func lseOnDevice(t *Tensor, p lsePlan) *Tensor {
+	be, ok := t.be.(RowLogSumExper)
+	if !ok || t.dtyp == Float64 || t.dtyp.IsTyped() || t.dtyp.IsQuantized() {
+		panic("tensor: LogSumExp: the backend has no row log-sum-exp for " + t.dtyp.Name())
+	}
+	v := p.read(t).Contiguous()
+	var out *Tensor
+	if p.n == 0 { // boş satır −sonsuz, türevi 0 (işlemcideki gibi izlenir)
+		out = FullOn(t.Device(), float32(math.Inf(-1)), p.out...).CastShared(t.dtyp)
+	} else {
+		out = emptyOf(isReduce, t.be, p.out, t.dtyp)
+		gateRowLogSumExp(be, out.storage, v.view(), p.rows, p.n)
+	}
+	if !GradEnabled() || !t.RequiresGrad() {
+		return out
+	}
+	rows, n := p.rows, p.n
+	return CustomOp("logsumexp", []*Tensor{v}, []*Tensor{out}, []*Tensor{v}, func(_ any, g []*Tensor) []*Tensor {
+		gx := ZerosOn(v.Device(), v.shape...)
+		gateRowLogSumExpGrad(be, gx.storage, g[0].view(), v.view(), rows, n)
+		if v.dtyp != Float32 {
+			gx = gx.CastShared(v.dtyp)
+		}
+		return []*Tensor{gx}
+	})[0]
 }
 
 // inversePerm order'ın tersidir: girdinin eksen sırasına geri döner.

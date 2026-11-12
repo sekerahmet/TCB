@@ -22,14 +22,14 @@ func registerLogSumExp(v *interp.VM) {
 // toCPUFix tensörü CPU'ya taşıyan yazımdır.
 func toCPUFix() string { return "x." + codes.Spelling(codes.MemToDevice) + `("cpu")` }
 
-// cpuFloatArg x argümanını denetler: CPU'da ondalık tensördür (15.18, 25.9).
-func cpuFloatArg(fn any, x *tensor.Tensor) error {
+// lseFloatArg x argümanını denetler: ondalık tensördür (15.18); kartta float64 yoktur (25.9, 15.41).
+func lseFloatArg(fn any, x *tensor.Tensor) error {
 	switch {
 	case x.DType().IsQuantized():
 		return messages.New(messages.H6687, x.DType().Name())
 	case x.Elem() != tensor.ElemFloat:
 		return messages.New(messages.H7081, fn, x.DType().Name(), "float", floatFix())
-	case x.Device() != tensor.CPU:
+	case x.Device() != tensor.CPU && x.DType() == tensor.Float64:
 		return messages.New(messages.H7081, fn, x.Device().String(), "gpu", toCPUFix())
 	}
 	return nil
@@ -95,7 +95,7 @@ func logSumExpBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	if !ok {
 		return nil, messages.New(messages.H7081, fn, typeName(args[0]), "float", floatFix())
 	}
-	if err := cpuFloatArg(fn, d.t); err != nil {
+	if err := lseFloatArg(fn, d.t); err != nil {
 		return nil, err
 	}
 	keep, err := bind.OptionalBool(fn, named, nameKeepDim, false)

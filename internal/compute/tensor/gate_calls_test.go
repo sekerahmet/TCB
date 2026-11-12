@@ -71,7 +71,7 @@ func TestBackendDataCallsGoThroughTheGate(t *testing.T) {
 				if sel == nil || sel.Kind() != types.MethodVal || !backendSide(derefType(sel.Recv())) || !dataCall(sel.Type().(*types.Signature)) {
 					return true
 				}
-				if name == "gate_calls.go" {
+				if gateFile(name) {
 					gated++
 					return true
 				}
@@ -83,6 +83,12 @@ func TestBackendDataCallsGoThroughTheGate(t *testing.T) {
 	if gated < 50 {
 		t.Fatalf("kapıda yalnız %d veri çağrısı bulundu; tarama arka uç çağrılarını görmüyor", gated)
 	}
+}
+
+// gateFile kapı dosyasıdır: gate_calls.go ve 600 satır sınırı yüzünden ondan ayrılan
+// gate_calls_*.go (aynı kural, ayrı dosya).
+func gateFile(name string) bool {
+	return name == "gate_calls.go" || strings.HasPrefix(name, "gate_calls_") && !strings.HasSuffix(name, "_test.go")
 }
 
 func derefType(t types.Type) types.Type {

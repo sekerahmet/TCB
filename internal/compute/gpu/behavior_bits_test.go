@@ -103,7 +103,7 @@ func bitFamilies(t *testing.T) []bitFamily {
 		{name: "TR_max", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return shiftedOn(dev, row, tensor.Float32, off, 3, 130).Max(1, false)
 		}},
-		{name: "TR_logsumexp", cpu: true, run: func(dev tensor.Device, off int) *tensor.Tensor {
+		{name: "TR_logsumexp", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return tensor.LogSumExp(shiftedOn(dev, row, tensor.Float32, off, 3, 130), []int{1}, false)
 		}},
 		{name: "üstel (öğe öğe)", run: func(dev tensor.Device, off int) *tensor.Tensor {

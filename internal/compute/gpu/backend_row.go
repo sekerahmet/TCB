@@ -44,6 +44,47 @@ func (g *backend) SoftmaxGrad(gx, gs, y tensor.Storage, shape []int, axis int, l
 	g.launch(c, [3]uint32{uint32(row), 1, 1}, [3]uint32{uint32(B), 1, 1}, g.param().write(d, 0).read(gd, 0).read(yd, 0).u32(L).u32(ic))
 }
 
+// RowLogSumExp (tensor.RowLogSumExper) out[r] = log Σ e^{x[r, ·]}; x bitişik [rows, n]
+// (kernel_lse.go).
+func (g *backend) RowLogSumExp(out tensor.Storage, x tensor.View, rows, n int) {
+	g.enter()
+	defer g.exit()
+	gt := g.temp()
+	defer gt.finish()
+	o := g.storageOf(out)
+	xv := gt.readNative(x)
+	if rows == 0 || n == 0 {
+		return
+	}
+	checkSize(rows * n)
+	B := powerOfTwo(n, 32, 256)
+	xt := g.storageOf(xv.S).dtype
+	c := g.takeKernel(fmt.Sprintf("logsumexp:%d:%s:%s", B, xt, o.dtype), lseKernel(B, xt, o.dtype))
+	g.launch(c, [3]uint32{uint32(rows), 1, 1}, [3]uint32{uint32(B), 1, 1}, g.param().readV(xv).write(o, 0).u32(n).u32(1))
+}
+
+// RowLogSumExpGrad (tensor.RowLogSumExper) gx'e g[r]·∂y[r]/∂x[r, i]'yi ekler. İlk +∞'ın konumu
+// float32'de tutulur: satır en çok 2²⁴ öğedir.
+func (g *backend) RowLogSumExpGrad(gx tensor.Storage, gs, x tensor.View, rows, n int) {
+	g.enter()
+	defer g.exit()
+	gt := g.temp()
+	defer gt.finish()
+	d := g.storageOf(gx)
+	gv, xv := gt.readNative(gs), gt.readNative(x)
+	if rows == 0 || n == 0 {
+		return
+	}
+	checkSize(rows * n)
+	if n > 1<<24 {
+		panic(internalf("logsumexp gradient row of %d elements exceeds 2^24", n))
+	}
+	B := powerOfTwo(n, 32, 256)
+	dt := [3]tensor.DType{d.dtype, g.storageOf(gv.S).dtype, g.storageOf(xv.S).dtype}
+	c := g.takeKernel(fmt.Sprintf("logsumexp_turev:%d:%v", B, dt), lseGradKernel(B, dt))
+	g.launch(c, [3]uint32{uint32(rows), 1, 1}, [3]uint32{uint32(B), 1, 1}, g.param().write(d, 0).readV(gv).readV(xv).u32(n).u32(1))
+}
+
 // ints []int'i 32 bitlik tam sayılara çevirir (indeksler, hedefler).
 func ints(v []int) []int32 {
 	r := make([]int32, len(v))
