@@ -84,6 +84,10 @@ var uncoveredLibraryNames = map[string]string{
 	"pretrained.rope_ölçekleme_var_mı": "iç yardımcı: lib/README.md'de belgelenmemiş",
 	"hugging_face.BLOK_ADLARI":         "iç yardımcı: lib/README.md'de belgelenmemiş",
 	"hugging_face.hugging_face_eşle":   "belgeli ad; yazılacak: hazır modelin iç yapısı (hazır_model_kur, eşleme) örneği",
+
+	// tr/model_family: tr/pretrained'in iç adımları; kullanıcı onları hazır_model ve hazır_gguf'la çağırır.
+	"model_family.gguf_sohbet_ailesi":   "hazır_gguf onu kendisi çağırır, GGUF dosyası depoda yok; behavior_chat_family_test.go Go ile kurulan GGUF'la sınar",
+	"model_family.klasör_sohbet_ailesi": "hazır_model onu kendisi çağırır, ailesi olan hazır model depoda yok; behavior_chat_family_test.go Go ile kurulan klasörle sınar",
 }
 
 var (
