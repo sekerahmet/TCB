@@ -147,14 +147,18 @@ func TestHostSettleIgnoresBlocksAllocatedMeanwhile(t *testing.T) {
 			time.Sleep(time.Millisecond)
 		}
 	})
-	time.AfterFunc(50*time.Millisecond, func() { hostUnregister(id) })
+	// Kaydı silen süre toplama ve taramadan uzun olmalı: kısa kalırsa kayıt taramadan önce silinir, test
+	// Ş1 (b)'yi sınamadan geçer (DENETİM 465 N2).
+	time.AfterFunc(200*time.Millisecond, func() { hostUnregister(id) })
 	r := settleHost(5 * time.Second)
 	close(stop)
 	wg.Wait()
 	if r.TimedOut {
 		t.Fatalf("yeni bloklar beklemeyi uzattı: %+v", r)
 	}
-	if r.Elapsed < 50*time.Millisecond {
+	if r.Dead == 0 {
+		t.Logf("kayıt taramadan önce silindi, Ş1 (b) sınanmadı: %+v", r)
+	} else if r.Elapsed < 200*time.Millisecond {
 		t.Fatalf("bekleme ölü kümenin kaydı silinmeden bitti: %+v", r)
 	}
 }

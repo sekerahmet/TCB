@@ -340,3 +340,78 @@ func TestHostSettleWarning(t *testing.T) {
 	}
 	hostSettleWarning(nil, fn, r)
 }
+
+// tinyTensorFile tek tensörlü küçük bir safetensors dosyası; beklemeyi kanca verir.
+func tinyTensorFile(t *testing.T) string {
+	t.Helper()
+	data := f32Bytes(1, 2)
+	path := filepath.Join(t.TempDir(), "w.safetensors")
+	if err := os.WriteFile(path, safetensorsBytes(`{"w":{"dtype":"F32","shape":[2],"data_offsets":[0,8]}}`, data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+var timedOutSettle = tensor.HostSettle{Dead: 1, DeadBytes: 1 << 21, Waiting: 1 << 21, Elapsed: 10 * time.Second, TimedOut: true}
+
+// Beklemenin sonucu uyarıya geçer: TR_load_tensors'ın beklemesi sınıra varınca (kanca) H6730 programın
+// hata akışına değiştirgeleriyle bir kez yazılır, yükleme sürer (DENETİM 465 N1; save.go'nun
+// tensorLoad'ı).
+func TestLoadTensorsWarnsWhenTheWaitTimesOut(t *testing.T) {
+	path := tinyTensorFile(t)
+	old := settleHostBlocks
+	t.Cleanup(func() { settleHostBlocks = old })
+	settleHostBlocks = func(int64) tensor.HostSettle { return timedOutSettle }
+	var out, errOut bytes.Buffer
+	m := interp.New()
+	m.Out, m.Err = &out, &errOut
+	m.GlobalEnv.Define("yol", &interp.StringVal{Val: path}, true)
+	if _, err := m.Run(trrun.Parse(t, `TR_print(TR_load_tensors(yol)["w"].TR_tolist)`)); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := out.String(), "[1.0, 2.0]\n"; got != want {
+		t.Errorf("yüklenen %q, beklenen %q", got, want)
+	}
+	want := messages.Text(messages.H6730, codes.NameRef(codes.FnLoadTensors), int64(1<<21), int64(10)) + "\n"
+	if errOut.String() != want {
+		t.Errorf("hata akışı %q, beklenen %q", errOut.String(), want)
+	}
+}
+
+// Program yüklemeyi bırakırsa (görev iptal) bekleme arka planda biter, uyarı yazılmaz (save.go'nun
+// tensorLoad'ı, 1.5; DENETİM 465 N1).
+func TestAbandonedLoadWritesNoWarning(t *testing.T) {
+	path := tinyTensorFile(t)
+	entered, release, returned := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	old := settleHostBlocks
+	t.Cleanup(func() { settleHostBlocks = old })
+	settleHostBlocks = func(int64) tensor.HostSettle {
+		close(entered)
+		<-release
+		defer close(returned)
+		return timedOutSettle
+	}
+	var out, errOut bytes.Buffer
+	m := interp.New()
+	m.Out, m.Err = &out, &errOut
+	m.GlobalEnv.Define("yol", &interp.StringVal{Val: path}, true)
+	m.GlobalEnv.Define("bekle", &interp.BuiltinVal{Name: "kanca", Fn: func(y *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		y.Blocking(func() { <-entered })
+		return interp.Null, nil
+	}}, true)
+	program := "TR_var g = TR_async TR_load_tensors(yol)\nbekle()\ng.TR_cancel()\nTR_print(TR_error_code { g.TR_wait() } != \"\")\n"
+	_, err := m.Run(trrun.Parse(t, program))
+	close(release)
+	<-returned
+	m.WaitAsync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "true\n" {
+		t.Errorf("iptal edilen görev hata vermedi: %q", got)
+	}
+	time.Sleep(50 * time.Millisecond) // bırakılan iş arka planda bitsin
+	if errOut.Len() != 0 {
+		t.Errorf("bırakılan yüklemede uyarı yazıldı: %q", errOut.String())
+	}
+}
