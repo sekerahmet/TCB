@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 752 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 169 fonksiyon, 11 sabit, 93 metot, 132 özellik, 193 adlı argüman.
+Toplam 755 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 171 fonksiyon, 11 sabit, 93 metot, 132 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -2489,6 +2489,18 @@ tr: klasör_oluştur("liste/alt"); dosya_yaz("liste/a.npy", "1"); dosya_yaz("lis
 
 İlişkili: `TR_Path`, `TR_make_dir(...)`
 
+#### `TR_llama3_format(...)` (`TR_fn_llama3_format`, `llama3_biçimi`)
+
+    llama3_biçimi()
+
+
+
+#### `TR_llama3_reply(...)` (`TR_fn_llama3_reply`, `llama3_cevabı`)
+
+    llama3_cevabı()
+
+
+
 #### `TR_load_metadata(...)` (`TR_fn_load_metadata`, `üstveri_yükle`)
 
     üstveri_yükle(Metin | Yol) → JSON
@@ -4437,6 +4449,10 @@ Kullananlar: `.TR_sampler(...)`, `.TR_sequential(...)` · İlişkili: `TR_batch_
 
 
 #### `TR_cuda_graph:` (`TR_arg_cuda_graph`, `cuda_çizgesi`)
+
+
+
+#### `TR_date:` (`TR_arg_date`, `tarih`)
 
 
 

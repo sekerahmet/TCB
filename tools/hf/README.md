@@ -50,3 +50,16 @@ python -I tools/hf/chat_reference.py --tokenizer tests/data/qwen3_chat --templat
 ```
 
 `QWEN3`, Qwen/Qwen3-4B'nin parçalayıcı dosyalarının klasörüdür (revizyonu `tests/data/qwen3_chat/KAYNAK.md`'de). Aynı durumlar gerçek parçalayıcıyla `--tokenizer QWEN3` ile koşar; çıktısı depoya girmez.
+
+## Llama 3 sohbet biçimi (`llama3_chat_reference.py`)
+
+`llama3_chat_reference.py` aynı iki işi Llama 3.1 ve 3.2 için yapar (dil tanımı 24.5 ve 24.6'nın *Test:* satırları). `--template` iki kez verilir, her şablon `AD=DOSYA`; her durum iki şablonla koşar, `cases.json`'da her satır bir durum ve bir şablondur. Şablonlar depoya girmez; karmaları çıktıdadır.
+
+```sh
+python -I tools/hf/llama3_chat_reference.py --tokenizer-out tests/data/llama3_chat
+python -I tools/hf/llama3_chat_reference.py --tokenizer tests/data/llama3_chat \
+    --template 3.1=L31/tokenizer_config.json --template 3.2=L32/tokenizer_config.json \
+    --cases-out tests/data/llama3_chat/cases.json
+```
+
+`L31` ve `L32`, `unsloth/Meta-Llama-3.1-8B-Instruct` ve `unsloth/Llama-3.2-3B-Instruct`'ın parçalayıcı dosyalarının klasörleridir (revizyonları `tests/data/llama3_chat/KAYNAK.md`'de). Gerçek parçalayıcıyla `--tokenizer L32` koşar; çıktısı depoya girmez.

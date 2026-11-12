@@ -1,0 +1,32 @@
+# TR 4
+# 58 — Llama 3 sohbet biçimi: iletileri Llama 3.1 ve 3.2'nin parça dizisine çevirmek ve modelin cevabını iletiye
+# ayırmak (`tr/chat`). Tarih argümandır, duvar saatinden okunmaz. Llama 3'te araç çağrısının etiketi yoktur:
+# cevap tek bir JSON nesnesiyse ve adı araçlardaysa çağrıdır, değilse metindir.
+# Parçalayıcı küçük bir deneme parçalayıcısıdır (tests/data/llama3_chat); gerçek modelde GGUF dosyası verilir.
+#
+# Kendin dene: cevabın başına "Tamam: " ekle; cevap metin kalır ve hatalar'a bir satır girer.
+
+TR_import "tr/chat"
+
+TR_var p = TR_load_tokenizer("../../tests/data/llama3_chat/tokenizer.json")
+TR_var araçlar: TR_List[TR_JSON] = [TR_json_parse("{\"type\": \"function\", \"function\": {\"name\": \"saat\", \"parameters\": {\"type\": \"object\", \"properties\": {}}}}")]
+TR_var geçmiş = [
+    TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: "Kısa cevap ver."),
+    TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?"),
+]
+
+# Çıkarım: dizi BOS'la başlar, sona asistanın başlığı eklenir; araçlar ilk kullanıcı iletisine yazılır.
+TR_var istem = TR_llama3_format(p, geçmiş, TR_add_generation_prompt: TR_true, TR_date: "26 Jul 2024", TR_tools: araçlar)
+TR_print(istem.TR_length, "parça")
+
+# Modelin ürettiği kimlikler (burada elle kurulur): bir araç çağrısı ve tur sonu.
+TR_var üretilen = p.TR_encode("{\"name\": \"saat\", \"parameters\": {}}", TR_special_tokens: TR_false) + [p.TR_token_id("<|eot_id|>")]
+TR_var cevap, hatalar = TR_llama3_reply(p, üretilen, TR_tools: araçlar)
+TR_for ç TR_in cevap.TR_tool_calls { TR_print(ç.TR_name, ç.TR_arguments) }
+TR_print("hata:", hatalar.TR_length)
+
+# Cevap geçmişe girer, aracın sonucu kendi rolüyle gelir; eğitim biçiminde üretim başlığı yoktur.
+geçmiş.TR_append(cevap)
+geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_Tool, TR_content: "17:05"))
+geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Saat on yediyi beş geçiyor."))
+TR_print(TR_llama3_format(p, geçmiş, TR_add_generation_prompt: TR_false, TR_date: "26 Jul 2024", TR_tools: araçlar).TR_length, "parça")

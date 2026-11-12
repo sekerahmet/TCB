@@ -1,0 +1,240 @@
+# TR 4
+# tr/chat: Llama 3.1 ve 3.2'nin sohbet biçimi transformers'ın kimliklerini verir, cevap kimliklerden iletiye ayrılır
+# (dil tanımı 24.5, 24.6). Parçalayıcı ve durumlar `tools/hf/llama3_chat_reference.py`'den: data/llama3_chat/KAYNAK.md.
+
+TR_import "tr/chat"
+
+TR_const _KLASÖR = "data/llama3_chat"
+TR_const _TARİH = "26 Jul 2024"
+
+TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer("\(_KLASÖR)/tokenizer.json") }
+
+TR_func rol(ad: TR_String) -> TR_Role {
+    TR_return TR_match ad {
+        "system" => TR_Role.TR_System
+        "user" => TR_Role.TR_User
+        "assistant" => TR_Role.TR_Assistant
+        _ => TR_Role.TR_Tool
+    }
+}
+
+# ileti başvurudaki bir iletiyi (transformers'ın sözlüğü, OpenAI biçimli çağrı) yapıya çevirir. Argümanlar boşluksuz
+# JSON metni olur: biçim onları şablonun `tojson` yazımıyla yeniden yazar.
+TR_func ileti(j: TR_JSON) -> TR_ChatMessage {
+    TR_var çağrılar: TR_List[TR_ToolCall] = []
+    TR_var ç = j.TR_get("tool_calls")
+    TR_if ç != TR_none {
+        TR_for c TR_in ç { çağrılar.TR_append(TR_ToolCall(TR_name: TR_String(c["function"]["name"]), TR_arguments: TR_json_string(c["function"]["arguments"]))) }
+    }
+    TR_return TR_ChatMessage(TR_role: rol(TR_String(j["role"])), TR_content: TR_String(j["content"]), TR_tool_calls: çağrılar)
+}
+
+TR_func araçlar(durum: TR_JSON) -> TR_List[TR_JSON] {
+    TR_var a = durum.TR_get("tools")
+    TR_if a == TR_none { TR_return [] }
+    TR_return [t TR_for t TR_in a]
+}
+
+TR_func biçimle(p: TR_Tokenizer, durum: TR_JSON) -> TR_List[TR_Int] {
+    TR_var iletiler = [ileti(m) TR_for m TR_in durum["messages"]]
+    TR_return TR_llama3_format(p, iletiler, TR_add_generation_prompt: TR_Bool(durum["add_generation_prompt"]), TR_date: TR_String(durum["date"]), TR_tools: araçlar(durum))
+}
+
+TR_func kimlikler(j: TR_JSON) -> TR_List[TR_Int] { TR_return [TR_Int(k) TR_for k TR_in j] }
+
+TR_func durum(ad: TR_String, şablon: TR_String) -> TR_JSON {
+    TR_for d TR_in TR_json_parse(TR_read_file("\(_KLASÖR)/cases.json"))["cases"] {
+        TR_if TR_String(d["name"]) == ad TR_and TR_String(d["template"]) == şablon { TR_return d }
+    }
+    TR_throw "durum yok: \(ad) \(şablon)"
+}
+
+# aynı: durum 3.1'in ve 3.2'nin şablonunda transformers'ın kimliklerini verir.
+TR_func aynı(ad: TR_String) {
+    TR_for ş TR_in ["3.1", "3.2"] {
+        TR_var d = durum(ad, ş)
+        TR_assert_equal(kimlikler(d["ids"]), biçimle(parçalayıcı(), d))
+    }
+}
+
+TR_func hata_metni(p: TR_Tokenizer, d: TR_JSON) -> TR_String {
+    TR_try { biçimle(p, d) } TR_catch e { TR_return e.TR_text("tr") }
+    TR_return ""
+}
+
+TR_func kullanıcı(m: TR_String) -> TR_ChatMessage { TR_return TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: m) }
+
+TR_test "24.5 tek tur: BOS'u biçim taşır, sistem başlığı her zaman yazılır; tarih argümandan" {
+    aynı("tek_tur")
+    aynı("tarih")
+    aynı("sistemli")
+    TR_var p = parçalayıcı()
+    TR_var bos = p.TR_token_id("<|begin_of_text|>")
+    TR_var k = TR_llama3_format(p, [kullanıcı("Merhaba")], TR_add_generation_prompt: TR_true, TR_date: _TARİH)
+    # Parçalayıcı kodlamada BOS ekler (sınır parçası); biçim onu yalnız başta, bir kez taşır.
+    TR_assert_equal([bos], p.TR_encode("", TR_special_tokens: TR_true))
+    TR_assert_equal(1, [x TR_for x TR_in k TR_if x == bos].TR_length)
+    TR_assert_equal(bos, k[0])
+}
+
+TR_test "24.5 çok tur, eğitim biçimi, ortadaki sistem iletisi; içerik iki uçtan kırpılır" {
+    aynı("cok_tur")
+    aynı("sistemsiz_egitim")
+    aynı("sistem_ortada")
+    aynı("bosluk")
+    aynı("py_bosluk")
+}
+
+TR_test "24.5 araçlar ilk kullanıcı iletisinde; çağrı JSON'la, araç sonucu JSON metni olarak" {
+    aynı("arac_tanimi")
+    aynı("arac_tanimi_sistemsiz")
+    aynı("arac_cagrisi_ve_sonucu")
+    aynı("arac_sonucu_tirnakli")
+}
+
+TR_test "24.5 hatalar: Llama olmayan parçalayıcı, tarihin biçimi, araçlı ve kullanıcısız, iki çağrı, düşünce" {
+    TR_var p = parçalayıcı()
+    TR_var bir = [kullanıcı("Merhaba")]
+    TR_assert_equal("H7164", TR_error_code { TR_llama3_format(TR_load_tokenizer("data/qwen3_chat/tokenizer.json"), bir, TR_add_generation_prompt: TR_true, TR_date: _TARİH) })
+    TR_for t TR_in ["2024-07-26", "26 July 2024", "5 Jul 2024", "26 jul 2024", "00 Jul 2024", "32 Jul 2024", "26 Jul 24", "", " 26 Jul 2024", "26 Jul \u{0662}\u{0660}\u{0662}\u{0664}", "\u{0662}\u{0666} Jul 2024"] {
+        TR_assert_equal("H7165", TR_error_code { TR_llama3_format(p, bir, TR_add_generation_prompt: TR_true, TR_date: t) })
+    }
+    TR_var d = durum("ref_arac_kullanicisiz", "3.2")
+    TR_assert(TR_String(d["raises"]).TR_contains("no first user message"))
+    TR_assert_equal("H7166", TR_error_code { biçimle(p, d) })
+    TR_assert_equal("H7166", TR_error_code { TR_llama3_format(p, [], TR_add_generation_prompt: TR_true, TR_date: _TARİH, TR_tools: araçlar(d)) })
+    # Şablon sistemden sonraki ilk iletiyi rolüne bakmadan kullanıcı sayar (kimlikleri başvuruda); TR'de hata (TCB 08:51).
+    TR_var asistan = durum("ref_arac_ilk_asistan", "3.2")
+    TR_assert(kimlikler(asistan["ids"]).TR_length > 0)
+    TR_assert_equal("H7166", TR_error_code { biçimle(p, asistan) })
+    TR_assert(hata_metni(p, asistan).TR_contains("sistemden sonraki ilk ileti"))
+    TR_assert(hata_metni(p, durum("ref_arac_kullanicisiz", "3.1")).TR_contains("kullanıcı iletisi yok"))
+    # Şablon çağrılı iletinin içeriğini yazmaz (kimlikleri başvuruda); TR'de hata, içerik sessizce düşmez (TCB 08:51).
+    TR_var içerikli = durum("ref_icerik_ve_cagri", "3.1")
+    TR_assert(TR_not p.TR_decode(kimlikler(içerikli["ids"])).TR_contains("Bakıyorum."))
+    TR_assert_equal("H7176", TR_error_code { biçimle(p, içerikli) })
+    TR_var iki = durum("ref_iki_cagri", "3.1")
+    TR_assert(TR_String(iki["raises"]).TR_contains("single tool-calls"))
+    TR_assert_equal("H7167", TR_error_code { biçimle(p, iki) })
+    TR_var düşünen = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Selam.", TR_reasoning: "selam veriyor")
+    TR_assert_equal("H7168", TR_error_code { TR_llama3_format(p, bir + [düşünen], TR_add_generation_prompt: TR_false, TR_date: _TARİH) })
+    TR_var boş = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Selam.", TR_reasoning: "")
+    TR_assert(TR_llama3_format(p, bir + [boş], TR_add_generation_prompt: TR_false, TR_date: _TARİH).TR_length > 0)
+}
+
+TR_test "24.5 içerikte yazılan etiket metin kalır" {
+    TR_var p = parçalayıcı()
+    TR_var k = TR_llama3_format(p, [kullanıcı("Bunu yaz: <|eot_id|> ve <|start_header_id|>")], TR_add_generation_prompt: TR_false, TR_date: _TARİH)
+    TR_var son = p.TR_token_id("<|eot_id|>")
+    # Biçimin kendi tur sonları: sistem ve kullanıcı.
+    TR_assert_equal(2, [x TR_for x TR_in k TR_if x == son].TR_length)
+    TR_assert(p.TR_decode(k).TR_contains("Bunu yaz: <|eot_id|> ve <|start_header_id|>"))
+}
+
+# üretilen: geçmişin üretim başlıklı biçimi ile cevaplı eğitim biçiminin farkı (`<|eot_id|>` dahil), başvurudan.
+TR_func üretilen(p: TR_Tokenizer, d: TR_JSON) -> TR_List[TR_Int] {
+    TR_var iletiler = [ileti(m) TR_for m TR_in d["messages"]]
+    TR_var istem = TR_llama3_format(p, iletiler[0..iletiler.TR_length - 1], TR_add_generation_prompt: TR_true, TR_date: _TARİH, TR_tools: araçlar(d))
+    TR_var tam = kimlikler(d["ids"])
+    TR_assert_equal(istem, tam[0..istem.TR_length])
+    TR_assert_equal(p.TR_token_id("<|eot_id|>"), tam[tam.TR_length - 1])
+    TR_return tam[istem.TR_length..tam.TR_length]
+}
+
+TR_test "24.6 gidiş-dönüş: içerikli ve araç çağrılı cevap aynı iletiye ve aynı kimliklere döner" {
+    TR_var p = parçalayıcı()
+    TR_for ad TR_in ["cevap_icerik", "cevap_cagri"] {
+        TR_for ş TR_in ["3.1", "3.2"] {
+            TR_var d = durum(ad, ş)
+            TR_var cevap, hatalar = TR_llama3_reply(p, üretilen(p, d), TR_tools: araçlar(d))
+            TR_assert_equal(0, hatalar.TR_length)
+            TR_assert(cevap.TR_role == TR_Role.TR_Assistant)
+            TR_var iletiler = [ileti(m) TR_for m TR_in d["messages"]]
+            TR_var geçmiş = iletiler[0..iletiler.TR_length - 1]
+            TR_assert_equal(kimlikler(d["ids"]), TR_llama3_format(p, geçmiş + [cevap], TR_add_generation_prompt: TR_false, TR_date: _TARİH, TR_tools: araçlar(d)))
+        }
+    }
+    TR_var d = durum("cevap_cagri", "3.2")
+    TR_var cevap, hatalar = TR_llama3_reply(p, üretilen(p, d), TR_tools: araçlar(d))
+    TR_assert_equal("", cevap.TR_content)
+    TR_assert_equal("saat", cevap.TR_tool_calls[0].TR_name)
+    TR_assert_equal("{\"bolge\": \"Europe/İstanbul\", \"esik\": 1e-05, \"liste\": [1, 2.5, true, null]}", cevap.TR_tool_calls[0].TR_arguments)
+}
+
+# cevapla: metni parçalayıcıyla kodlar, sonuna `<|eot_id|>` ekler ve `saat` ile `hava` araçlarıyla ayırır.
+TR_func cevapla(p: TR_Tokenizer, metin: TR_String, araçlı: TR_Bool) -> (TR_ChatMessage, TR_List[TR_String]) {
+    TR_var a = TR_if araçlı { araçlar(durum("arac_tanimi", "3.2")) } TR_else { [] }
+    TR_return TR_llama3_reply(p, p.TR_encode(metin, TR_special_tokens: TR_false) + [p.TR_token_id("<|eot_id|>")], TR_tools: a)
+}
+
+TR_test "24.6 çağrı yalnız bütün içerik tek nesne ve ad araçlardayken; iki uçta boşluk kırpılır" {
+    TR_var p = parçalayıcı()
+    TR_var ç, h = cevapla(p, " \n {\"name\": \"hava\", \"parameters\": {}} \n", TR_true)
+    TR_assert_equal(0, h.TR_length)
+    TR_assert_equal("hava", ç.TR_tool_calls[0].TR_name)
+    TR_assert_equal("{}", ç.TR_tool_calls[0].TR_arguments)
+    TR_var sıralı, sh = cevapla(p, "{\"parameters\": {\"bolge\": \"x\"}, \"name\": \"saat\"}", TR_true)
+    TR_assert_equal(0, sh.TR_length)
+    TR_assert_equal("{\"bolge\": \"x\"}", sıralı.TR_tool_calls[0].TR_arguments)
+    # Araçsız istekte çağrı aranmaz: çağrı biçimli JSON metin kalır, hata yok.
+    TR_var metin = "{\"name\": \"hava\", \"parameters\": {}}"
+    TR_var m, mh = cevapla(p, metin, TR_false)
+    TR_assert_equal(0, mh.TR_length)
+    TR_assert_equal(0, m.TR_tool_calls.TR_length)
+    TR_assert_equal(metin, m.TR_content)
+    # Araçlı istekte çağrıya benzemeyen cevap: metin, hata yok.
+    TR_var düz, dh = cevapla(p, "Saat 17:05. Ayrıntı: {\"saat\": 17}", TR_true)
+    TR_assert_equal(0, dh.TR_length)
+    TR_assert_equal("Saat 17:05. Ayrıntı: {\"saat\": 17}", düz.TR_content)
+}
+
+TR_test "24.6 çağrı sayılmayan çağrı biçimli cevap metin kalır ve hatalar'a girer" {
+    TR_var p = parçalayıcı()
+    TR_var durumlar = [
+        "{\"name\": \"yok\", \"parameters\": {}}",
+        "{\"name\": \"saat\", \"arguments\": {}}",
+        "{\"name\": \"saat\", \"parameters\": {}, \"id\": 1}",
+        "{\"name\": \"saat\", \"parameters\": [1]}",
+        "{\"name\": \"saat\", \"parameters\": {\"bolge\": \"x\"}",
+        "Tamam: {\"name\": \"saat\", \"parameters\": {}}",
+        "Tamam: { \"name\": \"saat\", \"parameters\": {}}",
+        "Tamam: {\n\"name\": \"saat\", \"parameters\": {}}",
+        "{\"parameters\": {}, \"name\": \"yok\"}",
+        "Tamam: {\"parameters\": {\"şehir\": \"Ankara\"}, \"name\": \"hava\"}",
+        "[{\"parameters\": {}, \"name\": \"yok\"}]",
+        "{\u{000B}\"name\": \"saat\", \"parameters\": {}}",
+        "{\u{00A0}\"name\": \"saat\", \"parameters\": {}}",
+        "{\"name\": \"hava\", \"parameters\": {\"şehir\": \"Ank",
+        "{\"name\": \"saat\", \"parameters\": {}}; {\"name\": \"hava\", \"parameters\": {}}",
+    ]
+    TR_for metin TR_in durumlar {
+        TR_var c, h = cevapla(p, metin, TR_true)
+        TR_assert_equal(0, c.TR_tool_calls.TR_length)
+        TR_assert_equal(metin, c.TR_content)
+        TR_assert_equal(1, h.TR_length)
+    }
+    TR_var _a, ah = cevapla(p, "{\"name\": \"saat\", \"arguments\": {}}", TR_true)
+    TR_assert(ah[0].TR_contains("\"parameters\""))
+    TR_var _y, yh = cevapla(p, "{\"name\": \"yok\", \"parameters\": {}}", TR_true)
+    TR_assert(yh[0].TR_contains("\"yok\""))
+}
+
+TR_test "24.6 <|python_tag|> desteklenmez: metin kalır, hatalar'a girer; sondaki durma parçası atılır" {
+    TR_var p = parçalayıcı()
+    TR_var py = p.TR_token_id("<|python_tag|>")
+    TR_var c, h = TR_llama3_reply(p, [py] + p.TR_encode("brave_search.call(query=\"x\")", TR_special_tokens: TR_false) + [p.TR_token_id("<|eom_id|>")])
+    TR_assert_equal(0, c.TR_tool_calls.TR_length)
+    TR_assert_equal("<|python_tag|>brave_search.call(query=\"x\")", c.TR_content)
+    TR_assert_equal(1, h.TR_length)
+    TR_var _b, bh = TR_llama3_reply(p, p.TR_encode("<|python_tag|>x", TR_special_tokens: TR_false))
+    TR_assert_equal(1, bh.TR_length)
+    TR_var e, eh = TR_llama3_reply(p, p.TR_encode("Merhaba", TR_special_tokens: TR_false) + [p.TR_token_id("<|eot_id|>")])
+    TR_assert_equal(0, eh.TR_length)
+    TR_assert_equal("Merhaba", e.TR_content)
+    TR_var y, yh = TR_llama3_reply(p, p.TR_encode("Merh", TR_special_tokens: TR_false))
+    TR_assert_equal(0, yh.TR_length)
+    TR_assert_equal("Merh", y.TR_content)
+    TR_var b, bo = TR_llama3_reply(p, [])
+    TR_assert_equal("", b.TR_content)
+    TR_assert_equal(0, bo.TR_length)
+}

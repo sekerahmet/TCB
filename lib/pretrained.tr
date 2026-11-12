@@ -279,8 +279,9 @@ TR_const _AYAR_DENETLENİR = ["attention_bias", "mlp_bias", "hidden_act", "use_s
 # Etkisiz anahtarlar: değeri değişince logitler bit bit aynıdır. architectures, _name_or_path ve
 # transformers_version kaydı anlatır; torch_dtype ve dtype transformers'ın yükleme türüdür (TR türü
 # safetensors başlığından alır, ayrıca TR_weight_dtype:); use_cache transformers'ın üretim seçeneğidir;
-# initializer_range yalnız sıfırdan ilklemededir; pad_token_id ve bos_token_id'yi parçalayıcı ya da
-# sohbet biçimi koyar, model değil; is_llama_config, unsloth_fixed ve transformers.js_config dışa
+# initializer_range yalnız sıfırdan ilklemededir; pad_token_id gömmenin padding_idx'idir: ileri hesabı
+# değiştirmez, ince ayarda o satırın türevini sıfırlar; bos_token_id'yi parçalayıcı ya da sohbet biçimi
+# koyar, model değil; is_llama_config, unsloth_fixed ve transformers.js_config dışa
 # aktaran aracın işaretidir. eos_token_id durma kimliğinin kaynağıdır, modelin hesabına girmez.
 TR_const _AYAR_ETKİSİZ = ["architectures", "_name_or_path", "torch_dtype", "dtype", "transformers_version", "use_cache",
     "initializer_range", "pad_token_id", "bos_token_id", "is_llama_config", "unsloth_fixed", "transformers.js_config", "eos_token_id"]

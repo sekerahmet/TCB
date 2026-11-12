@@ -72,6 +72,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 55 | [`55_maskeli_akis.tr`](tr/55_maskeli_akis.tr) | Maskeli akış: parça parça gelen metni (dil modelinin cevabı) gizli değeri açık etmeden göstermek; iki parçaya bölünen gizli değer de `***` görünür (`TR_fn_mask_stream`, `TR_type_MaskStream`) |
 | 56 | [`56_akis_cevabi.tr`](tr/56_akis_cevabi.tr) | Akış cevabı: bir modelin cevabını üretildikçe göndermek (text/event-stream); parçalar maskeli akıştan geçer, nabız bir olaydır (`TR_fn_stream_response`, `TR_type_EventStream`, `TR_mem_send_event`, `TR_arg_heartbeat`) |
 | 57 | [`57_olay_yayini.tr`](tr/57_olay_yayini.tr) | Olay yayını: bir asistanın olaylarını ekranlara yaymak; yeni ekran önce olaylardan katlanan anlık görüntüyü, sonra yeni olayları alır, Last-Event-ID ile kaldığı yerden sürer (`TR_type_EventBroadcast`, `TR_mem_subscribe`, `TR_arg_capacity`, `TR_arg_snapshot`, `TR_arg_reduce`) |
+| 58 | [`58_llama3_sohbet.tr`](tr/58_llama3_sohbet.tr) | Llama 3 sohbet biçimi: iletileri Llama 3.1 ve 3.2'nin parça dizisine çevirmek (`TR_fn_llama3_format`, `TR_arg_date`) ve cevabı iletiye ayırmak; araç çağrısının etiketi yok (`TR_fn_llama3_reply`; `tr/chat`) |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

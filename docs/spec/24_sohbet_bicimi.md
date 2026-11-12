@@ -87,3 +87,43 @@ TR_for satır TR_in TR_read_lines("sohbetler.jsonl") {
 ```
 
 - *Test:* gerekmez, henüz uygulanmadı.
+
+**24.5** `TR_llama3_format(p, iletiler, TR_add_generation_prompt: b, TR_date: tarih, TR_tools: araçlar)` Llama 3.1 ve 3.2 instruct biçimiyle bir `TR_List[TR_Int]` verir.
+- **Kimlikle kurulur** (24.2 gibi): `<|begin_of_text|>`, `<|start_header_id|>`, `<|end_header_id|>`, `<|eot_id|>` kimlikleriyle girer; aradaki metin tek `p.TR_encode(metin, TR_special_tokens: TR_false, TR_boundary_tokens: TR_false)` çağrısıyla.
+- **BOS'u biçim taşır:** dizi `<|begin_of_text|>` ile başlar. Parçalayıcının sınır parçası eklenmez (`TR_boundary_tokens: TR_false`). Bugünkü motor `TR_false`'ta sınır parçasını zaten kapatıyor; `TR_boundary_tokens:` motorda yok (`docs/status.md`, 16.2'nin Tur 5 satırı); `TR_boundary_tokens:` gelince çağrı onu açıkça yazar, `llama-bpe`'nin `addBOS: true`'su (`gguf.go:75`) çift BOS vermez.
+- **Parçalayıcı:** dört etiketten biri dağarcıkta yoksa (Llama olmayan parçalayıcı) çalışma hatasıdır (H7164), ileti eksik etiketi ve biçimin adını söyler.
+- **Sistem başlığı her zaman yazılır:** `system` başlığı, araç varsa "Environment: ipython\n", sonra "Cutting Knowledge Date: December 2023\n", "Today Date: " + tarih + "\n\n", ilk iletiyse sistem iletisinin içeriği, `<|eot_id|>`.
+- `TR_date:` zorunludur, `TR_String`, biçimi "26 Jul 2024" (iki haneli gün, 01–31; İngilizce üç harfli ay; dört haneli yıl; şablonun `strftime("%d %b %Y")`'ı); başka biçim hatadır (H7165). Biçim duvar saatini okumaz (24.2 ile aynı söz).
+- **İçerik kırpılır:** şablon sistem, kullanıcı ve asistan iletilerinin içeriğini `| trim` ile yazar: iki uçtaki boşluk, Python'un `str.strip()`'i (Unicode boşlukları ve U+001C–U+001F); biçim de öyle yapar. Bu Qwen3'ten farklıdır. `TR_Tool` iletisinin içeriği kırpılmaz (aşağıda).
+- `TR_tools:` varsa şablonun öntanımlısı gibi (`tools_in_user_message = true`) ilk kullanıcı iletisine yazılır: sabit yönerge metni, her şema `tojson(indent=4)` yazımıyla ve "\n\n", sonra iletinin içeriği. Sistemden sonra ileti yoksa ya da sistemden sonraki ilk ileti `TR_User` değilse hatadır (H7166): şablon o iletiyi rolüne bakmadan kullanıcı iletisi sayar (yoksa `raise_exception`); biçim rolü sessizce değiştirmez.
+- Asistanın araç çağrısı: `{"name": "<ad>", "parameters": <argümanlar>}` ve `<|eot_id|>`; argümanlar şablonun `tojson` yazımıyla. Birden çok çağrı hatadır (şablon: "This model only supports single tool-calls at once!", H7167). Çağrılı iletinin `TR_content`'i boştur: şablon çağrılı iletide içeriği yazmaz; dolu içerik hatadır (H7176), sessizce atılmaz.
+- `TR_Tool` iletisi `ipython` başlığıyla yazılır; içerik **JSON metni olarak tırnaklanır**: şablon `message.content is mapping or message.content is iterable` ile `tojson` uygular ve Jinja'da metin de "iterable"dır.
+- `TR_reasoning` dolu bir asistan iletisi hatadır: ailenin düşünce bloğu yok (H7168); sessizce atılmaz.
+
+```tr
+# TR 4
+TR_import "tr/chat"
+TR_var p = TR_load_tokenizer("llama3/tokenizer.json")
+TR_var iletiler = [TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba")]
+TR_var kimlikler = TR_llama3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_date: "26 Jul 2024")
+```
+
+- *Test:* TR testi (`tests/llama3_chat_test.tr`): transformers `apply_chat_template(..., date_string=..., tokenize=True)`'ın kimlikleriyle birebir, 3.1 ve 3.2 şablonlarında ayrı ayrı: tek tur, tarih, sistemli ve sistemsiz, çok tur, ortadaki sistem iletisi, araçlı (tools ilk kullanıcı iletisinde), araç çağrısı, araç sonucu, boşlukla başlayan içerik (U+001C–U+001F dahil); hatalar: eksik etiket, yanlış tarih, araçlı ve kullanıcısız, araçlı ve ilk iletisi asistan, iki çağrı, içerikli çağrı, düşünce; içerikte yazılan etiket metin kalır.
+
+**24.6** `TR_llama3_reply(p, kimlikler, TR_tools: araçlar)` üretilen kimlikleri `(ileti, hatalar)`'a çevirir (24.3 gibi).
+- Sondaki durma parçası (`<|eot_id|>`, `<|eom_id|>`) atılır, kalan `p.TR_decode` ile çözülür.
+- **Araç çağrısı:** Llama 3'te çağrının etiketi yoktur. Ölçüt kırpılmış içeriktir (iki uçtaki boşluk atılır; şablonun `| trim`'i). Kırpılmış içerik baştan sona tek bir JSON nesnesiyse, anahtarları tam olarak `name` ve `parameters`'sa, `name` `TR_tools:`'taki bir aracın adıysa (şemanın `function.name`'i ya da `name`'i) ve `parameters` bir nesneyse çağrı olur (`TR_arguments` `parameters`'ın metni, `TR_content` boş). Çağrı değilse `TR_content` çözülen metnin kendisidir. `TR_tools:` boşsa çağrı aranmaz.
+- `TR_tools:` doluyken içerikte üst düzeyinde `name` anahtarı olan bir JSON nesnesi bulunan (anahtarların sırası önemsizdir) ya da `{`, Unicode boşlukları (Unicode'un White_Space özelliğindeki her karakter: boşluk, sekme, satır sonu, satır başı, dikey sekme, sayfa sonu, U+0085, U+00A0 ve öbürleri), `"name"`, Unicode boşlukları ve `:` geçen ama çağrı sayılmayan her cevap metin olarak kalır ve `hatalar`'a ileti girer: JSON olarak çözülmeyen içerik, aracı listede olmayan ad, `name` ve `parameters`'tan başka anahtar taşıyan nesne, `parameters` yerine `arguments` yazan nesne (ileti doğru anahtarı söyler), JSON nesnesinden önce ya da sonra metin taşıyan cevap. Çağrının ve nesnenin kendi çözümü JSON'un dört boşluğuyla (boşluk, sekme, satır sonu, satır başı) yapılır.
+- `<|python_tag|>` (3.1'in yerleşik araçları) desteklenmez: içerikte görünürse (kimliğiyle ya da yazımıyla) metin olarak kalır, `hatalar`'a ileti girer; kimliği varsa içerik özel parçalarıyla çözülür, etiket metinde görünür.
+- Gidiş-dönüş sözü 24.3'teki gibi.
+
+```tr
+# TR 4
+TR_import "tr/chat"
+TR_var p = TR_load_tokenizer("llama3/tokenizer.json")
+TR_var araçlar: TR_List[TR_JSON] = [TR_json_parse("{\"type\": \"function\", \"function\": {\"name\": \"saat\", \"parameters\": {}}}")]
+TR_var üretilen = p.TR_encode("{\"name\": \"saat\", \"parameters\": {}}", TR_special_tokens: TR_false)
+TR_var cevap, hatalar = TR_llama3_reply(p, üretilen, TR_tools: araçlar)
+```
+
+- *Test:* TR testi (`tests/llama3_chat_test.tr`): transformers'ın 3.1 ve 3.2 şablonlarıyla gidiş-dönüş (içerikli cevap, araç çağrılı cevap: `TR_llama3_format(p, geçmiş + [ileti], TR_add_generation_prompt: TR_false, ...)`'ın sonu üretilen kimlikleri ve `<|eot_id|>`'yi aynen içerir); `TR_tools:` boşken çağrı biçimli JSON metin kalır; aracı listede olmayan ad, arguments yazan nesne, fazladan anahtarlı nesne ve bozuk JSON metin kalır ve `hatalar`'a girer; JSON'dan önce cümle taşıyan çağrı biçimli cevap (Tamam: {"name": ...}) metin kalır ve `hatalar`'a girer; aynı cevap boşluklu (Tamam: { "name": ...}) ve satır sonlu (`{` ile "name" arasında satır sonu) yazımıyla da metin kalır ve `hatalar`'a girer; ters sıralı yanlış çağrı ({"parameters": {...}, "name": "yok"}, ad listede yok) metin kalır ve `hatalar`'a girer; önünde metin olan ters sıralı çağrı (Tamam: {"parameters": {"şehir": "Ankara"}, "name": "hava"}, `hava` listede) metin kalır ve `hatalar`'a girer; dizi içindeki ters sıralı nesne ([{"parameters": {}, "name": "yok"}]) metin kalır ve `hatalar`'a girer; `{` ile "name" arasında dikey sekme ya da U+00A0 varsa ve içerik JSON olarak çözülmüyorsa cevap metin kalır ve `hatalar`'a girer; en çok token sınırında kesilmiş çağrı ({"name": "hava", "parameters": {"şehir": "Ank) metin kalır ve `hatalar`'a girer; iki uçta boşluklu çağrı (kırpma); `;` ile ayrılmış iki çağrı metin kalır ve `hatalar`'a girer; içerikte `<|python_tag|>`.
