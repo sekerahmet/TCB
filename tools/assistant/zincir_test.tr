@@ -221,7 +221,7 @@ TR_test "nicemli_hatasını_at: H6723 kullanıcının metni olur, nedeni H6723; 
     TR_assert_equal(["", ""], s)
 }
 
-TR_test "nicemli_ağırlıklı: float modelde yanlış ve kullanıcının metni; bir izdüşüm q4_k, çıkış katmanı ya da paylaşımlı tablo q6_k olunca doğru" {
+TR_test "nicemli_ağırlıklı: float modelde yanlış ve kullanıcının metni; bir izdüşüm q4_k, çıkış katmanı ya da paylaşımlı tablo q6_k, PLE izdüşümü q4_k olunca doğru; q8 çıkışta metin yok, ısıtma H6723'ün metnini verir" {
     TR_var m = küçük_zincir(256, TR_false).model
     TR_assert_equal(TR_false, nicemli_ağırlıklı(m))
     TR_var s = TR_String(nicemli_ağırlık_hatası(m))
@@ -238,6 +238,18 @@ TR_test "nicemli_ağırlıklı: float modelde yanlış ve kullanıcının metni;
     TR_assert_equal(TR_false, nicemli_ağırlıklı(p))
     p.TR_embedding.TR_table = TR_zeros([8, 256], TR_dtype: "q6_k")
     TR_assert_equal(TR_true, nicemli_ağırlıklı(p))
+    TR_var g = TR_GPT(8, TR_context: 16, TR_embed_dim: 16, TR_num_layers: 1, TR_num_heads: 2, TR_ple_dim: 8)
+    TR_assert_equal(TR_false, nicemli_ağırlıklı(g))
+    TR_var pb = g.TR_blocks[0].TR_ple
+    TR_if pb != TR_none { pb.TR_proj.TR_weight = TR_zeros([8, 256], TR_dtype: "q4_k") }
+    TR_assert_equal(TR_true, nicemli_ağırlıklı(g)) # yalnız PLE izdüşümü nicemli
+    # Başka nicemlenmiş tür (q8 çıkış katmanı): üçüncü denetim geçer, ısıtma kendi metnini (H6723) verir.
+    TR_var q = q8_çıkışlı_zincir(TR_true)
+    TR_assert(nicemli_ağırlık_hatası(q.model) == TR_none)
+    TR_var h = ["", ""]
+    TR_try { ısıt(q) } TR_catch e { h = [TR_String(e.TR_value), TR_String(e.TR_cause.TR_code)] }
+    TR_assert(h[0].TR_contains("başka türde nicemlenmiş ağırlık var"))
+    TR_assert_equal("H6723", h[1])
 }
 
 # q8_çıkışlı_zincir: gömme 32 (q8'de son eksen 32'nin katı); çıkış katmanı q8 sıfır ağırlık, yükleyicinin biçimiyle

@@ -770,6 +770,7 @@ foo.TR_Linear	not_found	4	-
 frekanslar.TR_append	ok	0	name:TR_mem_append
 fs.TR_append	ok	0	name:TR_mem_append
 g.TR_append	ok	0	name:TR_mem_append
+g.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 g.TR_cancel	ok	0	name:TR_mem_cancel
 g.TR_close	ok	0	name:TR_mem_close
 g.TR_code	ok	0	name:TR_mem_code
@@ -1419,6 +1420,7 @@ parçalar.TR_contains	ok	0	name:TR_mem_contains
 parçalar.TR_join	ok	0	name:TR_mem_join
 parçalar.TR_length	ok	0	name:TR_mem_length
 parçalı.TR_contains	ok	0	name:TR_mem_contains
+pb.TR_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_proj
 pencere.TR_append	ok	0	name:TR_mem_append
 personel.TR_map	ok	0	name:TR_mem_map
 ple.TR_mem_table	not_found	4	-
@@ -1646,7 +1648,6 @@ tümü.TR_slice	ok	0	name:TR_mem_slice
 tür.TR_split	ok	0	name:TR_mem_split
 türev.TR_slice	ok	0	name:TR_mem_slice
 türevli.TR_tolist	ok	0	name:TR_mem_tolist
-türler.TR_contains	ok	0	name:TR_mem_contains
 u.TR_done	ok	0	name:TR_mem_done
 u.TR_dtype	ok	0	name:TR_mem_dtype
 u.TR_grad	ok	0	name:TR_mem_grad

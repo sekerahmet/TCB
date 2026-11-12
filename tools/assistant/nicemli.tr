@@ -15,26 +15,32 @@ TR_func nicemli_hatasını_at(e: TR_Error) {
     TR_if e.TR_code == "H6724" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin nicemlenmiş ağırlıkları kartta: kartta bu yol yok (15.53a). --nicemli_etkinleştirme'yi kaldırın", TR_cause: e) }
 }
 
-# nicemli_ağırlıklı: modelin çarpım ağırlıklarından biri (blokların izdüşümleri, çıkış katmanı; paylaşımlı çıkışta gömme
-# tablosu) q4_k ya da q6_k mi. Değilse blok her çarpıma etkisizdir (15.53a: float ağırlıklı `@` bloğun dışındaki gibi),
-# seçenek hiçbir şey yapmaz. Ağırlıklar alanlardan okunur: TR_parameters nicemlenmiş yaprakları atlar,
-# TR_named_parameters yok (docs/status.md:801-802).
+# nicemli_ağırlıklı: modelin çarpım ağırlıklarından biri (blokların ve PLE'nin izdüşümleri, çıkış katmanı; paylaşımlı
+# çıkışta gömme tablosu) nicemlenmiş mi (float32, float64, bf16, fp16 dışında bir tür). Değilse blok her çarpıma
+# etkisizdir (15.53a: float ağırlıklı `@` bloğun dışındaki gibi), seçenek hiçbir şey yapmaz. Ağırlıklar alanlardan
+# okunur: TR_parameters nicemlenmiş yaprakları atlar, TR_named_parameters yok (docs/status.md:801-802).
 TR_func nicemli_ağırlıklı(m: TR_GPT) -> TR_Bool {
     TR_var katmanlar: TR_List[TR_Linear?] = [m.TR_logit_layer]
+    TR_if m.TR_ple_context != TR_none { katmanlar = katmanlar + [m.TR_ple_context.TR_context_proj] }
     TR_for b TR_in m.TR_blocks {
         TR_var d = b.TR_attention
         TR_var f = b.TR_feed_forward
         katmanlar = katmanlar + [d.TR_q_proj, d.TR_k_proj, d.TR_v_proj, d.TR_kv_proj, d.TR_o_proj, f.TR_gate_proj, f.TR_up_proj, f.TR_gate_up_proj, f.TR_down_proj]
+        TR_if b.TR_ple != TR_none { katmanlar = katmanlar + [b.TR_ple.TR_gate_proj, b.TR_ple.TR_proj] }
     }
     TR_var türler: TR_List[TR_String] = TR_if m.TR_logit_layer == TR_none { [m.TR_embedding.TR_table.TR_dtype] } TR_else { [] }
     TR_for k TR_in katmanlar {
         TR_if k != TR_none { türler = türler + [k.TR_weight.TR_dtype] }
     }
-    TR_return türler.TR_contains("q4_k") TR_or türler.TR_contains("q6_k")
+    TR_for t TR_in türler {
+        TR_if TR_not ["float32", "float64", "bf16", "fp16"].TR_contains(t) { TR_return TR_true }
+    }
+    TR_return TR_false
 }
 
-# nicemli_ağırlık_hatası: kurulumun üçüncü denetimi, dil modeli yüklendikten hemen sonra: modelde q4_k ya da q6_k
-# çarpım ağırlığı yoksa kullanıcının metni (seçenek etkisiz kalırdı), varsa TR_none.
+# nicemli_ağırlık_hatası: kurulumun üçüncü denetimi, dil modeli yüklendikten hemen sonra: modelde hiç nicemlenmiş çarpım
+# ağırlığı yoksa (F16, BF16) kullanıcının metni (seçenek etkisiz kalırdı), varsa TR_none. Başka nicemlenmiş türde (Q8_0)
+# ısıtma H6723'ü nicemli_hatasını_at ile kendi metnine çevirir.
 TR_func nicemli_ağırlık_hatası(m: TR_GPT) -> TR_String? {
     TR_if nicemli_ağırlıklı(m) { TR_return TR_none }
     TR_return "--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelin çarpım ağırlıklarında q4_k ya da q6_k yok (örneğin F16 ya da BF16 GGUF), seçenek etkisiz kalırdı (15.53a). --nicemli_etkinleştirme'yi kaldırın ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)"
