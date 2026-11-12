@@ -95,7 +95,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if _, err := safe(func() *tensor.Tensor { vals, idx = d.t.TopK(int(k.Val), e); return vals }); err != nil {
 		return nil, err
 	}
-	return &interp.ListVal{Elements: []interp.Value{New(vals), NewInt(idx)}}, nil
+	return &interp.ListVal{Elements: []interp.Value{New(vals), sortIndex(idx)}}, nil
 }
 
 // argsortBuiltin sıralama_indeksi(t, eksen: -1): kararlı, küçükten büyüğe.
@@ -109,5 +109,5 @@ func argsortBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 	if err != nil {
 		return nil, err
 	}
-	return NewInt(r), nil
+	return sortIndex(r), nil
 }

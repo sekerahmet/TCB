@@ -248,15 +248,50 @@ TR_no_grad {
     TR_print(f(TR_Tensor([[0, 1], [2, 3]])).TR_to_device("cpu").TR_tolist)
     f(` + bad + `)
 }`
+	replayMatchesDirect(t, program, "[3, 14]\n[55, 90]\nhata: H6961\n[0, 5]\n", messages.H6961, 3)
+}
+
+// replayMatchesDirect programı (içinde "TR_var f = TR_replay(g)") koşar: çıktı want olmalı,
+// program code'lu hatayla line'da bitmeli; aynı program kayıtsız (f = g) aynı çıktıyı ve hatayı
+// vermeli.
+func replayMatchesDirect(t *testing.T, program, want string, code messages.Code, line int) {
+	t.Helper()
 	out, err := run(t, program)
-	line, _, ok := messages.Pos(err)
-	if want := "[3, 14]\n[55, 90]\nhata: H6961\n[0, 5]\n"; out != want || !messages.Has(err, messages.H6961) || !ok || line != 3 {
-		t.Fatalf("çıktı\n%s\nhata %v (satır %d); beklenen\n%sve satır 3'te H6961", out, err, line, want)
+	got, _, ok := messages.Pos(err)
+	if out != want || !messages.Has(err, code) || !ok || got != line {
+		t.Fatalf("çıktı\n%s\nhata %v (satır %d); beklenen\n%sve satır %d'te %s", out, err, got, want, line, code)
 	}
 	direct, derr := run(t, strings.Replace(program, "TR_var f = TR_replay(g)", "TR_var f = g", 1))
 	if direct != out || derr == nil || derr.Error() != err.Error() {
 		t.Fatalf("doğrudan çağrı başka sonuç verdi:\n%s\n%v\nkayıtta %v", direct, derr, err)
 	}
+}
+
+// Kural (15.45, 15.41; T1 dilim 2b, A15): TR_topk'ın ve TR_argsort'un indeksi kartta kartta
+// kurulur, TR_replay kaydında da çalışır (eskiden indeks konağa okunuyordu, kayıt H4065
+// veriyordu; DENETİM 501 N2). Ardından hatalı bir dönüşüm kaydedilen satırı söyler, iletisi
+// doğrudan çağrınınkiyle aynı.
+func TestReplaySortIndexThenConversionFault(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	const big = "TR_Tensor([7.0, 10000000000000000000.0])"
+	program := `TR_default_device("gpu")
+TR_func g(x: TR_Tensor) -> TR_Tensor[TR_Int] {
+    TR_var s = TR_topk(x, 2)
+    TR_var o = TR_argsort(x)
+    TR_var y = TR_Tensor[TR_Int](x * 2.0)
+    TR_return s[1] + o + y
+}
+TR_var f = TR_replay(g)
+TR_no_grad {
+    TR_print(f(TR_Tensor([1.0, 2.0])).TR_to_device("cpu").TR_tolist)
+    TR_print(f(TR_Tensor([3.0, -4.0])).TR_to_device("cpu").TR_tolist)
+    TR_print(f(TR_Tensor([5.0, 6.0])).TR_to_device("cpu").TR_tolist)
+    TR_try { f(` + big + `) } TR_catch h { TR_print("hata:", h.TR_code) }
+    TR_print(f(TR_Tensor([8.0, 9.0])).TR_to_device("cpu").TR_tolist)
+    f(` + big + `)
+}`
+	replayMatchesDirect(t, program, "[3, 5]\n[7, -7]\n[11, 13]\nhata: H6964\n[17, 19]\n", messages.H6964, 5)
 }
 
 // Kural (15.8, 15.45; DENETİM 499 N2, T1 dilim 2b): dilim yazmanın sınır denetimi taşmaz. 2⁶³'e

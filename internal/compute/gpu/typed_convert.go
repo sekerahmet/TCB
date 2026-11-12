@@ -30,14 +30,15 @@ func convertOK(out, in tensor.DType) bool {
 
 // typedFaults işlemin öğeye bağlı hatası olabilir mi (bayrağın yuvasını ve beklemeyi ister):
 // "int64" aritmetiği (typed_arith.go), ondalıktan tam sayıya ve daraltan tam sayı dönüşümü.
-// Genişleten dönüşüm (MergeInt'in hassasiyetine, 15.6c) hata veremez: yuvası ve beklemesi
-// yoktur.
+// Genişleten dönüşüm (MergeInt'in hassasiyetine, 15.6c) ve değerleri tam sayı olduğu bilinen
+// kaynağın dönüşümü (tensor.ConvertIntegral: sıralamanın indeksi, T1 dilim 2b, A15) hata
+// veremez: yuvası ve beklemesi yoktur.
 func typedFaults(op tensor.TypedOp, out tensor.DType, ins []tensor.DType) bool {
 	switch op.Kind {
 	case tensor.TArith, tensor.TNeg, tensor.TAbs:
 		return true
 	}
-	if op.Kind != tensor.TConvert || out.Elem() != tensor.ElemInt {
+	if op.Kind != tensor.TConvert || out.Elem() != tensor.ElemInt || op.Sub == tensor.ConvertIntegral {
 		return false
 	}
 	in := ins[0]

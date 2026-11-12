@@ -98,3 +98,23 @@ TR_print(kutu("gpu"))`)
 		t.Fatalf("kartta toplamın taşması işlemcininkiyle aynı olmalı:\nkart %v\nişlemci %v", gerr, cerr)
 	}
 }
+
+// Kural (15.41; T1 dilim 2b, A15): TR_topk'ın ve TR_argsort'un indeksi kartta "int64"tür ve
+// kartta kalır (konağa okunmadan kartta çevrilir), değerleri işlemcininkiyle aynıdır; eşit
+// değerlerde sıralama kararlıdır.
+func TestSortIndexStaysOnTheCard(t *testing.T) {
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `TR_func sıra(cihaz: TR_String) -> TR_String {
+    TR_var x = TR_Tensor([[3.0, 1.0, 3.0, 0.5], [0.0, 2.0, 1.0, 2.0]]).TR_to_device(cihaz)
+    TR_var s = TR_topk(x, 3)
+    TR_var o = TR_argsort(x, TR_dim: 0)
+    TR_return s[1].TR_device + " " + s[1].TR_dtype + " " + TR_String(s[1].TR_to_device("cpu").TR_tolist) + " " + o.TR_device + " " + o.TR_dtype + " " + TR_String(o.TR_to_device("cpu").TR_tolist)
+}
+TR_print(sıra("cpu"))
+TR_print(sıra("gpu"))`)
+	cpu, card, _ := strings.Cut(strings.TrimSuffix(out, "\n"), "\n")
+	if !strings.HasPrefix(cpu, "cpu int64 ") || card != strings.ReplaceAll(cpu, "cpu ", "gpu:0 ") {
+		t.Fatalf("sıralamanın indeksi:\n%s", out)
+	}
+}
