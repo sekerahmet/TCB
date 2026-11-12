@@ -15,6 +15,7 @@ import (
 // işlemciyken üçü de boş taşımadır. Program modelsizdir: zincir.tr'nin işlevlerini çağırır.
 const deviceProgram = `# TR 4
 TR_import "{zincir}"
+TR_import "{nicemli}"
 TR_var ayar = TR_command_line({"cihaz": "cpu"})
 TR_default_device(TR_String(ayar["cihaz"]))
 TR_var örnekler = TR_zeros([1, 1024])
@@ -41,9 +42,11 @@ TR_if TR_default_device() == "cpu" { TR_print("NİCEMLİ_KART atlandı") } TR_el
 
 func TestChainDeviceTransitions(t *testing.T) {
 	zincir := filepath.ToSlash(strings.TrimSuffix(reporoot.Path(chainModule), ".tr"))
+	nicemli := filepath.ToSlash(strings.TrimSuffix(reporoot.Path(quantModule), ".tr"))
 	dir := t.TempDir()
 	program := filepath.Join(dir, "cihaz.tr")
-	if err := os.WriteFile(program, []byte(strings.ReplaceAll(deviceProgram, "{zincir}", zincir)), 0o600); err != nil {
+	text := strings.NewReplacer("{zincir}", zincir, "{nicemli}", nicemli).Replace(deviceProgram)
+	if err := os.WriteFile(program, []byte(text), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	// Nicemli seçenek (H1 nicemli zincir, K3): kartta cihaz denetimi hata verir; kartta kurulan q4_k ağırlığın

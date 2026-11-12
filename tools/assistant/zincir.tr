@@ -8,6 +8,7 @@ TR_import "tr/audio"
 TR_import "tr/chat"
 TR_import "tr/pretrained"
 TR_import "tr/vad"
+TR_import "nicemli" # nicemli_hatasını_at (ısıt)
 
 TR_const _ÇERÇEVE = 512
 TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
@@ -95,18 +96,6 @@ TR_func model_çağrısı(z: Zincir, f: () -> TR_Tensor) -> TR_Tensor {
 # istem_oku: `k`'yi önbelleğe okur, son konumun logitini verir; üretimin ve ısıtmanın tek yolu (çıkış katmanı dahil).
 TR_func istem_oku(z: Zincir, k: TR_List[TR_Int], ö: TR_KVCache?) -> TR_Tensor {
     TR_return model_çağrısı(z) { z.model.TR_logits(z.model.TR_hidden_states([k], TR_cache: ö).TR_slice(1, k.TR_length - 1, k.TR_length))[0][0] }
-}
-
-# nicemli_hatası: kurulumun birinci denetimi, modeller yüklenmeden önce: yalnız işlemci (kartta iki blok birlikteyken
-# 15.53a'nın hatası geçer, H6724). nicemli_hatasını_at ikinci denetimdir: ısıtmanın H6723'ünü ve H6724'ünü çevirir.
-TR_func nicemli_hatası(cihaz: TR_String) -> TR_String? {
-    TR_if cihaz != "cpu" { TR_return "--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin cihazı \(cihaz): kartta nicemlenmiş ağırlıkla bu yol yok (15.53a). --nicemli_etkinleştirme'yi kaldırın" }
-    TR_return TR_none
-}
-
-TR_func nicemli_hatasını_at(e: TR_Error) {
-    TR_if e.TR_code == "H6723" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelde başka türde nicemlenmiş ağırlık var (15.53a). --nicemli_etkinleştirme'yi kaldırın ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)", TR_cause: e) }
-    TR_if e.TR_code == "H6724" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin nicemlenmiş ağırlıkları kartta: kartta bu yol yok (15.53a). --nicemli_etkinleştirme'yi kaldırın", TR_cause: e) }
 }
 
 # ısıt: sistem iletisini konuşmanın başında, ilk sözden önce önbelleğe okur; ilk tur yalnız kullanıcının iletisini

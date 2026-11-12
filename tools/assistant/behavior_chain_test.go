@@ -16,6 +16,7 @@ const (
 	chainProgram = "tools/assistant/asistan.tr"
 	chainModule  = "tools/assistant/zincir.tr"
 	chainTest    = "tools/assistant/zincir_test.tr"
+	quantModule  = "tools/assistant/nicemli.tr"
 	chainGoTest  = "behavior_chain_test.go"
 	screenModule = "tools/assistant/ekran.tr"
 	screenTest   = "tools/assistant/ekran_test.tr"
@@ -40,7 +41,7 @@ func TestChainHasNoDefaultModelOrDevice(t *testing.T) {
 // Zincirin, ekranın ve deneme kaydının TR dosyaları README'de anılır; test dosyaları modüllerini aktarır.
 func TestChainFilesAreListed(t *testing.T) {
 	readme := readFile(t, readmePath)
-	for _, f := range []string{chainProgram, chainModule, chainTest, screenModule, screenTest, fakeChain, recordModule, recordTest} {
+	for _, f := range []string{chainProgram, chainModule, chainTest, quantModule, screenModule, screenTest, fakeChain, recordModule, recordTest} {
 		name := f[strings.LastIndex(f, "/")+1:]
 		if !strings.Contains(readme, "`"+name+"`") {
 			t.Errorf("%s does not name %s", readmePath, name)
@@ -54,6 +55,11 @@ func TestChainFilesAreListed(t *testing.T) {
 	}
 	if !strings.Contains(readFile(t, chainProgram), `TR_import "zincir"`) {
 		t.Errorf("%s does not import the chain module", chainProgram)
+	}
+	for _, f := range []string{chainModule, chainTest, chainProgram} {
+		if !strings.Contains(readFile(t, f), `TR_import "nicemli"`) {
+			t.Errorf("%s does not import the quantized-option module", f)
+		}
 	}
 	if !strings.Contains(readFile(t, screenTest), `TR_import "ekran"`) {
 		t.Errorf("%s does not import the screen module", screenTest)
@@ -126,10 +132,13 @@ func before(t *testing.T, where, text, a, b string) {
 
 // Nicemli seçeneğin kurulum denetimleri (H1 nicemli zincir, K3): cihaz modeller yüklenmeden önce; ısıtma üretimin
 // istem okumasını türevsiz koşar ve nicemli hatayı yutmadan önce çevirir; önbelleksiz kipin sınaması ısıtmadan sonra.
-// Davranışı zincir_test.tr sınar (q8 çıkış katmanlı model).
+// Ağırlık türünün denetimi (sürüm 9, DENETİM 549 N1) dil modelinden hemen sonra, Whisper'dan önce.
+// Davranışı zincir_test.tr sınar (q8 çıkış katmanlı model; float ve q4_k ağırlıklı model).
 func TestChainQuantChecksOrder(t *testing.T) {
 	setup := body(t, chainProgram, readFile(t, chainProgram), "TR_func asistan_kur(")
 	before(t, chainProgram+" asistan_kur", setup, "nicemli_hatası(", "TR_pretrained_gguf(")
+	before(t, chainProgram+" asistan_kur", setup, "TR_pretrained_gguf(", "nicemli_ağırlık_hatası(")
+	before(t, chainProgram+" asistan_kur", setup, "nicemli_ağırlık_hatası(", "TR_pretrained_whisper(")
 	before(t, chainProgram+" asistan_kur", setup, "ısıt(", "nicemli_hatasını_at(")
 	chain := readFile(t, chainModule)
 	warm := body(t, chainModule, chain, "TR_func ısıt(")

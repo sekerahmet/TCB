@@ -628,6 +628,7 @@ d.TR_step	ok	0	name:TR_mem_step
 d.TR_stop	ok	0	name:TR_mem_stop
 d.TR_tolist	ok	0	name:TR_mem_tolist
 d.TR_update	ok	0	name:TR_mem_update
+d.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
 d.TR_values	ok	0	name:TR_mem_values
 d.TR_wait	ok	0	name:TR_mem_wait
 d.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_weight
@@ -741,7 +742,10 @@ eğitim_verisi.TR_sampler	ok	0	name:TR_mem_sampler
 f.TR_append	ok	0	name:TR_mem_append
 f.TR_cause	ok	0	name:TR_mem_cause
 f.TR_code	ok	0	name:TR_mem_code
+f.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 f.TR_dtype	ok	0	name:TR_mem_dtype
+f.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
+f.TR_gate_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_up_proj
 f.TR_get	ok	0	name:TR_mem_get
 f.TR_headers	ok	0	name:TR_mem_headers
 f.TR_known	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_known
@@ -750,6 +754,7 @@ f.TR_length	ok	0	name:TR_mem_length
 f.TR_shape	ok	0	name:TR_mem_shape
 f.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 f.TR_tolist	ok	0	name:TR_mem_tolist
+f.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
 f.TR_word_kind	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_word_kind
 farklar.TR_append	ok	0	name:TR_mem_append
 fazla.TR_status	ok	0	name:TR_mem_status
@@ -1376,6 +1381,7 @@ p.TR_decode_stream	ok	0	spec:16.3a	tr_index:not_found:4
 p.TR_device	ok	0	name:TR_mem_device
 p.TR_done	ok	0	name:TR_mem_done
 p.TR_dtype	ok	0	name:TR_mem_dtype
+p.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 p.TR_encode	ok	0	name:TR_mem_encode
 p.TR_exists	ok	0	name:TR_mem_exists
 p.TR_fill	ok	0	spec:15.54	tr_index:not_found:4
@@ -1640,6 +1646,7 @@ tümü.TR_slice	ok	0	name:TR_mem_slice
 tür.TR_split	ok	0	name:TR_mem_split
 türev.TR_slice	ok	0	name:TR_mem_slice
 türevli.TR_tolist	ok	0	name:TR_mem_tolist
+türler.TR_contains	ok	0	name:TR_mem_contains
 u.TR_done	ok	0	name:TR_mem_done
 u.TR_dtype	ok	0	name:TR_mem_dtype
 u.TR_grad	ok	0	name:TR_mem_grad
@@ -1829,6 +1836,7 @@ z.TR_shape	ok	0	name:TR_mem_shape
 z.TR_slice	ok	0	name:TR_mem_slice
 z.TR_tolist	ok	0	name:TR_mem_tolist
 ç.TR_arguments	ok	0	tr:field:lib/chat.tr:TR_type_ToolCall.TR_mem_arguments
+ç.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 ç.TR_name	ok	0	name:TR_mem_name
 ç.TR_stop	ok	0	name:TR_mem_stop
 ç.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls

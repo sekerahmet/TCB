@@ -2,6 +2,7 @@
 # Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), sistem iletisinin önceden okunması, cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığı, çapa, taşma).
 TR_import "tr/chat"
 TR_import "zincir"
+TR_import "nicemli"
 
 TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer("../../tests/data/qwen3_chat/tokenizer.json") }
 
@@ -218,6 +219,25 @@ TR_test "nicemli_hatasını_at: H6723 kullanıcının metni olur, nedeni H6723; 
     TR_assert_equal(["", ""], s)
     TR_try { TR_throw "x" } TR_catch e { s = çevrilen(e) }
     TR_assert_equal(["", ""], s)
+}
+
+TR_test "nicemli_ağırlıklı: float modelde yanlış ve kullanıcının metni; bir izdüşüm q4_k, çıkış katmanı ya da paylaşımlı tablo q6_k olunca doğru" {
+    TR_var m = küçük_zincir(256, TR_false).model
+    TR_assert_equal(TR_false, nicemli_ağırlıklı(m))
+    TR_var s = TR_String(nicemli_ağırlık_hatası(m))
+    TR_assert(s.TR_contains("çarpım ağırlıklarında q4_k ya da q6_k yok"))
+    TR_assert(s.TR_contains("--nicemli_etkinleştirme'yi kaldırın"))
+    m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q4_k") # yalnız tür okunur
+    TR_assert_equal(TR_true, nicemli_ağırlıklı(m))
+    TR_assert(nicemli_ağırlık_hatası(m) == TR_none)
+    TR_var ç = küçük_zincir(256, TR_false).model
+    ç.TR_logit_layer = TR_Linear(1, 1, TR_init_std: 0.0)
+    ç.TR_logit_layer.TR_weight = TR_zeros([16, 256], TR_dtype: "q6_k")
+    TR_assert_equal(TR_true, nicemli_ağırlıklı(ç))
+    TR_var p = TR_GPT(8, TR_context: 16, TR_embed_dim: 16, TR_num_layers: 1, TR_num_heads: 2, TR_tied: TR_true)
+    TR_assert_equal(TR_false, nicemli_ağırlıklı(p))
+    p.TR_embedding.TR_table = TR_zeros([8, 256], TR_dtype: "q6_k")
+    TR_assert_equal(TR_true, nicemli_ağırlıklı(p))
 }
 
 # q8_çıkışlı_zincir: gömme 32 (q8'de son eksen 32'nin katı); çıkış katmanı q8 sıfır ağırlık, yükleyicinin biçimiyle

@@ -25,6 +25,7 @@ TR_import "tr/vad"
 TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
+TR_import "nicemli"
 TR_import "ekran"
 TR_import "deneme"
 TR_import "katalog"
@@ -109,6 +110,10 @@ TR_func asistan_kur(t: Takım) -> Asistan {
     }
     TR_var z = Zincir(p: TR_load_tokenizer(t.dil_modeli), model: TR_pretrained_gguf(t.dil_modeli), sistem: t.sistem,
         en_çok: TR_Int(ayar["en_çok_parça"]), bağlam: TR_Int(ayar["bağlam"]), önbelleksiz: TR_Bool(ayar["önbelleksiz"]), nicemli: nicemli)
+    TR_if nicemli { # üçüncü denetim, Whisper'dan önce: q4_k ya da q6_k çarpım ağırlığı yoksa seçenek etkisiz kalırdı
+        TR_var hata = nicemli_ağırlık_hatası(z.model)
+        TR_if hata != TR_none { TR_throw hata }
+    }
     TR_var a = Asistan(z: z, yazıcı: TR_pretrained_whisper(t.yazıcı), ses: TR_pretrained_vits(t.ses), dil: t.dil)
     z.yeni_konuşma()
     TR_print("OLCU_YUKLEME ms=\(şimdi() - başla)")
