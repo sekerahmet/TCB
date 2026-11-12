@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 755 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 171 fonksiyon, 11 sabit, 93 metot, 132 özellik, 194 adlı argüman.
+Toplam 762 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 173 fonksiyon, 12 sabit, 93 metot, 136 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -2199,6 +2199,12 @@ tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).değer)
 
 İlişkili: `TR_ceil(...)`, `TR_round(...)`
 
+#### `TR_folder_chat_family(...)` (`TR_fn_folder_chat_family`, `klasör_sohbet_ailesi`)
+
+    klasör_sohbet_ailesi()
+
+
+
 #### `TR_from_bytes(...)` (`TR_fn_from_bytes`, `baytlardan`)
 
     baytlardan(Baytlar, tür: Metin = yok, bayt_sırası: Metin = yok) → Tensör
@@ -2255,6 +2261,12 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 ```
 
 İlişkili: `TR_relu(...)`
+
+#### `TR_gguf_chat_family(...)` (`TR_fn_gguf_chat_family`, `gguf_sohbet_ailesi`)
+
+    gguf_sohbet_ailesi()
+
+
 
 #### `TR_grad_check(...)` (`TR_fn_grad_check`, `türev_denetle`)
 
@@ -4060,6 +4072,12 @@ tr: yazdır(sıfırlar([2, 3]).şekil)
 #### `TR_DRY_RUN_STEPS` (`TR_const_DRY_RUN_STEPS`, `PROVA_ADIMI`)
 
     PROVA_ADIMI
+
+
+
+#### `TR_GEMMA3_BLOCK_NAMES` (`TR_const_GEMMA3_BLOCK_NAMES`, `GEMMA3_BLOK_ADLARI`)
+
+    GEMMA3_BLOK_ADLARI
 
 
 
@@ -6098,6 +6116,10 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_attention_output_norm` (`TR_mem_attention_output_norm`, `dikkat_çıkış_normu`)
+
+
+
 #### `.TR_bar` (`TR_mem_bar`, `çubuk`)
 
 
@@ -6521,6 +6543,10 @@ tr: yazdır(Yol("veri/derlem.tar.gz").uzantı)
 İlişkili: `.TR_stem`
 
 #### `.TR_feed_forward` (`TR_mem_feed_forward`, `ileri_besleme`)
+
+
+
+#### `.TR_feed_forward_output_norm` (`TR_mem_feed_forward_output_norm`, `ileri_çıkış_normu`)
 
 
 
@@ -6979,6 +7005,14 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w
 ```
 
 İlişkili: `.TR_state`
+
+#### `.TR_local_cos_table` (`TR_mem_local_cos_table`, `yerel_cos_tablosu`)
+
+
+
+#### `.TR_local_sin_table` (`TR_mem_local_sin_table`, `yerel_sin_tablosu`)
+
+
 
 #### `.TR_logger` (`TR_mem_logger`, `günlük`)
 

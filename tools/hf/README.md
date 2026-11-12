@@ -1,12 +1,12 @@
 # tools/hf — Hugging Face modelleriyle karşılaştırma
 
-`small_model.py`, `transformers` ile küçük ve rastgele ağırlıklı bir Llama ya da Qwen3 modeli kurar, `save_pretrained` ile (`config.json` + `model.safetensors`) kaydeder ve sabit token kimliklerinin float32 logitlerini `logits.json`'a yazar. Model indirilmez; ağ gerekmez.
+`small_model.py`, `transformers` ile küçük ve rastgele ağırlıklı bir Llama, Qwen3 ya da Gemma 3 (`gemma3_text`, çok kipli `gemma3`) modeli kurar, `config.json` + `model.safetensors` olarak kaydeder ve sabit token kimliklerinin float32 logitlerini `logits.json`'a yazar. Model indirilmez; ağ gerekmez.
 
 ```sh
 python -I tools/hf/small_model.py --arch qwen3 --out /tmp/qwen3   # --tied: paylaşımlı gömme
 ```
 
-`cmd/trlang/e2e` `TestReadyModelMatchesTransformers` bunu kullanır: `tr/pretrained`'ın `TR_fn_pretrained_model` ile yüklediği modelin logitleri transformers'ınkilerle float32 yuvarlama düzeyinde aynı olmalıdır (fark ≤ 1·10⁻⁵; ölçülen ~3·10⁻⁷). `torch`, `transformers` ya da `safetensors` yoksa test atlanır.
+`cmd/trlang/e2e` `TestReadyModelMatchesTransformers` bunu kullanır: `tr/pretrained`'ın `TR_fn_pretrained_model` ile yüklediği modelin logitleri transformers'ınkilerle float32 yuvarlama düzeyinde aynı olmalıdır (fark ≤ 1·10⁻⁵; ölçülen ~3·10⁻⁷). `torch`, `transformers` ya da `safetensors` yoksa test atlanır. Gemma 3'ü betik yayımlanmış dosyaların biçiminde (transformers 4.51: `rope_theta`, `rope_local_base_freq`, `rope_scaling`, `sliding_window_pattern`; çok kiplide metin ağırlıkları `language_model.model.` önekinde) kendisi yazar: kurulu transformers 5.x config'i iç içe `rope_parameters` ve `layer_types` ile yazıyor [kanıtlı: transformers v5.17.0 `configuration_gemma3.py`], `tr/pretrained` ise yayımlanmış biçimi okur (5.x biçimi H7160). Normlar rastgele ağırlık alır (transformers 0'dan başlatır, `+1`'in eksiği ya da fazlası orada görünmezdi), pencere 4 ve dizi 16 parçadır.
 
 ## Örnek modeli (`tests/data/hf_tiny`)
 

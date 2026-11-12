@@ -182,6 +182,12 @@ func (c tinyConfig) writeHF(t *testing.T, dir string, w map[string]tinyTensor) {
 	config := map[string]any{"model_type": c.arch, "vocab_size": c.vocab, "hidden_size": c.dim, "intermediate_size": c.ff,
 		"num_hidden_layers": c.layers, "num_attention_heads": c.heads, "num_key_value_heads": c.kv, "head_dim": c.headDim,
 		"max_position_embeddings": c.context, "rms_norm_eps": float64(float32(1e-5)), "tie_word_embeddings": c.tied, "rope_theta": float64(c.theta)}
+	writeHFFiles(t, dir, config, c.names(), w)
+}
+
+// writeHFFiles config.json'u ve ağırlıkları Hugging Face adlarıyla model.safetensors'a yazar (names: GGUF adı → Hugging Face adı).
+func writeHFFiles(t *testing.T, dir string, config map[string]any, names map[string]string, w map[string]tinyTensor) {
+	t.Helper()
 	text, err := json.Marshal(config)
 	if err != nil {
 		t.Fatal(err)
@@ -191,7 +197,6 @@ func (c tinyConfig) writeHF(t *testing.T, dir string, w map[string]tinyTensor) {
 	}
 	header := map[string]any{}
 	var data []byte
-	names := c.names()
 	for _, name := range sortedNames(names) {
 		start := len(data)
 		data = append(data, floatBytes(w[name].data)...)
@@ -258,17 +263,24 @@ func TestGGUFModelMatchesSafetensors(t *testing.T) {
 		{arch: "qwen3", vocab: 48, dim: 64, ff: 96, layers: 1, heads: 8, kv: 4, headDim: 8, context: 32, tied: true, theta: 130000},
 	} {
 		t.Run(fmt.Sprintf("%s-%d-%v", c.arch, c.headDim, c.tied), func(t *testing.T) {
-			dir := t.TempDir()
-			writeTR(t, dir, "karsilastir.tr", ggufCompare)
 			w := c.randomWeights(1)
-			c.writeHF(t, dir, w)
-			file := filepath.Join(dir, "m.gguf")
-			writeBytes(t, file, c.ggufFile(w).Bytes())
-			diff, size, _ := runCompare(t, dir, "--folder", dir, "--file", file)
-			if diff > 1e-5 || size == 0 {
-				t.Errorf("en büyük logit farkı %v (logit %v)", diff, size)
-			}
+			ggufMatchesFolder(t, func(dir string) { c.writeHF(t, dir, w) }, c.ggufFile(w).Bytes())
 		})
+	}
+}
+
+// ggufMatchesFolder writeHF'in yazdığı Hugging Face klasöründen ve gguf baytlarından kurulan iki
+// modelin logitlerini karşılaştırır: en büyük fark 1e-5'i geçmemeli.
+func ggufMatchesFolder(t *testing.T, writeHF func(dir string), gguf []byte) {
+	t.Helper()
+	dir := t.TempDir()
+	writeTR(t, dir, "karsilastir.tr", ggufCompare)
+	writeHF(dir)
+	file := filepath.Join(dir, "m.gguf")
+	writeBytes(t, file, gguf)
+	diff, size, _ := runCompare(t, dir, "--folder", dir, "--file", file)
+	if diff > 1e-5 || size == 0 {
+		t.Errorf("en büyük logit farkı %v (logit %v)", diff, size)
 	}
 }
 
@@ -496,9 +508,9 @@ func TestGGUFModelGates(t *testing.T) {
 		name, want, says string
 		data             []byte
 	}{
-		{"mimari", "H6940", "gemma3", func() []byte {
+		{"mimari", "H6940", "gemma2", func() []byte {
 			d := c
-			d.arch = "gemma3"
+			d.arch = "gemma2"
 			b := &gguftest.Builder{}
 			d.metadata(b)
 			return b.Bytes()
