@@ -241,14 +241,21 @@ var eventID = regexp.MustCompile(`^[0-9a-f]{16}-[0-9]+$`)
 
 func TestScreenServerEndToEnd(t *testing.T) {
 	s := startScreen(t)
-	// Sayfa ve dil dosyası belirteçsizdir; akış ve komut belirteç ister; yabancı Origin 403.
+	// Sayfa, modüller ve dil dosyası belirteçsizdir; akış ve komut belirteç ister; yabancı Origin 403.
 	page := s.request(t, "GET", "/", nil, "")
 	page.Body.Close()
-	if page.StatusCode != 200 || page.Header.Get("Content-Security-Policy") != "frame-ancestors 'none'; connect-src 'self'" || page.Header.Get("Cache-Control") != "no-store" {
+	if page.StatusCode != 200 || page.Header.Get("Content-Security-Policy") != "frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:" || page.Header.Get("Cache-Control") != "no-store" {
 		t.Fatalf("GET /: %d %v", page.StatusCode, page.Header)
 	}
 	if res := s.request(t, "GET", "/lang/tr.js", nil, ""); res.StatusCode != 200 {
 		t.Fatalf("GET /lang/tr.js: %d", res.StatusCode)
+	}
+	if res := s.request(t, "GET", "/js/main.js", nil, ""); res.StatusCode != 200 || res.Header.Get("Content-Type") != "text/javascript; charset=utf-8" {
+		t.Fatalf("GET /js/main.js: %d %v", res.StatusCode, res.Header)
+	}
+	// Listede olmayan modül belirteçsiz yollarda yoktur: belirteçsiz istek 401 (belirteçliyse 404, ekran_test.tr).
+	if res := s.request(t, "GET", "/js/ekran.js", nil, ""); res.StatusCode != 401 {
+		t.Fatalf("GET /js/ekran.js (not a module): %d", res.StatusCode)
 	}
 	if res := s.request(t, "GET", "/events", nil, ""); res.StatusCode != 401 {
 		t.Fatalf("belirteçsiz /events: %d", res.StatusCode)

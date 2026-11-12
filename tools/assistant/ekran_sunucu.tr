@@ -8,12 +8,13 @@ TR_import "esleme"
 
 TR_const _SÜRÜM = 2
 TR_const _CEVAP_BEKLEMESİ = 0.005 # işleyicinin ana döngünün cevabına bakışı (sn)
-TR_const _CSP = "frame-ancestors 'none'; connect-src 'self'"
+# `script-src` sayfanın meta etiketindekiyle aynıdır (contract.md, "Sunulan dosyalar"); `file:` yalnız sahte kipte geçer.
+TR_const _CSP = "frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:"
 
-# ekran_aç: sunucuyu 127.0.0.1'de açar. Belirteci sunucu denetler (28.2): sayfa ve dil dosyaları belirteçsizdir
+# ekran_aç: sunucuyu 127.0.0.1'de açar. Belirteci sunucu denetler (28.2): sayfa, modüller ve dil dosyaları belirteçsizdir
 # (`TR_tokenless_paths:`; tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez), akış ve komut belirteç ister.
 TR_func ekran_aç(e: Ekran, kapı: TR_Int, belirteç: TR_String) -> TR_HTTPServer {
-    TR_var açık = ["/"] + ["/lang/" + d + ".js" TR_for d TR_in e.diller]
+    TR_var açık = ["/"] + ["/js/" + m + ".js" TR_for m TR_in e.modüller] + ["/lang/" + d + ".js" TR_for d TR_in e.diller]
     TR_if e.eşleme != TR_none { açık = açık + ["/pair", "/pair/renew"] }
     TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return ekran_cevabı(e, istek) }
     TR_return TR_serve_http(cevapla, TR_port: kapı, TR_token: belirteç, TR_tokenless_paths: açık, TR_max_body_bytes: 65536)
@@ -29,6 +30,9 @@ TR_func ekran_cevabı(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_if istek.TR_method == "GET" TR_and yol == "/" { TR_return dosya(e, "/index.html", {"Content-Security-Policy": _CSP}) }
     TR_if istek.TR_method == "GET" TR_and yol.TR_starts_with("/lang/") TR_and yol.TR_ends_with(".js") {
         TR_if e.diller.TR_contains(yol[6..yol.TR_length - 3]) { TR_return dosya(e, yol, {}) }
+    }
+    TR_if istek.TR_method == "GET" TR_and yol.TR_starts_with("/js/") TR_and yol.TR_ends_with(".js") {
+        TR_if e.modüller.TR_contains(yol[4..yol.TR_length - 3]) { TR_return dosya(e, yol, {}) }
     }
     TR_var eş = e.eşleme
     TR_if eş != TR_none TR_and eşleme_yolu(yol) { TR_return eşleme_cevabı(eş, istek) }

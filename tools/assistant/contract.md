@@ -8,7 +8,7 @@ Bütün örnekler uydurmadır.
 
 ## Genel
 
-- **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi), `GET /lang/<kod>.js` (ekranın dil dosyaları), `GET /pair` ve `GET /pair/renew` (yalnız Dost `--tarayıcıyla_eşle` ile açıldıysa): belirteçsiz, yalnız `GET` ve `HEAD`; ikisi de bir üstbilgi ister (`Dost-Pair-Code`, `Dost-Pair-Renew`).
+- **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi), `GET /lang/<kod>.js` (ekranın dil dosyaları), `GET /js/<ad>.js` (ekranın modülleri; liste "Sunulan dosyalar"da), `GET /pair` ve `GET /pair/renew` (yalnız Dost `--tarayıcıyla_eşle` ile açıldıysa): belirteçsiz, yalnız `GET` ve `HEAD`; ikisi de bir üstbilgi ister (`Dost-Pair-Code`, `Dost-Pair-Renew`).
 - **Biçim:** JSON, UTF-8.
 - **Sürüm:** her olayda ve her komutta `v` alanı. Bugün `2`. Ekran başka bir sürüm görürse olayı işlemez, `protocol_mismatch` gösterir ve komut göndermez.
 - **Bilinmeyen alan** yok sayılır. **Bilinmeyen olay türü** yok sayılır: yeni olay eski ekranı kırmaz.
@@ -286,13 +286,13 @@ Herhangi bir web sitesi kullanıcının tarayıcısından `127.0.0.1`'e istek at
 - **Kimlik:** `/events` ve `/command` `Authorization: Bearer <belirteç>` ister. TR açılırken rastgele belirteç üretir ve yalnız kendisini çalıştıran kullanıcının görebileceği yere yazar. Ekran belirteci eşleme kodundan alır (`GET /pair`, `--tarayıcıyla_eşle` ile); seçenek yoksa ya da eşleme olmazsa kullanıcı belirteci kutuya girer. İki yolda da belirteci yalnız sekmenin oturum belleğinde (`sessionStorage`) tutar, kalıcı depoda (`localStorage`, çerez) tutmaz; `401`'de ve `protocol_mismatch`'te siler. Belirteç URL'de olmaz. URL'de olan eşleme kodu tek kullanımlık ve 120 saniyeliktir: geçmişe ya da günlüğe düşen kod işe yaramaz. Belirteci dosyadan okuyan istemciler (ajan, komut satırı) bugünkü gibi çalışır. Sayfada da olmaz: sayfayı kimlik sormadan sunan uç herkese açıktır.
 - **`Content-Type`:** `POST /command` yalnız `application/json` kabul eder. Düz form ön uçuş isteği olmadan gönderilebildiği için öbürleri `415`.
 - **CORS yok:** sunucu `Access-Control-Allow-*` göndermez, `OPTIONS` kabul etmez.
-- **Sunulan dosyalar:** yalnız ekran ve sayfanın listelediği dil dosyaları, `Content-Type: text/javascript`. Sayfanın politikası betiği `/lang/` altından kabul eder; başka betik sunulmaz.
+- **Sunulan dosyalar:** yalnız ekran, aşağıdaki modüller ve sayfanın listelediği dil dosyaları, `Content-Type: text/javascript`. Modüller, sayfanın yüklediği sırayla: `js/screen_state.js`, `js/rows.js`, `js/approvals.js`, `js/events.js`, `js/mock.js`, `js/transport.js`, `js/view.js`, `js/main.js`. Sayfanın politikası betiği yalnız `/lang/` ve `/js/` altından kabul eder (`script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:`; `file:` sahte kip içindir). Sayfanın meta etiketi ve sunucunun `Content-Security-Policy` üstbilgisi aynı `script-src` yönergesini taşır. Sayfada satır içi betik yoktur. Son modül, bütün betikler yüklenince politikayı `script-src 'none'` yapar. Sunucu listede olmayan bir `/js/` yolunu sunmaz; başka betik sunulmaz.
 - **Gizli değer:** olaylar tele çıkmadan aynı süzgeçten geçer (dil tanımı 19.4): model metni, araç çıktısı, onay argümanı, `error.values`, `snapshot` ve kullanıcının sözü dahil. Argüman süzüldüyse kart `***` gösterir; ekran gerçek değeri hiç almaz.
   - **Parçalı akış:** olay başına süzgeç iki `append` parçasına bölünen değeri görmez. Sunucu akışın parçalarını önce maske akışından geçirir (`TR_mask_stream()`, dil tanımı 19.4a), akışın sonunda `.TR_finish()`'in verdiğini de `turn_end`'den önce gönderir.
   - **Sıra:** süzme kesmeden önce yapılır (64 KiB ve 1 MiB sınırı). Önce kesilirse değerin başı kalır, süzgeç onu tanımaz ve tele çıkar.
 - **Boyut:** olay en çok 1 MiB, araç çıktısı ve onay argümanı 64 KiB, komut gövdesi 64 KiB. Sunucu kesince söyler; sessiz kesme yok.
-- **Çerçeve ve bağlantı:** `frame-ancestors` meta etiketinde çalışmaz; sunucu `GET /` cevabında üstbilgiyle gönderir: `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'`. Sayfa başka bir sitenin içinde açılıp tıklatılamaz. Üstbilgi ile meta etiketi birlikte geçerlidir, bu yüzden sayfa yalnız kendi kapısına bağlanabilir.
-- **Önbellek:** `GET /`, `/lang/` ve `/events` `Cache-Control: no-store`, ayrıca `X-Content-Type-Options: nosniff`.
+- **Çerçeve ve bağlantı:** `frame-ancestors` meta etiketinde çalışmaz; sunucu `GET /` cevabında üstbilgiyle gönderir: `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:`. Sayfa başka bir sitenin içinde açılıp tıklatılamaz. Üstbilgi ile meta etiketi birlikte geçerlidir, bu yüzden sayfa yalnız kendi kapısına bağlanabilir ve betiği yalnız `/lang/` ve `/js/` altından yükler.
+- **Önbellek:** `GET /`, `/lang/`, `/js/` ve `/events` `Cache-Control: no-store`, ayrıca `X-Content-Type-Options: nosniff`.
 - **Onay:** karar sunucudadır. Ekranın gönderdiği cevap yalnız bir istektir; süre, `approval_id` ve geri alınamaz işin kendisi sunucuda denetlenir. Onaylanmayan araç hiç çalışmaz.
 
 ## Emsaller

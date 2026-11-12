@@ -225,25 +225,34 @@ TR_test "tutulan command_id sayısı sınırlı: son 1024" {
 
 # ---------- Sunulan dosyalar ----------
 
-TR_test "sayfa, dil dosyaları ve başka yol: CSP, önbelleksiz, listede olmayan dil 404" {
+TR_test "sayfa, modüller, dil dosyaları ve başka yol: CSP, önbelleksiz, listede olmayan modül ve dil 404" {
     TR_var e = ekran()
     TR_assert_equal(["en", "tr"], e.diller.TR_sort())
+    TR_assert_equal(["screen_state", "rows", "approvals", "events", "mock", "transport", "view", "main"], e.modüller)
     TR_var s = ekran_cevabı(e, TR_Request(TR_path: "/"))
     TR_assert_equal(200, s.TR_status)
-    TR_assert_equal("frame-ancestors 'none'; connect-src 'self'", s.TR_headers["Content-Security-Policy"])
+    TR_assert_equal("frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:",
+        s.TR_headers["Content-Security-Policy"])
     TR_assert_equal("no-store", s.TR_headers["Cache-Control"])
     TR_assert_equal("text/html; charset=utf-8", s.TR_headers["Content-Type"])
+    TR_for m TR_in e.modüller {
+        TR_var c = ekran_cevabı(e, TR_Request(TR_path: "/js/" + m + ".js"))
+        TR_assert_equal(200, c.TR_status)
+        TR_assert_equal("text/javascript; charset=utf-8", c.TR_headers["Content-Type"])
+        TR_assert_equal("no-store", c.TR_headers["Cache-Control"])
+    }
     TR_var d = ekran_cevabı(e, TR_Request(TR_path: "/lang/tr.js"))
     TR_assert_equal(200, d.TR_status)
     TR_assert_equal("text/javascript; charset=utf-8", d.TR_headers["Content-Type"])
     TR_assert_equal("no-store", d.TR_headers["Cache-Control"])
-    TR_for yol TR_in ["/lang/xx.js", "/index.html", "/contract.md", "/ekran.tr", "/lang/", "/command", "/lang/../ekran.tr"] {
+    TR_for yol TR_in ["/lang/xx.js", "/index.html", "/contract.md", "/ekran.tr", "/lang/", "/command", "/lang/../ekran.tr",
+            "/js/xx.js", "/js/", "/js/../ekran.tr", "/js/main", "/lang/main.js", "/js/en.js"] {
         TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_path: yol)).TR_status)
     }
     TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_method: "POST", TR_path: "/")).TR_status)
 }
 
-TR_test "sunucu belirteçli açılır: sayfa ve dil dosyaları belirteçsiz yollardır" {
+TR_test "sunucu belirteçli açılır: sayfa, modüller ve dil dosyaları belirteçsiz yollardır" {
     TR_var e = ekran()
     TR_var s = ekran_aç(e, 0, TR_secret_token())
     TR_assert(s.TR_port > 0)

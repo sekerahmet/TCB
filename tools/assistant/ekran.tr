@@ -37,6 +37,7 @@ TR_struct Ekran {
     yayın: TR_EventBroadcast
     kök: TR_String # index.html'in klasörü
     diller: TR_List[TR_String] # sayfanın listelediği dil dosyaları
+    modüller: TR_List[TR_String] # sayfanın yüklediği modüller (`js/<ad>.js`), sırasıyla
 
     bekleyen: TR_List[Komut] = []
     cevaplar: TR_Dict[TR_String, TR_JSON] = {}
@@ -94,21 +95,22 @@ TR_func ekran_kur(kök: TR_String, model: TR_String, katlayıcı: (TR_JSON, TR_J
         "model": model, "tools": [], "heartbeat_ms": _NABIZ_MS, "snapshot": []}})
     TR_var yayın = TR_EventBroadcast(TR_capacity: _KAPASİTE, TR_snapshot: baş, TR_reduce: katlayıcı,
         TR_heartbeat: {"v": _SÜRÜM, "type": "heartbeat"})
-    TR_var e = Ekran(yayın: yayın, kök: kök, diller: sayfanın_dilleri(kök))
+    TR_var e = Ekran(yayın: yayın, kök: kök, diller: sayfanın_betikleri(kök, "lang"), modüller: sayfanın_betikleri(kök, "js"))
     e.durum("loading")
     TR_return e
 }
 
-# sayfanın_dilleri: index.html'in sonundaki `<script src="lang/<kod>.js"></script>` satırları.
-TR_func sayfanın_dilleri(kök: TR_String) -> TR_List[TR_String] {
-    TR_var diller: TR_List[TR_String] = []
-    TR_var baş = "<script src=\"lang/"
+# sayfanın_betikleri: index.html'in `<script src="<klasör>/<ad>.js"></script>` satırlarının adları, sırasıyla: dil
+# dosyaları (`lang`) ve modüller (`js`). Sunucu yalnız bunları sunar.
+TR_func sayfanın_betikleri(kök: TR_String, klasör: TR_String) -> TR_List[TR_String] {
+    TR_var adlar: TR_List[TR_String] = []
+    TR_var baş = "<script src=\"" + klasör + "/"
     TR_var son = ".js\"></script>"
     TR_for satır TR_in TR_read_file(TR_Path(kök, "index.html")).TR_lines() {
         TR_var s = satır.TR_strip()
-        TR_if s.TR_starts_with(baş) TR_and s.TR_ends_with(son) { diller.TR_append(s[baş.TR_length..s.TR_length - son.TR_length]) }
+        TR_if s.TR_starts_with(baş) TR_and s.TR_ends_with(son) { adlar.TR_append(s[baş.TR_length..s.TR_length - son.TR_length]) }
     }
-    TR_return diller
+    TR_return adlar
 }
 
 # ---------- Katlama (28.7) ----------

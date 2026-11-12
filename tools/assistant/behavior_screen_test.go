@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Ekran tek dosyadır ve derlenmez: bu testler onun sınırlarını ve sözleşmeyle bağını korur. Tarayıcı açmazlar;
+// Ekran index.html ve onun modülleridir (`js/`, behavior_screen_modules_test.go), derlenmez: bu testler onun sınırlarını ve sözleşmeyle bağını korur. Tarayıcı açmazlar;
 // davranış tarayıcıda sahte sahnelerle gezilir (README, "Sınamak").
 
 const (
@@ -45,8 +45,9 @@ func capture(t *testing.T, pattern, text string) string {
 	return m[1]
 }
 
+// script sayfanın betiğidir: modüllerin sözleşmenin sırasıyla birleşimi (sayfada satır içi betik yok).
 func script(t *testing.T) string {
-	return capture(t, `(?s)<script>(.*?)</script>`, readFile(t, screenPath))
+	return pageCode(t)
 }
 
 func style(t *testing.T) string {
@@ -127,12 +128,12 @@ func matches(pattern, text string) []string {
 }
 
 func TestScreenStaysSmall(t *testing.T) {
-	n := len(readFile(t, screenPath))
+	n := len(page(t))
 	for _, name := range languageNames(t) {
 		n += len(readFile(t, languageDir+"/"+name))
 	}
 	if n >= maxScreenBytes {
-		t.Errorf("the screen and its language files are %d bytes, limit %d", n, maxScreenBytes)
+		t.Errorf("the screen, its modules and its language files are %d bytes, limit %d", n, maxScreenBytes)
 	}
 }
 
@@ -149,7 +150,7 @@ func TestScreenNeverParsesTextAsMarkup(t *testing.T) {
 
 // Ekran çevrimdışı açılır: dış betik, yazı tipi, CDN, ağ isteği yok.
 func TestScreenHasNoExternalAddress(t *testing.T) {
-	html := readFile(t, screenPath)
+	html := page(t)
 	for _, address := range matches(`[a-zA-Z][a-zA-Z0-9+.-]*://[^\s"'`+"`"+`<>)]*`, html) {
 		if !strings.HasPrefix(address, "http://127.0.0.1:") {
 			t.Errorf("%s names an outside address: %s", screenPath, address)
@@ -194,7 +195,7 @@ func TestScreenPolicy(t *testing.T) {
 	}
 	for _, want := range []string{
 		"default-src 'none'",
-		"script-src http://127.0.0.1:*/lang/ file: " + sum(script(t)),
+		"script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:;",
 		"style-src " + sum(style(t)),
 		"connect-src http://127.0.0.1:*",
 		"base-uri 'none'",
@@ -212,8 +213,14 @@ func TestScreenPolicy(t *testing.T) {
 	if strings.Contains(markup(t), " style=") {
 		t.Errorf("%s has a style attribute: the policy blocks it", screenPath)
 	}
-	if n := len(matches(`(<script>)`, html)); n != 1 {
-		t.Errorf("want one inline script, got %d: only one hash is allowed", n)
+	if n := len(matches(`(<script>)`, html)); n != 0 {
+		t.Errorf("want no inline script, got %d: scripts come only from js/ and lang/", n)
+	}
+	// Sunucunun üstbilgisi de aynı `script-src`'i taşır (contract.md, "Sunulan dosyalar"); yalnız bu yönerge karşılaştırılır.
+	header := capture(t, `TR_const _CSP = "([^"]*)"`, readFile(t, "tools/assistant/ekran_sunucu.tr"))
+	directive := regexp.MustCompile(`script-src [^;]*`)
+	if page, server := directive.FindString(policy), directive.FindString(header); page == "" || page != server {
+		t.Errorf("the page's script-src %q and the server's %q differ", page, server)
 	}
 	// `file:` yerel dosyaları ayıramaz: ekran başlarken bütün betikler kapanır, güvenilmez metin ancak ondan sonra gelir.
 	code := script(t)
@@ -241,32 +248,6 @@ func TestSourceMustBeThePagesOwnOrigin(t *testing.T) {
 	}
 }
 
-// Dil listesi sayfadaki <script src> satırlarıdır: dil dosyaları ve yalnız onlar. Ana betik önce gelir, sözlüğü o kurar.
-func TestLanguageFilesAreTheOnlyOtherScripts(t *testing.T) {
-	html := readFile(t, screenPath)
-	listed := map[string]bool{}
-	for _, tag := range matches(`(<script[^>]+>)`, html) {
-		name, ok := strings.CutPrefix(tag, `<script src="lang/`)
-		name, closed := strings.CutSuffix(name, `">`)
-		if !ok || !closed {
-			t.Errorf("only language files may be loaded: %s", tag)
-		}
-		listed[name] = true
-		if strings.Index(html, tag) < strings.Index(html, "<script>") {
-			t.Errorf("%s comes before the inline script that sets up the dictionary", tag)
-		}
-	}
-	names := languageNames(t)
-	if len(names) != len(listed) {
-		t.Errorf("%s has %v, the page lists %v", languageDir, names, listed)
-	}
-	for _, name := range names {
-		if !listed[name] {
-			t.Errorf("%s/%s is not in the language list of %s", languageDir, name, screenPath)
-		}
-	}
-}
-
 // Dil dosyası kod taşımaz: JSON olarak okunmayan her şey düşer.
 func TestLanguageFilesHoldNoCode(t *testing.T) {
 	for _, text := range []string{
@@ -291,7 +272,7 @@ func TestLanguageFilesHoldNoCode(t *testing.T) {
 // Görünmez karakter koda yazılmaz, kaçışıyla yazılır: okuyan onu göremez, ekran da onu kötü metinde yakalamaya çalışıyor.
 func TestScreenHasNoHiddenCharacters(t *testing.T) {
 	hidden := regexp.MustCompile("[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]")
-	files := []string{screenPath}
+	files := append([]string{screenPath}, moduleFiles(t)...)
 	for _, name := range languageNames(t) {
 		files = append(files, languageDir+"/"+name)
 	}
@@ -304,7 +285,7 @@ func TestScreenHasNoHiddenCharacters(t *testing.T) {
 
 // Ad tek sabittedir: değiştirmek için tek yer vardır.
 func TestScreenNameIsOneConstant(t *testing.T) {
-	html := readFile(t, screenPath)
+	html := page(t)
 	name := capture(t, `const ASSISTANT_NAME = "([^"]+)";`, html)
 	if n := strings.Count(html, name); n != 1 {
 		t.Errorf("the name %q appears %d times; it lives only in ASSISTANT_NAME", name, n)
@@ -398,7 +379,7 @@ func TestDictionaryKeysAreUsed(t *testing.T) {
 	}
 	_, scenes, _ := strings.Cut(code, "const scenes = {")
 	scenes, _, _ = strings.Cut(scenes, "function play(")
-	for _, scene := range matches(`(?m)^      async ([a-z_]+)\(`, scenes) {
+	for _, scene := range matches(`(?m)^    async ([a-z_]+)\(`, scenes) {
 		if _, ok := table["scene_"+scene]; !ok && scene != "reply" {
 			t.Errorf("mock scene %s has no scene_%s text", scene, scene)
 		}
@@ -510,7 +491,7 @@ func TestContractSaysTheSecurityRules(t *testing.T) {
 	body := section(t, "Güvenlik")
 	for _, want := range []string{
 		"`Origin`", "`Host`", "`Origin: null`", "`Authorization: Bearer", "`Content-Type`", "`frame-ancestors`", "19.4", "`127.0.0.1`",
-		"`Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'`",
+		"`Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:`",
 		"`error.values`", "`snapshot`", "kullanıcının sözü", "`TR_mask_stream()`", "19.4a", "`.TR_finish()`", "süzme kesmeden önce",
 	} {
 		if !strings.Contains(body, want) {

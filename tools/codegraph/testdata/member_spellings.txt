@@ -1260,6 +1260,7 @@ model.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 model.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
 model.TR_synthesize	ok	0	tr:method:lib/vits.tr:TR_type_Vits.TR_mem_synthesize
 model.TR_transcribe	ok	0	tr:method:lib/whisper.tr:TR_type_Whisper.TR_mem_transcribe
+modüller.TR_contains	ok	0	name:TR_mem_contains
 n.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 n.TR_groups	ambiguous	3	tr:field:lib/optimizers.tr:TR_type_Muon.TR_mem_groups,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_groups
 n.TR_keys	ok	0	name:TR_mem_keys

@@ -6,7 +6,8 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 
 ## Dosyalar
 
-- `index.html`: ekran. Biçim, kod ve sahte akış bu tek dosyada.
+- `index.html`: ekran: biçim ve yapı; satır içi betik yok.
+- `js/<ad>.js`: ekranın kodu ve sahte akış, sekiz klasik betik; sırası `contract.md`'de ("Sunulan dosyalar"), sayfa onları o sırayla yükler. Üst düzey adlar betikler arasında ortaktır: aynı ad iki betikte olmaz.
 - `lang/<kod>.js`: çeviriler, her dile bir dosya. Yalnız metin taşır.
 - `contract.md`: ekranın TR'den beklediği her şey (sürüm 2). Asıl değer budur.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
@@ -55,7 +56,7 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
 
 `ekran.tr` ve `ekran_sunucu.tr` sözleşmenin (`contract.md`) TR yanıdır.
 
-- **Sunucu:** `127.0.0.1`'de, belirteçli (28.2). Sayfa (`/`) ve sayfanın listelediği dil dosyaları (`/lang/<kod>.js`) `TR_tokenless_paths:`'tadır: tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez. `/events` ve `/command` belirteç ister. Başka her yol `404`. Sayfa `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'` ile, sayfa ve dil dosyaları `Cache-Control: no-store` ile gider; akışın `no-store`'unu yayıncı yazar (28.7).
+- **Sunucu:** `127.0.0.1`'de, belirteçli (28.2). Sayfa (`/`), modüller (`/js/<ad>.js`) ve sayfanın listelediği dil dosyaları (`/lang/<kod>.js`) `TR_tokenless_paths:`'tadır: tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez. `/events` ve `/command` belirteç ister. Başka her yol `404`. Sayfa `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:` ile, sayfa, modüller ve dil dosyaları `Cache-Control: no-store` ile gider; akışın `no-store`'unu yayıncı yazar (28.7).
 - **Görüntü yalnız olaylardan katlanır** (`katla`, 28.7'nin `TR_reduce:`'u): son `state` başta, son `metrics` sonda, bir konuşma parçası tek `turn_text` (`replace`), kapanan onay düşer, `error` girmez. Yeni tur açılırken görüntü 512 KiB'ı aşıyorsa eski turlar düşer, açık onay düşmez: görüntü olayın 1 MiB sınırının altında kalır.
 - **Komutun kararı ana döngüdedir** (`komutları_işle`). İşleyici biçimi denetler (`415`, bozuk JSON, sürüm, bilinmeyen komut, eksik alan), komutu tek bir `TR_append` ile bırakır ve cevabı bekler; `turn_busy`, `not_ready`, `text_too_long` ve `command_id` tekrarı ana döngüde verilir. İşleyicide "oku, sonra yaz" iki deyim olurdu ve 10.2'nin devir noktası arada iki `send_text`'i birden kabul ettirirdi. Son 1024 `command_id`'nin cevabı tutulur.
 
@@ -89,7 +90,7 @@ trlang tools/assistant/asistan.tr --kip canlı --aygıt "<mikrofonun dshow adı>
 Ekranda dil ayrıcalığı yok; varsayılan tarayıcının dilidir, eşleşme yoksa listedeki ilk dil, seçim hatırlanır. Dil eklemek yeni dosya ve tek satırdır, ekran kodu değişmez:
 
 1. `lang/en.js`'i `lang/<kod>.js` adıyla kopyalayıp çevirin. Anahtarlar öbür dillerle aynı olmalı, `{ad}` boşlukları da. `language_name` dilin kendi adıdır, `direction` `ltr` ya da `rtl`'dir.
-2. `index.html`'in sonundaki dil listesine satırını ekleyin: `<script src="lang/<kod>.js"></script>`.
+2. `index.html`'in sonundaki dil listesine, modüllerden sonra, satırını ekleyin: `<script src="lang/<kod>.js"></script>`.
 
 Dosya tek bir atamadır: `assistantLanguages.<kod> = {...};`, sağı geçerli JSON ve yalnız metin. Yorum da giremez; test dosyayı JSON olarak okur, kod taşıyamaz. Biçim `.json` değil `.js`'dir, çünkü `file://`'de `fetch` çalışmaz, `<script src>` çalışır.
 
@@ -128,5 +129,6 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 - `behavior_model_load_test.go`: `asistan.tr`'nin ekranlı kipi modelsiz açılır: kurulu takım yoksa `setup`, metin turu `not_ready`, katalogda olmayan ya da dil modeli olmayan girdi `unknown_entry`, dosyaları olmayan girdi `not_installed`; yarıda kalan yüklemenin işareti görüntüde `model_load_failed` olur ve silinir, bozuk işaret girdisizdir; yuvanın dosyaları ve oturumun modülü (`oturum.tr`) burada anılır; `--tarayıcıyla_eşle` verilmeden eşleme yolları yoktur (belirteçsiz `401`, belirteçli `404`).
 - `behavior_token_file_test.go`: belirteç dosyasının sırası: kapı doluyken `asistan.tr`'nin ekranlı kipi ve `screen_demo.tr` H7625 ile düşer, var olan belirteç dosyasına dokunmaz.
 - `behavior_screen_files_test.go`: ekranın iki TR testinin (`ekran_test.tr`, `ekran_tur_test.tr`) ve ortak yardımcılarının (`screen_helpers.tr`) burada anıldığını, iki testin ekranı ve yardımcıları aktardığını, yardımcı modülün test bloğu taşımadığını sınar.
-- `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
-- `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı; eşleme kodu yalnız `#p=` biçimiyle okunur ve ilk işte adresten silinir, önden işlenirken `/pair`'e gidilmez, belirteç yalnız sekmenin oturum belleğinde durur.
+- `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `js/events.js`'teki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
+- `behavior_screen_modules_test.go`: sayfanın `<script src>`'leri sözleşmenin modül listesidir, o sırayla, sonra dil dosyaları; `js/`'de listede olmayan dosya yok; modüllerin ve dil dosyalarının üst düzey adlarında tekrar yok, `window`'un adlarıyla çakışma yok.
+- `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var, satır içi betik yok, `script-src` sunucunun üstbilgisiyle aynı, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok; eşleme kodu yalnız `#p=` biçimiyle okunur ve ilk işte adresten silinir, önden işlenirken `/pair`'e gidilmez, belirteç yalnız sekmenin oturum belleğinde durur.
