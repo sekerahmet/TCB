@@ -17,6 +17,8 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 - `ekran.tr`, `ekran_test.tr`, `ekran_tur_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; testler modelsizdir (`ekran_test.tr` katlama, komutlar, sunulan dosyalar; `ekran_tur_test.tr` tur ve cevap metni). İki testin ortak yardımcıları `screen_helpers.tr`'de.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 - `yuva.tr`, `yuva_test.tr`: ekranlı kipin model yuvası (aşağıda, "Ekranlı kip"): Dost klasörü, kurulu takım, yükleme işareti, yükleme; test modelsizdir.
+- `esleme.tr`, `esleme_test.tr`: ekranın eşleme kodu (dil tanımı 28.2b): `GET /pair` tek kullanımlık, 120 saniyelik kodla belirteci verir, `GET /pair/renew` yeni kod üretip tarayıcıyı açar; ikisi de üstbilgi ister, yanlış kodlar sınırlanır (60 saniyede 10), günlük satırları kodludur (H8175, H8176); kararı ana döngü verir. Test modelsizdir: sahte saat ve sahte açıcı.
+- `oturum.tr`: ekranlı kipin oturumu: ana döngünün durumu ve işleri (yuvaya yükleme, dil değişimi, komutlar, mikrofon, dinleme); `asistan.tr` açılışı yapar ve oturumu kurar. Ayrı TR testi yok: `asistan.tr`'nin ekranlı kipini sınayan Go testleri (`behavior_model_load_test.go`, `behavior_token_file_test.go`) onu koşturur.
 - `katalog.json`: Dost'un indirebileceği modellerin ve konuşma dillerinin kataloğu (aşağıda, "Kurulum").
 - `katalog.tr`, `katalog_test.tr`: katalogu ve ayarı okur, denetler, makineye uygunluğu hesaplar; test modelsizdir.
 - `kur.tr`: bu makineye hangi dil modelinin sığdığını ve önerileni yazan komut (aşağıda, "Kurulum"); model yüklemez.
@@ -71,7 +73,7 @@ trlang tools/assistant/asistan.tr --kip canlı --aygıt "<mikrofonun dshow adı>
     --dil_modeli Qwen3-4B-Q4_K_M.gguf --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 ```
 
-Çıktının `EKRAN` satırındaki adres tarayıcıda açılır; ekran belirteci sorar, belirteç `belirtec.txt`'tedir (dosyayı yalnız sahibi okur). Modelsiz denemek için `trlang tools/assistant/screen_demo.tr --ekran 8123 --belirteç_dosyası belirtec.txt`.
+`--tarayıcıyla_eşle` verilince (Windows başlatıcısı verir) Dost tarayıcıyı kendisi açar; ekran belirteci tek kullanımlık bir eşleme koduyla alır, kullanıcı belirteç görmez. Seçenek verilmezse çıktının `EKRAN` satırındaki adres tarayıcıda açılır; ekran belirteci sorar. Belirteç iki yolda da `belirtec.txt`'ye yazılır (dosyayı yalnız sahibi okur): ajan, komut satırı istemcileri ve ekranın kutusu için. Modelsiz denemek için `trlang tools/assistant/screen_demo.tr --ekran 8123 --belirteç_dosyası belirtec.txt`.
 
 ## Yapı
 
@@ -122,8 +124,8 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 ## Testler
 
 - `behavior_device_test.go`: zincirin cihaz geçişleri (`zincir.tr`'nin `işlemcide`, `çerçeve_örnekleri`, `kesit_cihazda`): modelsiz bir programı `trlang` ile kart benzeticisinde (`TR_GPU_SIM=1`) koşar; varsayılan cihaz kartken kesitleyicinin örnekleri ve mikrofonun 16 bitlik çerçevesi işlemcide, kesit kartta; işlemcideyken üçü de işlemcide.
-- `behavior_model_load_test.go`: `asistan.tr`'nin ekranlı kipi modelsiz açılır: kurulu takım yoksa `setup`, metin turu `not_ready`, katalogda olmayan ya da dil modeli olmayan girdi `unknown_entry`, dosyaları olmayan girdi `not_installed`; yarıda kalan yüklemenin işareti görüntüde `model_load_failed` olur ve silinir, bozuk işaret girdisizdir; yuvanın dosyaları burada anılır.
+- `behavior_model_load_test.go`: `asistan.tr`'nin ekranlı kipi modelsiz açılır: kurulu takım yoksa `setup`, metin turu `not_ready`, katalogda olmayan ya da dil modeli olmayan girdi `unknown_entry`, dosyaları olmayan girdi `not_installed`; yarıda kalan yüklemenin işareti görüntüde `model_load_failed` olur ve silinir, bozuk işaret girdisizdir; yuvanın dosyaları ve oturumun modülü (`oturum.tr`) burada anılır; `--tarayıcıyla_eşle` verilmeden eşleme yolları yoktur (belirteçsiz `401`, belirteçli `404`).
 - `behavior_token_file_test.go`: belirteç dosyasının sırası: kapı doluyken `asistan.tr`'nin ekranlı kipi ve `screen_demo.tr` H7625 ile düşer, var olan belirteç dosyasına dokunmaz.
 - `behavior_screen_files_test.go`: ekranın iki TR testinin (`ekran_test.tr`, `ekran_tur_test.tr`) ve ortak yardımcılarının (`screen_helpers.tr`) burada anıldığını, iki testin ekranı ve yardımcıları aktardığını, yardımcı modülün test bloğu taşımadığını sınar.
 - `behavior_event_id_test.go`: ekranın olay kimliği kuralı (`contract.md`, "Kopma ve yeniden bağlanma"); `index.html`'deki iki saf fonksiyonu (`splitId`, `eventStep`) node ile koşar, node yoksa atlanır: ilk bağlantı, sıranın sayı olarak karşılaştırılması, yeniden başlayan sunucu, `session`'sız gelen başka ön ekli olay, bozuk kimlik.
-- `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı.
+- `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı; eşleme kodu yalnız `#p=` biçimiyle okunur ve ilk işte adresten silinir, önden işlenirken `/pair`'e gidilmez, belirteç yalnız sekmenin oturum belleğinde durur.

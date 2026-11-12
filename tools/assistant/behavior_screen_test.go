@@ -166,9 +166,12 @@ func TestScreenHasNoExternalAddress(t *testing.T) {
 		}
 	}
 	code := script(t)
+	// Sözleşmenin dört çağrısı: olaylar, komut ve eşlemenin iki yolu (tek tık G, TCB 11:34); yolları adıyla.
 	calls := matches(`\bfetch\(([^,)]*)`, code)
-	if len(calls) != 2 {
-		t.Errorf("want the two contract calls to fetch, got %q", calls)
+	sort.Strings(calls)
+	want := []string{"`${base}/command`", "`${base}/events`", "`${base}/pair/renew`", "`${base}/pair`"}
+	if strings.Join(calls, " ") != strings.Join(want, " ") {
+		t.Errorf("want the contract's four calls to fetch %q, got %q", want, calls)
 	}
 	for _, call := range calls {
 		if !strings.HasPrefix(call, "`${base}/") {
@@ -519,5 +522,32 @@ func TestContractSaysTheSecurityRules(t *testing.T) {
 func TestReadmeListsThisTest(t *testing.T) {
 	if !strings.Contains(readFile(t, readmePath), "- `"+testFileName+"`: ") {
 		t.Errorf("%s does not list %s", readmePath, testFileName)
+	}
+}
+
+// Sayfanın eşleme kuralları (tek tık G; contract.md, "Kaynak" ve "Kimlik"): kod yalnız `#p=` ve 43 karakterlik
+// biçimle okunur ve sayfanın ilk işinde adresten silinir; önden işlenirken `/pair`'e gidilmez; belirteç yalnız
+// sekmenin oturum belleğinde, kapıya bağlı anahtarla durur, kalıcı depoya yazılmaz. Davranışın tarayıcıdaki
+// denemesi elle yapılır (tasarımın 1. testi); burada metnin kuralları sınanır.
+func TestScreenPairsOnlyThroughTheFragment(t *testing.T) {
+	code := script(t)
+	if !strings.Contains(code, "/^#p=([A-Za-z0-9_-]{43})$/.exec(location.hash)") {
+		t.Errorf("the page must read the code only as #p= and 43 base64url characters")
+	}
+	first := strings.Index(code, "history.replaceState(")
+	if first < 0 || first > strings.Index(code, "function ") {
+		t.Errorf("the code must leave the address before anything else runs")
+	}
+	for _, want := range []string{"doc.prerendering", `"prerenderingchange"`, "`dost-token-${location.port}`", `"Dost-Pair-Code": code`, `"Dost-Pair-Renew": "1"`} {
+		if !strings.Contains(code, want) {
+			t.Errorf("the page has no %s", want)
+		}
+	}
+	// Kalıcı depoda yalnız ekranın dil tercihi durur.
+	if strings.Count(code, "localStorage.setItem(") != strings.Count(code, "localStorage.setItem(LANGUAGE_KEY, value)") || strings.Contains(code, "document.cookie") {
+		t.Errorf("the token must not reach lasting storage: only the language choice is kept there")
+	}
+	if n := strings.Count(code, "sessionStorage.setItem("); n != 1 || !strings.Contains(code, "sessionStorage.setItem(TOKEN_KEY, token)") {
+		t.Errorf("session storage must hold only the token, under TOKEN_KEY: %d writes", n)
 	}
 }

@@ -1985,6 +1985,8 @@
 "H8172": { "param": [] },
 "H8173": { "param": ["given"] },
 "H8174": { "param": ["source", "given", "max"] },
+"H8175": { "param": ["count", "seconds"] },
+"H8176": { "param": [] },
 "H8200": { "param": ["progress", "update"] },
 "H8201": { "param": [] },
 "H8202": { "param": [] },

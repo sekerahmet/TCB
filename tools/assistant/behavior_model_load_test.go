@@ -1,6 +1,7 @@
 package assistant_test
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,7 +16,22 @@ const (
 	dostCatalog = "tools/assistant/katalog.json"
 	slotModule  = "tools/assistant/yuva.tr"
 	slotTest    = "tools/assistant/yuva_test.tr"
+	// Ekranlı kipin oturumu (tek tık G, DENETİM 489 N4): ayrı TR testi yok, bu dosyanın testleri onu koşturur.
+	sessionModule = "tools/assistant/oturum.tr"
 )
+
+// Oturumun modülü README'de anılır, program onu aktarır.
+func TestSessionFileIsListed(t *testing.T) {
+	if name := sessionModule[strings.LastIndex(sessionModule, "/")+1:]; !strings.Contains(readFile(t, readmePath), "`"+name+"`") {
+		t.Errorf("%s does not name %s", readmePath, name)
+	}
+	if !strings.Contains(readFile(t, chainProgram), `TR_import "oturum"`) {
+		t.Errorf("%s does not import the session module", chainProgram)
+	}
+	if !strings.Contains(readFile(t, sessionModule), "TR_struct Oturum {") {
+		t.Errorf("%s does not define Oturum", sessionModule)
+	}
+}
 
 // Yuvanın modülü ve testi README'de anılır; test modülü aktarır, program da.
 func TestSlotFilesAreListed(t *testing.T) {
@@ -28,6 +44,30 @@ func TestSlotFilesAreListed(t *testing.T) {
 	for _, f := range []string{slotTest, chainProgram} {
 		if !strings.Contains(readFile(t, f), `TR_import "yuva"`) {
 			t.Errorf("%s does not import the slot module", f)
+		}
+	}
+}
+
+// Seçeneksiz Dost'ta eşleme yolları yoktur (tek tık G; dil tanımı 28.2b): kod üretilmez, tarayıcı açılmaz;
+// belirteçsiz istek 401 alır ve işleyici çağrılmaz (28.2), belirteçli istek ekranın bilinmeyen yolu gibi 404 alır.
+// Sayfa kutuya düşer (index.html, `renew`'un 202 dışı cevabı).
+func TestDostWithoutPairingHasNoPairingPaths(t *testing.T) {
+	s := startDost(t, filepath.Join(t.TempDir(), "Dost"))
+	pairing := map[string]string{"Dost-Pair-Code": strings.Repeat("a", 43), "Dost-Pair-Renew": "1"}
+	for _, path := range []string{"/pair", "/pair/renew"} {
+		res := s.request(t, "GET", path, pairing, "")
+		res.Body.Close()
+		if res.StatusCode != http.StatusUnauthorized {
+			t.Errorf("GET %s without a token: %d, want 401", path, res.StatusCode)
+		}
+		header := s.auth()
+		for k, v := range pairing {
+			header[k] = v
+		}
+		res = s.request(t, "GET", path, header, "")
+		res.Body.Close()
+		if res.StatusCode != http.StatusNotFound {
+			t.Errorf("GET %s with the token: %d, want 404", path, res.StatusCode)
 		}
 	}
 }

@@ -90,6 +90,16 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - Terminal yolu 19.4 yüzünden çalışmaz (belirteç `***` görünür). code-server'ın yolu TR'nin kurallarına uyan tek yoldur: değer dosyada, terminalde dosyanın yolu.
   - Dosyanın yalnız kullanıcıya açık olması 18.13'ün `TR_owner_only:`'siyle yazılır; içeriğe göre izin seçmek kırılgan ve Windows'ta anlamsız olurdu (tur 3'te geri çevrildi).
 
+### 28.2b
+
+- *Emsal:* okunmadı; yazılmadı.
+- *Gerekçe:*
+  - Kullanıcı belirteci görmez, girmez (tek tık G): sayfa onu tek kullanımlık, kısa ömürlü bir koddan alır. Kod adresin parçasındadır; parça sunucuya ve `Referer`'e gitmez, sayfa onu ilk isteğinden önce adresten siler. Geçmişe ya da günlüğe düşen kod işe yaramaz: tüketilmiş ya da süresi dolmuştur.
+  - Koruma üstbilgidedir: başka bir sayfanın `<img>`'ı ya da formu üstbilgi ekleyemez; betik ekleyebilir ama tarayıcı önce `OPTIONS` gönderir ve 28.1a onu `403` ile keser. `HEAD`'de ayrı bir kol yazılmaz: 28.3 `HEAD`'i `GET` olarak verir ve tek bir program için bu kural açılmaz (TCB, tek tık G).
+  - Geçerli kod sınırdan geçer: kod 32 bayttır, tahminle bulunamaz. Sınır doğru kodu da durdursaydı aynı makinedeki herhangi bir süreç sınırı doldurup gerçek sekmeyi eşleşemez kılardı. Sınır yalnız yanlış kodları yavaşlatır, günlüğü ve işlemciyi korur.
+  - Kullanılmış kod bir olaydır: kodu önce kullanan belirteci almıştır, yeniden eşleme onu geri almaz; tek yol sunucuyu kapatmaktır.
+  - Kodun düşebileceği yerler (tarayıcı geçmişinin ilk kaydı, eşitleme, `tabs` izinli eklentiler, tarayıcıyı açan sürecin argümanı) aynı kullanıcı, yönetici ya da makinenin dışıdır; aynı kullanıcı belirteç dosyasını da okuyabilir. Argüman istisnası bu yüzden yalnız argümanı başkasına göstermeyen sistemdedir (19.4): güvenlik cümlesi ölçülmemiş bir sistem için "güvenli" demez (TCB, tek tık G).
+
 ### 28.3
 
 - *Emsal:*
