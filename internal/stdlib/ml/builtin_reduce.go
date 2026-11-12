@@ -49,7 +49,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			}
 			t := args[0].(*TensorValue).t
 			if t.DType().IsTyped() {
-				return typedReduceCall(kd, ad, t, args, named, keep)
+				return typedReduceCall(m, kd, ad, t, args, named, keep)
 			}
 			if !maxMin {
 				// Karışık hassasiyet bloğunda toplam/ortalama float32'de yapılır.
@@ -110,7 +110,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 }
 
 // typedReduceCall cinsli tensörde indirgemenin eksenini çözer ve typedReduce'u çağırır.
-func typedReduceCall(kd codes.Code, ad any, t *tensor.Tensor, args []interp.Value, named map[string]interp.Value, keep bool) (interp.Value, error) {
+func typedReduceCall(m *interp.VM, kd codes.Code, ad any, t *tensor.Tensor, args []interp.Value, named map[string]interp.Value, keep bool) (interp.Value, error) {
 	e, given, err := axisArg(ad, args, named)
 	if err != nil {
 		return nil, err
@@ -120,13 +120,13 @@ func typedReduceCall(kd codes.Code, ad any, t *tensor.Tensor, args []interp.Valu
 			return nil, err
 		}
 	}
-	return typedReduce(kd, ad, t, e, given, keep)
+	return typedReduce(m, kd, ad, t, e, given, keep)
 }
 
 // typedReduce indirgemelerin cinsli tensör yolu (15.18'in tablosu): TR_Int ve TR_Bool toplamı
 // "int64"te kesin (sonuç sığmalı), ortalaması "float32"ye bir kez yuvarlanır; en büyük ve en
 // küçük TR_Int'te aynı hassasiyet, TR_Bool'da tanımsız. float64 float64'te biriktirilir.
-func typedReduce(kd codes.Code, ad any, t *tensor.Tensor, e int, given, keep bool) (interp.Value, error) {
+func typedReduce(m *interp.VM, kd codes.Code, ad any, t *tensor.Tensor, e int, given, keep bool) (interp.Value, error) {
 	sh := t.Shape()
 	axis := -1
 	if given {
@@ -167,7 +167,7 @@ func typedReduce(kd codes.Code, ad any, t *tensor.Tensor, e int, given, keep boo
 	if err != nil {
 		return nil, panicReasonError(err)
 	}
-	return typedResult(ad, "+", r, f)
+	return typedResult(m, ad, "+", r, f)
 }
 
 // panicReasonError çekirdeğin panikle verdiği ileti hatasını (H6006'nın içindeki) kendisi yapar.

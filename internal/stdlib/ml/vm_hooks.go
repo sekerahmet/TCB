@@ -72,7 +72,8 @@ func (d *TensorValue) negate() (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return typedResult(codes.NameRef(codes.TypeTensor), "-", r, f)
+		// Negate kancası görevi almaz: kayıtta yuvanın yeri yazılamaz (H4065, typedResult).
+		return typedResult(nil, codes.NameRef(codes.TypeTensor), "-", r, f)
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Neg() })
 	if err != nil {

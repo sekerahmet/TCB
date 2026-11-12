@@ -41,14 +41,16 @@ TR_for s TR_in g { TR_print(s) }`
 	}
 	for code, expr := range map[messages.Code]string{
 		messages.H6964: `TR_Tensor([300]).TR_to_device("gpu").TR_to_dtype("uint8")`,
-		messages.H6969: `TR_Tensor([1, 2]).TR_to_device("gpu") + 1`,
+		// "int64" aritmetiği T1 dilim 2b'den beri kartta; dar tam sayılarınki kapsam dışında kalır
+		// (A16'nın ikinci yeri, TCB 2026-11-12 12:20: test istisnası).
+		messages.H6969: `TR_Tensor([1, 2], TR_dtype: "int32").TR_to_device("gpu") + 1`,
 	} {
 		if _, err := run(t, expr); !messages.Has(err, code) {
 			t.Errorf("%s: %v, beklenen %s", expr, err, code)
 		}
 	}
 	// H6969'un önerdiği yazım (`t.TR_to_device("cpu")`) koşar ve işlemin sonucunu verir.
-	if out := mustRun(t, `TR_var t = TR_Tensor([1, 2]).TR_to_device("gpu")
+	if out := mustRun(t, `TR_var t = TR_Tensor([1, 2], TR_dtype: "int32").TR_to_device("gpu")
 TR_print((t.TR_to_device("cpu") + 1).TR_tolist)`); out != "[2, 3]\n" {
 		t.Errorf("H6969'un önerisi: %q, beklenen [2, 3]", out)
 	}

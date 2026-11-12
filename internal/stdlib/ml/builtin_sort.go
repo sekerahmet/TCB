@@ -62,7 +62,7 @@ func cumSumBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		if err != nil {
 			return nil, err
 		}
-		return typedResult(ad, "+", r, f)
+		return typedResult(m, ad, "+", r, f)
 	}
 	// Karışık hassasiyet bloğunda 16 bitlik girdi float32'ye açılır (15.4), TR_sum gibi.
 	t, err := highPrecision(m, d.t)

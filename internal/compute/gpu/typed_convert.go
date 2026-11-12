@@ -29,9 +29,14 @@ func convertOK(out, in tensor.DType) bool {
 }
 
 // typedFaults işlemin öğeye bağlı hatası olabilir mi (bayrağın yuvasını ve beklemeyi ister):
-// ondalıktan tam sayıya ve daraltan tam sayı dönüşümü. Genişleten dönüşüm (MergeInt'in
-// hassasiyetine, 15.6c) hata veremez: yuvası ve beklemesi yoktur.
+// "int64" aritmetiği (typed_arith.go), ondalıktan tam sayıya ve daraltan tam sayı dönüşümü.
+// Genişleten dönüşüm (MergeInt'in hassasiyetine, 15.6c) hata veremez: yuvası ve beklemesi
+// yoktur.
 func typedFaults(op tensor.TypedOp, out tensor.DType, ins []tensor.DType) bool {
+	switch op.Kind {
+	case tensor.TArith, tensor.TNeg, tensor.TAbs:
+		return true
+	}
 	if op.Kind != tensor.TConvert || out.Elem() != tensor.ElemInt {
 		return false
 	}

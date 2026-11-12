@@ -171,6 +171,63 @@ TR_func g(k: TR_Tensor, s: TR_Tensor) -> TR_Tensor {
 	}
 }
 
+// Kural (15.45, 15.6, 15.3; T1 dilim 2b): kartta "int64" aritmetiği TR_replay kaydında çalışır
+// (eskiden H6969 veriyordu); taşmanın, sıfıra bölmenin ve tekli eksinin hatası oynatmanın sonunda
+// bayraktan gelir, ileti kaydedilen satırı söyler ve doğrudan çağrınınkiyle aynıdır. Hatalı
+// oynatmadan sonra kayıt kullanılır kalır. Tam sayı sayı işleneni (`x * 2`) kayıtta konaktan
+// yükleme olduğu için işlenenler tensördür (k).
+func TestReplayInt64ArithFaultNamesRecordedLine(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	for _, c := range []struct {
+		body, k, bad string
+		code         messages.Code
+	}{
+		{"x * k", "2", "TR_Tensor([4611686018427387904, 0])", messages.H6961},
+		{"x // (x - k)", "1", "TR_Tensor([1, 5])", messages.H6962},
+		{"k - k - x", "1", "TR_Tensor([3, -9223372036854775807 - 1])", messages.H6961},
+		{"TR_abs(x) + k", "1", "TR_Tensor([3, -9223372036854775807 - 1])", messages.H6961},
+	} {
+		k := "TR_Tensor(" + c.k + ")"
+		program := `TR_default_device("gpu")
+TR_func g(x: TR_Tensor[TR_Int], k: TR_Tensor[TR_Int]) -> TR_Tensor[TR_Int] {
+    TR_var y = ` + c.body + `
+    TR_return y + k
+}
+TR_var f = TR_replay(g)
+TR_no_grad {
+    TR_print(f(TR_Tensor([2, 3]), ` + k + `).TR_to_device("cpu").TR_tolist)
+    TR_print(f(TR_Tensor([4, 5]), ` + k + `).TR_to_device("cpu").TR_tolist)
+    TR_try { f(` + c.bad + `, ` + k + `) } TR_catch h { TR_print("hata:", h.TR_code) }
+    TR_print(f(TR_Tensor([6, 7]), ` + k + `).TR_to_device("cpu").TR_tolist)
+    f(` + c.bad + `, ` + k + `)
+}`
+		out, err := run(t, program)
+		line, _, ok := messages.Pos(err)
+		if !messages.Has(err, c.code) || !ok || line != 3 || !strings.Contains(out, "hata: "+c.code.String()) {
+			t.Fatalf("%s: satır 3'te %s bekleniyordu: çıktı\n%s\nhata %v (satır %d)", c.body, c.code, out, err, line)
+		}
+		direct, derr := run(t, strings.Replace(program, "TR_var f = TR_replay(g)", "TR_var f = g", 1))
+		if direct != out || derr == nil || derr.Error() != err.Error() {
+			t.Fatalf("%s: doğrudan çağrı başka sonuç verdi:\n%s\n%v\nkayıtta\n%s\n%v", c.body, direct, derr, out, err)
+		}
+	}
+	// Tekli eksinin kancası (interp.Negator) görevi almaz: kayıtta yuvanın yeri yazılamaz, kayıt
+	// açık hatayla biter (H4065), sessiz değil.
+	_, err := run(t, `TR_default_device("gpu")
+TR_func g(x: TR_Tensor[TR_Int]) -> TR_Tensor[TR_Int] {
+    TR_return -x
+}
+TR_var f = TR_replay(g)
+TR_no_grad {
+    f(TR_Tensor([2, 3]))
+    f(TR_Tensor([2, 3]))
+}`)
+	if !messages.Has(err, messages.H4065) {
+		t.Fatalf("kayıtta tekli eksi H4065 bekleniyordu: %v", err)
+	}
+}
+
 // Kural (15.8, 15.45; DENETİM 499 N2, T1 dilim 2b): dilim yazmanın sınır denetimi taşmaz. 2⁶³'e
 // yakın başlangıçta başlangıç + n toplamı eksiye dönüyordu: doğrudan çağrı hiçbir şey yazmadan
 // hatasız geçiyordu, kayıttaki kart H6442 veriyordu. Başlangıç sayı ya da 0 boyutlu int64 tensör,
