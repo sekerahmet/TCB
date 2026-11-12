@@ -658,6 +658,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** başlangıç tam sayı ya da tam sayı değerli 0 boyutlu ondalık tensör.
 - **Yapılacaklar:** `TR_start`'ın `TR_Int` ya da 0 boyutlu `TR_Tensor[TR_Int]` olması; cins denetimi; `TR_replay`'de sınır dışı başlangıcın cihaz içi bayrakla hatası (15.45).
+- **Yapılacaklar (C, Ö2, Kol B (T1); TCB 2026-11-12 10:49):** float64 tensör başlangıç float32'ye inerek okunuyor: kesir ve 2²⁴'ün üstü kayboluyor (2,0000001 tam sayı sayılır; 16 777 217 → 16 777 216), kayıtta ve kayıt dışında sessiz [hesap: float32'nin 24 bitlik kesri]. Sıradaki: gömmedeki float64 kararıyla aynı ölçüt (başlangıç kendi türünde denetlenir); testi float64 2,0000001 başlangıcı.
 
 ### 15.13
 
