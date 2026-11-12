@@ -17,7 +17,7 @@
   "TR_kw_in": { "kind": "keyword", "related": ["TR_kw_for"], "example": "TR_print([x * x TR_for x TR_in 1..=5 TR_if x % 2 == 1])" },
   "TR_kw_interface": { "kind": "keyword", "related": ["TR_kw_struct"], "familiar": ["trait", "protocol"], "example": "TR_interface Ölçen { TR_func ölç(x: TR_Float) -> TR_Float }; TR_struct Kare { TR_func ölç(x: TR_Float) -> TR_Float { TR_return x * x } }; TR_print(Ölçen, Kare().ölç(3.0))" },
   "TR_kw_match": { "kind": "keyword", "familiar": ["switch"], "example": "TR_var puan = 95; TR_print(TR_match puan { 100 => \"tam puan\"; 90..100 => \"pekiyi\"; _ => \"diğer\" })" },
-  "TR_kw_none": { "kind": "keyword", "related": ["TR_type_NoneType"], "familiar": ["None", "null", "nil", "NULL"], "example": "TR_var l = [1, 2]; TR_print(l.TR_get(5) == TR_none, l.TR_get(5) ?? \"boş\", {\"a\": 1}.TR_get(\"b\"))" },
+  "TR_kw_none": { "kind": "keyword", "related": ["TR_type_NoneType"], "familiar": ["None", "null", "nil", "NULL"], "example": "TR_var l = [1, 2]; TR_print(l.TR_get(5) == TR_none, l.TR_get(5) ?? 0, {\"a\": 1}.TR_get(\"b\"))" },
   "TR_kw_not": { "kind": "keyword", "related": ["TR_kw_and", "TR_kw_or"], "familiar": ["not", "değil"], "example": "TR_print(TR_not 1 == 2)" },
   "TR_kw_or": { "kind": "keyword", "related": ["TR_kw_and", "TR_kw_not"], "familiar": ["or", "veya"], "example": "TR_print(TR_false TR_or TR_true, 1 > 2 TR_or 3 > 2)" },
   "TR_kw_return": { "kind": "keyword", "related": ["TR_kw_func"], "example": "TR_func işaret(n: TR_Int) -> TR_String { TR_if n < 0 { TR_return \"negatif\" }; TR_return \"pozitif\" }; TR_print(işaret(-2))" },

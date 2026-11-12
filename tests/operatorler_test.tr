@@ -16,7 +16,7 @@ TR_test "4.1 öncelik: değil karşılaştırmadan gevşek, ve'den sıkı bağla
 
 TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? karşılaştırmadan sıkı bağlanır" {
     TR_assert_equal(4, [x TR_for x TR_in 1..2 + 3].TR_length)
-    TR_var x = 5
+    TR_var x: TR_Int? = 5
     TR_assert_equal(TR_true, x ?? 0 > 3)
     TR_var y = TR_none
     TR_assert_equal(TR_false, y ?? 0 > 3)
@@ -237,8 +237,20 @@ TR_test "4.6 .TR_filter'ın yüklemi ve TR_assert'in koşulu TR_Bool'dur" {
 
 TR_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {
     TR_assert_equal(5, TR_none ?? 5)
-    TR_assert_equal(0, 0 ?? 5)
-    TR_assert_equal(TR_false, TR_false ?? 5)
+    TR_var s: TR_Int? = 0
+    TR_assert_equal(0, s ?? 5)
+    TR_var b: TR_Bool? = TR_false
+    TR_assert_equal(TR_false, b ?? TR_true)
+    TR_var l: TR_List[TR_Int] = []
+    TR_var y: TR_Int? = TR_none
+    TR_assert_equal(TR_none, l.TR_first ?? y)
+    TR_assert_equal(1, l.TR_first ?? y ?? 1)
+    TR_var m: TR_List[TR_List[TR_Int]] = []
+    TR_assert_equal([], m.TR_first ?? [])
+    TR_var f: TR_Float? = TR_none
+    TR_assert_equal(TR_Float, TR_Type(f ?? 0.0))
+    TR_var j = TR_json_parse("{}")
+    TR_assert_equal(TR_false, TR_Bool(j.TR_get("k") ?? TR_JSON(TR_false)))
 }
 
 TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {

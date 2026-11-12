@@ -326,14 +326,14 @@ tr: değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pe
 Değerin yokluğudur; değer döndürmeyen fonksiyonlar ve varsa_al ile istenen olmayan öğe ya da anahtar yok verir. Sözlükte olmayan anahtarı köşeli parantezle okumak hatadır.
 
 ```tr
-TR_var l = [1, 2]; TR_print(l.TR_get(5) == TR_none, l.TR_get(5) ?? "boş", {"a": 1}.TR_get("b"))
+TR_var l = [1, 2]; TR_print(l.TR_get(5) == TR_none, l.TR_get(5) ?? 0, {"a": 1}.TR_get("b"))
 ```
 
 Görünümü:
 
 ```text
-en: var l = [1, 2]; print(l.get(5) == none, l.get(5) ?? "boş", {"a": 1}.get("b"))
-tr: değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"a": 1}.varsa_al("b"))
+en: var l = [1, 2]; print(l.get(5) == none, l.get(5) ?? 0, {"a": 1}.get("b"))
+tr: değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? 0, {"a": 1}.varsa_al("b"))
 ```
 
 İlişkili: `TR_NoneType`

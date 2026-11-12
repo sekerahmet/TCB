@@ -165,7 +165,7 @@ func TestModuleRuleSuggestionRuns(t *testing.T) {
 // Kural (1.1): paylaşılan durumun önerisi (H1114) kopyalanınca çalışır: değişken yoklukla başlar,
 // kurma fonksiyonu değeri bir kez kurar, sonraki çağrı fonksiyonların atadığını değiştirmez.
 func TestModuleSharedStateSuggestionRuns(t *testing.T) {
-	wrong := "TR_var yol = taban()"
+	wrong := "TR_var yol: TR_String? = taban()" // yol ?? "" isteğe bağlı sol yan ister (4.7)
 	module := "TR_func taban() -> TR_String {\n    TR_return \"k\"\n}\n" + wrong + "\nTR_func yaz(s: TR_String) {\n    yol = s\n}\nTR_func oku() -> TR_String {\n    TR_return yol ?? \"\"\n}\n"
 	_, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\"\n"})
 	var mh *ModuleError

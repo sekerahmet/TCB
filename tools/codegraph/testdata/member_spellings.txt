@@ -1015,6 +1015,7 @@ j.TR_method	ok	0	name:TR_mem_method
 j.TR_path	ok	0	name:TR_mem_path
 j.TR_query	ok	0	name:TR_mem_query
 j.TR_status	ok	0	name:TR_mem_status
+js.TR_get	ok	0	name:TR_mem_get
 json_mismatches.TR_append	ok	0	name:TR_mem_append
 jsonsuz.TR_send_event	ok	0	name:TR_mem_send_event
 k.TR_Linear	ok	0	tr:struct:lib/layers.tr:TR_type_Linear
@@ -1207,6 +1208,7 @@ m.TR_ends_with	ok	0	name:TR_mem_ends_with
 m.TR_eos_tokens	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_eos_tokens
 m.TR_final_norm	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_final_norm
 m.TR_finish	ok	0	name:TR_mem_finish
+m.TR_first	ok	0	name:TR_mem_first
 m.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 m.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 m.TR_get	ok	0	name:TR_mem_get

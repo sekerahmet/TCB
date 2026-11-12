@@ -1,0 +1,14 @@
+# TR 4
+# TEST 4.7 '??'nin sağ yanının tipi tam T ya da T?'dir; sol yan isteğe bağlı değilse sağ yan hiç kullanılmaz
+TR_var l: TR_List[TR_Int] = []
+TR_var d: TR_Dict[TR_String, TR_Int] = {}
+TR_var sa = l.TR_first ?? "ab" # ERROR H1030
+TR_var sb = d.TR_get("b") ?? "ab" # ERROR H1030
+TR_var sc = l.TR_first ?? TR_none # ERROR H1030
+TR_var f: TR_Float? = TR_none
+TR_var sf = f ?? 0 # ERROR H1030
+TR_var js = TR_json_parse("{}")
+TR_var sj = js.TR_get("k") ?? TR_false # ERROR H1030
+TR_var se = js.TR_get("k") ?? [] # ERROR H1030
+TR_var sn = 1 ?? 2 # ERROR H1031
+TR_var sz = l.TR_first ?? 0 ?? 1 # ERROR H1031

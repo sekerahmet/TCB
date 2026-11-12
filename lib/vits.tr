@@ -642,15 +642,15 @@ TR_func _çözücü(a: _Alıcı, ayar: TR_JSON) -> _Çözücü {
 
 TR_func _parçalayıcı(yol: TR_String) -> _Parçalayıcı {
     TR_var ayar = TR_json_parse(TR_read_file(_dosya(yol, _PARÇALAYICI)))
-    TR_if TR_Bool(ayar.TR_get("phonemize") ?? TR_false) { TR_throw TR_Message("H7557", "phonemize", TR_true, "other") }
-    TR_if TR_Bool(ayar.TR_get("is_uroman") ?? TR_false) { TR_throw TR_Message("H7557", "is_uroman", TR_true, "other") }
+    TR_if TR_Bool(ayar.TR_get("phonemize") ?? TR_JSON(TR_false)) { TR_throw TR_Message("H7557", "phonemize", TR_true, "other") }
+    TR_if TR_Bool(ayar.TR_get("is_uroman") ?? TR_JSON(TR_false)) { TR_throw TR_Message("H7557", "is_uroman", TR_true, "other") }
     TR_var sözlük: TR_Dict[TR_String, TR_Int] = {}
     TR_var sözcükler: TR_List[TR_List[TR_String]] = []
     TR_for k, v TR_in TR_json_parse(TR_read_file(_dosya(yol, _SÖZLÜK))) {
         sözlük[k] = TR_Int(v)
         sözcükler.TR_append([c TR_for c TR_in k])
     }
-    TR_return _Parçalayıcı(sözlük: sözlük, sözcükler: sözcükler, boşluk_ekle: TR_Bool(ayar.TR_get("add_blank") ?? TR_true), normalle: TR_Bool(ayar.TR_get("normalize") ?? TR_true))
+    TR_return _Parçalayıcı(sözlük: sözlük, sözcükler: sözcükler, boşluk_ekle: TR_Bool(ayar.TR_get("add_blank") ?? TR_JSON(TR_true)), normalle: TR_Bool(ayar.TR_get("normalize") ?? TR_JSON(TR_true)))
 }
 
 TR_func _dosya(yol: TR_String, ad: TR_String) -> TR_Path {

@@ -426,10 +426,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		case "==", "!=", "<", ">", "<=", ">=":
 			return c.comparisonType(e, left, right)
 		case "??":
-			if left != typeNull && left != typeAny {
-				return requiredType(left)
-			}
-			return right
+			return c.coalesceType(e, left, right) // 4.7 (optional_values.go)
 		case "@":
 			return typeTensor
 		case "+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>":

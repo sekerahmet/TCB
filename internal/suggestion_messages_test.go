@@ -127,6 +127,14 @@ var suggestionCases = []suggestionCase{
 	{messages.H1133, "TR_var j: TR_JSON = {\"a\": \"x y\".TR_split(\" \")}\nTR_print(j)", "\"x y\".TR_split(\" \")", "TR_JSON(\"x y\".TR_split(\" \"))"},
 	{messages.H1134, "TR_var j = TR_json_parse(`{}`)\nTR_print(TR_Type(j) == TR_JSON)", "TR_Type(j) == TR_JSON", "TR_Type(j) == TR_Dict"},
 	{messages.H1135, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm[0] = l.TR_first\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
+	// 4.7: '??'nin sağ yanı sol yanın asıl tipinde (H1030'un ipucu H1032 ya da H1033); isteğe bağlı
+	// olmayan sol yanın '??'si silinir (H1031), zincirde de.
+	{messages.H1032, "TR_var l: TR_List[TR_Int] = []\nTR_var x = l.TR_first ?? \"a\"\nTR_print(x)", "l.TR_first ?? \"a\"", "l.TR_first ?? 0"},
+	{messages.H1032, "TR_var f: TR_Float? = TR_none\nTR_var x = f ?? 0\nTR_print(x)", "f ?? 0", "f ?? 0.0"},
+	{messages.H1032, "TR_var b: TR_Bool? = TR_none\nTR_var x = b ?? 1\nTR_print(x)", "b ?? 1", "b ?? TR_false"},
+	{messages.H1033, "TR_var j = TR_json_parse(\"{}\")\nTR_var x = TR_Bool(j.TR_get(\"k\") ?? TR_false)\nTR_print(x)", "j.TR_get(\"k\") ?? TR_false", "j.TR_get(\"k\") ?? TR_JSON(TR_false)"},
+	{messages.H1031, "TR_print(1 ?? 2)", "1 ?? 2", "1"},
+	{messages.H1031, "TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_first ?? 0 ?? 1)", "l.TR_first ?? 0 ?? 1", "l.TR_first ?? 0"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"q\": 3}`)\nTR_print(j.TR_get(\"q\") == 3)", "j.TR_get(\"q\") == 3", "j.TR_get(\"q\") == TR_JSON(3)"},
 	{messages.H1142, "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"2\"))", "\"2\"", "TR_Int(\"2\")"},
 	{messages.H1142, "TR_var adlar = [\"1\", \"2\"]\nTR_var sayılar = [1, 2]\nTR_print(adlar.TR_contains(sayılar.TR_length))", "sayılar.TR_length", "TR_String(sayılar.TR_length)"},

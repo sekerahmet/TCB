@@ -137,7 +137,6 @@ func TestTypedVarCompatible(t *testing.T) {
 		"TR_var bilinmeyen_tip = " + unknownValue + "\nTR_var a: TR_Int = bilinmeyen_tip",
 		"TR_var a: TR_Int = TR_abs(-5)", // birleşim dönüş (TR_Int|TR_Float|TR_Tensor): tip bilinmez
 		"TR_var a: TR_Int = TR_Int(5)",
-		"TR_var a: TR_Int = (5 ?? 6)",
 		`TR_var a: TR_String = TR_none ?? "varsayılan"`,
 		"TR_var a: TR_Int = -5",
 		"TR_var a: TR_Int = 2 ** 3",
@@ -174,7 +173,6 @@ func TestTypedVarIncompatible(t *testing.T) {
 		{"TR_var a: TR_String = () => { }", "TR_String", "TR_Function"},
 		{"TR_var a: Nokta = 5", "Nokta", "TR_Int"},
 		{"TR_const a: TR_String = TR_true", "TR_String", "TR_Bool"},
-		{`TR_var a: TR_String = 5 ?? "x"`, "TR_String", "TR_Int"},
 	}
 	for _, tt := range tests {
 		singleError(t, tt.source, messages.H1001, 1, `"`+tt.expected+`"`, `"`+tt.actual+`"`)

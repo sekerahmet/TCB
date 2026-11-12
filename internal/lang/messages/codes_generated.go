@@ -168,6 +168,10 @@ const (
 	H1024 Code = 1024 // {kind, select, method {'{name}' '{struct}' yapısının metodu, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; metodu {self}.{name}() diye çağırın} other {'{name}' '{struct}' yapısının alanı, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; alanı {self}.{name} diye okuyun ve atayın}}
 	H1025 Code = 1025 // {kind, select, method {'{name}' tanımlı değil; metotta '{struct}' yapısının metodu {self}.{name}() diye çağrılır} other {'{name}' tanımlı değil; metotta '{struct}' yapısının alanı {self}.{name} diye okunur ve atanır}}
 	H1026 Code = 1026 // {names} ad {count} öğeli bir demeti açıyor: sayılar tutmalı; {kind, select, extra {fazla adı silin} other {her öğeye bir ad, gerekmeyenin yerine _ yazın}} ({example})
+	H1030 Code = 1030 // `??`'nin sağ yanı {given} tipinde, sol yanı {left}: sol yan `{#none}` olunca sonuç sağ yandır, bu yüzden sağ yanın tipi tam {expected} ya da {left} olmalı (4.7){hint}
+	H1031 Code = 1031 // `??`'nin sol yanı isteğe bağlı değil ({given}): hiç `{#none}` olmaz, sağ yan hiç kullanılmaz (4.7); `??`'yi ve sağ yanı silin{value, select, empty {} other {: `{value}`}}
+	H1032 Code = 1032 // ; örneğin {kind, select, int {`{value} ?? 0`} float {`{value} ?? 0.0`} string {`{value} ?? ""`} list {`{value} ?? []`} generic {`{value} ?? …`: sağ yana bu tipte bir değer yazın} other {`{value} ?? {#false}`}}
+	H1033 Code = 1033 // ; sağ yanı bir {@JSON} değerine çevirin: `{value} ?? {#JSON}({right})`
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
