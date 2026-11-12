@@ -248,12 +248,26 @@ func (ix *index) printCandidates(w io.Writer, q string, cands []*Node, limit int
 	forEachLimited(w, sorted, limit, "  ", "", func(n *Node) string { return fmt.Sprintf("%s  (id %s)", describe(n), n.ID) })
 }
 
+// edgeSite kenarın yazılacağı (dosya, satır) yeridir: bir dosya ya da belgeye gelen test/gezinti kenarının yeri
+// testin kendi bildirim aralığının dışındaysa (paket düzeyi değişken ya da yardımcı işlev), test düğümünün kendi
+// yeri döndürülür; gövde içindeki doğrudan okuma satırı korunur.
+func (ix *index) edgeSite(e *Edge, other string, n *Node) (string, int) {
+	if n != nil && n.File != "" && other == e.From && (e.Kind == edgeTests || e.Kind == edgeWalks) {
+		if to := ix.byID[e.To]; to != nil && (to.Kind == kindFile || to.Kind == kindDoc) {
+			if !(n.File == e.File && e.Line > 0 && n.Line <= e.Line && e.Line <= max(n.End, n.Line)) {
+				return n.File, n.Line
+			}
+		}
+	}
+	return e.File, e.Line
+}
+
 // edgeLine bir kenarın karşı ucunu yazar; INFERRED etiketi yalnızca çıkarımda görünür.
 func (ix *index) edgeLine(e *Edge, other string, withSite bool) string {
 	n := ix.byID[other]
 	s := describe(n)
 	if withSite {
-		if w := where(e.File, e.Line); w != "" {
+		if w := where(ix.edgeSite(e, other, n)); w != "" {
 			s = fmt.Sprintf("%s [%s] at %s", n.Name, n.Kind, w)
 			if n.Skip != "" {
 				s += "  [skips when: " + n.Skip + "]"

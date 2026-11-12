@@ -248,3 +248,93 @@ func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
 		t.Errorf("untested .md file must not have a run: line:\n%s", out.String())
 	}
 }
+
+// Kural: Go dışı dosyalar (betik, veri dosyası) için tests-for doğrudan okuyanları, bütün listeyi gezenleri
+// (ilk sayfa dışındakiler dahil), cevapta listelenenleri ve depo taramalarını kapsayan `run:` satırı kurar;
+// ağır paketleri -run'sız koşmaz; hiçbir testi ve taraması olmayan yalıtılmış betikte boş `run:` basılmaz.
+func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	ix.root = root
+
+	// 1. Kabuk ve Python betiği (Madde 4): tools/full_check.sh ve tools/bench/run.py.
+	for _, rel := range []string{"tools/full_check.sh", "tools/bench/run.py"} {
+		n := ix.byID["file:"+rel]
+		if n == nil {
+			t.Fatalf("%s node not found", rel)
+		}
+		var out strings.Builder
+		ix.printTestsFor(&out, n, defaultLimit)
+		cmds := runLines(out.String())
+		if len(cmds) == 0 {
+			t.Fatalf("%s: expected run: line, got:\n%s", rel, out.String())
+		}
+		inRun := runCovers(cmds)
+		if rel == "tools/full_check.sh" {
+			nt := ix.testsForNode(n)
+			direct, _ := ix.splitSharedSites(nt.tests)
+			if len(direct) < 10 {
+				t.Fatalf("tools/full_check.sh: expected >=10 direct tests, got %d", len(direct))
+			}
+			for _, e := range direct {
+				if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) {
+					t.Errorf("tools/full_check.sh: direct test %s (%s) not covered by run: line", gt.name, gt.dir)
+				}
+			}
+		}
+	}
+
+	// 2. Veri dosyası ve bütün listeyi gezenler (Madde 6): internal/lang/codes/definitions.json.
+	defs := ix.byID["file:internal/lang/codes/definitions.json"]
+	if defs == nil {
+		t.Fatal("definitions.json node not found")
+	}
+	var out strings.Builder
+	ix.printTestsFor(&out, defs, defaultLimit)
+	defsOut := out.String()
+	cmds := runLines(defsOut)
+	inRun := runCovers(cmds)
+	nt := ix.testsForNode(defs)
+	if len(nt.walks) < 40 {
+		t.Fatalf("definitions.json: expected >=40 whole-list walkers, got %d", len(nt.walks))
+	}
+	for _, e := range nt.walks {
+		if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) {
+			t.Errorf("definitions.json: whole-list walker %s (%s) not covered by run: line", gt.name, gt.dir)
+		}
+	}
+	if !inRun(goTest{"cmd/trlang/e2e", "TestExamplesCoverNames"}) {
+		t.Errorf("definitions.json: beyond-first-page walker e2e.TestExamplesCoverNames must be in run: line:\n%v", cmds)
+	}
+	for _, cmd := range cmds {
+		args, _, hasRun := strings.Cut(strings.TrimPrefix(cmd, "go test -short "), " -run ")
+		for _, a := range strings.Fields(args) {
+			if d := strings.Trim(a, "./"); isHeavyPackage(d) && !hasRun {
+				t.Errorf("definitions.json: heavy package %s must not run whole: %s", d, cmd)
+			}
+		}
+	}
+	if !strings.Contains(defsOut, "not run by these commands:") {
+		t.Errorf("definitions.json: remaining embed users must be counted:\n%s", defsOut)
+	}
+
+	// 3. Olumsuz: hiçbir testi ve taraması olmayan yalıtılmış betik dosyasında boş `run:` basılmaz.
+	fixRoot := auditModule(t, map[string]string{
+		"p/p.go":           "package p\n",
+		"scripts/empty.sh": "#!/bin/sh\necho ok\n",
+	})
+	fg, err := buildGraph(fixRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fix := newIndex(fg)
+	emptyScript := fix.byID["file:scripts/empty.sh"]
+	if emptyScript == nil {
+		t.Fatal("file:scripts/empty.sh not found")
+	}
+	out.Reset()
+	fix.printTestsFor(&out, emptyScript, defaultLimit)
+	if strings.Contains(out.String(), "run:") {
+		t.Errorf("untested script must not print a run: line:\n%s", out.String())
+	}
+}

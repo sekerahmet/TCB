@@ -129,9 +129,7 @@ limit) runs its light packages whole; a heavy package (`heavyTestPackages`: `cmd
 `internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the
 names that fit and a line counting the rest. A file of a heavy package does not get its package whole either: the
 first command names the file's own tests and the package's listed tests, and a line says the package is heavy (the
-full check runs it whole). A `.tr` module gets the same `go test` line for the Go checks that scan it and one
-`run: go run ./cmd/trlang test <file> <file> ...` over the TR test files its answer lists (`trlang test` takes several
-targets). The `run:` lines are not indented, so they are no item of a group.
+full check runs it whole). A non-Go file or doc (a `.tr` module, a data file, a script, a Markdown doc) gets the same `go test` line over its own, whole-list-walking and listed Go tests and the Go checks that scan it, and any file or doc whose answer lists TR tests (Go files included) gets one `run: go run ./cmd/trlang test <file> <file> ...` over those TR test files (`trlang test` takes several targets). The `run:` lines are not indented, so they are no item of a group.
 Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,
 TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to

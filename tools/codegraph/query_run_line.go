@@ -48,56 +48,11 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 // runPlanWith runPlanFor'dur; cevapta adı geçen testler (listed) de adlandırılır (query_run_listed.go).
 func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed listedTests) runPlan {
 	var p runPlan
-	switch {
-	case file.Kind == kindFile && strings.HasSuffix(file.File, ".go"):
+	if file.Kind == kindFile && strings.HasSuffix(file.File, ".go") {
 		p.pkg = path.Dir(file.File)
-	case file.Kind == kindFile && strings.HasSuffix(file.File, ".tr"):
-		p.trFiles = listed.trFiles // .tr modülünün cevapta adı geçen TR test dosyaları: tek `trlang test` satırı
 	}
-	extra, golden := map[goTest]bool{}, map[string]bool{}
-	add := func(n *Node) {
-		if n == nil {
-			return
-		}
-		if t, ok := goTestOf(n); ok && t.dir != p.pkg {
-			extra[t] = true
-			if strings.HasSuffix(t.name, "Golden") {
-				golden[t.name] = true
-			}
-		}
-		for _, r := range ix.fixtureRunners(n) {
-			if t, ok := goTestOf(r); ok && t.dir != p.pkg {
-				extra[t] = true
-			}
-		}
-	}
-	for _, h := range ix.scansCovering(file.File) {
-		for _, t := range h.tests {
-			add(t)
-		}
-	}
-	for _, t := range s.own {
-		add(t)
-	}
-	for _, a := range s.about {
-		add(a.test)
-	}
-	for _, t := range ix.checkerRunnerTests(file, s.all) {
-		add(t)
-	}
-	own := map[string]bool{} // ağır pakette dosyanın paketinin adlandırılan testleri: kendi testleri ve cevapta adı geçenler
-	for _, n := range s.own {
-		if t, ok := goTestOf(n); ok && t.dir == p.pkg {
-			own[t.name] = true
-		}
-	}
-	for _, t := range listed.goTests {
-		if t.dir != p.pkg {
-			extra[t] = true
-		} else {
-			own[t.name] = true
-		}
-	}
+	p.trFiles = trRunFiles(listed, s)
+	extra, golden, own := ix.collectPlanTests(file, p.pkg, s, listed)
 	if isHeavyPackage(p.pkg) {
 		p.pkgFit, p.pkgCut = p.fitNames([]string{p.pkg}, sortedKeys(own))
 	}
@@ -113,18 +68,90 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 		p.heavy = slices.DeleteFunc(slices.Clone(p.others), func(d string) bool { return !isHeavyPackage(d) })
 		p.fit, p.cut = p.fitNames(p.heavy, sortedKeys(heavyNames))
 	}
+	p.rest = ix.unrunSelection(file, ts, s, p)
+	return p
+}
+
+// trRunFiles koşu satırının `trlang test` hedefleridir: önce varsayılan cevapta listelenen sıra (listed.trFiles),
+// ardından s.own ve s.about içindeki henüz eklenmemiş kindTRTest dosyaları.
+func trRunFiles(listed listedTests, s fileTestSet) []string {
+	out := slices.Clone(listed.trFiles)
+	add := func(n *Node) {
+		if n != nil && n.Kind == kindTRTest && n.File != "" && !slices.Contains(out, n.File) {
+			out = append(out, n.File)
+		}
+	}
+	for _, n := range s.own {
+		add(n)
+	}
+	for _, a := range s.about {
+		add(a.test)
+	}
+	return out
+}
+
+// collectPlanTests dosyanın paketi dışındaki Go testlerini (extra), altın dosya testlerini (golden) ve dosyanın
+// kendi paketindeki adlandırılan testlerini (own) toplar.
+func (ix *index) collectPlanTests(file *Node, pkg string, s fileTestSet, listed listedTests) (extra map[goTest]bool, golden, own map[string]bool) {
+	extra, golden, own = map[goTest]bool{}, map[string]bool{}, map[string]bool{}
+	add := func(n *Node) {
+		if n == nil {
+			return
+		}
+		if t, ok := goTestOf(n); ok && t.dir != pkg {
+			extra[t] = true
+			if strings.HasSuffix(t.name, "Golden") {
+				golden[t.name] = true
+			}
+		}
+		for _, r := range ix.fixtureRunners(n) {
+			if t, ok := goTestOf(r); ok && t.dir != pkg {
+				extra[t] = true
+			}
+		}
+	}
+	for _, h := range ix.scansCovering(file.File) {
+		for _, t := range h.tests {
+			add(t)
+		}
+	}
+	for _, t := range s.own {
+		add(t)
+		if gt, ok := goTestOf(t); ok && gt.dir == pkg {
+			own[gt.name] = true
+		}
+	}
+	for _, a := range s.about {
+		add(a.test)
+	}
+	for _, t := range ix.checkerRunnerTests(file, s.all) {
+		add(t)
+	}
+	for _, t := range listed.goTests {
+		if t.dir != pkg {
+			extra[t] = true
+		} else {
+			own[t.name] = true
+		}
+	}
+	return extra, golden, own
+}
+
+// unrunSelection ön denetimin seçiminden (goTestSelection) koşu planının çalıştırmadığı testleri sırasıyla verir.
+func (ix *index) unrunSelection(file *Node, ts *touchSet, s fileTestSet, p runPlan) []goTest {
 	sel := newTouchSet()
 	sel.nodes, sel.files = ts.nodes, map[string]bool{file.File: true}
 	selection := ix.goTestSelection
 	if s.all != nil { // fileTests'ten: all, testsToRun(ts)'in anahtarlarıyla dosyanın kendi testlerinin birleşimi; dosyanınkileri seçim zaten ekler
 		selection = func(sel *touchSet) []goTest { return ix.goTestSelectionFrom(sel, s.all, s.subprocess) }
 	}
+	var rest []goTest
 	for _, t := range selection(sel) {
 		if !p.runs(t) {
-			p.rest = append(p.rest, t)
+			rest = append(rest, t)
 		}
 	}
-	return p
+	return rest
 }
 
 // runs koşu satırlarından biri t'yi koşuyor mu.
@@ -142,13 +169,22 @@ func (p runPlan) runs(t goTest) bool {
 	return true
 }
 
-// docRunPlan bir belge dosyasını (.md) adıyla okuyan ve tarayan testlerden koşu satırını kurar.
-func (ix *index) docRunPlan(doc *Node, t nodeTests, byName []*Edge, listed listedTests) runPlan {
-	own := make([]*Node, 0, len(byName))
-	for _, e := range byName {
+// nodeRunPlan Go dışı bir dosya ya da belge düğümünün (.tr, .md, veri, betik) koşu satırlarını kendi testlerinden,
+// bütün listeyi gezenlerden, doğrudan okuyanlardan, cevapta listelenenlerden ve taramalardan kurar.
+func (ix *index) nodeRunPlan(n *Node, t nodeTests, byName []*Edge, listed listedTests) runPlan {
+	own := slices.Clone(t.own)
+	for _, e := range t.walks {
 		own = append(own, ix.byID[e.From])
 	}
-	return ix.runPlanWith(doc, newTouchSet(), fileTestSet{own: own, about: t.about}, listed)
+	for _, e := range byName {
+		switch {
+		case n.Kind == kindDoc:
+			own = append(own, ix.byID[e.From])
+		case n.Kind == kindFile && isTestCode(ix.byID[e.From]) && (isTestFile(e.File) || strings.HasSuffix(e.File, "_test.tr")):
+			own = append(own, ix.byID[e.From])
+		}
+	}
+	return ix.runPlanWith(n, newTouchSet(), fileTestSet{own: own, about: t.about}, listed)
 }
 
 func sortedKeys(m map[string]bool) []string {

@@ -173,7 +173,7 @@ func TestTheRunAndSizeLinesComeFirst(t *testing.T) {
 		decl := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "  declarations in this file: ") })
 		run := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "run: go test -short ./") })
 		size := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "  size (TestLayoutFileSize") })
-		if run != 1 || size < 0 || size > decl || decl > 6 {
+		if run != 1 || size < 0 || size > decl || decl > 7 {
 			t.Errorf("%s: run line at %d, size line at %d, declarations at %d:\n%s", file.File, run, size, decl, strings.Join(lines[:min(len(lines), 8)], "\n"))
 		}
 	}
