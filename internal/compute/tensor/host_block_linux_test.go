@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"os"
+	"runtime/debug"
 	"testing"
 )
 
@@ -12,4 +13,18 @@ func TestHostBlockLimitFollowsMaxMapCount(t *testing.T) {
 	if got := hostLimits.blocks(); got != want {
 		t.Fatalf("blok sınırı %d, beklenen %d", got, want)
 	}
+}
+
+func TestHostBlockReadAfterReleaseFaults(t *testing.T) {
+	stale := releasedSlice(t)
+	if n := settleHostMemory(func(n int64) bool { return n == 0 }); n != 0 {
+		t.Fatalf("blok bırakılmadı: %d bayt", n)
+	}
+	defer debug.SetPanicOnFault(debug.SetPanicOnFault(true))
+	defer func() {
+		if recover() == nil {
+			t.Fatal("bırakılan bloktan okuma sessizce geçti")
+		}
+	}()
+	t.Log(stale[7])
 }

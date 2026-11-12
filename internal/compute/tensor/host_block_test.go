@@ -6,7 +6,6 @@ import (
 	"math"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"slices"
 	"strings"
 	"testing"
@@ -276,20 +275,6 @@ func releasedSlice(t *testing.T) []byte {
 	b := needBlock(t, hostBlockMin)
 	b.Bytes()[7] = 9
 	return b.Bytes()
-}
-
-func TestHostBlockReadAfterReleaseFaults(t *testing.T) {
-	stale := releasedSlice(t)
-	if n := settleHostMemory(func(n int64) bool { return n == 0 }); n != 0 {
-		t.Fatalf("blok bırakılmadı: %d bayt", n)
-	}
-	defer debug.SetPanicOnFault(debug.SetPanicOnFault(true))
-	defer func() {
-		if recover() == nil {
-			t.Fatal("bırakılan bloktan okuma sessizce geçti")
-		}
-	}()
-	t.Log(stale[7])
 }
 
 // keepProbe çekirdek çalışırken çöp toplar: kapı depoyu canlı tutmuyorsa blok çekirdeğin altından
