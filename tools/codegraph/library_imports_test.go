@@ -245,7 +245,9 @@ func TestALibraryFileListsItsBehaviourTestsFirst(t *testing.T) {
 		checked++
 		if sibling := ix.byID[trFileID(strings.TrimSuffix(n.File, ".tr")+"_test.tr")]; sibling != nil {
 			items, ok := groupItems(strings.Split(out.String(), "\n"), "  this file's tests (")
-			if !ok || len(items) == 0 || strings.Index(out.String(), "  this file's tests (") > strings.Index(out.String(), "  <- tests (") {
+			// Doğrudan test başlığı yoksa (dosyanın tek doğrudan testi kendi test dosyasıysa) sıra şartı yoktur.
+			i, j := strings.Index(out.String(), "  this file's tests ("), strings.Index(out.String(), "  <- tests (")
+			if !ok || len(items) == 0 || (j >= 0 && i > j) {
 				t.Errorf("tests-for %s must list %s in 'this file's tests' before '<- tests (':\n%s", n.File, sibling.File, out.String())
 			}
 		}
