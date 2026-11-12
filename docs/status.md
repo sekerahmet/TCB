@@ -28,7 +28,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 2. 15.6d, yerinde yazma kopyadan geçmez (A; T1; DENETİM 342 Ş4): hedef zincirinde kopya veren adımın hatası, denetleyici ve çalışma anı. İletinin önerisi `.TR_select` ve tensörle indekse yazmaya (15.6d'nin E satırları) bağlı; o gelene kadar H7042'nin çalışan döngüsü.
 3. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
 4. 21.3, `TR_env:`'deki `PATH` (A; S1; Tur 6C): program TR'nin kendi `PATH`'inde aranıyor, başka program sessizce çalışabilir.
-5. 4.7, `??`'nin sağ yanı (A; dil çekirdeği; Gemini uzak 14, DENETİM 555 N1): tipli değişkene başka tipte değer ya da `TR_none` sessizce giriyor.
+5. 4.7, `??`'nin sağ yanı (A; dil çekirdeği; Gemini uzak 14, DENETİM 555 N1): kapandı (main `2c35f5a2`, DENETİM 574); kalan iki D satırı 4.7'de.
 Sonra Ö2: 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14, 15.1'in öğe cinsi. Kol A: 8.5'in işletim sistemi hatası (DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı.
