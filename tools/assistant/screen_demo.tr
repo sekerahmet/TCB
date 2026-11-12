@@ -8,6 +8,7 @@
 # Çıktıdaki adresi tarayıcıda açın, belirteci dosyadan okuyup girin.
 
 TR_import "ekran"
+TR_import "ekran_sunucu"
 TR_import "zincir"
 
 TR_var ayar = TR_command_line({"ekran": 0, "belirteç_dosyası": "", "parça_beklemesi": 0.05, "katlama_beklemesi": 0.0},

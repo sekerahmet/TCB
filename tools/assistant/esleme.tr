@@ -39,7 +39,7 @@ TR_struct Eşİstek {
 TR_struct Eşleme {
     açıcı: (TR_String) -> TR_NoneType
     saat: () -> TR_Int = () => TR_monotonic_ns() // 1000000
-    belirteç: TR_String = "" # sunucu açılınca konur (ekran.tr, `belirteçle_aç`)
+    belirteç: TR_String = "" # sunucu açılınca konur (ekran_sunucu.tr, `belirteçle_aç`)
     adres: TR_String = "" # sayfanın adresi, `http://127.0.0.1:<kapı>/`
     kodlar: TR_Dict[TR_String, Kod] = {}
     sıra: TR_List[TR_String] = [] # tutulan kodlar, eskiden yeniye

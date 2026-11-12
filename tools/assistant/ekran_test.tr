@@ -2,6 +2,7 @@
 # Ekranın modelsiz sınaması: katlama (görüntü olaylardan), komutların kararı, sunulan dosyalar. Tur ve cevap metni
 # ekran_tur_test.tr'de; ortak yardımcılar screen_helpers.tr'de.
 TR_import "ekran"
+TR_import "ekran_sunucu"
 TR_import "screen_helpers"
 
 # Üreteç: belirlenimci sözde rastgele sayılar (doğrusal eşlenik), tohumla aynı dizi.

@@ -14,7 +14,7 @@ Ekranı TR programı sunar (TR'nin HTTP sunucusu ve olay yayıncısı, dil tanı
 - `deneme.tr`, `deneme_test.tr`: canlı denemenin kaydı (aşağıda, "Deneme kaydı"); test modelsizdir.
 - `screen_demo.tr`: ekranı modelsiz açar (sahte zincir: metin turu sözü yineleyen cevabı sözcük sözcük akıtır); ekranı gerçek sunucuyla denemek ve uçtan uca test içindir.
 - `behavior_screen_server_test.go`: `screen_demo.tr`'yi `trlang` ile açar, gerçek bağlantıyla konuşur: belirteçsiz yollar, `401`, `403`, akıştan bir tur, `Last-Event-ID` ile yeniden bağlanma, katlama yavaşken aboneliğin bir gönderime denk gelmesi (parça ekranda tam bir kez).
-- `ekran.tr`, `ekran_test.tr`, `ekran_tur_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): sayfayı ve dil dosyalarını sunar, olayları yayar, komutları alır; testler modelsizdir (`ekran_test.tr` katlama, komutlar, sunulan dosyalar; `ekran_tur_test.tr` tur ve cevap metni). İki testin ortak yardımcıları `screen_helpers.tr`'de.
+- `ekran.tr`, `ekran_sunucu.tr`, `ekran_test.tr`, `ekran_tur_test.tr`: ekranın TR yanı (aşağıda, "Ekranın sunucusu"): `ekran.tr` olayları yayar ve komutları karara bağlar, `ekran_sunucu.tr` sayfayı ve dil dosyalarını sunar, akışı ve komut yolunu açar (`ekran`'ı aktarır, `ekran.tr` onu aktarmaz); testler modelsizdir (`ekran_test.tr` katlama, komutlar, sunulan dosyalar; `ekran_tur_test.tr` tur ve cevap metni). İki testin ortak yardımcıları `screen_helpers.tr`'de.
 - `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 - `yuva.tr`, `yuva_test.tr`: ekranlı kipin model yuvası (aşağıda, "Ekranlı kip"): Dost klasörü, kurulu takım, yükleme işareti, yükleme; test modelsizdir.
 - `esleme.tr`, `esleme_test.tr`: ekranın eşleme kodu (dil tanımı 28.2b): `GET /pair` tek kullanımlık, 120 saniyelik kodla belirteci verir, `GET /pair/renew` yeni kod üretip tarayıcıyı açar; ikisi de üstbilgi ister, yanlış kodlar sınırlanır (60 saniyede 10), günlük satırları kodludur (H8175, H8176); kararı ana döngü verir. Test modelsizdir: sahte saat ve sahte açıcı.
@@ -53,7 +53,7 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
 
 ## Ekranın sunucusu
 
-`ekran.tr` sözleşmenin (`contract.md`) TR yanıdır.
+`ekran.tr` ve `ekran_sunucu.tr` sözleşmenin (`contract.md`) TR yanıdır.
 
 - **Sunucu:** `127.0.0.1`'de, belirteçli (28.2). Sayfa (`/`) ve sayfanın listelediği dil dosyaları (`/lang/<kod>.js`) `TR_tokenless_paths:`'tadır: tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez. `/events` ve `/command` belirteç ister. Başka her yol `404`. Sayfa `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'` ile, sayfa ve dil dosyaları `Cache-Control: no-store` ile gider; akışın `no-store`'unu yayıncı yazar (28.7).
 - **Görüntü yalnız olaylardan katlanır** (`katla`, 28.7'nin `TR_reduce:`'u): son `state` başta, son `metrics` sonda, bir konuşma parçası tek `turn_text` (`replace`), kapanan onay düşer, `error` girmez. Yeni tur açılırken görüntü 512 KiB'ı aşıyorsa eski turlar düşer, açık onay düşmez: görüntü olayın 1 MiB sınırının altında kalır.
