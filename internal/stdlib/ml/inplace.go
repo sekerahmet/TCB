@@ -127,7 +127,7 @@ func applyInPlace(dst *tensor.Tensor, op string, rhs interp.Value) error {
 		if r.Elem() != dst.Elem() {
 			return messages.New(messages.H6966, op+"=", dst.DType().Name(), r.DType().Name(), "compound")
 		}
-		if r, err = convertKind(op+"=", r, dst.DType()); err != nil {
+		if r, err = convertKind(nil, op+"=", r, dst.DType()); err != nil {
 			return err
 		}
 		temps = append(temps, r)

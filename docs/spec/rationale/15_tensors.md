@@ -86,6 +86,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Kaydırmada sol işlenen.** Bit işinde anlam bit genişliğidir; sonucun genişliğini sağ işlenen değiştirmemeli. Reddedilen yol: int64'e yükseltmek (15.6a'ya istisna olurdu).
   - **`TR_and`/`TR_or` tensörde hata.** 4.6 `TR_and`'i `TR_Bool`'a ayırır; maske `&`, `|`, `~` ile birleşir.
   - **Bekleyen işlemler.** Hatası öğeye bağlı olan işlemin hatasını kendi satırında vermek (8, 15.48) GPU'da sonucun beklenmesini ister (15.3'ün bedeli). Bekleme ancak hata mümkünse yapılır: toplamda karar şekil ve hassasiyetten, veri okunmadan verilir. `TR_replay` kaydında bekleme yapılamaz; hata cihaz içi bayrakla kaydedilen satıra bağlanır. Liste tek yerdedir: ajan hangi satırın beklediğini tek yerde okur.
+  - **İlk hatalı öğe** (TCB 2026-11-11, T1'in Dost GPU tasarımı D3; metin T1 dilim 2a): hatalı çıktı öğelerinden düz konumu en küçük olanı. Toplamda (çıkış konumu), öğe öğe işlemde ve birikimli toplamda aynı kural geçer; kullanıcı tensörü satır sırasıyla okur; "ilk" bir döngü sırasına bağlanmaz (işlemcinin `TR_cumsum`'u `(o, i, k)` döngüsüyle başka öğeyi söylüyordu); kartta anahtar doğrudan düz çıktı konumudur, tek `atom.min` konumu ve çeşidi birlikte yazar, sonuç atomların sırasından bağımsızdır. Kayıtta (15.45) ilk hatalı işlem kayıt sırasıyla seçilir: doğrudan çağrı da o işlemde dururdu.
 
 ### 15.6a
 

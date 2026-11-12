@@ -482,7 +482,7 @@ func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
 	if src.Elem() != target.Elem() {
 		return nil, kindMismatch("=", target.DType(), src.DType())
 	}
-	return convertKind("=", src, target.DType())
+	return convertKind(nil, "=", src, target.DType())
 }
 
 // checkWrite yerinde yazmanın türev kurallarını (15.6d "Türev") uygular. dst yazılan tensördür

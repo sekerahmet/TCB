@@ -209,6 +209,21 @@ func fromFloating(k *simInst, f float64) (uint64, error) {
 			return uint64(uint32(1 << 31)), nil
 		}
 		return uint64(uint32(int32(r))), nil
+	case simS64:
+		if k.mode2 == 0 {
+			return 0, internalf("cvt from float to integer needs a rounding mode")
+		}
+		// PTX'teki gibi doyar: NaN 0, aralık dışı uçtaki değer.
+		r := round(k.mode2, f)
+		switch {
+		case f != f:
+			return 0, nil
+		case r >= 1<<63:
+			return uint64(math.MaxInt64), nil
+		case r < -(1 << 63):
+			return 1 << 63, nil
+		}
+		return uint64(int64(r)), nil
 	}
 	return 0, internalf("cvt target unsupported by the simulator")
 }
@@ -216,7 +231,11 @@ func fromFloating(k *simInst, f float64) (uint64, error) {
 func fromInt(k *simInst, f float64, s int64) (uint64, error) {
 	switch k.dtype {
 	case simF32:
-		return f32b(float32(f)), nil
+		// Tek yuvarlama: float64'ten geçmek 2⁵³'ün üstünde çift yuvarlama olurdu (cvt.rn.f32.s64).
+		if k.source == simU64 {
+			return f32b(float32(uint64(s))), nil
+		}
+		return f32b(float32(s)), nil
 	case simF64:
 		return f64b(f), nil
 	case simU16:

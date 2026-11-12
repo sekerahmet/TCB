@@ -30,7 +30,7 @@ func requiresGrad(fn any, named map[string]interp.Value, positional interp.Value
 // sayı ya da mantık değeri (0 boyutlu tensör), aralık, iç içe liste ya da tensör olabilir. Cins
 // veriden çıkar (15.2, tensor_data.go); TR_dtype: cinsin içinde hassasiyeti seçer. Tensörden
 // kaynağın türünde kopya oluşur.
-func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func tensorBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.TypeTensor)
 	if len(args) < 1 {
 		return nil, messages.New(messages.H6001, gradExample)
@@ -88,7 +88,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 				return nil, err
 			}
 		}
-		if t, err = convertKind(fn, t, dt); err != nil {
+		if t, err = convertKind(m, fn, t, dt); err != nil {
 			return nil, err
 		}
 	}
@@ -143,7 +143,7 @@ func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named 
 				return nil, err
 			}
 			// Yeni tensör türev izlemediği için dönüşüm çizgeye kaydedilmez; sonuç yapraktır.
-			if t, err = convertKind(ad, t, dt); err != nil {
+			if t, err = convertKind(m, ad, t, dt); err != nil {
 				return nil, err
 			}
 		}

@@ -39,6 +39,11 @@ func (a *simParser) extras(k *simInst, ek []string) error {
 			k.mode2 = 3
 		case "rpi":
 			k.mode2 = 4
+		case "min":
+			if k.op != simAtom {
+				return internalf("suffix .min outside atom in simulator")
+			}
+			k.mode2 = simAtomMin
 		case "param":
 			k.space = spaceParam
 		case "global":

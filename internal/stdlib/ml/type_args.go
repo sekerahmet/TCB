@@ -104,7 +104,7 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 	if err != nil {
 		return nil, err
 	}
-	if t, err = convertKind(fn, t, dt); err != nil {
+	if t, err = convertKind(m, fn, t, dt); err != nil {
 		return nil, err
 	}
 	if watch {

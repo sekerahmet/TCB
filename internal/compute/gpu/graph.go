@@ -47,6 +47,8 @@ type privatePool struct {
 	free   map[uint64][]privateBlock
 	closed bool
 	held   map[*storage]struct{}
+	// sites kayda giren hata yuvaları, kayıt sırasıyla (fault_slot.go).
+	sites []faultSite
 }
 
 type privateBlock struct{ addr, class uint64 }
@@ -125,6 +127,7 @@ type Graph struct {
 	g           *backend
 	graph, exec uintptr
 	priv        *privatePool
+	sites       []faultSite
 }
 
 // CaptureSupported sürücünün kaydı destekleyip desteklemediği.
@@ -163,7 +166,7 @@ func (g *backend) EndCapture() tensor.Recording {
 		priv.finish()
 		panic(messages.New(messages.H4069, g.sr.errName(s)))
 	}
-	return &Graph{g: g, graph: graph, exec: exec, priv: priv}
+	return &Graph{g: g, graph: graph, exec: exec, priv: priv, sites: priv.sites}
 }
 
 // AbortCapture süren kaydı (varsa) bırakır: akış eski hâline döner, havuz kapanır. Kayıt
