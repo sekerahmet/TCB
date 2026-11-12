@@ -1047,7 +1047,7 @@ const (
 	H5645 Code = 5645 // {fn}: kimlik listelerinin listesi ya da 2 boyutlu tensör bekler, {given} verildi
 	H5646 Code = 5646 // {fn}: tensör 2 boyutlu olmalıdır (her satır bir dizi), {dims} boyutlu verildi
 	H5647 Code = 5647 // {fn}: {id} kimliği {place, select, gap {sözlükte boş: sınırın içinde ama parçası yok} other {dağarcıkta yok}} (dağarcık boyutu {size}){place, select, gap {} other {. Kimlikler çıktısı dağarcıktan büyük bir modelin üretimiyse örneklemeyi dağarcığa sınırlayın: `model.{#generate}(başlangıç, adet, {#vocab_size}: p.{#tok_vocab_size})`}}
-	H5648 Code = 5648 // {@generate}: {@vocab_size} 1 ile modelin çıktı boyu ({out}) arasında olmalıdır, {given} verildi
+	H5648 Code = 5648 // {@generate}: {@vocab_size} 1 ile modelin çıktı boyu ({out}) arasında olmalıdır, {given} verildi{side, select, low {} other {: parçalayıcı modelin çıktısında olmayan kimlikler de tanıyor; önce parçalayıcının bu modelin parçalayıcısı olduğunu denetleyin, değilse modelin kendi parçalayıcısını yükleyin; aynı modelinse fazla kimlikler modelin üretemediği parçalardır (ör. çok kipli bir modelin görüntü yer tutucusu) ve yalnız o zaman örneklemeyi çıktıyla sınırlayın: `{#vocab_size}: {out}`}} (16.3)
 	H5650 Code = 5650 // GGUF dosyası parçalayıcı taşımıyor: hiçbir anahtarı {prefix|q} ile başlamıyor
 	H6001 Code = 6001 // {example} en az 1 parametre bekler
 	H6002 Code = 6002 // {example} en fazla 2 parametre alır, {given} verildi

@@ -50,6 +50,7 @@ TR_const TR_GEMMA3_BLOCK_NAMES = {
 # ya da gemma3) gömme öntanımlı paylaşımlıdır ve her norma float32'de 1 eklenir: Gemma'nın normu
 # x · (1 + w) hesaplar, TR'ninki x · w. Çok kipli gemma3'te metin ağırlıkları language_model. önekindedir;
 # görüntü kulesi (vision_tower., multi_modal_projector.) yüklenmez, başka önek hatadır.
+# Gemma'nın metin dağarcığı 262144'tür: gömmenin ve lm_head'in fazla satırları (4B'de 64) alınmaz (A18).
 TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config) -> TR_Dict[TR_String, TR_Tensor] {
     TR_var tip = TR_String(TR_config_value(TR_config, "model_type", ""))
     TR_var gemma = ["gemma3_text", "gemma3"].TR_contains(tip)
@@ -68,6 +69,7 @@ TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config
         }
         TR_if gemma TR_and ad.TR_ends_with("norm.weight") { t = t.TR_to_dtype("float32") + 1.0 }
         TR_if ad.TR_ends_with("rotary_emb.inv_freq") { TR_continue }
+        TR_if gemma TR_and (ad == "model.embed_tokens.weight" TR_or ad == "lm_head.weight") TR_and t.TR_shape[0] > 262144 { t = t.TR_slice(0, 0, 262144) }
         TR_if ad == "model.embed_tokens.weight" {
             sonuç_sözlük["TR_mem_embedding.TR_mem_table"] = t
         } TR_else TR_if ad == "model.norm.weight" {

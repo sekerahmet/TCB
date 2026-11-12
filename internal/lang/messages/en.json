@@ -1042,7 +1042,7 @@
 "H5645": "{fn}: expects a list of lists of ids or a 2-dimensional tensor, {given} given",
 "H5646": "{fn}: the tensor must be 2-dimensional (one sequence per row), {dims} dimensions given",
 "H5647": "{fn}: id {id} {place, select, gap {is empty in the vocabulary: it is within the bound but has no token} other {is not in the vocabulary}} (vocabulary size {size}){place, select, gap {} other {. If the ids come from a model whose output is larger than the vocabulary, limit sampling to the vocabulary: `model.{#generate}(prompt, count, {#vocab_size}: p.{#tok_vocab_size})`}}",
-"H5648": "{@generate}: {@vocab_size} must be between 1 and the model's output size ({out}), {given} given",
+"H5648": "{@generate}: {@vocab_size} must be between 1 and the model's output size ({out}), {given} given{side, select, low {} other {: the tokenizer knows ids that are not in the model's output; first check that the tokenizer is this model's tokenizer, and if it is not, load the model's own tokenizer; if it is the same model's, the extra ids are tokens the model cannot produce (e.g. the image placeholder of a multimodal model), and only then limit sampling to the output: `{#vocab_size}: {out}`}} (16.3)",
 "H5650": "the GGUF file carries no tokenizer: none of its keys starts with {prefix|q}",
 "H6001": "{example} expects at least 1 parameter",
 "H6002": "{example} takes at most 2 parameters, {given} given",

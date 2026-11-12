@@ -16,7 +16,7 @@
 # açık hatadır; sessizce yanlış model kurulmaz. GGUF'ta `rope_freqs.weight` bölenleri uygulanır.
 # gemma3 (config'te gemma3_text ve çok kipli gemma3'ün text_config'i; görüntü kulesi yüklenmez) aynı iskelete
 # dört seçenek ekler (_gemma_modeli): çıktı normları, GeGLU, √boyut gömme ölçeği, yerel katmanların ayrı RoPE
-# tablosu. 27B ve GGUF'ta dikkat ölçeği bilinmeyen boylar yüklenmez (H7177).
+# tablosu. 27B ve GGUF'ta dikkat ölçeği bilinmeyen boylar yüklenmez (H7177). Metin dağarcığı en çok 262144'tür.
 #
 # Ağırlıklar safetensors'tan (tensör_yükle, dil tanımı 15.47) bir ad eşlemesiyle parametrelere
 # yazılır (parametreleri_yükle, 20.11). Hugging Face nn.Linear ağırlığı [çıkış, giriş], TR'nin
@@ -520,9 +520,9 @@ TR_func _kur(üst_ayar: TR_JSON, tür: TR_String, dosya: TR_String) -> TR_GPT {
     TR_var eps = _ondalık(TR_config_value(ayar, "rms_norm_eps", TR_JSON(0.000001)), "rms_norm_eps", dosya)
     TR_var taban = _rope_tabanı(ayar, dosya)
     TR_var g = TR_if y.gemma3 { _gemma_ayarı(ayar, dosya, katman, bb) } TR_else { _Gemma(pencereler: [], ölçek: 1.0, yerel_taban: 0.0) }
-    TR_var model = TR_GPT(_tam(ayar["vocab_size"], "vocab_size", dosya), TR_context: bağlam, TR_embed_dim: boyut,
-        TR_num_layers: katman, TR_num_heads: bakış,
-        TR_num_kv_heads: _tam(TR_config_value(ayar, "num_key_value_heads", TR_JSON(bakış)), "num_key_value_heads", dosya),
+    TR_var dağarcık = _tam(ayar["vocab_size"], "vocab_size", dosya)
+    TR_var model = TR_GPT(TR_if y.gemma3 { TR_min(dağarcık, 262144) } TR_else { dağarcık }, TR_context: bağlam, TR_embed_dim: boyut,
+        TR_num_layers: katman, TR_num_heads: bakış, TR_num_kv_heads: _tam(TR_config_value(ayar, "num_key_value_heads", TR_JSON(bakış)), "num_key_value_heads", dosya),
         TR_intermediate_dim: _tam(ayar["intermediate_size"], "intermediate_size", dosya),
         TR_tied: _mantık(TR_config_value(ayar, "tie_word_embeddings", TR_JSON(y.gemma3)), "tie_word_embeddings", dosya),
         TR_eps: eps, TR_qk_norm: y.qk_normu, TR_head_dim: bb, TR_windows: TR_if y.gemma3 { g.pencereler } TR_else { TR_none },

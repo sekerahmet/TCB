@@ -7,7 +7,7 @@
 lib/hugging_face.tr:7 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
 lib/hugging_face.tr:7 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
 lib/hugging_face.tr:7 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
-lib/hugging_face.tr:53 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
+lib/hugging_face.tr:54 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
 lib/optimizers.tr:265 parametre TR_fn_parameter_groups.TR_arg_model — model TR_parameters'ın okuduğu her değerdir (yapı, liste, sözlük; 13.8a)
 lib/optimizers.tr:276 parametre parametre_kümeleri.model — model TR_parameters'ın okuduğu her değerdir
 lib/optimizers.tr:371 parametre TR_ctx_init.TR_arg_model — model TR_parameters'ın okuduğu her değerdir

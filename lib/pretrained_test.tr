@@ -321,6 +321,27 @@ TR_test "gemma3: hugging_face_eşle normlara float32'de 1 ekler, Gemma'nın dör
     TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"model.layers.0.input_layernorm.weight": w}, {"model_type": "gemma3"}) })
 }
 
+# Kural (15.55, A18 (a)): Gemma'nın metin dağarcığı en çok 262144'tür (4B'nin config'i ve gömmesi 262208: 64 satır
+# fazla, GGUF'ta yok). Model 262144 logit kurar, eşleme gömmenin ve lm_head'in ilk 262144 satırını alır; küçük
+# dağarcık ve Llama aynı kalır. Gerçek dağarcık boyu, gizli boyut 8.
+TR_test "gemma3: metin dağarcığı en çok 262144'tür; eşleme gömmenin ve lm_head'in fazla satırlarını almaz, Llama'da tamamını alır (A18)" {
+    TR_var a = gemma_ayarı()
+    a["vocab_size"] = TR_JSON(262208)
+    a["num_hidden_layers"] = TR_JSON(1)
+    TR_var m = TR_build_pretrained_model(a)
+    TR_assert_equal([262144, 8], m.TR_embedding.TR_table.TR_shape)
+    TR_assert_equal(262144, m.TR_config["dağarcık"])
+    TR_no_grad { TR_assert_equal([1, 1, 262144], m.TR_forward(TR_Tensor([[3]])).TR_shape) }
+    TR_assert_equal([16, 8], TR_build_pretrained_model(gemma_ayarı()).TR_embedding.TR_table.TR_shape)
+    TR_var büyük = TR_randn([262208, 2], TR_seed: 3)
+    TR_var e = TR_map_hugging_face({"model.embed_tokens.weight": büyük, "lm_head.weight": büyük}, {"model_type": "gemma3_text", "tie_word_embeddings": TR_false})
+    TR_assert_equal([262144, 2], e["TR_mem_embedding.TR_mem_table"].TR_shape)
+    TR_assert_equal(büyük[262143].TR_tolist, e["TR_mem_embedding.TR_mem_table"][262143].TR_tolist)
+    TR_assert_equal([2, 262144], e["TR_mem_logit_layer.TR_mem_weight"].TR_shape)
+    TR_var l = TR_map_hugging_face({"model.embed_tokens.weight": büyük}, {"model_type": "llama"})
+    TR_assert_equal([262208, 2], l["TR_mem_embedding.TR_mem_table"].TR_shape)
+}
+
 # kayıt_adları modelin adlı yapraklarını verir; trt ve safetensors dosyasının anahtarları aynı adlardır.
 TR_func kayıt_adları(m: TR_GPT) -> TR_List[TR_String] {
     TR_var adlar = TR_parameters(m, TR_named: TR_true)

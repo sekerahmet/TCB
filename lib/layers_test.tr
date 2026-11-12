@@ -253,6 +253,36 @@ TR_test "GPT: üret dağarcık_boyutu ile dağarcık dışı kimlik üretmez" {
     TR_assert_equal("H5648", TR_error_code { m.TR_generate([1], 2, TR_vocab_size: 41) })
 }
 
+# üret_iletisi üret'in hata iletisini iki dilde verir (["", ""] hata yoksa).
+TR_func üret_iletisi(m: TR_GPT, dağarcık: TR_Int) -> TR_List[TR_String] {
+    TR_try { m.TR_generate([1], 2, TR_vocab_size: dağarcık) } TR_catch e { TR_return [e.TR_text("tr"), e.TR_text("en")] }
+    TR_return ["", ""]
+}
+
+# Kural (16.3, A18): dağarcık_boyutu çıktıdan büyükse H5648 önce parçalayıcının bu modelin parçalayıcısı
+# olduğunun denetimini söyler; örneklemeyi çıktıyla sınırlayan yazım yalnız aynı modelin fazla kimliğini
+# anlatan cümlenin içindedir ve kopyalanınca çalışır. 1'den küçük değerde öneri yoktur.
+TR_test "GPT.üret: çıktıdan büyük dağarcık_boyutu H5648'dir; ileti önce denetimi, sonra çıktıyla sınırlayan yazımı söyler" {
+    TR_var m = TR_GPT(8, TR_context: 8, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)
+    TR_assert_equal("H5648", TR_error_code { m.TR_generate([1], 2, TR_vocab_size: 9) })
+    TR_var iki = üret_iletisi(m, 9)
+    TR_var tr = iki[0]
+    TR_var en = iki[1]
+    TR_var denetim = tr.TR_index_of("önce parçalayıcının bu modelin parçalayıcısı olduğunu denetleyin") ?? -1
+    TR_var fazla = tr.TR_index_of("aynı modelinse fazla kimlikler") ?? -1
+    TR_var yazım = tr.TR_index_of("`TR_vocab_size: 8`") ?? -1
+    TR_assert(denetim >= 0 TR_and fazla > denetim TR_and yazım > fazla, tr)
+    TR_assert_equal(1, tr.TR_split("`").TR_length // 2, tr) # tek kod yazımı
+    TR_assert(en.TR_contains("first check that the tokenizer is this model's tokenizer") TR_and en.TR_contains("`TR_vocab_size: 8`"), en)
+    # Önerilen yazım çalışır: üretim çıktının dışında kimlik vermez.
+    TR_for i TR_in 0..10 {
+        TR_for k TR_in m.TR_generate([1], 8, TR_seed: i, TR_vocab_size: 8) { TR_assert(k < 8, "\(i). tohumda \(k)") }
+    }
+    # 1'den küçük değer low dalıdır: öneri yok.
+    TR_var düşük = üret_iletisi(m, 0)[0]
+    TR_assert(düşük.TR_ends_with("0 verildi (16.3)") TR_and TR_not düşük.TR_contains("`"), düşük)
+}
+
 # KV önbelleği: önbellekli ileri hesap önbelleksizle aynı logitleri verir. Başlangıç bir kez,
 # sonraki parçalar tek tek işlenir; her adımın son logiti bütün dizinin aynı konumdaki logitine
 # eşittir. GQA, kayan pencere, qk normu ve PLE'li model; iki önbellek çeşidi.

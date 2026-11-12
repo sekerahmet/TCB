@@ -676,7 +676,9 @@ TR_struct TR_GPT {
     # üretmez (16.3). yok ise bütün çıktıdan; unutulursa çöz'ün dağarcık dışı kimlik hatası yakalar.
     TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_List[TR_Int] = [], TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true, TR_vocab_size: TR_Int? = TR_none) -> TR_List[TR_Int] {
         TR_var çıkış = TR_self.TR_config["dağarcık"]
-        TR_assert(TR_vocab_size == TR_none TR_or (TR_vocab_size >= 1 TR_and TR_vocab_size <= çıkış), TR_Message("H5648", TR_vocab_size, çıkış))
+        TR_if TR_not (TR_vocab_size == TR_none TR_or (TR_vocab_size >= 1 TR_and TR_vocab_size <= çıkış)) {
+            TR_throw TR_Message("H5648", TR_vocab_size, çıkış, TR_if TR_vocab_size < 1 { "low" } TR_else { "other" })
+        }
         # Adlı argümanın tipi bugün denetlenmiyor (docs/status.md, 6.5): tek sayı burada adıyla durur.
         TR_if TR_Type(TR_eos) == TR_Int { TR_throw TR_Message("H7172", "\(TR_eos)") }
         TR_if TR_Type(TR_eos) == TR_Function { TR_throw TR_Message("H7173") }

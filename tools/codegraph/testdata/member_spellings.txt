@@ -704,6 +704,8 @@ düz.TR_input_norm	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_i
 düz.TR_ple	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_ple
 düz.TR_reshape	ok	0	name:TR_mem_reshape
 düzenden.TR_length	ok	0	name:TR_mem_length
+düşük.TR_contains	ok	0	name:TR_mem_contains
+düşük.TR_ends_with	ok	0	name:TR_mem_ends_with
 dış.TR_tolist	ok	0	name:TR_mem_tolist
 dış.TR_update	ok	0	name:TR_mem_update
 e.TR_Run	not_found	4	-
@@ -741,6 +743,7 @@ eklenen.TR_join	ok	0	name:TR_mem_join
 ekler.TR_length	ok	0	name:TR_mem_length
 ekler_ters.TR_length	ok	0	name:TR_mem_length
 elle.TR_tolist	ok	0	name:TR_mem_tolist
+en.TR_contains	ok	0	name:TR_mem_contains
 erken.TR_headers	ok	0	name:TR_mem_headers
 erken.TR_status	ok	0	name:TR_mem_status
 es.TR_append	ok	0	name:TR_mem_append
@@ -1664,6 +1667,8 @@ tekler.TR_append	ok	0	name:TR_mem_append
 tensörler.TR_contains	ok	0	name:TR_mem_contains
 tetikler.TR_contains	ok	0	name:TR_mem_contains
 toplu.TR_length	ok	0	name:TR_mem_length
+tr.TR_index_of	ok	0	name:TR_mem_index_of
+tr.TR_split	ok	0	name:TR_mem_split
 tr_linear.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
 tr_linear.TR_map	ok	0	name:TR_mem_map
 turlar.TR_append	ok	0	name:TR_mem_append

@@ -1042,7 +1042,7 @@
 "H5645": { "param": ["fn", "given"] },
 "H5646": { "param": ["fn", "dims"] },
 "H5647": { "param": ["fn", "id", "size", "place"], "slots": {"generate": "TR_mem_generate", "vocab_size": "TR_arg_vocab_size", "tok_vocab_size": "TR_mem_vocab_size"} },
-"H5648": { "param": ["given", "out"], "slots": {"generate": "TR_mem_generate", "vocab_size": "TR_arg_vocab_size"} },
+"H5648": { "param": ["given", "out", "side"], "slots": {"generate": "TR_mem_generate", "vocab_size": "TR_arg_vocab_size"} },
 "H5650": { "param": ["prefix"] },
 "H6001": { "param": ["example"] },
 "H6002": { "param": ["example", "given"] },
