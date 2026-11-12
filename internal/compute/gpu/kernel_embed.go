@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"math"
 	"sort"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -19,12 +20,13 @@ const embedBlock = 128
 
 // embedKernel out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
 // tablo float32'ye açılmadan, nicemlenmiş tablonun yalnız seçilen blokları) okunur. at doğruysa indeks cihazdaki bir tensördendir
-// (float32 tam sayı değerli; kayıt içindeki gömme, tensor.EmbeddingAt): [0, V−1]'e kırpılır.
+// (kayıt içindeki gömme, tensor.EmbeddingAt): tam sayı değilse ya da [0, V−1]'in dışındaysa
+// kırpılmaz, satır 0 yazılır, tablo okunmaz, hatanın anahtarı (konum r) bayrağa (15.45).
 func embedKernel(dt tensor.DType, at bool, it tensor.DType) func() *emitter {
 	return func() *emitter { return genEmbed(dt, at, it) }
 }
 
-// genEmbed it indeks tensörünün türüdür (at'de: float32 ya da "int64").
+// genEmbed it indeks tensörünün türüdür (at'de: float32, float64 ya da "int64").
 func genEmbed(dt tensor.DType, at bool, it tensor.DType) *emitter {
 	name := "gomme_" + dt.String()
 	if at {
@@ -41,9 +43,18 @@ func genEmbed(dt tensor.DType, at bool, it tensor.DType) *emitter {
 	r := k.special("%ctaid.x")
 	tid := k.special("%tid.x")
 	row := k.r()
+	var end string
 	if at {
 		V := k.u32p("v")
-		k.indexAt(row, it, k.address(idx, r, dtypeSize(it)), V)
+		flag := k.written("bayrak")
+		end = k.label()
+		bad, kind := k.indexAt(row, it, k.address(idx, r, dtypeSize(it)), V)
+		ok := k.label()
+		k.jumpUnless(bad, ok)
+		k.leaderFault(flag, tid, r, kind)
+		k.zeroRow(out, r, D, tid)
+		k.jump(end)
+		k.put(ok)
 	} else {
 		k.e("ld.global.u32", row, mem(k.address(idx, r, 4), 0))
 	}
@@ -56,7 +67,22 @@ func genEmbed(dt tensor.DType, at bool, it tensor.DType) *emitter {
 		k.e("add.s32", hs, target, j)
 		k.store(tensor.Float32, k.address(out, hs, 4), k.tableValue(dt, w, ks))
 	})
+	if at {
+		k.put(end)
+	}
 	return k
+}
+
+// zeroRow out'un r. satırına (D float32) 0 yazar: hatalı indeksin satırı (tablo okunmaz).
+func (k *emitter) zeroRow(out, r, D, tid reg) {
+	target, zero := k.r(), k.f()
+	k.e("mul.lo.s32", target, r, D)
+	k.e("mov.f32", zero, float32(0))
+	k.rowLoop(tid, D, k.whole(1), k.whole(0), embedBlock, func(ofs, j reg) {
+		hs := k.r()
+		k.e("add.s32", hs, target, j)
+		k.store(tensor.Float32, k.address(out, hs, 4), zero)
+	})
 }
 
 // tableValue tablonun ks. öğesidir: nicemlenmiş tabloda yalnız o öğenin bloğu okunur (15.53).
@@ -67,29 +93,51 @@ func (k *emitter) tableValue(dt tensor.DType, w, ks reg) reg {
 	return k.load(dt, k.address(w, ks, dtypeSize(dt)))
 }
 
-// indexAt i'ye adresteki indeksi [0, n−1]'e kırpılmış yazar: float32 indeks sıfıra doğru
-// kesilir; "int64" indeks 64 bitte kırpılır, sonra daraltılır (2³²'nin üstü sarmaz).
-func (k *emitter) indexAt(i reg, it tensor.DType, addr, n reg) {
-	if it != tensor.Int64 {
-		k.e("cvt.rzi.s32.f32", i, k.load(tensor.Float32, addr))
-		k.clampIndex(i, n)
-		return
+// indexAt adresteki indeksi okur: bad tam sayı olmayan ya da [0, n−1]'in dışındaki indekste
+// doğrudur, kind çeşididir (tensor.FaultIndexNotInt, FaultIndexRange); bad yanlışsa i indekstir.
+// Ondalık indeks doğrudan çağrının ölçütüyle tam sayı mı diye bakılır (ml'nin IntElements'i:
+// NaN, sonsuz, 2⁶³ ve üstü, −2⁶³'ün altı ya da kesirli değer tam sayı değil); float64 kendi
+// türünde. "int64" indeks 64 bitte karşılaştırılır (2³²'nin üstü sarmaz).
+func (k *emitter) indexAt(i reg, it tensor.DType, addr, n reg) (bad, kind reg) {
+	v := k.rd()
+	kind = k.r()
+	bad = k.p()
+	var notInt reg
+	if it == tensor.Int64 {
+		k.e("ld.global.s64", v, mem(addr, 0))
+	} else {
+		x, t := k.fd(), k.fd()
+		if it == tensor.Float64 {
+			k.e("mov.b64", x, k.rawLoad(it, addr))
+		} else {
+			k.e("cvt.f64.f32", x, k.load(tensor.Float32, addr))
+		}
+		nan, high, low, frac := k.p(), k.p(), k.p(), k.p()
+		notInt = k.p()
+		k.e("setp.nan.f64", nan, x, x)
+		k.e("setp.ge.f64", high, x, math.Ldexp(1, 63))
+		k.e("setp.lt.f64", low, x, -math.Ldexp(1, 63))
+		k.e("cvt.rzi.f64.f64", t, x)
+		k.e("setp.ne.f64", frac, t, x)
+		k.e("or.pred", notInt, nan, high)
+		k.e("or.pred", notInt, notInt, low)
+		k.e("or.pred", notInt, notInt, frac)
+		k.e("cvt.rzi.s64.f64", v, x) // tam sayı değilse doyar ya da 0; kullanılmaz
 	}
-	v, last := k.rd(), k.rd()
-	k.e("ld.global.s64", v, mem(addr, 0))
+	last := k.rd()
 	k.e("cvt.u64.u32", last, n)
 	k.e("add.s64", last, last, -1)
-	k.e("max.s64", v, v, 0)
-	k.e("min.s64", v, v, last)
+	neg, over := k.p(), k.p()
+	k.e("setp.lt.s64", neg, v, 0)
+	k.e("setp.gt.s64", over, v, last)
+	k.e("or.pred", bad, neg, over)
+	k.e("mov.u32", kind, int(tensor.FaultIndexRange))
+	if it != tensor.Int64 {
+		k.e("or.pred", bad, bad, notInt)
+		k.e("selp.u32", kind, int(tensor.FaultIndexNotInt), kind, notInt)
+	}
 	k.e("cvt.u32.u64", i, v)
-}
-
-// clampIndex i'yi [0, n−1]'e kırpar (işaretli).
-func (k *emitter) clampIndex(i, n reg) {
-	last := k.r()
-	k.e("add.s32", last, n, -1)
-	k.e("max.s32", i, i, 0)
-	k.e("min.s32", i, i, last)
+	return bad, kind
 }
 
 // embedBackwardKernel gw[tekil[u], :] += Σ_{p ∈ grup u} g[konum[p], :] (sırayla).

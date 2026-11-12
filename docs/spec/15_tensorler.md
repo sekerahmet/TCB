@@ -167,7 +167,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Kaynak hedefle örtüşüyorsa (hedefin bir dilimiyse) önce kopyalanır.
 - Türevle ilişkisi 15.6d'nin üç kuralıdır (türevsiz kip).
 - `hedef.TR_slice(...)[...] = kaynak` ile aynı işi yapar; farkı `TR_replay` kaydındadır: tensörle verilen başlangıç her oynatmada okunur ve sınır dışı değer kırpılmaz, cihaz içi bayrakla hata verir (15.45). Bu denetimler kayıt içinde ve dışında aynıdır.
-- *Test:* TR testi; Go: `TestWriteSliceChecks`, `TestWriteSliceSameRulesInsideAndOutsideRecording`; adsız kopya hedefin hatası: gerekmez, henüz uygulanmadı (15.6d).
+- *Test:* TR testi; Go: `TestWriteSliceChecks`, `TestWriteSliceSameRulesInsideAndOutsideRecording`, `TestReplayIndexFaultsMatchDirectCall`; adsız kopya hedefin hatası: gerekmez, henüz uygulanmadı (15.6d).
 
 ## Öğe öğe matematik
 
@@ -565,7 +565,7 @@ op.TR_zero_grad()
 - **Hatalar kırpılmaz:** kayıtta `TR_embedding_lookup`'ın tensör indeksi, `TR_write_slice`'ın tensör başlangıcı ve 15.6'nın bekleyen işlemleri cihaz içi hata bayrağına yazar; bayrak kaydın hatalı ilk işleminin ilk hatalı öğesini (15.6) tutar, sınır dışı erişim belleğe dokunmadan bayrağı yazar; bayrak oynatmanın sonunda bir kez okunur ve ileti kaydedilen satırı söyler. Hata verilen oynatmada yerinde değiştirilen argümanların ve kapanış tensörlerinin (KV önbelleği) içeriği tanımsızdır: hata o ana kadar yapılmış yazmaları geri almaz, program durumu yeniden kurar.
 - Kayıt sırasında kilit başka göreve geçmez; kayıtta görev beklemek hatadır. Kayda giren tensörlerin belleğini kayıt tutar; `TR_replay`'in döndürdüğü fonksiyona ulaşılamayınca kayıt ve bellek bırakılır.
 - Kaydı desteklemeyen cihazda (CPU) `f` doğrudan çağrılır.
-- *Test:* TR testi; Go: `TestGraphReplayMatchesEager`, `TestReplayMatchesDirectCalls`, `TestReplayArgumentsKeepDirectCallMeaning`, `TestReplayNestedRunsInsideOuterRecording`, `TestReplayErrors`, `TestReplayConversionFaultNamesRecordedLine`; `TR_embedding_lookup`'ın ve `TR_write_slice`'ın bayrağı (2c) ve kapanış denetimi uygulanınca Go testi.
+- *Test:* TR testi; Go: `TestGraphReplayMatchesEager`, `TestReplayMatchesDirectCalls`, `TestReplayArgumentsKeepDirectCallMeaning`, `TestReplayNestedRunsInsideOuterRecording`, `TestReplayErrors`, `TestReplayConversionFaultNamesRecordedLine`, `TestReplayIndexFaultsMatchDirectCall`; kapanış denetimi uygulanınca Go testi.
 
 ## Dosyalar
 

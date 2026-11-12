@@ -37,13 +37,16 @@ const faultSlotWords = 4
 const emptyKey = math.MaxUint64
 
 // faultSite bir hata yuvası: yuvanın kendisi, ayrıntıyı yeniden hesaplamak için işlem ve türler,
-// iletinin konumu için çıktının şekli (oynatmada çağıranın şekli yoktur).
+// iletinin konumu için çıktının şekli (oynatmada çağıranın şekli yoktur). index doğruysa yuva
+// bir indeks çekirdeğinindir (gömme, dilim yazma; backend_indexed.go): işlemi yoktur, ayrıntı
+// indeksin değeridir (ins[0] türünde).
 type faultSite struct {
 	slot  *storage
 	op    tensor.TypedOp
 	out   tensor.DType
 	ins   []tensor.DType
 	shape []int
+	index bool
 }
 
 // takeSlot işlemin yuvasını verir ve boşaltır: kayıtta kaydın havuzundan yeni bir yuva, kayıt
@@ -88,7 +91,12 @@ func (g *backend) readSlot(s faultSite) *tensor.ElemFault {
 	if w[0] == emptyKey {
 		return nil
 	}
-	f := tensor.FaultFromSlot(s.op, s.out, s.ins, w[0], w[1:1+len(s.ins)])
+	var f *tensor.ElemFault
+	if s.index {
+		f = tensor.IndexFaultFromSlot(s.ins[0], w[0], w[1])
+	} else {
+		f = tensor.FaultFromSlot(s.op, s.out, s.ins, w[0], w[1:1+len(s.ins)])
+	}
 	f.Shape = slices.Clone(s.shape)
 	return f
 }
@@ -108,6 +116,28 @@ func (c *Graph) FirstFault() (int, *tensor.ElemFault) {
 		}
 	}
 	return -1, nil
+}
+
+// writeFault hatanın anahtarını (at << 4 | kind; at ve kind u32) bayrağa tek
+// atom.global.min.u64 ile yazar: en küçük konum kazanır (15.6).
+func (k *emitter) writeFault(flag, at, kind reg) {
+	key, kd := k.rd(), k.rd()
+	k.e("cvt.u64.u32", key, at)
+	k.e("shl.b64", key, key, 4)
+	k.e("cvt.u64.u32", kd, kind)
+	k.e("or.b64", key, key, kd)
+	old := k.rd()
+	k.e("atom.global.min.u64", old, mem(flag, 0), key)
+}
+
+// leaderFault writeFault'u yalnız lane 0 olan iş parçacığında yapar (aynı hatayı gören iş
+// parçacıklarından biri: gömmenin satır bloğu, dilim yazmanın öğeleri).
+func (k *emitter) leaderFault(flag, lane, at, kind reg) {
+	skip, p := k.label(), k.p()
+	k.e("setp.ne.u32", p, lane, 0)
+	k.jumpIf(p, skip)
+	k.writeFault(flag, at, kind)
+	k.put(skip)
 }
 
 // faultGatherKernel tek iş parçacığı: yuvanın anahtarı doluysa konumun girdilerini (yayınlamalı;

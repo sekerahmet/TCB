@@ -404,8 +404,9 @@ var nameStart = bind.NamedArg(codes.ArgStart)
 // Hedef bitişik olmalıdır; kaynağın eksen sayısı ve öbür eksenleri hedefinkiyle aynıdır
 // (yayınlama yok). Bu denetimler kayıt içinde ve dışında aynıdır. Kayıt dışında konum konakta
 // okunur ve denetlenir; kayıt içinde tensörle verilen konum cihazdan okunur (her oynatmada),
-// sınır dışıysa kırpılır (lax.dynamic_update_slice gibi).
-func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+// sınır dışı ya da tam sayı değilse kırpılmaz: hedefe yazılmaz, cihaz içi bayrağa yazar (15.45,
+// lax.dynamic_update_slice'tan farklı); ileti oynatmadan sonra, doğrudan çağrınınkiyle aynı.
+func writeSliceBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnWriteSlice)
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(codes.FnWriteSlice, 2, len(args))
@@ -434,7 +435,6 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	if err != nil {
 		return nil, err
 	}
-	sh := dst.t.Shape()
 	n := src.Shape()[axis]
 	sv, ok := bind.GetNamed(named, nameStart)
 	if !ok {
@@ -449,33 +449,72 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			return nil, err
 		}
 	}
-	_, err = safe(func() *tensor.Tensor {
-		if isTensor && tensor.Capturing(dst.t.Device()) {
-			tensor.UpdateSliceAt(dst.t, src, st.t, axis)
+	if err := writeSliceStart(m, fn, dst.t, src, sv, st, axis, n); err != nil {
+		return nil, err
+	}
+	return interp.Null, nil
+}
+
+// writeSliceStart başlangıcı okur ve dilimi yazar. Kayıtta tensörle verilen başlangıç (st)
+// cihazdan okunur, hatası bayrağa yazar (writeSliceFault). Kayıt dışında başlangıç konakta
+// denetlenir: H6441 ve H6442 programın hatasıdır, tensör işleminin hatası değil (H6006'ya
+// sarılmaz; kayıttaki iletiyle aynı). st nil ise başlangıç sayıdır (sv).
+func writeSliceStart(m *interp.VM, fn any, dst, src *tensor.Tensor, sv interp.Value, st *TensorValue, axis, n int) error {
+	size := dst.Shape()[axis]
+	if st != nil && tensor.Capturing(dst.Device()) {
+		var fault *tensor.ElemFault
+		_, err := safe(func() *tensor.Tensor {
+			fault = tensor.UpdateSliceAt(dst, src, st.t, axis)
 			return nil
+		})
+		if err != nil || fault == nil {
+			return err
 		}
-		start, integer := 0, true
-		if isTensor && st.t.Elem() == tensor.ElemInt {
+		dt, dev := st.t.DType(), st.t.Device()
+		return recordFault(m, fault, func(f *tensor.ElemFault) error { return writeSliceFault(fn, f, dt, dev, n, size) })
+	}
+	start, integer := 0, true
+	_, err := safe(func() *tensor.Tensor {
+		if st != nil && st.t.Elem() == tensor.ElemInt {
 			start = int(st.t.Int64s()[0])
-		} else if isTensor {
+		} else if st != nil {
 			x := st.t.Item()
 			start, integer = int(x), float32(int(x)) == x
 		} else {
 			start, integer = intNumber(sv)
 		}
-		if !integer {
-			panic(messages.New(messages.H6441, fn, interp.Shown(sv)))
-		}
-		if start < 0 || start+n > sh[axis] {
-			panic(messages.New(messages.H6442, fn, start, n, sh[axis]))
-		}
-		tensor.NoGrad(func() { dst.t.Slice(axis, start, start+n).CopyFrom(src) })
 		return nil
 	})
-	if err != nil {
-		return nil, err
+	switch {
+	case err != nil:
+		return err
+	case !integer:
+		return messages.New(messages.H6441, fn, interp.Shown(sv))
+	case start < 0 || start+n > size:
+		return messages.New(messages.H6442, fn, start, n, size)
 	}
-	return interp.Null, nil
+	_, err = safe(func() *tensor.Tensor {
+		tensor.NoGrad(func() { dst.Slice(axis, start, start+n).CopyFrom(src) })
+		return nil
+	})
+	return err
+}
+
+// writeSliceFault kayıttaki hatalı başlangıcın iletisi: doğrudan çağrınınkiyle aynı (H6441'de
+// başlangıç kendi hassasiyetinde ve cihazında 0 boyutlu tensör olarak gösterilir).
+func writeSliceFault(fn any, f *tensor.ElemFault, dt tensor.DType, dev tensor.Device, n, size int) error {
+	if f.Kind == tensor.FaultIndexNotInt {
+		t := tensor.NewOn(dev, []float32{float32(f.Float)})
+		if dt != tensor.Float32 {
+			t = t.Cast(dt)
+		}
+		return messages.New(messages.H6441, fn, interp.Shown(New(t)))
+	}
+	start := int(f.Int)
+	if f.DType != tensor.Int64 {
+		start = int(f.Float)
+	}
+	return messages.New(messages.H6442, fn, start, n, size)
 }
 
 // writeSliceAxis yerine_yaz'ın eksenini çözer (varsayılan son eksen) ve kaynağın o eksendeki

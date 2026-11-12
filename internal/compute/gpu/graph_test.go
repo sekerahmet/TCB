@@ -108,8 +108,10 @@ func TestGraphPrivatePool(t *testing.T) {
 	}
 }
 
-// Kayıt içinde indeksi cihazdan okuyan gömme ve dilim yazma: her oynatma indeks tensörünün o
-// anki değerini okur; sınır dışı indeks kırpılır (gömmede [0, V−1], dilimde [0, Td−Ts]).
+// Kural (15.45, 15.8; T1 dilim 2c): kayıttaki gömme ve dilim yazma indeksi her oynatmada
+// cihazdan okur: hatasız oynatma doğrudan çağrının sonucunu verir; sınır dışı indeks ve
+// başlangıç kırpılmaz, cihaz içi bayrağa yazar ve hedefe dokunmaz (kayıt sırasındaki ilk yuva,
+// dilim yazma, hatadır). Ayrıntılar TestIndexedFaultsInsideRecording'de.
 func TestGraphIndexedOps(t *testing.T) {
 	g := gpuBackend()
 	if !g.CaptureSupported() {
@@ -123,40 +125,65 @@ func TestGraphIndexedOps(t *testing.T) {
 	pos := tensor.NewOn(gpuDevice, []float32{0}) // 0 boyutlu
 	cache := tensor.NewOn(gpuDevice, make([]float32, B*Td*I), B, Td, I)
 	src := tensor.NewOn(gpuDevice, random(rng, B*Ts*I, 1), B, Ts, I)
-	step := func() *tensor.Tensor {
-		tensor.UpdateSliceAt(cache, src, pos, 1)
-		return tensor.EmbeddingAt(w, ids)
+	step := func() (*tensor.Tensor, []*tensor.ElemFault) {
+		fs := tensor.UpdateSliceAt(cache, src, pos, 1)
+		out, fe := tensor.EmbeddingAt(w, ids)
+		return out, []*tensor.ElemFault{fs, fe}
 	}
-	step()
+	if _, fs := step(); fs[0] != nil || fs[1] != nil {
+		t.Fatalf("ısınma: %+v", fs)
+	}
 	g.BeginCapture()
-	out := step()
+	out, _ := step()
 	gr := g.EndCapture()
 	defer gr.Release()
 	srcData := src.Data()
 	want := cache.Data() // ısınma çağrısı 0. konuma yazdı
-	for _, c := range []struct {
-		ids [2]float32
-		pos float32
-	}{{[2]float32{3, 6}, 1}, {[2]float32{-4, 99}, 9}, {[2]float32{2, 1}, 0}} {
-		ids.CopyFrom(tensor.NewOn(gpuDevice, c.ids[:], 2))
-		pos.CopyFrom(tensor.NewOn(gpuDevice, []float32{c.pos}))
-		gr.Replay()
-		got := out.Data()
-		for r, id := range c.ids {
-			row := min(max(int(id), 0), V-1)
-			for j := 0; j < D; j++ {
-				if got[r*D+j] != tablo[row*D+j] {
-					t.Fatalf("gömme indeks %v: [%d,%d] = %v, beklenen %v", id, r, j, got[r*D+j], tablo[row*D+j])
-				}
-			}
-		}
-		s := min(max(int(c.pos), 0), Td-Ts)
+	wrote := func(s int) {
 		for b := 0; b < B; b++ {
 			for a := 0; a < Ts; a++ {
 				copy(want[(b*Td+s+a)*I:(b*Td+s+a+1)*I], srcData[(b*Ts+a)*I:(b*Ts+a+1)*I])
 			}
 		}
+	}
+	// Hatalı iki durum (TCB 10:28, A14): {-4, 99}/9'da ilk yuva dilim yazmanınki (başlangıç 9
+	// sınır dışı); {-4, 99}/1'de gömmeninki, ilk hatalı öğe konum 0'daki -4. Her hatalı
+	// oynatmadan sonra hatasız oynatma gelir: bayrak sonrakini kirletmez.
+	for _, c := range []struct {
+		ids   [2]float32
+		pos   float32
+		site  int
+		value float64
+	}{{[2]float32{3, 6}, 1, -1, 0}, {[2]float32{-4, 99}, 9, 0, 9}, {[2]float32{2, 1}, 0, -1, 0},
+		{[2]float32{-4, 99}, 1, 1, -4}, {[2]float32{6, 0}, 4, -1, 0}} {
+		ids.CopyFrom(tensor.NewOn(gpuDevice, c.ids[:], 2))
+		pos.CopyFrom(tensor.NewOn(gpuDevice, []float32{c.pos}))
+		gr.Replay()
+		site, f := tensor.Recording(gr).(tensor.FaultRecording).FirstFault()
+		if c.site >= 0 {
+			if site != c.site || f == nil || f.Kind != tensor.FaultIndexRange || f.Index != 0 || f.Float != c.value {
+				t.Fatalf("%v/%v: yuva %d, %+v; beklenen yuva %d, sınır dışı, konum 0, değer %v", c.ids, c.pos, site, f, c.site, c.value)
+			}
+			if c.site == 0 {
+				checkDiff(t, "hatalı dilim yazma hedefe dokunmamalı", cache.Data(), want, 0)
+				continue
+			}
+		} else if site != -1 || f != nil {
+			t.Fatalf("hatasız oynatma %v: yuva %d, %+v", c, site, f)
+		}
+		wrote(int(c.pos))
 		checkDiff(t, "dilim yazma", cache.Data(), want, 0)
+		if c.site == 1 {
+			continue // gömme hatalıydı: çıktısı tanımsız (15.45)
+		}
+		got := out.Data()
+		for r, id := range c.ids {
+			for j := 0; j < D; j++ {
+				if got[r*D+j] != tablo[int(id)*D+j] {
+					t.Fatalf("gömme indeks %v: [%d,%d] = %v, beklenen %v", id, r, j, got[r*D+j], tablo[int(id)*D+j])
+				}
+			}
+		}
 	}
 }
 

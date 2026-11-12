@@ -863,8 +863,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.45
 
-- **Mevcut durum:** kayıtta `TR_embedding_lookup`'ın tensör indeksi ve `TR_write_slice`'ın tensör başlangıcı sınır dışındaysa sessizce kırpılıyor (gömmede `[0, V−1]`, `TR_write_slice`'ta hedefe sığan son konum), kesirli değer budanıyor [kanıtlı: bugünkü 15.45'in metni]. Kapanıştan okunan sayılar kayıtta sabitleniyor, denetlenmiyor [ölçüldü: DENETİM].
-- **Yapılacaklar (A, Ö1, Kol B, 15.6'nın cihaz içi bayrağıyla; ölçüm status'un):** kırpma kalkar, cihaz içi hata bayrağı (15.6); kapanıştaki sayının ve tensör deposunun yoluyla denetimi; rastgele üretecin oynatmada ilerlemesi; Go testleri.
+- **Mevcut durum (2026-11-12, T1'in dilim 2c'si):** kayıtta `TR_embedding_lookup`'ın tensör indeksi ve `TR_write_slice`'ın tensör başlangıcı kırpılmıyor: tam sayı olmayan ya da sınır dışı değer cihaz içi bayrağa yazar, hatalı öğe belleğe dokunmaz; ileti oynatmanın sonunda, kaydedilen satırla ve doğrudan çağrınınkiyle aynı [test: `TestReplayIndexFaultsMatchDirectCall`]. Kapanıştan okunan sayılar kayıtta sabitleniyor, denetlenmiyor [ölçüldü: DENETİM].
+- **Yapılacaklar (A, Ö1, Kol B (T1), 15.6'nın cihaz içi bayrağıyla; ölçüm status'un):** kapanıştaki sayının ve tensör deposunun yoluyla denetimi; rastgele üretecin oynatmada ilerlemesi; Go testleri.
 
 ### 15.46
 

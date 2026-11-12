@@ -119,6 +119,10 @@ const (
 	FaultInf
 	// FaultShift kaydırma miktarı aralık dışında.
 	FaultShift
+	// FaultIndexNotInt cihazdaki indeks tam sayı değil; FaultIndexRange sınırın dışında
+	// (TR_replay kaydında gömme ve dilim yazma, IndexReader; Float ya da Int değerdir).
+	FaultIndexNotInt
+	FaultIndexRange
 	// FaultRecorded hata değil: TR_replay kaydında hata yuvası kayda girdi, sonuç geçerlidir;
 	// Index kaydın kaçıncı yuvası (fault_slot.go). Yalnız tam sayıya dönüşüm döner.
 	FaultRecorded
