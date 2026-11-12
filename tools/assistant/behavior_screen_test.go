@@ -445,8 +445,8 @@ func TestEveryContractStateHasText(t *testing.T) {
 	_, rest, _ := strings.Cut(block, "### `state`")
 	line := capture(t, "(?m)^- `state`: (.*)$", rest)
 	states := matches("`([a-z]+)`", line)
-	if len(states) != 6 {
-		t.Fatalf("want six states, read %v", states)
+	if len(states) != 7 {
+		t.Fatalf("want seven states, read %v", states)
 	}
 	list := capture(t, `const STATES = \[(.*?)\];`, script(t))
 	for code, table := range dictionary(t) {

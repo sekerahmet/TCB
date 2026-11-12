@@ -1,4 +1,4 @@
-# Ekran sözleşmesi (sürüm 1)
+# Ekran sözleşmesi (sürüm 2)
 
 Yerel asistanın ekranı TR'den ne bekliyorsa burada yazılıdır. Ekran yalnız bu sözleşmeyle konuşur; sahte akış da aynı baytları üretir. Sunucu TR programıdır, TR'nin HTTP sunucusuyla ve olay yayıncısıyla yazılır (dil tanımı, 28).
 
@@ -10,7 +10,7 @@ Bütün örnekler uydurmadır.
 
 - **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi), `GET /lang/<kod>.js` (ekranın dil dosyaları).
 - **Biçim:** JSON, UTF-8.
-- **Sürüm:** her olayda ve her komutta `v` alanı. Bugün `1`. Ekran başka bir sürüm görürse olayı işlemez, `protocol_mismatch` gösterir ve komut göndermez.
+- **Sürüm:** her olayda ve her komutta `v` alanı. Bugün `2`. Ekran başka bir sürüm görürse olayı işlemez, `protocol_mismatch` gösterir ve komut göndermez.
 - **Bilinmeyen alan** yok sayılır. **Bilinmeyen olay türü** yok sayılır: yeni olay eski ekranı kırmaz.
 - **Süreler** milisaniye, **boyutlar** bayt, **zaman** UTC RFC 3339.
 - **Hata** metin taşımaz: `{"code": "...", "values": {...}}`. Değer adı `_ms` ile bitiyorsa süre, `_bytes` ile bitiyorsa boyuttur; ekran onu kullanıcının diline göre biçimler.
@@ -29,7 +29,7 @@ Ekranın kaynağı sayfanın kendi köküdür: TR'nin sunduğu `http://127.0.0.1
 
 ```text
 id: 3f9a0c2e7b1d4e65-42
-data: {"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Mer"}}
+data: {"v":2,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Mer"}}
 
 ```
 
@@ -55,7 +55,7 @@ data: {"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode
 Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her şeyi siler ve `snapshot`'ı sırayla işler.
 
 ```json
-{"v":1,"type":"session","data":{
+{"v":2,"type":"session","data":{
   "session_id":"s-example-1",
   "server_version":"0.0.0-example",
   "model":"example-model-4b (made up)",
@@ -75,23 +75,25 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 
 - `session`'ın `id`'si görüntüye katılan son olayınkidir; daha olay yoksa `<ön ek>-0`'dır.
 - `snapshot` öbür olayların aynısıdır, kimliksiz ve sıkıştırılmış: bir konuşma parçası tek `turn_text`, `heartbeat` ve `session` yoktur. Ekranda ikinci bir durum biçimi yok, aynı kod işler.
-- `snapshot` bir `state` olayı, son ölçüler için bir `metrics` olayı ve **açık her onay için bir `approval_open`** taşır. Sığmazsa eski turlar düşer; açık onay düşmez.
+- `snapshot` bir `state` olayı, son ölçüler için bir `metrics` olayı, ayar dosyası varsa son `settings` olayı, son yüklemenin `model_load_failed` hatası (sonraki başarılı yüklemeye kadar; önceki açılışta yarıda kalan yükleme de) ve **açık her onay için bir `approval_open`** taşır. Sığmazsa eski turlar düşer; açık onay düşmez.
 - Ekranda açık kart varken gelen `snapshot` o kartı taşımıyorsa kart kalkar ve ekran onayın geçersiz kaldığını yazar: onaylanmış sayılmaz.
 
 ### `state`
 
 ```json
-{"v":1,"type":"state","data":{"state":"loading","mic":false,"progress":0.4}}
+{"v":2,"type":"state","data":{"state":"loading","mic":false,"progress":0.4}}
 ```
 
-- `state`: `idle`, `loading`, `listening`, `thinking`, `speaking`, `error`.
+- `state`: `setup`, `idle`, `loading`, `listening`, `thinking`, `speaking`, `error`.
+  - `setup`: yüklenebilir bir model takımı yok (dil modeli ya da konuşma dilinin modelleri kurulu değil); metin ve ses turu `not_ready` alır.
 - `mic`: mikrofon gerçekten açık mı. Ekran düğmeyi yalnız bu alana göre çizer, komutu gönderdiği an değil.
 - `progress`: yalnız `loading`'de, 0 ile 1 arası; bilinmiyorsa yok.
+- `model`: yalnız `loading`'de, yüklenen dil modelinin katalog kimliği.
 
 ### `turn_start`
 
 ```json
-{"v":1,"type":"turn_start","data":{"turn_id":"t-7","source":"voice"}}
+{"v":2,"type":"turn_start","data":{"turn_id":"t-7","source":"voice"}}
 ```
 
 `source`: `text` ya da `voice`.
@@ -99,8 +101,8 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `turn_text`
 
 ```json
-{"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"user","mode":"replace","text":"Bugün hava nasıl","final":false}}
-{"v":1,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Örnek "}}
+{"v":2,"type":"turn_text","data":{"turn_id":"t-7","role":"user","mode":"replace","text":"Bugün hava nasıl","final":false}}
+{"v":2,"type":"turn_text","data":{"turn_id":"t-7","role":"assistant","mode":"append","text":"Örnek "}}
 ```
 
 - `role`: `user` (söz) ya da `assistant` (cevap).
@@ -110,7 +112,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `turn_end`
 
 ```json
-{"v":1,"type":"turn_end","data":{"turn_id":"t-7","reason":"stopped"}}
+{"v":2,"type":"turn_end","data":{"turn_id":"t-7","reason":"stopped"}}
 ```
 
 `reason`: `done`, `stopped`, `error`. `error`'da `error` alanı `{"code","values"}` taşır.
@@ -118,13 +120,13 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 ### `tool_start`
 
 ```json
-{"v":1,"type":"tool_start","data":{"call_id":"c-3","turn_id":"t-7","tool":"example_read_file"}}
+{"v":2,"type":"tool_start","data":{"call_id":"c-3","turn_id":"t-7","tool":"example_read_file"}}
 ```
 
 ### `tool_end`
 
 ```json
-{"v":1,"type":"tool_end","data":{"call_id":"c-3","result":"ok","duration_ms":124,"output":"example line\n","output_bytes":13,"truncated":false}}
+{"v":2,"type":"tool_end","data":{"call_id":"c-3","result":"ok","duration_ms":124,"output":"example line\n","output_bytes":13,"truncated":false}}
 ```
 
 - `result`: `ok`, `error`, `denied`, `stopped`. `error`'da `error` alanı `{"code","values"}` taşır.
@@ -136,7 +138,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 Geri alınamaz iş için onay ister. Kart yalnız bu olaydan gelir; model metni kartın düzenine giremez.
 
 ```json
-{"v":1,"type":"approval_open","data":{
+{"v":2,"type":"approval_open","data":{
   "approval_id":"a-2",
   "turn_id":"t-7",
   "call_id":"c-4",
@@ -156,7 +158,7 @@ Geri alınamaz iş için onay ister. Kart yalnız bu olaydan gelir; model metni 
 ### `approval_close`
 
 ```json
-{"v":1,"type":"approval_close","data":{"approval_id":"a-2","reason":"answered","decision":"deny"}}
+{"v":2,"type":"approval_close","data":{"approval_id":"a-2","reason":"answered","decision":"deny"}}
 ```
 
 - `reason`: `answered`, `expired`, `stopped`.
@@ -166,7 +168,7 @@ Geri alınamaz iş için onay ister. Kart yalnız bu olaydan gelir; model metni 
 ### `metrics`
 
 ```json
-{"v":1,"type":"metrics","data":{"memory_bytes":4617089843,"tokens_per_second":11.2,"first_token_ms":910}}
+{"v":2,"type":"metrics","data":{"memory_bytes":4617089843,"tokens_per_second":11.2,"first_token_ms":910}}
 ```
 
 Bilinmeyen alan yazılmaz; ekran o ölçüyü boş gösterir. Ekranda sabit ölçü yoktur.
@@ -176,15 +178,23 @@ Bilinmeyen alan yazılmaz; ekran o ölçüyü boş gösterir. Ekranda sabit öl�
 Bir tura bağlı olmayan ya da sürmekte olan işi bitirmeyen hata.
 
 ```json
-{"v":1,"type":"error","data":{"code":"out_of_memory","values":{"needed_bytes":6442450944},"fatal":false}}
+{"v":2,"type":"error","data":{"code":"out_of_memory","values":{"needed_bytes":6442450944},"fatal":false}}
 ```
 
 `fatal` `true` ise sunucu çalışmaya devam edemez; ekran `error` durumunu gösterir.
 
+### `settings`
+
+```json
+{"v":2,"type":"settings","data":{"language_model":"qwen3-4b-q4km","speech_language":"tr","system_prompt":{"source":"catalog"},"context":8192,"device":"cpu","port":47863,"machine":{"memory_bytes":17179869184,"memory_source":"option"}}}
+```
+
+Ayarın hepsi (`ayar.json`'un alanları, `v` dışında) ve ayarın hesaplandığı makinenin özeti `machine`. `snapshot`'ta ve her değişimde gelir. Ayar dosyası yoksa gelmez; durum `setup`'tır.
+
 ### `heartbeat`
 
 ```text
-data: {"v":1,"type":"heartbeat"}
+data: {"v":2,"type":"heartbeat"}
 
 ```
 
@@ -195,14 +205,14 @@ data: {"v":1,"type":"heartbeat"}
 `POST /command`, gövde tek JSON nesnesi, en çok 64 KiB:
 
 ```json
-{"v":1,"command_id":"7f3a9c1e5d20b846","type":"approval_answer","data":{"approval_id":"a-2","decision":"approve"}}
+{"v":2,"command_id":"7f3a9c1e5d20b846","type":"approval_answer","data":{"approval_id":"a-2","decision":"approve"}}
 ```
 
 Cevap her zaman JSON:
 
 ```json
-{"v":1,"command_id":"7f3a9c1e5d20b846","status":"accepted"}
-{"v":1,"command_id":"7f3a9c1e5d20b846","status":"rejected","error":{"code":"already_answered","values":{"approval_id":"a-2"}}}
+{"v":2,"command_id":"7f3a9c1e5d20b846","status":"accepted"}
+{"v":2,"command_id":"7f3a9c1e5d20b846","status":"rejected","error":{"code":"already_answered","values":{"approval_id":"a-2"}}}
 ```
 
 - `accepted` komutun alındığı demektir, işin bittiği değil. Sonuç olaylarla gelir: mikrofon `state` ile, onay `approval_close` ile.
@@ -215,6 +225,8 @@ Cevap her zaman JSON:
 | `mic_set` | `{"on":true}` | Mikrofonu açar ya da kapar |
 | `approval_answer` | `{"approval_id":"...","decision":"approve"}` | Onay cevabı: `approve` ya da `deny` |
 | `stop` | `{}` | Sürmekte olan turu durdurur; açık onaylar `stopped` ile kapanır |
+| `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy` |
+| `settings_set` | `{"key":"...","value":...}` | Listedeki bir ayarı değiştirir; listede olmayan `setting_invalid` |
 
 Araçlar, arama ve odak ekranın yerel görünümleridir, komut göndermez: araç listesi `session`'dan gelir, arama ekrandaki satırlarda yapılır.
 
@@ -234,10 +246,14 @@ Sunucudan gelenler:
 | `approval_expired` | `approval_id` | Cevap süre dolduktan sonra geldi |
 | `turn_busy` | `turn_id` | Sürmekte olan tur varken yeni tur istendi |
 | `text_too_long` | `limit_bytes` | Metin sınırı aştı |
-| `not_ready` | | Modeller yüklenirken yeni tur istendi |
+| `not_ready` | | Modeller kurulu değilken ya da yüklenirken yeni tur istendi |
 | `mic_unavailable` | | Mikrofon açılamadı |
 | `model_load_failed` | `model` | Model yüklenemedi |
 | `out_of_memory` | `needed_bytes` | Bellek yetmedi |
+| `unknown_entry` | `entry_id` | Katalogda yok |
+| `not_installed` | `entry_id` | Yüklenecek dosyalar yok |
+| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` üç değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış) |
+| `unknown_language` | `language` | Whisper bu dili tanımıyor (yükleme anında) |
 | `tool_failed` | `tool` | Araç hatayla bitti |
 | `tool_timeout` | `tool`, `limit_ms` | Araç süresini aştı |
 | `internal` | | Sunucunun iç hatası |

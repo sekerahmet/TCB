@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-OlBAoIVjPLJyFR8YOo8vn2PgK/zXP4OopWQEJrqOI9M='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-TPj5Ipu0Uw6+kofQWthQ8ucxDZcO1O5WiiJS2LJCHqA='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -539,6 +539,11 @@ body.focus .left, body.focus .right { display: none; }
     <button class="btn switch" id="toolsButton" type="button" aria-pressed="false"><span data-i18n="button_tools"></span><span class="switch-value" id="toolsValue"></span></button>
     <button class="btn switch" id="focusButton" type="button" aria-pressed="false"><span data-i18n="button_focus"></span><span class="switch-value" id="focusValue"></span></button>
   </div>
+  <div class="switches" id="setupBox" hidden>
+    <label for="speechLanguage" data-i18n="label_speech_language"></label>
+    <select id="speechLanguage"></select>
+    <button class="btn" id="loadButton" type="button" data-i18n="button_load"></button>
+  </div>
 </aside>
 
 <script>
@@ -548,7 +553,7 @@ body.focus .left, body.focus .right { display: none; }
   /** Ekranda görünen ad: yalnız burada yazılır. */
   const ASSISTANT_NAME = "Asistan";
 
-  const PROTOCOL_VERSION = 1;
+  const PROTOCOL_VERSION = 2;
   const MAX_EVENT_BYTES = 1024 * 1024; // contract.md: bir olayın sınırı
   const MAX_ROWS = 400; // akışta en çok satır: uzun oturum sekmeyi doldurmaz
   const MAX_TEXT_CHARS = 120000; // bir konuşma satırında en çok karakter
@@ -557,7 +562,7 @@ body.focus .left, body.focus .right { display: none; }
   const MAX_VALUE_CHARS = 200; // hata değerinin ekranda en uzun hali
   const RETRY_LIMIT_MS = 10000;
   const APPROVE_ARM_MS = 500; // kart açılınca Onayla bu kadar kapalı kalır: kör tıklama onaylamaz
-  const STATES = ["idle", "loading", "listening", "thinking", "speaking", "error"];
+  const STATES = ["setup", "idle", "loading", "listening", "thinking", "speaking", "error"];
   const RESULTS = ["ok", "error", "denied", "stopped"];
   const RESULT_MARKS = { running: "…", ok: "✓", error: "✕", denied: "⊘", stopped: "■" };
   const LANGUAGE_KEY = "assistant.language";
@@ -699,6 +704,7 @@ body.focus .left, body.focus .right { display: none; }
     lastId: /** @type {string|null} */ (null),
     heartbeatMs: 15000,
     metrics: /** @type {Record<string, unknown>} */ ({}),
+    settings: /** @type {Record<string, unknown>} */ ({}),
     calls: /** @type {{tool: string, result: string, duration_ms: number|null}[]} */ ([]),
     droppedRows: 0,
     filter: "",
@@ -1066,6 +1072,11 @@ body.focus .left, body.focus .right { display: none; }
     }
     for (const card of lost.values()) note("approval_lost", { tool: card.tool }, "warn");
     renderStatus();
+  });
+
+  on("settings", (d) => {
+    ui.settings = d;
+    renderSetup();
   });
 
   on("state", (d) => {
@@ -1452,6 +1463,8 @@ body.focus .left, body.focus .right { display: none; }
 
     /** @param {string} state @param {any} [extra] */
     const setState = (state, extra) => emit("state", { state, mic: current.mic, ...extra });
+    /** @type {Record<string, unknown>} */
+    const mockSettings = { language_model: "mock-model", speech_language: "tr", system_prompt: { source: "catalog" }, context: 8192, device: "cpu", port: 47863, machine: { memory_bytes: 17179869184, memory_source: "option" } };
 
     /** @param {string} source */
     function newTurn(source) {
@@ -1575,6 +1588,12 @@ body.focus .left, body.focus .right { display: none; }
 
     /** @type {Record<string, (wait: (ms: number) => Promise<void>, text?: string) => Promise<void>>} */
     const scenes = {
+      async setup(wait) {
+        current.mic = false;
+        emit("settings", mockSettings);
+        setState("setup");
+        await wait(100);
+      },
       async conversation(wait) {
         current.mic = true;
         setState("listening");
@@ -1802,6 +1821,18 @@ body.focus .left, body.focus .right { display: none; }
         case "stop":
           stopAll();
           return accepted;
+        case "model_load":
+          if (activeTurn) return rejected("turn_busy", { turn_id: activeTurn });
+          if (str(data.entry_id) !== mockSettings.language_model) return rejected("unknown_entry", { entry_id: str(data.entry_id) });
+          setState("loading", { model: str(data.entry_id) });
+          setTimeout(() => setState("idle"), 400);
+          return accepted;
+        case "settings_set":
+          if (!["speech_language", "system_prompt"].includes(str(data.key))) return rejected("setting_invalid", { key: str(data.key), reason: "unknown_key" });
+          if (data.key === "speech_language" && typeof data.value !== "string") return rejected("setting_invalid", { key: "speech_language", reason: "invalid_value" });
+          mockSettings[str(data.key)] = data.value;
+          emit("settings", mockSettings);
+          return accepted;
         default:
           return rejected("unknown_command", { type: command.type });
       }
@@ -2018,6 +2049,19 @@ body.focus .left, body.focus .right { display: none; }
     renderRing();
     renderConnection();
     renderControls();
+    renderSetup();
+  }
+
+  // Kurulum: `setup` durumunda konuşma dili ve ayarın dil modelini yükleyen düğme (indirme ve katalog sonraki dilimde).
+  function renderSetup() {
+    byId("setupBox").hidden = ui.state !== "setup";
+    const model = str(ui.settings.language_model);
+    const load = byId("loadButton");
+    load.disabled = !connected() || model === "";
+    const speech = /** @type {HTMLSelectElement} */ (byId("speechLanguage"));
+    const current = str(ui.settings.speech_language);
+    if (current !== "") speech.value = current;
+    speech.disabled = !connected();
   }
 
   function renderMetrics() {
@@ -2100,6 +2144,11 @@ body.focus .left, body.focus .right { display: none; }
     });
     byId("stop").addEventListener("click", () => command("stop", {}));
     byId("micButton").addEventListener("click", () => command("mic_set", { on: !ui.mic }));
+    byId("loadButton").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));
+    byId("speechLanguage").addEventListener("change", () => {
+      const value = /** @type {HTMLSelectElement} */ (byId("speechLanguage")).value;
+      command("settings_set", { key: "speech_language", value });
+    });
     byId("toolsButton").addEventListener("click", () => {
       const sheet = byId("toolSheet");
       sheet.hidden = !sheet.hidden;
@@ -2159,6 +2208,11 @@ body.focus .left, body.focus .right { display: none; }
     byId("brand").textContent = ASSISTANT_NAME;
     const select = byId("languageSelect");
     select.replaceChildren(...languages.map((code) => {
+      const option = /** @type {HTMLOptionElement} */ (el("option", "", dictionary[code].language_name));
+      option.value = code;
+      return option;
+    }));
+    byId("speechLanguage").replaceChildren(...languages.map((code) => {
       const option = /** @type {HTMLOptionElement} */ (el("option", "", dictionary[code].language_name));
       option.value = code;
       return option;

@@ -201,7 +201,7 @@ TR_test "komutun biçimi işleyicide: 415, bozuk JSON, sürüm, bilinmeyen komut
     TR_var bozuk = TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json; charset=utf-8"}, TR_body: TR_Bytes("{bozuk"))
     TR_assert_equal("bad_request", durum(ekran_cevabı(e, bozuk)))
     TR_var sürüm = TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json"},
-        TR_body: TR_Bytes("{\"v\": 2, \"command_id\": \"x\", \"type\": \"stop\", \"data\": {}}"))
+        TR_body: TR_Bytes("{\"v\": 0, \"command_id\": \"x\", \"type\": \"stop\", \"data\": {}}"))
     TR_var s = ekran_cevabı(e, sürüm)
     TR_assert_equal("unsupported_version", durum(s))
     TR_assert_equal("x", TR_String(gövde(s)["command_id"]))

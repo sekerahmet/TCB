@@ -67,10 +67,10 @@ TR_func metni(g: Görünüm, turlar: TR_List[TR_String]) -> TR_String {
     TR_return parçalar.TR_join("\n")
 }
 
-TR_func zarf(tür: TR_String, veri: TR_JSON) -> TR_JSON { TR_return TR_JSON({"v": 1, "type": tür, "data": veri}) }
+TR_func zarf(tür: TR_String, veri: TR_JSON) -> TR_JSON { TR_return TR_JSON({"v": 2, "type": tür, "data": veri}) }
 
 TR_func baş() -> TR_JSON {
-    TR_return TR_JSON({"v": 1, "type": "session", "data": {"session_id": "s-sınama", "server_version": "0", "model": "yok",
+    TR_return TR_JSON({"v": 2, "type": "session", "data": {"session_id": "s-sınama", "server_version": "0", "model": "yok",
         "tools": [], "heartbeat_ms": 15000, "snapshot": []}})
 }
 
@@ -84,7 +84,7 @@ TR_func ekran() -> Ekran {
 
 TR_func komut(tür: TR_String, kimlik: TR_String, veri: TR_String) -> TR_Request {
     TR_return TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json"},
-        TR_body: TR_Bytes("{\"v\": 1, \"command_id\": \"\(kimlik)\", \"type\": \"\(tür)\", \"data\": \(veri)}"))
+        TR_body: TR_Bytes("{\"v\": 2, \"command_id\": \"\(kimlik)\", \"type\": \"\(tür)\", \"data\": \(veri)}"))
 }
 
 TR_func gövde(c: TR_Response) -> TR_JSON { TR_return TR_json_parse(TR_String(c.TR_body)) }

@@ -1,5 +1,5 @@
 # TR 4
-# Asistanın ekranı (contract.md, sürüm 1): sayfayı ve dil dosyalarını sunar, zincirin olaylarını yayar, komutları
+# Asistanın ekranı (contract.md, sürüm 2): sayfayı ve dil dosyalarını sunar, zincirin olaylarını yayar, komutları
 # alır. asistan.tr `--ekran <kapı>` ile kurar; ekran_test.tr sahte zincirle sınar.
 # - Görüntü (`session` olayı) yalnız olaylardan katlanır (28.7, `katla`); programın başka bir değişkeninden kurulmaz.
 # - Komutun kararı ana döngüde verilir (`komutları_işle`): işleyici komutu tek bir `TR_append` ile bırakır, cevabı
@@ -10,7 +10,7 @@
 
 TR_import "zincir"
 
-TR_const _SÜRÜM = 1
+TR_const _SÜRÜM = 2
 TR_const _KAPASİTE = 1024 # sözleşme: en az son 1024 olay
 TR_const _NABIZ_MS = 15000 # 28.7
 TR_const _METİN_SINIRI = 32768
@@ -42,6 +42,10 @@ TR_struct Ekran {
     cevaplar: TR_Dict[TR_String, TR_JSON] = {}
     sıra: TR_List[TR_String] = [] # tutulan kimlikler, eskiden yeniye
     hazır: TR_Bool = TR_false # modeller yüklendi
+    # yüklenebilir: her dil modelinin `model_load` cevabı (yuva.tr, `yüklenebilirler`): boş nesne ya da hata kodu ve
+    # değerleri. `yüklenecek`: kabul edilmiş, ana döngünün yükleyeceği dil modeli.
+    yüklenebilir: TR_Dict[TR_String, TR_JSON] = {}
+    yüklenecek: TR_String? = TR_none
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
     mikrofon_istendi: TR_Bool = TR_false
     tur: TR_String = "" # süren ya da açılmak üzere olan tur; yoksa ""
@@ -61,6 +65,13 @@ TR_struct Ekran {
     TR_func durum(durum: TR_String) { TR_self.gönder("state", TR_JSON({"state": durum, "mic": TR_self.mic})) }
 
     TR_func boşta() { TR_self.durum(TR_if TR_self.mic { "listening" } TR_else { "idle" }) }
+
+    # yükleniyor: `loading` durumu, yüklenen dil modelinin katalog kimliğiyle (komut satırından verilen yolda kimlik yok).
+    TR_func yükleniyor(giriş: TR_String) {
+        TR_var d: TR_Dict[TR_String, TR_JSON] = {"state": TR_JSON("loading"), "mic": TR_JSON(TR_self.mic)}
+        TR_if giriş != "" { d["model"] = TR_JSON(giriş) }
+        TR_self.gönder("state", TR_JSON(d))
+    }
 
     # yeni_tur: turun kimliğini verir ve onu süren tur yapar.
     TR_func yeni_tur() -> TR_String {
@@ -108,6 +119,14 @@ TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
     TR_match tür {
         "state" => {
             TR_if l.TR_length > 0 TR_and TR_String(l[0]["type"]) == "state" { l[0] = giriş } TR_else { l = [giriş] + l }
+            TR_if ["idle", "listening"].TR_contains(TR_String(veri["state"])) { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "error"] }
+        }
+        "settings" => { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "settings"] + [giriş] }
+        "error" => {
+            # Yüklemenin hatası görüntüye girer: yarıda kalan yüklemenin işareti ekran bağlanmadan okunur (yuva.tr).
+            # Sonraki başarılı yüklemeyle (`idle`, `listening`) düşer; öbür hatalar görüntüye girmez.
+            TR_if TR_String(veri["code"]) != "model_load_failed" { TR_return g }
+            l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "error"] + [giriş]
         }
         "metrics" => {
             TR_var n = l.TR_length
@@ -127,7 +146,7 @@ TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
             TR_var kimlik = TR_String(veri["approval_id"])
             l = [x TR_for x TR_in l TR_if TR_not (TR_String(x["type"]) == "approval_open" TR_and TR_String(x["data"]["approval_id"]) == kimlik)]
         }
-        _ => { TR_return g } # error ve bilinmeyen olay görüntüye girmez
+        _ => { TR_return g } # bilinmeyen olay görüntüye girmez
     }
     d["snapshot"] = TR_JSON(l)
     TR_return TR_JSON({"v": g["v"], "type": g["type"], "data": TR_JSON(d)})
@@ -266,7 +285,7 @@ TR_func komut_al(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_var veri = j.TR_get("data")
     TR_if t == TR_none TR_or TR_Type(t) != TR_String { TR_return ret(400, k, "bad_request", TR_JSON({})) }
     TR_var ad = TR_String(t)
-    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop"].TR_contains(ad) {
+    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load"].TR_contains(ad) {
         TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad}))
     }
     TR_var d = TR_if veri == TR_none { TR_JSON({}) } TR_else { veri }
@@ -284,6 +303,7 @@ TR_func geçerli(ad: TR_String, d: TR_JSON) -> TR_Bool {
         "send_text" => "text"
         "mic_set" => "on"
         "approval_answer" => "approval_id"
+        "model_load" => "entry_id"
         _ => ""
     }
     TR_if alan == "" { TR_return TR_true }
@@ -312,7 +332,7 @@ TR_func komutları_işle(e: Ekran) {
 }
 
 # karar: bir komutun cevabı ve etkisi. Etkiyi ana döngü uygular: metin turu (`metin`), mikrofon (`mikrofon_istendi`),
-# durdurma (`durdur`).
+# durdurma (`durdur`), yükleme (`yüklenecek`).
 TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
     TR_match k.tür {
         "send_text" => {
@@ -327,6 +347,15 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
         "mic_set" => { e.mikrofon_istendi = TR_Bool(k.veri["on"]) }
         "stop" => { TR_if e.tur != "" { e.durdur = TR_true } }
         "approval_answer" => { TR_return red(k.kimlik, "unknown_approval", TR_JSON({"approval_id": k.veri["approval_id"]})) }
+        "model_load" => {
+            TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
+            TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
+            TR_var giriş = TR_String(k.veri["entry_id"])
+            TR_var d = e.yüklenebilir.TR_get(giriş)
+            TR_if d == TR_none { TR_return red(k.kimlik, "unknown_entry", TR_JSON({"entry_id": giriş})) }
+            TR_if d.TR_get("code") != TR_none { TR_return red(k.kimlik, TR_String(d["code"]), d["values"]) }
+            e.yüklenecek = giriş
+        }
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
