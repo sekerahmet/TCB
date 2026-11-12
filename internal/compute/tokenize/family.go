@@ -194,24 +194,11 @@ func (p *Tokenizer) Mismatch() *FamilyMismatch { return p.mismatch }
 // durur. Kümelerden biri protokol etiketiyle ya da özel parçayla kesişirse *FamilyOverlapError döner.
 // Yalnız yüklemede, parçalayıcı paylaşılmadan önce çağrılır.
 func (p *Tokenizer) applyFamily(f Family) error {
-	whitespace, pattern := p.formatSets()
-	for _, c := range []struct {
-		name   string
-		want   *FormatSet
-		pieces []AddedToken
-	}{{"whitespace", f.Whitespace, whitespace}, {"pattern", f.Pattern, pattern}} {
-		if c.want == nil {
-			continue
-		}
-		if len(c.pieces) != c.want.Count {
-			p.mismatch = &FamilyMismatch{f.ID, c.name, "count", len(c.pieces), c.want.Count}
-			return nil
-		}
-		if setHash(c.pieces) != c.want.Hash {
-			p.mismatch = &FamilyMismatch{f.ID, c.name, "content", len(c.pieces), c.want.Count}
-			return nil
-		}
+	if m := p.compare(f); m != nil {
+		p.mismatch = m
+		return nil
 	}
+	whitespace, pattern := p.formatSets()
 	format := make(map[int32]bool)
 	if f.Whitespace != nil {
 		for _, t := range whitespace {
@@ -231,6 +218,66 @@ func (p *Tokenizer) applyFamily(f Family) error {
 		return nil
 	}
 	return p.openFormatPieces(format)
+}
+
+// compare dosyanın iki kümesini f'in sayı ve karmasıyla karşılaştırır; uyarsa nil, uymazsa farkı verir
+// (önce boşluk kümesi).
+func (p *Tokenizer) compare(f Family) *FamilyMismatch {
+	whitespace, pattern := p.formatSets()
+	for _, c := range []struct {
+		name   string
+		want   *FormatSet
+		pieces []AddedToken
+	}{{"whitespace", f.Whitespace, whitespace}, {"pattern", f.Pattern, pattern}} {
+		if c.want == nil {
+			continue
+		}
+		if len(c.pieces) != c.want.Count {
+			return &FamilyMismatch{f.ID, c.name, "count", len(c.pieces), c.want.Count}
+		}
+		if setHash(c.pieces) != c.want.Hash {
+			return &FamilyMismatch{f.ID, c.name, "content", len(c.pieces), c.want.Count}
+		}
+	}
+	return nil
+}
+
+// FitsFolderFamily (model_type, işaret) çiftinin bir aile seçip seçmediğini ve dosyanın iki kümesinin o
+// ailenin sayı ve karmasına uyup uymadığını söyler; aile uygulanmaz. H7178'in klasör önerisi ancak
+// ikisi de tutarsa yazılır: öneri o zaman kopyalanınca parçalayıcıyı aileyle açar.
+func (p *Tokenizer) FitsFolderFamily(arch, marker string) bool {
+	f, ok := FolderFamily(arch, marker)
+	return ok && p.compare(f) == nil
+}
+
+// FamilylessError ailesiz yolun kuralıdır (16.2): dosyada yalnız boşluk karakterlerinden oluşan özel olmayan
+// eklenmiş parça varsa ve parçalayıcı ailesiz açıldıysa TR_false ile her kodlama hatadır; değilse nil. Ailesi
+// seçilip kümesi uymayan dosyada H7184; GGUF'ta H7178'in gguf kolu; tek başına açılan dosyanın klasörü (arch,
+// marker: o klasörün anahtarları; klasörle açılanda boş) bir aile seçiyor ve kümeler uyuyorsa folder kolu,
+// yoksa alone kolu. folder iletiye giden klasördür.
+func (p *Tokenizer) FamilylessError(arch, marker, folder string) error {
+	switch {
+	case p.family != "" || !p.HasWhitespacePieces():
+		return nil
+	case p.mismatch != nil:
+		return p.mismatch.Message()
+	case p.pretokenizerTag != "":
+		return WhitespaceError("gguf", folder)
+	case p.FitsFolderFamily(arch, marker):
+		return WhitespaceError("folder", folder)
+	}
+	return WhitespaceError("alone", folder)
+}
+
+// Message farkın iletisidir (H7184).
+func (m *FamilyMismatch) Message() error {
+	return messages.New(messages.H7184, m.Family, m.Set, m.Diff, m.Count, m.Expected)
+}
+
+// WhitespaceError ailesiz parçalayıcının TR_false'taki hatasıdır (H7178): where "alone", "gguf" ya da
+// "folder"; folder açılan dosyanın klasörüdür (kullanıcının yazdığı biçimde).
+func WhitespaceError(where, folder string) error {
+	return messages.New(messages.H7178, where, folder)
 }
 
 // checkOverlap biçim parçalarının protokol etiketleriyle ve özel parçalarla kesişmediğini denetler.

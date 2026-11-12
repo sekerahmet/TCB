@@ -169,6 +169,72 @@ func TestFamilyOverlapIsAnError(t *testing.T) {
 	}
 }
 
+// Kural (16.2, ailesiz yolun iletileri): H7184 kümeyi ve farkı select'le söyler (dört kol); H7178 üç kolda
+// klasörü ve ne yapılacağını söyler, folder kolu kopyalanınca çalışan çağrıyı yazar. Klasör dalı yalnız
+// dosyanın kümesi ailenin kümesine uyarsa seçilir (compare; test ailesiyle).
+func TestFamilylessMessages(t *testing.T) {
+	for _, c := range []struct {
+		m    FamilyMismatch
+		want string
+	}{
+		{FamilyMismatch{"gemma3", "whitespace", "count", 1, 92}, "yalnız boşluk karakterlerinden oluşan parçalar bu dosyada 1, resmî dosyada 92;"},
+		{FamilyMismatch{"gemma3", "whitespace", "content", 92, 92}, "yalnız boşluk karakterlerinden oluşan parçalar sayı aynı (bu dosyada 92, resmî dosyada 92) ama içerikler farklı;"},
+		{FamilyMismatch{"gemma3", "pattern", "count", 60, 59}, "HTML öğe adı parçaları bu dosyada 60, resmî dosyada 59;"},
+		{FamilyMismatch{"gemma3", "pattern", "content", 59, 59}, "HTML öğe adı parçaları sayı aynı (bu dosyada 59, resmî dosyada 59) ama içerikler farklı;"},
+	} {
+		err := c.m.Message()
+		if !messages.Has(err, messages.H7184) || !strings.Contains(err.Error(), c.want) || !strings.HasPrefix(err.Error(), "\"gemma3\" ailesinin") {
+			t.Errorf("%+v: %q", c.m, err.Error())
+		}
+	}
+	for where, want := range map[string]string{
+		"alone":  "\"m/k\" klasöründen model ailesi seçilemiyor; güvenilir metinde",
+		"gguf":   "\"m/k\" klasöründeki GGUF dosyasının mimarisi ve ön bölme etiketi TR'nin aile tablosunda yok; güvenilir",
+		"folder": "parçalayıcıyı modelin klasörüyle açın: `TR_load_tokenizer(\"m/k\")`; ya da güvenilir metinde",
+	} {
+		if err := WhitespaceError(where, "m/k"); !messages.Has(err, messages.H7178) || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %q", where, err.Error())
+		}
+	}
+	p := familyTokenizer(t)
+	f := fixtureFamily()
+	if p.compare(f) != nil {
+		t.Errorf("uyan küme fark vermemeli")
+	}
+	f.Pattern.Count = 4
+	if m := p.compare(f); m == nil || m.Set != "pattern" {
+		t.Errorf("uymayan küme fark vermeli: %+v", m)
+	}
+	if p.FitsFolderFamily("gemma3_text", "GemmaTokenizer") || p.FitsFolderFamily("yok", "yok") {
+		t.Errorf("fikstürün kümesi Gemma'nın resmî kümesine uymaz; tabloda olmayan çift aile seçmez")
+	}
+}
+
+// Kural (16.2, ailesiz yolun hatası; H7178'in gguf kolu): (mimari, etiket) çifti tabloda olmayan boşluk parçalı
+// GGUF ailesizdir, TR_false'ın hatası gguf kolu; aynı parça kümesiz bir ailenin (qwen3) GGUF'unda hata vermez;
+// boşluk parçası olmayan ailesiz dosyada da hata yok. Tek başına açılan dosyada klasör aile seçmiyorsa alone.
+func TestFamilylessErrorBranches(t *testing.T) {
+	ws := map[int]int32{256: ggufTokenUserDefined}
+	g := mustGGUF(t, ggufVocab{arch: "llama", pre: "smollm", extra: []string{"\n\n"}, kinds: ws})
+	if err := g.FamilylessError("", "", "m"); !messages.Has(err, messages.H7178) || !strings.Contains(err.Error(), "GGUF dosyasının") {
+		t.Errorf("ailesiz GGUF: %v", err)
+	}
+	q := mustGGUF(t, ggufVocab{arch: "qwen3", pre: "qwen2", extra: []string{"\n\n"}, kinds: ws})
+	if q.Family() != "qwen3" || q.FamilylessError("", "", "m") != nil {
+		t.Errorf("kümesiz ailenin GGUF'u hata vermemeli: %q", q.Family())
+	}
+	if err := familyTokenizer(t).FamilylessError("gemma3_text", "GemmaTokenizer", "m"); !strings.Contains(err.Error(), "klasöründen model ailesi seçilemiyor") {
+		t.Errorf("kümesi uymayan klasör ailesi alone kolu vermeli: %v", err)
+	}
+	// Kümesiz ailenin klasörü (qwen3) önerilir: klasörle açılınca aile qwen3 olur ve TR_false hata vermez.
+	if err := familyTokenizer(t).FamilylessError("qwen3", "Qwen2Tokenizer", "m"); !strings.Contains(err.Error(), "`TR_load_tokenizer(\"m\")`") {
+		t.Errorf("aile seçen klasör folder kolu vermeli: %v", err)
+	}
+	if mustGGUF(t, ggufVocab{arch: "llama", pre: "smollm"}).FamilylessError("", "", "m") != nil {
+		t.Errorf("boşluk parçası olmayan ailesiz dosya hata vermemeli")
+	}
+}
+
 // Kural (16.2, iki tablo; A2 (a)): Go'daki aile tablosu kitaplığın sohbet tablosuyla
 // (lib/model_family.tr'nin _sohbet_tablosu) aynı satırları aynı sırayla taşır: aile kimliği, mimari,
 // GGUF etiketi, klasörün işareti. Kitaplığın tablosu özel bir fonksiyondur; test kaynağı okur

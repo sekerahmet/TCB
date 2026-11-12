@@ -35,6 +35,9 @@ var TypeName = string(interp.TypeName(codes.TypeTokenizer))
 type Object struct {
 	p    *tokenize.Tokenizer
 	path string
+	// trFalse ailesiz parçalayıcının TR_special_tokens: TR_false'taki hatasıdır (16.2; H7178 ya da H7184); nil ise
+	// TR_false bugünkü gibi bütün eklenmiş parçaları kapatır. Yüklemede bir kez kurulur.
+	trFalse error
 }
 
 // Tokenizer sarılı Go parçalayıcısını verir.
@@ -179,7 +182,13 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 		return nil, messages.New(messages.H5610, fn, raw)
 	}
 	writeWarnings(file, p)
-	return &Object{p: p, path: file}, nil
+	// 16.2'nin ailesiz yolu: klasörle açılanda klasör zaten denendi; tek başına açılan dosyanın klasörü önerilebilir.
+	folder, arch, marker := raw, "", ""
+	if !info.IsDir() {
+		folder = filepath.ToSlash(filepath.Dir(raw))
+		arch, marker = folderKeys(filepath.Dir(file))
+	}
+	return &Object{p: p, path: file, trFalse: p.FamilylessError(arch, marker, folder)}, nil
 }
 
 // genericTokenizerClasses tokenizer_class'ı aileyi söylemeyen sınıflardır: işaret bos_token'ın adıdır
@@ -301,6 +310,19 @@ func stepError(fn any, err error) error {
 	return messages.New(messages.H2000, fn, err)
 }
 
+// encodeOptions kodlamanın seçenekleridir (TR_special_tokens:). 16.2: TR_false'ta metindeki eklenmiş parça yazımı da
+// kimlik olmaz, özel olsun olmasın; ailesiz parçalayıcıda boşluk parçaları baytlara bölünmez, kodlama hatadır (trFalse).
+func (n *Object) encodeOptions(fn any, named map[string]interp.Value) (tokenize.Options, error) {
+	special, err := bind.OptionalBool(fn, named, nameSpecial, true)
+	if err != nil {
+		return tokenize.Options{}, err
+	}
+	if !special && n.trFalse != nil {
+		return tokenize.Options{}, n.trFalse
+	}
+	return tokenize.Options{DontAddSpecial: !special, DontParseAdded: !special}, nil
+}
+
 func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(memberEncode)
 	if err := bind.CheckNamed(fn.Called(), named, nameSpecial, nameSecond); err != nil {
@@ -309,13 +331,10 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 	if len(args) != 1 {
 		return nil, messages.New(messages.H5624, fn, len(args))
 	}
-	var pick tokenize.Options
-	special, err := bind.OptionalBool(fn, named, nameSpecial, true)
+	pick, err := n.encodeOptions(fn, named)
 	if err != nil {
 		return nil, err
 	}
-	pick.DontAddSpecial = !special
-	pick.DontParseAdded = !special // 16.2: metindeki eklenmiş parça yazımı da kimlik olmaz, özel olsun olmasın
 	secondV, hasSecond := bind.GetNamed(named, nameSecond)
 
 	switch x := args[0].(type) {
