@@ -3,6 +3,7 @@
 # yazımı, paylaşımlı gömme), desteklenmeyen ayarların açık hatası ve ağırlık adı eşlemesi.
 # Gerçek bir Hugging Face modeliyle logit eşitliği cmd/trlang/e2e'de (transformers kuruluysa).
 TR_import "tr/hugging_face"
+TR_import "tr/layers"
 TR_import "tr/pretrained"
 
 TR_func qwen3_ayarı() {
@@ -119,7 +120,7 @@ TR_test "yapı tanımı: değeri denetlenen anahtarlar (H7171, layer_types H6944
         TR_var b = qwen3_ayarı()
         b[k] = v
         TR_assert_equal("H7171", TR_error_code { TR_build_pretrained_model(b) }, k)
-        TR_assert_equal("Message(\"H7171\", \"\(k)\", \"\(v)\")", kur_iletisi(TR_JSON(b)), k)
+        TR_assert_equal("Message(\"H7171\", \"model\", \"\(k)\", \"\(v)\")", kur_iletisi(TR_JSON(b)), k)
     }
     a["layer_types"] = ["sliding_attention"]
     TR_assert_equal("H6944", TR_error_code { TR_build_pretrained_model(a) })
@@ -235,4 +236,207 @@ TR_test "yapı tanımı: etkisiz her anahtarın değeri değişince logitler bit
         a[k] = v
         TR_assert_equal(qtaban, k6_logit(TR_JSON(a), qw), k)
     }
+}
+
+# gemma_ayarı 1B'nin config'inin biçiminde küçük bir gemma3_text: üç katman, düzen 2 (ortadaki genel), pencere 4.
+TR_func gemma_ayarı() -> TR_Dict[TR_String, TR_JSON] {
+    TR_return {"model_type": "gemma3_text", "vocab_size": 16, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 3,
+        "num_attention_heads": 2, "num_key_value_heads": 1, "head_dim": 8, "max_position_embeddings": 12, "rms_norm_eps": 0.000001,
+        "rope_theta": 1000000.0, "rope_local_base_freq": 10000.0, "rope_scaling": TR_none, "sliding_window": 4, "sliding_window_pattern": 2,
+        "query_pre_attn_scalar": 8, "hidden_activation": "gelu_pytorch_tanh", "final_logit_softcapping": TR_none,
+        "attn_logit_softcapping": TR_none, "attention_bias": TR_false, "attention_dropout": 0.0, "cache_implementation": "hybrid"}
+}
+
+# gemma_çok_kipli a'yı 4B'nin biçiminde çok kipli bir gemma3'ün text_config'i yapar.
+TR_func gemma_çok_kipli(a: TR_Dict[TR_String, TR_JSON]) -> TR_Dict[TR_String, TR_JSON] {
+    TR_return {"model_type": "gemma3", "text_config": a, "vision_config": {"model_type": "siglip_vision_model", "hidden_size": 4},
+        "mm_tokens_per_image": 4, "image_token_index": 16, "boi_token_index": 1, "eoi_token_index": 2, "unsloth_fixed": TR_true}
+}
+
+# gemma_logit ayardan kurulan modele TR adlı ağırlıkları yükler, sabit kimliklerin logitlerini verir.
+TR_func gemma_logit(a: TR_Dict[TR_String, TR_JSON], w: TR_Dict[TR_String, TR_Tensor]) -> TR_List[TR_List[TR_Float]] {
+    TR_var m = TR_build_pretrained_model(a)
+    TR_load_parameters(m, w)
+    TR_return m.TR_forward(TR_Tensor([[3, 1, 4, 1, 5, 9, 2, 6, 5, 3]]))[0].TR_tolist
+}
+
+TR_test "gemma3_text: yapı tanımı Gemma 3'ün seçeneklerini kurar: düzen, paylaşımlı gömme, √boyut, iki RoPE tablosu, GeGLU, dört norm" {
+    TR_var m = TR_build_pretrained_model(gemma_ayarı())
+    TR_assert_equal([4, 0, 4], [b.TR_attention.TR_window TR_for b TR_in m.TR_blocks])
+    TR_assert_equal(TR_none, m.TR_logit_layer) # tie_word_embeddings yok: Gemma'da paylaşımlı
+    TR_assert_equal(TR_sqrt(8.0), m._gömme_ölçeği)
+    TR_assert_equal(TR_rotary_table(12, 8, TR_rope_theta: 1000000.0)[0].TR_tolist, m.TR_cos_table.TR_tolist)
+    TR_var yerel = TR_rotary_table(12, 8, TR_rope_theta: 10000.0)
+    TR_assert_equal(yerel[0].TR_tolist, m.TR_local_cos_table.TR_tolist)
+    TR_assert_equal(yerel[1].TR_tolist, m.TR_local_sin_table.TR_tolist)
+    TR_for b TR_in m.TR_blocks {
+        TR_assert(b.TR_feed_forward._gelu TR_and b.TR_attention_output_norm != TR_none TR_and b.TR_feed_forward_output_norm != TR_none)
+        TR_assert(b.TR_attention.TR_q_norm != TR_none)
+    }
+    # Doğrusal ölçek yalnız genel tablodadır: ölçek 4'te konum 4 ölçeksiz tablonun 1. konumudur; yerel tablo ölçeksiz.
+    TR_var a = gemma_ayarı()
+    a["rope_scaling"] = TR_JSON({"rope_type": "linear", "factor": 4.0})
+    TR_var s = TR_build_pretrained_model(a)
+    TR_assert_equal(TR_rotary_table(12, 8, TR_rope_theta: 1000000.0)[0][1].TR_tolist, s.TR_cos_table[4].TR_tolist)
+    TR_assert(s.TR_cos_table[1].TR_tolist != m.TR_cos_table[1].TR_tolist)
+    TR_assert_equal(m.TR_local_cos_table.TR_tolist, s.TR_local_cos_table.TR_tolist)
+    # layer_types düzeni yazar; sliding_window_pattern'la aynıysa geçer, yalnızsa düzen odur.
+    TR_var t = gemma_ayarı()
+    t["layer_types"] = TR_JSON(["sliding_attention", "full_attention", "sliding_attention"])
+    TR_assert_equal([4, 0, 4], [b.TR_attention.TR_window TR_for b TR_in TR_build_pretrained_model(t).TR_blocks])
+    t["layer_types"] = TR_JSON(["full_attention", "sliding_attention", "full_attention"])
+    t["sliding_window_pattern"] = TR_JSON(TR_none)
+    TR_assert_equal([0, 4, 0], [b.TR_attention.TR_window TR_for b TR_in TR_build_pretrained_model(t).TR_blocks])
+}
+
+TR_test "gemma3: hugging_face_eşle normlara float32'de 1 ekler, Gemma'nın dört normunu yerine koyar; çok kiplide yalnız metin yarısı" {
+    TR_var w = TR_Tensor([1.0, 2.0], TR_dtype: "bf16")
+    TR_var adlar = {"model.layers.0.input_layernorm.weight": "TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight",
+        "model.layers.0.post_attention_layernorm.weight": "TR_mem_blocks.0.TR_mem_attention_output_norm.TR_mem_weight",
+        "model.layers.0.pre_feedforward_layernorm.weight": "TR_mem_blocks.0.TR_mem_post_attention_norm.TR_mem_weight",
+        "model.layers.0.post_feedforward_layernorm.weight": "TR_mem_blocks.0.TR_mem_feed_forward_output_norm.TR_mem_weight",
+        "model.layers.0.self_attn.q_norm.weight": "TR_mem_blocks.0.TR_mem_attention.TR_mem_q_norm.TR_mem_weight",
+        "model.layers.0.self_attn.k_norm.weight": "TR_mem_blocks.0.TR_mem_attention.TR_mem_k_norm.TR_mem_weight",
+        "model.norm.weight": "TR_mem_final_norm.TR_mem_weight"}
+    # Her norm ayrı değer taşır: iki normun hedefi yer değiştirirse değerler de yer değiştirir (A19).
+    TR_var hf: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for i, ad TR_in adlar.TR_keys() { hf[ad] = TR_Tensor([i * 1.0, i + 0.5], TR_dtype: "bf16") }
+    hf["model.embed_tokens.weight"] = TR_Tensor([[1.0, 2.0]])
+    hf["lm_head.weight"] = TR_Tensor([[1.0, 2.0]]) # paylaşımlı: atlanır
+    TR_var e = TR_map_hugging_face(hf, {"model_type": "gemma3_text"})
+    TR_assert_equal(8, e.TR_length)
+    TR_for i, ad TR_in adlar.TR_keys() {
+        TR_assert_equal([i + 1.0, i + 1.5], e[adlar[ad]].TR_tolist, ad)
+        TR_assert_equal("float32", e[adlar[ad]].TR_dtype, ad)
+    }
+    TR_assert_equal([[1.0, 2.0]], e["TR_mem_embedding.TR_mem_table"].TR_tolist) # norm değil: 1 eklenmez
+    # Llama'nın tablosunda Gemma'nın normu yoktur; Llama'da 1 eklenmez.
+    TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"model.layers.0.pre_feedforward_layernorm.weight": w}, {"model_type": "llama"}) })
+    TR_assert_equal([1.0, 2.0], TR_map_hugging_face({"model.norm.weight": w}, {"model_type": "llama"})["TR_mem_final_norm.TR_mem_weight"].TR_tolist)
+    # Çok kipli: metin language_model. önekinde, görüntü kulesi atlanır, başka önek H6945.
+    TR_var ç = TR_map_hugging_face({"language_model.model.layers.0.input_layernorm.weight": w, "vision_tower.vision_model.x": w,
+        "multi_modal_projector.mm_input_projection_weight": w}, {"model_type": "gemma3"})
+    TR_assert_equal(["TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight"], ç.TR_keys())
+    TR_assert_equal([2.0, 3.0], ç["TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight"].TR_tolist)
+    TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"model.layers.0.input_layernorm.weight": w}, {"model_type": "gemma3"}) })
+}
+
+# kayıt_adları modelin adlı yapraklarını verir; trt ve safetensors dosyasının anahtarları aynı adlardır.
+TR_func kayıt_adları(m: TR_GPT) -> TR_List[TR_String] {
+    TR_var adlar = TR_parameters(m, TR_named: TR_true)
+    TR_for uzantı TR_in ["trt", "safetensors"] {
+        TR_var yol = TR_String(TR_Path(TR_temp_dir(), "adlar.\(uzantı)"))
+        TR_save_tensors(yol, adlar)
+        TR_assert_equal(adlar.TR_keys().TR_sort(), TR_load_tensors(yol).TR_keys().TR_sort(), uzantı)
+    }
+    TR_return adlar.TR_keys()
+}
+
+TR_test "adlı yapraklar ve kayıt dosyası: Llama ve Qwen3'te Gemma alanı ve tablo yok; Gemma 3'ün çıktı normları kimlikle (A19)" {
+    TR_var l = {"model_type": "llama", "vocab_size": 16, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 1,
+        "num_attention_heads": 2, "rope_theta": 100000.0, "tie_word_embeddings": TR_true}
+    TR_var llama = ["TR_mem_embedding.TR_mem_table", "TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_o_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_post_attention_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight",
+        "TR_mem_final_norm.TR_mem_weight"]
+    TR_var lm = TR_build_pretrained_model(l)
+    TR_assert_equal(llama, kayıt_adları(lm))
+    TR_var qwen = ["TR_mem_embedding.TR_mem_table", "TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_q_norm.TR_mem_weight", "TR_mem_blocks.0.TR_mem_attention.TR_mem_k_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_o_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_post_attention_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight",
+        "TR_mem_final_norm.TR_mem_weight", "TR_mem_logit_layer.TR_mem_weight"]
+    TR_var qm = TR_build_pretrained_model(qwen3_ayarı())
+    TR_assert_equal(qwen, kayıt_adları(qm))
+    TR_var a = gemma_ayarı()
+    a["num_hidden_layers"] = TR_JSON(1)
+    TR_var gemma = ["TR_mem_embedding.TR_mem_table", "TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_q_norm.TR_mem_weight", "TR_mem_blocks.0.TR_mem_attention.TR_mem_k_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention.TR_mem_o_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_post_attention_norm.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight",
+        "TR_mem_blocks.0.TR_mem_attention_output_norm.TR_mem_weight", "TR_mem_blocks.0.TR_mem_feed_forward_output_norm.TR_mem_weight",
+        "TR_mem_final_norm.TR_mem_weight"]
+    TR_var gm = TR_build_pretrained_model(a)
+    TR_assert_equal(gemma, kayıt_adları(gm))
+    # Tablolar adlı yapraklarda yok (yukarıdaki listeler); Gemma'da iki yerel tablo kurulu, Llama ve Qwen3'te yok.
+    TR_assert(gm.TR_local_cos_table != TR_none TR_and gm.TR_local_sin_table != TR_none)
+    TR_for m TR_in [lm, qm] { TR_assert(m.TR_local_cos_table == TR_none TR_and m.TR_local_sin_table == TR_none) }
+}
+
+TR_test "gemma3: etkisiz anahtarlar ve çok kiplinin üst düzeyi logitleri değiştirmez; düzen değiştirir (K6)" {
+    TR_var m = TR_build_pretrained_model(gemma_ayarı())
+    TR_var w: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_var tohum = 1
+    TR_for ad, t TR_in TR_parameters(m, TR_named: TR_true) {
+        w[ad] = TR_init_weight(t.TR_shape, 0.5, tohum)
+        tohum = tohum + 1
+    }
+    TR_var taban = gemma_logit(gemma_ayarı(), w)
+    TR_var değişen: TR_Dict[TR_String, TR_JSON] = {"unsloth_fixed": TR_true, "cache_implementation": "static", "torch_dtype": "bfloat16",
+        "transformers_version": "4.51.3", "eos_token_id": [1, 106], "pad_token_id": 0, "use_cache": TR_false}
+    TR_for k, v TR_in değişen {
+        TR_var a = gemma_ayarı()
+        a[k] = TR_JSON(v)
+        TR_assert_equal(taban, gemma_logit(a, w), k)
+    }
+    TR_assert_equal(taban, gemma_logit(gemma_çok_kipli(gemma_ayarı()), w))
+    TR_var hepsi_genel = gemma_ayarı()
+    hepsi_genel["sliding_window_pattern"] = TR_JSON(1)
+    TR_assert(gemma_logit(hepsi_genel, w) != taban)
+}
+
+# gemma_metni kuruluşun hata iletisinin Türkçe metnidir ("" hata yoksa).
+TR_func gemma_metni(a: TR_Dict[TR_String, TR_JSON]) -> TR_String {
+    TR_try { TR_build_pretrained_model(a) } TR_catch e { TR_return e.TR_text("tr") }
+    TR_return ""
+}
+
+TR_test "gemma3: desteklenmeyen ayarlar açık hatadır (H7177, H7171, H7193, H6942, H6943, H7161, H7160, H6940)" {
+    TR_var değer: TR_Dict[TR_String, TR_List[TR_JSON]] = {"H7171": [["final_logit_softcapping", 30.0], ["attn_logit_softcapping", 50.0],
+        ["sliding_window", 0], ["sliding_window", -1],
+        ["sliding_window_pattern", 0], ["sliding_window_pattern", -1], ["rope_local_base_freq", 0.0], ["rope_local_base_freq", -1.0],
+        ["layer_types", ["sliding_attention", "chunked_attention", "sliding_attention"]]],
+        "H6942": [["hidden_activation", "gelu"], ["hidden_act", "silu"]],
+        "H6943": [["rope_scaling", {"rope_type": "yarn", "factor": 4.0}], ["rope_scaling", {"rope_type": "linear", "factor": 0.0}],
+            ["rope_parameters", {"rope_type": "linear", "rope_theta": 1000000.0}]],
+        "H7161": [["layer_types", ["full_attention", "full_attention", "sliding_attention"]]], "H7160": [["yeni_anahtar", 1]]}
+    TR_for kod, durumlar TR_in değer {
+        TR_for d TR_in durumlar {
+            TR_var a = gemma_ayarı()
+            a[TR_String(d[0])] = TR_JSON(d[1])
+            TR_assert_equal(kod, TR_error_code { TR_build_pretrained_model(a) }, "\(d)")
+        }
+    }
+    # 27B (62 katman) ve dikkat ölçeği bakış boyutundan farklı boy iki ayrı metinle H7177'dir.
+    TR_var b = gemma_ayarı()
+    b["num_hidden_layers"] = TR_JSON(62)
+    TR_assert_equal("H7177", TR_error_code { TR_build_pretrained_model(b) })
+    TR_assert_equal("hazır_model: Gemma 3 27B TR'de hiçbir yoldan yüklenmez (\"num_hidden_layers\" = 62): 27B'nin dikkat ölçeği (query_pre_attn_scalar 168) bakış boyutuna eşit değil ve TR dikkatte bakış boyutunun karekökünü kullanır (15.24); desteklenen boylar 1B, 4B ve 12B'dir, GGUF'ta da Hugging Face klasöründe de (15.55)", gemma_metni(b))
+    TR_var c = gemma_ayarı()
+    c["query_pre_attn_scalar"] = TR_JSON(16)
+    TR_assert_equal("hazır_model: Gemma 3'ün bu boyu TR'de yüklenmez: dikkat ölçeği bakış boyutundan farklı (\"query_pre_attn_scalar\" = 16) (15.55)", gemma_metni(c))
+    # layer_types'ın boyu katman sayısından farklıysa H7193: ileti iki sayıyı söyler, GPT'nin H6911'i gelmez (A21).
+    TR_for türler TR_in [["sliding_attention", "full_attention"], ["sliding_attention", "full_attention", "sliding_attention", "full_attention"]] {
+        TR_var l = gemma_ayarı()
+        l["layer_types"] = TR_JSON(türler)
+        TR_assert_equal("H7193", TR_error_code { TR_build_pretrained_model(l) }, "\(türler.TR_length)")
+        TR_assert_equal("hazır_model: \"layer_types\" \(türler.TR_length) katmanın türünü yazıyor, modelin 3 katmanı var (num_hidden_layers): her katmanın bir dikkat türü olmalı; config bozuk, modelin config.json'unu yeniden indirin (15.55)", gemma_metni(l))
+    }
+    # Config yolunda H7171 hazır_model'i ve config'i anar (A20).
+    TR_var kırp = gemma_ayarı()
+    kırp["final_logit_softcapping"] = TR_JSON(30.0)
+    TR_assert(gemma_metni(kırp).TR_starts_with("hazır_model: ") TR_and gemma_metni(kırp).TR_ends_with("config'i değiştirmek modeli değiştirir"), gemma_metni(kırp))
+    # Çok kipli: metin ayarının bilinmeyen anahtarı yoluyla, üst düzeyinki adıyla; metin ayarı gemma3_text olmalı.
+    TR_var metin = gemma_ayarı()
+    metin["yeni_anahtar"] = TR_JSON(1)
+    TR_assert(gemma_metni(gemma_çok_kipli(metin)).TR_contains("text_config.yeni_anahtar"), gemma_metni(gemma_çok_kipli(metin)))
+    TR_var üst = gemma_çok_kipli(gemma_ayarı())
+    üst["hidden_size"] = TR_JSON(8)
+    TR_assert_equal("H7160", TR_error_code { TR_build_pretrained_model(üst) })
+    TR_var tip = gemma_ayarı()
+    tip["model_type"] = TR_JSON("llama")
+    TR_assert_equal("H6940", TR_error_code { TR_build_pretrained_model(gemma_çok_kipli(tip)) })
 }

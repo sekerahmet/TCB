@@ -30,8 +30,11 @@ TR_print(en_büyük)
 // (config.json + model.safetensors) tr/pretrained ile yüklenince aynı token kimlikleri için
 // transformers'la float32 yuvarlama düzeyinde aynı logitleri verir. İki mimari: Llama (paylaşımlı
 // gömme, RoPE tabanı 10⁵) ve Qwen3 (bakış boyutu gizli boyuttan bağımsız, QK-norm, RoPE tabanı
-// 10⁶ rope_parameters içinde, ayrı çıkış katmanı). Model rastgele ağırlıklarla yerelde kurulur;
-// ağ yoktur. transformers yoksa atlanır.
+// 10⁶ rope_parameters içinde, ayrı çıkış katmanı). Gemma 3 iki durumla (15.55, K2): gemma3_text 1B gibi
+// (dört norm ve +1, √boyut, GeGLU, pencere 4 ve 16 parça: genel katman iki yerelin arasında, yerel taban
+// 10⁴) ve çok kipli gemma3 4B gibi (metin yarısı language_model. önekinde, görüntü kulesi atlanır, doğrusal
+// ölçek 8 yalnız genel katmanda). Model rastgele ağırlıklarla yerelde kurulur; ağ yoktur. transformers
+// yoksa atlanır.
 func TestReadyModelMatchesTransformers(t *testing.T) {
 	python := pythonOrSkip(t)
 	if !hasPythonModules(python, "torch", "transformers", "safetensors") {
@@ -54,7 +57,8 @@ func TestReadyModelMatchesTransformers(t *testing.T) {
 		}
 	}
 	llama, qwen3 := pair(t, build("llama", true), build("qwen3", false))
-	for _, c := range []struct{ arch, out string }{{"llama", llama}, {"qwen3", qwen3}} {
+	gemma, gemmaMM := pair(t, build("gemma3_text", false), build("gemma3", false))
+	for _, c := range []struct{ arch, out string }{{"llama", llama}, {"qwen3", qwen3}, {"gemma3_text", gemma}, {"gemma3", gemmaMM}} {
 		s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "karsilastir.tr"), "--folder", c.out)
 		if s.Code != 0 {
 			t.Fatalf("%s: TR çıkış %d:\n%s\n%s", c.arch, s.Code, s.Stdout, s.Stderr)

@@ -26,14 +26,47 @@ TR_const TR_BLOCK_NAMES = {
     "post_attention_layernorm.weight": ["TR_mem_post_attention_norm.TR_mem_weight", TR_false, -1]
 }
 
+# Gemma 3'ün blok adları (gemma3_text ve çok kiplinin metin yarısı). Ajanın yanıldığı yer: Hugging Face'in
+# post_attention_layernorm'u dikkatin çıkışındaki normdur (dikkat_çıkış_normu), pre_feedforward_layernorm'u norm2'dir.
+TR_const TR_GEMMA3_BLOCK_NAMES = {
+    "self_attn.q_proj.weight": ["TR_mem_attention.TR_mem_q_proj.TR_mem_weight", TR_true, -1],
+    "self_attn.k_proj.weight": ["TR_mem_attention.TR_mem_kv_proj.TR_mem_weight", TR_true, 0],
+    "self_attn.v_proj.weight": ["TR_mem_attention.TR_mem_kv_proj.TR_mem_weight", TR_true, 1],
+    "self_attn.o_proj.weight": ["TR_mem_attention.TR_mem_o_proj.TR_mem_weight", TR_true, -1],
+    "self_attn.q_norm.weight": ["TR_mem_attention.TR_mem_q_norm.TR_mem_weight", TR_false, -1],
+    "self_attn.k_norm.weight": ["TR_mem_attention.TR_mem_k_norm.TR_mem_weight", TR_false, -1],
+    "mlp.gate_proj.weight": ["TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", TR_true, 0],
+    "mlp.up_proj.weight": ["TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", TR_true, 1],
+    "mlp.down_proj.weight": ["TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight", TR_true, -1],
+    "input_layernorm.weight": ["TR_mem_input_norm.TR_mem_weight", TR_false, -1],
+    "post_attention_layernorm.weight": ["TR_mem_attention_output_norm.TR_mem_weight", TR_false, -1],
+    "pre_feedforward_layernorm.weight": ["TR_mem_post_attention_norm.TR_mem_weight", TR_false, -1],
+    "post_feedforward_layernorm.weight": ["TR_mem_feed_forward_output_norm.TR_mem_weight", TR_false, -1]
+}
+
 # hugging_face_eşle Hugging Face adlı ağırlık sözlüğünü TR parametre adlarına çevirir. Paylaşımlı
 # gömmede lm_head.weight varsa gömmeyle aynı olmalıdır ve atlanır; dönüş tabloları
-# (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır.
+# (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır. Gemma 3'te (model_type gemma3_text
+# ya da gemma3) gömme öntanımlı paylaşımlıdır ve her norma float32'de 1 eklenir: Gemma'nın normu
+# x · (1 + w) hesaplar, TR'ninki x · w. Çok kipli gemma3'te metin ağırlıkları language_model. önekindedir;
+# görüntü kulesi (vision_tower., multi_modal_projector.) yüklenmez, başka önek hatadır.
 TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config) -> TR_Dict[TR_String, TR_Tensor] {
-    TR_var paylaşımlı = TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", TR_false))
+    TR_var tip = TR_String(TR_config_value(TR_config, "model_type", ""))
+    TR_var gemma = ["gemma3_text", "gemma3"].TR_contains(tip)
+    TR_var adlar = TR_if gemma { TR_GEMMA3_BLOCK_NAMES } TR_else { TR_BLOCK_NAMES }
+    TR_var paylaşımlı = TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", gemma))
     TR_var sonuç_sözlük = {}
     TR_var parçalı = {} # TR adı → [ilk parça, ikinci parça]
-    TR_for ad, t TR_in TR_weights {
+    TR_for dosyadaki, ağırlık TR_in TR_weights {
+        TR_var ad = dosyadaki
+        TR_var t = ağırlık
+        TR_if tip == "gemma3" {
+            TR_if ad.TR_starts_with("vision_tower.") TR_or ad.TR_starts_with("multi_modal_projector.") { TR_continue }
+            TR_if TR_not ad.TR_starts_with("language_model.") { TR_throw TR_Message("H6945", "model", ad) }
+            TR_var parça = ad.TR_split(".")
+            ad = parça[1..parça.TR_length].TR_join(".")
+        }
+        TR_if gemma TR_and ad.TR_ends_with("norm.weight") { t = t.TR_to_dtype("float32") + 1.0 }
         TR_if ad.TR_ends_with("rotary_emb.inv_freq") { TR_continue }
         TR_if ad == "model.embed_tokens.weight" {
             sonuç_sözlük["TR_mem_embedding.TR_mem_table"] = t
@@ -44,8 +77,8 @@ TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config
         } TR_else TR_if ad.TR_starts_with("model.layers.") {
             TR_var parçalar = ad.TR_split(".")
             TR_var iç = parçalar[3..parçalar.TR_length].TR_join(".")
-            TR_if TR_not TR_BLOCK_NAMES.TR_contains(iç) { TR_throw TR_Message("H6945", "model", ad) }
-            TR_var hedef = TR_BLOCK_NAMES[iç]
+            TR_if TR_not adlar.TR_contains(iç) { TR_throw TR_Message("H6945", "model", dosyadaki) }
+            TR_var hedef = adlar[iç]
             TR_var tr_ad = "TR_mem_blocks.\(parçalar[2]).\(hedef[0])"
             TR_var w = t
             TR_if hedef[1] { w = t.TR_transpose() }
@@ -56,7 +89,7 @@ TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config
                 parçalı[tr_ad][hedef[2]] = w
             }
         } TR_else {
-            TR_throw TR_Message("H6945", "model", ad)
+            TR_throw TR_Message("H6945", "model", dosyadaki)
         }
     }
     TR_for tr_ad, p TR_in parçalı {

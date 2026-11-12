@@ -343,9 +343,11 @@ TR_struct TR_TransformerBlock {
     TR_feed_forward: TR_SwiGLU
     TR_ple: TR_PLEBlock?
     # Gemma 3'ün dörtlü normu: dikkatin ve ileri katmanın çıktısı artığa eklenmeden önce normdan geçer
-    # (x + n(dikkat(..)), h + n(ileri(..))). Yokken blok bit bit eskisidir; yalnız tr/pretrained kurar (A3).
-    _dikkat_çıkış_normu: TR_RMSNorm? = TR_none
-    _ileri_çıkış_normu: TR_RMSNorm? = TR_none
+    # (x + n(dikkat(..)), h + n(ileri(..))). Yokken blok bit bit eskisidir; yalnız tr/pretrained kurar. Ağırlık
+    # taşıdıkları için kimlik üyesidir: adları diske dilden bağımsız gider (A19).
+    # TR_post_attention_norm ileri katmandan önceki normdur; dikkatin çıktısına uygulanan TR_attention_output_norm'dur.
+    TR_attention_output_norm: TR_RMSNorm? = TR_none
+    TR_feed_forward_output_norm: TR_RMSNorm? = TR_none
     TR_func TR_init(TR_embed_dim: TR_Int, TR_num_heads: TR_Int, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_eps: TR_Float = 0.00001, TR_window: TR_Int = 0, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_use_bias: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ple_dim: TR_Int? = TR_none, TR_vocab_size: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_input_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
         TR_self.TR_attention = TR_CausalAttention(TR_embed_dim, TR_num_heads, TR_num_kv_heads: TR_num_kv_heads, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed, TR_window: TR_window, TR_qk_norm: TR_qk_norm, TR_merged_kv: TR_merged_kv, TR_eps: TR_eps, TR_head_dim: TR_head_dim, TR_weight_dtype: TR_weight_dtype)
@@ -361,10 +363,10 @@ TR_struct TR_TransformerBlock {
     TR_func TR_forward(TR_x: TR_Tensor, TR_cos_table: TR_Tensor, TR_sin_table: TR_Tensor, TR_token_ids = TR_none, TR_ple_context: TR_Tensor? = TR_none, TR_cache: TR_KVCache? = TR_none, TR_layer_idx: TR_Int = 0) -> TR_Tensor {
         # Norm çıktılarını yalnızca dikkatin ve ileri beslemenin ilk çarpımları okur.
         TR_var a = TR_self.TR_attention.TR_forward(TR_self.TR_input_norm.TR_forward(TR_x, TR_output_dtype: TR_compute_dtype()), TR_cos_table, TR_sin_table, TR_cache: TR_cache, TR_layer_idx: TR_layer_idx)
-        TR_if TR_self._dikkat_çıkış_normu != TR_none { a = TR_self._dikkat_çıkış_normu.TR_forward(a) }
+        TR_if TR_self.TR_attention_output_norm != TR_none { a = TR_self.TR_attention_output_norm.TR_forward(a) }
         TR_var h = TR_x + a
         TR_var f = TR_self.TR_feed_forward.TR_forward(TR_self.TR_post_attention_norm.TR_forward(h, TR_output_dtype: TR_compute_dtype()))
-        TR_if TR_self._ileri_çıkış_normu != TR_none { f = TR_self._ileri_çıkış_normu.TR_forward(f) }
+        TR_if TR_self.TR_feed_forward_output_norm != TR_none { f = TR_self.TR_feed_forward_output_norm.TR_forward(f) }
         h = h + f
         TR_if TR_self.TR_ple != TR_none { TR_return TR_self.TR_ple.TR_forward(h, TR_token_ids, TR_ple_context) }
         TR_return h
@@ -533,10 +535,11 @@ TR_struct TR_GPT {
     TR_cos_table: TR_Tensor
     TR_sin_table: TR_Tensor
     _aile: _Aile? = TR_none # elle kurulan GPT'de yok: durma_parçaları H7170 (neden none)
-    # Gemma 3 (yalnız tr/pretrained kurar, A3): gömme çıktısı √boyut ile çarpılır (float32); pencereli
-    # (yerel) bloklar kendi tabanlı ikinci döner konum tablosunu okur. Yokken model bit bit eskisidir.
+    # Gemma 3 (yalnız tr/pretrained kurar): gömme çıktısı √boyut ile çarpılır (float32; _ seçenek, A3); pencereli
+    # (yerel) bloklar yerel_cos_tablosu ile yerel_sin_tablosu'nu okur (kimlik üyesi, A19). Yokken model bit bit eskisidir.
     _gömme_ölçeği: TR_Float? = TR_none
-    _yerel_tablo: TR_List[TR_Tensor] = [] # [cos, sin]; boşsa yerel tablo yok
+    TR_local_cos_table: TR_Tensor? = TR_none
+    TR_local_sin_table: TR_Tensor? = TR_none
     TR_func TR_init(TR_vocab_size: TR_Int, TR_context: TR_Int = 256, TR_embed_dim: TR_Int = 256, TR_num_layers: TR_Int = 4, TR_num_heads: TR_Int = 4, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_tied: TR_Bool = TR_false, TR_seed: TR_Int = 1, TR_windows: TR_List[TR_Int]? = TR_none, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_eps: TR_Float = 0.00001, TR_ple_dim: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_rope_theta: TR_Float = 10000.0, TR_weight_dtype: TR_String = "float32", TR_init_std: TR_Float = 0.02) {
         TR_self.TR_config = {"dağarcık": TR_vocab_size, "bağlam": TR_context, "embed_dim": TR_embed_dim, "katman": TR_num_layers, "num_heads": TR_num_heads, "head_dim": TR_head_dim,
             "num_kv_heads": TR_num_kv_heads, "ara_boyut": TR_intermediate_dim, "paylaşımlı": TR_tied, "tohum": TR_seed,
@@ -587,8 +590,9 @@ TR_struct TR_GPT {
     # _yerel_tablolar: yerel tablonun satırları, gizli_durum ve tek_adım genel tabloya ne yapıyorsa o:
     # önbelleksiz tamamı, cihaz adımında konumun satırı, önbellekte konumdan T satır. Yerel tablo yoksa yok.
     TR_func _yerel_tablolar(T: TR_Int, önbellek: TR_KVCache?) -> TR_List[TR_Tensor]? {
-        TR_var t = TR_self._yerel_tablo
-        TR_if t.TR_length == 0 { TR_return TR_none }
+        TR_if TR_self.TR_local_cos_table == TR_none TR_or TR_self.TR_local_sin_table == TR_none { TR_return TR_none }
+        # Alan daraltılmaz (3.5): ?? yalnız tipi açar; sınamadan sonra genel tabloya hiç düşülmez.
+        TR_var t = [TR_self.TR_local_cos_table ?? TR_self.TR_cos_table, TR_self.TR_local_sin_table ?? TR_self.TR_sin_table]
         TR_if önbellek == TR_none { TR_return t }
         TR_var adım = önbellek.TR_step_position
         TR_if adım != TR_none { TR_return [TR_embedding_lookup(x, adım) TR_for x TR_in t] }

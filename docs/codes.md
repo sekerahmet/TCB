@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 757 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 173 fonksiyon, 11 sabit, 93 metot, 132 özellik, 194 adlı argüman.
+Toplam 762 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 173 fonksiyon, 12 sabit, 93 metot, 136 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -4075,6 +4075,12 @@ tr: yazdır(sıfırlar([2, 3]).şekil)
 
 
 
+#### `TR_GEMMA3_BLOCK_NAMES` (`TR_const_GEMMA3_BLOCK_NAMES`, `GEMMA3_BLOK_ADLARI`)
+
+    GEMMA3_BLOK_ADLARI
+
+
+
 #### `TR_MIN_RELATIVE_STD` (`TR_const_MIN_RELATIVE_STD`, `EN_AZ_GÖRELİ_SAPMA`)
 
     EN_AZ_GÖRELİ_SAPMA
@@ -6110,6 +6116,10 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_attention_output_norm` (`TR_mem_attention_output_norm`, `dikkat_çıkış_normu`)
+
+
+
 #### `.TR_bar` (`TR_mem_bar`, `çubuk`)
 
 
@@ -6533,6 +6543,10 @@ tr: yazdır(Yol("veri/derlem.tar.gz").uzantı)
 İlişkili: `.TR_stem`
 
 #### `.TR_feed_forward` (`TR_mem_feed_forward`, `ileri_besleme`)
+
+
+
+#### `.TR_feed_forward_output_norm` (`TR_mem_feed_forward_output_norm`, `ileri_çıkış_normu`)
 
 
 
@@ -6991,6 +7005,14 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w
 ```
 
 İlişkili: `.TR_state`
+
+#### `.TR_local_cos_table` (`TR_mem_local_cos_table`, `yerel_cos_tablosu`)
+
+
+
+#### `.TR_local_sin_table` (`TR_mem_local_sin_table`, `yerel_sin_tablosu`)
+
+
 
 #### `.TR_logger` (`TR_mem_logger`, `günlük`)
 
