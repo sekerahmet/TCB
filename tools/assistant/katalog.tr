@@ -1,8 +1,9 @@
 # TR 4
 # Dost'un model kataloğu ve ayarı (tek tık kurulumu, A dilimi). İki dosya da JSON'dur ve `"v": 1` taşır: bilinmeyen
 # alan, eksik alan, yanlış tür, izinli kümede olmayan değer ve bilinmeyen sürüm açık hatadır (H8160–H8174). Modül
-# her dil modelinin bu makineye sığıp sığmadığını hesaplar ve öneriyi ayar olarak yazar; model yüklemez, ağa çıkmaz.
-# kur.tr komut olarak kullanır, katalog_test.tr sınar (README, "Kurulum").
+# ayarın JSON'unu denetler (`ayar_denetle`) ve her dil modelinin bu makineye sığıp sığmadığını hesaplar; model
+# yüklemez, ağa çıkmaz. Ayar dosyasının yolu, okunması, yazılması ve kurulum ayarlar.tr'dedir; o bu modülü aktarır, bu
+# modül hiçbir şey aktarmaz. katalog_test.tr ikisini de sınar (README, "Kurulum").
 
 TR_const SÜRÜM = 1
 # A'nın sohbet aileleri: D1'in listesi dışarıya açık değil (lib/pretrained.tr'nin `_sohbet_tablosu()`); D1 Teslim B
@@ -52,6 +53,8 @@ TR_struct Ayar {
     sistem: TR_JSON
     bağlam: TR_Int
     kapı: TR_Int
+    mikrofon: TR_String = "" # ayarın `microphone`'u; yoksa "" (ekranlı kip `--aygıt`'ı alır)
+    kayıt: TR_Bool = TR_false # ayarın `recording`'i; yoksa kapalı
 }
 
 # Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`; bağlam modelin
@@ -353,15 +356,6 @@ TR_func katalog_oku(yol: TR_String) -> Katalog {
     TR_return k
 }
 
-# ayar_yolu: `--ayar` verildiyse o; yoksa %LOCALAPPDATA%\Dost\ayar.json; değişken yoksa H8172 (yer uydurulmaz,
-# işletim sistemi sorulmaz). `yer` TR_env("LOCALAPPDATA")'dır; test onu verir.
-TR_func ayar_yolu(verilen: TR_String, yer: TR_String?) -> TR_String {
-    TR_if verilen != "" { TR_return verilen }
-    TR_var y = yer ?? ""
-    TR_if y == "" { TR_throw TR_Message("H8172") }
-    TR_return TR_String(TR_Path(y, "Dost", "ayar.json"))
-}
-
 # _ayar_kimliği: ayardaki kimlik katalogda olmalı ve alanın istediği türde olmalı (H8168).
 TR_func _ayar_kimliği(k: Katalog, alan: TR_String, kimlik: TR_String, tür: TR_String) {
     TR_var uyanlar = _türdekiler(k, tür)
@@ -383,14 +377,13 @@ TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
     }
 }
 
-# ayar_oku: ayar dosyası yoksa ilk kurulumdur (TR_none); varsa bütünü denetlenir. Kesilmiş bir yazmadan kalan
-# `<yol>.tmp` okunmaz.
-TR_func ayar_oku(yol: TR_String, k: Katalog) -> Ayar? {
-    TR_if TR_not TR_Path(yol).TR_exists { TR_return TR_none }
-    TR_var j = dosya_oku(yol, "ayar")
+# ayar_denetle: ayar dosyasının JSON'unun bütünü denetlenir (`yol` iletide görünür); ayarın tek denetimi budur:
+# ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir. `microphone` (metin) ve `recording` (true/false) isteğe
+# bağlıdır: ikisi olmayan eski dosya da okunur; bilinmeyen alan yine H8163.
+TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     _sürüm(yol, j)
     TR_var alanlar = ["v", "language_model", "speech_language", "system_prompt", "context", "device", "port", "machine"]
-    _nesne(yol, j, "", alanlar, alanlar)
+    _nesne(yol, j, "", alanlar + ["microphone", "recording"], alanlar)
     TR_var lm = _metin(yol, j, "", "language_model")
     _ayar_kimliği(k, "language_model", lm, "language_model")
     TR_var dil = _metin(yol, j, "", "speech_language")
@@ -405,7 +398,13 @@ TR_func ayar_oku(yol: TR_String, k: Katalog) -> Ayar? {
     _nesne(yol, j["machine"], "machine", ma, ma)
     _tam(yol, j["machine"], "machine", "memory_bytes")
     _seçim(yol, j["machine"], "machine", "memory_source", ["option", "system"])
-    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı)
+    TR_var mikrofon = TR_if j.TR_get("microphone") != TR_none { _metin(yol, j, "", "microphone") } TR_else { "" }
+    TR_var kayıt = TR_false
+    TR_if j.TR_get("recording") != TR_none {
+        _tip(yol, j["recording"], "recording", "boolean")
+        kayıt = TR_Bool(j["recording"])
+    }
+    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı, mikrofon: mikrofon, kayıt: kayıt)
 }
 
 # bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.
@@ -533,56 +532,4 @@ TR_func öneri(l: TR_List[Uygunluk]) -> TR_String {
     TR_var ö = _en_büyük(l, "fits")
     TR_if ö == "" { ö = _en_büyük(l, "tight") }
     TR_return ö
-}
-
-# ayar_yaz: öneriyi ayar olarak yazar: geçici adla (`<yol>.tmp`), sonra son adına taşıyarak; ortada kesilen yazma eski
-# ayarı bozmaz, kalan `.tmp`'yi sonraki yazma ezer. Var olan ayarın dili, sistem iletisi, bağlamı ve kapısı korunur.
-TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int) {
-    TR_var dil = k.diller[0].kod
-    TR_var sistem: TR_JSON = {"source": "catalog"}
-    TR_var kapı = ÖNTANIMLI_KAPI
-    TR_var a = ayar
-    TR_if a != TR_none {
-        dil = a.konuşma_dili
-        sistem = a.sistem
-        kapı = a.kapı
-    }
-    TR_var j: TR_JSON = {"v": SÜRÜM, "language_model": dil_modeli, "speech_language": dil, "system_prompt": sistem,
-        "context": bağlam, "device": "cpu", "port": kapı, "machine": {"memory_bytes": toplam, "memory_source": "option"}}
-    TR_var p = TR_Path(yol)
-    TR_if TR_not p.TR_parent.TR_exists { TR_make_dir(p.TR_parent) }
-    TR_var geçici = "\(yol).tmp"
-    TR_write_file(geçici, TR_json_string(j) + "\n")
-    TR_move(geçici, yol, TR_overwrite: TR_true)
-}
-
-# kur: kur.tr'nin bütün işi; çıktı satırlarını verir (S3'ün biçimi, satırdaki değerler ASCII). `yaz` yoksa ayar
-# dosyasına dokunulmaz.
-TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, toplam: TR_Int, bağlam_verilen: TR_Int?,
-        yaz: TR_Bool) -> TR_List[TR_String] {
-    TR_var k = katalog_oku(katalog_yolu)
-    TR_var yol = ayar_yolu(ayar_verilen, yer)
-    TR_var a = ayar_oku(yol, k)
-    TR_var bağlam = bağlam_belirle(k, bağlam_verilen, a)
-    TR_var l = uygunluk(k, a, toplam, bağlam)
-    TR_var satırlar = ["MAKINE toplam_bayt=\(toplam) kaynak=elle baglam=\(bağlam)"]
-    TR_for u TR_in l {
-        TR_if u.uyum == "too_long" {
-            satırlar.TR_append("UYGUNLUK \(u.kimlik) too_long baglam_siniri=\(u.sınır)")
-            TR_continue
-        }
-        TR_var ölçü = TR_if u.ölçülü { "olculdu" } TR_else { "hesap" }
-        satırlar.TR_append("UYGUNLUK \(u.kimlik) \(u.uyum) gereken_bayt=\(u.gereken) esik_bayt=\(u.eşik) olcu=\(ölçü)")
-    }
-    TR_var ö = öneri(l)
-    TR_var sıkı = ""
-    TR_for u TR_in l {
-        TR_if u.kimlik == ö TR_and u.uyum == "tight" { sıkı = " fit=tight" }
-    }
-    satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)\(sıkı)" })
-    TR_if yaz TR_and ö != "" {
-        ayar_yaz(yol, k, a, ö, toplam, bağlam)
-        satırlar.TR_append("AYAR_YAZILDI \(yol)")
-    }
-    TR_return satırlar
 }

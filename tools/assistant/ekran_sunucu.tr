@@ -1,0 +1,122 @@
+# TR 4
+# Ekranın sunucusu (contract.md, sürüm 2): sayfayı ve dil dosyalarını sunar, akışı ve komut yolunu açar, belirteci
+# üretip dosyaya yazar. Ekran (`Ekran`, `Komut`, kararlar) ekran.tr'dedir; bu modül onu aktarır, ekran.tr bunu
+# aktarmaz (döngü yok, 11.3). asistan.tr ve screen_demo.tr sunucuyu buradan açar.
+
+TR_import "ekran"
+TR_import "esleme"
+
+TR_const _SÜRÜM = 2
+TR_const _CEVAP_BEKLEMESİ = 0.005 # işleyicinin ana döngünün cevabına bakışı (sn)
+# `script-src` sayfanın meta etiketindekiyle aynıdır (contract.md, "Sunulan dosyalar"); `file:` yalnız sahte kipte geçer.
+TR_const _CSP = "frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:"
+
+# ekran_aç: sunucuyu 127.0.0.1'de açar. Belirteci sunucu denetler (28.2): sayfa, modüller ve dil dosyaları belirteçsizdir
+# (`TR_tokenless_paths:`; tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez), akış ve komut belirteç ister.
+TR_func ekran_aç(e: Ekran, kapı: TR_Int, belirteç: TR_String) -> TR_HTTPServer {
+    TR_var açık = ["/"] + ["/js/" + m + ".js" TR_for m TR_in e.modüller] + ["/lang/" + d + ".js" TR_for d TR_in e.diller]
+    TR_if e.eşleme != TR_none { açık = açık + ["/pair", "/pair/renew"] }
+    TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return ekran_cevabı(e, istek) }
+    TR_return TR_serve_http(cevapla, TR_port: kapı, TR_token: belirteç, TR_tokenless_paths: açık, TR_max_body_bytes: 65536)
+}
+
+# ekran_adresi: tarayıcıda açılacak adres. Sorgusuzdur: ekranın kaynağı sayfanın kendi köküdür (contract.md, "Kaynak");
+# sorgulu istek belirteçsiz yolda da belirteç ister (28.2).
+TR_func ekran_adresi(s: TR_HTTPServer) -> TR_String { TR_return "http://127.0.0.1:\(s.TR_port)/" }
+
+# ekran_cevabı: sunucunun işleyicisi; belirteci sunucu denetlemiştir.
+TR_func ekran_cevabı(e: Ekran, istek: TR_Request) -> TR_Response {
+    TR_var yol = istek.TR_path
+    TR_if istek.TR_method == "GET" TR_and yol == "/" { TR_return dosya(e, "/index.html", {"Content-Security-Policy": _CSP}) }
+    TR_if istek.TR_method == "GET" TR_and yol.TR_starts_with("/lang/") TR_and yol.TR_ends_with(".js") {
+        TR_if e.diller.TR_contains(yol[6..yol.TR_length - 3]) { TR_return dosya(e, yol, {}) }
+    }
+    TR_if istek.TR_method == "GET" TR_and yol.TR_starts_with("/js/") TR_and yol.TR_ends_with(".js") {
+        TR_if e.modüller.TR_contains(yol[4..yol.TR_length - 3]) { TR_return dosya(e, yol, {}) }
+    }
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none TR_and eşleme_yolu(yol) { TR_return eşleme_cevabı(eş, istek) }
+    TR_var akış = istek.TR_method == "GET" TR_and yol == "/events"
+    TR_var komut = istek.TR_method == "POST" TR_and yol == "/command"
+    TR_if TR_not akış TR_and TR_not komut { TR_return TR_Response(TR_status: 404, TR_headers: {"Cache-Control": "no-store"}) }
+    TR_if akış { TR_return e.yayın.TR_subscribe(istek) }
+    TR_return komut_al(e, istek)
+}
+
+# dosya: kökteki dosya, `Cache-Control: no-store` ve verilen başlıklarla.
+TR_func dosya(e: Ekran, yol: TR_String, ek: TR_Dict[TR_String, TR_String]) -> TR_Response {
+    TR_var c = TR_file_response(e.kök, yol)
+    TR_var başlıklar = {"Content-Type": c.TR_headers["Content-Type"], "Cache-Control": "no-store"}
+    TR_for ad TR_in ek { başlıklar[ad] = ek[ad] }
+    TR_return TR_Response(TR_status: c.TR_status, TR_body: c.TR_body, TR_headers: başlıklar)
+}
+
+# komut_al: `POST /command`. Biçimi işleyici denetler (durum okumaz); kararı ana döngü verir.
+TR_func komut_al(e: Ekran, istek: TR_Request) -> TR_Response {
+    TR_var tür = istek.TR_headers.TR_get("Content-Type")
+    TR_if tür == TR_none TR_or tür.TR_split(";")[0].TR_strip().TR_lower() != "application/json" {
+        TR_return ret(415, "", "unsupported_media_type", TR_JSON({}))
+    }
+    TR_var j = TR_JSON(TR_none)
+    TR_try { j = TR_json_parse(TR_String(istek.TR_body)) } TR_catch hata { TR_return ret(400, "", "bad_request", TR_JSON({})) }
+    TR_if TR_not nesne(j) { TR_return ret(400, "", "bad_request", TR_JSON({})) }
+    TR_var kimlik = j.TR_get("command_id")
+    TR_if kimlik == TR_none TR_or TR_Type(kimlik) != TR_String TR_or TR_String(kimlik) == "" TR_or TR_String(kimlik).TR_length > 128 {
+        TR_return ret(400, "", "bad_request", TR_JSON({}))
+    }
+    TR_var k = TR_String(kimlik)
+    TR_var v = j.TR_get("v")
+    TR_if v == TR_none TR_or TR_Type(v) != TR_Int TR_or TR_Int(v) != _SÜRÜM {
+        TR_return ret(400, k, "unsupported_version", TR_JSON({"version": TR_if v == TR_none { "" } TR_else { TR_json_string(v) }}))
+    }
+    TR_var t = j.TR_get("type")
+    TR_var veri = j.TR_get("data")
+    TR_if t == TR_none TR_or TR_Type(t) != TR_String { TR_return ret(400, k, "bad_request", TR_JSON({})) }
+    TR_var ad = TR_String(t)
+    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set", "devices_list"].TR_contains(ad) {
+        TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad}))
+    }
+    TR_var d = TR_if veri == TR_none { TR_JSON({}) } TR_else { veri }
+    TR_if TR_not geçerli(ad, d) { TR_return ret(400, k, "bad_request", TR_JSON({})) }
+    TR_var c = Komut(kimlik: k, tür: ad, veri: d)
+    e.bekleyen.TR_append(c)
+    TR_for c.cevap == TR_none { TR_sleep(_CEVAP_BEKLEMESİ) }
+    TR_return TR_Response(TR_json: c.cevap, TR_headers: {"Cache-Control": "no-store"})
+}
+
+# geçerli: komutun `data`'sı sözleşmedeki alanları taşıyor mu.
+TR_func geçerli(ad: TR_String, d: TR_JSON) -> TR_Bool {
+    TR_if TR_not nesne(d) { TR_return TR_false }
+    TR_var alan = TR_match ad {
+        "send_text" => "text"
+        "mic_set" => "on"
+        "approval_answer" => "approval_id"
+        "model_load" => "entry_id"
+        "settings_set" => "key"
+        _ => ""
+    }
+    TR_if alan == "" { TR_return TR_true }
+    TR_var x = d.TR_get(alan)
+    TR_if x == TR_none { TR_return TR_false }
+    TR_if ad == "mic_set" { TR_return TR_Type(x) == TR_Bool }
+    TR_return TR_Type(x) == TR_String
+}
+
+# belirteçle_aç: yeni bir belirteç (28.2a) üretir, sunucuyu onunla açar ve kapı tutulduktan sonra belirteci yalnız sahibinin
+# okuyabileceği dosyaya yazar (18.13); kapı tutulamazsa dosyaya dokunmaz. Belirtecin kendisi hiçbir yere yazılmaz.
+TR_func belirteçle_aç(e: Ekran, kapı: TR_Int, dosya: TR_String) -> TR_HTTPServer {
+    TR_var b = TR_secret_token()
+    TR_var s = ekran_aç(e, kapı, b)
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none {
+        eş.belirteç = b
+        eş.adres = ekran_adresi(s)
+    }
+    TR_try {
+        TR_write_file(dosya, b, TR_owner_only: TR_true)
+    } TR_catch h {
+        s.TR_close()
+        TR_throw h
+    }
+    TR_return s
+}

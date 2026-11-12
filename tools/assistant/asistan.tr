@@ -26,8 +26,10 @@ TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
 TR_import "ekran"
+TR_import "ekran_sunucu"
 TR_import "deneme"
 TR_import "katalog"
+TR_import "ayarlar"
 TR_import "yuva"
 TR_import "oturum"
 TR_import "esleme"
@@ -48,15 +50,15 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
-    "en_çok_parça": 160, "bağlam": 8192, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
+    "en_çok_parça": 160, "bağlam": TR_none, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
     "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "ayar": "", "katalog": "katalog.json",
     "tarayıcıyla_eşle": TR_false},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
-        "aygıt": "canlı kipte mikrofonun dshow adı", "sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
+        "aygıt": "canlı kipte mikrofonun dshow adı; ekranlı kipte ayarın microphone'u varsa o kullanılır","sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
         "ffmpeg": "ffmpeg programı: PATH'teki ad ya da dosyanın yolu", "çalıcı": "çalma komutu (program PATH'teki ad ya da dosyanın yolu); WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
-        "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı; dolacaksa yeni konuşma başlar",
+        "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı, 0'dan büyük; dolacaksa yeni konuşma başlar; verilmezse ekranlı kipte ayarın context'i, öbür kiplerde 8192",
         "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri (JSON satırları)",
         "en_çok_tur": "canlı kipte bu kadar turdan sonra durur (0: sınırsız)",
         "ekran": "canlı kipte ekranın kapısı (127.0.0.1; 0: işletim sistemi seçer; verilmezse ekran yok)",
@@ -66,6 +68,14 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "ayar": "ekranlı kipte ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json; klasörü Dost klasörüdür (modeller, yükleme işareti)",
         "katalog": "ekranlı kipte model kataloğu (JSON); --dil_modeli verilirse ekranlı kip katalogu ve ayarı okumaz",
         "tarayıcıyla_eşle": "ekranlı kipte tarayıcıyı tek kullanımlık eşleme koduyla açar, belirteç sorulmaz; kod tarayıcıyı açan sürecin argümanında durduğu için yalnız argümanı başka kullanıcıya göstermeyen sistemde verilir; Windows başlatıcısı verir"})
+
+# bağlam: önbelleğin parça sayısı. `--bağlam`'ın öntanımlısı yokluktur (kur.tr gibi; 0 ya da eksi H8173): verilmezse
+# dosya ve canlı kipte 8192; ekranlı kipte ayar okunursa ayarın `context`'i, dil modellerinin sınırıyla (ekranlı_kip).
+TR_var bağlam_verilen: TR_Int? = TR_none
+TR_if ayar["bağlam"] != TR_none { bağlam_verilen = bağlam_oku(TR_String(ayar["bağlam"])) }
+TR_var bağlam = bağlam_seç(bağlam_verilen, TR_none)
+# ayarın_mikrofonu: ekranlı kipte ayarın `microphone`'u; boşsa `--aygıt`.
+TR_var ayarın_mikrofonu = ""
 
 TR_func _gerekli(ad: TR_String) -> TR_String {
     TR_var v = TR_String(ayar[ad])
@@ -102,7 +112,7 @@ TR_func komut_satırı_takımı() -> Takım {
 TR_func asistan_kur(t: Takım) -> Asistan {
     TR_var başla = şimdi()
     TR_var z = Zincir(p: TR_load_tokenizer(t.dil_modeli), model: TR_pretrained_gguf(t.dil_modeli), sistem: t.sistem,
-        en_çok: TR_Int(ayar["en_çok_parça"]), bağlam: TR_Int(ayar["bağlam"]), önbelleksiz: TR_Bool(ayar["önbelleksiz"]))
+        en_çok: TR_Int(ayar["en_çok_parça"]), bağlam: bağlam, önbelleksiz: TR_Bool(ayar["önbelleksiz"]))
     TR_var a = Asistan(z: z, yazıcı: TR_pretrained_whisper(t.yazıcı), ses: TR_pretrained_vits(t.ses), dil: t.dil)
     z.yeni_konuşma()
     TR_print("OLCU_YUKLEME ms=\(şimdi() - başla)")
@@ -234,9 +244,23 @@ TR_func mikrofon_aç(başlangıç: TR_Int) -> TR_Process {
         TR_var saniye = TR_Float(şimdi() - başlangıç) / 1000.0
         TR_return program_başlat(ffmpeg, ["-nostdin", "-loglevel", "error", "-re", "-ss", "\(saniye)", "-i", sahte] + çıkış, _TAMPON)
     }
-    TR_var aygıt = _gerekli("aygıt")
+    TR_var aygıt = TR_if ayarın_mikrofonu != "" { ayarın_mikrofonu } TR_else { _gerekli("aygıt") }
     TR_if TR_not aygıt.TR_starts_with("audio=") { aygıt = "audio=" + aygıt }
     TR_return program_başlat(ffmpeg, ["-nostdin", "-loglevel", "error", "-f", "dshow", "-i", aygıt] + çıkış, _TAMPON)
+}
+
+# mikrofonları_oku: ekranın `devices_list`'i: ffmpeg'in dshow kaynakları (`-sources dshow`; liste standart çıktıdadır,
+# `-list_devices`'inki standart hatada kalır ve 21.4 onu atar). Program çalışmazsa ya da liste okunamazsa TR_none.
+TR_func mikrofonları_oku() -> TR_List[TR_String]? {
+    TR_var ffmpeg = TR_String(ayar["ffmpeg"])
+    TR_var argümanlar = ["-hide_banner", "-sources", "dshow"]
+    TR_try {
+        TR_var b = TR_if program_mı_yol(ffmpeg) { TR_run_process(TR_Path(ffmpeg), argümanlar, TR_timeout: 10) } TR_else { TR_run_process(ffmpeg, argümanlar, TR_timeout: 10) }
+        TR_return mikrofon_listesi(TR_String(b))
+    } TR_catch h {
+        TR_print("MİKROFON LİSTESİ OKUNAMADI:", h)
+        TR_return TR_none
+    }
 }
 
 # canlı_kip: mikrofon bir kez açılır, yalnız taşmadan sonra yeniden açılır; döngü `dinle`'dedir (zincir.tr).
@@ -313,17 +337,28 @@ TR_func ekranlı_kip() -> TR_Int {
         k = katalog_oku(yol)
         kj = dosya_oku(yol, "katalog")
         a_ayar = ayar_oku(ayar_dosyası, k)
-        TR_if a_ayar != TR_none { ayar_verisi = TR_Dict(ayar_olayı(dosya_oku(ayar_dosyası, "ayar"))) }
+        TR_if a_ayar != TR_none {
+            ayar_verisi = TR_Dict(ayar_olayı(dosya_oku(ayar_dosyası, "ayar")))
+            ayarın_mikrofonu = a_ayar.mikrofon
+        }
+        # Bağlam ve mikrofon ayarın açılıştaki değeridir: `settings_set` onları dosyaya yazar, bir sonraki açılışta geçerli.
+        bağlam = bağlam_belirle(k, bağlam_verilen, a_ayar)
     }
     TR_var etkin = takım_ayarı(k, a_ayar)
     e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
+    TR_for g TR_in k.girdiler {
+        TR_if g.tür == "language_model" TR_and g.bağlam_sınırı > e.bağlam_sınırı { e.bağlam_sınırı = g.bağlam_sınırı }
+    }
     e.konuşma_dili = etkin.konuşma_dili
     TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
     TR_var o = Oturum(e: e, k: k, kj: kj, klasör: klasör, etkin: etkin, ayar_verisi: ayar_verisi, y: Yuva(), yüklü: Yüklü(),
         en_çok_tur: TR_Int(ayar["en_çok_tur"]), kuyruk_ms: _KUYRUK_MS, çerçeve_bayt: _ÇERÇEVE_BAYT, açılış: şimdi(),
-        kur: asistan_kur, mikrofon_aç: mikrofon_aç,
-        tur: (a, kesit, söz, t0, sonrası, geride, işle) => ekran_turu(a, e, kesit, söz, t0, sonrası, geride, işle))
+        kur: asistan_kur, mikrofon_aç: mikrofon_aç, ayar_dosyası: ayar_dosyası, aygıtlar: mikrofonları_oku,
+        tur: (a, kesit, söz, t0, sonrası, geride, işle, kayda) => ekran_turu(a, e, kesit, söz, t0, sonrası, geride, işle, kayda),
+        kayıt: Kayıt(klasör: kayıt_klasörü(klasör, TR_time_ms()), başlık: deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]),
+            "ekran": TR_String(ayar["ekran"])})))
     TR_defer { o.bırak() }
+    o.kataloğu_gönder()
     o.ayarı_gönder()
     TR_if elle {
         o.takımı_yükle(komut_satırı_takımı())
@@ -349,8 +384,10 @@ TR_func tarayıcıyı_aç(adres: TR_String) {
 }
 
 # ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır.
-# Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı.
-TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, sonrası: TR_Bool, geride: TR_Int, işle: () -> TR_NoneType) -> ÇalmaAralığı {
+# Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı. Turun sonunda deneme kaydına ve konuşma kaydına
+# (`kayda`, oturum.tr) yazılır.
+TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, sonrası: TR_Bool, geride: TR_Int, işle: () -> TR_NoneType,
+        kayda: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı {
     TR_var z = a.z
     TR_var t = tur_aç(z, kesit, sonrası, geride)
     TR_var uzunluk = z.geçmiş.TR_length
@@ -372,7 +409,12 @@ TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0
         çalıyor: () => t.çalma_başı >= 0,
         aralık: () => ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu),
         işle: işle,
-        bitiş: (neden, kod) => deneme_yaz(t, TR_if söz == TR_none { "ses" } TR_else { "metin" }, kesit, t0, kayıt_sonu(neden, z.tur == t.sıra), kod)))
+        bitiş: (neden, kod) => {
+            TR_var kaynak = TR_if söz == TR_none { "ses" } TR_else { "metin" }
+            TR_var son = kayıt_sonu(neden, z.tur == t.sıra)
+            deneme_yaz(t, kaynak, kesit, t0, son, kod)
+            kayda(t, kaynak, t0, son, kod)
+        }))
     kimlikleri_yaz(z)
     TR_return aralık
 }

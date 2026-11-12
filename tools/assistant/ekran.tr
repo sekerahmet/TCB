@@ -1,6 +1,7 @@
 # TR 4
-# Asistanın ekranı (contract.md, sürüm 2): sayfayı ve dil dosyalarını sunar, zincirin olaylarını yayar, komutları
-# alır. asistan.tr `--ekran <kapı>` ile kurar; ekran_test.tr sahte zincirle sınar.
+# Asistanın ekranı (contract.md, sürüm 2): zincirin olaylarını yayar, komutları karara bağlar. Sunucu (sayfa, dil
+# dosyaları, akış ve komut yolları) ekran_sunucu.tr'dedir; o bu modülü aktarır, bu modül onu aktarmaz. asistan.tr
+# `--ekran <kapı>` ile kurar; ekran_test.tr sahte zincirle sınar.
 # - Görüntü (`session` olayı) yalnız olaylardan katlanır (28.7, `katla`); programın başka bir değişkeninden kurulmaz.
 # - Komutun kararı ana döngüde verilir (`komutları_işle`): işleyici komutu tek bir `TR_append` ile bırakır, cevabı
 #   bekler. İşleyicide "oku, sonra yaz" iki deyim olurdu; 10.2'nin devir noktası arada iki `send_text`'i birden
@@ -19,10 +20,11 @@ TR_const _TUTULAN_KOMUT = 1024
 # Yeni tur açılırken görüntü bundan büyükse eski turlar düşer. Süren tur en çok ~250 KiB ekler (32 KiB söz JSON
 # kaçışıyla en çok 6 katı, artı cevap): görüntü olayın 1 MiB sınırının altında kalır (ekran_test sınar).
 TR_const _BÜTÇE = 524288
-TR_const _CEVAP_BEKLEMESİ = 0.005 # işleyicinin ana döngünün cevabına bakışı (sn)
-TR_const _CSP = "frame-ancestors 'none'; connect-src 'self'"
 TR_const _TUR_BAKIŞI = 0.02 # tur sürerken ana döngünün komutlara bakışı (sn)
 TR_const _ETİKETLER = ["<think>", "</think>", "<tool_call>", "</tool_call>"]
+# `settings_set`'in anahtarları: dil ve sistem iletisi hemen; bağlam ve mikrofon bir sonraki açılışta; kayıt kapatılınca
+# hemen, açılınca bir sonraki turdan (tasarım, Aç28).
+TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording"]
 
 # Komut: işleyicinin bıraktığı, ana döngünün cevapladığı komut.
 TR_struct Komut {
@@ -38,6 +40,7 @@ TR_struct Ekran {
     yayın: TR_EventBroadcast
     kök: TR_String # index.html'in klasörü
     diller: TR_List[TR_String] # sayfanın listelediği dil dosyaları
+    modüller: TR_List[TR_String] # sayfanın yüklediği modüller (`js/<ad>.js`), sırasıyla
 
     bekleyen: TR_List[Komut] = []
     cevaplar: TR_Dict[TR_String, TR_JSON] = {}
@@ -52,6 +55,8 @@ TR_struct Ekran {
     dil_cevabı: TR_Dict[TR_String, TR_JSON] = {}
     konuşma_dili: TR_String = ""
     ayar_istendi: TR_JSON? = TR_none
+    aygıtlar_istendi: TR_Bool = TR_false # `devices_list` geldi: ana döngü mikrofonları listeler, `devices` gönderir
+    bağlam_sınırı: TR_Int = 0 # dil modellerinin en büyük `context_max`'ı; 0: katalog okunmadı, sınır yok
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
     mikrofon_istendi: TR_Bool = TR_false
     tur: TR_String = "" # süren ya da açılmak üzere olan tur; yoksa ""
@@ -95,27 +100,28 @@ TR_func ekran_kur(kök: TR_String, model: TR_String, katlayıcı: (TR_JSON, TR_J
         "model": model, "tools": [], "heartbeat_ms": _NABIZ_MS, "snapshot": []}})
     TR_var yayın = TR_EventBroadcast(TR_capacity: _KAPASİTE, TR_snapshot: baş, TR_reduce: katlayıcı,
         TR_heartbeat: {"v": _SÜRÜM, "type": "heartbeat"})
-    TR_var e = Ekran(yayın: yayın, kök: kök, diller: sayfanın_dilleri(kök))
+    TR_var e = Ekran(yayın: yayın, kök: kök, diller: sayfanın_betikleri(kök, "lang"), modüller: sayfanın_betikleri(kök, "js"))
     e.durum("loading")
     TR_return e
 }
 
-# sayfanın_dilleri: index.html'in sonundaki `<script src="lang/<kod>.js"></script>` satırları.
-TR_func sayfanın_dilleri(kök: TR_String) -> TR_List[TR_String] {
-    TR_var diller: TR_List[TR_String] = []
-    TR_var baş = "<script src=\"lang/"
+# sayfanın_betikleri: index.html'in `<script src="<klasör>/<ad>.js"></script>` satırlarının adları, sırasıyla: dil
+# dosyaları (`lang`) ve modüller (`js`). Sunucu yalnız bunları sunar.
+TR_func sayfanın_betikleri(kök: TR_String, klasör: TR_String) -> TR_List[TR_String] {
+    TR_var adlar: TR_List[TR_String] = []
+    TR_var baş = "<script src=\"" + klasör + "/"
     TR_var son = ".js\"></script>"
     TR_for satır TR_in TR_read_file(TR_Path(kök, "index.html")).TR_lines() {
         TR_var s = satır.TR_strip()
-        TR_if s.TR_starts_with(baş) TR_and s.TR_ends_with(son) { diller.TR_append(s[baş.TR_length..s.TR_length - son.TR_length]) }
+        TR_if s.TR_starts_with(baş) TR_and s.TR_ends_with(son) { adlar.TR_append(s[baş.TR_length..s.TR_length - son.TR_length]) }
     }
-    TR_return diller
+    TR_return adlar
 }
 
 # ---------- Katlama (28.7) ----------
 
 # katla: bir olayı görüntünün `snapshot`'ına sözleşmenin sıkıştırma kuralıyla işler ("session"): son `state` başta,
-# son `metrics` sonda, bir konuşma parçası tek `turn_text`, kapanan onay düşer. Yeni tur açılırken görüntü bütçeyi
+# son `metrics` sonda, son `settings` ve son `catalog` tutulur, bir konuşma parçası tek `turn_text`, kapanan onay düşer. Yeni tur açılırken görüntü bütçeyi
 # aşıyorsa eski turlar düşer; açık onay düşmez. Zarf (`v`, `type`) başlangıç değerindedir.
 TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
     TR_var tür = TR_String(olay["type"])
@@ -128,7 +134,7 @@ TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
             TR_if l.TR_length > 0 TR_and TR_String(l[0]["type"]) == "state" { l[0] = giriş } TR_else { l = [giriş] + l }
             TR_if ["idle", "listening"].TR_contains(TR_String(veri["state"])) { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "error"] }
         }
-        "settings" => { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "settings"] + [giriş] }
+        "settings", "catalog" => { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != tür] + [giriş] }
         "error" => {
             # Yüklemenin hatası görüntüye girer: yarıda kalan yüklemenin işareti ekran bağlanmadan okunur (yuva.tr).
             # Sonraki başarılı yüklemeyle (`idle`, `listening`) düşer; öbür hatalar görüntüye girmez.
@@ -219,49 +225,12 @@ TR_func eski_turu_düşür(l: TR_List[TR_JSON]) -> TR_List[TR_JSON]? {
     TR_return kalan
 }
 
-# ---------- HTTP ----------
+# ---------- Sayfanın klasörü ve komutların cevabı ----------
 
 # ekran_klasörü: index.html'in klasörü, bu modülün klasörü. Okuyan yerleşikler göreli yolu önce çalışma klasöründe,
 # sonra modülün klasöründe arar (13.1a); modülün kendi adı çalışma klasöründe bulunmaz (program proje kökünden ya
 # da bu klasörden açılır).
 TR_func ekran_klasörü() -> TR_String { TR_return TR_String(TR_Path("ekran.tr").TR_absolute.TR_parent) }
-
-# ekran_aç: sunucuyu 127.0.0.1'de açar. Belirteci sunucu denetler (28.2): sayfa ve dil dosyaları belirteçsizdir
-# (`TR_tokenless_paths:`; tarayıcı adres çubuğundan açtığı sayfaya `Authorization` ekleyemez), akış ve komut belirteç ister.
-TR_func ekran_aç(e: Ekran, kapı: TR_Int, belirteç: TR_String) -> TR_HTTPServer {
-    TR_var açık = ["/"] + ["/lang/" + d + ".js" TR_for d TR_in e.diller]
-    TR_if e.eşleme != TR_none { açık = açık + ["/pair", "/pair/renew"] }
-    TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return ekran_cevabı(e, istek) }
-    TR_return TR_serve_http(cevapla, TR_port: kapı, TR_token: belirteç, TR_tokenless_paths: açık, TR_max_body_bytes: 65536)
-}
-
-# ekran_adresi: tarayıcıda açılacak adres. Sorgusuzdur: ekranın kaynağı sayfanın kendi köküdür (contract.md, "Kaynak");
-# sorgulu istek belirteçsiz yolda da belirteç ister (28.2).
-TR_func ekran_adresi(s: TR_HTTPServer) -> TR_String { TR_return "http://127.0.0.1:\(s.TR_port)/" }
-
-# ekran_cevabı: sunucunun işleyicisi; belirteci sunucu denetlemiştir.
-TR_func ekran_cevabı(e: Ekran, istek: TR_Request) -> TR_Response {
-    TR_var yol = istek.TR_path
-    TR_if istek.TR_method == "GET" TR_and yol == "/" { TR_return dosya(e, "/index.html", {"Content-Security-Policy": _CSP}) }
-    TR_if istek.TR_method == "GET" TR_and yol.TR_starts_with("/lang/") TR_and yol.TR_ends_with(".js") {
-        TR_if e.diller.TR_contains(yol[6..yol.TR_length - 3]) { TR_return dosya(e, yol, {}) }
-    }
-    TR_var eş = e.eşleme
-    TR_if eş != TR_none TR_and eşleme_yolu(yol) { TR_return eşleme_cevabı(eş, istek) }
-    TR_var akış = istek.TR_method == "GET" TR_and yol == "/events"
-    TR_var komut = istek.TR_method == "POST" TR_and yol == "/command"
-    TR_if TR_not akış TR_and TR_not komut { TR_return TR_Response(TR_status: 404, TR_headers: {"Cache-Control": "no-store"}) }
-    TR_if akış { TR_return e.yayın.TR_subscribe(istek) }
-    TR_return komut_al(e, istek)
-}
-
-# dosya: kökteki dosya, `Cache-Control: no-store` ve verilen başlıklarla.
-TR_func dosya(e: Ekran, yol: TR_String, ek: TR_Dict[TR_String, TR_String]) -> TR_Response {
-    TR_var c = TR_file_response(e.kök, yol)
-    TR_var başlıklar = {"Content-Type": c.TR_headers["Content-Type"], "Cache-Control": "no-store"}
-    TR_for ad TR_in ek { başlıklar[ad] = ek[ad] }
-    TR_return TR_Response(TR_status: c.TR_status, TR_body: c.TR_body, TR_headers: başlıklar)
-}
 
 TR_func kabul(kimlik: TR_String) -> TR_JSON { TR_return TR_JSON({"v": _SÜRÜM, "command_id": kimlik, "status": "accepted"}) }
 
@@ -271,57 +240,6 @@ TR_func red(kimlik: TR_String, kod: TR_String, değerler: TR_JSON) -> TR_JSON {
 
 TR_func ret(durum: TR_Int, kimlik: TR_String, kod: TR_String, değerler: TR_JSON) -> TR_Response {
     TR_return TR_Response(TR_status: durum, TR_json: red(kimlik, kod, değerler), TR_headers: {"Cache-Control": "no-store"})
-}
-
-# komut_al: `POST /command`. Biçimi işleyici denetler (durum okumaz); kararı ana döngü verir.
-TR_func komut_al(e: Ekran, istek: TR_Request) -> TR_Response {
-    TR_var tür = istek.TR_headers.TR_get("Content-Type")
-    TR_if tür == TR_none TR_or tür.TR_split(";")[0].TR_strip().TR_lower() != "application/json" {
-        TR_return ret(415, "", "unsupported_media_type", TR_JSON({}))
-    }
-    TR_var j = TR_JSON(TR_none)
-    TR_try { j = TR_json_parse(TR_String(istek.TR_body)) } TR_catch hata { TR_return ret(400, "", "bad_request", TR_JSON({})) }
-    TR_if TR_not nesne(j) { TR_return ret(400, "", "bad_request", TR_JSON({})) }
-    TR_var kimlik = j.TR_get("command_id")
-    TR_if kimlik == TR_none TR_or TR_Type(kimlik) != TR_String TR_or TR_String(kimlik) == "" TR_or TR_String(kimlik).TR_length > 128 {
-        TR_return ret(400, "", "bad_request", TR_JSON({}))
-    }
-    TR_var k = TR_String(kimlik)
-    TR_var v = j.TR_get("v")
-    TR_if v == TR_none TR_or TR_Type(v) != TR_Int TR_or TR_Int(v) != _SÜRÜM {
-        TR_return ret(400, k, "unsupported_version", TR_JSON({"version": TR_if v == TR_none { "" } TR_else { TR_json_string(v) }}))
-    }
-    TR_var t = j.TR_get("type")
-    TR_var veri = j.TR_get("data")
-    TR_if t == TR_none TR_or TR_Type(t) != TR_String { TR_return ret(400, k, "bad_request", TR_JSON({})) }
-    TR_var ad = TR_String(t)
-    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set"].TR_contains(ad) {
-        TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad}))
-    }
-    TR_var d = TR_if veri == TR_none { TR_JSON({}) } TR_else { veri }
-    TR_if TR_not geçerli(ad, d) { TR_return ret(400, k, "bad_request", TR_JSON({})) }
-    TR_var c = Komut(kimlik: k, tür: ad, veri: d)
-    e.bekleyen.TR_append(c)
-    TR_for c.cevap == TR_none { TR_sleep(_CEVAP_BEKLEMESİ) }
-    TR_return TR_Response(TR_json: c.cevap, TR_headers: {"Cache-Control": "no-store"})
-}
-
-# geçerli: komutun `data`'sı sözleşmedeki alanları taşıyor mu.
-TR_func geçerli(ad: TR_String, d: TR_JSON) -> TR_Bool {
-    TR_if TR_not nesne(d) { TR_return TR_false }
-    TR_var alan = TR_match ad {
-        "send_text" => "text"
-        "mic_set" => "on"
-        "approval_answer" => "approval_id"
-        "model_load" => "entry_id"
-        "settings_set" => "key"
-        _ => ""
-    }
-    TR_if alan == "" { TR_return TR_true }
-    TR_var x = d.TR_get(alan)
-    TR_if x == TR_none { TR_return TR_false }
-    TR_if ad == "mic_set" { TR_return TR_Type(x) == TR_Bool }
-    TR_return TR_Type(x) == TR_String
 }
 
 # komutları_işle: bekleyen komutları sırayla cevaplar (ana döngü). Aynı `command_id` yeniden gelirse iş yinelenmez,
@@ -341,11 +259,14 @@ TR_func komutları_işle(e: Ekran) {
         e.sıra.TR_append(k.kimlik)
         TR_if e.sıra.TR_length > _TUTULAN_KOMUT { e.cevaplar.TR_remove(e.sıra.TR_remove_at(0)) }
         k.cevap = c
+        # Kabul edilen ayar uygulanmadan sonraki komut kararlaştırılmaz: tek yuvalı `ayar_istendi` ezilmez ve sonraki
+        # `settings_set` yeni ayara göre denetlenir (ör. dil, sonra o dil için yazılmış sistem iletisi).
+        TR_if e.ayar_istendi != TR_none { TR_break }
     }
 }
 
 # karar: bir komutun cevabı ve etkisi. Etkiyi ana döngü uygular: metin turu (`metin`), mikrofon (`mikrofon_istendi`),
-# durdurma (`durdur`), yükleme (`yüklenecek`).
+# durdurma (`durdur`), yükleme (`yüklenecek`), ayar (`ayar_istendi`), mikrofonların listesi (`aygıtlar_istendi`).
 TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
     TR_match k.tür {
         "send_text" => {
@@ -370,24 +291,30 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
             e.yüklenecek = giriş
         }
         "settings_set" => { TR_return ayar_kararı(e, k) }
+        "devices_list" => { e.aygıtlar_istendi = TR_true }
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
 }
 
-# ayar_kararı: `settings_set`'in cevabı. Anahtar B'nin listesinde değilse `unknown_key`, değerin türü anahtarın
-# istediği değilse `invalid_value` (`setting_invalid`); tur sürüyorsa `turn_busy`; dil katalogda yoksa
-# `unknown_language`; öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular.
+# ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın
+# istediği değilse `invalid_value` (`setting_invalid`). Bağlam, mikrofon ve kayıt tur sürerken de kabul edilir (modele
+# dokunmazlar). Dilde ve sistem iletisinde tur sürüyorsa `turn_busy`; dil katalogda yoksa `unknown_language`; öbür
+# retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular (oturum.tr, `ayarı_uygula`).
 TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_var anahtar = TR_String(k.veri["key"])
-    TR_if TR_not ["speech_language", "system_prompt"].TR_contains(anahtar) {
+    TR_if TR_not _AYARLAR.TR_contains(anahtar) {
         TR_return red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "unknown_key"}))
     }
     TR_var değer = k.veri.TR_get("value")
     TR_var geçersiz = red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "invalid_value"}))
-    TR_if değer == TR_none { TR_return geçersiz }
-    TR_if anahtar == "speech_language" TR_and TR_Type(değer) != TR_String { TR_return geçersiz }
-    TR_if anahtar == "system_prompt" TR_and TR_not sistem_iletisi_mi(değer) { TR_return geçersiz }
+    TR_if değer == TR_none TR_or TR_not ayar_değeri_mi(anahtar, değer) { TR_return geçersiz }
+    # Dil modellerinin en büyük bağlam sınırını aşan bağlam yazılmaz: Dost bir sonraki açılışta H8174 ile açılmazdı.
+    TR_if anahtar == "context" TR_and e.bağlam_sınırı > 0 TR_and TR_Int(değer) > e.bağlam_sınırı { TR_return geçersiz }
+    TR_if ["context", "microphone", "recording"].TR_contains(anahtar) {
+        e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
+        TR_return kabul(k.kimlik)
+    }
     TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
     TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
     TR_if anahtar == "speech_language" {
@@ -400,6 +327,37 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     }
     e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
     TR_return kabul(k.kimlik)
+}
+
+# ayar_değeri_mi: değerin türü anahtarın istediği mi: dil metin, sistem iletisi `sistem_iletisi_mi`, bağlam 0'dan büyük
+# tam sayı, mikrofon boş olmayan metin, kayıt true/false.
+TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
+    TR_var t = TR_Type(değer)
+    TR_match anahtar {
+        "speech_language" => { TR_return t == TR_String }
+        "system_prompt" => { TR_return sistem_iletisi_mi(değer) }
+        "context" => { TR_return t == TR_Int TR_and TR_Int(değer) > 0 }
+        "microphone" => { TR_return t == TR_String TR_and TR_String(değer) != "" }
+        _ => { TR_return t == TR_Bool }
+    }
+}
+
+# mikrofon_listesi: ffmpeg'in `-sources dshow` çıktısındaki ses aygıtlarının adları, sırasıyla (`devices`). İlk dolu
+# satır `Auto-detected sources for dshow:` değilse TR_none: liste okunamadı (Windows dışında dshow yok). Aygıt satırı
+# `  <kimlik> [<ad>] (<tür>)`; türünde `audio` geçen satırın adı ilk `[` ile son `] (` arasıdır (adda ayraç olabilir).
+TR_func mikrofon_listesi(çıktı: TR_String) -> TR_List[TR_String]? {
+    TR_var satırlar = [s.TR_strip() TR_for s TR_in çıktı.TR_lines() TR_if s.TR_strip() != ""]
+    TR_if satırlar.TR_length == 0 TR_or satırlar[0] != "Auto-detected sources for dshow:" { TR_return TR_none }
+    TR_var adlar: TR_List[TR_String] = []
+    TR_for s TR_in satırlar[1..satırlar.TR_length] {
+        TR_var parçalar = s.TR_split("] (")
+        TR_var n = parçalar.TR_length
+        TR_if n < 2 TR_or TR_not s.TR_ends_with(")") TR_or TR_not parçalar[n - 1].TR_contains("audio") { TR_continue }
+        TR_var baş = parçalar[0..n - 1].TR_join("] (")
+        TR_var ayraç = baş.TR_index_of("[")
+        TR_if ayraç != TR_none { adlar.TR_append(baş[ayraç + 1..baş.TR_length]) }
+    }
+    TR_return adlar
 }
 
 # sistem_iletisi_mi: `{"source": "catalog"}` ya da `{"source": "user", "text": <metin>, "language": <metin>}`.
@@ -561,25 +519,6 @@ TR_func gösterilebilir(metin: TR_String) -> (TR_String, TR_Bool) {
         }
     }
     TR_return m[0..m.TR_length - tut], etiketli
-}
-
-# belirteçle_aç: yeni bir belirteç (28.2a) üretir, sunucuyu onunla açar ve kapı tutulduktan sonra belirteci yalnız sahibinin
-# okuyabileceği dosyaya yazar (18.13); kapı tutulamazsa dosyaya dokunmaz. Belirtecin kendisi hiçbir yere yazılmaz.
-TR_func belirteçle_aç(e: Ekran, kapı: TR_Int, dosya: TR_String) -> TR_HTTPServer {
-    TR_var b = TR_secret_token()
-    TR_var s = ekran_aç(e, kapı, b)
-    TR_var eş = e.eşleme
-    TR_if eş != TR_none {
-        eş.belirteç = b
-        eş.adres = ekran_adresi(s)
-    }
-    TR_try {
-        TR_write_file(dosya, b, TR_owner_only: TR_true)
-    } TR_catch h {
-        s.TR_close()
-        TR_throw h
-    }
-    TR_return s
 }
 
 # nesne: JSON değeri bir nesne mi.

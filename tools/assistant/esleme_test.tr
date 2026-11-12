@@ -3,6 +3,7 @@
 # isteği bırakır, ana döngü (`eşlemeleri_işle`) cevaplar; `iste` ikisini sırayla yapar.
 TR_import "esleme"
 TR_import "ekran"
+TR_import "ekran_sunucu"
 TR_import "screen_helpers"
 
 TR_struct Saat {

@@ -2,6 +2,7 @@
 # Ekranın modelsiz sınamasının ortak parçaları (ekran_test.tr ve ekran_tur_test.tr aktarır): ekranın olaylardan çizdiği
 # görünüm, olayın zarfı ve oturumun başı; komut istekleri, cevapları ve işleyicilerin beklenmesi.
 TR_import "ekran"
+TR_import "ekran_sunucu"
 
 # ---------- Ekranın modeli ----------
 # Görünüm: ekranın olaylardan çizdiği durum (index.html'in işleyicileri gibi): `replace` eski metnin yerine geçer,

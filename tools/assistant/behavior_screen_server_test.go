@@ -241,14 +241,21 @@ var eventID = regexp.MustCompile(`^[0-9a-f]{16}-[0-9]+$`)
 
 func TestScreenServerEndToEnd(t *testing.T) {
 	s := startScreen(t)
-	// Sayfa ve dil dosyası belirteçsizdir; akış ve komut belirteç ister; yabancı Origin 403.
+	// Sayfa, modüller ve dil dosyası belirteçsizdir; akış ve komut belirteç ister; yabancı Origin 403.
 	page := s.request(t, "GET", "/", nil, "")
 	page.Body.Close()
-	if page.StatusCode != 200 || page.Header.Get("Content-Security-Policy") != "frame-ancestors 'none'; connect-src 'self'" || page.Header.Get("Cache-Control") != "no-store" {
+	if page.StatusCode != 200 || page.Header.Get("Content-Security-Policy") != "frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:" || page.Header.Get("Cache-Control") != "no-store" {
 		t.Fatalf("GET /: %d %v", page.StatusCode, page.Header)
 	}
 	if res := s.request(t, "GET", "/lang/tr.js", nil, ""); res.StatusCode != 200 {
 		t.Fatalf("GET /lang/tr.js: %d", res.StatusCode)
+	}
+	if res := s.request(t, "GET", "/js/main.js", nil, ""); res.StatusCode != 200 || res.Header.Get("Content-Type") != "text/javascript; charset=utf-8" {
+		t.Fatalf("GET /js/main.js: %d %v", res.StatusCode, res.Header)
+	}
+	// Listede olmayan modül belirteçsiz yollarda yoktur: belirteçsiz istek 401 (belirteçliyse 404, ekran_test.tr).
+	if res := s.request(t, "GET", "/js/ekran.js", nil, ""); res.StatusCode != 401 {
+		t.Fatalf("GET /js/ekran.js (not a module): %d", res.StatusCode)
 	}
 	if res := s.request(t, "GET", "/events", nil, ""); res.StatusCode != 401 {
 		t.Fatalf("belirteçsiz /events: %d", res.StatusCode)
@@ -347,5 +354,57 @@ func TestScreenSubscriptionMeetsASend(t *testing.T) {
 	}
 	if got := view.text["t-1"]; got != "Sahte cevap: bir iki üç dört beş altı yedi sekiz." {
 		t.Fatalf("parça kayboldu ya da iki kez geldi: %q", got)
+	}
+}
+
+// Ayar sayfasının uçtan ucu (tek tık F1): ayar dosyalı ama modelsiz Dost'ta görüntü `catalog`'u taşır (dosyaları
+// kurulu olmayan model `installed: false`); `settings_set` ayar dosyasını `settings` olayından önce yazar; bilinmeyen
+// alan eklenmez, öbür alanlar kalır. Model yüklenmez: Dost klasörü geçicidir.
+func TestDostWritesTheSettingBeforeTheEvent(t *testing.T) {
+	dost := filepath.Join(t.TempDir(), "Dost")
+	if err := os.MkdirAll(dost, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(dost, "ayar.json")
+	settings := `{"v":1,"language_model":"qwen3-4b-q4km","speech_language":"tr","system_prompt":{"source":"catalog"},"context":8192,"device":"cpu","port":47863,"machine":{"memory_bytes":17179869184,"memory_source":"option"}}`
+	if err := os.WriteFile(file, []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := startDost(t, dost)
+	events := s.stream(t, "")
+	first := next(t, events)
+	snapshot, _ := first.Data["snapshot"].([]any)
+	catalogs := snapshotItems(snapshot, "catalog")
+	if len(catalogs) != 1 {
+		t.Fatalf("görüntüde bir catalog bekleniyordu: %v", snapshot)
+	}
+	entries, _ := catalogs[0]["entries"].([]any)
+	entry, _ := entries[0].(map[string]any)
+	if len(entries) != 1 || entry["id"] != "qwen3-4b-q4km" || entry["installed"] != false || entry["kind"] != "language_model" {
+		t.Errorf("catalog: %v", entries)
+	}
+	if got := s.command(t, "c-1", "settings_set", `{"key":"context","value":4096}`); got != "accepted" {
+		t.Fatalf("settings_set: %s", got)
+	}
+	for {
+		e := next(t, events)
+		if e.Type != "settings" {
+			continue
+		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var written map[string]any
+		if err := json.Unmarshal(data, &written); err != nil {
+			t.Fatalf("ayar dosyası: %v", err)
+		}
+		if e.Data["context"] != float64(4096) || written["context"] != float64(4096) {
+			t.Errorf("olayda %v, dosyada %v; ikisi de 4096 olmalı", e.Data["context"], written["context"])
+		}
+		if len(written) != 8 || written["language_model"] != "qwen3-4b-q4km" {
+			t.Errorf("öbür alanlar değişmemeli: %v", written)
+		}
+		return
 	}
 }

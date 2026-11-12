@@ -2,6 +2,7 @@
 # Ekranın modelsiz sınaması: tur ve cevap metni (Yazıcı, turun sonu, bitiş, belirteç dosyası, ekranın adresi, mikrofonlu
 # çerçevede metin turu). Ortak yardımcılar screen_helpers.tr'de.
 TR_import "ekran"
+TR_import "ekran_sunucu"
 TR_import "screen_helpers"
 
 TR_func kayıtlı() -> Ekran {

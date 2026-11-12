@@ -10,10 +10,11 @@ import (
 )
 
 // Ekranın olay kimliği kuralı (contract.md, "Kopma ve yeniden bağlanma"): kimlik `<ön ek>-<sıra>` metnidir. Kuralı
-// index.html'deki iki saf fonksiyon yazar (splitId, eventStep); test onları işaretlerin arasından alıp node ile koşar.
+// js/events.js'teki iki saf fonksiyon yazar (splitId, eventStep); test onları işaretlerin arasından alıp node ile koşar.
 // Node yoksa atlanır (otomatik sınamada node vardır; emsal cmd/trlang/e2e'nin TestExtensionJSTests'i).
 
 const (
+	eventsModule = moduleDir + "/events.js"
 	idBlockStart = "// ---------- Olay kimliği ----------"
 	idBlockEnd   = "// ---------- Olay kimliği sonu ----------"
 	prefixP      = "3f9a0c2e7b1d4e65"
@@ -38,11 +39,11 @@ func runEventSteps(t *testing.T, lastID *string, events []idEvent) []idStep {
 	if err != nil {
 		t.Skip("node bulunamadı; ekranın kimlik kuralı koşulmadı")
 	}
-	screen := readFile(t, screenPath)
+	screen := readFile(t, eventsModule)
 	_, rest, ok := strings.Cut(screen, idBlockStart)
 	block, _, found := strings.Cut(rest, idBlockEnd)
 	if !ok || !found {
-		t.Fatalf("%s: %q ... %q block not found", screenPath, idBlockStart, idBlockEnd)
+		t.Fatalf("%s: %q ... %q block not found", eventsModule, idBlockStart, idBlockEnd)
 	}
 	input, _ := json.Marshal(map[string]any{"last": lastID, "events": events})
 	driver := block + `

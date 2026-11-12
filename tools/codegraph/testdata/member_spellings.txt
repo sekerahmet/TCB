@@ -283,6 +283,7 @@ X.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 X.TR_transpose	ok	0	name:TR_mem_transpose
 Y.TR_transpose	ok	0	name:TR_mem_transpose
 Yer.TR_ctx_init	not_found	4	-
+_AYARLAR.TR_contains	ok	0	name:TR_mem_contains
 _AYLAR.TR_contains	ok	0	name:TR_mem_contains
 _DAR_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
 _DENEME_SÜRELERİ.TR_join	ok	0	name:TR_mem_join
@@ -490,6 +491,7 @@ bakılacak.TR_append	ok	0	name:TR_mem_append
 bastırılan.TR_append	ok	0	name:TR_mem_append
 baytlar.TR_length	ok	0	name:TR_mem_length
 bağlam.TR_append	ok	0	name:TR_mem_append
+baş.TR_index_of	ok	0	name:TR_mem_index_of
 baş.TR_length	ok	0	name:TR_mem_length
 baş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 baş.TR_tolist	ok	0	name:TR_mem_tolist
@@ -535,6 +537,7 @@ bo.TR_length	ok	0	name:TR_mem_length
 boylar.TR_append	ok	0	name:TR_mem_append
 boş.TR_grad	ok	0	name:TR_mem_grad
 boş.TR_index_of	ok	0	name:TR_mem_index_of
+boş.TR_length	ok	0	name:TR_mem_length
 boş.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
 boş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 boş.TR_step_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_step_position
@@ -792,6 +795,7 @@ g2.TR_wait	ok	0	name:TR_mem_wait
 g3.TR_shape	ok	0	name:TR_mem_shape
 g3.TR_wait	ok	0	name:TR_mem_wait
 g8.TR_tolist	ok	0	name:TR_mem_tolist
+gelenler.TR_length	ok	0	name:TR_mem_length
 genel.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 generated.TR_map	ok	0	name:TR_mem_map
 geniş.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
@@ -948,6 +952,7 @@ istem.TR_length	ok	0	name:TR_mem_length
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
 ix2.TR_tolist	ok	0	name:TR_mem_tolist
+iyi.TR_length	ok	0	name:TR_mem_length
 iyileştirici.TR_MuonAndAdamW	ok	0	tr:struct:lib/optimizers.tr:TR_type_MuonAndAdamW
 iyileştirici.TR_lr	ok	0	name:TR_mem_lr
 iyileştirici.TR_lr_schedule	ok	0	tr:func:lib/optimizers.tr:TR_fn_lr_schedule
@@ -1107,6 +1112,7 @@ kuyruk.TR_pop	ok	0	name:TR_mem_pop
 kuyruk.TR_remove_at	ok	0	name:TR_mem_remove_at
 kv.TR_tolist	ok	0	name:TR_mem_tolist
 kök.TR_length	ok	0	name:TR_mem_length
+kötü.TR_length	ok	0	name:TR_mem_length
 küme.TR_mem_sampler	not_found	4	-
 küme.TR_sampler	ok	0	name:TR_mem_sampler
 küme.TR_sequential	ok	0	name:TR_mem_sequential
@@ -1260,6 +1266,7 @@ model.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 model.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
 model.TR_synthesize	ok	0	tr:method:lib/vits.tr:TR_type_Vits.TR_mem_synthesize
 model.TR_transcribe	ok	0	tr:method:lib/whisper.tr:TR_type_Whisper.TR_mem_transcribe
+modüller.TR_contains	ok	0	name:TR_mem_contains
 n.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 n.TR_groups	ambiguous	3	tr:field:lib/optimizers.tr:TR_type_Muon.TR_mem_groups,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_groups
 n.TR_keys	ok	0	name:TR_mem_keys
@@ -1485,6 +1492,7 @@ s.TR_starts_with	ok	0	name:TR_mem_starts_with
 s.TR_state	ok	0	name:TR_mem_state
 s.TR_status	ok	0	name:TR_mem_status
 s.TR_stop	ok	0	name:TR_mem_stop
+s.TR_strip	ok	0	name:TR_mem_strip
 s.TR_tolist	ok	0	name:TR_mem_tolist
 s.TR_transpose	ok	0	name:TR_mem_transpose
 s.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
@@ -1848,6 +1856,7 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 çözüm.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 çözüm.TR_word_kind	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_word_kind
 çıktı.TR_append	ok	0	name:TR_mem_append
+çıktı.TR_lines	ok	0	name:TR_mem_lines
 çıktı.TR_shape	ok	0	name:TR_mem_shape
 çıktı.TR_tolist	ok	0	name:TR_mem_tolist
 çıkış.TR_append	ok	0	name:TR_mem_append
