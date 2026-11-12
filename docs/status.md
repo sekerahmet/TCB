@@ -828,7 +828,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.41
 
-- **Mevcut durum (2026-11-11, T1'in Dost envanteri, L4, main `ae73b3b9` + H1'in `asistan.tr` farkı; `t1-dost-gpu-envanter.md`):** Dost'un zinciri kartta yalnız atlatmayla baştan sona geçiyor (tur başına 183–185 atlatma, 2 cihaz geçişi); cevaplar ve WAV boyları işlemciyle aynı [ölçüldü: T1, Drive `t1_dostgpu/20261111113944`]. Kartta olmayan altı işlem [ölçüldü: T1'in tek işlem sondası]:
+- **Mevcut durum (2026-11-11, T1'in Dost envanteri, L4, main `ae73b3b9` + H1'in `asistan.tr` farkı; `t1-dost-gpu-envanter.md`):** Dost'un zinciri kartta yalnız atlatmayla baştan sona geçiyor (tur başına 183–185 atlatma, 2 cihaz geçişi); cevaplar ve WAV boyları işlemciyle aynı [ölçüldü: T1, Drive `t1_dostgpu/20261111113944`]. Kartta olmayan beş işlem [ölçüldü: T1'in tek işlem sondası; 2026-11-12: `TR_conv1d` T1 dilim 1'de karta geçti, listeden çıktı]:
   - `TR_stft` (log-Mel, `lib/audio.tr:304`): H7076 (23.5);
   - `TR_logsumexp` (Whisper'ın zaman damgası kuralı, `lib/whisper.tr:117`): yalnız işlemcide [kanıtlı: `internal/stdlib/ml/builtin_logsumexp.go:25-35`];
   - int16 → float32 dönüşümü (WAV okuma, `lib/audio.tr:180`), int64 `TR_sum` ve int64 `-` (VITS, `lib/vits.tr:260`): H6969 (15.48; cinsli kart işlemleri karşılaştırma, mantık, `TR_where` ve int64 ile mantıktan float32'ye dönüşüm, `internal/compute/gpu/typed_ops.go:14-19`, `:42-43`; int16 → float32 o dönüşümün genişlemesi).
