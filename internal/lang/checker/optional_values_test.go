@@ -86,3 +86,108 @@ func TestUnopenedOptionalHint(t *testing.T) {
 		t.Errorf("dosyası verilmemiş denetimde ipucu beklenmiyordu: %v", errs)
 	}
 }
+
+// Kural (4.7, H1030): sol yan T? ise '??'nin sağ yanının tipi tam T ya da tam T?'dir. Tam sayı
+// TR_Float'ın, değişmez TR_JSON'ın yerine geçmez ('??' çalışma anında çevirmez); öğesiz [] ve {}
+// beklenen liste ve sözlüğün yerine geçer; TR_none hiçbir şeyi açmaz. Özellik ve metot yazımı,
+// tipli ve tipsiz bildirim aynıdır. Sağ yan T? ise sonuç T?'dir: T beklenen yere verilmez (H1001).
+func TestCoalesceRightSideType(t *testing.T) {
+	const (
+		ints   = "TR_var l: TR_List[TR_Int] = []\n"
+		floats = "TR_var f: TR_Float? = TR_none\n"
+		js     = "TR_var j = TR_json_parse(\"{}\")\n"
+	)
+	wrong := map[string]string{
+		"özellik, tipli":    ints + "TR_var x: TR_Int = l.TR_first ?? \"ab\"",
+		"özellik, tipsiz":   ints + "TR_var x = l.TR_first ?? \"ab\"",
+		"metot":             "TR_var d: TR_Dict[TR_String, TR_Int] = {}\nTR_var x = d.TR_get(\"k\") ?? \"ab\"",
+		"TR_none":           ints + "TR_var x = l.TR_first ?? TR_none",
+		"tam sayı ondalığa": floats + "TR_var x = f ?? 0",
+		"tamsayı değişkeni": floats + "TR_var n = 3\nTR_var x = f ?? n",
+		"JSON'a mantık":     js + "TR_var x = j.TR_get(\"k\") ?? TR_false",
+		"JSON'a değişmez":   js + "TR_var x = j.TR_get(\"k\") ?? {\"a\": 1}",
+		"JSON'a öğesiz {}":  js + "TR_var x = j.TR_get(\"k\") ?? {}",
+		"JSON'a öğesiz []":  js + "TR_var x = j.TR_get(\"k\") ?? []",
+		"mantığa metin":     "TR_var b: TR_Bool? = TR_none\nTR_var x = b ?? \"x\"",
+		"öğeli değişmez":    "TR_var m: TR_List[TR_List[TR_Float]] = []\nTR_var x = m.TR_first ?? [1, 2]",
+	}
+	for name, src := range wrong {
+		t.Run(name, func(t *testing.T) { singleError(t, src, messages.H1030, strings.Count(src, "\n")+1) })
+	}
+	right := []string{
+		ints + "TR_var x: TR_Int = l.TR_first ?? 0",
+		floats + "TR_var x: TR_Float = f ?? 0.0",
+		"TR_var l: TR_List[TR_List[TR_Int]] = []\nTR_var x: TR_List[TR_Int] = l.TR_first ?? []",
+		"TR_var l: TR_List[TR_Dict[TR_String, TR_Int]] = []\nTR_var x: TR_Dict[TR_String, TR_Int] = l.TR_first ?? {}",
+		ints + "TR_var y: TR_Int? = TR_none\nTR_var x: TR_Int? = l.TR_first ?? y",
+		js + "TR_var x: TR_JSON = j.TR_get(\"k\") ?? TR_JSON(TR_false)",
+		"TR_interface Ölçen { TR_func ölç(x: TR_Float) -> TR_Float }\nTR_struct Kare { TR_func ölç(x: TR_Float) -> TR_Float { TR_return x * x } }\nTR_func kare(a: Ölçen?) -> Ölçen {\n    TR_return a ?? Kare()\n}",
+	}
+	for _, src := range right {
+		noErrors(t, src)
+	}
+	// Sağ yan T?: sonuç T?, T beklenen yere verilmez.
+	singleError(t, ints+"TR_var y: TR_Int? = TR_none\nTR_var x: TR_Int = l.TR_first ?? y", messages.H1001, 3)
+}
+
+// Kural (4.7, H1031): sol yanın tipi bilinen ve isteğe bağlı olmayan bir tipse '??'nin sağ yanı hiç
+// kullanılmaz: denetim hatasıdır; TR_JSON da isteğe bağlı değildir (3.7a). Zincir soldan birleşir:
+// ilk '??'nin sonucu T ise ikinci '??' H1031 verir, T? ise geçer. Sol yan TR_none, TR_Any ya da tipi
+// bilinmeyen ad (arayüz) ise hata yoktur.
+func TestCoalesceNeedsAnOptionalLeft(t *testing.T) {
+	const ints = "TR_var l: TR_List[TR_Int] = []\n"
+	wrong := map[string]string{
+		"sayı":          "TR_var a: TR_Int = (5 ?? 6)",
+		"mantık":        "TR_print(TR_false ?? 5)",
+		"JSON":          "TR_var j = TR_json_parse(\"1\")\nTR_print(j ?? TR_JSON(2))",
+		"zincirin T'si": ints + "TR_print(l.TR_first ?? 0 ?? 1)",
+	}
+	for name, src := range wrong {
+		t.Run(name, func(t *testing.T) { singleError(t, src, messages.H1031, strings.Count(src, "\n")+1) })
+	}
+	noErrors(t, "TR_var x = TR_none ?? 2.5")
+	noErrors(t, ints+"TR_var y: TR_Int? = TR_none\nTR_print(l.TR_first ?? y ?? 1)")
+	noErrors(t, "TR_interface Ölçen { TR_func ölç(x: TR_Float) -> TR_Float }\nTR_func seç(a: Ölçen, b: Ölçen) -> Ölçen {\n    TR_return a ?? b\n}")
+	noErrors(t, "TR_var x = "+unknownValue+" ?? 1") // tipi bilinmeyen sol yan
+}
+
+// Kural (4.7, H1032, H1033, H1031): öneri sol yanın asıl tipinden ve programın kendi yazımıyladır:
+// TR_Int 0, TR_Float 0.0, TR_String "", TR_List [], TR_Bool TR_false, TR_JSON sağ yanı TR_JSON(...)
+// ile çevirir, öbür tipte genel öneri; H1031 sağ yanı siler. Yazım dosyada bilinmiyorsa öneri yoktur.
+func TestCoalesceSuggestion(t *testing.T) {
+	cases := map[string]string{
+		"TR_var l: TR_List[TR_Int] = []\nTR_var x = l.TR_first ?? \"a\"":                 "`l.TR_first ?? 0`",
+		"TR_var f: TR_Float? = TR_none\nTR_var x = f ?? 0":                               "`f ?? 0.0`",
+		"TR_var l: TR_List[TR_String] = []\nTR_var x = l.TR_last ?? 1":                   "`l.TR_last ?? \"\"`",
+		"TR_var l: TR_List[TR_List[TR_Int]] = []\nTR_var x = l.TR_first ?? 1":            "`l.TR_first ?? []`",
+		"TR_var b: TR_Bool? = TR_none\nTR_var x = b ?? 1":                                "`b ?? TR_false`",
+		"TR_var j = TR_json_parse(\"{}\")\nTR_var x = j.TR_get(\"k\") ?? TR_false":       "`j.TR_get(\"k\") ?? TR_JSON(TR_false)`",
+		"TR_var l: TR_List[TR_Dict[TR_String, TR_Int]] = []\nTR_var x = l.TR_first ?? 1": "`l.TR_first ?? …`",
+		"TR_print(1 ?? 2)": "the right side: `1`",
+		"TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_first ?? 0 ?? 1)": "the right side: `l.TR_first ?? 0`",
+	}
+	for src, want := range cases {
+		p := parser.New(lexer.NewBody(src, true))
+		prog := p.ParseProgram()
+		c := New()
+		c.SetFile(ProgramFile, src)
+		c.CheckProgram(prog)
+		errs := c.Errs()
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H1030) && !messages.Has(errs[0], messages.H1031) {
+			t.Errorf("%q: tek H1030 ya da H1031 bekleniyordu, alınan %v", src, errs)
+			continue
+		}
+		if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, want) {
+			t.Errorf("%q: öneride %s yok: %s", src, want, text)
+		}
+	}
+	noHint := map[string]string{
+		"TR_var l: TR_List[TR_Int] = []\nTR_var x = l.TR_first ?? \"a\"": "l.TR_first ?? 0",
+		"TR_print(1 ?? 2)": "`1`",
+	}
+	for src, hint := range noHint {
+		if errs := check(t, src); len(errs) != 1 || strings.Contains(errs[0], hint) {
+			t.Errorf("dosyası verilmemiş denetimde öneri (%s) beklenmiyordu: %v", hint, errs)
+		}
+	}
+}

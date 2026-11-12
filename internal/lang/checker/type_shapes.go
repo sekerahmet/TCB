@@ -116,10 +116,13 @@ func mapTypeNames(t string, f func(string) string) string {
 // yazımı ise ondalık beklenen yerde ondalıktır (3.13). Öğe tipi bilinmeyen kap asıl adıyla karşılaştırılır.
 
 // compat iki tipin uyumuna karar verir. isStruct adın denetleyicinin bildiği bir yapı olup
-// olmadığını söyler (nil: hiçbir yapı bilinmiyor); literal verilen değer bir değişmezdir.
+// olmadığını söyler (nil: hiçbir yapı bilinmiyor); literal verilen değer bir değişmezdir; exact
+// tam sayının ondalık yerine geçmesini kapatır: çalışma anı çevirmeyen yerde tip tam aynı olur
+// ('??'nin sağ yanı, 4.7).
 type compat struct {
 	isStruct func(string) bool
 	literal  bool
+	exact    bool
 }
 
 func typesCompatible(expected, actual string) bool {
@@ -221,7 +224,7 @@ func (k compat) tuplesFit(e, a typeShape) bool {
 // namesFit ayrı iki asıl adın uyumudur. Tam sayı Ondalık beklenen yere atanabilir (kabın içinde
 // yalnız değişmezde). Kabın içinde bilinmeyen ad (tip parametresi, arayüz) her tipi karşılayabilir.
 func (k compat) namesFit(exp, act string, inner bool) bool {
-	if exp == typeFloat && act == typeInt && (!inner || k.literal) {
+	if exp == typeFloat && act == typeInt && (!inner || k.literal) && !k.exact {
 		return true
 	}
 	if inner && (k.unknownName(exp) || k.unknownName(act)) {

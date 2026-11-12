@@ -131,6 +131,76 @@ func defaultKind(t string) string {
 	return "other"
 }
 
+// coalesceType 'a ?? b'nin tipini verir ve iki yanını denetler (4.7). Sol yan T? ise sağ yanın tipi
+// tam T ya da tam T?'dir: tam sayı TR_Float'ın, değişmez TR_JSON'ın yerine geçmez, çünkü '??'
+// çalışma anında çevirmez; öğesiz [] ve {} beklenen kabın yerine geçer (compat); TR_none hiçbir şeyi
+// açmaz (H1030). Sonuç b T ise T, T? ise T?; sağ yanın '?'i uyumdan değil yazılı tipinden okunur,
+// çünkü T? tipli bir ad 4b'ye kadar T yerine geçer. Sol yan tipi bilinen ve isteğe bağlı olmayan bir
+// tipse sağ yan hiç kullanılmaz (H1031); tipi bilinmeyen ad (arayüz, başka modülün tipi) isteğe
+// bağlı olabilir, hata vermez. Sol yan TR_Any ya da TR_none ise sonuç sağ yanın tipidir.
+func (c *Checker) coalesceType(e *ast.InfixExpression, left, right string) string {
+	if left == typeNull || left == typeAny {
+		return right
+	}
+	if !shapeOf(left).optional {
+		if c.requiredPlace(left) {
+			value, _ := c.exprText(e.Left)
+			c.addErrorAt(e.Left, messages.New(messages.H1031, c.typeArg(left), value))
+		}
+		return left
+	}
+	t := requiredType(left)
+	if right == typeAny {
+		return t
+	}
+	want := t
+	if shapeOf(right).optional {
+		want = left
+	}
+	if right == typeNull || !(compat{isStruct: c.knownStruct, exact: true}).types(want, right) {
+		c.addErrorAt(e.Right, messages.New(messages.H1030, c.typeArg(right), c.typeArg(left), c.typeArg(t), c.coalesceHint(e, t)))
+		return t
+	}
+	return want
+}
+
+// coalesceHint H1030'un önerisidir, sol yanın asıl tipinden (t): TR_JSON'da sağ yanı JSON değerine
+// çeviren H1033, öbür tiplerde varsayılanı yazan H1032. Sol ya da (JSON'da) sağ yanın dosyadaki
+// yazımı bilinmiyorsa öneri yoktur; ana ileti yine verilir.
+func (c *Checker) coalesceHint(e *ast.InfixExpression, t string) any {
+	value, ok := c.exprText(e.Left)
+	if !ok {
+		return ""
+	}
+	if normalizeTypeName(baseType(t)) == typeJSON {
+		right, ok := c.exprText(e.Right)
+		if !ok {
+			return ""
+		}
+		return messages.New(messages.H1033, value, right)
+	}
+	return messages.New(messages.H1032, value, coalesceKind(t))
+}
+
+// coalesceKind H1032'nin select anahtarıdır, '??'nin sol yanının asıl tipinden: varsayılanı yazılan
+// tiplerde o tip, TR_Bool'da "other" (kod yuvası {#false} yalnız other dalında olabilir), öbür
+// tiplerde (sözlük: dalın içinde '}' dalı kapatır; yapı, demet, tensör, bilinmeyen ad) "generic".
+func coalesceKind(t string) string {
+	switch normalizeTypeName(baseType(t)) {
+	case typeInt:
+		return "int"
+	case typeFloat:
+		return "float"
+	case typeString:
+		return "string"
+	case typeList:
+		return "list"
+	case typeBool:
+		return "other"
+	}
+	return "generic"
+}
+
 // checkIndexAssign öğesi isteğe bağlı olmayan kabın indeksine açılmamış isteğe bağlı değer
 // atanmasını denetler (3.5, H1135): m[0] = l.TR_first. Öğe tipinin genel denetimi (yanlış tipli
 // değer, 3.6) burada yoktur.
