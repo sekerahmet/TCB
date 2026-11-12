@@ -1,0 +1,31 @@
+# TR 4
+# tr/gguf_tensors — GGUF dosyasının tensörlerini GPT'nin katmanlarına yazan adımlar (15.55): tensörü adıyla
+# ve şekliyle almak (TR_gguf_tensor, TR_gguf_take), doğrusal katmanı ve normu kurmak (TR_gguf_linear,
+# TR_gguf_norm). Hepsi tr/pretrained'in iç adımıdır; modeli yükleyen yol (TR_pretrained_gguf) bunları
+# kendisi çağırır.
+
+TR_import "tr/layers"
+
+# TR_gguf_tensor adı dosyada olmayan tensörde hata verir.
+TR_func TR_gguf_tensor(tensörler: TR_Dict[TR_String, TR_Tensor], ad: TR_String) -> TR_Tensor {
+    TR_if TR_not tensörler.TR_contains(ad) { TR_throw TR_Message("H6697", ad) }
+    TR_return tensörler[ad]
+}
+
+# TR_gguf_take tensörü şekli denetlenerek alır ve alınanlara işler: alınmayan ad sonda hatadır.
+TR_func TR_gguf_take(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_String, TR_Bool], ad: TR_String, şekil: TR_List[TR_Int]) -> TR_Tensor {
+    TR_var t = TR_gguf_tensor(tensörler, ad)
+    TR_if t.TR_shape != şekil { TR_throw TR_Message("H6698", ad, t.TR_shape, şekil) }
+    alınan[ad] = TR_true
+    TR_return t
+}
+
+# TR_gguf_linear Doğrusal'ın ağırlığını kurar: alan [çıkış, giriş] tensörün devriğidir.
+TR_func TR_gguf_linear(k: TR_Linear, t: TR_Tensor) { k.TR_weight = t.TR_transpose() }
+
+# TR_gguf_norm dosyadaki ağırlıkla bir RMS normu kurar.
+TR_func TR_gguf_norm(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_String, TR_Bool], ad: TR_String, boyut: TR_Int, eps: TR_Float) -> TR_RMSNorm {
+    TR_var n = TR_RMSNorm(boyut, TR_eps: eps)
+    n.TR_weight = TR_gguf_take(tensörler, alınan, ad, [boyut])
+    TR_return n
+}
