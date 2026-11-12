@@ -866,6 +866,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum (2026-11-12, T1'in dilim 2c'si):** kayıtta `TR_embedding_lookup`'ın tensör indeksi ve `TR_write_slice`'ın tensör başlangıcı kırpılmıyor: tam sayı olmayan ya da sınır dışı değer cihaz içi bayrağa yazar, hatalı öğe belleğe dokunmaz; ileti oynatmanın sonunda, kaydedilen satırla ve doğrudan çağrınınkiyle aynı [test: `TestReplayIndexFaultsMatchDirectCall`]. Kapanıştan okunan sayılar kayıtta sabitleniyor, denetlenmiyor [ölçüldü: DENETİM].
 - **Yapılacaklar (A, Ö1, Kol B (T1), 15.6'nın cihaz içi bayrağıyla; ölçüm status'un):** kapanıştaki sayının ve tensör deposunun yoluyla denetimi; rastgele üretecin oynatmada ilerlemesi; Go testleri.
+- **Yapılacaklar (C, Ö2, Kol B (T1); DENETİM 499 N1):** boş girdide kayıt denetlemiyor, doğrudan çağrı hata veriyor: dilim yazmada kaynak boşken H6442 (`internal/compute/tensor/indexed.go:104`), gömmede D=0'da H6305 (`:71`) kayıtta çıkmıyor; "doğrudan çağrınınkiyle aynı" bu sınırda tutmuyor. Gerileme değil.
+- **Yapılacaklar (A, Ö2, Kol B (T1); DENETİM 499 N2; T1 dilim 2b'nin ilk commit'i):** doğrudan çağrıda dilim yazmanın başlangıç + n toplamı taşıyor (`internal/stdlib/ml/builtin_replay.go`, `writeSliceStart`): `TR_start` 2⁶³−1 ve n=1'de hiçbir şey yazılmaz, hata da çıkmaz [hesap: DENETİM'in okuması, koşulmadı]; kayıttaki kart aynı girdide H6442 verir. Düzeltme taşmasız denetim (başlangıç > boyut − n) ve testi.
 
 ### 15.46
 
