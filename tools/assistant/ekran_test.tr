@@ -250,3 +250,44 @@ TR_test "sunucu belirteçli açılır: sayfa ve dil dosyaları belirteçsiz yoll
     # Boş belirteç geçersizdir: sunucu açılmaz (28.2).
     TR_assert_equal("H7624", TR_error_code { ekran_aç(e, 0, "") })
 }
+
+TR_test "settings_set: anahtar listede değilse unknown_key, değerin türü yanlışsa invalid_value; dil katalogda yoksa unknown_language" {
+    TR_var e = ekran()
+    e.konuşma_dili = "tr"
+    e.dil_cevabı = {"tr": TR_JSON({}), "en": TR_JSON({"code": "not_installed", "values": {"entry_id": "ses-en"}})}
+    TR_var c = tek(e, komut("settings_set", "a", "{\"key\": \"context\", \"value\": 4096}"))
+    TR_assert_equal("setting_invalid", durum(c))
+    TR_assert_equal("unknown_key", TR_String(gövde(c)["error"]["values"]["reason"]))
+    TR_assert_equal("context", TR_String(gövde(c)["error"]["values"]["key"]))
+    TR_var veriler = ["{\"key\": \"speech_language\", \"value\": 5}", "{\"key\": \"speech_language\"}",
+        "{\"key\": \"system_prompt\", \"value\": \"x\"}", "{\"key\": \"system_prompt\", \"value\": {\"source\": \"user\", \"text\": \"x\"}}",
+        "{\"key\": \"system_prompt\", \"value\": {\"source\": \"web\"}}"]
+    TR_for i TR_in 0..veriler.TR_length {
+        TR_var r = tek(e, komut("settings_set", "v\(i)", veriler[i]))
+        TR_assert_equal("setting_invalid", durum(r))
+        TR_assert_equal("invalid_value", TR_String(gövde(r)["error"]["values"]["reason"]))
+    }
+    TR_var u = tek(e, komut("settings_set", "g", "{\"key\": \"speech_language\", \"value\": \"xx\"}"))
+    TR_assert_equal("unknown_language", durum(u))
+    TR_assert_equal("xx", TR_String(gövde(u)["error"]["values"]["language"]))
+    TR_assert(e.ayar_istendi == TR_none)
+}
+
+TR_test "settings_set: dilin önceden hesaplanmış reddi döner; başka dil için kullanıcı iletisi system_prompt_language; tur sürerken turn_busy; kabul ana döngüye kalır" {
+    TR_var e = ekran()
+    e.konuşma_dili = "tr"
+    e.dil_cevabı = {"tr": TR_JSON({}), "en": TR_JSON({"code": "not_installed", "values": {"entry_id": "ses-en"}})}
+    TR_var c = tek(e, komut("settings_set", "a", "{\"key\": \"speech_language\", \"value\": \"en\"}"))
+    TR_assert_equal("not_installed", durum(c))
+    TR_assert_equal("ses-en", TR_String(gövde(c)["error"]["values"]["entry_id"]))
+    TR_var s = tek(e, komut("settings_set", "b", "{\"key\": \"system_prompt\", \"value\": {\"source\": \"user\", \"text\": \"Brief.\", \"language\": \"en\"}}"))
+    TR_assert_equal("setting_invalid", durum(s))
+    TR_assert_equal("system_prompt_language", TR_String(gövde(s)["error"]["values"]["reason"]))
+    e.tur = "t-9"
+    TR_assert_equal("turn_busy", durum(tek(e, komut("settings_set", "c", "{\"key\": \"speech_language\", \"value\": \"tr\"}"))))
+    e.tur = ""
+    TR_assert(e.ayar_istendi == TR_none)
+    TR_assert_equal("accepted", durum(tek(e, komut("settings_set", "d", "{\"key\": \"speech_language\", \"value\": \"tr\"}"))))
+    TR_assert_equal("speech_language", TR_String(e.ayar_istendi["key"]))
+    TR_assert_equal("tr", TR_String(e.ayar_istendi["value"]))
+}

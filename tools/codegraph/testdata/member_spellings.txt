@@ -548,6 +548,7 @@ c.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 c.TR_context_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEContext.TR_mem_context_proj
 c.TR_dtype	ok	0	name:TR_mem_dtype
 c.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
+c.TR_get	ok	0	name:TR_mem_get
 c.TR_grad	ok	0	name:TR_mem_grad
 c.TR_headers	ok	0	name:TR_mem_headers
 c.TR_lower	ok	0	name:TR_mem_lower
@@ -639,6 +640,7 @@ dikkat.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_pr
 dikkat.TR_q_norm	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_norm
 dikkat.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
 dikkat.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
+dil_cevabı.TR_get	ok	0	name:TR_mem_get
 dilimler.TR_append	ok	0	name:TR_mem_append
 dilimler.TR_length	ok	0	name:TR_mem_length
 diller.TR_append	ok	0	name:TR_mem_append
@@ -1636,11 +1638,13 @@ v2.TR_grad	ok	0	name:TR_mem_grad
 v_ham.TR_reshape	ok	0	name:TR_mem_reshape
 varken.TR_append	ok	0	name:TR_mem_append
 veri.TR_append	ok	0	name:TR_mem_append
+veri.TR_get	ok	0	name:TR_mem_get
 veri.TR_length	ok	0	name:TR_mem_length
 verildi.TR_append	ok	0	name:TR_mem_append
 verilen.TR_append	ok	0	name:TR_mem_append
 verilen.TR_contains	ok	0	name:TR_mem_contains
 verilen.TR_length	ok	0	name:TR_mem_length
+veriler.TR_length	ok	0	name:TR_mem_length
 vy.TR_item	ok	0	name:TR_mem_item
 w.TR_cancel	ok	0	name:TR_mem_cancel
 w.TR_device	ok	0	name:TR_mem_device

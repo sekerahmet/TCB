@@ -78,14 +78,6 @@ TR_func deneme_yaz(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son
     TR_if d != TR_none { d.tur(t, kaynak, kesit, t0, son, kod) }
 }
 
-# Asistan: dil zinciri ile yazıya çeviren ve konuşan modeller; `dil` Whisper'ın dil kodu.
-TR_struct Asistan {
-    z: Zincir
-    yazıcı: TR_Whisper
-    ses: TR_Vits
-    dil: TR_String
-}
-
 # asistan_kur: modeller yüklenir, sistem iletisi önbelleğe okunur (ısıt): ilk tur onu yeniden okumaz.
 # Konuşma dili Türkçe değilken öntanımlı sistem iletisi (Türkçe cevap ister) sessizce kalmaz;
 # yan etkilerden (deneme kaydı, belirteç, sunucu) önce, kipin hemen ardından çağrılır.
@@ -308,15 +300,23 @@ TR_func ekranlı_kip() -> TR_Int {
     TR_var k = Katalog(girdiler: [], diller: [])
     TR_var kj = TR_JSON({})
     TR_var a_ayar: Ayar? = TR_none
+    TR_var ayar_verisi: TR_Dict[TR_String, TR_JSON]? = TR_none
     TR_if TR_not elle {
         TR_var yol = TR_String(ayar["katalog"])
         k = katalog_oku(yol)
         kj = dosya_oku(yol, "katalog")
         a_ayar = ayar_oku(ayar_dosyası, k)
-        TR_if a_ayar != TR_none { e.gönder("settings", ayar_olayı(dosya_oku(ayar_dosyası, "ayar"))) }
+        TR_if a_ayar != TR_none { ayar_verisi = TR_Dict(ayar_olayı(dosya_oku(ayar_dosyası, "ayar"))) }
     }
     TR_var etkin = takım_ayarı(k, a_ayar)
     e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
+    e.konuşma_dili = etkin.konuşma_dili
+    TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
+    TR_func ayarı_gönder() {
+        TR_var v = ayar_verisi
+        TR_if v != TR_none { e.gönder("settings", TR_JSON(v)) }
+    }
+    ayarı_gönder()
     TR_var y = Yuva()
     TR_var yüklü = Yüklü()
     TR_var önceki_turlar = 0
@@ -373,6 +373,32 @@ TR_func ekranlı_kip() -> TR_Int {
         e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": t.giriş}, "fatal": TR_false}))
         e.durum("setup")
     }
+    # ayarı_uygula: kabul edilen `settings_set` (ekran.tr, `ayar_kararı`). Model yüklüyse dil değişimi atomiktir
+    # (yuva.tr, `dil_değiştir`): yeni ses (ve başka yazıcıysa Whisper) eskiler yerinde dururken yüklenir; düşerse
+    # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır.
+    # Ayar dosyasına yazılmaz; `settings` olayı yeni değeri taşır.
+    TR_func ayarı_uygula(anahtar: TR_String, değer: TR_JSON) {
+        TR_var yeni = Ayar(dil_modeli: etkin.dil_modeli, konuşma_dili: etkin.konuşma_dili, sistem: etkin.sistem, bağlam: etkin.bağlam, kapı: etkin.kapı)
+        TR_if anahtar == "speech_language" { yeni.konuşma_dili = TR_String(değer) } TR_else { yeni.sistem = değer }
+        TR_var a = yüklü.a
+        TR_var t = y.takım
+        TR_if a != TR_none TR_and t != TR_none {
+            TR_var yt = dil_takımı(t, kj, klasör, yeni.sistem, yeni.konuşma_dili)
+            TR_var hata = dili_uygula(y, a, t, yt)
+            TR_if hata != TR_none {
+                TR_print("DİL HATASI:", hata)
+                e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": TR_Path(yt.ses).TR_name}, "fatal": TR_false}))
+                TR_return
+            }
+        }
+        etkin = yeni
+        e.konuşma_dili = etkin.konuşma_dili
+        e.dil_cevabı = dil_cevapları(kj, klasör, etkin)
+        e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
+        TR_var v = ayar_verisi
+        TR_if v != TR_none { v[anahtar] = değer }
+        ayarı_gönder()
+    }
     # işle: bekleyen komutlar; kapatılan mikrofon hemen kapanır, açılması `ara`'da (tur bittikten sonra) olur.
     # Kabul edilen `model_load` burada koşar: mikrofon kapanır, takım yüklenir.
     TR_func işle() {
@@ -386,6 +412,11 @@ TR_func ekranlı_kip() -> TR_Int {
             TR_var c = takım_kur(k, kj, klasör, giriş, etkin)
             TR_var t = c.takım
             TR_if t != TR_none { takımı_yükle(t) }
+        }
+        TR_var istek = e.ayar_istendi
+        TR_if istek != TR_none {
+            e.ayar_istendi = TR_none
+            ayarı_uygula(TR_String(istek["key"]), istek["value"])
         }
     }
     TR_func oku() -> TR_Tensor? {

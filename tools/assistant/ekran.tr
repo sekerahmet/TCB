@@ -46,6 +46,11 @@ TR_struct Ekran {
     # değerleri. `yüklenecek`: kabul edilmiş, ana döngünün yükleyeceği dil modeli.
     yüklenebilir: TR_Dict[TR_String, TR_JSON] = {}
     yüklenecek: TR_String? = TR_none
+    # dil_cevabı: her konuşma dilinin `settings_set` cevabı (yuva.tr, `dil_cevapları`); `konuşma_dili` ayarın dili;
+    # `ayar_istendi`: kabul edilmiş, ana döngünün uygulayacağı `{key, value}`.
+    dil_cevabı: TR_Dict[TR_String, TR_JSON] = {}
+    konuşma_dili: TR_String = ""
+    ayar_istendi: TR_JSON? = TR_none
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
     mikrofon_istendi: TR_Bool = TR_false
     tur: TR_String = "" # süren ya da açılmak üzere olan tur; yoksa ""
@@ -285,7 +290,7 @@ TR_func komut_al(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_var veri = j.TR_get("data")
     TR_if t == TR_none TR_or TR_Type(t) != TR_String { TR_return ret(400, k, "bad_request", TR_JSON({})) }
     TR_var ad = TR_String(t)
-    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load"].TR_contains(ad) {
+    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set"].TR_contains(ad) {
         TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad}))
     }
     TR_var d = TR_if veri == TR_none { TR_JSON({}) } TR_else { veri }
@@ -304,6 +309,7 @@ TR_func geçerli(ad: TR_String, d: TR_JSON) -> TR_Bool {
         "mic_set" => "on"
         "approval_answer" => "approval_id"
         "model_load" => "entry_id"
+        "settings_set" => "key"
         _ => ""
     }
     TR_if alan == "" { TR_return TR_true }
@@ -356,9 +362,49 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
             TR_if d.TR_get("code") != TR_none { TR_return red(k.kimlik, TR_String(d["code"]), d["values"]) }
             e.yüklenecek = giriş
         }
+        "settings_set" => { TR_return ayar_kararı(e, k) }
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
+}
+
+# ayar_kararı: `settings_set`'in cevabı. Anahtar B'nin listesinde değilse `unknown_key`, değerin türü anahtarın
+# istediği değilse `invalid_value` (`setting_invalid`); tur sürüyorsa `turn_busy`; dil katalogda yoksa
+# `unknown_language`; öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular.
+TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
+    TR_var anahtar = TR_String(k.veri["key"])
+    TR_if TR_not ["speech_language", "system_prompt"].TR_contains(anahtar) {
+        TR_return red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "unknown_key"}))
+    }
+    TR_var değer = k.veri.TR_get("value")
+    TR_var geçersiz = red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "invalid_value"}))
+    TR_if değer == TR_none { TR_return geçersiz }
+    TR_if anahtar == "speech_language" TR_and TR_Type(değer) != TR_String { TR_return geçersiz }
+    TR_if anahtar == "system_prompt" TR_and TR_not sistem_iletisi_mi(değer) { TR_return geçersiz }
+    TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
+    TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
+    TR_if anahtar == "speech_language" {
+        TR_var kod = TR_String(değer)
+        TR_var c = e.dil_cevabı.TR_get(kod)
+        TR_if c == TR_none { TR_return red(k.kimlik, "unknown_language", TR_JSON({"language": kod})) }
+        TR_if c.TR_get("code") != TR_none { TR_return red(k.kimlik, TR_String(c["code"]), c["values"]) }
+    } TR_else TR_if TR_String(değer["source"]) == "user" TR_and TR_String(değer["language"]) != e.konuşma_dili {
+        TR_return red(k.kimlik, "setting_invalid", TR_JSON({"key": "system_prompt", "reason": "system_prompt_language"}))
+    }
+    e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
+    TR_return kabul(k.kimlik)
+}
+
+# sistem_iletisi_mi: `{"source": "catalog"}` ya da `{"source": "user", "text": <metin>, "language": <metin>}`.
+TR_func sistem_iletisi_mi(j: TR_JSON) -> TR_Bool {
+    TR_if TR_not nesne(j) { TR_return TR_false }
+    TR_var kaynak = j.TR_get("source")
+    TR_if kaynak == TR_none TR_or TR_Type(kaynak) != TR_String { TR_return TR_false }
+    TR_if TR_String(kaynak) == "catalog" { TR_return TR_Dict(j).TR_length == 1 }
+    TR_if TR_String(kaynak) != "user" TR_or TR_Dict(j).TR_length != 3 { TR_return TR_false }
+    TR_var metin = j.TR_get("text")
+    TR_var dil = j.TR_get("language")
+    TR_return metin != TR_none TR_and TR_Type(metin) == TR_String TR_and dil != TR_none TR_and TR_Type(dil) == TR_String
 }
 
 # metni_al: kabul edilmiş, henüz açılmamış metin turunu alır ve kabulde verilen kimliği süren tur yapar; yoksa

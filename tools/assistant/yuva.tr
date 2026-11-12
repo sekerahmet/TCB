@@ -7,6 +7,9 @@
 # - Bir girdi, katalogdaki her dosyası `modeller/<kimlik>/<target>` olarak varsa ve boyu katalogdakine eşitse
 #   kuruludur. sha256 ve revizyon indirmenin kaydıyla gelir; bu tanımın yerine geçer.
 TR_import "katalog"
+TR_import "tr/vits"
+TR_import "tr/whisper"
+TR_import "zincir"
 
 TR_const _İŞARET = "yukleme.json"
 
@@ -28,6 +31,14 @@ TR_struct Kurulum {
     takım: Takım? = TR_none
     kod: TR_String = ""
     değerler: TR_JSON = TR_JSON({})
+}
+
+# Asistan: dil zinciri ile yazıya çeviren ve konuşan modeller; `dil` Whisper'ın dil kodu.
+TR_struct Asistan {
+    z: Zincir
+    yazıcı: TR_Whisper
+    ses: TR_Vits
+    dil: TR_String
 }
 
 # Yuva: yüklü takım; boşken TR_none.
@@ -111,6 +122,74 @@ TR_func yüklenebilirler(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar) -
         d[g.kimlik] = TR_if c.kod == "" { TR_JSON({}) } TR_else { TR_JSON({"code": c.kod, "values": c.değerler}) }
     }
     TR_return d
+}
+
+# dil_cevapları: her konuşma dilinin `settings_set {key: speech_language}` cevabı: boş nesne ya da hata kodu ve
+# değerleri. Kullanıcının sistem iletisi başka dil içinse `setting_invalid` (`system_prompt_language`; ekran soruyu
+# sorar); dilin yazıcısı ya da sesi kurulu değilse `not_installed` (dil değişmez).
+TR_func dil_cevapları(kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_String, TR_JSON] {
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {}
+    TR_for dil TR_in kj["languages"] {
+        TR_var kod = TR_String(dil["code"])
+        d[kod] = TR_JSON({})
+        TR_if TR_String(a.sistem["source"]) == "user" TR_and TR_String(a.sistem["language"]) != kod {
+            d[kod] = TR_JSON({"code": "setting_invalid", "values": {"key": "speech_language", "reason": "system_prompt_language"}})
+            TR_continue
+        }
+        TR_for kimlik TR_in [TR_String(dil["transcriber"]), TR_String(dil["voice"])] {
+            TR_if TR_not kurulu(kj, klasör, kimlik) TR_and TR_Dict(d[kod]).TR_length == 0 {
+                d[kod] = TR_JSON({"code": "not_installed", "values": {"entry_id": kimlik}})
+            }
+        }
+    }
+    TR_return d
+}
+
+# dil_takımı: takımın konuşma dili `kod` olan kopyası: yazıcı, ses, Whisper'ın dili ve (katalogdan geliyorsa) sistem
+# iletisi yeni dilin; dil modeli ve VAD aynı.
+TR_func dil_takımı(t: Takım, kj: TR_JSON, klasör: TR_String, sistem: TR_JSON, kod: TR_String) -> Takım {
+    TR_var dil = kj["languages"][0]
+    TR_for d TR_in kj["languages"] {
+        TR_if TR_String(d["code"]) == kod { dil = d }
+    }
+    TR_var ileti = TR_if TR_String(sistem["source"]) == "user" { TR_String(sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }
+    TR_return Takım(giriş: t.giriş, dil_modeli: t.dil_modeli, yazıcı: girdi_klasörü(klasör, TR_String(dil["transcriber"])), vad: t.vad,
+        ses: girdi_klasörü(klasör, TR_String(dil["voice"])), dil: TR_String(dil["whisper_language"]), sistem: ileti)
+}
+
+# dil_değiştir: konuşma dilini değiştirir. Yeni dilin modelleri eskiler yerinde dururken `iş` ile yüklenir; `iş` düşerse
+# hiçbir şey değişmez, hata metin olarak döner (ekranda `model_load_failed`). Yüklenirse `uygula` yenileri eskilerin
+# yerine koyar (tek atama; önbellek ve geçmiş sıfırlanır) ve yeni takım yuvaya girer.
+TR_func dil_değiştir(y: Yuva, t: Takım, iş: (Takım) -> TR_NoneType, uygula: () -> TR_NoneType) -> TR_String? {
+    TR_try {
+        iş(t)
+    } TR_catch h {
+        TR_return TR_String(h)
+    }
+    uygula()
+    y.takım = t
+    TR_return TR_none
+}
+
+# dili_uygula: yüklü asistanın dili `eski` takımdan `yeni`ye: yeni ses (ve yazıcı başkaysa yeni Whisper) eskiler
+# yerinde dururken yüklenir (dil_değiştir); sonra tek atamayla yerleşir, sistem iletisi yenilenir, önbellek ve geçmiş
+# sıfırlanır, sistem iletisi önbelleğe okunur (ısıt).
+TR_func dili_uygula(y: Yuva, a: Asistan, eski: Takım, yeni: Takım) -> TR_String? {
+    TR_var yeni_ses: TR_Vits? = TR_none
+    TR_var yeni_yazıcı: TR_Whisper? = TR_none
+    TR_return dil_değiştir(y, yeni, (t) => {
+        TR_if t.ses != eski.ses { yeni_ses = TR_pretrained_vits(t.ses) }
+        TR_if t.yazıcı != eski.yazıcı { yeni_yazıcı = TR_pretrained_whisper(t.yazıcı) }
+    }) {
+        TR_var ses = yeni_ses
+        TR_if ses != TR_none { a.ses = ses }
+        TR_var yazıcı = yeni_yazıcı
+        TR_if yazıcı != TR_none { a.yazıcı = yazıcı }
+        a.dil = yeni.dil
+        a.z.sistem = yeni.sistem
+        a.z.yeni_konuşma()
+        ısıt(a.z)
+    }
 }
 
 # ayar_olayı: `settings` olayının verisi: ayar dosyasının alanları, `v` dışında (sözleşme, `settings`).

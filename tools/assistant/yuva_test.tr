@@ -169,3 +169,43 @@ TR_test "yükle: görevin hatası yakalanır, program sürer; yuva boş, işaret
     TR_assert(y.takım == TR_none)
     TR_assert(TR_not TR_Path(işaret_yolu(d)).TR_exists)
 }
+
+TR_test "dil_cevapları: kullanıcının başka dil için iletisi system_prompt_language; yazıcısı ya da sesi kurulu olmayan dil not_installed" {
+    TR_var d = _klasör()
+    TR_for kimlik TR_in ["dm", "yaz", "vad", "ses-tr"] { _kur(d, kimlik) }
+    TR_var c = dil_cevapları(_ham_katalog(), d, _ayar("tr", TR_JSON({"source": "catalog"})))
+    TR_assert_equal(0, TR_Dict(c["tr"]).TR_length)
+    TR_assert_equal("not_installed", TR_String(c["en"]["code"]))
+    TR_assert_equal("ses-en", TR_String(c["en"]["values"]["entry_id"]))
+    TR_var u = dil_cevapları(_ham_katalog(), d, _ayar("tr", TR_JSON({"source": "user", "text": "Kısa yaz.", "language": "tr"})))
+    TR_assert_equal(0, TR_Dict(u["tr"]).TR_length)
+    TR_assert_equal("setting_invalid", TR_String(u["en"]["code"]))
+    TR_assert_equal("system_prompt_language", TR_String(u["en"]["values"]["reason"]))
+}
+
+TR_test "dil_takımı: yeni dilin yazıcısı, sesi, Whisper dili ve katalogun iletisi; dil modeli ve VAD aynı" {
+    TR_var d = _klasör()
+    TR_var t = Takım(giriş: "dm", dil_modeli: "dm.gguf", yazıcı: "eski-yaz", vad: "vad.safetensors", ses: "eski-ses", dil: "tr", sistem: "Türkçe cevap ver.")
+    TR_var y = dil_takımı(t, _ham_katalog(), d, TR_JSON({"source": "catalog"}), "en")
+    TR_assert_equal("dm.gguf", y.dil_modeli)
+    TR_assert_equal("vad.safetensors", y.vad)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "yaz")), y.yazıcı)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-en")), y.ses)
+    TR_assert_equal("en", y.dil)
+    TR_assert_equal("Answer in English.", y.sistem)
+    TR_assert_equal("Brief.", dil_takımı(t, _ham_katalog(), d, TR_JSON({"source": "user", "text": "Brief.", "language": "en"}), "en").sistem)
+}
+
+TR_test "dil_değiştir: yeni modeller yüklenemezse hiçbir şey değişmez; yüklenirse uygulanır ve takım yuvaya girer" {
+    TR_var y = Yuva(takım: _takım("dm"))
+    TR_var uygulandı = 0
+    TR_var yeni = Takım(giriş: "dm", dil_modeli: "", yazıcı: "", vad: "", ses: "ses-en", dil: "en", sistem: "")
+    TR_var h = dil_değiştir(y, yeni, (t) => { TR_throw "ses okunamadı" }) { uygulandı += 1 }
+    TR_assert(h != TR_none)
+    TR_assert(h.TR_contains("ses okunamadı"))
+    TR_assert_equal(0, uygulandı)
+    TR_assert_equal("tr", y.takım.dil)
+    TR_assert(dil_değiştir(y, yeni, (t) => {}) { uygulandı += 1 } == TR_none)
+    TR_assert_equal(1, uygulandı)
+    TR_assert_equal("en", y.takım.dil)
+}
