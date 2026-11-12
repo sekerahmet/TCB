@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -94,9 +95,14 @@ func TestNorms(t *testing.T) {
 	// (benzetimde 4 SM: D = 8'de 256 blok, D ≥ 129'da 32 blok). D = 32, 64, 256 ileri ve geri
 	// warp çekirdeğidir, D = 512 yalnızca geride (kernel_norm_warp.go).
 	// Warp başına birden çok satır için R > 256 (benzetimde en çok 32 blok): {300, 32} kısa kipte,
-	// büyük boylar yalnızca uzun kipte (benzetim yarış dedektörüyle yavaştır).
+	// büyük boylar yalnızca uzun kipte (benzetim yarış dedektörüyle yavaştır). Yarış dedektöründe
+	// {1000, 8} ve {300, 129} de koşmaz (skipUnderRace'in gerekçesi): blok başına çok satırı orada
+	// {70, 600} sınar (R·D işlemcinin işçi havuzunu da açar); D = 8'dekini öbür kipler sınar.
 	sizes := [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512},
 		{300, 32}, {8, 64}}
+	if raceEnabled {
+		sizes = slices.DeleteFunc(sizes, func(d [2]int) bool { return d == [2]int{1000, 8} || d == [2]int{300, 129} })
+	}
 	if !testing.Short() {
 		sizes = append(sizes, [][2]int{{1000, 64}, {2000, 512}, {777, 256}, {257, 512}}...)
 	}

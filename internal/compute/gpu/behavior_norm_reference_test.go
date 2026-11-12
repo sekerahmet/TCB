@@ -73,6 +73,9 @@ func TestNormsMatchFloat64Reference(t *testing.T) {
 	const tol = 1e-5
 	rng := rand.New(rand.NewSource(10))
 	sizes := [][2]int{{300, 129}, {70, 600}, {300, 32}, {21, 512}}
+	if raceEnabled { // {300, 129} ve {70, 600} ağır; yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi)
+		sizes = sizes[2:]
+	}
 	if !testing.Short() {
 		sizes = append(sizes, [][2]int{{1000, 64}, {2000, 512}, {777, 256}, {257, 512}}...)
 	}

@@ -342,7 +342,11 @@ func TestQuantMatMulRowsMatchOpened(t *testing.T) {
 	defer func() { g.quantTile = 0 }()
 	for _, dt := range quantTypes {
 		elems, _ := dt.QuantBlock()
-		for _, c := range [][3]int{{2, 3, elems}, {5, 70, 2 * elems}, {17, 129, 3 * elems}} {
+		cases := [][3]int{{2, 3, elems}, {5, 70, 2 * elems}}
+		if !raceEnabled { // ağır boy yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi); parça sınırını {5, 70} geçer
+			cases = append(cases, [3]int{17, 129, 3 * elems})
+		}
+		for _, c := range cases {
 			M, N, K := c[0], c[1], c[2]
 			host, card := quantWeights(t, rng, dt, N, K)
 			x := twin(random(rng, M*K, 1), false, M, K)
