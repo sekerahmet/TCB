@@ -49,6 +49,24 @@ func FaultFromSlot(op TypedOp, out DType, ins []DType, key uint64, bits []uint64
 	return f
 }
 
+// IndexFaultFromSlot indeks yuvasından (gömme, dilim yazma) ElemFault'u kurar: çeşit ve konum
+// anahtardan, değer indeksin ham bitlerinden (dt: float32, float64 ya da int64).
+func IndexFaultFromSlot(dt DType, key, bits uint64) *ElemFault {
+	f := &ElemFault{Kind: FaultKind(key & 15), Index: int(key >> 4), DType: dt}
+	if f.Kind != FaultIndexNotInt && f.Kind != FaultIndexRange {
+		panic(messages.Internalf("index fault slot: kind %d at %d", f.Kind, f.Index))
+	}
+	switch dt {
+	case Int64:
+		f.Int = int64(bits)
+	case Float64:
+		f.Float = math.Float64frombits(bits)
+	default:
+		f.Float = float64(math.Float32frombits(uint32(bits)))
+	}
+	return f
+}
+
 // elemFromBits işlemcide tek öğeli dt tensörü: ham bitlerden (ondalıkta bitler, tam sayıda ve
 // mantıkta küçük uçlu baytlar).
 func elemFromBits(dt DType, b uint64) *Tensor {

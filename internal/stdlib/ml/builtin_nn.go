@@ -59,15 +59,30 @@ func embedding(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if isTensor && tensor.Capturing(table.t.Device()) {
-		// Kayıt içinde indeks konağa okunamaz: her oynatma onu cihazdan okur (sınır dışı
-		// indeks kırpılır, kesirli indeks budanır; tensor.EmbeddingAt).
-		r, err := safe(func() *tensor.Tensor { return tensor.EmbeddingAt(table.t, it.t) })
+		// Kayıt içinde indeks konağa okunamaz: her oynatma onu cihazdan okur. Tam sayı olmayan ya
+		// da sınır dışı indeks kırpılmaz, cihaz içi bayrağa yazar (15.45); ileti oynatmadan sonra,
+		// doğrudan çağrınınkiyle aynı (embeddingFault).
+		var f *tensor.ElemFault
+		r, err := safe(func() (r *tensor.Tensor) {
+			r, f = tensor.EmbeddingAt(table.t, it.t)
+			return r
+		})
+		if err == nil && f != nil {
+			err = recordFault(m, f, func(f *tensor.ElemFault) error { return embeddingFault(fn, f, tsh) })
+		}
 		if err != nil {
 			return nil, err
 		}
 		return quantRowsValue(m, table.t, r), nil
 	}
-	idx, ish, err := intIndices(fn, args[1])
+	var idx, ish []int
+	var err error
+	if isTensor {
+		idx, err = tensorIndices(fn, it, tsh)
+		ish = it.t.Shape()
+	} else {
+		idx, ish, err = intIndices(fn, args[1])
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +102,58 @@ func embedding(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	return quantRowsValue(m, table.t, r), nil
+}
+
+// tensorIndices indeks tensörünün öğelerini düz sırayla denetler: ilk hatalı öğe (15.6, en
+// küçük düz konum) söylenir, önce tam sayı mı (H6012; IntElements'in ölçütü), sonra tablonun
+// içinde mi (H6305). Kayıttaki cihaz içi bayrağın sırasıyla aynıdır.
+func tensorIndices(fn any, x *TensorValue, tsh []int) ([]int, error) {
+	var ints []int64
+	var f64 []float64
+	var f32 []float32
+	switch {
+	case x.t.Elem() == tensor.ElemBool:
+		return nil, messages.New(messages.H6012, fn, float32(0))
+	case x.t.Elem() == tensor.ElemInt:
+		ints = x.t.Int64s()
+	case x.t.DType() == tensor.Float64:
+		f64 = x.t.Float64s()
+	default:
+		f32 = x.t.Data()
+	}
+	ids := make([]int, x.t.Numel())
+	for k := range ids {
+		var i int
+		switch {
+		case ints != nil:
+			i = int(ints[k])
+		case f64 != nil:
+			if i = int(f64[k]); float64(i) != f64[k] {
+				return nil, messages.New(messages.H6012, fn, float32(f64[k]))
+			}
+		default:
+			if i = int(f32[k]); float32(i) != f32[k] {
+				return nil, messages.New(messages.H6012, fn, f32[k])
+			}
+		}
+		if i < 0 || i >= tsh[0] {
+			return nil, messages.New(messages.H6305, fn, i, tensor.ShapeText(tsh), tsh[0]-1)
+		}
+		ids[k] = i
+	}
+	return ids, nil
+}
+
+// embeddingFault kayıttaki hatalı indeksin iletisi: doğrudan çağrınınkiyle aynı (tensorIndices).
+func embeddingFault(fn any, f *tensor.ElemFault, tsh []int) error {
+	if f.Kind == tensor.FaultIndexNotInt {
+		return messages.New(messages.H6012, fn, float32(f.Float))
+	}
+	i := int(f.Int)
+	if f.DType != tensor.Int64 {
+		i = int(f.Float)
+	}
+	return messages.New(messages.H6305, fn, i, tensor.ShapeText(tsh), tsh[0]-1)
 }
 
 // quantRowsValue gömmenin sonucudur: nicemlenmiş tablonun satırları hesap hassasiyetine açılır

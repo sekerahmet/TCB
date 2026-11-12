@@ -163,6 +163,44 @@ func TestConvertFirstFaultIsSmallestFlatIndex(t *testing.T) {
 	}
 }
 
+// Kural (15.3, 15.6; DENETİM 490 N3): boş ve 0 boyutlu tensörün kartta dönüşümü işlemcininkiyle
+// aynıdır: boşta hata yok, sonuç boş ve aynı şekilde; 0 boyutluda değer de hata da aynı (konum 0,
+// şekil boş).
+func TestConvertEmptyAndScalarTensors(t *testing.T) {
+	for _, shape := range [][]int{{0}, {2, 0}} {
+		for _, c := range []struct {
+			src *tensor.Tensor
+			out tensor.DType
+		}{
+			{tensor.NewOn(tensor.CPU, []float32{}, shape...), tensor.Int32},
+			{tensor.Int64sOn(tensor.CPU, tensor.Int64, []int64{}, shape...), tensor.Int8},
+			{tensor.Int64sOn(tensor.CPU, tensor.Int16, []int64{}, shape...), tensor.Float32},
+		} {
+			g := c.src.To(gpuDevice)
+			r, f := tensor.Convert(g, c.out)
+			if f != nil || r == nil || r.Numel() != 0 || !slices.Equal(r.Shape(), shape) || r.DType() != c.out {
+				t.Errorf("%v %s → %s: sonuç %v, hata %+v", shape, c.src.DType(), c.out, r, f)
+			}
+			g.Drop()
+		}
+	}
+	for _, v := range []float32{2.5, -7.9, float32(math.NaN()), 1e10} {
+		src := tensor.NewOn(tensor.CPU, []float32{v})
+		cv, gv, cf, gf := convertBoth(t, src, tensor.Int32)
+		if !slices.Equal(cv, gv) || !sameFault(cf, gf) {
+			t.Errorf("0 boyutlu %v → int32: kart %v %+v, işlemci %v %+v", v, gv, gf, cv, cf)
+		}
+		if gf != nil && (gf.Index != 0 || len(gf.Shape) != 0) {
+			t.Errorf("0 boyutlu %v: hatanın yeri %d %v; konum 0, boş şekil olmalı", v, gf.Index, gf.Shape)
+		}
+	}
+	c, _ := tensor.Convert(tensor.Int64sOn(tensor.CPU, tensor.Int32, []int64{-3}), tensor.Float32)
+	r, f := tensor.Convert(tensor.Int64sOn(gpuDevice, tensor.Int32, []int64{-3}), tensor.Float32)
+	if f != nil || r.Dim() != 0 || r.Item() != c.Item() {
+		t.Errorf("0 boyutlu int32 → float32: kart %v %+v, işlemci %v", r, f, c)
+	}
+}
+
 // Kural (15.6; T1 dilim 2a): genişleten tam sayı dönüşümü (MergeInt'in hassasiyetine) hata
 // veremez; kartta bayrağın yuvasını almaz, beklemez.
 func TestWideningConversionHasNoFaultSlot(t *testing.T) {

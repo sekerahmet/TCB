@@ -444,14 +444,15 @@ func gateClipGradAll(be GradClipper, grads []Storage, maxNorm float32) (norm Sto
 	return norm, ok
 }
 
-func gateEmbeddingAt(be IndexReader, out Storage, w View, idx View, D int) {
+func gateEmbeddingAt(be IndexReader, out Storage, w View, idx View, D int) *ElemFault {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{out}, []Storage{w.S, idx.S})
 	}
-	be.EmbeddingAt(out, w, idx, D)
+	f := be.EmbeddingAt(out, w, idx, D)
 	runtime.KeepAlive(out)
 	runtime.KeepAlive(w.S)
 	runtime.KeepAlive(idx.S)
+	return f
 }
 
 func gateUnfold1d(be Conv1dFolder, cols Storage, x View, f Conv1dLayout) {
@@ -481,14 +482,15 @@ func gateOpenQuant(be QuantOpener, out Storage, src View) {
 	runtime.KeepAlive(src.S)
 }
 
-func gateUpdateSliceAt(be IndexReader, dst View, src View, start View, outer int, Td int, Ts int, inner int) {
+func gateUpdateSliceAt(be IndexReader, dst View, src View, start View, outer int, Td int, Ts int, inner int) *ElemFault {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{dst.S}, []Storage{src.S, start.S})
 	}
-	be.UpdateSliceAt(dst, src, start, outer, Td, Ts, inner)
+	f := be.UpdateSliceAt(dst, src, start, outer, Td, Ts, inner)
 	runtime.KeepAlive(dst.S)
 	runtime.KeepAlive(src.S)
 	runtime.KeepAlive(start.S)
+	return f
 }
 
 func gateScaleAll(be MultiTensorOps, s []Storage, k float32) {

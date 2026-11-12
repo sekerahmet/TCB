@@ -381,7 +381,10 @@ func TestQuantEmbeddingOnTheCard(t *testing.T) {
 			sameFloatBits(t, dt.Name()+" dilim", rows.Data(), tensor.Embedding(host, []int{3}).Data())
 		}
 		for _, it := range []*tensor.Tensor{tensor.NewOn(gpuDevice, []float32{5, 0}, 2), tensor.Int64sOn(gpuDevice, tensor.Int64, []int64{5, 0}, 2)} {
-			at := tensor.EmbeddingAt(card, it)
+			at, f := tensor.EmbeddingAt(card, it)
+			if f != nil {
+				t.Fatalf("%v: cihaz indeksinde hata %+v", dt, f)
+			}
 			sameFloatBits(t, dt.Name()+" cihaz indeksi", at.Data(), tensor.Embedding(host, []int{5, 0}).Data())
 		}
 		if n := tensor.Embedding(card, nil, 0).Numel(); n != 0 {

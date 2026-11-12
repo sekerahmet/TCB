@@ -110,3 +110,60 @@ TR_no_grad {
 		t.Fatalf("doğrudan çağrı başka hata verdi:\n%s\n%v\nkayıtta %v", direct, derr, err)
 	}
 }
+
+// Kural (15.45, 15.8, 15.23; T1 dilim 2c): kayıtta gömmenin tensör indeksi ve dilim yazmanın
+// tensör başlangıcı kırpılmaz: tam sayı olmayan ya da sınır dışı değer cihaz içi bayrağa yazar,
+// ileti oynatmanın sonunda, kaydedilen satırla ve doğrudan çağrınınkiyle aynı (H6012, H6305,
+// H6441, H6442). Hatalı oynatmadan sonra hatasız oynatma doğrudur. float64 indeks kendi türünde
+// denetlenir: 2,0000001 kayıtta da tam sayı değildir (davranış değişikliği; eskiden float32'ye
+// inip 2. satırı sessizce verirdi).
+func TestReplayIndexFaultsMatchDirectCall(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	lookup := `TR_default_device("gpu")
+TR_var tablo = TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
+TR_func g(i: TR_Tensor) -> TR_Tensor {
+    TR_return TR_embedding_lookup(tablo, i)
+}
+`
+	write := `TR_default_device("gpu")
+TR_var c = TR_zeros([2, 4])
+TR_func g(k: TR_Tensor, s: TR_Tensor) -> TR_Tensor {
+    TR_write_slice(c, s, TR_dim: 1, TR_start: k)
+    TR_return c * 1.0
+}
+`
+	ws := func(k string) string { return k + ", TR_ones([2, 2])" }
+	for _, c := range []struct {
+		head      string
+		good, bad []string
+		code      messages.Code
+	}{
+		{lookup, []string{"TR_Tensor([1.0, 2.0])", "TR_Tensor([3.0, 0.0])", "TR_Tensor([2.0, 1.0])"}, []string{"TR_Tensor([1.0, 2.5])"}, messages.H6012},
+		{lookup, []string{"TR_Tensor([1.0, 2.0])", "TR_Tensor([3.0, 0.0])", "TR_Tensor([2.0, 1.0])"}, []string{"TR_Tensor([9.0, 2.5])", "TR_Tensor([0.0, -1.0])"}, messages.H6305},
+		{lookup, []string{`TR_Tensor([1.0, 2.0], TR_dtype: "float64")`, `TR_Tensor([3.0, 0.0], TR_dtype: "float64")`, `TR_Tensor([2.0, 1.0], TR_dtype: "float64")`}, []string{`TR_Tensor([1.0, 2.0000001], TR_dtype: "float64")`}, messages.H6012},
+		{lookup, []string{"TR_Tensor([1, 2])", "TR_Tensor([3, 0])", "TR_Tensor([2, 1])"}, []string{"TR_Tensor([1, 4])"}, messages.H6305},
+		{write, []string{ws("TR_Tensor(0.0)"), ws("TR_Tensor(1.0)"), ws("TR_Tensor(2.0)")}, []string{ws("TR_Tensor(3.0)"), ws("TR_Tensor(-1.0)")}, messages.H6442},
+		{write, []string{ws("TR_Tensor(0.0)"), ws("TR_Tensor(1.0)"), ws("TR_Tensor(2.0)")}, []string{ws("TR_Tensor(1.5)")}, messages.H6441},
+		{write, []string{ws("TR_Tensor(0)"), ws("TR_Tensor(1)"), ws("TR_Tensor(2)")}, []string{ws("TR_Tensor(3)")}, messages.H6442},
+	} {
+		for _, bad := range c.bad {
+			// İleti programın içinde yazılır: H6441 başlangıç tensörünü gösterir, program bitince
+			// tensörler bırakılır (hata sonradan yazılamaz).
+			show := func(arg string) string { return `    TR_print(f(` + arg + `).TR_to_device("cpu").TR_tolist)` + "\n" }
+			program := c.head + "TR_var f = TR_replay(g)\nTR_no_grad {\n" + show(c.good[0]) + show(c.good[1]) +
+				"    TR_try { f(" + bad + ") } TR_catch h { TR_print(\"hata:\", h.TR_code, h) }\n" + show(c.good[2]) +
+				"    f(" + bad + ")\n}"
+			out, err := run(t, program)
+			direct, derr := run(t, strings.Replace(program, "TR_var f = TR_replay(g)", "TR_var f = g", 1))
+			for name, e := range map[string]error{"kayıtta": err, "doğrudan": derr} {
+				if line, _, ok := messages.Pos(e); !messages.Has(e, c.code) || !ok || line != 4 {
+					t.Fatalf("%s %s: satır 4'te %s bekleniyordu, satır %d (%v)", name, bad, c.code, line, ok)
+				}
+			}
+			if !strings.Contains(out, "hata: "+c.code.String()+" ") || direct != out {
+				t.Fatalf("%s: kayıtta ve doğrudan çağrıda çıktı ve ileti aynı olmalı:\nkayıtta\n%s\ndoğrudan\n%s", bad, out, direct)
+			}
+		}
+	}
+}

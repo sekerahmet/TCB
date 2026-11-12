@@ -657,7 +657,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.8
 
 - **Mevcut durum:** başlangıç tam sayı ya da tam sayı değerli 0 boyutlu ondalık tensör.
-- **Yapılacaklar:** `TR_start`'ın `TR_Int` ya da 0 boyutlu `TR_Tensor[TR_Int]` olması; cins denetimi; `TR_replay`'de sınır dışı başlangıcın cihaz içi bayrakla hatası (15.45).
+- **Yapılacaklar:** `TR_start`'ın `TR_Int` ya da 0 boyutlu `TR_Tensor[TR_Int]` olması: o zamana kadar float64 başlangıç float32'ye iniyor, kesir ve 2²⁴'ün üstü sessizce kayboluyor (A; seyrek olduğu için Ö2; TCB 2026-11-12 11:00, DENETİM 495 N2); cins denetimi.
 
 ### 15.13
 
@@ -741,6 +741,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** sınır dışı indeks H6305 veriyor [ölçüldü: main `8b115692`]. İndeks liste ya da ondalık tensör olabiliyor.
 - **Yapılacaklar:** indeks `TR_Tensor[TR_Int]`; göç 24 satır [ölçüldü: DENETİM, `git grep` main `8b115692`]; sınır dışı denetimi bekleyen işlem (15.6).
+- **Yapılacaklar (C, Ö2, Kol B (T1); TCB 2026-11-12 11:00, DENETİM 495 N1):** doğrudan çağrıda ondalık indeksin ve dilim başlangıcının "tam sayı mı" denetimi (ml paketinde `IntElements`, `tensorIndices`, `writeSliceStart`) Go'nun sığmayan float → int dönüşümüne dayanıyor: amd64'te tam 2⁶³ tam sayı sayılmaz (H6012, H6441), arm64'te sayılır (H6305, H6442) [hesap: dönüşüm uygulamaya bağlı, arm64 doyurur]; ikisi de hata. Kartın ölçütü mimariden bağımsız (T1 dilim 2c). Sıradaki: dönüşümden önce aralığın açık denetimi; testi arm64'te 2⁶³.
 
 ### 15.23a
 
@@ -863,8 +864,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.45
 
-- **Mevcut durum:** kayıtta `TR_embedding_lookup`'ın tensör indeksi ve `TR_write_slice`'ın tensör başlangıcı sınır dışındaysa sessizce kırpılıyor (gömmede `[0, V−1]`, `TR_write_slice`'ta hedefe sığan son konum), kesirli değer budanıyor [kanıtlı: bugünkü 15.45'in metni]. Kapanıştan okunan sayılar kayıtta sabitleniyor, denetlenmiyor [ölçüldü: DENETİM].
-- **Yapılacaklar (A, Ö1, Kol B, 15.6'nın cihaz içi bayrağıyla; ölçüm status'un):** kırpma kalkar, cihaz içi hata bayrağı (15.6); kapanıştaki sayının ve tensör deposunun yoluyla denetimi; rastgele üretecin oynatmada ilerlemesi; Go testleri.
+- **Mevcut durum (2026-11-12, T1'in dilim 2c'si):** kayıtta `TR_embedding_lookup`'ın tensör indeksi ve `TR_write_slice`'ın tensör başlangıcı kırpılmıyor: tam sayı olmayan ya da sınır dışı değer cihaz içi bayrağa yazar, hatalı öğe belleğe dokunmaz; ileti oynatmanın sonunda, kaydedilen satırla ve doğrudan çağrınınkiyle aynı [test: `TestReplayIndexFaultsMatchDirectCall`]. Kapanıştan okunan sayılar kayıtta sabitleniyor, denetlenmiyor [ölçüldü: DENETİM].
+- **Yapılacaklar (A, Ö1, Kol B (T1), 15.6'nın cihaz içi bayrağıyla; ölçüm status'un):** kapanıştaki sayının ve tensör deposunun yoluyla denetimi; rastgele üretecin oynatmada ilerlemesi; Go testleri.
 
 ### 15.46
 
