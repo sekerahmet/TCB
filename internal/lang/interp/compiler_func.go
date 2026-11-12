@@ -52,6 +52,9 @@ const poolLimit = 64
 func (fk *funcCode) getEnv(outer *Environment) *Environment {
 	if n := len(fk.free); n > 0 {
 		e := fk.free[n-1]
+		// Dilimin eski yuvası boşaltılır: çağrı panikle çözülürse (iptal 10.9, süre sınırı 10.7)
+		// ortam havuza dönmez; yuva onu ve yerellerinin gösterdiğini tutmamalı (15.43).
+		fk.free[n-1] = nil
 		fk.free = fk.free[:n-1]
 		if len(e.vals) == len(fk.info.nameList) {
 			e.outer = outer
