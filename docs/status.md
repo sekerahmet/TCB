@@ -226,6 +226,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 - **Mevcut durum:** yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor [ölçüldü: main `85a19c36`]. Akışlı okuyucunun iki kez dolaşılması yeniden ölçülmedi.
 - **Yapılacaklar (E, Ö3; sahip D1; DENETİM istek 163):** `TR_next() -> T?` taşıyan yapının dolaşılması: denetimden geçiyor, çalışırken açık hata [ölçüldü: DENETİM 163], tek seferlik dolaşıcı, `T` isteğe bağlıysa denetim hatası (ileti öğeyi sarmayı önerir); TR testi.
+- **Yapılacaklar (A, Ö1; sahip dil çekirdeği, `??`'dan sonra; Gemini uzak 14, 2026-11-12):** iki adlı biçim 5.7'nin saymadığı kaynaklarda (aralık, akışlı okuyucu) denetim hatası değil ve ikinci adın tipi denetlenmiyor: `TR_for i, x TR_in 10..12 { TR_var g: TR_String = x }` denetimden ve çalışmadan hatasız geçiyor, `TR_Type(g)` tam sayı tipini veriyor; tek adlı biçimde aynı atama doğru hatayı veriyor [ölçüldü: TCB, trlang ile denetim ve çalıştırma, main `1c473082`]. Yerler `internal/lang/checker/local_types.go:268-275`, `internal/lang/interp/compiler_loop.go:114-116`, `:266-268` [Gemini'nin raporu]. `tests/veri_parcalayici_test.tr:216` akışlı okuyucuda iki adlı biçimi kullanıyor, düzeltmeyle birlikte değişir; TR testi ve olumsuz fikstür.
 
 ### 5.11
 
@@ -1000,7 +1001,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md).
 ### 16.8
 
 - **Mevcut durum:** sıralı okuyucu döngüyle geziliyor, liste veriyor [ölçüldü].
-- **Yapılacaklar (D, Ö3; sahip D1; 3.6a'nın göçüyle; DENETİM 231):** `TR_topk`, `TR_Sampler` ve `TR_SequentialReader` liste veriyor, kural demet; değerler doğru. İki adlı `TR_for` istenmez, kural reddediyor (16.8).
+- **Yapılacaklar (D, Ö3; sahip D1; 3.6a'nın göçüyle; DENETİM 231):** `TR_topk`, `TR_Sampler` ve `TR_SequentialReader` liste veriyor, kural demet; değerler doğru. İki adlı `TR_for` 16.8'e göre burada kullanılmaz, ama denetim reddetmiyor (5.7'nin A satırı).
 
 ## 17. Kodlar
 
