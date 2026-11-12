@@ -636,6 +636,7 @@ d_ileti.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reason
 dalga.TR_reshape	ok	0	name:TR_mem_reshape
 dalga.TR_shape	ok	0	name:TR_mem_shape
 data.TR_append	ok	0	name:TR_mem_append
+dc.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 devamlar.TR_length	ok	0	name:TR_mem_length
 değerler.TR_append	ok	0	name:TR_mem_append
 değerler.TR_length	ok	0	name:TR_mem_length
@@ -675,6 +676,9 @@ durma.TR_contains	ok	0	name:TR_mem_contains
 durma.TR_length	ok	0	name:TR_mem_length
 durum.TR_get	ok	0	name:TR_mem_get
 durum.TR_keys	ok	0	name:TR_mem_keys
+dy.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
+dy.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
+dyh.TR_length	ok	0	name:TR_mem_length
 döngü.TR_cancel	ok	0	name:TR_mem_cancel
 döngü.TR_wait	ok	0	name:TR_mem_wait
 düz.TR_append	ok	0	name:TR_mem_append
@@ -893,6 +897,7 @@ i32.TR_tolist	ok	0	name:TR_mem_tolist
 i64.TR_sequential	ok	0	name:TR_mem_sequential
 ids.TR_contains	ok	0	name:TR_mem_contains
 idx.TR_reshape	ok	0	name:TR_mem_reshape
+ii.TR_length	ok	0	name:TR_mem_length
 iki.TR_shape	ok	0	name:TR_mem_shape
 iki.TR_tolist	ok	0	name:TR_mem_tolist
 iki_satır.TR_split	ok	0	name:TR_mem_split
@@ -1814,6 +1819,8 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 çağrılar.TR_append	ok	0	name:TR_mem_append
 çağrılar.TR_contains	ok	0	name:TR_mem_contains
 çağrılar.TR_length	ok	0	name:TR_mem_length
+çağrılı.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
+çağrılı.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 çerçeve.TR_device	ok	0	name:TR_mem_device
 çerçeve.TR_dtype	ok	0	name:TR_mem_dtype
 çiftler.TR_append	ok	0	name:TR_mem_append
