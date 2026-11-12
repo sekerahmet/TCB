@@ -45,18 +45,23 @@ func TestRfftOnTheCardMatchesCPU(t *testing.T) {
 
 func TestStftOnTheCardMatchesCPU(t *testing.T) {
 	rng := rand.New(rand.NewSource(12))
-	for _, c := range []struct {
+	type stftCase struct {
 		rows, signal int
 		o            tensor.StftOptions
-	}{
+	}
+	cases := []stftCase{
 		{2, 50, tensor.StftOptions{N: 8, Hop: 3, Center: true, Reflect: true}},
 		{1, 50, tensor.StftOptions{N: 8, Hop: 3, Center: true}},
 		{1, 20, tensor.StftOptions{N: 8, Hop: 5}},
 		{1, 5, tensor.StftOptions{N: 8, Hop: 2, Center: true, Reflect: true}},
 		{1, 6, tensor.StftOptions{N: 1, Hop: 1}},
 		{1, 8, tensor.StftOptions{N: 8, Hop: 4}},
-		{1, 4000, tensor.StftOptions{N: 400, Hop: 160, Center: true, Reflect: true}}, // Whisper'ın log-Mel'i
-	} {
+	}
+	if !raceEnabled {
+		// Whisper'ın log-Mel'i; ağır boylar yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi).
+		cases = append(cases, stftCase{1, 4000, tensor.StftOptions{N: 400, Hop: 160, Center: true, Reflect: true}})
+	}
+	for _, c := range cases {
 		data, w := random(rng, c.rows*c.signal, 1), random(rng, c.o.N, 1)
 		for part := range 2 {
 			compare(t, fmt.Sprintf("stft %d×%d %+v kısım %d", c.rows, c.signal, c.o, part), 1e-4, func(dev int) (*tensor.Tensor, []*tensor.Tensor) {
@@ -86,8 +91,11 @@ func TestFourierNeverCallsTheLibrary(t *testing.T) {
 
 func TestFourierLengthLimitOnTheCard(t *testing.T) {
 	x := tensor.NewOn(gpuDevice, make([]float32, 8), 1, 8)
-	if m := panicText(func() { tensor.Rfft(x, tensor.FourierCardLimit, fourierCall) }); m != "" {
-		t.Fatalf("n = %d kartta geçmeliydi: %s", tensor.FourierCardLimit, m)
+	if !raceEnabled { // ağır boy (4096 × 4098'lik taban ve çarpımı) yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi)
+		// Sonuç indirilir: benzetici eşzamansızdır, indirilmeyen çarpım sonraki testin süresine yazılırdı.
+		if m := panicText(func() { re, _ := tensor.Rfft(x, tensor.FourierCardLimit, fourierCall); re.Data() }); m != "" {
+			t.Fatalf("n = %d kartta geçmeliydi: %s", tensor.FourierCardLimit, m)
+		}
 	}
 	err := testkit.PanicError(func() { tensor.Rfft(x, tensor.FourierCardLimit+1, fourierCall) })
 	if !messages.Has(err, messages.H4134) || !strings.Contains(err.Error(), fmt.Sprint(tensor.FourierCardLimit+1)) {

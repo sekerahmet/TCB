@@ -27,11 +27,18 @@ func TestLogSumExpMatchesCPU(t *testing.T) {
 		{[]int{3, 300}, []int{1}, false},
 		{[]int{2, 3, 4}, []int{0, 2}, true},
 		{[]int{2, 3, 4}, nil, false},
-		{[]int{1, 70000}, []int{1}, false}, // Whisper'ın satırı gibi uzun
 		{[]int{4, 1}, []int{1}, false},
 		{[]int{}, nil, false},
 		{[]int{3, 0}, []int{1}, false}, // boş satır: −∞
 		{[]int{0, 5}, []int{1}, false},
+	}
+	if !raceEnabled {
+		// Whisper'ın satırı gibi uzun; ağır boylar yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi).
+		cases = append(cases, struct {
+			shape []int
+			axes  []int
+			keep  bool
+		}{[]int{1, 70000}, []int{1}, false})
 	}
 	for _, c := range cases {
 		n := 1
