@@ -48,6 +48,8 @@ type backend struct {
 	gemvConst *gemvConfig
 	// capturing süren kaydın havuzu (kayıt yoksa nil; graph.go).
 	capturing *privatePool
+	// faultSlot akışın kayıt dışındaki hata yuvası (ilk kullanımda ayrılır; fault_slot.go).
+	faultSlot *storage
 	// ints şekillerden hesaplanan küçük, değişmeyen tam sayı tabloları (ör. dikkat maskesinin
 	// ofsetleri): bir kez yüklenir, cihazda kalır (bkz. constInts).
 	ints map[string]*storage

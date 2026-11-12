@@ -30,7 +30,7 @@ func (d *TensorValue) InPlaceOp(m *interp.VM, line int, op string, rhs interp.Va
 		return true, err
 	}
 	halfParamWarning(m, line, op, d.t)
-	return true, applyInPlace(d.t, op, rhs)
+	return true, applyInPlace(m, line, d.t, op, rhs)
 }
 
 // AccumulateIndex t[i] op= u ve t[a..b] op= u bileşik atamasıdır (interp.IndexAccumulator):
@@ -59,7 +59,7 @@ func (d *TensorValue) AccumulateIndex(m *interp.VM, line int, op string, idx int
 	if _, ok := idx.(*TensorValue); ok {
 		return true, tensorIndexWrite(op, rhs, view.t)
 	}
-	return true, applyInPlace(view.t, op, rhs)
+	return true, applyInPlace(m, line, view.t, op, rhs)
 }
 
 // halfWarnings bir programın 16 bit uyarısını gösterdiği yerlerdir (dosya ve satır); programa
@@ -94,8 +94,9 @@ func halfParamWarning(m *interp.VM, line int, op string, t *tensor.Tensor) {
 	fmt.Fprintln(m.Err, messages.Text(messages.H6994, file, line, dt.Name(), op))
 }
 
-// applyInPlace dst op rhs'yi türevsiz hesaplar ve dst'nin hassasiyetinde dst'ye yazar.
-func applyInPlace(dst *tensor.Tensor, op string, rhs interp.Value) error {
+// applyInPlace dst op rhs'yi türevsiz hesaplar ve dst'nin hassasiyetinde dst'ye yazar; m ve line
+// atamanın görevi ve satırıdır (kayıtta daraltan dönüşümün iletisi, replay_faults.go).
+func applyInPlace(m *interp.VM, line int, dst *tensor.Tensor, op string, rhs interp.Value) error {
 	if err := checkInPlaceDType(dst.DType()); err != nil {
 		return err
 	}
@@ -127,7 +128,7 @@ func applyInPlace(dst *tensor.Tensor, op string, rhs interp.Value) error {
 		if r.Elem() != dst.Elem() {
 			return messages.New(messages.H6966, op+"=", dst.DType().Name(), r.DType().Name(), "compound")
 		}
-		if r, err = convertKind(op+"=", r, dst.DType()); err != nil {
+		if r, err = convertKindAt(m, line, op+"=", r, dst.DType()); err != nil {
 			return err
 		}
 		temps = append(temps, r)

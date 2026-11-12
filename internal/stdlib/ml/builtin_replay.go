@@ -56,6 +56,7 @@ type replayEntry struct {
 	outs    []*tensor.Tensor
 	single  bool
 	masks   map[*tensor.Tensor]maskCopy // yalnız kayıt sürerken (maskForKernel)
+	sites   []recordedFault             // kaydın hata yuvalarının yerleri, kayıt sırasıyla (replay_faults.go)
 }
 
 // releaseQueue çöp toplayıcının ulaşılamaz bulduğu tekrar_oynat fonksiyonlarının kayıtları.
@@ -202,6 +203,9 @@ func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.V
 		}
 	}
 	e.rec.Replay()
+	if err := e.firstFault(); err != nil {
+		return nil, err
+	}
 	for _, i := range e.mutated {
 		inputs[i].CopyFrom(e.inputs[i])
 	}
@@ -252,7 +256,7 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 		e.inputs, e.alias = append(e.inputs, in), append(e.alias, alias[k])
 		versions = append(versions, in.Version())
 	}
-	e.mutated = nil
+	e.mutated, e.sites = nil, nil
 	defer func() {
 		if p := recover(); p != nil {
 			rec.AbortCapture()

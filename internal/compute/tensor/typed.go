@@ -96,7 +96,8 @@ type TypedOp struct {
 
 // TypedBackend cinsli işlemleri yapan arka uç. out bitişiktir, şekli outShape; girdiler
 // yayınlanmış olabilir. Desteklemediği işlemde ok=false döner (çağıran hassasiyet hatası
-// verir). Öğeye bağlı hata (taşma, sıfıra bölme ...) ilk hatalı öğeyle döner.
+// verir). Öğeye bağlı hata (taşma, sıfıra bölme ...) ilk hatalı öğeyle (düz konumu en küçük
+// hatalı çıktı öğesi, 15.6) döner; kayıtta yuvası kayda giren işlem FaultRecorded döner.
 type TypedBackend interface {
 	Typed(op TypedOp, out Storage, outShape []int, ins []View) (fault *ElemFault, ok bool)
 }
@@ -118,6 +119,9 @@ const (
 	FaultInf
 	// FaultShift kaydırma miktarı aralık dışında.
 	FaultShift
+	// FaultRecorded hata değil: TR_replay kaydında hata yuvası kayda girdi, sonuç geçerlidir;
+	// Index kaydın kaçıncı yuvası (fault_slot.go). Yalnız tam sayıya dönüşüm döner.
+	FaultRecorded
 )
 
 // ElemFault cinsli öğe öğe işlemin ilk hatalı öğesi; ml katmanı iletiye çevirir.
@@ -316,6 +320,9 @@ func typed(op TypedOp, dt DType, outShape []int, ins ...*Tensor) (*Tensor, *Elem
 		}
 		panic(PrecisionError(bad, be.Device()))
 	}
+	if fault != nil && fault.Kind == FaultRecorded {
+		return out, fault
+	}
 	if fault != nil {
 		out.Drop()
 		fault.Shape = slices.Clone(outShape)
@@ -364,6 +371,8 @@ func SignTyped(t *Tensor) *Tensor {
 // Convert t'yi dt türüne çevirir (cins ya da hassasiyet): ondalıktan tam sayıya sıfıra doğru
 // keser (NaN, sonsuz ve sığmayan değer hata), tam sayıdan ondalığa en yakına yuvarlar, tam
 // sayıdan tam sayıya sığmalıdır. Türev izlemez; iki hesap ondalığı arasında Cast kullanılır.
+// Kartta TR_replay kaydında hata beklenmez: sonuç ve Kind'ı FaultRecorded olan hata birlikte
+// döner (fault_slot.go).
 func Convert(t *Tensor, dt DType) (*Tensor, *ElemFault) {
 	if t.dtyp == dt {
 		return t, nil

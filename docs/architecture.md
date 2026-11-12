@@ -117,7 +117,7 @@ Bir motor değerinin dile uyması, `interp` içindeki arayüzlerden birini uygul
 | Arayüz (`interp`) | Ne sağlar |
 | :-- | :-- |
 | `Equaler`, `ValueEqualer`, `OperatorHook`, `TaskOperatorHook`, `Negatable`, `Invertible`, `InPlaceOperator` | Eşitlik ve değer kancası (`==`, `!=`), ikili ve tekli işleçler (tensör `+ - * / @ **`, `-x`, `~x`), yerinde bileşik atama (`x op= y`) |
-| `Indexable`, `IndexAssignable`, `IndexAccumulator`, `MemberAssignable`, `TaskMemberHook` | `x[i]`, `x[i] = v`, `x[i] op= v`, `x.alan = v`, göreve özel üye okuma (sonucu çalışan koda bağlı özellikler) |
+| `Indexable`, `IndexAssignable`, `TaskIndexAssignable`, `IndexAccumulator`, `MemberAssignable`, `TaskMemberHook` | `x[i]`, `x[i] = v` (görev ve satırla da: `TaskIndexAssignable`), `x[i] op= v`, `x.alan = v`, göreve özel üye okuma (sonucu çalışan koda bağlı özellikler) |
 | `Iterable`, `Stream` | `TR_for x TR_in ...` ve liste üreteci: uzunluğu bilinen kaynak ya da tembel akış |
 | `PlainValuer` | Değerin düz Go karşılığı (JSON ve kontrol noktası yazımı) |
 | `PathValuer`, `PathArg` | Yol alan yerleşiklerin ortak okuyucusu (Metin ya da `TR_Path`) |

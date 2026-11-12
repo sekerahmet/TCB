@@ -389,6 +389,13 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 // henüz geri yayılmamış bir hesap çizgesi varsa geri yayılım hata verir. Türevin yazma
 // kuralları checkWrite'tadır. Tensörle indeks kopya verir, ona yazılmaz (tensorIndexWrite).
 func (d *TensorValue) SetIndex(idx, value interp.Value) error {
+	return d.SetIndexAt(nil, 0, idx, value)
+}
+
+// SetIndexAt SetIndex'in görevli ve satırlı biçimidir (interp.TaskIndexAssignable): TR_replay
+// kaydında atamanın daraltan dönüşümünün hatası oynatmadan sonra bulunur, ileti bu satırı
+// söyler (15.45; replay_faults.go). m nil ise satır bilinmez.
+func (d *TensorValue) SetIndexAt(m *interp.VM, line int, idx, value interp.Value) error {
 	if err := checkWrite(d.t, valueTensor(value), false); err != nil {
 		return err
 	}
@@ -441,7 +448,7 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 			return messages.New(messages.H6719, tensor.ShapeText(sh), tensor.ShapeText(ks))
 		}
 	}
-	if src, err = assignSource(target, src); err != nil {
+	if src, err = assignSource(m, line, target, src); err != nil {
 		return err
 	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.
@@ -475,14 +482,14 @@ func tensorIndexWrite(op string, value interp.Value, target *tensor.Tensor) erro
 
 // assignSource atanan tensörü hedefin hassasiyetine getirir (15.6d): cinsli hedefte ya da
 // kaynakta iki yan aynı cinsten olmalıdır; tam sayıda değer hedefin hassasiyetine sığmalıdır.
-func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
+func assignSource(m *interp.VM, line int, target, src *tensor.Tensor) (*tensor.Tensor, error) {
 	if src.DType() == target.DType() || !src.DType().IsTyped() && !target.DType().IsTyped() {
 		return src, nil
 	}
 	if src.Elem() != target.Elem() {
 		return nil, kindMismatch("=", target.DType(), src.DType())
 	}
-	return convertKind("=", src, target.DType())
+	return convertKindAt(m, line, "=", src, target.DType())
 }
 
 // checkWrite yerinde yazmanın türev kurallarını (15.6d "Türev") uygular. dst yazılan tensördür
@@ -525,12 +532,13 @@ func valueTensor(v interp.Value) *tensor.Tensor {
 // Compile-time checks: the interpreter finds these hooks with type assertions, so a
 // renamed or changed method would otherwise drop the hook silently.
 var (
-	_ interp.PropertyGetter   = (*TensorValue)(nil)
-	_ interp.Equaler          = (*TensorValue)(nil)
-	_ interp.Indexable        = (*TensorValue)(nil)
-	_ interp.IndexAssignable  = (*TensorValue)(nil)
-	_ interp.Iterable         = (*TensorValue)(nil)
-	_ interp.Negatable        = (*TensorValue)(nil)
-	_ interp.TaskOperatorHook = (*TensorValue)(nil)
-	_ interp.PlainValuer      = (*TensorValue)(nil)
+	_ interp.PropertyGetter      = (*TensorValue)(nil)
+	_ interp.Equaler             = (*TensorValue)(nil)
+	_ interp.Indexable           = (*TensorValue)(nil)
+	_ interp.IndexAssignable     = (*TensorValue)(nil)
+	_ interp.TaskIndexAssignable = (*TensorValue)(nil)
+	_ interp.Iterable            = (*TensorValue)(nil)
+	_ interp.Negatable           = (*TensorValue)(nil)
+	_ interp.TaskOperatorHook    = (*TensorValue)(nil)
+	_ interp.PlainValuer         = (*TensorValue)(nil)
 )

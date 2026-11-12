@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -11,12 +12,12 @@ import (
 // Cinsli işlemler (tensor.TypedBackend): bugün GPU'da çalışan yolların cinsli hâli
 // ============================================================================
 //
-// Bu dilimde GPU'da yalnız şunlar vardır (2a, adım 8): karşılaştırma (hesap ondalıkları,
-// "int64", mantıkta == ve !=) → TR_Bool; mantık tensöründe &, |, ^ ve ~; TR_where (koşul TR_Bool,
-// dallar aynı türde, her tür); "int64" ve mantıktan "float32"ye dönüşüm (maske ve kimlik
-// tensörünün ondalık çekirdeğe girişi). Öbürleri ok=false döner: çağıran 15.48'in hassasiyet
-// hatasını verir (genel çekirdekler 2b'de). Çekirdekler cihaz içidir: TR_replay kaydında da
-// çalışır.
+// GPU'da yalnız şunlar vardır: karşılaştırma (hesap ondalıkları, "int64", mantıkta == ve !=) →
+// TR_Bool; mantık tensöründe &, |, ^ ve ~; TR_where (koşul TR_Bool, dallar aynı türde, her tür);
+// dönüşüm (T1 dilim 2a, typed_convert.go): tam sayı hedefine ondalıktan ve tam sayıdan, float32
+// hedefine tam sayıdan ve mantıktan. Öbürleri ok=false döner: çağıran 15.48'in hassasiyet
+// hatasını verir (aritmetik 2b'de). Çekirdekler cihaz içidir: TR_replay kaydında da çalışır;
+// tam sayıya dönüşümün hatası cihaz içi bayrağa yazılır (fault_slot.go).
 
 // gpuTypedOK işlemin bu dilimde GPU'da olup olmadığı.
 func gpuTypedOK(op tensor.TypedOp, out tensor.DType, ins []tensor.DType) bool {
@@ -40,7 +41,7 @@ func gpuTypedOK(op tensor.TypedOp, out tensor.DType, ins []tensor.DType) bool {
 	case tensor.TWhere:
 		return ins[0] == tensor.Bool && ins[1] == out && ins[2] == out
 	case tensor.TConvert:
-		return out == tensor.Float32 && (ins[0] == tensor.Int64 || ins[0] == tensor.Bool)
+		return convertOK(out, ins[0])
 	}
 	return false
 }
@@ -65,13 +66,30 @@ func (g *backend) Typed(op tensor.TypedOp, out tensor.Storage, outShape []int, i
 	nd, meta := broadcastMeta(messages.H4055, outShape, ins...)
 	key := fmt.Sprintf("cinsli:%d:%d:%d:%v:%s", op.Kind, op.Sub, nd, dts, o.dtype)
 	k := g.takeKernel(key, typedKernel(op, nd, dts, o.dtype))
+	faults := typedFaults(op, o.dtype, dts)
+	var slot *storage
+	if faults {
+		slot = g.takeSlot()
+	}
 	p := g.param()
 	for _, v := range ins {
 		p = p.readV(v)
 	}
+	p = p.write(o, 0).u32(n).arr((len(ins)+1)*nd, meta...)
+	if faults {
+		p = p.write(slot, 0)
+	}
 	iz, bl := plain(n, sameBlock)
-	g.launch(k, iz, bl, p.write(o, 0).u32(n).arr((len(ins)+1)*nd, meta...))
-	return nil, true
+	g.launch(k, iz, bl, p)
+	if !faults {
+		return nil, true
+	}
+	g.gatherFault(slot, nd, dts, meta, ins)
+	site := faultSite{slot: slot, op: op, out: o.dtype, ins: dts, shape: slices.Clone(outShape)}
+	if g.capturing != nil {
+		return g.recordSite(site), true
+	}
+	return g.readSlot(site), true
 }
 
 // rawSuffix bir öğenin ham yükleme/saklama sonekidir (u8, u16, u32, u64).
@@ -121,6 +139,10 @@ func typedKernel(op tensor.TypedOp, nd int, ins []tensor.DType, out tensor.DType
 		dst := k.written("cikti")
 		n := k.u32p("n")
 		k.arr("meta", (len(ins)+1)*nd)
+		var flag reg
+		if typedFaults(op, out, ins) {
+			flag = k.written("bayrak")
+		}
 		i := k.globalIndex()
 		last := k.bounded(i, n)
 		ofs := k.tripleOffsets(i, nd, len(ins))
@@ -149,13 +171,7 @@ func typedKernel(op tensor.TypedOp, nd int, ins []tensor.DType, out tensor.DType
 			k.e("selp."+bitsN, r, a, b, p)
 			k.e("st.global."+rawSuffix(out), mem(to, 0), r)
 		case tensor.TConvert:
-			v := k.f()
-			if ins[0] == tensor.Int64 {
-				k.e("cvt.rn.f32.s64", v, k.rawLoad(ins[0], addr(0)))
-			} else {
-				k.e("cvt.rn.f32.u32", v, k.rawLoad(ins[0], addr(0)))
-			}
-			k.store(tensor.Float32, to, v)
+			k.convertElem(ins[0], out, addr(0), to, i, flag)
 		}
 		k.put(last)
 		return k

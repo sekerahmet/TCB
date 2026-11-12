@@ -274,6 +274,10 @@ func (b *simBlock) run(t *simJob) error {
 			if err := b.store(t, k); err != nil {
 				return err
 			}
+		case simAtom:
+			if err := b.atomic(t, k); err != nil {
+				return err
+			}
 		default:
 			if err := b.compute(t, k); err != nil {
 				return err

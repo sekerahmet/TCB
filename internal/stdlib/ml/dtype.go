@@ -95,7 +95,7 @@ func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 // Hesap ondalıkları arasında türevlenebilir: gradyan kaynak tensöre (kendi türünde) geri akar.
 // Tam sayıda dar hassasiyete geçişte değer sığmalıdır. Hassasiyet zaten aynıysa tensörün kendisi
 // döner. Başka cinsin hassasiyeti hatadır: cins dönüşümü tip çağrısıdır.
-func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func (d *TensorValue) toDType(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6806, codes.NameRef(memberToDType), len(args))
 	}
@@ -116,7 +116,7 @@ func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[strin
 	if dt.IsQuantized() {
 		return nil, messages.New(messages.H6691, fn, name)
 	}
-	r, err := convertKind(fn, d.t, dt)
+	r, err := convertKind(m, fn, d.t, dt)
 	if err != nil {
 		return nil, err
 	}
@@ -289,42 +289,39 @@ func kindChangeError(fn any, from, to tensor.DType, name string) error {
 }
 
 // convertKind t'yi dt'ye çevirir (aynıysa kendisi): ondalıklar arasında yuvarlar (türevlenebilir),
-// cinsler arasında kesin çevirir; sığmayan ya da NaN öğe hatadır (15.2, 15.3).
-func convertKind(fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
+// cinsler arasında kesin çevirir; sığmayan ya da NaN öğe hatadır (15.2, 15.3), ileti ilk hatalı
+// öğeyi söyler (15.6). Kartta da kartın çekirdeğiyle (15.41): tam sayıya dönüşüm sonucu bekler
+// (15.6), TR_replay kaydında beklemez, hatanın yuvası kayda girer ve ileti bu çağrının satırını
+// söyler (replay_faults.go). m yerleşiğin görevidir; satırı yerleşiğin satırıdır.
+func convertKind(m *interp.VM, fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
+	return convertKindAt(m, 0, fn, t, dt)
+}
+
+// convertKindAt convertKind'ın satırı verilen biçimidir (atama kancaları: line > 0); line 0 ise
+// yerleşiğin satırı. m nil ise kayıtta yuvanın yeri yazılamaz (H4065).
+func convertKindAt(m *interp.VM, line int, fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 	if t.DType() == dt {
 		return t, nil
 	}
 	if t.DType().IsFloat() && dt.IsFloat() {
 		return castTo(t, dt)
 	}
-	dev := t.Device()
-	onHost := dev != tensor.CPU && dt.Elem() == tensor.ElemInt
 	var r *tensor.Tensor
 	var f *tensor.ElemFault
-	if _, err := safe(func() *tensor.Tensor {
-		src := t
-		if onHost {
-			// Tam sayıya dönüşüm GPU'da sonucu bekleyen işlemdir (15.6: sığma ve NaN denetimi);
-			// bu dilimde denetim ve dönüşüm konakta yapılır, sonuç cihaza döner.
-			src = t.To(tensor.CPU)
-		}
-		r, f = tensor.Convert(src, dt)
-		if onHost {
-			if f == nil {
-				host := r
-				r = host.To(dev)
-				host.Drop()
-			}
-			src.Drop()
-		}
-		return r
-	}); err != nil {
+	if _, err := safe(func() *tensor.Tensor { r, f = tensor.Convert(t, dt); return r }); err != nil {
 		return nil, err
 	}
-	if f != nil {
-		return nil, faultError(fn, "", f)
+	switch {
+	case f == nil:
+		return r, nil
+	case f.Kind == tensor.FaultRecorded:
+		if err := recordFaultSite(m, line, fn, f.Index); err != nil {
+			r.Drop()
+			return nil, err
+		}
+		return r, nil
 	}
-	return r, nil
+	return nil, faultError(fn, "", f)
 }
 
 // gradKindError türev izlenen tensörün ondalık olmamasının hatasıdır (15.2: türev yalnız TR_Float'ta).
