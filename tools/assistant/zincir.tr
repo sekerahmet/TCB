@@ -332,7 +332,7 @@ TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_Str
     TR_if TR_not z.önbelleksiz TR_and t.önek < t.beklenen_önek {
         TR_print("ÖNEK_KISA tur=\(t.sıra) önek=\(t.önek) beklenen=\(t.beklenen_önek)")
     }
-    z.kimlik_satırları += TR_json_string({"tur": t.sıra, "ids": ü.kimlikler, "farklar": ü.farklar}) + "\n"
+    z.kimlik_satırları += TR_json_string({"tur": t.sıra, "ids": ü.kimlikler, "farklar": ü.farklar, "anlar_ms": [a - t0 TR_for a TR_in ü.anlar]}) + "\n"
     TR_var gövde = ü.kimlikler
     TR_if gövde.TR_length > 0 TR_and gövde[gövde.TR_length - 1] == z.p.TR_token_id("<|im_end|>") { gövde = gövde[0..gövde.TR_length - 1] }
     TR_var cevap, hatalar = TR_qwen3_reply(z.p, gövde)

@@ -57,7 +57,7 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "aygıt": "canlı kipte mikrofonun dshow adı", "sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
         "ffmpeg": "ffmpeg programı: PATH'teki ad ya da dosyanın yolu", "çalıcı": "çalma komutu (program PATH'teki ad ya da dosyanın yolu); WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
         "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı; dolacaksa yeni konuşma başlar",
-        "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri (JSON satırları)",
+        "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri, en iyi iki logitin farkı ve her kimliğin seçildiği an (turun başından ms; JSON satırları)",
         "nicemli_etkinleştirme": "dil modelinin q4_k ve q6_k ağırlıklı çarpımlarında girdiyi int8'e nicemler (nicemli_etkinleştirme bloğu, 15.53a): işlemcide daha hızlı, cevabın token'ları seçenek kapalıyken üretilenlerden biraz farklı olabilir; yalnız işlemcide ve q4_k, q6_k ağırlıklı modelde (öbüründe açılışta hata)",
         "en_çok_tur": "canlı kipte bu kadar turdan sonra durur (0: sınırsız)",
         "ekran": "canlı kipte ekranın kapısı (127.0.0.1; 0: işletim sistemi seçer; verilmezse ekran yok)",

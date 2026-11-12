@@ -444,6 +444,21 @@ TR_test "durdurulan turun Tur'unda ilk parçanın anı ve o ana kadarki metin va
     TR_assert_equal(-1, t.cevap_ms)
 }
 
+TR_test "kimlik dosyasının satırı her kimliğin seçildiği anı turun başından ms olarak taşır; eski alanlar aynı" {
+    TR_var z = küçük_zincir(256, TR_false)
+    ısıt(z)
+    cevapla(z, "Merhaba, nasılsın?", şimdi(), Tur(sıra: 1, söz_ms: 0), (_) => {})
+    TR_var satır = TR_json_parse(z.kimlik_satırları.TR_lines()[0])
+    TR_var n = satır["ids"].TR_length
+    TR_var anlar = satır["anlar_ms"]
+    TR_assert(n > 0)
+    TR_assert_equal(n, anlar.TR_length)
+    TR_assert_equal(n, satır["farklar"].TR_length)
+    TR_assert_equal(1, TR_Int(satır["tur"]))
+    TR_assert(TR_Int(anlar[0]) >= 0)
+    TR_for i TR_in 1..anlar.TR_length { TR_assert(TR_Int(anlar[i]) >= TR_Int(anlar[i - 1])) }
+}
+
 TR_test "ara kancası: metin turunun çalma aralığı atılır, mikrofonun açılışı çapayı kurar, dur dinlemeyi bitirir" {
     TR_var s = SahteDinleme(sayı: 200, tetikler: [])
     TR_var d = sahte_dinleme(s)

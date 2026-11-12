@@ -1063,6 +1063,7 @@ kesit.TR_tolist	ok	0	name:TR_mem_tolist
 kesitler.TR_append	ok	0	name:TR_mem_append
 kesitler.TR_length	ok	0	name:TR_mem_length
 ki_önleri.TR_contains	ok	0	name:TR_mem_contains
+kimlik_satırları.TR_lines	ok	0	name:TR_mem_lines
 kimlikler.TR_append	ok	0	name:TR_mem_append
 kimlikler.TR_length	ok	0	name:TR_mem_length
 kişi.TR_get	ok	0	name:TR_mem_get
