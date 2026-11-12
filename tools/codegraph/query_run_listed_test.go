@@ -19,7 +19,8 @@ func runLines(out string) []string {
 }
 
 // independentListedGoTests `listedIn` ya da `listedGoTest` kullanmadan, çıktı satırlarını bağımsızca tarayarak
-// test dosyasında (`_test.go`) gösterilen `[func]` satırlarındaki `Test*`/`Fuzz*` ve `Benchmark*` işlevlerini ayırır (DENETİM 510 Ş4).
+// test dosyasında (`_test.go`) gösterilen `[func]` satırlarındaki koşulabilir Go test (`Test*`/`Fuzz*`/`Example*`,
+// küçük harf kuralına uygun) ve `Benchmark*` işlevlerini ayırır (DENETİM 510 Ş4, DENETİM 534 N2).
 func independentListedGoTests(text string) (tests, benchmarks []goTest) {
 	for _, line := range strings.Split(text, "\n") {
 		if !strings.HasPrefix(line, "    ") || strings.HasPrefix(line, "      ") {
@@ -38,7 +39,7 @@ func independentListedGoTests(text string) (tests, benchmarks []goTest) {
 		name := before[strings.LastIndex(before, ".")+1:]
 		gt := goTest{path.Dir(file), name}
 		switch {
-		case strings.HasPrefix(name, "Test") || strings.HasPrefix(name, "Fuzz"):
+		case isTestName(name) && !strings.HasPrefix(name, "Benchmark"):
 			if !slices.Contains(tests, gt) {
 				tests = append(tests, gt)
 			}
@@ -284,6 +285,62 @@ func TestBenchmarksNeverLeakIntoRunLines(t *testing.T) {
 					t.Errorf("%s: benchmark %s leaked into run: line %q", c.id, name, cmd)
 				}
 			}
+		}
+	}
+}
+
+// Kural: `listedIn` süzgeci `isTestName(name) && !strings.HasPrefix(name, "Benchmark")` kuralıyla `Test*`, `Fuzz*` ve
+// `Example*` (`Example` dahil) adlarını `-run` listesine alır; `Benchmark*` ölçümlerini ve önekten sonra küçük harfle
+// devam eden yardımcı adlarını (`Testing`, `Fuzzing`, `Examplewidget`) `-run` listesine almaz (DENETİM 534 N2, 539 N2).
+func TestListedInKeepsExamplesAndRejectsLowercasePrefixContinuations(t *testing.T) {
+	body := strings.Join([]string{
+		"pkg/data.json [file] pkg/data.json:1",
+		"  <- tests (8):",
+		"    pkg.TestValid [func] at pkg/p_test.go:10",
+		"    pkg.FuzzValid [func] at pkg/p_test.go:15",
+		"    pkg.Example [func] at pkg/p_test.go:20",
+		"    pkg.ExampleWidget [func] at pkg/p_test.go:25",
+		"    pkg.Testing [func] at pkg/p_test.go:30",
+		"    pkg.Fuzzing [func] at pkg/p_test.go:35",
+		"    pkg.Examplewidget [func] at pkg/p_test.go:40",
+		"    pkg.BenchmarkWidget [func] at pkg/p_test.go:45",
+		"",
+	}, "\n")
+
+	var ab answerBuffer
+	ab.WriteString("pkg/data.json [file] pkg/data.json:1\n")
+	writeRunPlan(&ab, func(listed listedTests) runPlan {
+		var names []string
+		for _, gt := range listed.goTests {
+			names = append(names, gt.name)
+		}
+		return runPlan{others: []string{"pkg"}, names: names}
+	})
+	ab.WriteString(body)
+
+	var listedBuf answerBuffer
+	listedBuf.WriteString(body)
+	var out strings.Builder
+	flushAnswer(&out, &ab, &listedBuf)
+
+	cmds := runLines(out.String())
+	if len(cmds) != 1 {
+		t.Fatalf("expected 1 run: line, got %q:\n%s", cmds, out.String())
+	}
+	_, runArg, hasRun := strings.Cut(cmds[0], " -run ")
+	if !hasRun {
+		t.Fatalf("expected -run flag in %q", cmds[0])
+	}
+	names := strings.Split(strings.TrimSuffix(strings.TrimPrefix(runArg, "'^("), ")$'"), "|")
+
+	for _, want := range []string{"TestValid", "FuzzValid", "Example", "ExampleWidget"} {
+		if !slices.Contains(names, want) {
+			t.Errorf("expected %s in -run list %v (cmd: %q)", want, names, cmds[0])
+		}
+	}
+	for _, reject := range []string{"Testing", "Fuzzing", "Examplewidget", "BenchmarkWidget"} {
+		if slices.Contains(names, reject) {
+			t.Errorf("unexpected %s in -run list %v (cmd: %q)", reject, names, cmds[0])
 		}
 	}
 }

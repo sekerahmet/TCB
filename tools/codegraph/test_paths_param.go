@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"go/types"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -103,8 +104,13 @@ func (x *goExtractor) resolveParamPaths() {
 	}
 }
 
+// execScriptExts exec.Command argümanlarında çıplak dosya adı olarak kabul edilen betik uzantılarıdır.
+var execScriptExts = map[string]bool{".py": true, ".sh": true, ".js": true, ".mjs": true, ".cjs": true}
+
 // resolveTestBareReads test dosyalarındaki (ve testing alan yardımcı işlevlerdeki) okuma çağrılarına verilen çıplak
-// dosya adlarını kaydeder (`os.ReadFile("README.md")`); çözüm çağıran testin paket klasöründedir (linkTestPaths).
+// dosya adlarını (`os.ReadFile("README.md")`, `filepath.Abs("compare_commits.py")`) ve `cmd.Dir` / `-C` olmadan
+// `exec.Command` / `CommandContext` çağrılarına verilen çıplak betik adlarını kaydeder; çözüm çağıran testin paket
+// klasöründedir (linkTestPaths).
 func (x *goExtractor) resolveTestBareReads() {
 	var funcs []scanFunc
 	for _, f := range x.idx.scans.allFuncs {
@@ -114,11 +120,27 @@ func (x *goExtractor) resolveTestBareReads() {
 	}
 	sort.Slice(funcs, func(i, j int) bool { return funcs[i].id < funcs[j].id })
 	for _, f := range funcs {
+		customDir := callsWithCustomDir(f.fc, f.fn.Body)
 		ast.Inspect(f.fn.Body, func(n ast.Node) bool {
-			if call, ok := n.(*ast.CallExpr); ok {
-				if arg, ok := bareReadArg(f.fc, call); ok {
-					for _, v := range x.concreteExprStrings(f.fc, f.fn, arg, 4) {
-						if v != "" && v != "." && v != ".." && len(v) <= 200 && !strings.ContainsAny(v, "/\\*?[\t\n\r {}$%") {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			if arg, ok := bareReadArg(f.fc, call); ok {
+				for _, v := range x.concreteExprStrings(f.fc, f.fn, arg, 4) {
+					if isBarePathName(v) {
+						x.idx.pathRefs = append(x.idx.pathRefs, pathRef{owner: f.id, dir: path.Dir(f.fc.rel), file: f.fc.rel, line: x.line(call.Pos()), text: v, local: true})
+					}
+				}
+			}
+			if args, ok := execCommandArgs(f.fc, call); ok && !customDir[call] {
+				var vals []string
+				for _, a := range args {
+					vals = append(vals, x.concreteExprStrings(f.fc, f.fn, a, 4)...)
+				}
+				if !slices.Contains(vals, "-C") {
+					for _, v := range vals {
+						if ext := path.Ext(v); isBarePathName(v) && execScriptExts[ext] && len(v) > len(ext) {
 							x.idx.pathRefs = append(x.idx.pathRefs, pathRef{owner: f.id, dir: path.Dir(f.fc.rel), file: f.fc.rel, line: x.line(call.Pos()), text: v, local: true})
 						}
 					}
@@ -127,6 +149,80 @@ func (x *goExtractor) resolveTestBareReads() {
 			return true
 		})
 	}
+}
+
+func isBarePathName(v string) bool {
+	return v != "" && v != "." && v != ".." && len(v) <= 200 && !strings.ContainsAny(v, "/\\*?[\t\n\r {}$%")
+}
+
+// callsWithCustomDir gövdede atandığı değişkenin `.Dir` alanına değer yazılan (`cmd.Dir = tmp`) çağrıları döner.
+func callsWithCustomDir(fc *fileCtx, body *ast.BlockStmt) map[*ast.CallExpr]bool {
+	dirVars := map[types.Object]bool{}
+	ast.Inspect(body, func(n ast.Node) bool {
+		as, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for _, lhs := range as.Lhs {
+			if sel, ok := ast.Unparen(lhs).(*ast.SelectorExpr); ok && sel.Sel.Name == "Dir" {
+				if id, ok := ast.Unparen(sel.X).(*ast.Ident); ok {
+					if obj := fc.u.Info.Uses[id]; obj != nil {
+						dirVars[obj] = true
+					}
+				}
+			}
+		}
+		return true
+	})
+	if len(dirVars) == 0 {
+		return nil
+	}
+	out := map[*ast.CallExpr]bool{}
+	ast.Inspect(body, func(n ast.Node) bool {
+		switch s := n.(type) {
+		case *ast.AssignStmt:
+			for i, rhs := range s.Rhs {
+				call, ok := ast.Unparen(rhs).(*ast.CallExpr)
+				if !ok || i >= len(s.Lhs) {
+					continue
+				}
+				if id, ok := ast.Unparen(s.Lhs[i]).(*ast.Ident); ok {
+					obj := fc.u.Info.Defs[id]
+					if obj == nil {
+						obj = fc.u.Info.Uses[id]
+					}
+					if dirVars[obj] {
+						out[call] = true
+					}
+				}
+			}
+		case *ast.ValueSpec:
+			for i, rhs := range s.Values {
+				if call, ok := ast.Unparen(rhs).(*ast.CallExpr); ok && i < len(s.Names) && dirVars[fc.u.Info.Defs[s.Names[i]]] {
+					out[call] = true
+				}
+			}
+		}
+		return true
+	})
+	return out
+}
+
+// execCommandArgs `os/exec.Command` (`Args[0:]`) ve `CommandContext` (`Args[1:]`) argümanlarını verir.
+func execCommandArgs(fc *fileCtx, call *ast.CallExpr) ([]ast.Expr, bool) {
+	fn, ok := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func)
+	if !ok || fn.Pkg() == nil || fn.Pkg().Path() != "os/exec" {
+		return nil, false
+	}
+	switch fn.Name() {
+	case "Command":
+		return call.Args, len(call.Args) > 0
+	case "CommandContext":
+		if len(call.Args) > 1 {
+			return call.Args[1:], true
+		}
+	}
+	return nil, false
 }
 
 // takesTesting işlevin parametrelerinden biri standart `testing` paketinden mi (`*testing.T`, `testing.TB`).
@@ -154,6 +250,7 @@ func bareReadArg(fc *fileCtx, call *ast.CallExpr) (ast.Expr, bool) {
 	switch pkg, name := fn.Pkg().Path(), fn.Name(); {
 	case pkg == "os" && (name == "ReadFile" || name == "Open" || name == "OpenFile" || name == "Stat" || name == "Lstat" || name == "ReadDir"),
 		pkg == "io/ioutil" && (name == "ReadFile" || name == "ReadDir"),
+		pkg == "path/filepath" && name == "Abs",
 		strings.HasSuffix(pkg, "internal/reporoot") && name == "ReadDir":
 		return call.Args[0], true
 	case pkg == "go/parser" && name == "ParseDir" && len(call.Args) >= 2:
@@ -165,7 +262,8 @@ func bareReadArg(fc *fileCtx, call *ast.CallExpr) (ast.Expr, bool) {
 	return nil, false
 }
 
-// concreteExprStrings dize değişmezi, sabit, dize listesi döngüsü ya da tek atamalı yerel değişkenin dize değerleridir.
+// concreteExprStrings dize değişmezi, sabit, dize listesi döngüsü, tek atamalı yerel değişken, dilim değişmezi ya da
+// `append` çağrısının sabit dize değerleridir.
 func (x *goExtractor) concreteExprStrings(fc *fileCtx, fn *ast.FuncDecl, e ast.Expr, depth int) []string {
 	if depth < 0 {
 		return nil
@@ -186,6 +284,28 @@ func (x *goExtractor) concreteExprStrings(fc *fileCtx, fn *ast.FuncDecl, e ast.E
 			}
 			if rhs := localValue(fc, fn, obj); rhs != nil {
 				return x.concreteExprStrings(fc, fn, rhs, depth-1)
+			}
+		}
+	case *ast.CompositeLit:
+		if _, isMap := v.Type.(*ast.MapType); isMap {
+			return nil
+		}
+		var out []string
+		for _, elt := range v.Elts {
+			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+				elt = kv.Value
+			}
+			out = append(out, x.concreteExprStrings(fc, fn, elt, depth-1)...)
+		}
+		return out
+	case *ast.CallExpr:
+		if id := nameIdent(v.Fun); id != nil {
+			if b, ok := fc.u.Info.Uses[id].(*types.Builtin); ok && b.Name() == "append" {
+				var out []string
+				for _, a := range v.Args {
+					out = append(out, x.concreteExprStrings(fc, fn, a, depth-1)...)
+				}
+				return out
 			}
 		}
 	}

@@ -158,3 +158,100 @@ func TestDirect(t *testing.T) { Direct() }
 	}
 	mustEdge(t, g, app+"TestDirect", "file:data/direct.txt", edgeTests, inferred)
 }
+
+// Kural: test dosyasında veya testing alan yardımcıda `filepath.Abs("compare_commits.py")` ve (`cmd.Dir` veya `-C`
+// olmadan) `exec.Command` / `exec.CommandContext` çağrılarına verilen çıplak betik adları (`.py`, `.sh`, `.js`,
+// `.mjs`, `.cjs`; `[]string{...}` ve `append([]string{...}, ...)` dilim öğeleri dahil) yalnız çağıran testin paket
+// klasöründeki izlenen betiğe bağlanır; `cmd.Dir = tmp`, `-C` veya betik uzantısız çıplak argümanlar (`README.md`,
+// `model.tr`, `--list`) bağ kurmaz (Madde 1).
+func TestExecCommandAndFilepathAbsBareScripts(t *testing.T) {
+	files := map[string]string{
+		"run.py":                   "print(0)\n",
+		"bench/run.py":             "print(1)\n",
+		"bench/compare_commits.py": "print(2)\n",
+		"bench/check.sh":           "exit 0\n",
+		"bench/view.mjs":           "export const x = 1;\n",
+		"bench/README.md":          "# bench\n",
+		"bench/model.tr":           "# TR 4\nTR_print(1)\n",
+		"bench/bench_test.go": `package bench
+
+import (
+	"context"
+	"os/exec"
+	"path/filepath"
+	"testing"
+)
+
+func runPy(t *testing.T, args ...string) {
+	t.Helper()
+	_, _ = exec.Command("python", append([]string{"-I", "run.py"}, args...)...).CombinedOutput()
+}
+
+func TestViaAppendHelper(t *testing.T) {
+	runPy(t, "--help")
+}
+
+func TestCommandContextAndSliceLocal(t *testing.T) {
+	all := []string{"-e", "check.sh"}
+	_ = exec.CommandContext(context.Background(), "sh", all...)
+	_ = exec.Command("node", "view.mjs")
+}
+
+func TestFilepathAbsBare(t *testing.T) {
+	script, _ := filepath.Abs("compare_commits.py")
+	cmd := exec.Command("python", script)
+	cmd.Dir = t.TempDir()
+	_ = cmd
+}
+
+func TestCmdDirDoesNotLinkPkgScript(t *testing.T) {
+	cmd := exec.Command("python", "-I", "run.py")
+	cmd.Dir = t.TempDir()
+	var cmd2 = exec.Command("sh", "check.sh")
+	cmd2.Dir = t.TempDir()
+	_, _ = cmd, cmd2
+}
+
+func TestDashCDoesNotLinkPkgScript(t *testing.T) {
+	_ = exec.Command("git", "-C", t.TempDir(), "run.py")
+}
+
+func TestNonScriptBareArgsDoNotLink(t *testing.T) {
+	_ = exec.Command("python", "README.md", "model.tr", "--list")
+}
+`,
+	}
+	g, err := buildGraph(auditModule(t, files))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const pkg = "go:func:example.com/audit/bench."
+
+	mustEdge(t, g, pkg+"TestViaAppendHelper", "file:bench/run.py", edgeTests, inferred)
+	mustEdge(t, g, pkg+"TestCommandContextAndSliceLocal", "file:bench/check.sh", edgeTests, inferred)
+	mustEdge(t, g, pkg+"TestCommandContextAndSliceLocal", "file:bench/view.mjs", edgeTests, inferred)
+	mustEdge(t, g, pkg+"TestFilepathAbsBare", "file:bench/compare_commits.py", edgeTests, inferred)
+
+	for _, bad := range []struct{ from, to string }{
+		{pkg + "TestViaAppendHelper", "file:run.py"},
+		{pkg + "TestCmdDirDoesNotLinkPkgScript", "file:bench/run.py"},
+		{pkg + "TestCmdDirDoesNotLinkPkgScript", "file:bench/check.sh"},
+		{pkg + "TestDashCDoesNotLinkPkgScript", "file:bench/run.py"},
+		{pkg + "TestNonScriptBareArgsDoNotLink", "doc:bench/README.md"},
+		{pkg + "TestNonScriptBareArgsDoNotLink", "tr:file:bench/model.tr"},
+		{pkg + "TestNonScriptBareArgsDoNotLink", "file:bench/model.tr"},
+	} {
+		if e := edge(g, bad.from, bad.to, edgeTests); e != nil {
+			t.Errorf("unexpected edge %s -> %s: %+v", bad.from, bad.to, e)
+		}
+	}
+
+	_, _, rg := repoGraph(t)
+	const repoBench = "go:func:github.com/sekerahmet/TCB/tools/bench."
+	for _, fn := range []string{"TestRunPyArguments", "TestRunPyModelProgramBuilds", "TestRunPyTestsExist"} {
+		mustEdge(t, rg, repoBench+fn, "file:tools/bench/run.py", edgeTests, inferred)
+	}
+	for _, fn := range []string{"TestCompareCommitsVerdict", "TestCompareCommitsNoBenchmark", "TestCompareCommitsEndToEnd", "TestCompareCommitsArguments"} {
+		mustEdge(t, rg, repoBench+fn, "file:tools/bench/compare_commits.py", edgeTests, inferred)
+	}
+}

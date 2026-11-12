@@ -322,3 +322,36 @@ func TestChangedGoTestsAncestorCommitExplainsRange(t *testing.T) {
 		anc+" is an ancestor of main",
 		anc+"~1.."+anc)
 }
+
+// Kural: `tools/bench/` altındaki bir betik değiştiğinde `changed --go-tests` o betiği çalıştıran ya da okuyan
+// `tools/bench Test*` birim testlerini seçer; `Benchmark*` işlevlerini seçmez (Madde 1, DENETİM 510 Ş3).
+func TestChangedGoTestsSelectsToolsBenchUnitTestsAndSkipsBenchmarks(t *testing.T) {
+	root := gitFixture(t)
+	testkit.WriteFile(t, root, "tools/bench/fixture_gate.py", "print(1)\n")
+	testkit.WriteFile(t, root, "tools/bench/fixture_gate_test.go", "package bench\n\nimport (\n\t\"os/exec\"\n\t\"path/filepath\"\n\t\"testing\"\n)\n\n"+
+		"func TestCompareCommitsVerdict(t *testing.T) {\n\t_ = exec.Command(\"python\", \"-I\", \"fixture_gate.py\")\n}\n\n"+
+		"func TestCompareCommitsAbs(t *testing.T) {\n\t_, _ = filepath.Abs(\"fixture_gate.py\")\n}\n\n"+
+		"func BenchmarkCompareCommitsOverhead(b *testing.B) {\n\t_, _ = filepath.Abs(\"fixture_gate.py\")\n}\n")
+	commitAll(t, root, "bench-init")
+
+	gitMust(t, root, "checkout", "-q", "-b", "claude/bench", "main")
+	testkit.WriteFile(t, root, "tools/bench/fixture_gate.py", "print(2)\n")
+	commitAll(t, root, "claude/bench")
+
+	graph := buildInto(t, root)
+	code, out, errOut := commandIn("changed", root, graph, "--go-tests", "claude/bench")
+	if code != exitOK {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	for _, want := range []string{
+		"\ntools/bench TestCompareCommitsAbs\n",
+		"\ntools/bench TestCompareCommitsVerdict\n",
+	} {
+		if !strings.Contains("\n"+out, want) {
+			t.Errorf("changed --go-tests must select %q:\n%s", strings.TrimSpace(want), out)
+		}
+	}
+	if strings.Contains(out, "Benchmark") {
+		t.Errorf("changed --go-tests must never select Benchmark* functions:\n%s", out)
+	}
+}

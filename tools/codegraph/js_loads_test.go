@@ -103,3 +103,75 @@ func TestAJavaScriptTestReadsAFileThroughADirectoryConstantOrAHelper(t *testing.
 		t.Errorf("tests-for editors/vscode/l10n/bundle.l10n.tr.json lacks the Go test running l10n_test.js:\n%s", out.String())
 	}
 }
+
+// Kural: Python (`.py`) betiklerinde `__file__` tabanlı `os.path.abspath` / `os.path.dirname` / `os.path.join` modül
+// sabitleri (`ROOT`, `BENCH`, `MODEL_TR`) ve bütün parçaları sabit olan satır içi `os.path.join(...)` ifadeleri hedef
+// düğümün gerçek kimliğine (`tr:file:...`, `doc:...`, `file:...`) `loads` kenarı çeker; bilinmeyen değişkenle kurulan
+// `os.path.join(tmp, "model.tr")` ve dış paket `import json` bağ kurmaz (Madde 1, DENETİM 510 N4).
+func TestPythonRelativeLoadsAndTrackedTargetNodeIDs(t *testing.T) {
+	files := map[string]string{
+		"examples/tr/fixture_model.tr":         "# TR 4\nTR_print(1)\n",
+		"docs/fixture_note.md":                 "# Note\n",
+		"tools/bench/py/fixture_char_model.py": "x = 1\n",
+		"tools/bench/fixture_unused.tr":        "# TR 4\nTR_print(2)\n",
+		"tools/bench/fixture_run.py": "import json, os\n" +
+			"ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\n" +
+			"BENCH = os.path.join(ROOT, \"tools\", \"bench\")\n" +
+			"MODEL_TR = os.path.join(\"examples\", \"tr\", \"fixture_model.tr\")\n" +
+			"DOC_MD = os.path.join(ROOT, \"docs\", \"fixture_note.md\")\n" +
+			"def load(tmp):\n" +
+			"    open(os.path.join(ROOT, MODEL_TR))\n" +
+			"    open(os.path.join(BENCH, 'py', 'fixture_char_model.py'))\n" +
+			"    open(os.path.join(tmp, \"fixture_unused.tr\"))\n",
+		"tools/bench/fixture_run_test.go": "package bench\n\nimport (\n\t\"os/exec\"\n\t\"testing\"\n)\n\n" +
+			"func TestRunsPy(t *testing.T) { _ = exec.Command(\"python\", \"-I\", \"fixture_run.py\") }\n",
+	}
+	root := auditModule(t, files)
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, to := range []string{
+		"tr:file:examples/tr/fixture_model.tr",
+		"doc:docs/fixture_note.md",
+		"file:tools/bench/py/fixture_char_model.py",
+	} {
+		mustEdge(t, g, "file:tools/bench/fixture_run.py", to, edgeLoads, extracted)
+	}
+	for _, e := range g.Edges {
+		if e.Kind == edgeLoads && e.From == "file:tools/bench/fixture_run.py" &&
+			e.To != "tr:file:examples/tr/fixture_model.tr" &&
+			e.To != "doc:docs/fixture_note.md" &&
+			e.To != "file:tools/bench/py/fixture_char_model.py" {
+			t.Errorf("unknown variable or external import must not create loads edge: %+v", e)
+		}
+	}
+
+	ix := newIndex(g)
+	ix.root = root
+	var out strings.Builder
+	ix.printTestsFor(&out, ix.byID["tr:file:examples/tr/fixture_model.tr"], defaultLimit)
+	if !strings.Contains(out.String(), "bench.TestRunsPy") || !strings.Contains(out.String(), "2 steps via tools/bench/fixture_run.py") {
+		t.Errorf("tests-for fixture_model.tr must list bench.TestRunsPy via tools/bench/fixture_run.py:\n%s", out.String())
+	}
+
+	repoRoot, _, rg := repoGraph(t)
+	mustEdge(t, rg, "file:tools/bench/run.py", "tr:file:examples/tr/36_karakter_modeli.tr", edgeLoads, extracted)
+	rix := newIndex(rg)
+	rix.root = repoRoot
+	out.Reset()
+	rix.printTestsFor(&out, rix.byID["tr:file:examples/tr/36_karakter_modeli.tr"], defaultLimit)
+	got := out.String()
+	for _, want := range []string{
+		"bench.TestRunPyModelProgramBuilds",
+		"2 steps via tools/bench/run.py",
+		"bench.TestRunPyTestsExist",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("tests-for 36_karakter_modeli.tr missing %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "measurements, not tests") {
+		t.Errorf("TestRunPyTestsExist must not fall into measurements, not tests:\n%s", got)
+	}
+}

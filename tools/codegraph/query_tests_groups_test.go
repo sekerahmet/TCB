@@ -126,3 +126,80 @@ func TestCallsTargetViaHelper(t *testing.T) {
 	callTarget(t)
 }
 `
+
+// Kural: `tools/bench/*_test.go` içindeki `Test*`/`Fuzz*` birim testleri ölçüm değil gerçek testtir (`<- tests` altında
+// yer alır); `Benchmark*` işlevleri (`tools/bench/*_test.go` içindekiler dahil) ve `tools/bench/` altındaki test dışı
+// kodlar (`run.py`, `tools/bench/tr/*.tr`) ölçüm olarak kalır (Madde 1).
+func TestToolsBenchTestFilesCountAsTestsWhileBenchmarksStayMeasurements(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"pkg/p.go":                   "package pkg\n\nfunc Target() int { return 1 }\n",
+		"tools/bench/fixture_run.py": "print(1)\n",
+		"tools/bench/fixture_run_test.go": `package bench
+
+import (
+	"os/exec"
+	"testing"
+
+	"example.com/audit/pkg"
+)
+
+func TestRunPyCheck(t *testing.T) {
+	_ = exec.Command("python", "-I", "fixture_run.py")
+	_ = pkg.Target()
+}
+
+func BenchmarkRunPy(b *testing.B) {
+	_ = exec.Command("python", "-I", "fixture_run.py")
+	_ = pkg.Target()
+}
+`,
+	})
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix := newIndex(g)
+	ix.root = root
+
+	if isMeasurement(ix.byID["go:func:example.com/audit/tools/bench.TestRunPyCheck"]) {
+		t.Error("TestRunPyCheck in tools/bench/fixture_run_test.go must not be a measurement")
+	}
+	if !isMeasurement(ix.byID["go:func:example.com/audit/tools/bench.BenchmarkRunPy"]) {
+		t.Error("BenchmarkRunPy in tools/bench/fixture_run_test.go must stay a measurement")
+	}
+	if !isMeasurement(ix.byID["file:tools/bench/fixture_run.py"]) {
+		t.Error("tools/bench/fixture_run.py must stay a measurement")
+	}
+
+	var out strings.Builder
+	ix.printTestsFor(&out, ix.byID["file:tools/bench/fixture_run.py"], defaultLimit)
+	runPyOut := out.String()
+	measHead, measTail, hasMeas := strings.Cut(runPyOut, "<- measurements, not tests")
+	if !hasMeas {
+		t.Fatalf("expected BenchmarkRunPy under measurements, not tests:\n%s", runPyOut)
+	}
+	if !strings.Contains(measHead, "<- tests (1):") || !strings.Contains(measHead, "bench.TestRunPyCheck") {
+		t.Errorf("TestRunPyCheck must appear under <- tests:\n%s", runPyOut)
+	}
+	if !strings.Contains(measTail, "bench.BenchmarkRunPy") || strings.Contains(measTail, "TestRunPyCheck") {
+		t.Errorf("only BenchmarkRunPy may appear under measurements:\n%s", runPyOut)
+	}
+
+	repoRoot, _, rg := repoGraph(t)
+	rix := newIndex(rg)
+	rix.root = repoRoot
+	if !isMeasurement(rix.byID["tr:file:tools/bench/tr/fib.tr"]) {
+		t.Error("tools/bench/tr/fib.tr must remain a measurement")
+	}
+	out.Reset()
+	rix.printTestsFor(&out, rix.byID["file:tools/bench/run.py"], defaultLimit)
+	repoRunOut := out.String()
+	for _, want := range []string{"<- tests (3):", "bench.TestRunPyArguments", "bench.TestRunPyModelProgramBuilds", "bench.TestRunPyTestsExist"} {
+		if !strings.Contains(repoRunOut, want) {
+			t.Errorf("repo tests-for tools/bench/run.py missing %q:\n%s", want, repoRunOut)
+		}
+	}
+	if strings.Contains(repoRunOut, "<- measurements, not tests") {
+		t.Errorf("repo tests-for tools/bench/run.py must not classify TestRunPy* as measurements:\n%s", repoRunOut)
+	}
+}

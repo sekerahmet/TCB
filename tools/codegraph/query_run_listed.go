@@ -70,7 +70,7 @@ func listedIn(text string) listedTests {
 	var out listedTests
 	for _, m := range listedGoTest.FindAllStringSubmatch(text, -1) {
 		name := m[1][strings.LastIndex(m[1], ".")+1:]
-		if t := (goTest{path.Dir(m[2]), name}); (strings.HasPrefix(name, "Test") || strings.HasPrefix(name, "Fuzz")) && !slices.Contains(out.goTests, t) {
+		if t := (goTest{path.Dir(m[2]), name}); isTestName(name) && !strings.HasPrefix(name, "Benchmark") && !slices.Contains(out.goTests, t) {
 			out.goTests = append(out.goTests, t)
 		}
 	}

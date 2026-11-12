@@ -44,13 +44,13 @@ func isTRMeasurement(n *Node) bool {
 	return n != nil && strings.HasPrefix(n.ID, "tr:") && isMeasurement(n)
 }
 
-// isMeasurement düğüm bir test değil ölçüm mü: Benchmark* işlevi ya da tools/bench altındaki kod. Ölçüm sonuç
-// doğrulamaz, süre ölçer; "önce ölç" kuralı için testlerden ayrı gösterilir.
+// isMeasurement düğüm bir test değil ölçüm mü: Benchmark* işlevi ya da tools/bench altındaki test dışı kod. Ölçüm
+// sonuç doğrulamaz, süre ölçer; "önce ölç" kuralı için testlerden ayrı gösterilir.
 func isMeasurement(n *Node) bool {
 	if n == nil {
 		return false
 	}
-	if strings.HasPrefix(n.File, "tools/bench/") {
+	if strings.HasPrefix(n.File, "tools/bench/") && !inTestFile(n) {
 		return true
 	}
 	return n.Kind == kindFunc && strings.HasPrefix(n.Name[strings.LastIndex(n.Name, ".")+1:], "Benchmark")
