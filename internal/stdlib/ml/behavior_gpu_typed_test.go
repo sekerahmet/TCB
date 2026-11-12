@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
@@ -68,5 +69,32 @@ TR_print((t.TR_to_device("cpu") + 1).TR_tolist)`); out != "[2, 3]\n" {
 }
 TR_print(ata("cpu"), ata("gpu") == ata("cpu"))`); out != "[7, 8, 5] [true, false] true\n" {
 		t.Errorf("GPU'da cinsli atama: %q", out)
+	}
+}
+
+// Kural (15.18, 15.41, 15.6; T1 dilim 2b): Dost'un `lib/vits.tr:260` biçimi (TR_where'den gelen
+// "int64" tensörün TR_sum'ı, eksi bir, TR_clamp) kartta çalışır, sonuç kartta kalır ve işlemcinin
+// sonucunu verir (eskiden toplam ve eksi H6969 veriyordu). Kartta int64 toplamın taşması
+// işlemcininkiyle aynı iletiyi verir.
+func TestDostBinIndexRunsOnTheCard(t *testing.T) {
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `TR_func kutu(cihaz: TR_String) -> TR_String {
+    TR_var x = TR_Tensor([0.5, 1.5, 2.5, 9.0]).TR_to_device(cihaz)
+    TR_var kenar = TR_Tensor([[0.0, 1.0, 2.0, 3.0]]).TR_to_device(cihaz)
+    TR_var k = TR_sum(TR_where(x.TR_reshape([4, 1]) >= kenar, 1, 0), TR_dim: -1) - 1
+    k = TR_clamp(k, TR_min: 0, TR_max: 2)
+    TR_return k.TR_device + " " + k.TR_dtype + " " + TR_String(k.TR_to_device("cpu").TR_tolist)
+}
+TR_print(kutu("cpu"))
+TR_print(kutu("gpu"))`)
+	if want := "cpu int64 [0, 1, 2, 2]\ngpu:0 int64 [0, 1, 2, 2]\n"; out != want {
+		t.Fatalf("Dost'un kutu indeksi:\n%s\nbeklenen:\n%s", out, want)
+	}
+	const sum = `TR_sum(TR_Tensor([[1, 2], [9223372036854775807, 1]]).TR_to_device("%s"), TR_dim: -1)`
+	_, cerr := run(t, strings.Replace(sum, "%s", "cpu", 1))
+	_, gerr := run(t, strings.Replace(sum, "%s", "gpu", 1))
+	if !messages.Has(gerr, messages.H6961) || cerr == nil || gerr.Error() != cerr.Error() {
+		t.Fatalf("kartta toplamın taşması işlemcininkiyle aynı olmalı:\nkart %v\nişlemci %v", gerr, cerr)
 	}
 }

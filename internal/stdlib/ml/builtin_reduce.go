@@ -157,6 +157,9 @@ func typedReduce(m *interp.VM, kd codes.Code, ad any, t *tensor.Tensor, e int, g
 		default:
 			panic(tensor.PrecisionError(t.DType(), t.Device()))
 		}
+		if r == nil {
+			return nil // hata (f): boyutu koruma sonuca uygulanır (eskiden nil'de H6006 veriyordu)
+		}
 		if keep && given {
 			r = r.Unsqueeze(e)
 		} else if keep {

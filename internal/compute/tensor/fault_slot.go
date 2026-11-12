@@ -67,6 +67,20 @@ func IndexFaultFromSlot(dt DType, key, bits uint64) *ElemFault {
 	return f
 }
 
+// SumFaultFromSlot int64 toplamının yuvasından ElemFault'u kurar: konum anahtardan, değer 128
+// bitlik toplamın iki yarısından (lo alt, hi üst), işlemcinin toplam hatasıyla aynı (A: int64'ün
+// ucu, Sum: kesin değer; typed_reduce.go). Anahtarın çeşidi taşma değilse iç hatadır.
+func SumFaultFromSlot(key, lo, hi uint64) *ElemFault {
+	if FaultKind(key&15) != FaultOverflow {
+		panic(messages.Internalf("sum fault slot: kind %d at %d", key&15, key>>4))
+	}
+	w := wide{hi: int64(hi), lo: lo}
+	if _, ok := w.int64(); ok {
+		panic(messages.Internalf("sum fault slot: the sum at %d fits", key>>4))
+	}
+	return &ElemFault{Kind: FaultOverflow, Index: int(key >> 4), A: w.sat(), Sum: w.text(), DType: Int64}
+}
+
 // elemFromBits işlemcide tek öğeli dt tensörü: ham bitlerden (ondalıkta bitler, tam sayıda ve
 // mantıkta küçük uçlu baytlar).
 func elemFromBits(dt DType, b uint64) *Tensor {

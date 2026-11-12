@@ -39,7 +39,8 @@ const emptyKey = math.MaxUint64
 // faultSite bir hata yuvası: yuvanın kendisi, ayrıntıyı yeniden hesaplamak için işlem ve türler,
 // iletinin konumu için çıktının şekli (oynatmada çağıranın şekli yoktur). index doğruysa yuva
 // bir indeks çekirdeğinindir (gömme, dilim yazma; backend_indexed.go): işlemi yoktur, ayrıntı
-// indeksin değeridir (ins[0] türünde).
+// indeksin değeridir (ins[0] türünde). sum doğruysa yuva int64 toplamınındır (typed_reduce.go):
+// ayrıntı 128 bitlik toplamdır (1. sözcük alt, 2. sözcük üst yarı).
 type faultSite struct {
 	slot  *storage
 	op    tensor.TypedOp
@@ -47,6 +48,7 @@ type faultSite struct {
 	ins   []tensor.DType
 	shape []int
 	index bool
+	sum   bool
 }
 
 // takeSlot işlemin yuvasını verir ve boşaltır: kayıtta kaydın havuzundan yeni bir yuva, kayıt
@@ -92,9 +94,12 @@ func (g *backend) readSlot(s faultSite) *tensor.ElemFault {
 		return nil
 	}
 	var f *tensor.ElemFault
-	if s.index {
+	switch {
+	case s.sum:
+		f = tensor.SumFaultFromSlot(w[0], w[1], w[2])
+	case s.index:
 		f = tensor.IndexFaultFromSlot(s.ins[0], w[0], w[1])
-	} else {
+	default:
 		f = tensor.FaultFromSlot(s.op, s.out, s.ins, w[0], w[1:1+len(s.ins)])
 	}
 	f.Shape = slices.Clone(s.shape)

@@ -102,6 +102,14 @@ type TypedBackend interface {
 	Typed(op TypedOp, out Storage, outShape []int, ins []View) (fault *ElemFault, ok bool)
 }
 
+// TypedReducer (isteğe bağlı) "int64" toplamını cihazda yapan arka uç (T1 dilim 2b): in bitişik
+// "int64" görünümü, (outer, n, inner) şeklinde orta eksen boyunca toplanır; out bitişik
+// "int64", outer·inner öğe. Toplam 128 bitte kesindir; sığmayan çıktıların ilki (düz konumu en
+// küçük, 15.6) Sum'ıyla döner, kayıtta FaultRecorded. Desteklemediği girdide ok=false.
+type TypedReducer interface {
+	SumInt64(out Storage, in View, outer, n, inner int) (fault *ElemFault, ok bool)
+}
+
 // FaultKind öğeye bağlı cinsli işlem hatasının çeşidi.
 type FaultKind uint8
 

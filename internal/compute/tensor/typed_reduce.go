@@ -50,7 +50,6 @@ func axisRuns(shape []int, axis int) (outer, length, inner int) {
 // girdinin türü; birikimli toplamda şekil korunur. Boş eksende en büyük ve en küçüğü çağıran
 // denetler.
 func ReduceTyped(t *Tensor, kind ReduceKind, axis int) (*Tensor, *ElemFault) {
-	cpuOnly(t)
 	shape := copyInts(t.shape)
 	if axis < 0 {
 		shape, axis = []int{t.Numel()}, 0
@@ -60,10 +59,38 @@ func ReduceTyped(t *Tensor, kind ReduceKind, axis int) (*Tensor, *ElemFault) {
 	if kind == ReduceCumSum {
 		outShape = shape
 	}
+	if t.Device() != CPU {
+		if r, f, ok := sumInt64OnDevice(t, kind, outer, n, inner, outShape); ok {
+			return r, f
+		}
+		cpuOnly(t)
+	}
 	if t.Elem() == ElemFloat {
 		return reduceFloat64(t.Float64s(), kind, outer, n, inner, outShape, t.dtyp), nil
 	}
 	return reduceInt64(t.Int64s(), kind, outer, n, inner, outShape, t.dtyp)
+}
+
+// sumInt64OnDevice "int64" toplamı cihazda (TypedReducer; T1 dilim 2b): değer ve hata
+// işlemcininkiyle aynı (hata konumsuz, Sum'lı). Başka işlem, tür ya da arka uç ok=false (çağıran
+// hassasiyet hatası verir). Kayıtta sonuç ve Kind'ı FaultRecorded olan hata birlikte döner.
+func sumInt64OnDevice(t *Tensor, kind ReduceKind, outer, n, inner int, outShape []int) (*Tensor, *ElemFault, bool) {
+	tr, isReducer := t.be.(TypedReducer)
+	if kind != ReduceSum || t.dtyp != Int64 || !isReducer {
+		return nil, nil, false
+	}
+	c := t.Contiguous()
+	out := zerosOf(isCreate, t.be, outShape, Int64)
+	fault, ok := gateSumInt64(tr, out.storage, c.view(), outer, n, inner)
+	switch {
+	case !ok:
+		out.Drop()
+		return nil, nil, false
+	case fault != nil && fault.Kind != FaultRecorded:
+		out.Drop()
+		return nil, fault, true
+	}
+	return out, fault, true
 }
 
 func reduceInt64(vals []int64, kind ReduceKind, outer, n, inner int, outShape []int, dt DType) (*Tensor, *ElemFault) {
