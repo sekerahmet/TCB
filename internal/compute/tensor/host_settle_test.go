@@ -148,9 +148,12 @@ func TestHostSettleIgnoresBlocksAllocatedMeanwhile(t *testing.T) {
 		}
 	})
 	// Kaydı silen süre toplama ve taramadan uzun olmalı: kısa kalırsa kayıt taramadan önce silinir, test
-	// Ş1 (b)'yi sınamadan geçer (DENETİM 465 N2).
+	// Ş1 (b)'yi sınamadan geçer (DENETİM 465 N2). Süre zamanlayıcının kurulduğu andan ölçülür: r.Elapsed
+	// settleHost'un kendi başlangıcından sayar, doğru beklemede de 200 ms'nin altında kalabilir (CI 2bbdd9c2, 198 ms).
+	start := time.Now()
 	time.AfterFunc(200*time.Millisecond, func() { hostUnregister(id) })
 	r := settleHost(5 * time.Second)
+	waited := time.Since(start)
 	close(stop)
 	wg.Wait()
 	if r.TimedOut {
@@ -158,8 +161,8 @@ func TestHostSettleIgnoresBlocksAllocatedMeanwhile(t *testing.T) {
 	}
 	if r.Dead == 0 {
 		t.Logf("kayıt taramadan önce silindi, Ş1 (b) sınanmadı: %+v", r)
-	} else if r.Elapsed < 200*time.Millisecond {
-		t.Fatalf("bekleme ölü kümenin kaydı silinmeden bitti: %+v", r)
+	} else if waited < 200*time.Millisecond {
+		t.Fatalf("bekleme ölü kümenin kaydı silinmeden bitti: %v sonra, %+v", waited, r)
 	}
 }
 
