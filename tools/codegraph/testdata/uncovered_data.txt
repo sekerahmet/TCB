@@ -2,7 +2,6 @@
 CLAUDE.md	kök belgesi: düzyazı; kuralları ilgili paket README'lerinde ve testlerindedir
 .vscode/**	VS Code çalışma alanı ayarı; Go testi okumaz
 editors/vscode/language-configuration.json	yalnız VS Code okur (package.json'daki "configuration"); Go testi okumaz
-tests/data/**	örnek veri kümesini kuran testin (internal/stdlib/dataset/behavior_sample_data_test.go) çıktısıdır; izlenen kopya örnekler tarafından okunur, yol dize olarak geçmez
 tools/gpu/phase3_config.json	Colab 3. aşama koşusunun ayarı; yalnızca Colab betikleri okur
 tools/codegraph/gaps.md	ana oturumun codegraph eksikleri listesi: düzyazı, kendi kuralı yok (README.md ve CLAUDE.md gibi); tek bağı eski kod örneğiydi, 73488779'da örnekle birlikte kalktı
 tools/hf/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
