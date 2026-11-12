@@ -385,6 +385,9 @@ TR_func _değer_sonu(m: TR_String, i: TR_Int) -> TR_Int {
 }
 
 # --- Llama 3.1 ve 3.2 (24.5, 24.6). Başvuru: tests/data/llama3_chat/KAYNAK.md.
+# Biçimin sabit metinleri (araç yönergesinin iki cümlesi, "Cutting Knowledge Date", "Today Date",
+# "Environment: ipython") Meta'nın yayımladığı Llama 3 sohbet şablonundan (unsloth'un kopyası üzerinden;
+# KAYNAK.md'deki revizyonlar) protokol sabiti olarak alındı; şablon dosyası depoda yok.
 TR_const _L_BAŞ = "<|begin_of_text|>"
 TR_const _L_BAŞLIK = "<|start_header_id|>"
 TR_const _L_BAŞLIK_SONU = "<|end_header_id|>"

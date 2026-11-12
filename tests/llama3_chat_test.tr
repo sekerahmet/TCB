@@ -113,6 +113,15 @@ TR_test "24.5 hatalar: Llama olmayan parçalayıcı, tarihin biçimi, araçlı v
     TR_var içerikli = durum("ref_icerik_ve_cagri", "3.1")
     TR_assert(TR_not p.TR_decode(kimlikler(içerikli["ids"])).TR_contains("Bakıyorum."))
     TR_assert_equal("H7176", TR_error_code { biçimle(p, içerikli) })
+    # H7176'nın önerisi kopyalanınca çalışır: içerik çağrıdan önceki ayrı bir asistan iletisine, çağrı `TR_content: ""`
+    # ile. Kimlikler transformers'ınkidir (başvurudaki `icerik_sonra_cagri`), içerik kaybolmaz.
+    aynı("icerik_sonra_cagri")
+    TR_var ii = [ileti(m) TR_for m TR_in içerikli["messages"]]
+    TR_var çağrılı = ii[ii.TR_length - 1]
+    TR_var önerilen = ii[0..ii.TR_length - 1] + [TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: çağrılı.TR_content), TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_tool_calls: çağrılı.TR_tool_calls)]
+    TR_var ayrı = TR_llama3_format(p, önerilen, TR_add_generation_prompt: TR_false, TR_date: _TARİH, TR_tools: araçlar(içerikli))
+    TR_assert_equal(kimlikler(durum("icerik_sonra_cagri", "3.1")["ids"]), ayrı)
+    TR_assert(p.TR_decode(ayrı).TR_contains("Bakıyorum."))
     TR_var iki = durum("ref_iki_cagri", "3.1")
     TR_assert(TR_String(iki["raises"]).TR_contains("single tool-calls"))
     TR_assert_equal("H7167", TR_error_code { biçimle(p, iki) })
@@ -143,7 +152,7 @@ TR_func üretilen(p: TR_Tokenizer, d: TR_JSON) -> TR_List[TR_Int] {
 
 TR_test "24.6 gidiş-dönüş: içerikli ve araç çağrılı cevap aynı iletiye ve aynı kimliklere döner" {
     TR_var p = parçalayıcı()
-    TR_for ad TR_in ["cevap_icerik", "cevap_cagri"] {
+    TR_for ad TR_in ["cevap_icerik", "cevap_cagri", "cevap_cagri_duz"] {
         TR_for ş TR_in ["3.1", "3.2"] {
             TR_var d = durum(ad, ş)
             TR_var cevap, hatalar = TR_llama3_reply(p, üretilen(p, d), TR_tools: araçlar(d))
@@ -159,6 +168,12 @@ TR_test "24.6 gidiş-dönüş: içerikli ve araç çağrılı cevap aynı iletiy
     TR_assert_equal("", cevap.TR_content)
     TR_assert_equal("saat", cevap.TR_tool_calls[0].TR_name)
     TR_assert_equal("{\"bolge\": \"Europe/İstanbul\", \"esik\": 1e-05, \"liste\": [1, 2.5, true, null]}", cevap.TR_tool_calls[0].TR_arguments)
+    # Düz şemalı araç: ad `function` altında değil üst düzeyde; çağrı yine çağrıdır.
+    TR_var düz = durum("cevap_cagri_duz", "3.1")
+    TR_assert(araçlar(düz)[0].TR_get("function") == TR_none)
+    TR_var dc, dh = TR_llama3_reply(p, üretilen(p, düz), TR_tools: araçlar(düz))
+    TR_assert_equal(0, dh.TR_length)
+    TR_assert_equal("saat", dc.TR_tool_calls[0].TR_name)
 }
 
 # cevapla: metni parçalayıcıyla kodlar, sonuna `<|eot_id|>` ekler ve `saat` ile `hava` araçlarıyla ayırır.
@@ -217,6 +232,13 @@ TR_test "24.6 çağrı sayılmayan çağrı biçimli cevap metin kalır ve hatal
     TR_assert(ah[0].TR_contains("\"parameters\""))
     TR_var _y, yh = cevapla(p, "{\"name\": \"yok\", \"parameters\": {}}", TR_true)
     TR_assert(yh[0].TR_contains("\"yok\""))
+    # Düz şemalı araçlarla listede olmayan ad da metin kalır ve hatalar'a girer.
+    TR_var dm = "{\"name\": \"yok\", \"parameters\": {}}"
+    TR_var dy, dyh = TR_llama3_reply(p, p.TR_encode(dm, TR_special_tokens: TR_false) + [p.TR_token_id("<|eot_id|>")], TR_tools: araçlar(durum("cevap_cagri_duz", "3.2")))
+    TR_assert_equal(0, dy.TR_tool_calls.TR_length)
+    TR_assert_equal(dm, dy.TR_content)
+    TR_assert_equal(1, dyh.TR_length)
+    TR_assert(dyh[0].TR_contains("\"yok\""))
 }
 
 TR_test "24.6 <|python_tag|> desteklenmez: metin kalır, hatalar'a girer; sondaki durma parçası atılır" {

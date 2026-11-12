@@ -100,6 +100,8 @@ TOOLS = [
                                           "adet": {"type": "integer", "maximum": 100}}, "required": ["bolge"]}}},
     {"type": "function", "function": {"name": "hava", "description": "Hava durumu", "parameters": {"type": "object", "properties": {}}}},
 ]
+# Düz şema: ad ve parametreler üst düzeyde, `function` nesnesi yok (24.6: aracın adı `function.name` ya da `name`).
+TOOLS_DUZ = [t["function"] for t in TOOLS]
 CALL = ("saat", {"bolge": "Europe/İstanbul", "esik": 1e-05, "liste": [1, 2.5, True, None]})
 DATE = "26 Jul 2024"
 
@@ -127,6 +129,9 @@ CASES = [
     ("ref_iki_cagri", [U("Saat kaç?"), {"role": "assistant", "content": "", "tool_calls": [
         {"type": "function", "function": {"name": "saat", "arguments": {}}},
         {"type": "function", "function": {"name": "hava", "arguments": {}}}]}], False, DATE, TOOLS),
+    # H7176'nın önerdiği yazım: içerik çağrıdan önceki ayrı bir asistan iletisinde, çağrının içeriği boş.
+    ("icerik_sonra_cagri", [U("Saat kaç?"), A("Bakıyorum."), A("", CALL)], False, DATE, TOOLS),
+    ("cevap_cagri_duz", [U("Saat kaç?"), A("", CALL)], False, DATE, TOOLS_DUZ),
 ]
 
 
