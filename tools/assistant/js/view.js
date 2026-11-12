@@ -104,7 +104,11 @@ function fillSelect(select, items, chosen) {
 // `settings_set`'tir, sunucu reddederse değer sunucununkine döner. Dil modeli yalnız kurulu girdilerden seçilir.
 function renderSettings() {
   const shown = Object.keys(ui.settings).length > 0 && ui.state !== "setup";
-  byId("settingsBox").hidden = !shown;
+  byId("settingsOpen").hidden = !shown;
+  if (!shown && settingsDialog.open) {
+    closeSettings();
+    focusAfterSettings();
+  }
   const usable = connected();
   const speech = /** @type {HTMLSelectElement} */ (byId("settingsLanguage"));
   const current = str(ui.settings.speech_language);
@@ -178,8 +182,6 @@ function renderToggles() {
   const focused = document.body.classList.contains("focus");
   byId("toolsButton").setAttribute("aria-pressed", String(!sheet.hidden));
   byId("focusButton").setAttribute("aria-pressed", String(focused));
-  bind(byId("toolsValue"), sheet.hidden ? "toggle_off" : "toggle_on");
-  bind(byId("focusValue"), focused ? "toggle_on" : "toggle_off");
   byId("focusExit").hidden = !focused;
   byId("topState").hidden = !focused;
 }
@@ -211,6 +213,41 @@ async function submit() {
   const text = composer.value.trim();
   if (!text || !connected()) return;
   if (await command("send_text", { text })) composer.value = "";
+}
+
+// Ayarlar dişli düğmesinin açtığı kalıcı pencerededir (`<dialog>`): Esc, kapat düğmesi ve dışına tık kapar,
+// odak kapanınca dişli düğmesine döner. Pencere ayarın yalnız yeridir; komutlar ve olaylar aynı.
+const settingsDialog = /** @type {HTMLDialogElement} */ (byId("settingsDialog"));
+
+function openSettings() {
+  if (settingsDialog.open) return;
+  byId("settingsError").hidden = true;
+  settingsDialog.showModal();
+  byId("settingsOpen").setAttribute("aria-expanded", "true");
+}
+
+function closeSettings() {
+  if (settingsDialog.open) settingsDialog.close();
+}
+
+/** Panel kendiliğinden kapandı (ayar kalktı, kurulum): dişli gizli, odak görünür ve etkin ilk öğeye gider. */
+function focusAfterSettings() {
+  const target = [composer, byId("micButton"), stream].find(
+    (node) => !(/** @type {HTMLButtonElement} */ (node)).disabled && node.offsetParent !== null);
+  if (target) target.focus();
+}
+
+// Panel açıkken ayarın reddi ya da yazılamaması akışın notuyla aynı metinle panelde de görünür (akış panelin arkasında).
+const SETTINGS_ERROR_KEYS = new Set(["error_setting_invalid", "error_unknown_language", "error_settings_write_failed",
+  "settings_write_failed_load_note", "error_devices_unavailable", "error_not_installed", "error_unknown_entry",
+  "error_model_load_failed"]);
+
+/** @param {string} key @param {Record<string, unknown>} values */
+function settingsErrorNote(key, values) {
+  if (!settingsDialog.open || !SETTINGS_ERROR_KEYS.has(key)) return;
+  const line = byId("settingsError");
+  bind(line, key, values);
+  line.hidden = false;
 }
 
 /** @param {boolean} on */
@@ -254,8 +291,17 @@ function wire() {
   });
   byId("focusButton").addEventListener("click", () => setFocusMode(true));
   byId("focusExit").addEventListener("click", () => setFocusMode(false));
+  byId("settingsOpen").addEventListener("click", openSettings);
+  byId("settingsClose").addEventListener("click", closeSettings);
+  settingsDialog.addEventListener("click", (event) => {
+    if (event.target === settingsDialog) closeSettings();
+  });
+  settingsDialog.addEventListener("close", () => {
+    byId("settingsOpen").setAttribute("aria-expanded", "false");
+    byId("settingsError").hidden = true;
+  });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && document.body.classList.contains("focus")) setFocusMode(false);
+    if (event.key === "Escape" && !settingsDialog.open && document.body.classList.contains("focus")) setFocusMode(false);
   });
   const search = byId("search");
   search.addEventListener("input", () => {

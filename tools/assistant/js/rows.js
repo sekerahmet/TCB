@@ -80,6 +80,7 @@ function errorKey(error) {
 function noteError(error) {
   const { key, values } = errorKey(error);
   note(key, values, "error");
+  settingsErrorNote(key, values);
 }
 
 function clearStream() {
