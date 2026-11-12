@@ -50,6 +50,7 @@ Karşılaştırma:
 - **Şablonun sessiz iki davranışı hatadır** (TCB 2026-11-12 08:51): şablon çağrılı asistan iletisinde içeriği hiç yazmaz ve araçlı biçimde sistemden sonraki ilk iletiyi rolüne bakmadan kullanıcı iletisi sayar [kanıtlı: iki şablonun `'tool_calls' in message` dalı ve `first_user_message = messages[0]['content']`; `cases.json`'un `ref_icerik_ve_cagri` ve `ref_arac_ilk_asistan` durumları]. İkisi de bir ajanın fark etmeyeceği yanlıştır: içerik gider, rol değişir. TR ikisinde de hata verir (H7176, H7166); 24.6'nın cevabı ya çağrı ya metin verdiği için gidiş-dönüş bozulmaz.
 - **Kırpma Python'unkidir:** Python'un `str.strip()`'i Unicode boşluklarına U+001C–U+001F'yi de katar, TR'nin `TR_strip()`'i katmaz (13.2); biçim kümeyi açıkça verir, altın testin bir durumu bu farkı sınar.
 - `TR_reasoning` dolu ileti hatadır: Llama 3'ün düşünce bloğu yoktur, şablon düşünceyi okumaz; sessizce atmak bir modelden ötekine geçen geçmişin düşüncesini kaybettirirdi.
+- *Ölçü (başvuru betiğinin ön ayırıcısı):* başvuru betiği Llama 3'ün desenini kendisi taşır (`tools/hf/llama3_chat_reference.py:27-29`); tiktoken 0.14.0'ın `cl100k_base` deseni metin olarak aynı değil (iyelik niceleyicileri, kısaltma kolu, `\s++$` kolu) [ölçüldü: D1 Teslim D, 2026-11-12; DENETİM 500 N3].
 
 ### 24.6
 
