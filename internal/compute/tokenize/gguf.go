@@ -175,6 +175,13 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 	// Yanlış türdeki eot ya da eom parçalayıcıyı kapatmaz: bu dilimden önce okunmuyorlardı, dosya
 	// yükleniyordu. Hata yalnız p.TR_declared_eos_tokens'ta çıkar (16.1, DENETİM 456 taraması).
 	p.declaredEOS, p.declaredEOSErr = ggufDeclaredEOS(f)
+	// Aile (16.2) dosyanın (mimari, etiket) çiftinden; tabloda yoksa parçalayıcı ailesizdir.
+	arch, _ := f.Values[ggufKeyArch].Data.(string)
+	if fam, ok := GGUFFamily(arch, p.pretokenizerTag); ok {
+		if err := p.applyFamily(fam); err != nil {
+			return nil, err
+		}
+	}
 	return p, nil
 }
 

@@ -1622,6 +1622,7 @@
 "H7175": { "param": ["via", "key", "given", "expected", "file"], "slots": {"pretrained_model": "TR_fn_pretrained_model", "pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7176": { "param": ["index"], "slots": {"llama3_format": "TR_fn_llama3_format", "content": "TR_arg_content"} },
 "H7177": { "param": ["size", "via", "key", "value"], "slots": {"pretrained_model": "TR_fn_pretrained_model", "pretrained_gguf": "TR_fn_pretrained_gguf"} },
+"H7185": { "param": ["fn", "family", "token", "tag"] },
 "H7192": { "param": ["key", "value", "rule"], "slots": {"pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7193": { "param": ["key", "count", "layers"], "slots": {"pretrained_model": "TR_fn_pretrained_model"} },
 "H7200": { "param": ["error", "command", "help"] },

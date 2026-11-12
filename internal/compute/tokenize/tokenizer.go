@@ -43,6 +43,8 @@ type AddedToken struct {
 	RStrip     bool   `json:"rstrip"`
 	Normalize  bool   `json:"normalized"`
 	Special    bool   `json:"special"`
+	// format ailenin biçim parçasıdır: TR_false'ta da tanınır (16.2, family.go). Dosyadan okunmaz.
+	format bool
 }
 
 // Tokenizer yüklenmiş bir parçalayıcıdır. Yüklendikten sonra salt
@@ -83,6 +85,11 @@ type Tokenizer struct {
 	pretokenizerTag string
 	declaredEOS     []int32
 	declaredEOSErr  error
+
+	// family parçalayıcının ailesidir (16.2, family.go; ailesizse boş). mismatch ailesi seçilip kümesi
+	// ailenin resmî dosyasınınkine uymayan dosyanın farkıdır (yoksa nil).
+	family   string
+	mismatch *FamilyMismatch
 }
 
 // exprCount bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.

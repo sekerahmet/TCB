@@ -52,12 +52,12 @@ type addedSkip uint8
 const (
 	skipNone    addedSkip = iota // hepsi tanınır
 	skipSpecial                  // özel tokenlar tanınmaz, sıradan ek tokenlar tanınır
-	skipAll                      // hiçbir ek token tanınmaz
+	skipAll                      // hiçbir ek token tanınmaz; yalnız ailenin biçim parçaları (16.2, family.go)
 )
 
 // skips t'nin bu düzeyde tanınmadığını söyler.
 func (k addedSkip) skips(t *AddedToken) bool {
-	return k == skipAll || (k == skipSpecial && t.Special)
+	return (k == skipAll && !t.format) || (k == skipSpecial && t.Special)
 }
 
 // splitFn metni ek tokenlara göre böler; skip'in tanımadığı tokenlar düz metin sayılır.

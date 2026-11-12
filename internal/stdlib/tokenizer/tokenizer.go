@@ -209,6 +209,11 @@ func loadError(path string, err error, tried []string) error {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
 		return turkish.FileError(fn, path, messages.H2107, pe)
 	}
+	var oe *tokenize.FamilyOverlapError
+	if errors.As(err, &oe) {
+		// Ailenin biçim kümesi protokol etiketiyle kesişiyor: Go tablosunun hatası (16.2).
+		return oe.Message(fn)
+	}
 	return messages.New(messages.H5620, fn, path, err)
 }
 
