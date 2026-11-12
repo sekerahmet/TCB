@@ -25,13 +25,20 @@ func registerConv(v *interp.VM) {
 	wrap(v, codes.FnConv1d, newBuiltin(conv1dBuiltin))
 }
 
-// convTensor x ya da w argümanını denetler.
+// convTensor x, w ya da b argümanını denetler: nicemli olmayan ondalık tensördür. Cihazı serbesttir
+// (15.41); üçünün aynı cihazda olması conv1dBuiltin'de denetlenir (convDevices).
 func convTensor(fn any, v interp.Value) (*tensor.Tensor, error) {
 	d, ok := v.(*TensorValue)
 	if !ok {
 		return nil, messages.New(messages.H7081, fn, typeName(v), "float", floatFix())
 	}
-	return d.t, cpuFloatArg(fn, d.t)
+	switch t := d.t; {
+	case t.DType().IsQuantized():
+		return nil, messages.New(messages.H6687, t.DType().Name())
+	case t.Elem() != tensor.ElemFloat:
+		return nil, messages.New(messages.H7081, fn, t.DType().Name(), "float", floatFix())
+	}
+	return d.t, nil
 }
 
 // convOptions adlı argümanları okur.
@@ -108,6 +115,14 @@ func paddingFix(l int, o tensor.Conv1dOptions, k int) string {
 	return fmt.Sprintf(": `%s: %d`", codes.Spelling(codes.ArgPadding), (o.Span(k)-l+1)/2)
 }
 
+// convDevices x, w ve (varsa) b'nin aynı cihazda olduğunu denetler (H6102 taşımanın yazımını verir).
+func convDevices(fn any, x, w, b *tensor.Tensor) error {
+	if err := checkDevice(fn, x, w); err != nil || b == nil {
+		return err
+	}
+	return checkDevice(fn, x, b)
+}
+
 // convBias sapmayı denetler; TR_none ise nil'dir.
 func convBias(fn any, v interp.Value, cout int) (*tensor.Tensor, error) {
 	if v == interp.Null {
@@ -150,6 +165,9 @@ func conv1dBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	}
 	b, err := convBias(fn, args[2], w.Shape()[0])
 	if err != nil {
+		return nil, err
+	}
+	if err = convDevices(fn, x, w, b); err != nil {
 		return nil, err
 	}
 	mixed := mixedDType(m)

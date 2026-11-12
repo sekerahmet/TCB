@@ -51,7 +51,7 @@ Araştırma: Gemini Whisper raporu (2026-11-05). DENETİM alıntıları doğrula
 ### 25.9
 
 - *Emsal:* yok: dilin kendi dilim sınırı.
-- *Gerekçe:* `TR_conv2d` görüntü dilimine kalır; kart ayrı iştir, ilk ölçü CPU'da.
+- *Gerekçe:* `TR_conv2d` görüntü dilimine kalır. `TR_conv1d` kartta da çalışır: açma ve katlama kartın çekirdeğinde, işlemciyle bit bit aynı; çarpım `@` ile (15.23c, 15.41). `TR_logsumexp` kendi kart çekirdeği gelene kadar kartta 15.41'in hatasını verir.
 
 ## Konuşma algılama
 

@@ -81,8 +81,8 @@ TR_for k TR_in yazı.TR_segments { TR_print(k.TR_start, k.TR_end, k.TR_text) }
 
 ## Sınır
 
-**25.9** İlk uygulama CPU'dadır; kartta 15.41'in hatasını verir. Yeni yerleşikler yalnız `TR_conv1d` (15.23c) ve `TR_logsumexp`'tir (15.18); öbürü `.tr`'dir.
-- *Test:* gerekmez: kartın hatası 15.41'in testindedir, öbürü 25.1–25.8'in testleridir.
+**25.9** Yeni yerleşikler yalnız `TR_conv1d` (15.23c) ve `TR_logsumexp`'tir (15.18); öbürü `.tr`'dir. `TR_conv1d` kartta da çalışır (15.41). `TR_logsumexp`'in ilk uygulaması CPU'dadır; kartta 15.41'in hatasını verir.
+- *Test:* Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`: `TR_conv1d`'in kartta işlemciyle 15.41'in basamaklarıyla aynı sonucu vermesi (gpu ve ml paketleri); `TR_logsumexp`'in kart hatası 15.41'in testindedir, öbürü 25.1–25.8'in testleridir.
 
 ## Konuşma algılama
 
