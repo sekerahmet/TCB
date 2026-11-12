@@ -95,9 +95,10 @@ func (k *emitter) tableValue(dt tensor.DType, w, ks reg) reg {
 
 // indexAt adresteki indeksi okur: bad tam sayı olmayan ya da [0, n−1]'in dışındaki indekste
 // doğrudur, kind çeşididir (tensor.FaultIndexNotInt, FaultIndexRange); bad yanlışsa i indekstir.
-// Ondalık indeks doğrudan çağrının ölçütüyle tam sayı mı diye bakılır (ml'nin IntElements'i:
-// NaN, sonsuz, 2⁶³ ve üstü, −2⁶³'ün altı ya da kesirli değer tam sayı değil); float64 kendi
-// türünde. "int64" indeks 64 bitte karşılaştırılır (2³²'nin üstü sarmaz).
+// Ondalık indeks mimariden bağımsız bir ölçütle tam sayı mı diye bakılır: NaN, sonsuz, 2⁶³ ve
+// üstü, −2⁶³'ün altı ya da kesirli değer tam sayı değil (DENETİM 495 N1; doğrudan çağrının
+// denetimi amd64'te aynıdır, arm64'te tam 2⁶³'te ayrılır: status 15.23); float64 kendi türünde.
+// "int64" indeks 64 bitte karşılaştırılır (2³²'nin üstü sarmaz).
 func (k *emitter) indexAt(i reg, it tensor.DType, addr, n reg) (bad, kind reg) {
 	v := k.rd()
 	kind = k.r()

@@ -657,8 +657,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.8
 
 - **Mevcut durum:** başlangıç tam sayı ya da tam sayı değerli 0 boyutlu ondalık tensör.
-- **Yapılacaklar:** `TR_start`'ın `TR_Int` ya da 0 boyutlu `TR_Tensor[TR_Int]` olması; cins denetimi.
-- **Yapılacaklar (C, Ö2, Kol B (T1); TCB 2026-11-12 10:49):** float64 tensör başlangıç float32'ye inerek okunuyor: kesir ve 2²⁴'ün üstü kayboluyor (2,0000001 tam sayı sayılır; 16 777 217 → 16 777 216), kayıtta ve kayıt dışında sessiz [hesap: float32'nin 24 bitlik kesri]. Sıradaki: gömmedeki float64 kararıyla aynı ölçüt (başlangıç kendi türünde denetlenir); testi float64 2,0000001 başlangıcı.
+- **Yapılacaklar:** `TR_start`'ın `TR_Int` ya da 0 boyutlu `TR_Tensor[TR_Int]` olması: o zamana kadar float64 başlangıç float32'ye iniyor, kesir ve 2²⁴'ün üstü sessizce kayboluyor (A; seyrek olduğu için Ö2; TCB 2026-11-12 11:00, DENETİM 495 N2); cins denetimi.
 
 ### 15.13
 
@@ -742,6 +741,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** sınır dışı indeks H6305 veriyor [ölçüldü: main `8b115692`]. İndeks liste ya da ondalık tensör olabiliyor.
 - **Yapılacaklar:** indeks `TR_Tensor[TR_Int]`; göç 24 satır [ölçüldü: DENETİM, `git grep` main `8b115692`]; sınır dışı denetimi bekleyen işlem (15.6).
+- **Yapılacaklar (C, Ö2, Kol B (T1); TCB 2026-11-12 11:00, DENETİM 495 N1):** doğrudan çağrıda ondalık indeksin ve dilim başlangıcının "tam sayı mı" denetimi (`internal/stdlib/ml/value.go:150`, `builtin_nn.go:131`, `:135`, `builtin_replay.go:482`) Go'nun sığmayan float → int dönüşümüne dayanıyor: amd64'te tam 2⁶³ tam sayı sayılmaz (H6012, H6441), arm64'te sayılır (H6305, H6442) [hesap: dönüşüm uygulamaya bağlı, arm64 doyurur]; ikisi de hata. Kartın ölçütü mimariden bağımsız (T1 dilim 2c). Sıradaki: dönüşümden önce aralığın açık denetimi; testi arm64'te 2⁶³.
 
 ### 15.23a
 
