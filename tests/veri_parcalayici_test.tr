@@ -12,7 +12,7 @@ TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_assert_equal(TR_none, p.TR_token_id("böyle-bir-parça-yok"))
 }
 
-TR_test "16.1 parçalayıcı_yükle(klasör) ailesiz klasörde ailesiz açılır; tokenizer.json'u olmayan klasör H5610" {
+TR_test "16.1 TR_load_tokenizer(klasör) ailesiz klasörde ailesiz açılır; tokenizer.json'u olmayan klasör H5610" {
     TR_var k = TR_load_tokenizer("data/qwen3_chat")
     TR_var d = TR_load_tokenizer("data/qwen3_chat/tokenizer.json")
     TR_var metin = "Merhaba <think>\n\n dünya <|im_end|>"
