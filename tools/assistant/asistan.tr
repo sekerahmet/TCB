@@ -30,6 +30,7 @@ TR_import "deneme"
 TR_import "katalog"
 TR_import "yuva"
 TR_import "oturum"
+TR_import "esleme"
 
 TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
@@ -48,7 +49,8 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
     "en_çok_parça": 160, "bağlam": 8192, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
-    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "ayar": "", "katalog": "katalog.json"},
+    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "ayar": "", "katalog": "katalog.json",
+    "tarayıcıyla_eşle": TR_false},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
@@ -62,7 +64,8 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok",
         "konuşma_dili": "Whisper'ın dil kodu (tr, en, ...); --ses_modeli ve --sistem aynı dilde verilir",
         "ayar": "ekranlı kipte ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json; klasörü Dost klasörüdür (modeller, yükleme işareti)",
-        "katalog": "ekranlı kipte model kataloğu (JSON); --dil_modeli verilirse ekranlı kip katalogu ve ayarı okumaz"})
+        "katalog": "ekranlı kipte model kataloğu (JSON); --dil_modeli verilirse ekranlı kip katalogu ve ayarı okumaz",
+        "tarayıcıyla_eşle": "ekranlı kipte tarayıcıyı tek kullanımlık eşleme koduyla açar, belirteç sorulmaz; kod tarayıcıyı açan sürecin argümanında durduğu için yalnız argümanı başka kullanıcıya göstermeyen sistemde verilir; Windows başlatıcısı verir"})
 
 TR_func _gerekli(ad: TR_String) -> TR_String {
     TR_var v = TR_String(ayar[ad])
@@ -288,9 +291,12 @@ TR_func ekranlı_kip() -> TR_Int {
     TR_var dosya = _gerekli("belirteç_dosyası")
     TR_var elle = TR_String(ayar["dil_modeli"]) != ""
     TR_var e = ekran_kur(ekran_klasörü(), TR_if elle { TR_Path(TR_String(ayar["dil_modeli"])).TR_name } TR_else { "" })
+    TR_if TR_Bool(ayar["tarayıcıyla_eşle"]) { e.eşleme = Eşleme(açıcı: tarayıcıyı_aç) }
     TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
     TR_defer { s.TR_close() }
     TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none { eş.yenile_ve_aç() }
     TR_var ayar_dosyası = ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA"))
     TR_var klasör = dost_klasörü(ayar_dosyası)
     TR_var önceki = işareti_al(klasör)
@@ -329,6 +335,17 @@ TR_func ekranlı_kip() -> TR_Int {
         e.durum("setup")
     }
     TR_return o.koş()
+}
+
+# tarayıcıyı_aç: öntanımlı tarayıcıyı adresle açar (Windows: `rundll32 url.dll,FileProtocolHandler`). Adres eşleme
+# kodunu parçada taşır; kod bu sürecin argümanına bir kez girer (19.4'ün istisnası, 28.2b). Yalnız kapı tutulduktan
+# sonra çağrılır. Açılamazsa Dost sürer: sayfa `EKRAN` satırının adresinden kodsuz açılır, belirteç kutudan girilir.
+TR_func tarayıcıyı_aç(adres: TR_String) {
+    TR_try {
+        program_koş("rundll32", ["url.dll,FileProtocolHandler", adres])
+    } TR_catch hata {
+        TR_print("TARAYICI AÇILAMADI:", hata)
+    }
 }
 
 # ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır.

@@ -8,7 +8,7 @@ Bütün örnekler uydurmadır.
 
 ## Genel
 
-- **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi), `GET /lang/<kod>.js` (ekranın dil dosyaları).
+- **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi), `GET /lang/<kod>.js` (ekranın dil dosyaları), `GET /pair` ve `GET /pair/renew` (yalnız Dost `--tarayıcıyla_eşle` ile açıldıysa): belirteçsiz, yalnız `GET` ve `HEAD`; ikisi de bir üstbilgi ister (`Dost-Pair-Code`, `Dost-Pair-Renew`).
 - **Biçim:** JSON, UTF-8.
 - **Sürüm:** her olayda ve her komutta `v` alanı. Bugün `2`. Ekran başka bir sürüm görürse olayı işlemez, `protocol_mismatch` gösterir ve komut göndermez.
 - **Bilinmeyen alan** yok sayılır. **Bilinmeyen olay türü** yok sayılır: yeni olay eski ekranı kırmaz.
@@ -17,7 +17,7 @@ Bütün örnekler uydurmadır.
 
 ## Kaynak
 
-Ekranın kaynağı sayfanın kendi köküdür: TR'nin sunduğu `http://127.0.0.1:<kapı>/` sayfası olayları ve komutları aynı köke gönderir. Parametre yoktur: sayfanın adresi sorgusuzdur, çünkü sorgulu istek belirteç ister (dil tanımı, 28.2) ve tarayıcı adres çubuğundan açılan sayfaya belirteç ekleyemez. Eski `source` parametresi gerçek kipte zaten sayfanın köküne eşit olmak zorundaydı, bilgi katmıyordu; kalkınca dışarıdan verilen bir girdi de kalktı.
+Ekranın kaynağı sayfanın kendi köküdür: TR'nin sunduğu `http://127.0.0.1:<kapı>/` sayfası olayları ve komutları aynı köke gönderir. Sayfanın adresi sorgusuzdur: sorgulu istek belirteç ister (dil tanımı, 28.2). `--tarayıcıyla_eşle` verilince Dost tarayıcıyı `http://127.0.0.1:<kapı>/#p=<kod>` ile açar. Parça sunucuya gitmez. Sayfa onu ilk iş olarak okur ve `history.replaceState` ile adresten siler; ancak ondan sonra bir istek gönderir, önden işlenirken (`document.prerendering`) göndermez. Kod tek kullanımlık ve 120 saniyeliktir; sayfa onu yalnız `GET /pair`'in `Dost-Pair-Code` üstbilgisinde kullanır. Sayfa başka parça ya da parametre okumaz. Eski `source` parametresi gerçek kipte zaten sayfanın köküne eşit olmak zorundaydı, bilgi katmıyordu; kalkınca dışarıdan verilen bir girdi de kalktı.
 
 - `file://` ile açılan sayfa sahte akışla çalışır ve üstte "sahte kip" sürekli yazılıdır (`Origin` `null` olur, sunucu ona izin vermez). Gerçek kipte sayfayı TR sunar.
 - Gerçek kipe yalnız `http://127.0.0.1:<kapı>` kökünden açılan sayfa geçer. `localhost`, başka adres ve `https` reddedilir: ekran sahte akışa düşmez, bağlantı yok der ve reddedilen kökü gösterir.
@@ -259,6 +259,10 @@ Sunucudan gelenler:
 | `internal` | | Sunucunun iç hatası |
 | `unauthorized` | | Belirteç yok ya da yanlış (`401`) |
 | `forbidden_origin` | | `Origin` ya da `Host` kabul edilmedi (`403`) |
+| `pair_code_expired` | | Eşleme kodunun süresi doldu (`GET /pair`, `401`) |
+| `pair_code_unknown` | | Eşleme kodu bilinmiyor (`GET /pair`, `401`) |
+| `pair_code_used` | | Eşleme kodu daha önce kullanıldı; Dost olayı günlüğe yazar (`GET /pair`, `401`) |
+| `too_many_requests` | | Yanlış eşleme kodu sınırı doldu ya da yeni kod için 10 saniye geçmedi (`GET /pair`, `GET /pair/renew`, `429`) |
 | `unsupported_media_type` | | `Content-Type` `application/json` değil (`415`) |
 | `body_too_large` | `limit_bytes` | Gövde sınırı aştı (`413`) |
 
@@ -279,7 +283,7 @@ Herhangi bir web sitesi kullanıcının tarayıcısından `127.0.0.1`'e istek at
 - **Bağlanma:** sunucu yalnız `127.0.0.1`'e bağlanır, `0.0.0.0`'a bağlanmaz.
 - **`Host`:** tam olarak `127.0.0.1:<kapı>` olmalı. Başka değer `403`: DNS yeniden bağlama saldırısı böyle kesilir.
 - **`Origin`:** varsa tam olarak `http://127.0.0.1:<kapı>` olmalı. `Origin: null` kabul edilmez. `POST`'ta `Origin` yoksa da ret. Aynı kökten `GET`'te tarayıcı üstbilgiyi göndermeyebilir, bu yüzden `GET` için zorunlu değildir.
-- **Kimlik:** `/events` ve `/command` `Authorization: Bearer <belirteç>` ister. TR açılırken rastgele belirteç üretir ve yalnız kendisini çalıştıran kullanıcının görebileceği yere yazar. Ekran kullanıcıdan alır, yalnız bellekte tutar, diske yazmaz. Belirteç URL'de olmaz: adres geçmişe ve günlüklere düşer. Sayfada da olmaz: sayfayı kimlik sormadan sunan uç herkese açıktır.
+- **Kimlik:** `/events` ve `/command` `Authorization: Bearer <belirteç>` ister. TR açılırken rastgele belirteç üretir ve yalnız kendisini çalıştıran kullanıcının görebileceği yere yazar. Ekran belirteci eşleme kodundan alır (`GET /pair`, `--tarayıcıyla_eşle` ile); seçenek yoksa ya da eşleme olmazsa kullanıcı belirteci kutuya girer. İki yolda da belirteci yalnız sekmenin oturum belleğinde (`sessionStorage`) tutar, kalıcı depoda (`localStorage`, çerez) tutmaz; `401`'de ve `protocol_mismatch`'te siler. Belirteç URL'de olmaz. URL'de olan eşleme kodu tek kullanımlık ve 120 saniyeliktir: geçmişe ya da günlüğe düşen kod işe yaramaz. Belirteci dosyadan okuyan istemciler (ajan, komut satırı) bugünkü gibi çalışır. Sayfada da olmaz: sayfayı kimlik sormadan sunan uç herkese açıktır.
 - **`Content-Type`:** `POST /command` yalnız `application/json` kabul eder. Düz form ön uçuş isteği olmadan gönderilebildiği için öbürleri `415`.
 - **CORS yok:** sunucu `Access-Control-Allow-*` göndermez, `OPTIONS` kabul etmez.
 - **Sunulan dosyalar:** yalnız ekran ve sayfanın listelediği dil dosyaları, `Content-Type: text/javascript`. Sayfanın politikası betiği `/lang/` altından kabul eder; başka betik sunulmaz.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-TPj5Ipu0Uw6+kofQWthQ8ucxDZcO1O5WiiJS2LJCHqA='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-LfJlBv6S2Okgf2mu7y+Mm9qQhQn18TeFkGTRuwqQC8g='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -469,6 +469,7 @@ body.focus .left, body.focus .right { display: none; }
     <ul id="toolList"></ul>
     <p class="empty" id="toolsEmpty" data-i18n="tools_empty"></p>
   </section>
+  <button class="btn" id="pairRenew" type="button" data-i18n="pair_renew" hidden></button>
   <form class="token-box" id="tokenBox" hidden>
     <label for="tokenInput" data-i18n="token_label"></label>
     <input class="input" id="tokenInput" type="password" autocomplete="off">
@@ -552,6 +553,16 @@ body.focus .left, body.focus .right { display: none; }
 (() => {
   /** Ekranda görünen ad: yalnız burada yazılır. */
   const ASSISTANT_NAME = "Asistan";
+
+  /**
+   * Eşleme kodu (contract.md, "Kaynak"; dil tanımı 28.2b): Dost tarayıcıyı `#p=<kod>` ile açar. Kod yalnız bu biçimle
+   * okunur ve her şeyden önce adresten silinir; değer DOM'a, metne, günlüğe girmez. Başka parça yok sayılır.
+   */
+  const PAIR_CODE = (() => {
+    const match = /^#p=([A-Za-z0-9_-]{43})$/.exec(location.hash);
+    if (location.hash !== "") history.replaceState(null, "", location.pathname);
+    return match ? match[1] : "";
+  })();
 
   const PROTOCOL_VERSION = 2;
   const MAX_EVENT_BYTES = 1024 * 1024; // contract.md: bir olayın sınırı
@@ -696,7 +707,7 @@ body.focus .left, body.focus .right { display: none; }
     state: "idle",
     mic: false,
     progress: /** @type {number|null} */ (null),
-    conn: "connecting", // connecting, open, reconnecting, auth, forbidden, rejected, mismatch
+    conn: "connecting", // connecting, open, reconnecting, auth, forbidden, rejected, mismatch, pair_invalid, pair_used, lost
     connValues: /** @type {Record<string, unknown>} */ ({}),
     model: "",
     tools: /** @type {{name: string, irreversible: boolean}[]} */ ([]),
@@ -710,6 +721,36 @@ body.focus .left, body.focus .right { display: none; }
     filter: "",
     token: "",
   };
+
+  /**
+   * Belirteç sekmenin oturum belleğinde (contract.md): anahtar kapıya bağlı, içinde yalnız belirteç; kalıcı depoya
+   * (`localStorage`, çerez) yazılmaz; `401`'de ve sürüm uyuşmazlığında silinir. Depo kapalıysa belirteç bellekte kalır.
+   */
+  const TOKEN_KEY = `dost-token-${location.port}`;
+  function loadToken() {
+    try {
+      return sessionStorage.getItem(TOKEN_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+  /** @param {string} token */
+  function saveToken(token) {
+    ui.token = token;
+    try {
+      sessionStorage.setItem(TOKEN_KEY, token);
+    } catch {
+      // depo kapalı: belirteç yalnız bellekte
+    }
+  }
+  function dropToken() {
+    ui.token = "";
+    try {
+      sessionStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // depo kapalı
+    }
+  }
 
   const stream = byId("stream");
   const composer = byId("composer");
@@ -1188,6 +1229,7 @@ body.focus .left, body.focus .right { display: none; }
       return;
     }
     if (event.v !== PROTOCOL_VERSION) {
+      dropToken();
       client.refuse("mismatch", { got: String(event.v), want: PROTOCOL_VERSION });
       return;
     }
@@ -1935,7 +1977,7 @@ body.focus .left, body.focus .right { display: none; }
         /** @param {number} status */
         closed(status) {
           if (!live()) return;
-          if (status === 401) refuse("auth");
+          if (status === 401) unauthorized();
           else if (status === 403) refuse("forbidden");
           else retry();
         },
@@ -1948,7 +1990,14 @@ body.focus .left, body.focus .right { display: none; }
       setConn(phase, values);
     }
 
-    return { connect, refuse, retry };
+    /** `401`: belirteç vardıysa geçersizdir (Dost yeniden açıldı), silinir; yoksa kullanıcı girer (kutu). */
+    function unauthorized() {
+      const had = ui.token !== "";
+      dropToken();
+      refuse(had ? "lost" : "auth");
+    }
+
+    return { connect, refuse, retry, unauthorized };
   })();
 
   function newId() {
@@ -1965,7 +2014,7 @@ body.focus .left, body.focus .right { display: none; }
     } catch {
       return { ok: false, error: { code: "connection_lost" } };
     }
-    if (reply.status === 401) client.refuse("auth");
+    if (reply.status === 401) client.unauthorized();
     const json = reply.json;
     if (json && json.status === "accepted") return { ok: true };
     return { ok: false, error: (json && json.error) || { code: "bad_request" } };
@@ -2024,6 +2073,7 @@ body.focus .left, body.focus .right { display: none; }
     }
     byId("bannerMock").hidden = !mock;
     byId("tokenBox").hidden = ui.conn !== "auth";
+    byId("pairRenew").hidden = mock !== null || !["pair_invalid", "lost"].includes(ui.conn);
     const model = byId("modelText");
     if (ui.model) {
       delete model.dataset.i18n;
@@ -2181,9 +2231,12 @@ body.focus .left, body.focus .right { display: none; }
     byId("tokenBox").addEventListener("submit", (event) => {
       event.preventDefault();
       const input = byId("tokenInput");
-      ui.token = input.value;
+      saveToken(input.value);
       input.value = "";
       client.connect();
+    });
+    byId("pairRenew").addEventListener("click", () => {
+      renew();
     });
     setInterval(refreshCards, 500);
   }
@@ -2198,6 +2251,51 @@ body.focus .left, body.focus .right { display: none; }
     policy.httpEquiv = "Content-Security-Policy";
     policy.content = "script-src 'none'";
     document.head.append(policy);
+  }
+
+  // ---------- Eşleme (contract.md, "Kaynak") ----------
+
+  const pairOptions = {
+    cache: /** @type {RequestCache} */ ("no-store"),
+    credentials: /** @type {RequestCredentials} */ ("omit"),
+    referrerPolicy: /** @type {ReferrerPolicy} */ ("no-referrer"),
+  };
+
+  /** Önden işlenen sayfa kodu tüketmez: sayfa gösterilene kadar bekler (DENETİM 494 N3). */
+  function whenShown() {
+    const doc = /** @type {Document & {prerendering?: boolean}} */ (document);
+    if (!doc.prerendering) return Promise.resolve();
+    return new Promise((resolve) => document.addEventListener("prerenderingchange", () => resolve(undefined), { once: true }));
+  }
+
+  /** Kodla belirteci alır (`GET /pair`); olmazsa nedeni gösterir. Kullanılmış kodda yeniden açma yoktur. @param {string} code */
+  async function pair(code) {
+    await whenShown();
+    let response;
+    try {
+      response = await fetch(`${base}/pair`, { ...pairOptions, headers: { "Dost-Pair-Code": code } });
+    } catch {
+      setConn("pair_invalid");
+      return;
+    }
+    const json = await response.json().catch(() => null);
+    if (response.ok && json && typeof json.token === "string" && json.token !== "") {
+      saveToken(json.token);
+      client.connect();
+      return;
+    }
+    setConn(json && json.error && json.error.code === "pair_code_used" ? "pair_used" : "pair_invalid");
+  }
+
+  /** Dost'tan yeni kodlu bir sekme ister (`GET /pair/renew`); `202` dışında bir cevapta belirteç kutusu görünür. */
+  async function renew() {
+    let status = 0;
+    try {
+      status = (await fetch(`${base}/pair/renew`, { ...pairOptions, headers: { "Dost-Pair-Renew": "1" } })).status;
+    } catch {
+      status = 0;
+    }
+    if (status !== 202) setConn("auth");
   }
 
   function start() {
@@ -2231,7 +2329,9 @@ body.focus .left, body.focus .right { display: none; }
       return;
     }
     renderStatus();
-    client.connect();
+    if (!mock) ui.token = loadToken();
+    if (!mock && PAIR_CODE !== "") pair(PAIR_CODE);
+    else client.connect();
     if (mock) setTimeout(() => mock.play("conversation"), 500);
   }
 
