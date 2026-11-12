@@ -1,0 +1,276 @@
+# TR 4
+# Dost'un model yuvası, kurulu takımı ve yükleme işareti (tek tık B). asistan.tr kullanır, yuva_test.tr modelsiz sınar.
+# - Yuva yüklü takımı tutar; modelin kendisi programın tek bir alanındadır (TR'de tip parametreli yapı henüz yok,
+#   status 6.10). Yükleme bir işlevin içinde koşar (`yükle`): görev ve ara yereller o işlevde kalır, sonucu o alana
+#   koyan `iş`'tir. Program modeli her kullanımda o alandan okur, ayrı bir adla tutmaz.
+# - Dost klasörü ayar dosyasının klasörüdür; yükleme işareti (`yukleme.json`) ve modeller (`modeller/<kimlik>/`) orada.
+# - Bir girdi, katalogdaki her dosyası `modeller/<kimlik>/<target>` olarak varsa ve boyu katalogdakine eşitse
+#   kuruludur. sha256 ve revizyon indirmenin kaydıyla gelir; bu tanımın yerine geçer.
+TR_import "katalog"
+TR_import "tr/vits"
+TR_import "tr/whisper"
+TR_import "zincir"
+
+TR_const _İŞARET = "yukleme.json"
+
+# Takım: bir yüklemenin modelleri: dil modeli ve konuşma dilinin modelleri (yazıya çeviren, VAD, ses), dosya yollarıyla.
+# `giriş` dil modelinin katalog kimliğidir; komut satırından verilen yollarda "".
+TR_struct Takım {
+    giriş: TR_String
+    dil_modeli: TR_String
+    yazıcı: TR_String
+    vad: TR_String
+    ses: TR_String
+    dil: TR_String # Whisper'ın dil kodu
+    sistem: TR_String
+}
+
+# Kurulum: takımın kurulup kurulamadığı. Kurulamazsa `kod` sözleşmenin hata kodudur (`unknown_entry`,
+# `not_installed`), `değerler` onun değerleri.
+TR_struct Kurulum {
+    takım: Takım? = TR_none
+    kod: TR_String = ""
+    değerler: TR_JSON = TR_JSON({})
+}
+
+# Asistan: dil zinciri ile yazıya çeviren ve konuşan modeller; `dil` Whisper'ın dil kodu.
+TR_struct Asistan {
+    z: Zincir
+    yazıcı: TR_Whisper
+    ses: TR_Vits
+    dil: TR_String
+}
+
+# Yuva: yüklü takım; boşken TR_none.
+TR_struct Yuva {
+    takım: Takım? = TR_none
+}
+
+# İşaret: açılışta okunan yükleme işareti. `var` işaret dosyası vardı demektir (önceki yükleme yarıda kaldı);
+# okunamayan ya da bozuk işarette `giriş` TR_none'dır.
+TR_struct İşaret {
+    var: TR_Bool = TR_false
+    giriş: TR_String? = TR_none
+}
+
+TR_func dost_klasörü(ayar_yolu: TR_String) -> TR_String { TR_return TR_String(TR_Path(ayar_yolu).TR_parent) }
+
+TR_func girdi_klasörü(klasör: TR_String, kimlik: TR_String) -> TR_String { TR_return TR_String(TR_Path(klasör, "modeller", kimlik)) }
+
+# _ham: katalog dosyasının bir girdisi (katalog_oku denetledi); yoksa TR_none.
+TR_func _ham(kj: TR_JSON, kimlik: TR_String) -> TR_JSON? {
+    TR_for g TR_in kj["entries"] {
+        TR_if TR_String(g["id"]) == kimlik { TR_return g }
+    }
+    TR_return TR_none
+}
+
+# kurulu: girdinin her dosyası Dost klasöründe ve boyu katalogdakine eşit mi.
+TR_func kurulu(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Bool {
+    TR_var g = _ham(kj, kimlik)
+    TR_if g == TR_none { TR_return TR_false }
+    TR_for f TR_in g["source"]["files"] {
+        TR_var p = TR_Path(girdi_klasörü(klasör, kimlik), TR_String(f["target"]))
+        TR_if TR_not p.TR_exists TR_or p.TR_is_dir TR_or p.TR_size != TR_Int(f["bytes"]) { TR_return TR_false }
+    }
+    TR_return TR_true
+}
+
+# _tek_dosya: tek dosyalı girdinin (dil modeli, VAD) dosyasının yolu.
+TR_func _tek_dosya(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_String {
+    TR_var g = _ham(kj, kimlik)
+    TR_return TR_String(TR_Path(girdi_klasörü(klasör, kimlik), TR_String(g["source"]["files"][0]["target"])))
+}
+
+# takım_kur: `giriş` dil modeli ve ayarın konuşma dili için yüklenecek takım. Dil modeli katalogda değilse
+# `unknown_entry`; takımın bir girdisi kurulu değilse `not_installed` (değeri kurulu olmayan girdinin kimliği).
+TR_func takım_kur(k: Katalog, kj: TR_JSON, klasör: TR_String, giriş: TR_String, a: Ayar) -> Kurulum {
+    TR_var g = girdi_bul(k, giriş)
+    TR_if g == TR_none TR_or g.tür != "language_model" { TR_return Kurulum(kod: "unknown_entry", değerler: TR_JSON({"entry_id": giriş})) }
+    TR_var dil = kj["languages"][0]
+    TR_for d TR_in kj["languages"] {
+        TR_if TR_String(d["code"]) == a.konuşma_dili { dil = d }
+    }
+    TR_var vad = ""
+    TR_for e TR_in k.girdiler {
+        TR_if e.tür == "vad" TR_and vad == "" { vad = e.kimlik }
+    }
+    TR_var yazıcı = TR_String(dil["transcriber"])
+    TR_var ses = TR_String(dil["voice"])
+    TR_for kimlik TR_in [giriş, yazıcı, vad, ses] {
+        TR_if TR_not kurulu(kj, klasör, kimlik) { TR_return Kurulum(kod: "not_installed", değerler: TR_JSON({"entry_id": kimlik})) }
+    }
+    TR_var sistem = TR_if TR_String(a.sistem["source"]) == "user" { TR_String(a.sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }
+    TR_return Kurulum(takım: Takım(giriş: giriş, dil_modeli: _tek_dosya(kj, klasör, giriş), yazıcı: girdi_klasörü(klasör, yazıcı),
+        vad: _tek_dosya(kj, klasör, vad), ses: girdi_klasörü(klasör, ses), dil: TR_String(dil["whisper_language"]), sistem: sistem))
+}
+
+# takım_ayarı: takımın kurulduğu ayar; ayar dosyası yoksa (ilk kurulum) katalogun ilk dili ve dilin sistem iletisi.
+TR_func takım_ayarı(k: Katalog, a: Ayar?) -> Ayar {
+    TR_if a != TR_none { TR_return a }
+    TR_var dil = TR_if k.diller.TR_length > 0 { k.diller[0].kod } TR_else { "" }
+    TR_return Ayar(dil_modeli: "", konuşma_dili: dil, sistem: TR_JSON({"source": "catalog"}), bağlam: ÖNTANIMLI_BAĞLAM, kapı: ÖNTANIMLI_KAPI)
+}
+
+# yüklenebilirler: her dil modelinin `model_load`'daki cevabı: yüklenebiliyorsa boş nesne, değilse sözleşmenin hata
+# kodu ve değerleri (`{"code": ..., "values": ...}`). Ekran kararını bundan verir (ekran.tr, `karar`).
+TR_func yüklenebilirler(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_String, TR_JSON] {
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {}
+    TR_for g TR_in k.girdiler {
+        TR_if g.tür != "language_model" { TR_continue }
+        TR_var c = takım_kur(k, kj, klasör, g.kimlik, a)
+        d[g.kimlik] = TR_if c.kod == "" { TR_JSON({}) } TR_else { TR_JSON({"code": c.kod, "values": c.değerler}) }
+    }
+    TR_return d
+}
+
+# dil_cevapları: her konuşma dilinin `settings_set {key: speech_language}` cevabı: boş nesne ya da hata kodu ve
+# değerleri. Kullanıcının sistem iletisi başka dil içinse `setting_invalid` (`system_prompt_language`; ekran soruyu
+# sorar); dilin yazıcısı ya da sesi kurulu değilse `not_installed` (dil değişmez).
+TR_func dil_cevapları(kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_String, TR_JSON] {
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {}
+    TR_for dil TR_in kj["languages"] {
+        TR_var kod = TR_String(dil["code"])
+        d[kod] = TR_JSON({})
+        TR_if TR_String(a.sistem["source"]) == "user" TR_and TR_String(a.sistem["language"]) != kod {
+            d[kod] = TR_JSON({"code": "setting_invalid", "values": {"key": "speech_language", "reason": "system_prompt_language"}})
+            TR_continue
+        }
+        TR_for kimlik TR_in [TR_String(dil["transcriber"]), TR_String(dil["voice"])] {
+            TR_if TR_not kurulu(kj, klasör, kimlik) TR_and TR_Dict(d[kod]).TR_length == 0 {
+                d[kod] = TR_JSON({"code": "not_installed", "values": {"entry_id": kimlik}})
+            }
+        }
+    }
+    TR_return d
+}
+
+# dil_takımı: takımın konuşma dili `kod` olan kopyası: yazıcı, ses, Whisper'ın dili ve (katalogdan geliyorsa) sistem
+# iletisi yeni dilin; dil modeli ve VAD aynı.
+TR_func dil_takımı(t: Takım, kj: TR_JSON, klasör: TR_String, sistem: TR_JSON, kod: TR_String) -> Takım {
+    TR_var dil = kj["languages"][0]
+    TR_for d TR_in kj["languages"] {
+        TR_if TR_String(d["code"]) == kod { dil = d }
+    }
+    TR_var ileti = TR_if TR_String(sistem["source"]) == "user" { TR_String(sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }
+    TR_return Takım(giriş: t.giriş, dil_modeli: t.dil_modeli, yazıcı: girdi_klasörü(klasör, TR_String(dil["transcriber"])), vad: t.vad,
+        ses: girdi_klasörü(klasör, TR_String(dil["voice"])), dil: TR_String(dil["whisper_language"]), sistem: ileti)
+}
+
+# dil_değiştir: konuşma dilini değiştirir. Yeni dilin modelleri eskiler yerinde dururken `iş` ile yüklenir; `iş` düşerse
+# hiçbir şey değişmez, hata metin olarak döner (ekranda `model_load_failed`). Yüklenirse `uygula` yenileri eskilerin
+# yerine koyar (tek atama; önbellek ve geçmiş sıfırlanır) ve yeni takım yuvaya girer.
+TR_func dil_değiştir(y: Yuva, t: Takım, iş: (Takım) -> TR_NoneType, uygula: () -> TR_NoneType) -> TR_String? {
+    TR_try {
+        iş(t)
+    } TR_catch h {
+        TR_return TR_String(h)
+    }
+    uygula()
+    y.takım = t
+    TR_return TR_none
+}
+
+# dili_uygula: yüklü asistanın dili `eski` takımdan `yeni`ye: yeni ses (ve yazıcı başkaysa yeni Whisper) eskiler
+# yerinde dururken yüklenir (dil_değiştir); sonra tek atamayla yerleşir, sistem iletisi yenilenir, önbellek ve geçmiş
+# sıfırlanır, sistem iletisi önbelleğe okunur (ısıt).
+TR_func dili_uygula(y: Yuva, a: Asistan, eski: Takım, yeni: Takım) -> TR_String? {
+    TR_var yeni_ses: TR_Vits? = TR_none
+    TR_var yeni_yazıcı: TR_Whisper? = TR_none
+    TR_return dil_değiştir(y, yeni, (t) => {
+        TR_if t.ses != eski.ses { yeni_ses = TR_pretrained_vits(t.ses) }
+        TR_if t.yazıcı != eski.yazıcı { yeni_yazıcı = TR_pretrained_whisper(t.yazıcı) }
+    }) {
+        TR_var ses = yeni_ses
+        TR_if ses != TR_none { a.ses = ses }
+        TR_var yazıcı = yeni_yazıcı
+        TR_if yazıcı != TR_none { a.yazıcı = yazıcı }
+        a.dil = yeni.dil
+        a.z.sistem = yeni.sistem
+        a.z.yeni_konuşma()
+        ısıt(a.z)
+    }
+}
+
+# ayar_olayı: `settings` olayının verisi: ayar dosyasının alanları, `v` dışında (sözleşme, `settings`).
+TR_func ayar_olayı(j: TR_JSON) -> TR_JSON {
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {}
+    TR_for ad, değer TR_in TR_Dict(j) {
+        TR_if ad != "v" { d[ad] = değer }
+    }
+    TR_return TR_JSON(d)
+}
+
+TR_func _iki(n: TR_Int) -> TR_String { TR_return TR_if n < 10 { "0\(n)" } TR_else { "\(n)" } }
+
+# utc_yazısı: Unix zamanı (ms) UTC'de RFC 3339 biçiminde, saniyeye kadar. Gün sayısından takvim tarihi proleptik
+# Gregoryen takvimle (400 yıllık döngü); 1970'ten önceki zamanlar için değil.
+TR_func utc_yazısı(ms: TR_Int) -> TR_String {
+    TR_var s = ms // 1000
+    TR_var sn = s % 86400
+    TR_var z = s // 86400 + 719468 # 0000-03-01'den gün
+    TR_var döngü = z // 146097
+    TR_var dg = z - döngü * 146097
+    TR_var dy = (dg - dg // 1460 + dg // 36524 - dg // 146096) // 365
+    TR_var yıl = dy + döngü * 400
+    TR_var yg = dg - (365 * dy + dy // 4 - dy // 100)
+    TR_var m = (5 * yg + 2) // 153
+    TR_var gün = yg - (153 * m + 2) // 5 + 1
+    TR_var ay = TR_if m < 10 { m + 3 } TR_else { m - 9 }
+    TR_if ay <= 2 { yıl += 1 }
+    TR_return "\(yıl)-\(_iki(ay))-\(_iki(gün))T\(_iki(sn // 3600)):\(_iki(sn % 3600 // 60)):\(_iki(sn % 60))Z"
+}
+
+TR_func işaret_yolu(klasör: TR_String) -> TR_String { TR_return TR_String(TR_Path(klasör, _İŞARET)) }
+
+# işaret_yaz: yükleme başlarken işaret; geçici adla yazılıp taşınır (kesilen yazma son adı bozmaz).
+TR_func işaret_yaz(klasör: TR_String, giriş: TR_String) {
+    TR_if TR_not TR_Path(klasör).TR_exists { TR_make_dir(klasör) }
+    TR_var yol = işaret_yolu(klasör)
+    TR_var geçici = "\(yol).tmp"
+    TR_write_file(geçici, TR_json_string(TR_JSON({"entry": giriş, "started_at": utc_yazısı(TR_time_ms())})) + "\n")
+    TR_move(geçici, yol, TR_overwrite: TR_true)
+}
+
+TR_func işaret_sil(klasör: TR_String) {
+    TR_var yol = işaret_yolu(klasör)
+    TR_if TR_Path(yol).TR_exists { TR_remove(yol) }
+}
+
+# işareti_al: açılışta işaret varsa okur ve siler (bildirildikten sonra yeniden söylenmesin). Okunamayan, JSON
+# olmayan ya da `entry`'si metin olmayan işaret de "yarıda kaldı" sayılır, girdisizdir.
+TR_func işareti_al(klasör: TR_String) -> İşaret {
+    TR_var yol = işaret_yolu(klasör)
+    TR_if TR_not TR_Path(yol).TR_exists { TR_return İşaret() }
+    TR_var i = İşaret(var: TR_true)
+    TR_try {
+        TR_var j = TR_json_parse(TR_read_file(yol))
+        TR_var e = j.TR_get("entry")
+        TR_if e != TR_none TR_and TR_Type(e) == TR_String { i.giriş = TR_String(e) }
+    } TR_catch h {
+        i.giriş = TR_none
+    }
+    TR_remove(yol)
+    TR_return i
+}
+
+# yükle: takımı yükler. Yuva önce boşalır (`boşalt` eski modeli bırakır), işaret yazılır, `iş` bir görevde koşar ve
+# yüklediğini programın alanına koyar; beklerken `bekle` çağrılır (komutlar). Başarıda takım yuvaya girer, işaret
+# silinir, TR_none döner. Görevin hatası yakalanır: işaret silinir, yuva boş kalır, hata metin olarak döner (ekranda
+# `model_load_failed`).
+TR_func yükle(y: Yuva, klasör: TR_String, t: Takım, boşalt: () -> TR_NoneType, iş: (Takım) -> TR_NoneType, bekle: () -> TR_NoneType) -> TR_String? {
+    boşalt()
+    y.takım = TR_none
+    işaret_yaz(klasör, t.giriş)
+    TR_var görev = TR_async iş(t)
+    TR_for TR_not görev.TR_done() { bekle() }
+    TR_try {
+        görev.TR_wait()
+        y.takım = t
+    } TR_catch h {
+        işaret_sil(klasör)
+        TR_return TR_String(h)
+    }
+    işaret_sil(klasör)
+    TR_return TR_none
+}

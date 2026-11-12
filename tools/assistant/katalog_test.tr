@@ -227,11 +227,12 @@ TR_test "gereken bellek: ölçülü bağlamda ikinci terim sıfır, küçükte e
     TR_var tr = küçükler(k, a)
     TR_assert_equal(600000000 + 10000000 + 300000000, tr.bayt)
     TR_assert_equal(600000000 + 10000000 + 400000000, küçükler(k, TR_none).bayt)
-    TR_assert_equal(5000000000 + kv * 8192 + PAY + tr.bayt, gereken(g, 8192, tr))
-    TR_assert_equal(2 * kv * 4096, gereken(g, 8192, tr) - gereken(g, 4096, tr))
+    # geçici = kv × bağlam × 6596 / 2304 (ölçülen takas farkı; katalog.tr, gereken).
+    TR_assert_equal(5000000000 + kv * 8192 * 6596 // 2304 + PAY + tr.bayt, gereken(g, 8192, tr))
+    TR_assert_equal(kv * 4096 + kv * 4096 * 6596 // 2304, gereken(g, 8192, tr) - gereken(g, 4096, tr))
     # Ölçüsüz dil modeli: ağırlıklar + kv × bağlam; önerilmez.
     TR_var ölçüsüz = katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(), "\"measured\":[{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]", "\"measured\":[]")))
-    TR_assert_equal(2497280256 + kv * 8192 + kv * 8192 + PAY + tr.bayt, gereken(ölçüsüz.girdiler[0], 8192, tr))
+    TR_assert_equal(2497280256 + kv * 8192 + kv * 8192 * 6596 // 2304 + PAY + tr.bayt, gereken(ölçüsüz.girdiler[0], 8192, tr))
     TR_assert_equal("", öneri(uygunluk(ölçüsüz, a, 1099511627776, 8192)))
     # Ölçüsüz küçük model: ağırlıkları sayılır, dil modeli önerilmez.
     TR_var küçük_ölçüsüz = katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(), "\"measured\":[{\"context\":0,\"private_bytes\":10000000,\"measured_on\":\"sınama\"}]", "\"measured\":[]")))
@@ -297,9 +298,9 @@ TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca
     TR_var satırlar = kur(kat, "", TR_String(klasör), 17179869184, TR_none, TR_false)
     TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=8192", satırlar[0])
     TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=4096", kur(kat, "", TR_String(klasör), 17179869184, 4096, TR_false)[0])
-    # 5e9 + 294912 × 8192 (geçici) + 1 GiB + en büyük dilin küçükleri (en: 6e8 + 1e7 + 4e8); eşik 0,6 × 16 GiB.
-    TR_assert_equal("UYGUNLUK qwen3-4b-q4km fits gereken_bayt=9499660928 esik_bayt=10307921510 olcu=olculdu", satırlar[1])
-    TR_assert_equal("ONERILEN qwen3-4b-q4km", satırlar[2])
+    # 5e9 + 294912 × 8192 × 6596 / 2304 (geçici) + 1 GiB + en büyük dilin küçükleri (en: 6e8 + 1e7 + 4e8); eşik 0,6 × 16 GiB.
+    TR_assert_equal("UYGUNLUK qwen3-4b-q4km tight gereken_bayt=14000149120 esik_bayt=10307921510 olcu=olculdu", satırlar[1])
+    TR_assert_equal("ONERILEN qwen3-4b-q4km fit=tight", satırlar[2])
     TR_assert_equal(3, satırlar.TR_length)
     TR_assert(TR_not TR_Path(ayar).TR_exists)
     TR_var büyük = kur(kat, ayar, TR_none, 34359738368, TR_none, TR_true)
@@ -327,6 +328,14 @@ TR_test "depodaki katalog.json okunur ve tutarlıdır" {
         TR_assert(TR_String(g["verified"]["trlang"]) != "")
         TR_assert(TR_List(g["memory"]["measured"]).TR_length > 0, TR_String(g["id"]))
     }
+}
+
+TR_test "depodaki katalogla Qwen3-4B 8192 bağlamda: 16 GiB too_large, 24 GiB tight, 32 GiB fits (geçici ölçülen takas farkı)" {
+    TR_var k = katalog_oku("tools/assistant/katalog.json")
+    TR_var g = 1073741824
+    TR_assert_equal(["too_large", "tight", "fits"], [uygunluk(k, TR_none, 16 * g, 8192)[0].uyum,
+        uygunluk(k, TR_none, 24 * g, 8192)[0].uyum, uygunluk(k, TR_none, 32 * g, 8192)[0].uyum])
+    TR_assert_equal(18132520960, uygunluk(k, TR_none, 16 * g, 8192)[0].gereken)
 }
 
 # _dil_modeli: örnek katalogun dil modeli girdisinin metni.
@@ -446,10 +455,10 @@ TR_test "bağlam sınırı: kısa sınırlı dil modeli too_long, önerilmez; uz
     TR_var satırlar = kur(kat, _yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
     TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=8192", satırlar[0])
     TR_assert_equal("UYGUNLUK qwen3-kisa too_long baglam_siniri=4096", satırlar[1])
-    TR_assert(satırlar[2].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
-    TR_assert_equal("ONERILEN qwen3-4b-q4km", satırlar[3])
+    TR_assert(satırlar[2].TR_starts_with("UYGUNLUK qwen3-4b-q4km tight "))
+    TR_assert_equal("ONERILEN qwen3-4b-q4km fit=tight", satırlar[3])
     TR_var l = uygunluk(katalog_oku(kat), TR_none, 17179869184, 8192)
-    TR_assert_equal(["too_long", "fits"], [l[0].uyum, l[1].uyum])
+    TR_assert_equal(["too_long", "tight"], [l[0].uyum, l[1].uyum])
     TR_assert_equal(0, l[0].gereken)
     # Bağlam ikisinin sınırının da altındaysa ikisi de hesaplanır.
     TR_assert_equal(["fits", "fits"], [uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[0].uyum,

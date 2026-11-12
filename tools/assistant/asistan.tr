@@ -27,6 +27,8 @@ TR_import "tr/whisper"
 TR_import "zincir"
 TR_import "ekran"
 TR_import "deneme"
+TR_import "katalog"
+TR_import "yuva"
 
 TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
@@ -45,7 +47,7 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
     "en_çok_parça": 160, "bağlam": 8192, "önbelleksiz": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
-    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr"},
+    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "ayar": "", "katalog": "katalog.json"},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
@@ -57,7 +59,9 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "ekran": "canlı kipte ekranın kapısı (127.0.0.1; 0: işletim sistemi seçer; verilmezse ekran yok)",
         "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)",
         "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok",
-        "konuşma_dili": "Whisper'ın dil kodu (tr, en, ...); --ses_modeli ve --sistem aynı dilde verilir"})
+        "konuşma_dili": "Whisper'ın dil kodu (tr, en, ...); --ses_modeli ve --sistem aynı dilde verilir",
+        "ayar": "ekranlı kipte ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json; klasörü Dost klasörüdür (modeller, yükleme işareti)",
+        "katalog": "ekranlı kipte model kataloğu (JSON); --dil_modeli verilirse ekranlı kip katalogu ve ayarı okumaz"})
 
 TR_func _gerekli(ad: TR_String) -> TR_String {
     TR_var v = TR_String(ayar[ad])
@@ -74,13 +78,6 @@ TR_func deneme_yaz(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son
     TR_if d != TR_none { d.tur(t, kaynak, kesit, t0, son, kod) }
 }
 
-# Asistan: dil zinciri ile yazıya çeviren ve konuşan modeller.
-TR_struct Asistan {
-    z: Zincir
-    yazıcı: TR_Whisper
-    ses: TR_Vits
-}
-
 # asistan_kur: modeller yüklenir, sistem iletisi önbelleğe okunur (ısıt): ilk tur onu yeniden okumaz.
 # Konuşma dili Türkçe değilken öntanımlı sistem iletisi (Türkçe cevap ister) sessizce kalmaz;
 # yan etkilerden (deneme kaydı, belirteç, sunucu) önce, kipin hemen ardından çağrılır.
@@ -91,12 +88,18 @@ TR_func _dil_denetle() {
     }
 }
 
-TR_func asistan_kur() -> Asistan {
-    TR_var dil = _gerekli("dil_modeli")
+# komut_satırı_takımı: --dil_modeli, --whisper, --vad, --ses_modeli, --konuşma_dili ve --sistem'den takım (dosya ve canlı
+# kip; ekranlı kipte --dil_modeli verilirse ayarın ve katalogun yerine geçer).
+TR_func komut_satırı_takımı() -> Takım {
+    TR_return Takım(giriş: "", dil_modeli: _gerekli("dil_modeli"), yazıcı: _gerekli("whisper"), vad: _gerekli("vad"),
+        ses: _gerekli("ses_modeli"), dil: TR_String(ayar["konuşma_dili"]), sistem: TR_String(ayar["sistem"]))
+}
+
+TR_func asistan_kur(t: Takım) -> Asistan {
     TR_var başla = şimdi()
-    TR_var z = Zincir(p: TR_load_tokenizer(dil), model: TR_pretrained_gguf(dil), sistem: TR_String(ayar["sistem"]),
+    TR_var z = Zincir(p: TR_load_tokenizer(t.dil_modeli), model: TR_pretrained_gguf(t.dil_modeli), sistem: t.sistem,
         en_çok: TR_Int(ayar["en_çok_parça"]), bağlam: TR_Int(ayar["bağlam"]), önbelleksiz: TR_Bool(ayar["önbelleksiz"]))
-    TR_var a = Asistan(z: z, yazıcı: TR_pretrained_whisper(_gerekli("whisper")), ses: TR_pretrained_vits(_gerekli("ses_modeli")))
+    TR_var a = Asistan(z: z, yazıcı: TR_pretrained_whisper(t.yazıcı), ses: TR_pretrained_vits(t.ses), dil: t.dil)
     z.yeni_konuşma()
     TR_print("OLCU_YUKLEME ms=\(şimdi() - başla)")
     ısıt(z)
@@ -147,7 +150,7 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     TR_if söz != TR_none {
         yazı = söz
     } TR_else TR_if kesit != TR_none {
-        yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: TR_String(ayar["konuşma_dili"])).TR_text
+        yazı = a.yazıcı.TR_transcribe(TR_Sound(kesit_cihazda(kesit).TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: a.dil).TR_text
     }
     t.yazı_ms = şimdi() - t0
     t.duyulan = yazı
@@ -180,7 +183,7 @@ TR_func dosya_kipi(a: Asistan) {
     TR_for yol TR_in yollar {
         TR_var ses = TR_read_wav(yol)
         TR_if ses.TR_sample_rate != _HIZ TR_or ses.TR_samples.TR_shape[0] != 1 { TR_throw "\(yol): 16 kHz tek kanallı WAV bekleniyor" }
-        TR_var kesit = kesitle(kesici, ses.TR_samples[0])
+        TR_var kesit = kesitle(kesici, işlemcide(ses.TR_samples[0]))
         algılayıcı.TR_reset_state()
         TR_if kesit == TR_none {
             TR_print("söz yok:", TR_Path(yol).TR_name)
@@ -253,7 +256,7 @@ TR_func canlı_kip(a: Asistan) {
             TR_print("OLCU_MIKROFON tur=\(z.tur) acilis_ms=\(şimdi() - açılış)")
             dinlemede = TR_true
         }
-        TR_return TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
+        TR_return çerçeve_örnekleri(parça)
     }
     TR_func aç() {
         mikrofon.TR_cancel()
@@ -272,29 +275,55 @@ TR_func canlı_kip(a: Asistan) {
         sürsün: () => en_çok_tur == 0 TR_or z.tur < en_çok_tur, kuyruk_ms: _KUYRUK_MS))
 }
 
-# ekranlı_kip: canlı kip, ekranla (`--ekran`). Açılış sırası: belirteç üretilir, --belirteç_dosyası'na yalnız sahibine
-# yazılır, sunucu açılır, adres ve dosyanın yolu yazılır (belirtecin kendisi hiçbir yere yazılmaz), sonra modeller
-# bir görevde yüklenir; o sürede ekran `loading` görür, metin turu `not_ready` alır. Mikrofon kapalı başlar.
+# ekranlı_kip: canlı kip, ekranla (`--ekran`). Açılış sırası: belirteç bellekte üretilir, sunucu onunla açılır (kapı
+# tutulamazsa açılış durur, dosyaya dokunulmaz), belirteç --belirteç_dosyası'na yalnız sahibine yazılır, adres ve
+# dosyanın yolu yazılır (belirtecin kendisi hiçbir yere yazılmaz), sonra modeller
+# yuvaya yüklenir (yuva.tr): ayar dosyası ya da kurulu takım yoksa ekran `setup` görür ve `model_load`'u bekler;
+# yükleme sürerken `loading`, metin turu `not_ready` alır; önceki yükleme yarıda kaldıysa (işaret) önce
+# `model_load_failed`. Model her kullanımda yuvanın alanından okunur (`yüklü`). Mikrofon kapalı başlar.
 # Komutların kararı ana döngüdedir (`işle`): çerçeveler arasında, mikrofon kapalıyken 50 ms'de bir, tur sürerken
 # `tur_yürüt`'ün bakışında. Döngü `dinle`'dir; metin turları ve mikrofonun açılması `ara`'dadır. Cevaplanan tur sayısını verir.
 TR_func ekranlı_kip() -> TR_Int {
     TR_var dosya = _gerekli("belirteç_dosyası")
-    TR_var belirteç = belirteç_yaz(dosya)
-    TR_var e = ekran_kur(ekran_klasörü(), TR_Path(_gerekli("dil_modeli")).TR_name)
-    TR_var s = ekran_aç(e, TR_Int(ayar["ekran"]), belirteç)
+    TR_var elle = TR_String(ayar["dil_modeli"]) != ""
+    TR_var e = ekran_kur(ekran_klasörü(), TR_if elle { TR_Path(TR_String(ayar["dil_modeli"])).TR_name } TR_else { "" })
+    TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
     TR_defer { s.TR_close() }
     TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
-    TR_var yük = TR_async asistan_kur()
-    TR_for TR_not yük.TR_done() {
-        komutları_işle(e)
-        TR_sleep(0.05)
+    TR_var ayar_dosyası = ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA"))
+    TR_var klasör = dost_klasörü(ayar_dosyası)
+    TR_var önceki = işareti_al(klasör)
+    TR_if önceki.var {
+        TR_var g = önceki.giriş
+        e.gönder("error", TR_JSON({"code": "model_load_failed", "values": TR_if g == TR_none { TR_JSON({}) } TR_else { TR_JSON({"model": g}) }, "fatal": TR_false}))
     }
-    TR_var a = yük.TR_wait()
-    TR_var z = a.z
-    e.hazır = TR_true
-    e.boşta()
-    TR_var algılayıcı = TR_pretrained_vad(_gerekli("vad"))
-    TR_var kesici = TR_SpeechSplitter(algılayıcı)
+    TR_var k = Katalog(girdiler: [], diller: [])
+    TR_var kj = TR_JSON({})
+    TR_var a_ayar: Ayar? = TR_none
+    TR_var ayar_verisi: TR_Dict[TR_String, TR_JSON]? = TR_none
+    TR_if TR_not elle {
+        TR_var yol = TR_String(ayar["katalog"])
+        k = katalog_oku(yol)
+        kj = dosya_oku(yol, "katalog")
+        a_ayar = ayar_oku(ayar_dosyası, k)
+        TR_if a_ayar != TR_none { ayar_verisi = TR_Dict(ayar_olayı(dosya_oku(ayar_dosyası, "ayar"))) }
+    }
+    TR_var etkin = takım_ayarı(k, a_ayar)
+    e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
+    e.konuşma_dili = etkin.konuşma_dili
+    TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
+    TR_func ayarı_gönder() {
+        TR_var v = ayar_verisi
+        TR_if v != TR_none { e.gönder("settings", TR_JSON(v)) }
+    }
+    ayarı_gönder()
+    TR_var y = Yuva()
+    TR_var yüklü = Yüklü()
+    TR_var önceki_turlar = 0
+    TR_func cevaplanan() -> TR_Int {
+        TR_var a = yüklü.a
+        TR_return önceki_turlar + TR_if a == TR_none { 0 } TR_else { a.z.tur }
+    }
     TR_var en_çok_tur = TR_Int(ayar["en_çok_tur"])
     TR_var başlangıç = -1 # sahte mikrofonun WAV'ı ilk açılıştan bu yana geçen süreden açılır
     TR_var açılış = şimdi()
@@ -314,10 +343,81 @@ TR_func ekranlı_kip() -> TR_Int {
             TR_if e.tur == "" { e.boşta() } TR_else { e.durum("thinking") }
         }
     }
+    # takımı_yükle: yuvaya yükler (yuva.tr, `yükle`); beklerken komutlar işlenir. Hata yakalanır: `model_load_failed`,
+    # yuva boş, durum `setup`.
+    TR_func takımı_yükle(t: Takım) {
+        önceki_turlar = cevaplanan()
+        e.hazır = TR_false
+        e.yükleniyor(t.giriş)
+        TR_var hata = yükle(y, klasör, t, () => {
+            yüklü.a = TR_none
+            yüklü.kesici = TR_none
+            yüklü.algılayıcı = TR_none
+        }, (t) => {
+            TR_var a = asistan_kur(t)
+            TR_var algılayıcı = TR_pretrained_vad(t.vad)
+            yüklü.kesici = TR_SpeechSplitter(algılayıcı)
+            yüklü.algılayıcı = algılayıcı
+            yüklü.a = a
+        }) {
+            komutları_işle(e)
+            TR_sleep(0.05)
+        }
+        TR_if hata == TR_none {
+            e.hazır = TR_true
+            e.boşta()
+            TR_return
+        }
+        TR_print("YÜKLEME HATASI:", hata)
+        yüklü.a = TR_none
+        e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": t.giriş}, "fatal": TR_false}))
+        e.durum("setup")
+    }
+    # ayarı_uygula: kabul edilen `settings_set` (ekran.tr, `ayar_kararı`). Model yüklüyse dil değişimi atomiktir
+    # (yuva.tr, `dil_değiştir`): yeni ses (ve başka yazıcıysa Whisper) eskiler yerinde dururken yüklenir; düşerse
+    # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır.
+    # Ayar dosyasına yazılmaz; `settings` olayı yeni değeri taşır.
+    TR_func ayarı_uygula(anahtar: TR_String, değer: TR_JSON) {
+        TR_var yeni = Ayar(dil_modeli: etkin.dil_modeli, konuşma_dili: etkin.konuşma_dili, sistem: etkin.sistem, bağlam: etkin.bağlam, kapı: etkin.kapı)
+        TR_if anahtar == "speech_language" { yeni.konuşma_dili = TR_String(değer) } TR_else { yeni.sistem = değer }
+        TR_var a = yüklü.a
+        TR_var t = y.takım
+        TR_if a != TR_none TR_and t != TR_none {
+            TR_var yt = dil_takımı(t, kj, klasör, yeni.sistem, yeni.konuşma_dili)
+            TR_var hata = dili_uygula(y, a, t, yt)
+            TR_if hata != TR_none {
+                TR_print("DİL HATASI:", hata)
+                e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": TR_Path(yt.ses).TR_name}, "fatal": TR_false}))
+                TR_return
+            }
+        }
+        etkin = yeni
+        e.konuşma_dili = etkin.konuşma_dili
+        e.dil_cevabı = dil_cevapları(kj, klasör, etkin)
+        e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
+        TR_var v = ayar_verisi
+        TR_if v != TR_none { v[anahtar] = değer }
+        ayarı_gönder()
+    }
     # işle: bekleyen komutlar; kapatılan mikrofon hemen kapanır, açılması `ara`'da (tur bittikten sonra) olur.
+    # Kabul edilen `model_load` burada koşar: mikrofon kapanır, takım yüklenir.
     TR_func işle() {
         komutları_işle(e)
         TR_if TR_not e.mikrofon_istendi TR_and mikrofon != TR_none { kapat() }
+        TR_var giriş = e.yüklenecek
+        TR_if giriş != TR_none {
+            e.yüklenecek = TR_none
+            e.mikrofon_istendi = TR_false
+            kapat()
+            TR_var c = takım_kur(k, kj, klasör, giriş, etkin)
+            TR_var t = c.takım
+            TR_if t != TR_none { takımı_yükle(t) }
+        }
+        TR_var istek = e.ayar_istendi
+        TR_if istek != TR_none {
+            e.ayar_istendi = TR_none
+            ayarı_uygula(TR_String(istek["key"]), istek["value"])
+        }
     }
     TR_func oku() -> TR_Tensor? {
         işle()
@@ -331,12 +431,12 @@ TR_func ekranlı_kip() -> TR_Int {
             TR_throw "mikrofon kapandı"
         }
         TR_if TR_not dinlemede {
-            TR_print("OLCU_MIKROFON tur=\(z.tur) acilis_ms=\(şimdi() - açılış)")
+            TR_print("OLCU_MIKROFON tur=\(cevaplanan()) acilis_ms=\(şimdi() - açılış)")
             dinlemede = TR_true
             e.mic = TR_true
             TR_if e.tur == "" { e.boşta() }
         }
-        TR_return TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
+        TR_return çerçeve_örnekleri(parça)
     }
     TR_func mikrofonu_aç() -> TR_Bool {
         TR_if başlangıç < 0 { başlangıç = şimdi() }
@@ -355,11 +455,15 @@ TR_func ekranlı_kip() -> TR_Int {
         kapat()
         TR_if e.mikrofon_istendi { mikrofonu_aç() }
     }
-    TR_func sürsün() -> TR_Bool { TR_return en_çok_tur == 0 TR_or z.tur < en_çok_tur }
+    TR_func tur_kaldı() -> TR_Bool { TR_return en_çok_tur == 0 TR_or cevaplanan() < en_çok_tur }
+    # sürsün: dinleme yuva doluyken sürer; yeni yükleme düşüp yuvayı boşaltınca `dinle` döner, kurulum beklenir.
+    TR_func sürsün() -> TR_Bool { TR_return tur_kaldı() TR_and yüklü.a != TR_none }
     TR_func ara() -> Arada {
         TR_var r = Arada()
         TR_for {
             işle()
+            TR_var a = yüklü.a
+            TR_if a == TR_none { TR_return Arada(dur: TR_true) }
             TR_var metin = metni_al(e)
             TR_if metin != TR_none {
                 r.aralık = ekran_turu(a, e, TR_none, metin, şimdi(), TR_false, 0, işle)
@@ -376,17 +480,49 @@ TR_func ekranlı_kip() -> TR_Int {
         }
     }
     TR_func sıfırla() {
+        TR_var kesici = yüklü.kesici
+        TR_var algılayıcı = yüklü.algılayıcı
+        TR_if kesici == TR_none TR_or algılayıcı == TR_none { TR_return }
         TR_var atılan = TR_if kesici.TR_flush() != TR_none { 1 } TR_else { 0 }
         algılayıcı.TR_reset_state()
-        TR_print("OLCU_ATILAN tur=\(z.tur) atilan=\(atılan)")
+        TR_print("OLCU_ATILAN tur=\(cevaplanan()) atilan=\(atılan)")
+    }
+    TR_func it(ç: TR_Tensor) -> TR_Tensor? {
+        TR_var kesici = yüklü.kesici
+        TR_if kesici == TR_none { TR_return TR_none }
+        TR_return kesici.TR_push(ç)
+    }
+    TR_if elle {
+        takımı_yükle(komut_satırı_takımı())
+    } TR_else TR_if a_ayar != TR_none {
+        TR_var c = takım_kur(k, kj, klasör, a_ayar.dil_modeli, etkin)
+        TR_var t = c.takım
+        TR_if t != TR_none { takımı_yükle(t) } TR_else { e.durum("setup") }
+    } TR_else {
+        e.durum("setup")
     }
     TR_print("DİNLİYORUM")
-    dinle(Dinleme(oku: oku, aç: aç, it: (ç) => kesici.TR_push(ç), sıfırla: sıfırla, saat: () => şimdi(),
-        tur: (kesit, t0, sonrası, geride) => {
-            e.yeni_tur()
-            TR_return ekran_turu(a, e, kesit, TR_none, t0, sonrası, geride, işle)
-        }, sürsün: sürsün, kuyruk_ms: _KUYRUK_MS, ara: ara))
-    TR_return z.tur
+    TR_for tur_kaldı() {
+        TR_for yüklü.a == TR_none {
+            işle()
+            TR_if yüklü.a == TR_none { TR_sleep(0.05) }
+        }
+        dinle(Dinleme(oku: oku, aç: aç, it: it, sıfırla: sıfırla, saat: () => şimdi(),
+            tur: (kesit, t0, sonrası, geride) => {
+                TR_var a = yüklü.a
+                TR_if a == TR_none { TR_return ÇalmaAralığı() }
+                e.yeni_tur()
+                TR_return ekran_turu(a, e, kesit, TR_none, t0, sonrası, geride, işle)
+            }, sürsün: sürsün, kuyruk_ms: _KUYRUK_MS, ara: ara))
+    }
+    TR_return cevaplanan()
+}
+
+# Yüklü: ekranlı kipte yuvanın modeli: asistan ve VAD (programın tek alanı; yuva.tr takımı tutar).
+TR_struct Yüklü {
+    a: Asistan? = TR_none
+    kesici: TR_SpeechSplitter? = TR_none
+    algılayıcı: TR_VoiceDetector? = TR_none
 }
 
 # ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır.
@@ -444,7 +580,7 @@ TR_if TR_Int(ayar["ekran"]) >= 0 {
     TR_if kip != "canlı" { TR_throw "--ekran yalnız --kip canlı ile verilir, --kip \(kip) verildi" }
     TR_print("bitti:", ekranlı_kip(), "tur")
 } TR_else {
-    TR_var a = asistan_kur()
+    TR_var a = asistan_kur(komut_satırı_takımı())
     TR_if kip == "dosya" {
         dosya_kipi(a)
     } TR_else TR_if kip == "canlı" {

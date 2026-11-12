@@ -477,7 +477,12 @@ TR_func küçükler(k: Katalog, ayar: Ayar?) -> Bellek {
 }
 
 # gereken: need = ölçü(c₀) + kv × (bağlam − c₀) + geçici + pay + küçükler; ölçü yoksa ağırlıklar + kv × bağlam.
-# geçici = kv × bağlam: tur hatasında yeni önbellek eskisi ölmeden ayrılır (zincir.tr, geri_al).
+# geçici = kv × bağlam × 6596 / 2304: durdurulan turdan sonra eski modelin iki önbelleği bir sonraki tura kadar canlı
+# (docs/status.md, dil çekirdeğinin A satırı); o arada takas olursa tepe durdurmasız takasınkinden 6596 MiB yüksek
+# [ölçüldü: Qwen3-4B, 8192 bağlam (kv × bağlam 2304 MiB), kısa konuşma, tek tık B'nin tanı koşusu]. Kat tek model ve
+# tek bağlamda ölçüldü; başka model ve bağlamda aynı kaldığı hipotezdir. A satırı kapanınca geçici = kv × bağlam.
+TR_const _GEÇİCİ_KAT = 6596
+TR_const _GEÇİCİ_BÖLEN = 2304
 TR_func gereken(g: Girdi, bağlam: TR_Int, küçük: Bellek) -> TR_Int {
     TR_var kv = kv_baytı(g)
     TR_var taban = g.ağırlık + kv * bağlam
@@ -488,7 +493,7 @@ TR_func gereken(g: Girdi, bağlam: TR_Int, küçük: Bellek) -> TR_Int {
         }
         taban = c.özel + kv * (bağlam - c.bağlam)
     }
-    TR_return taban + kv * bağlam + PAY + küçük.bayt
+    TR_return taban + kv * bağlam * _GEÇİCİ_KAT // _GEÇİCİ_BÖLEN + PAY + küçük.bayt
 }
 
 # uygunluk: her dil modelinin sınıfı. `need ≤ 0,6 × toplam` fits, `≤ 0,85 × toplam` tight, üstü too_large; bağlam

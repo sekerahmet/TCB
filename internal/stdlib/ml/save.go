@@ -380,6 +380,11 @@ func readFromFile(fpath string) ([]fileEntry, error, error) {
 	return inputs, readErr, osErr
 }
 
+// settleHostBlocks büyük bir yüklemeden önceki beklemedir (tensor.SettleHostBlocks). Yalnız sınamada
+// değişir: bekleme sınıra varınca uyarının programın hata akışına geçmesi, bloksuz ve 10 sn beklemeden
+// sınanır (DENETİM 465 N1).
+var settleHostBlocks = tensor.SettleHostBlocks
+
 // readSettled readFromFile'ın işidir; ayrıca çözmeden önceki beklemenin sonucunu verir. Büyük
 // dosyadan önce bırakılan blokların temizleyicileri beklenir: model değiştirirken yeni ağırlıklar
 // eskilerin üstüne ayrılmasın (tensor.SettleHostBlocks).
@@ -396,7 +401,7 @@ func readSettled(fpath string) ([]fileEntry, tensor.HostSettle, error, error) {
 	if info.IsDir() {
 		return nil, tensor.HostSettle{}, messages.New(messages.H6629), nil
 	}
-	settled := tensor.SettleHostBlocks(info.Size())
+	settled := settleHostBlocks(info.Size())
 	inputs, err := decodeTensorFile(f, info.Size())
 	return inputs, settled, err, nil
 }

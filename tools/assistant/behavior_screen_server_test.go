@@ -65,8 +65,14 @@ var screenLine = regexp.MustCompile(`EKRAN (http://127\.0\.0\.1:[0-9]+)/ `)
 // startScreen screen_demo.tr'yi açar; test bitince süreç kapanır.
 func startScreen(t *testing.T, args ...string) screenServer {
 	t.Helper()
+	return startProgram(t, fakeScreen, "HAZIR", "sahte ekran", args...)
+}
+
+// startProgram ekranlı bir TR programını açar, `ready` satırını bekler; test bitince süreç kapanır.
+func startProgram(t *testing.T, program, ready, name string, args ...string) screenServer {
+	t.Helper()
 	tokenFile := filepath.Join(t.TempDir(), "belirtec")
-	cmd := exec.Command(trlangBinary(t), append([]string{fakeScreen, "--belirteç_dosyası", tokenFile}, args...)...)
+	cmd := exec.Command(trlangBinary(t), append([]string{program, "--belirteç_dosyası", tokenFile}, args...)...)
 	cmd.Dir = reporoot.Path(".")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -84,9 +90,9 @@ func startScreen(t *testing.T, args ...string) screenServer {
 	lines := bufio.NewScanner(out)
 	var base string
 	deadline := time.Now().Add(60 * time.Second)
-	for base == "" || !strings.Contains(lines.Text(), "HAZIR") {
+	for base == "" || !strings.Contains(lines.Text(), ready) {
 		if time.Now().After(deadline) || !lines.Scan() {
-			t.Fatalf("sahte ekran açılmadı: %s", stderr.String())
+			t.Fatalf("%s açılmadı: %s", name, stderr.String())
 		}
 		if m := screenLine.FindStringSubmatch(lines.Text()); m != nil {
 			base = m[1]
@@ -127,7 +133,7 @@ func (s screenServer) command(t *testing.T, id, typ, data string) string {
 	t.Helper()
 	h := s.auth()
 	h["Content-Type"] = "application/json"
-	res := s.request(t, "POST", "/command", h, `{"v":1,"command_id":"`+id+`","type":"`+typ+`","data":`+data+`}`)
+	res := s.request(t, "POST", "/command", h, `{"v":2,"command_id":"`+id+`","type":"`+typ+`","data":`+data+`}`)
 	defer res.Body.Close()
 	var reply struct {
 		Status string `json:"status"`

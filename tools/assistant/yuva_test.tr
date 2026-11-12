@@ -1,0 +1,211 @@
+# TR 4
+# Yuvanın, kurulu takımın ve yükleme işaretinin modelsiz sınaması (yuva.tr). Katalog elle kurulur: dosyalar birkaç
+# baytlık, kurulu sayılmaları boylarına bağlı.
+TR_import "katalog"
+TR_import "yuva"
+
+TR_func _dosya(target: TR_String, bayt: TR_Int) -> TR_JSON { TR_return TR_JSON({"path": target, "target": target, "bytes": bayt}) }
+
+TR_func _ham_katalog() -> TR_JSON {
+    TR_return TR_JSON({"entries": [
+        {"id": "dm", "kind": "language_model", "source": {"files": [_dosya("dm.gguf", 4)]}},
+        {"id": "dm2", "kind": "language_model", "source": {"files": [_dosya("dm2.gguf", 4)]}},
+        {"id": "yaz", "kind": "transcriber", "source": {"files": [_dosya("config.json", 2), _dosya("model.safetensors", 3)]}},
+        {"id": "vad", "kind": "vad", "source": {"files": [_dosya("vad.safetensors", 1)]}},
+        {"id": "ses-tr", "kind": "voice", "source": {"files": [_dosya("model.safetensors", 2)]}},
+        {"id": "ses-en", "kind": "voice", "source": {"files": [_dosya("model.safetensors", 2)]}}],
+        "languages": [
+            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voice": "ses-tr", "system_prompt": "Türkçe cevap ver."},
+            {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voice": "ses-en", "system_prompt": "Answer in English."}]})
+}
+
+TR_func _katalog() -> Katalog {
+    TR_var k = Katalog(girdiler: [], diller: [])
+    TR_for g TR_in _ham_katalog()["entries"] {
+        k.girdiler.TR_append(Girdi(kimlik: TR_String(g["id"]), tür: TR_String(g["kind"]), ağırlık: 0, katman: 0, kv_başlık: 0,
+            başlık_boyu: 0, bağlam_sınırı: 0, ölçüler: []))
+    }
+    TR_return k
+}
+
+TR_func _ayar(dil: TR_String, sistem: TR_JSON) -> Ayar {
+    TR_return Ayar(dil_modeli: "dm", konuşma_dili: dil, sistem: sistem, bağlam: 8192, kapı: 0)
+}
+
+# _kur: girdinin dosyalarını Dost klasörüne katalogdaki boylarıyla yazar.
+TR_func _kur(klasör: TR_String, kimlik: TR_String) {
+    TR_for g TR_in _ham_katalog()["entries"] {
+        TR_if TR_String(g["id"]) != kimlik { TR_continue }
+        TR_var k = girdi_klasörü(klasör, kimlik)
+        TR_make_dir(k)
+        TR_for f TR_in g["source"]["files"] { TR_write_file(TR_String(TR_Path(k, TR_String(f["target"]))), "x" * TR_Int(f["bytes"])) }
+    }
+}
+
+TR_func _klasör() -> TR_String { TR_return TR_String(TR_Path(TR_temp_dir(), "Dost")) }
+
+TR_test "kurulu: her dosyası boyuyla duran girdi kurulu; eksik dosya, boyu tutmayan dosya ve katalogda olmayan girdi kurulu değil" {
+    TR_var d = _klasör()
+    TR_var kj = _ham_katalog()
+    TR_assert(TR_not kurulu(kj, d, "yaz"))
+    _kur(d, "yaz")
+    TR_assert(kurulu(kj, d, "yaz"))
+    TR_remove(TR_String(TR_Path(girdi_klasörü(d, "yaz"), "config.json")))
+    TR_assert(TR_not kurulu(kj, d, "yaz"))
+    _kur(d, "yaz")
+    TR_write_file(TR_String(TR_Path(girdi_klasörü(d, "yaz"), "model.safetensors")), "xx")
+    TR_assert(TR_not kurulu(kj, d, "yaz"))
+    TR_assert(TR_not kurulu(kj, d, "olmayan"))
+}
+
+TR_test "takım: katalogda olmayan ya da dil modeli olmayan giriş unknown_entry; eksik girdi not_installed, kimliğiyle" {
+    TR_var d = _klasör()
+    TR_var k = _katalog()
+    TR_var kj = _ham_katalog()
+    TR_var a = _ayar("tr", TR_JSON({"source": "catalog"}))
+    TR_var c = takım_kur(k, kj, d, "olmayan", a)
+    TR_assert_equal("unknown_entry", c.kod)
+    TR_assert_equal("olmayan", TR_String(c.değerler["entry_id"]))
+    TR_assert_equal("unknown_entry", takım_kur(k, kj, d, "yaz", a).kod)
+    _kur(d, "dm")
+    _kur(d, "yaz")
+    _kur(d, "vad")
+    c = takım_kur(k, kj, d, "dm", a)
+    TR_assert_equal("not_installed", c.kod)
+    TR_assert_equal("ses-tr", TR_String(c.değerler["entry_id"]))
+    TR_assert(c.takım == TR_none)
+}
+
+TR_test "takım: kurulu takımın yolları Dost klasöründe; sistem iletisi dilin tablosundan ya da kullanıcının" {
+    TR_var d = _klasör()
+    TR_for kimlik TR_in ["dm", "yaz", "vad", "ses-tr", "ses-en"] { _kur(d, kimlik) }
+    TR_var c = takım_kur(_katalog(), _ham_katalog(), d, "dm", _ayar("en", TR_JSON({"source": "catalog"})))
+    TR_assert_equal("", c.kod)
+    TR_var t = c.takım
+    TR_assert_equal("dm", t.giriş)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "dm", "dm.gguf")), t.dil_modeli)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "yaz")), t.yazıcı)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "vad", "vad.safetensors")), t.vad)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-en")), t.ses)
+    TR_assert_equal("en", t.dil)
+    TR_assert_equal("Answer in English.", t.sistem)
+    TR_var u = takım_kur(_katalog(), _ham_katalog(), d, "dm", _ayar("tr", TR_JSON({"source": "user", "text": "Kısa yaz.", "language": "tr"})))
+    TR_assert_equal("Kısa yaz.", u.takım.sistem)
+}
+
+TR_test "işaret: yazılır ve geçici dosya kalmaz; açılışta okunur ve silinir; yoksa yok" {
+    TR_var d = _klasör()
+    TR_assert(TR_not işareti_al(d).var)
+    işaret_yaz(d, "dm")
+    TR_assert(TR_Path(işaret_yolu(d)).TR_exists)
+    TR_assert(TR_not TR_Path("\(işaret_yolu(d)).tmp").TR_exists)
+    TR_var j = TR_json_parse(TR_read_file(işaret_yolu(d)))
+    TR_assert_equal("dm", TR_String(j["entry"]))
+    TR_assert(TR_String(j["started_at"]).TR_ends_with("Z"))
+    TR_var i = işareti_al(d)
+    TR_assert(i.var)
+    TR_assert_equal("dm", i.giriş)
+    TR_assert(TR_not TR_Path(işaret_yolu(d)).TR_exists)
+}
+
+TR_test "işaret: bozuk, JSON olmayan ya da girdisiz işaret yarıda kalmış yüklemedir, girdisizdir, silinir" {
+    TR_var d = _klasör()
+    TR_make_dir(d)
+    TR_for içerik TR_in ["", "{bozuk", "[1, 2]", "{\"entry\": 5}", "{}"] {
+        TR_write_file(işaret_yolu(d), içerik)
+        TR_var i = işareti_al(d)
+        TR_assert(i.var)
+        TR_assert(i.giriş == TR_none)
+        TR_assert(TR_not TR_Path(işaret_yolu(d)).TR_exists)
+    }
+}
+
+TR_test "utc_yazısı: RFC 3339, UTC, saniyeye kadar; artık gün ve yüzyıl sonu" {
+    TR_assert_equal("1970-01-01T00:00:00Z", utc_yazısı(0))
+    TR_assert_equal("2000-02-29T00:00:00Z", utc_yazısı(951782400000))
+    TR_assert_equal("2025-11-12T01:02:03Z", utc_yazısı(1762909323999))
+    TR_assert_equal("2099-12-31T23:59:59Z", utc_yazısı(4102444799000))
+}
+
+# Kutu: programın modeli tuttuğu tek alanın yerine.
+TR_struct Kutu {
+    içerik: TR_String? = TR_none
+}
+
+TR_func _takım(giriş: TR_String) -> Takım {
+    TR_return Takım(giriş: giriş, dil_modeli: "", yazıcı: "", vad: "", ses: "", dil: "tr", sistem: "")
+}
+
+TR_test "yükle: yuva önce boşalır, işaret yükleme sürerken durur; başarıda sonuç yuvada, işaret yok" {
+    TR_var d = _klasör()
+    TR_var y = Yuva(takım: _takım("dm"))
+    TR_var kutu = Kutu(içerik: "eski")
+    TR_var bakış = 0
+    TR_var sırasında = ""
+    TR_var h = yükle(y, d, _takım("dm2"), () => { kutu.içerik = TR_none }, (t) => {
+        sırasında = "\(kutu.içerik == TR_none) \(y.takım == TR_none) \(TR_Path(işaret_yolu(d)).TR_exists)"
+        TR_sleep(0.05)
+        kutu.içerik = "yeni " + t.giriş
+    }) {
+        bakış += 1
+        TR_sleep(0.005)
+    }
+    TR_assert(h == TR_none)
+    TR_assert_equal("true true true", sırasında)
+    TR_assert_equal("yeni dm2", kutu.içerik)
+    TR_assert_equal("dm2", y.takım.giriş)
+    TR_assert(bakış > 0)
+    TR_assert(TR_not TR_Path(işaret_yolu(d)).TR_exists)
+}
+
+TR_test "yükle: görevin hatası yakalanır, program sürer; yuva boş, işaret yok, hata döner" {
+    TR_var d = _klasör()
+    TR_var y = Yuva(takım: _takım("dm"))
+    TR_var kutu = Kutu(içerik: "eski")
+    TR_var h = yükle(y, d, _takım("dm2"), () => { kutu.içerik = TR_none }, (t) => { TR_throw "dosya okunamadı" }) { TR_sleep(0.005) }
+    TR_assert(h != TR_none)
+    TR_assert(h.TR_contains("dosya okunamadı"))
+    TR_assert(kutu.içerik == TR_none)
+    TR_assert(y.takım == TR_none)
+    TR_assert(TR_not TR_Path(işaret_yolu(d)).TR_exists)
+}
+
+TR_test "dil_cevapları: kullanıcının başka dil için iletisi system_prompt_language; yazıcısı ya da sesi kurulu olmayan dil not_installed" {
+    TR_var d = _klasör()
+    TR_for kimlik TR_in ["dm", "yaz", "vad", "ses-tr"] { _kur(d, kimlik) }
+    TR_var c = dil_cevapları(_ham_katalog(), d, _ayar("tr", TR_JSON({"source": "catalog"})))
+    TR_assert_equal(0, TR_Dict(c["tr"]).TR_length)
+    TR_assert_equal("not_installed", TR_String(c["en"]["code"]))
+    TR_assert_equal("ses-en", TR_String(c["en"]["values"]["entry_id"]))
+    TR_var u = dil_cevapları(_ham_katalog(), d, _ayar("tr", TR_JSON({"source": "user", "text": "Kısa yaz.", "language": "tr"})))
+    TR_assert_equal(0, TR_Dict(u["tr"]).TR_length)
+    TR_assert_equal("setting_invalid", TR_String(u["en"]["code"]))
+    TR_assert_equal("system_prompt_language", TR_String(u["en"]["values"]["reason"]))
+}
+
+TR_test "dil_takımı: yeni dilin yazıcısı, sesi, Whisper dili ve katalogun iletisi; dil modeli ve VAD aynı" {
+    TR_var d = _klasör()
+    TR_var t = Takım(giriş: "dm", dil_modeli: "dm.gguf", yazıcı: "eski-yaz", vad: "vad.safetensors", ses: "eski-ses", dil: "tr", sistem: "Türkçe cevap ver.")
+    TR_var y = dil_takımı(t, _ham_katalog(), d, TR_JSON({"source": "catalog"}), "en")
+    TR_assert_equal("dm.gguf", y.dil_modeli)
+    TR_assert_equal("vad.safetensors", y.vad)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "yaz")), y.yazıcı)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-en")), y.ses)
+    TR_assert_equal("en", y.dil)
+    TR_assert_equal("Answer in English.", y.sistem)
+    TR_assert_equal("Brief.", dil_takımı(t, _ham_katalog(), d, TR_JSON({"source": "user", "text": "Brief.", "language": "en"}), "en").sistem)
+}
+
+TR_test "dil_değiştir: yeni modeller yüklenemezse hiçbir şey değişmez; yüklenirse uygulanır ve takım yuvaya girer" {
+    TR_var y = Yuva(takım: _takım("dm"))
+    TR_var uygulandı = 0
+    TR_var yeni = Takım(giriş: "dm", dil_modeli: "", yazıcı: "", vad: "", ses: "ses-en", dil: "en", sistem: "")
+    TR_var h = dil_değiştir(y, yeni, (t) => { TR_throw "ses okunamadı" }) { uygulandı += 1 }
+    TR_assert(h != TR_none)
+    TR_assert(h.TR_contains("ses okunamadı"))
+    TR_assert_equal(0, uygulandı)
+    TR_assert_equal("tr", y.takım.dil)
+    TR_assert(dil_değiştir(y, yeni, (t) => {}) { uygulandı += 1 } == TR_none)
+    TR_assert_equal(1, uygulandı)
+    TR_assert_equal("en", y.takım.dil)
+}

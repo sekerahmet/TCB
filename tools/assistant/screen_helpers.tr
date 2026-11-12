@@ -1,0 +1,117 @@
+# TR 4
+# Ekranın modelsiz sınamasının ortak parçaları (ekran_test.tr ve ekran_tur_test.tr aktarır): ekranın olaylardan çizdiği
+# görünüm, olayın zarfı ve oturumun başı; komut istekleri, cevapları ve işleyicilerin beklenmesi.
+TR_import "ekran"
+
+# ---------- Ekranın modeli ----------
+# Görünüm: ekranın olaylardan çizdiği durum (index.html'in işleyicileri gibi): `replace` eski metnin yerine geçer,
+# `append` sonuna eklenir, `session` her şeyi siler ve `snapshot`'ı sırayla işler. Görüntünün doğruluğu: görüntüyü
+# işleyen ekran ile olayların hepsini baştan işleyen ekran aynı durumu görür.
+TR_struct Görünüm {
+    durum: TR_String = ""
+    mic: TR_Bool = TR_false
+    ölçü: TR_String = ""
+    turlar: TR_List[TR_String] = []
+    satırlar: TR_Dict[TR_String, TR_String] = {} # "tur|alan" → değer
+    onaylar: TR_List[TR_String] = []
+}
+
+TR_func uygula(g: Görünüm, olay: TR_JSON) {
+    TR_var tür = TR_String(olay["type"])
+    TR_var v = olay["data"]
+    TR_match tür {
+        "session" => {
+            g.durum = ""
+            g.mic = TR_false
+            g.ölçü = ""
+            g.turlar = []
+            g.satırlar = {}
+            g.onaylar = []
+            TR_for x TR_in TR_List(v["snapshot"]) { uygula(g, x) }
+        }
+        "state" => {
+            g.durum = TR_String(v["state"])
+            g.mic = TR_Bool(v["mic"])
+        }
+        "metrics" => { g.ölçü = TR_json_string(v) }
+        "turn_start" => {
+            TR_var t = TR_String(v["turn_id"])
+            g.turlar.TR_append(t)
+            g.satırlar[t + "|kaynak"] = TR_String(v["source"])
+        }
+        "turn_text" => {
+            TR_var anahtar = TR_String(v["turn_id"]) + "|" + TR_String(v["role"])
+            TR_var önceki = g.satırlar.TR_get(anahtar)
+            TR_var metin = TR_String(v["text"])
+            TR_if TR_String(v["mode"]) == "append" TR_and önceki != TR_none { metin = önceki + metin }
+            g.satırlar[anahtar] = metin
+            TR_var son = v.TR_get("final")
+            TR_if son != TR_none { g.satırlar[anahtar + "|final"] = TR_json_string(son) }
+        }
+        "turn_end" => { g.satırlar[TR_String(v["turn_id"]) + "|son"] = TR_String(v["reason"]) }
+        "approval_open" => { g.onaylar.TR_append(TR_String(v["approval_id"])) }
+        "approval_close" => { g.onaylar = [a TR_for a TR_in g.onaylar TR_if a != TR_String(v["approval_id"])] }
+        _ => {}
+    }
+}
+
+# metni: görünümün karşılaştırılan hâli; `turlar` verilirse yalnız o turlar.
+TR_func metni(g: Görünüm, turlar: TR_List[TR_String]) -> TR_String {
+    TR_var parçalar = ["durum=" + g.durum, "mic=\(g.mic)", "ölçü=" + g.ölçü, "onaylar=" + g.onaylar.TR_join(",")]
+    TR_for t TR_in turlar {
+        TR_for alan TR_in ["kaynak", "user", "user|final", "assistant", "son"] {
+            TR_var d = g.satırlar.TR_get(t + "|" + alan)
+            parçalar.TR_append(t + "|" + alan + "=" + TR_if d == TR_none { "-" } TR_else { d })
+        }
+    }
+    TR_return parçalar.TR_join("\n")
+}
+
+TR_func zarf(tür: TR_String, veri: TR_JSON) -> TR_JSON { TR_return TR_JSON({"v": 2, "type": tür, "data": veri}) }
+
+TR_func baş() -> TR_JSON {
+    TR_return TR_JSON({"v": 2, "type": "session", "data": {"session_id": "s-sınama", "server_version": "0", "model": "yok",
+        "tools": [], "heartbeat_ms": 15000, "snapshot": []}})
+}
+
+# ---------- Komutlar ----------
+
+TR_func ekran() -> Ekran {
+    TR_var e = ekran_kur(ekran_klasörü(), "yok")
+    e.hazır = TR_true
+    TR_return e
+}
+
+TR_func komut(tür: TR_String, kimlik: TR_String, veri: TR_String) -> TR_Request {
+    TR_return TR_Request(TR_method: "POST", TR_path: "/command", TR_headers: {"Content-Type": "application/json"},
+        TR_body: TR_Bytes("{\"v\": 2, \"command_id\": \"\(kimlik)\", \"type\": \"\(tür)\", \"data\": \(veri)}"))
+}
+
+TR_func gövde(c: TR_Response) -> TR_JSON { TR_return TR_json_parse(TR_String(c.TR_body)) }
+
+TR_func durum(c: TR_Response) -> TR_String {
+    TR_var j = gövde(c)
+    TR_if TR_String(j["status"]) == "accepted" { TR_return "accepted" }
+    TR_return TR_String(j["error"]["code"])
+}
+
+# bekle: işleyiciler komutlarını bırakana kadar bekler (en çok 2 sn); kararı ana döngü vermeden cevap yoktur.
+TR_func işleyiciler_bıraktı(e: Ekran, n: TR_Int, görevler: TR_List[TR_Task[TR_Response]]) {
+    TR_var baş = TR_monotonic_ns()
+    TR_for e.bekleyen.TR_length < n {
+        TR_assert(TR_monotonic_ns() - baş < 2000000000)
+        TR_sleep(0.001)
+    }
+    TR_for g TR_in görevler { TR_assert(TR_not g.TR_done()) }
+}
+
+TR_func tek(e: Ekran, istek: TR_Request) -> TR_Response {
+    TR_var g = TR_async ekran_cevabı(e, istek)
+    TR_var baş = TR_monotonic_ns()
+    TR_for TR_not g.TR_done() TR_and e.bekleyen.TR_length == 0 {
+        TR_assert(TR_monotonic_ns() - baş < 2000000000)
+        TR_sleep(0.001)
+    }
+    komutları_işle(e)
+    TR_return g.TR_wait()
+}
