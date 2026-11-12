@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -44,5 +45,43 @@ func TestNoPlainValueIsAnInPlaceOperator(t *testing.T) {
 				t.Errorf("%s: interp'te InPlaceOp yöntemi; sade bir tipse assignInPlace'in erken dönüşü onu atlar", fset.Position(fn.Pos()))
 			}
 		}
+	}
+}
+
+// taskAssignable SetIndexAt'i de uygulayan dış değer: her yazmanın görevini ve satırını kaydeder.
+type taskAssignable struct {
+	assignableValue
+	lines []int
+	vms   []*VM
+}
+
+func (a *taskAssignable) SetIndexAt(m *VM, line int, i, d Value) error {
+	a.lines, a.vms = append(a.lines, line), append(a.vms, m)
+	return a.SetIndex(i, d)
+}
+
+// Kural (A12, T1 dilim 2a; 15.45): indeksli atamada değer TaskIndexAssignable'ı uyguluyorsa VM onu
+// görev ve atamanın satırıyla çağırır, SetIndex'in çağrıldığı her yerde (düz atama ve kancasız
+// bileşik atamanın yazması); uygulamayan değerde SetIndex yolu aynen sürer; kancanın hatası satır
+// öneklidir.
+func TestIndexAssignTaskHookGetsTheLine(t *testing.T) {
+	a := &taskAssignable{assignableValue: assignableValue{cell: map[int64]Value{}}}
+	plain := &assignableValue{cell: map[int64]Value{}}
+	vmx := New()
+	vmx.GlobalEnv.Define("a", a, false)
+	vmx.GlobalEnv.Define("p", plain, false)
+	prog := mustParseProgram(t, "a[0] = 5\np[0] = 7\na[1] += 2\na[-1] = 3")
+	_, err := vmx.Run(prog)
+	if !atLine(err, 4, "negatif indeks") {
+		t.Fatalf("kancanın hatası satır önekli olmalı: %v", err)
+	}
+	if fmt.Sprint(a.lines) != "[1 3 4]" || a.vms[0] == nil {
+		t.Fatalf("kancanın satırları %v (görev %v), beklenen [1 3 4]", a.lines, a.vms)
+	}
+	if got := a.PlainValue().Inspect(); got != "[5, 2]" {
+		t.Fatalf("kancalı atamalar: %v", got)
+	}
+	if got := plain.cell[0].Inspect(); got != "7" {
+		t.Fatalf("kancasız değerde SetIndex yolu: %v", got)
 	}
 }

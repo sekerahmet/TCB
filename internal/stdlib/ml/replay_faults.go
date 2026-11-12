@@ -21,10 +21,10 @@ type recordedFault struct {
 	line int
 }
 
-// recordFaultSite kayıtta site'inci yuvanın yerini yazar. m nil ise çağrı işleç kancasından
-// gelir ve satırı bilinmez (T1 dilim 2a'nın A12'si): karar gelene kadar kayıt bugünkü gibi
-// açık hatayla biter (H4065).
-func recordFaultSite(m *interp.VM, fn any, site int) error {
+// recordFaultSite kayıtta site'inci yuvanın yerini yazar: satır line (atama kancaları) ya da 0
+// ise yerleşiğin satırı (VM.BuiltinLine). m nil ise görev bilinmez, yuvanın yeri yazılamaz:
+// kayıt açık hatayla biter (H4065; yorumlayıcı atama kancalarına görevi verir, T1 dilim 2a A12).
+func recordFaultSite(m *interp.VM, line int, fn any, site int) error {
 	if m == nil {
 		return messages.New(messages.H4065)
 	}
@@ -32,7 +32,10 @@ func recordFaultSite(m *interp.VM, fn any, site int) error {
 	if e == nil || site != len(e.sites) {
 		return messages.Internalf("fault slot %d outside its recording", site)
 	}
-	e.sites = append(e.sites, recordedFault{fn: fn, line: m.BuiltinLine()})
+	if line <= 0 {
+		line = m.BuiltinLine()
+	}
+	e.sites = append(e.sites, recordedFault{fn: fn, line: line})
 	return nil
 }
 

@@ -153,6 +153,9 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 				return err
 			}
 		}
+		if at, ok := container.(TaskIndexAssignable); ok {
+			return lineSuffix(line, at.SetIndexAt(v, line, idx, finalVal))
+		}
 		return lineSuffix(line, container.SetIndex(idx, finalVal))
 	}
 	return messages.At(line, 0, messages.New(messages.H2403, left.Type()))

@@ -292,9 +292,14 @@ func kindChangeError(fn any, from, to tensor.DType, name string) error {
 // cinsler arasında kesin çevirir; sığmayan ya da NaN öğe hatadır (15.2, 15.3), ileti ilk hatalı
 // öğeyi söyler (15.6). Kartta da kartın çekirdeğiyle (15.41): tam sayıya dönüşüm sonucu bekler
 // (15.6), TR_replay kaydında beklemez, hatanın yuvası kayda girer ve ileti bu çağrının satırını
-// söyler (replay_faults.go). m yerleşiğin görevidir; işleç kancasından gelen çağrıda nil
-// (satırı yok, kayıtta T1 dilim 2a'nın A12'si).
+// söyler (replay_faults.go). m yerleşiğin görevidir; satırı yerleşiğin satırıdır.
 func convertKind(m *interp.VM, fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
+	return convertKindAt(m, 0, fn, t, dt)
+}
+
+// convertKindAt convertKind'ın satırı verilen biçimidir (atama kancaları: line > 0); line 0 ise
+// yerleşiğin satırı. m nil ise kayıtta yuvanın yeri yazılamaz (H4065).
+func convertKindAt(m *interp.VM, line int, fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 	if t.DType() == dt {
 		return t, nil
 	}
@@ -310,7 +315,7 @@ func convertKind(m *interp.VM, fn any, t *tensor.Tensor, dt tensor.DType) (*tens
 	case f == nil:
 		return r, nil
 	case f.Kind == tensor.FaultRecorded:
-		if err := recordFaultSite(m, fn, f.Index); err != nil {
+		if err := recordFaultSite(m, line, fn, f.Index); err != nil {
 			r.Drop()
 			return nil, err
 		}

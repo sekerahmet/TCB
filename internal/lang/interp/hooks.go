@@ -67,6 +67,16 @@ type IndexAssignable interface {
 	SetIndex(idx Value, value Value) error
 }
 
+// TaskIndexAssignable is the form of IndexAssignable that also receives the task doing the
+// assignment (the VM view) and the assignment's line. When a value implements it, the VM calls
+// it instead of SetIndex wherever SetIndex would be called ('x[i] = value' and the write of a
+// compound 'x[i] op= value' that no IndexAccumulator handled); otherwise SetIndex runs as
+// before. A tensor uses the line inside a TR_replay recording, where an element's error is
+// found only after the replay and its message names the recorded line (15.45).
+type TaskIndexAssignable interface {
+	SetIndexAt(m *VM, line int, idx Value, value Value) error
+}
+
 // InPlaceOperator provides in-place compound assignment ('x op= y', e.g. '+=' or '-='). op is the
 // binary operator's text ("+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>"). When ok
 // is true and err is nil, assignOp returns the existing value so callers write the same object

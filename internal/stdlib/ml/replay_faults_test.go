@@ -79,3 +79,34 @@ func TestConvertDoesNotGoThroughHost(t *testing.T) {
 		t.Fatalf("sığmama H6964 bekleniyordu: %v", err)
 	}
 }
+
+// Kural (15.45, A12; T1 dilim 2a): kayıtta indeksli atamanın daraltan dönüşümü (`t[i] = x`, int64 →
+// int8) de kaydedilir; hatanın iletisi atamanın kayıttaki satırını söyler (yorumlayıcı atama
+// kancasına görevi ve satırı verir), doğrudan çağrının iletisiyle aynı.
+func TestReplayIndexAssignFaultNamesRecordedLine(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	program := `TR_default_device("gpu")
+TR_func g(t: TR_Tensor[TR_Int], x: TR_Tensor[TR_Int]) -> TR_Tensor[TR_Int] {
+    t[0..2] = x
+    TR_return t.TR_to_dtype("int16")
+}
+TR_var f = TR_replay(g)
+TR_var t = TR_Tensor([0, 0], TR_dtype: "int8")
+TR_no_grad {
+    TR_print(f(t, TR_Tensor([1, 2])).TR_to_device("cpu").TR_tolist)
+    TR_print(f(t, TR_Tensor([3, -4])).TR_to_device("cpu").TR_tolist)
+    TR_print(f(t, TR_Tensor([5, 6])).TR_to_device("cpu").TR_tolist)
+    f(t, TR_Tensor([7, 300]))
+}`
+	out, err := run(t, program)
+	want := "[1, 2]\n[3, -4]\n[5, 6]\n"
+	line, _, ok := messages.Pos(err)
+	if out != want || !messages.Has(err, messages.H6964) || !ok || line != 3 {
+		t.Fatalf("çıktı\n%s\nhata %v (satır %d); beklenen\n%sve satır 3'te H6964", out, err, line, want)
+	}
+	direct, derr := run(t, strings.Replace(program, "TR_var f = TR_replay(g)", "TR_var f = g", 1))
+	if direct != want || derr == nil || derr.Error() != err.Error() {
+		t.Fatalf("doğrudan çağrı başka hata verdi:\n%s\n%v\nkayıtta %v", direct, derr, err)
+	}
+}
