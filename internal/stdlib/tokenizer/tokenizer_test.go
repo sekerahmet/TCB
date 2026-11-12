@@ -439,17 +439,15 @@ func TestLoadErrors(t *testing.T) {
 // Kural (16.1, klasörle açma): klasörün tokenizer.json'u yüklenir; aile config.json'un model_type'ı ve tokenizer_config.json'un
 // işaretiyle seçilir (sınıf Fast'sız, genel sınıfta bos_token). config.json'u olmayan ya da tabloda olmayan klasör ailesiz.
 func TestLoadTokenizerFolderPicksTheFamily(t *testing.T) {
-	for _, c := range []struct{ data, config, family string }{{"qwen3_chat", `{"model_type": "qwen3"}`, "qwen3"},
-		{"llama3_chat", `{"model_type": "llama"}`, "llama3"}, {"qwen3_chat", "", ""}, {"llama3_chat", `{"model_type": "qwen3"}`, ""}} {
+	qwen, llama := `{"tokenizer_class": "Qwen2TokenizerFast"}`, `{"tokenizer_class": "PreTrainedTokenizerFast", "bos_token": "<|begin_of_text|>"}`
+	for _, c := range []struct{ data, marker, config, family string }{{"qwen3_chat", qwen, `{"model_type": "qwen3"}`, "qwen3"},
+		{"llama3_chat", llama, `{"model_type": "llama"}`, "llama3"}, {"qwen3_chat", qwen, "", ""}, {"llama3_chat", llama, `{"model_type": "qwen3"}`, ""}} {
 		d := t.TempDir()
-		for _, f := range []string{"tokenizer.json", "tokenizer_config.json"} {
-			b, err := os.ReadFile(reporoot.Path("tests", "data", c.data, f))
-			if err != nil || os.WriteFile(filepath.Join(d, f), b, 0o644) != nil {
+		b, err := os.ReadFile(reporoot.Path("tests", "data", c.data, "tokenizer.json"))
+		for f, s := range map[string]string{"tokenizer.json": string(b), "tokenizer_config.json": c.marker, "config.json": c.config} {
+			if err != nil || (s != "" && os.WriteFile(filepath.Join(d, f), []byte(s), 0o644) != nil) {
 				t.Fatal(f, err)
 			}
-		}
-		if c.config != "" && os.WriteFile(filepath.Join(d, "config.json"), []byte(c.config), 0o644) != nil {
-			t.Fatal("config.json")
 		}
 		p := al(t, mustRun(t, `TR_var p = TR_load_tokenizer("`+filepath.ToSlash(d)+`")`), "p").(interface{ Tokenizer() *tokenize.Tokenizer })
 		if got := p.Tokenizer().Family(); got != c.family {
