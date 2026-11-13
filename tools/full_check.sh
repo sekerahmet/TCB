@@ -715,16 +715,28 @@ commit_light_tests() {
 # Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:<n> (dups), hata:<n>,not:<m>
 # (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
 commit_record() {
-	local dir idx tmp tree branch result name
+	local dir idx tmp bak before after tree branch result name
 	dir=$(git rev-parse --git-common-dir 2>/dev/null) || return 0
 	dir=$dir/codegraph-kip
 	idx=$(git rev-parse --git-path index)
 	# Geçici index gerçeğin yanında, git'in verdiği yolla: Windows'ta git, /tmp'deki bir GIT_INDEX_FILE'ı görmüyor, gerçek
 	# index'e yazıyordu (TestCommitModeRecordsItsRun).
 	tmp=$idx.commit-kip.$$
+	bak=$idx.commit-kip-yedek.$$
 	cp "$idx" "$tmp" 2>/dev/null || rm -f "$tmp"
+	# Gerçek index'in korunması (DENETİM 686 N5): git geçici index'i görmezse "add -A" izlenmeyen her dosyayı gerçek
+	# index'e ekler ve sonraki commit onları sessizce taşır (depo herkese açık). Değişirse yedek geri konur, kayıt yazılmaz.
+	cp "$idx" "$bak" 2>/dev/null || rm -f "$bak"
+	before=$(git hash-object --no-filters "$idx" 2>/dev/null)
 	tree=$(GIT_INDEX_FILE=$tmp git add -A >/dev/null 2>&1 && GIT_INDEX_FILE=$tmp git write-tree 2>/dev/null)
+	after=$(git hash-object --no-filters "$idx" 2>/dev/null)
 	rm -f "$tmp"
+	if [ "$before" != "$after" ]; then
+		[ ! -f "$bak" ] || mv -f "$bak" "$idx"
+		echo "not: commit kipinin kaydı yazılmadı: geçici index'e yazılacak ağaç gerçek index'i değiştirdi, gerçek index geri kondu (git status ile bakın)"
+		return 0
+	fi
+	rm -f "$bak"
 	if [ -z "$tree" ]; then
 		echo "not: commit kipinin kaydı yazılamadı (geçici index'le git write-tree)"
 		return 0
