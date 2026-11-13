@@ -1089,6 +1089,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 ### 19.4
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
+- **Yapılacaklar (B, Ö1; sahip Motor, 19.4'ün bir sonraki dilimi; DENETİM 641 N1):** bilinmeyen seçeneğin kullanım hatası (H7206, H7208, H7209) `=` taşımayan argümanı maskelemeden 60 karakterde kesiyor; argümanın içindeki adresin parolası kesimin ortasına düşerse başı iletide açık kalır, çünkü çıktının maskesi kesilmiş değeri tanımaz [kanıtlı: süreç paketinin seçenek ayrıştırıcısında `unknownOption`'ın `=` kolu ve `shorten`'ın iki çağrısı, `aa82b296`; hesap: 72 karakterlik örnek, koşulmadı]. Yol 19.4'ün adres kuralından önce de vardı. Çare: kesimden önce maske (değer özetinin kuralı, `TestSummaryIsCutAfterMask`).
 
 ### 19.4a
 
