@@ -124,3 +124,29 @@ adım 5000/5000 · kayıp 1,84 · 61 dk 3 sn sürdü
 - Terminal değilse (dosya, boru, not defteri hücresi, sürekli sınama) en çok 10 saniyede bir düz satır ve sonda özet satırı yazılır.
 - Arka plan işinde (`TR_JOB_DIR` ortam değişkeni iş klasörünü gösterir) çubuk terminal kipine geçmez ve iş klasörüne saniyede en çok bir kez `progress.json` yazar (18.13 gibi atomik): `{"step":1200,"total":5000,"metrics":{"loss":2.31},"rate":85.2,"remaining_seconds":840,"time":"...","done":false}`.
 - *Test:* Go: `TestProgressTerminal`, `TestFormatNumber`, `TestFormatDurationAndBar`, `TestJobStatus`, `TestNestedProgressRedrawsOuter`, `TestCloseAllFinishesBar`.
+
+**19.12** `TR_machine()` sürecin çalıştığı makinenin o anki görüntüsünü bir `TR_Machine` olarak verir:
+- `.TR_memory_total_bytes` (`TR_Int`): makinenin fiziksel belleği;
+- `.TR_memory_limit_bytes` (`TR_Int?`): sürece konmuş bellek sınırı (Linux'ta cgroup'un `memory.max`'ı, Windows'ta iş nesnesinin sınırı); sınır yoksa `TR_none`;
+- `.TR_memory_available_bytes` (`TR_Int`): şu an yeni işe verilebilecek bellek;
+- `.TR_usable_cpus` (`TR_Int`): bu sürecin kullanabildiği mantıksal çekirdek sayısı;
+- `.TR_cpu_features` (`TR_List[TR_String]`): işlemcinin ve işletim sisteminin birlikte desteklediği komut kümeleri, sabit tablodan, tablonun sırasıyla: x86_64'te `"sse4_2"`, `"avx"`, `"avx2"`, `"fma"`, `"f16c"`, `"avx512f"`; arm64'te `"neon"`;
+- `.TR_os` ve `.TR_arch` (`TR_String`): işletim sistemi ve mimari, kapalı tablodan.
+
+Üyeler `TR_machine()`'in çağrıldığı anın değeridir; yeni değer yeni bir çağrıyla okunur. macOS'ta `.TR_memory_available_bytes` ve `.TR_memory_limit_bytes` bu sürümde okunamaz: okunduklarında kodlu çalışma hatasıdır (sessizce yanlış bir değer vermesinler diye). Bilgi okunamazsa hata verilir, `TR_none` değil: `TR_none` "sınır yok" demektir.
+
+**Kapalı tablo.** `.TR_os` `"windows"`, `"linux"` ya da `"macos"`; `.TR_arch` `"x86_64"` ya da `"arm64"`'tür. Tablonun dışındaki makinede değer motorun derlendiği hedefin Go adıdır (`"freebsd"`, `"riscv64"` ...) ve tablodaki hiçbir değerle aynı değildir.
+- `.TR_os` ya da `.TR_arch` bir metin sabitiyle karşılaştırılınca (`==`, `!=` ya da metin sabitlerinden bir liste sabitinin `.TR_contains(...)`'i: `["windows", "linux"].TR_contains(m.TR_os)`) sabit o üyenin kümesinden olmalıdır: `.TR_os`'unki `.TR_os`'un tablosu ve Go'nun işletim sistemi adları, `.TR_arch`'ınki `.TR_arch`'ın tablosu ve Go'nun mimari adlarıdır. Öbür üyenin değeri (`m.TR_os == "arm64"`, `m.TR_arch == "linux"`, `m.TR_os == "riscv64"`) denetim hatasıdır. Tablodaki bir değerin başka yazımı da denetim hatasıdır ve ileti o üyenin tablo yazımını önerir; başka yazımlar da üyeye göre ayrıdır: `.TR_os` için `"darwin"`, `"osx"`, `"mac"`, `"win32"`, `"win"`, `"Windows"`, `"Linux"`; `.TR_arch` için `"amd64"`, `"x64"`, `"x86-64"`, `"aarch64"`. Tablodaki bir değerin harf büyüklüğü farklı yazımı da o üyenin başka yazımıdır (`"macOS"` → `"macos"`, `"ARM64"` → `"arm64"`). Öbür üyenin bir değerinin başka yazımı (`m.TR_os == "amd64"`) öbür üyenin değeri gibi denetim hatasıdır ve öneri vermez: önerisi kopyalanınca yine hata olurdu. Hiçbir kümede olmayan metin de denetim hatasıdır. Go adları motorun derlendiği Go sürümünün (go1.27.4) `go tool dist list` çıktısındaki işletim sistemi ve mimari adlarıdır; tablodaki bir değerin Go adı (`"darwin"`, `"amd64"`) kümenin dışında kalır. Kural yalnız karşılaştırmada doğrudan yazılan sabite ve liste sabitine bakar: değişkene ya da sabite atanmış metin ve liste yakalanmaz (`TR_var a = "darwin"`, sonra `m.TR_os == a`; `TR_const OSLAR = ["windows", "linux"]`, sonra `OSLAR.TR_contains(m.TR_os)`).
+- Neden: ajan `"x86_64"`'ü `"amd64"`'le, `"macos"`'u `"darwin"`'le karşılaştırıp hata almadan `TR_false` alırdı.
+
+**Anlık görüntü.** Makine bilgisi okunduğu anın görüntüsüdür. Dilin hiçbir yerleşiği hesabını ona göre değiştirmez; programın kararı ona bağlıysa karar programın kodundadır ve program onu kaydeder. Konteynerde fiziksel bellek ana makinenindir: bellek kararı sınırla birlikte verilir. Adlarda birim ve tür vardır (`_total_bytes`, `_available_bytes`).
+
+```tr
+# TR 4
+TR_var m = TR_machine()
+TR_var bellek = TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes)
+TR_print(m.TR_os, m.TR_arch, m.TR_usable_cpus, bellek > 0)
+TR_if m.TR_os == "windows" { TR_print("Windows") }
+```
+
+- *Test:* TR testi (`tests/surec_ve_kayit_test.tr`, 19.12); denetim `tests/negative/makine_yazimi.tr`; Go: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineOSTable`, `TestMachineCPUFeaturesTable`.

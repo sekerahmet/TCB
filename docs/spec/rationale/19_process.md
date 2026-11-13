@@ -79,3 +79,8 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 
 - *Emsal:* `tqdm` standart hataya yazar ve terminal değilse daha seyrek yazar [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* çubuk programın çıktısına karışırsa çıktıyı okuyan program bozulur. Çubuk bir görünümdür, kişinin dilinde gösterilir (17.7); iş durumu dosyası ise veridir ve dilden bağımsızdır.
+
+### 19.12
+
+- *Emsal:* psutil'in açık hatası "/proc/meminfo shows the information from the host and not the container" (#2100); sysinfo sınırı ayrı verir. `platform.machine()` "may differ in casing and naming conventions". Go 1.25+: `GOMAXPROCS` cgroup CPU sınırını izler, `NumCPU` izlemez.
+- *Gerekçe:* tek yazım (15.37'nin kalıbı); konteyner yanılgısı sessizdir.

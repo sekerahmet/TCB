@@ -42,6 +42,7 @@ import (
 var bareNameAllowances = map[string]map[string]string{
 	// Dosya biçiminin adı (JSON), TR_type_JSON tipinin adı değil: dil ve ileti dosyalarının okunma hatası.
 	"internal/lang/codes/language.go":   {"JSON": "dil dosyası biçiminin adı (tip değil)"},
+	"internal/stdlib/machine/limit.go":  {"max": "cgroup v2'nin memory.max dosyasındaki \"sınır yok\" değeri, TR_fn_max değil"},
 	"internal/lang/messages/catalog.go": {"JSON": "ileti dosyası biçiminin adı (tip değil)", "json": "dosya adının uzantısı (definitions.json), TR_arg_json değil"},
 	"internal/lang/codes/definition.go": {"json": "dosya adının uzantısı (definitions.json), TR_arg_json değil"},
 }

@@ -418,6 +418,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		right := c.inferExpression(e.Right)
 		c.checkTypeTextComparison(e)
 		c.checkBoolTextComparison(e)
+		c.checkMachineComparison(e)
 		switch e.Operator {
 		case "&&", "||":
 			c.requireBool(e.Left, left, messages.H2601)
@@ -479,6 +480,7 @@ func (c *Checker) comparisonType(e *ast.InfixExpression, left, right string) str
 // kaydedilir (signatures.go).
 func (c *Checker) inferCall(e *ast.CallExpression) string {
 	c.checkByteDType(e)
+	c.checkMachineContains(e)
 	var info TypeInfo
 	var found bool
 	ident, isIdent := e.Function.(*ast.Identifier)

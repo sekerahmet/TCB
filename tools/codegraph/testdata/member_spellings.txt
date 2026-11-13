@@ -29,6 +29,7 @@ Model.TR_GPT	not_found	4	-
 Model.TR_append	ambiguous	3	name:TR_mem_append[H8878],tr:struct:tools/gpu/measurement_model.tr:Model[H8877]
 Model.TR_ctx_init	ok	0	tr:method:tools/gpu/measurement_model.tr:Model.TR_ctx_init
 Model.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward[H8878],tr:struct:tools/gpu/measurement_model.tr:Model[H8877]
+OSLAR.TR_contains	ok	0	name:TR_mem_contains
 T.TR_tolist	ok	0	name:TR_mem_tolist
 TR_AdamW.TR_step	ok	0	name:TR_mem_step
 TR_AnyTensor.TR_narrow	ambiguous	3	spec:13.10,spec:15.1,spec:15.2,spec:15.46,spec:15.52	tr_index:not_found:4
@@ -321,6 +322,7 @@ _İKİZLEŞENLER.TR_split	ok	0	name:TR_mem_split
 a.TR_append	ok	0	name:TR_mem_append
 a.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 a.TR_body	ok	0	name:TR_mem_body
+a.TR_cpu_features	ok	0	name:TR_mem_cpu_features
 a.TR_device	ok	0	name:TR_mem_device
 a.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 a.TR_dtype	ok	0	name:TR_mem_dtype
@@ -340,8 +342,10 @@ a.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma
 a.TR_length	ok	0	name:TR_mem_length
 a.TR_loss	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_loss
 a.TR_map	ok	0	name:TR_mem_map
+a.TR_memory_total_bytes	ok	0	name:TR_mem_memory_total_bytes
 a.TR_next	ok	0	name:TR_mem_next
 a.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
+a.TR_os	ok	0	name:TR_mem_os
 a.TR_ple_context	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_ple_context
 a.TR_pop	ok	0	name:TR_mem_pop
 a.TR_push	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_push
@@ -450,6 +454,7 @@ b.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 b.TR_body	ok	0	name:TR_mem_body
 b.TR_cancel	ok	0	name:TR_mem_cancel
 b.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
+b.TR_cpu_features	ok	0	name:TR_mem_cpu_features
 b.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 b.TR_dtype	ok	0	name:TR_mem_dtype
 b.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
@@ -472,9 +477,11 @@ b.TR_kv_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_kv_proj
 b.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 b.TR_length	ok	0	name:TR_mem_length
 b.TR_mem_tolist	not_found	4	-
+b.TR_memory_total_bytes	ok	0	name:TR_mem_memory_total_bytes
 b.TR_next	ok	0	name:TR_mem_next
 b.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
 b.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
+b.TR_os	ok	0	name:TR_mem_os
 b.TR_permute	ok	0	name:TR_mem_permute
 b.TR_ple	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_ple
 b.TR_pop	ok	0	name:TR_mem_pop
@@ -1200,6 +1207,7 @@ log_mel.TR_slice	ok	0	name:TR_mem_slice
 loss.TR_tolist	ok	0	name:TR_mem_tolist
 lp.TR_slice	ok	0	name:TR_mem_slice
 m.TR_append	ok	0	name:TR_mem_append
+m.TR_arch	ok	0	name:TR_mem_arch
 m.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 m.TR_build_cache	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_build_cache
 m.TR_cancel	ok	0	name:TR_mem_cancel
@@ -1207,6 +1215,7 @@ m.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 m.TR_contains	ok	0	name:TR_mem_contains
 m.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 m.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
+m.TR_cpu_features	ok	0	name:TR_mem_cpu_features
 m.TR_declared_eos_tokens	ok	0	name:TR_mem_declared_eos_tokens
 m.TR_dtype	ok	0	name:TR_mem_dtype
 m.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
@@ -1228,7 +1237,11 @@ m.TR_local_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_local_sin_ta
 m.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 m.TR_logits	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_logits
 m.TR_loss	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_loss
+m.TR_memory_available_bytes	ok	0	name:TR_mem_memory_available_bytes
+m.TR_memory_limit_bytes	ok	0	name:TR_mem_memory_limit_bytes
+m.TR_memory_total_bytes	ok	0	name:TR_mem_memory_total_bytes
 m.TR_next	ok	0	name:TR_mem_next
+m.TR_os	ok	0	name:TR_mem_os
 m.TR_permute	ok	0	name:TR_mem_permute
 m.TR_ple_context	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_ple_context
 m.TR_read	ok	0	name:TR_mem_read
@@ -1245,6 +1258,7 @@ m.TR_text	ok	0	name:TR_mem_text
 m.TR_tolist	ok	0	name:TR_mem_tolist
 m.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 m.TR_transpose	ok	0	name:TR_mem_transpose
+m.TR_usable_cpus	ok	0	name:TR_mem_usable_cpus
 m.TR_vocab_size	ok	0	name:TR_mem_vocab_size
 m1.TR_grad	ok	0	name:TR_mem_grad
 m2.TR_grad	ok	0	name:TR_mem_grad
@@ -1410,6 +1424,7 @@ opt.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 optimizer.TR_step	ok	0	name:TR_mem_step
 optimizer.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 oranlar.TR_length	ok	0	name:TR_mem_length
+oslar.TR_contains	ok	0	name:TR_mem_contains
 oturumlar.TR_remove	ok	0	name:TR_mem_remove
 ouv.TR_step	ok	0	name:TR_mem_step
 ouv.TR_zero_grad	ok	0	name:TR_mem_zero_grad
@@ -1675,6 +1690,7 @@ t.TR_tolist	ok	0	name:TR_mem_tolist
 t.TR_transpose	ok	0	name:TR_mem_transpose
 taban.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 taban.TR_reshape	ok	0	name:TR_mem_reshape
+tablo.TR_index_of	ok	0	name:TR_mem_index_of
 tablo.TR_mem_transpose	not_found	4	-
 tablo.TR_transpose	ok	0	name:TR_mem_transpose
 tam.TR_length	ok	0	name:TR_mem_length

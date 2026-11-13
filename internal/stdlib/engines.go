@@ -21,6 +21,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/formats"
 	"github.com/sekerahmet/TCB/internal/stdlib/httpserver"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
+	"github.com/sekerahmet/TCB/internal/stdlib/machine"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 	"github.com/sekerahmet/TCB/internal/stdlib/process"
 	"github.com/sekerahmet/TCB/internal/stdlib/tokenizer"
@@ -44,6 +45,8 @@ func init() {
 	})
 	// HTTP sunucusu (28): istek ve cevap değerleri, dosya sunmak, belirteç.
 	interp.AddEngine(httpserver.Register)
+	// Makinenin anlık görüntüsü (19.12).
+	interp.AddEngine(machine.Register)
 }
 
 // Close motorların program boyunca açık kalmış kaynaklarını (HTTP sunucuları, veri kümesi okuyucuları,

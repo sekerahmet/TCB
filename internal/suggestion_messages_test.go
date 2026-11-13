@@ -81,6 +81,8 @@ var suggestionCases = []suggestionCase{
 	{messages.H6700, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var g = w.TR_grad", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
 	{messages.H6811, `TR_var t: TR_Tensor = TR_zeros([1], TR_dtype: "float")`, "float", "float32"},
 	{messages.H7229, `TR_var ayar = TR_command_line({"adım": 1}, TR_descriptions: {"adim": "x"})`, "adim", "adım"},
+	{messages.H7730, `TR_var w: TR_Bool = TR_machine().TR_os == "darwin"`, `"darwin"`, `"macos"`},
+	{messages.H7731, `TR_var x: TR_Bool = ["arm64", "amd64"].TR_contains(TR_machine().TR_arch)`, `"amd64"`, `"x86_64"`},
 	{messages.H7900, "TR_var s = TR_sum(TR_Tensor([1.0, 2.0]), axis: 0)", "axis", "TR_dim"},
 	{messages.H7903, "TR_var t = TR_Tensor([1.0]).tür_", "tür_", "TR_dtype"},
 	{messages.H1109, "TR_func f(b = 0) -> TR_Int { # ERROR H1109\n    TR_return b\n}\nTR_print(f())", "f(b = 0)", "f(b: TR_Int = 0)"},

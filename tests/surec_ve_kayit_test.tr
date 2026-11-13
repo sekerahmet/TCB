@@ -207,3 +207,45 @@ TR_test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
     TR_assert_equal(2, TR_Int(s[3]["step"]))
     TR_assert(TR_Float(s[3]["seconds"]) >= 0)
 }
+
+TR_test "19.12 makine() anlık görüntüyü Makine olarak verir; üyeler tipli ve akla yatkın" {
+    TR_var m = TR_machine()
+    TR_assert_equal(TR_Machine, TR_Type(m))
+    TR_assert(m.TR_memory_total_bytes > 0)
+    TR_assert(m.TR_memory_available_bytes > 0)
+    TR_assert(m.TR_memory_available_bytes <= m.TR_memory_total_bytes)
+    TR_var sınır = m.TR_memory_limit_bytes
+    TR_assert(sınır == TR_none TR_or sınır > 0)
+    TR_var bellek = TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes)
+    TR_assert(bellek > 0 TR_and bellek <= m.TR_memory_total_bytes)
+    TR_assert(m.TR_usable_cpus >= 1)
+    TR_assert_equal("H2012", TR_error_code { TR_machine(1) })
+}
+
+TR_test "19.12 işletim sistemi ve mimari kapalı tablodan ya da Go adı" {
+    TR_var m = TR_machine()
+    TR_assert(["windows", "linux", "macos", "aix", "android", "dragonfly", "freebsd", "illumos", "ios", "js", "netbsd", "openbsd", "plan9", "solaris", "wasip1"].TR_contains(m.TR_os))
+    TR_assert(["x86_64", "arm64", "386", "arm", "loong64", "mips", "mips64", "mips64le", "mipsle", "ppc64", "ppc64le", "riscv64", "s390x", "wasm"].TR_contains(m.TR_arch))
+    TR_var a = "darwin"
+    TR_assert(m.TR_os != a)
+    TR_var oslar = ["windows", "linux"]
+    TR_assert_equal(oslar.TR_contains(m.TR_os), m.TR_os == "windows" TR_or m.TR_os == "linux")
+}
+
+TR_test "19.12 komut kümeleri sabit tablodan, tablonun sırasıyla ve tekrarsız" {
+    TR_var tablo = ["sse4_2", "avx", "avx2", "fma", "f16c", "avx512f", "neon"]
+    TR_var son = -1
+    TR_for y TR_in TR_machine().TR_cpu_features {
+        TR_var i = tablo.TR_index_of(y) ?? -1
+        TR_assert(i > son)
+        son = i
+    }
+}
+
+TR_test "19.12 her çağrı yeni bir görüntü okur" {
+    TR_var a = TR_machine()
+    TR_var b = TR_machine()
+    TR_assert_equal(a.TR_memory_total_bytes, b.TR_memory_total_bytes)
+    TR_assert_equal(a.TR_os, b.TR_os)
+    TR_assert_equal(a.TR_cpu_features, b.TR_cpu_features)
+}

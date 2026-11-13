@@ -1116,6 +1116,10 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **Yapılacaklar:** mantık değerinde yalnız "true" ve "false" (`internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri çıkar); yardımın varsayılanları komut satırının yazımıyla; Go testleri.
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz (bugün "(default: none)"). **Açık:** standart hataya yazan yerleşik yok (yol haritası).
 
+### 19.12
+
+- **Mevcut durum (2026-11-13; Dost Interface, tek tığın E dilimi):** `TR_machine()` uygulandı: toplam, sınır (Linux'ta cgroup v1 ve v2, Windows'ta iş nesnesi) ve kullanılabilir bellek, çekirdek, komut kümeleri, `.TR_os` ve `.TR_arch`; karşılaştırmadaki yazım denetimde (H7730–H7733). macOS'ta sınanmadı; orada kullanılabilir bellek ve sınır H7735 verir [test: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineMembers`, `tests/surec_ve_kayit_test.tr`].
+
 ## Bölümü olmayan işler
 
 - **Yapılacaklar (sınıfsız: araç; sahip TCB; DENETİM 483, 485 N4, 489 N6):** belge testi `TestReviewedSectionsWriteIdentities` ters tırnak içindeki her sözcüğü kod adı sayıyor; kod olmayan ama bir görünüm adıyla çakışan yazımlar düşüyor: yokluk sözcüğünün İngilizcesi (483), JSON anahtarları (485 N4), TR önekli bir ortam değişkeni (489 N6), 2026-11-12'de bir başlatma sözcüğü, T1'in değer dosyasının adı, bir config anahtarı, bir komut seçeneği, iki komut adı ve bir tip adı. On yazım düştü; her seferinde metin düzyazıya çevrildi. Önerisi: test dosya yolunu, komut seçeneğini, ortam değişkenini ve dış biçimin anahtarını ayırsın ya da bunlar için açık bir işaret olsun.

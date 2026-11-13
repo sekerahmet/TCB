@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 766 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 177 fonksiyon, 12 sabit, 93 metot, 136 özellik, 194 adlı argüman.
+Toplam 775 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 68 tip, 178 fonksiyon, 12 sabit, 93 metot, 143 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -930,6 +930,23 @@ tr: değişken g = Günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğ
 ```
 
 Üyeleri: `.TR_append(...)`, `.TR_close(...)` · İlişkili: `.TR_append(...)`, `.TR_close(...)`, `TR_Progress`
+
+#### `TR_Machine` (`TR_type_Machine`, `Makine`)
+
+makine()'nin verdiği anlık görüntü; dilin hiçbir yerleşiği hesabını ona göre değiştirmez.
+
+```tr
+TR_var m = TR_machine(); TR_print(TR_Type(m) == TR_Machine, m)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(Type(m) == Machine, m)
+tr: değişken m = makine(); yazdır(Tip(m) == Makine, m)
+```
+
+Üyeleri: `.TR_arch`, `.TR_cpu_features`, `.TR_memory_available_bytes`, `.TR_memory_limit_bytes`, `.TR_memory_total_bytes`, `.TR_os`, `.TR_usable_cpus` · İlişkili: `TR_machine(...)`, `.TR_memory_total_bytes`, `.TR_memory_limit_bytes`, `.TR_memory_available_bytes`, `.TR_usable_cpus`, `.TR_cpu_features`, `.TR_os`, `.TR_arch`
 
 #### `TR_MaskStream` (`TR_type_MaskStream`, `MaskeAkışı`)
 
@@ -2732,6 +2749,25 @@ tr: yazdır(log_toplam_üs(Tensör([[0.0, 0.0], [1.0, 2.0]]), eksen: 1).değer)
     öğrenme_oranı_planı()
 
 
+
+#### `TR_machine(...)` (`TR_fn_machine`, `makine`)
+
+    makine() → Makine
+
+Sürecin çalıştığı makinenin o anki görüntüsünü Makine olarak verir: bellek, sınır, çekirdek, komut kümeleri, işletim sistemi, mimari.
+
+```tr
+TR_var m = TR_machine(); TR_var bellek = TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes); TR_print(m.TR_os, m.TR_arch, m.TR_usable_cpus, bellek > 0)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); var bellek = min(m.memory_total_bytes, m.memory_limit_bytes ?? m.memory_total_bytes); print(m.os, m.arch, m.usable_cpus, bellek > 0)
+tr: değişken m = makine(); değişken bellek = min(m.toplam_bellek_baytı, m.bellek_sınırı_baytı ?? m.toplam_bellek_baytı); yazdır(m.işletim_sistemi, m.mimari, m.kullanılabilir_çekirdek, bellek > 0)
+```
+
+İlişkili: `TR_Machine`, `.TR_memory_total_bytes`, `.TR_memory_limit_bytes`, `.TR_memory_available_bytes`, `.TR_cpu_features`
 
 #### `TR_make_dir(...)` (`TR_fn_make_dir`, `klasör_oluştur`)
 
@@ -6132,6 +6168,25 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_arch` (`TR_mem_arch`, `mimari`)
+
+    Makine.mimari → Metin
+
+"x86_64" ya da "arm64"; öbür makinelerde Go adı. Karşılaştırmada başka yazım denetim hatasıdır.
+
+```tr
+TR_var m = TR_machine(); TR_print(m.TR_arch, ["x86_64", "arm64"].TR_contains(m.TR_arch))
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(m.arch, ["x86_64", "arm64"].contains(m.arch))
+tr: değişken m = makine(); yazdır(m.mimari, ["x86_64", "arm64"].içerir(m.mimari))
+```
+
+İlişkili: `.TR_os`, `.TR_cpu_features`, `TR_machine(...)`
+
 #### `.TR_arguments` (`TR_mem_arguments`, `argümanlar`)
 
 
@@ -6349,6 +6404,25 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 #### `.TR_cos_table` (`TR_mem_cos_table`, `cos_tablosu`)
 
 
+
+#### `.TR_cpu_features` (`TR_mem_cpu_features`, `işlemci_yetenekleri`)
+
+    Makine.işlemci_yetenekleri → Liste
+
+İşlemcinin ve işletim sisteminin desteklediği komut kümeleri, sabit tablodan ("avx2", "fma", "avx512f", "neon" ...).
+
+```tr
+TR_var m = TR_machine(); TR_print(m.TR_arch, m.TR_cpu_features)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(m.arch, m.cpu_features)
+tr: değişken m = makine(); yazdır(m.mimari, m.işlemci_yetenekleri)
+```
+
+İlişkili: `TR_machine(...)`, `.TR_arch`
 
 #### `.TR_declared_eos_tokens` (`TR_mem_declared_eos_tokens`, `bildirilen_durma_parçaları`)
 
@@ -7127,6 +7201,63 @@ tr: yazdır([1, 2, 3].haritala((x) => x * 10))
 
 
 
+#### `.TR_memory_available_bytes` (`TR_mem_memory_available_bytes`, `kullanılabilir_bellek_baytı`)
+
+    Makine.kullanılabilir_bellek_baytı → Tam
+
+Okunduğu anda yeni işe verilebilecek bellek, bayt.
+
+```tr
+TR_var m = TR_machine(); TR_print(m.TR_memory_available_bytes <= m.TR_memory_total_bytes)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(m.memory_available_bytes <= m.memory_total_bytes)
+tr: değişken m = makine(); yazdır(m.kullanılabilir_bellek_baytı <= m.toplam_bellek_baytı)
+```
+
+İlişkili: `.TR_memory_total_bytes`, `TR_machine(...)`
+
+#### `.TR_memory_limit_bytes` (`TR_mem_memory_limit_bytes`, `bellek_sınırı_baytı`)
+
+    Makine.bellek_sınırı_baytı → Tam | YokTipi
+
+Sürece konmuş bellek sınırı (cgroup, iş nesnesi), bayt; sınır yoksa yok.
+
+```tr
+TR_var m = TR_machine(); TR_print(TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes) > 0)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(min(m.memory_total_bytes, m.memory_limit_bytes ?? m.memory_total_bytes) > 0)
+tr: değişken m = makine(); yazdır(min(m.toplam_bellek_baytı, m.bellek_sınırı_baytı ?? m.toplam_bellek_baytı) > 0)
+```
+
+İlişkili: `.TR_memory_total_bytes`, `TR_machine(...)`
+
+#### `.TR_memory_total_bytes` (`TR_mem_memory_total_bytes`, `toplam_bellek_baytı`)
+
+    Makine.toplam_bellek_baytı → Tam
+
+Makinenin fiziksel belleği (Makine) ya da kartın belleği (CihazBilgisi), bayt.
+
+```tr
+TR_print(TR_machine().TR_memory_total_bytes > 0)
+```
+
+Görünümü:
+
+```text
+en: print(machine().memory_total_bytes > 0)
+tr: yazdır(makine().toplam_bellek_baytı > 0)
+```
+
+İlişkili: `.TR_memory_limit_bytes`, `.TR_memory_available_bytes`, `TR_machine(...)`
+
 #### `.TR_method` (`TR_mem_method`, `yöntem`)
 
     HTTPİsteği.yöntem → Metin
@@ -7237,6 +7368,25 @@ tr: değişken girdi, hedef = VeriKümesi("tests/data/numbers").sıralı(toplu: 
 #### `.TR_observe(...)` (`TR_mem_observe`, `gözle`)
 
 
+
+#### `.TR_os` (`TR_mem_os`, `işletim_sistemi`)
+
+    Makine.işletim_sistemi → Metin
+
+"windows", "linux" ya da "macos"; öbür makinelerde Go adı. Karşılaştırmada başka yazım denetim hatasıdır.
+
+```tr
+TR_var m = TR_machine(); TR_if m.TR_os == "windows" { TR_print("Windows") }; TR_print(["windows", "linux", "macos"].TR_contains(m.TR_os))
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); if m.os == "windows" { print("Windows") }; print(["windows", "linux", "macos"].contains(m.os))
+tr: değişken m = makine(); eğer m.işletim_sistemi == "windows" { yazdır("Windows") }; yazdır(["windows", "linux", "macos"].içerir(m.işletim_sistemi))
+```
+
+İlişkili: `.TR_arch`, `TR_machine(...)`
 
 #### `.TR_other` (`TR_mem_other`, `diğer`)
 
@@ -8301,6 +8451,25 @@ tr: yazdır("merhaba".büyük_harf())
 ```
 
 İlişkili: `.TR_lower(...)`
+
+#### `.TR_usable_cpus` (`TR_mem_usable_cpus`, `kullanılabilir_çekirdek`)
+
+    Makine.kullanılabilir_çekirdek → Tam
+
+Bu sürecin kullanabildiği mantıksal çekirdek sayısı.
+
+```tr
+TR_print(TR_machine().TR_usable_cpus >= 1)
+```
+
+Görünümü:
+
+```text
+en: print(machine().usable_cpus >= 1)
+tr: yazdır(makine().kullanılabilir_çekirdek >= 1)
+```
+
+İlişkili: `TR_machine(...)`, `.TR_cpu_features`
 
 #### `.TR_v_buffers` (`TR_mem_v_buffers`, `v_tamponları`)
 
