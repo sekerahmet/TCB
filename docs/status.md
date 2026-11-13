@@ -278,7 +278,7 @@ Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yaln
 ### 6.5
 
 - **Mevcut durum:** eksik, fazla, bilinmeyen adlı ve hem sırayla hem adla verilen argüman ancak çalışırken bulunuyor (H2414, H2412, H2415, H2413); adlı argümanın tipi hiç denetlenmiyor (`b: "x"` hata ancak gövdedeki işlemde veriyor); parametre bekleyen yerleşiğe verilen sondaki blok çalışırken H2711 [ölçüldü: iki parametreli fonksiyona sekiz çağrı; denetim ve çalıştırma].
-- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** eksik, fazla, bilinmeyen ve iki kez verilen argüman ile tipi tutmayan adlı argüman denetim hatası, ileti parametrenin adını söyler; denetleyicinin testi. H7172–H7174 (`TR_generate`'in `TR_eos:`'u, D1 Teslim A) bu boşluğu kitaplıkta yamıyor [kanıtlı: D1'in devri, DENETİM 446 N10]. Tipi denetimde bilinen yerde denetleyici hata verince bu üç ileti orada gereksizleşir; değeri çalışma anında gelen yerde (`tools/gpu/ss_exam.tr:95`, değer JSON'dan) kalır; denetleyici gelince yeniden değerlendirilir (DENETİM 463 N2).
+- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** eksik, fazla, bilinmeyen ve iki kez verilen argüman ile tipi tutmayan adlı argüman denetim hatası, ileti parametrenin adını söyler; denetleyicinin testi. Kitaplık fonksiyonunun bilinmeyen adlı argümanı da ancak çalışırken bulunuyor (H2410; `TR_gemma3_format(..., TR_tools: [])`); denetim gelince `tests/negative/gemma3_araclar.tr`'nin `# RUN-ERROR H2410`'u `# ERROR`'a döner (D1 Gemma 3 Teslim D; TCB 2026-11-13 18:22). H7172–H7174 (`TR_generate`'in `TR_eos:`'u, D1 Teslim A) bu boşluğu kitaplıkta yamıyor [kanıtlı: D1'in devri, DENETİM 446 N10]. Tipi denetimde bilinen yerde denetleyici hata verince bu üç ileti orada gereksizleşir; değeri çalışma anında gelen yerde (`tools/gpu/ss_exam.tr:95`, değer JSON'dan) kalır; denetleyici gelince yeniden değerlendirilir (DENETİM 463 N2).
 - **Yapılacaklar (D, Ö3; sahip dil çekirdeği, denetleyici; D1'in bulgusu, DENETİM 446 N10, 463 N3):** tipi bilinen ve fonksiyon olmayan bir değeri çağırmak denetimde yakalanmıyor: `TR_exists` bir özellik, `p.TR_exists()` denetimden (`TR_cmd_check`) hatasız geçiyor, çalışırken "Mantık tipi bir fonksiyon olarak çağrılamaz" diyor [ölçüldü: D1, `lib/pretrained.tr`]. Ajan tuzağı: denetim hatası olur, ileti parantezsiz yazımı önerir.
 
 ### 6.6
@@ -1307,6 +1307,10 @@ Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md).
 
 - **Yapılacaklar:** 24.4 `TR_read_chat`.
 - **Mevcut durum (2026-11-11, D1 Teslim A, main `c90f7497`):** `TR_generate`'in `TR_eos:`'u durma kimliklerinin listesi (`TR_List[TR_Int]`, öntanımlı `[]`); tek sayı H7172 ile listedeki yazımı söylüyor, H7173 ve H7174 öbür yanlış yazımları reddediyor, öneri `TR_eos: model.TR_eos_tokens()` [test: `lib/layers_test.tr`, `TestFamilylessModelGeneratesWithExplicitStops`].
+
+### 24.3, 24.6–24.8
+
+- **Mevcut durum (D1 Gemma 3 Teslim D, dalın commit'i `4d6a154a`):** 24.7 `TR_gemma3_format` ve 24.8 `TR_gemma3_reply` `tr/chat_gemma3`'te; üç ailenin `hatalar`'ı `TR_List[TR_Message]` (H7186–H7191); Gemma'nın biçim hataları H7179–H7183, H7194; transformers 5.22.1'in iki Gemma 3 şablonuyla 16 durum küçük parçalayıcıda birebir [test: `tests/gemma3_chat_test.tr`, `tests/chat_format_test.tr`, `tests/llama3_chat_test.tr`].
 
 ## 25. Konuşmayı yazıya çevirme
 
