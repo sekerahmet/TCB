@@ -1,11 +1,13 @@
 package assistant_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -76,6 +78,61 @@ func TestChainDeviceTransitions(t *testing.T) {
 				if !strings.Contains(got, want) {
 					t.Errorf("--cihaz %s: çıktıda %q yok:\n%s", d.device, want, got)
 				}
+			}
+		})
+	}
+}
+
+// asistan.tr'nin --cihaz'ı (T1 tasarımının G7'si, dilim 4b): varsayılan cihaz modellerden ve yan etkilerden önce kurulur.
+// Program modelsiz koşar (yolları olmayan dosyalar): nicemli denetimi seçilen cihazı görür (kartta durur, işlemcide
+// parçalayıcının yükleme hatasına varır); geçersiz ya da kullanılamayan cihaz deneme klasörü kurulmadan durur; ekranlı
+// kipte cpu dışındaki cihaz sunucu açılmadan hatadır. Kart benzeticide (TR_GPU_SIM) tek kart vardır: gpu:7 hiçbir
+// makinede yoktur.
+func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
+	program := reporoot.Path(chainProgram)
+	models := []string{"--dil_modeli", "yok.gguf", "--whisper", "yok", "--vad", "yok", "--ses_modeli", "yok"}
+	// record: koşu --deneme_klasörü alır ve klasör kurulmamış olmalı (cihazda duran durumlar).
+	for _, c := range []struct {
+		name      string
+		args      []string
+		want, not string
+		record    bool
+	}{
+		{"gpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "gpu"}, "dil modelinin cihazı gpu", "yüklenemedi", false},
+		{"cpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "cpu"}, "yüklenemedi", "dil modelinin cihazı", false},
+		{"seçeneksiz, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme"}, "yüklenemedi", "dil modelinin cihazı", false},
+		{"kart", []string{"--kip", "dosya", "--cihaz", "kart"}, `bilinmeyen cihaz "kart"`, "DENEME", true},
+		{"boş ad", []string{"--kip", "dosya", "--cihaz", ""}, `bilinmeyen cihaz ""`, "DENEME", true},
+		{"gpu:7", []string{"--kip", "dosya", "--cihaz", "gpu:7"}, "gpu:7 cihazı kullanılamıyor", "DENEME", true},
+		{"ekranlı, gpu", []string{"--kip", "canlı", "--ekran", "0", "--cihaz", "gpu"}, "--cihaz gpu ekranlı kipte verilmez", "EKRAN", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			record := filepath.Join(dir, "kayit")
+			args := append([]string{program}, c.args...)
+			args = append(args, models...)
+			args = append(args, "--belirteç_dosyası", filepath.Join(dir, "belirtec.txt"))
+			if c.record {
+				args = append(args, "--deneme_klasörü", record)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, trlangBinary(t), args...)
+			cmd.Dir = dir
+			cmd.Env = append(os.Environ(), "TR_GPU_SIM=1")
+			out, err := cmd.CombinedOutput()
+			got := string(out)
+			if err == nil || ctx.Err() != nil {
+				t.Fatalf("%s: hatayla durmalıydı (err %v, ctx %v):\n%s", c.name, err, ctx.Err(), got)
+			}
+			if !strings.Contains(got, c.want) {
+				t.Errorf("%s: çıktıda %q yok:\n%s", c.name, c.want, got)
+			}
+			if strings.Contains(got, c.not) {
+				t.Errorf("%s: çıktıda %q olmamalı:\n%s", c.name, c.not, got)
+			}
+			if _, err := os.Stat(record); c.record && !os.IsNotExist(err) {
+				t.Errorf("%s: deneme klasörü kurulmamalıydı (%v)", c.name, err)
 			}
 		})
 	}
