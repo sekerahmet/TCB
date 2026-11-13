@@ -1,0 +1,76 @@
+# TR 4
+# tr/chat_gemma3 — Gemma 3'ün sohbet biçimi (dil tanımı 24.7, 24.8).
+#
+# Kullanım:   `TR_import "tr/chat"` ve `TR_import "tr/chat_gemma3"`
+#             `TR_var kimlikler = TR_gemma3_format(p, iletiler, TR_add_generation_prompt: TR_true)`
+#             `TR_var cevap, hatalar = TR_gemma3_reply(p, üretilen)`
+#
+# Gemma 3'ün Jinja şablonu burada TR ile yazılıdır (tr/chat'in Qwen3 ve Llama 3 biçimleri gibi): etiketler
+# kimlikleriyle girer, iki etiket arasındaki metin tek bir kodlamadır (tr/chat'in `TR_ChatTokens`'ı). Ailenin araç
+# desteği ve düşünce bloğu yoktur. Başvuru yayımlanmış şablondur: tests/data/gemma3_chat/KAYNAK.md.
+
+TR_import "tr/chat"
+
+TR_const _G_BOS = "<bos>"
+TR_const _G_BAŞ = "<start_of_turn>"
+TR_const _G_SON = "<end_of_turn>"
+TR_const _G_EOS = "<eos>"
+
+# gemma3_biçimi: iletileri Gemma 3'ün biçimiyle kimliklere çevirir (24.7). Sistem iletisi ayrı tur değildir:
+# kırpılmadan ilk kullanıcı turunun başına yazılır. BOS'u biçim taşır; metin sınır parçasız kodlanır.
+TR_func TR_gemma3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_add_generation_prompt: TR_Bool) -> TR_List[TR_Int] {
+    TR_for ad TR_in [_G_BOS, _G_BAŞ, _G_SON] {
+        TR_if p.TR_token_id(ad) == TR_none { TR_throw TR_Message("H7182", ad) }
+    }
+    TR_var n = iletiler.TR_length
+    TR_var i = 0
+    TR_var önek = ""
+    TR_if n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System {
+        TR_if n == 1 { TR_throw TR_Message("H7183") }
+        önek = "\(iletiler[0].TR_content)\n\n"
+        i = 1
+    }
+    TR_var d = TR_ChatTokens(TR_tokenizer: p)
+    d.TR_add_tag(_G_BOS)
+    TR_for j TR_in i..n {
+        TR_var m = iletiler[j]
+        _g_sına(m, j + 1, (j - i) % 2 == 0)
+        TR_var rol = TR_if m.TR_role == TR_Role.TR_User { "user" } TR_else { "model" }
+        TR_var baş = TR_if j == i { önek } TR_else { "" }
+        d.TR_add_tag(_G_BAŞ)
+        d.TR_add_text("\(rol)\n\(baş)\(m.TR_content.TR_strip(TR_PY_WHITESPACE))")
+        d.TR_add_tag(_G_SON)
+        d.TR_add_text("\n")
+    }
+    TR_if TR_add_generation_prompt {
+        d.TR_add_tag(_G_BAŞ)
+        d.TR_add_text("model\n")
+    }
+    TR_return d.TR_finish()
+}
+
+# _g_sına: araç sonucu, araç çağrısı, dolu düşünce ve sırası tutmayan rol hatadır. `sıra` 1'den sayar;
+# `kullanıcı_sırası` sistemden sonraki iletilerin çift sıralılarıdır (şablonun `loop.index0 % 2 == 0`'ı).
+TR_func _g_sına(m: TR_ChatMessage, sıra: TR_Int, kullanıcı_sırası: TR_Bool) {
+    TR_if m.TR_role == TR_Role.TR_Tool { TR_throw TR_Message("H7180", sıra) }
+    TR_if m.TR_tool_calls.TR_length > 0 { TR_throw TR_Message("H7194", sıra) }
+    TR_if (m.TR_reasoning ?? "") != "" { TR_throw TR_Message("H7181", sıra) }
+    TR_var beklenen = TR_if kullanıcı_sırası { TR_Role.TR_User } TR_else { TR_Role.TR_Assistant }
+    TR_if m.TR_role != beklenen { TR_throw TR_Message("H7179", sıra, m.TR_role) }
+}
+
+# gemma3_cevabı: üretilen kimlikleri bir asistan iletisine ve hatalara ayırır (24.8). Sondaki durma parçası atılır;
+# araç çağrısı aranmaz. Kimliğiyle `<start_of_turn>` geçerse model yeni bir sıra başlatmıştır: cevap metin kalır.
+TR_func TR_gemma3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatMessage, TR_List[TR_Message]) {
+    TR_var son = kimlikler.TR_length
+    TR_if son > 0 TR_and [p.TR_token_id(_G_SON), p.TR_token_id(_G_EOS)].TR_contains(kimlikler[son - 1]) { son -= 1 }
+    TR_var gövde = kimlikler[0..son]
+    TR_var baş = p.TR_token_id(_G_BAŞ)
+    TR_if baş != TR_none TR_and gövde.TR_contains(baş) {
+        TR_var sıra = 1
+        TR_for gövde[sıra - 1] != baş { sıra += 1 }
+        TR_var metin = p.TR_decode(gövde, TR_special_tokens: TR_true)
+        TR_return (TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: metin), [TR_Message("H7186", sıra)])
+    }
+    TR_return (TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: p.TR_decode(gövde)), [])
+}

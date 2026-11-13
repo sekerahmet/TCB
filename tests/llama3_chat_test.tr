@@ -177,7 +177,7 @@ TR_test "24.6 gidiş-dönüş: içerikli ve araç çağrılı cevap aynı iletiy
 }
 
 # cevapla: metni parçalayıcıyla kodlar, sonuna `<|eot_id|>` ekler ve `saat` ile `hava` araçlarıyla ayırır.
-TR_func cevapla(p: TR_Tokenizer, metin: TR_String, araçlı: TR_Bool) -> (TR_ChatMessage, TR_List[TR_String]) {
+TR_func cevapla(p: TR_Tokenizer, metin: TR_String, araçlı: TR_Bool) -> (TR_ChatMessage, TR_List[TR_Message]) {
     TR_var a = TR_if araçlı { araçlar(durum("arac_tanimi", "3.2")) } TR_else { [] }
     TR_return TR_llama3_reply(p, p.TR_encode(metin, TR_special_tokens: TR_false) + [p.TR_token_id("<|eot_id|>")], TR_tools: a)
 }
@@ -229,16 +229,21 @@ TR_test "24.6 çağrı sayılmayan çağrı biçimli cevap metin kalır ve hatal
         TR_assert_equal(1, h.TR_length)
     }
     TR_var _a, ah = cevapla(p, "{\"name\": \"saat\", \"arguments\": {}}", TR_true)
-    TR_assert(ah[0].TR_contains("\"parameters\""))
+    TR_assert_equal(1, ah.TR_length)
+    TR_assert_equal("H7190", TR_error_code { TR_throw ah[0] })
+    TR_assert_equal("llama3_cevabı: cevap bir araç çağrısına benziyor ama çağrı değil: çağrı \"arguments\" yazıyor, Llama 3 \"parameters\" yazar; cevap metin olarak kaldı (24.6)", ah[0].TR_text("tr"))
     TR_var _y, yh = cevapla(p, "{\"name\": \"yok\", \"parameters\": {}}", TR_true)
-    TR_assert(yh[0].TR_contains("\"yok\""))
+    TR_assert_equal(1, yh.TR_length)
+    TR_assert_equal("H7191", TR_error_code { TR_throw yh[0] })
+    TR_assert(yh[0].TR_text("tr").TR_contains("\"yok\""))
     # Düz şemalı araçlarla listede olmayan ad da metin kalır ve hatalar'a girer.
     TR_var dm = "{\"name\": \"yok\", \"parameters\": {}}"
     TR_var dy, dyh = TR_llama3_reply(p, p.TR_encode(dm, TR_special_tokens: TR_false) + [p.TR_token_id("<|eot_id|>")], TR_tools: araçlar(durum("cevap_cagri_duz", "3.2")))
     TR_assert_equal(0, dy.TR_tool_calls.TR_length)
     TR_assert_equal(dm, dy.TR_content)
     TR_assert_equal(1, dyh.TR_length)
-    TR_assert(dyh[0].TR_contains("\"yok\""))
+    TR_assert_equal("H7191", TR_error_code { TR_throw dyh[0] })
+    TR_assert(dyh[0].TR_text("tr").TR_contains("\"yok\""))
 }
 
 TR_test "24.6 <|python_tag|> desteklenmez: metin kalır, hatalar'a girer; sondaki durma parçası atılır" {
@@ -259,4 +264,44 @@ TR_test "24.6 <|python_tag|> desteklenmez: metin kalır, hatalar'a girer; sondak
     TR_var b, bo = TR_llama3_reply(p, [])
     TR_assert_equal("", b.TR_content)
     TR_assert_equal(0, bo.TR_length)
+}
+
+# denetle: hatanın kodu ve iki dildeki tam metni.
+TR_func denetle(h: TR_Message, kod: TR_String, tr: TR_String, en: TR_String) {
+    TR_assert_equal(kod, TR_error_code { TR_throw h })
+    TR_assert_equal(tr, h.TR_text("tr"))
+    TR_assert_equal(en, h.TR_text("en"))
+}
+
+TR_test "24.6 hatalar'ın her nedeni, H7189 ve H7191: kod ve iki dilde tam metin" {
+    TR_var p = parçalayıcı()
+    TR_var py = p.TR_token_id("<|python_tag|>")
+    TR_var _b, h_py = TR_llama3_reply(p, [py] + p.TR_encode("brave_search.call(query=\"x\")", TR_special_tokens: TR_false) + [p.TR_token_id("<|eom_id|>")])
+    TR_assert_equal(1, h_py.TR_length)
+    denetle(h_py[0], "H7189", "llama3_cevabı: `<|python_tag|>` (Llama 3.1'in yerleşik araçları) desteklenmiyor; cevap metin olarak kaldı (24.6)", "llama3_reply: `<|python_tag|>` (the built-in tools of Llama 3.1) is not supported; the reply was kept as text (24.6)")
+    TR_var ingilizceler: TR_List[TR_String] = []
+    TR_var _arguments, h_arguments = cevapla(p, "{\"name\": \"saat\", \"arguments\": {}}", TR_true)
+    TR_assert_equal(1, h_arguments.TR_length)
+    denetle(h_arguments[0], "H7190", "llama3_cevabı: cevap bir araç çağrısına benziyor ama çağrı değil: çağrı \"arguments\" yazıyor, Llama 3 \"parameters\" yazar; cevap metin olarak kaldı (24.6)", "llama3_reply: the reply looks like a tool call but is not one: the call writes \"arguments\", Llama 3 writes \"parameters\"; the reply was kept as text (24.6)")
+    ingilizceler.TR_append(h_arguments[0].TR_text("en"))
+    TR_var _keys, h_keys = cevapla(p, "{\"name\": \"saat\", \"parameters\": {}, \"x\": 1}", TR_true)
+    TR_assert_equal(1, h_keys.TR_length)
+    denetle(h_keys[0], "H7190", "llama3_cevabı: cevap bir araç çağrısına benziyor ama çağrı değil: çağrının anahtarları tam olarak \"name\" ve \"parameters\" olmalı; cevap metin olarak kaldı (24.6)", "llama3_reply: the reply looks like a tool call but is not one: the keys of the call must be exactly \"name\" and \"parameters\"; the reply was kept as text (24.6)")
+    ingilizceler.TR_append(h_keys[0].TR_text("en"))
+    TR_var _parameters, h_parameters = cevapla(p, "{\"name\": \"saat\", \"parameters\": \"{}\"}", TR_true)
+    TR_assert_equal(1, h_parameters.TR_length)
+    denetle(h_parameters[0], "H7190", "llama3_cevabı: cevap bir araç çağrısına benziyor ama çağrı değil: çağrının \"parameters\" alanı bir JSON nesnesi değil; cevap metin olarak kaldı (24.6)", "llama3_reply: the reply looks like a tool call but is not one: the \"parameters\" field of the call is not a JSON object; the reply was kept as text (24.6)")
+    ingilizceler.TR_append(h_parameters[0].TR_text("en"))
+    TR_var _name, h_name = cevapla(p, "{\"name\": 3, \"parameters\": {}}", TR_true)
+    TR_assert_equal(1, h_name.TR_length)
+    denetle(h_name[0], "H7190", "llama3_cevabı: cevap bir araç çağrısına benziyor ama çağrı değil: çağrının \"name\" alanı metin değil; cevap metin olarak kaldı (24.6)", "llama3_reply: the reply looks like a tool call but is not one: the \"name\" field of the call is not a string; the reply was kept as text (24.6)")
+    ingilizceler.TR_append(h_name[0].TR_text("en"))
+    TR_var _other, h_other = cevapla(p, "[{\"parameters\": {}, \"name\": \"yok\"}]", TR_true)
+    TR_assert_equal(1, h_other.TR_length)
+    denetle(h_other[0], "H7190", "llama3_cevabı: cevap bir araç çağrısına benziyor ama çağrı değil: cevap tek bir JSON nesnesi değil; cevap metin olarak kaldı (24.6)", "llama3_reply: the reply looks like a tool call but is not one: the reply is not a single JSON object; the reply was kept as text (24.6)")
+    ingilizceler.TR_append(h_other[0].TR_text("en"))
+    TR_assert_equal(5, ingilizceler.TR_unique().TR_length)
+    TR_var _y, h_yok = cevapla(p, "{\"name\": \"yok\", \"parameters\": {}}", TR_true)
+    TR_assert_equal(1, h_yok.TR_length)
+    denetle(h_yok[0], "H7191", "llama3_cevabı: araç çağrısı \"yok\" adını veriyor ama bu ad araçlarda yok; cevap metin olarak kaldı (24.6)", "llama3_reply: the tool call gives the name \"yok\" but no tool has this name; the reply was kept as text (24.6)")
 }

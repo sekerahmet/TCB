@@ -2,6 +2,7 @@ package checker
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -42,7 +43,9 @@ func singleType(t codes.TypeExpr) (codes.Code, bool) {
 }
 
 // builtinCallCode çağrılan yerleşiğin kodudur: kodla yazılmış, kullanıcının gölgelemediği fonksiyon
-// ya da tip adı, ya da tipi bilinen kullanıcı yapısı olmayan alıcının kodla yazılmış üyesi.
+// ya da tip adı, ya da tipi bilinen kullanıcı yapısı olmayan alıcının kodla yazılmış üyesi. Alıcı
+// yerleşik tipte olmayan bir yapıysa (kitaplık tipi ya da aktarılan modülün yapısı) üyesi yerleşik
+// değildir: aynı adlı yerleşik üyenin imzası ona geçmez (D1 Gemma 3, Teslim D).
 func (c *Checker) builtinCallCode(e *ast.CallExpression, objType string) codes.Code {
 	switch f := e.Function.(type) {
 	case *ast.Identifier:
@@ -50,11 +53,36 @@ func (c *Checker) builtinCallCode(e *ast.CallExpression, objType string) codes.C
 			return f.Token.Code
 		}
 	case *ast.MemberExpression:
-		if !f.Safe && !c.knownStruct(objType) && f.NameToken.Code.Namespace() == codes.NamespaceMember {
+		if !f.Safe && !c.knownStruct(objType) && !structReceiver(objType) && f.NameToken.Code.Namespace() == codes.NamespaceMember {
 			return f.NameToken.Code
 		}
 	}
 	return codes.None
+}
+
+// structReceiver t'nin yerleşik tipte olmayan bir yapı olduğudur: kod listesinde modülü yazılı tip
+// (TR_ChatTokens) ya da TR_ ile başlamayan düz ad (aktarılan modülün yapısı). TR_Any ve öbürleri değil.
+func structReceiver(t string) bool {
+	if k, err := codes.Parse(t); err == nil && k != codes.None {
+		return k.IsLibrary()
+	}
+	return t != "" && !strings.HasPrefix(t, codes.IdentityPrefix) && strings.IndexFunc(t, func(r rune) bool {
+		return r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	}) < 0
+}
+
+// libraryType t'nin kod listesinde modülü yazılı bir tip olduğudur (TR_type_ChatTokens).
+func libraryType(t string) bool {
+	k, err := codes.Parse(t)
+	return err == nil && k.IsLibrary() && k.Namespace() == codes.NamespaceType
+}
+
+// libraryTypeCall kitaplık tipinin kurucusunun çağrısının tipidir: tipin kendisi (TR_ChatTokens(...)).
+func libraryTypeCall(e *ast.CallExpression) string {
+	if f, ok := e.Function.(*ast.Identifier); ok && f.Token.Code.IsLibrary() && f.Token.Code.Namespace() == codes.NamespaceType {
+		return codes.Name(f.Token.Code)
+	}
+	return ""
 }
 
 // ReturnsNotVerified are single-return builtins whose return the engine does not give in the
@@ -67,6 +95,9 @@ var ReturnsNotVerified = map[codes.Code]string{}
 // motorla doğrulanmamış yerleşik (ReturnsNotVerified), birleşim ve tanınmayan tip "" (TR_Any).
 func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) string {
 	k := c.builtinCallCode(e, objType)
+	if t := libraryTypeCall(e); t != "" {
+		return t
+	}
 	if t := c.jsonCallType(e, k); t != "" {
 		return t // TR_JSON'u veren yerleşik (json_values.go)
 	}

@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 766 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 177 fonksiyon, 12 sabit, 93 metot, 136 özellik, 194 adlı argüman.
+Toplam 774 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 68 tip, 179 fonksiyon, 13 sabit, 95 metot, 137 özellik, 195 adlı argüman.
 
 ## İçindekiler
 
@@ -653,6 +653,10 @@ tr: değişken b = Baytlar("şe"); yazdır(b, b.uzunluk, b[0], Metin(b + Baytlar
 
 
 #### `TR_ChatMessage` (`TR_type_ChatMessage`, `Sohbetİletisi`)
+
+
+
+#### `TR_ChatTokens` (`TR_type_ChatTokens`, `SohbetParçaları`)
 
 
 
@@ -2261,6 +2265,18 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 ```
 
 İlişkili: `TR_relu(...)`
+
+#### `TR_gemma3_format(...)` (`TR_fn_gemma3_format`, `gemma3_biçimi`)
+
+    gemma3_biçimi()
+
+
+
+#### `TR_gemma3_reply(...)` (`TR_fn_gemma3_reply`, `gemma3_cevabı`)
+
+    gemma3_cevabı()
+
+
 
 #### `TR_gguf_chat_family(...)` (`TR_fn_gguf_chat_family`, `gguf_sohbet_ailesi`)
 
@@ -4141,6 +4157,12 @@ tr: yazdır(sıfırlar([2, 3]).şekil)
 
 
 
+#### `TR_PY_WHITESPACE` (`TR_const_PY_WHITESPACE`, `PY_BOŞLUK`)
+
+    PY_BOŞLUK
+
+
+
 #### `TR_SPIKE` (`TR_const_SPIKE`, `SIÇRAMA`)
 
     SIÇRAMA
@@ -5873,6 +5895,10 @@ Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_secre
 
 
 
+#### `TR_tokenizer:` (`TR_arg_tokenizer`, `parçalayıcı`)
+
+
+
 #### `TR_tokenless_paths:` (`TR_arg_tokenless_paths`, `belirteçsiz_yollar`)
 
 Belirteçli sunucuda belirteç istemeyen yollar: yalnız sorgusuz GET ve HEAD isteğinde, çözülmüş yol listedeki bir yola tam eşitse belirteç aranmaz; önek ve klasör yoktur, her dosya adıyla, çözülmüş biçimde (% olmadan) yazılır. Tarayıcının adres çubuğundan açılan sayfa böyle sunulur; olayların ve komutların yolu listeye girmez.
@@ -6097,6 +6123,14 @@ tr: yazdır(Yol("a.txt").mutlak.dosya_adı)
 
 
 #### `.TR_add_lemma(...)` (`TR_mem_add_lemma`, `kök_ekle`)
+
+
+
+#### `.TR_add_tag(...)` (`TR_mem_add_tag`, `etiket_ekle`)
+
+
+
+#### `.TR_add_text(...)` (`TR_mem_add_text`, `metin_ekle`)
 
 
 
@@ -6601,7 +6635,7 @@ tr: yazdır([1, 2, 3, 4].filtrele((x) => x > 2))
 
     MaskeAkışı.bitir() → Metin
 
-MaskeAkışı'nda tutulan son parçayı maskeleyip Metin olarak verir ve akışı bitirir; sonra adım(...) hatadır, ikinci bitir() boş metin verir: m.adım("merhaba") + m.bitir(). tr/training'de koşuyu bitirir: koşu.bitir(model).
+MaskeAkışı'nda tutulan son parçayı maskeleyip Metin olarak verir ve akışı bitirir; sonra adım(...) hatadır, ikinci bitir() boş metin verir: m.adım("merhaba") + m.bitir(). tr/training'de koşuyu bitirir: koşu.bitir(model). tr/chat'te SohbetParçaları'nın biriktirdiği metni kodlar ve kimlik listesini verir: d.bitir().
 
 ```tr
 TR_var m = TR_mask_stream(); TR_print(m.TR_step("merhaba"), m.TR_finish(), m.TR_finish())
@@ -8193,6 +8227,10 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").parça_kimliği("
 ```
 
 İlişkili: `.TR_vocab_size`
+
+#### `.TR_tokenizer` (`TR_mem_tokenizer`, `parçalayıcı`)
+
+
 
 #### `.TR_tolist` (`TR_mem_tolist`, `değer`)
 

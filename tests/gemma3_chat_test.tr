@@ -1,0 +1,182 @@
+# TR 4
+# tr/chat_gemma3: Gemma 3'ün sohbet biçimi transformers'ın kimliklerini verir, cevap kimliklerden iletiye ayrılır
+# (dil tanımı 24.7, 24.8). Parçalayıcı ve durumlar `tools/hf/gemma3_chat_reference.py`'den: data/gemma3_chat/KAYNAK.md.
+
+TR_import "tr/chat"
+TR_import "tr/chat_gemma3"
+
+TR_const _KLASÖR = "data/gemma3_chat"
+
+# parçalayıcı klasörden açılır: Gemma 3 ailesiyle, biçimin "\n"'i tek kimliktir (16.2).
+TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer(_KLASÖR) }
+
+TR_func rol(ad: TR_String) -> TR_Role {
+    TR_return TR_match ad {
+        "system" => TR_Role.TR_System
+        "user" => TR_Role.TR_User
+        "assistant" => TR_Role.TR_Assistant
+        _ => TR_Role.TR_Tool
+    }
+}
+
+TR_func ileti(j: TR_JSON) -> TR_ChatMessage { TR_return TR_ChatMessage(TR_role: rol(TR_String(j["role"])), TR_content: TR_String(j["content"])) }
+
+TR_func iletiler(d: TR_JSON) -> TR_List[TR_ChatMessage] { TR_return [ileti(m) TR_for m TR_in d["messages"]] }
+
+TR_func kimlikler(j: TR_JSON) -> TR_List[TR_Int] { TR_return [TR_Int(k) TR_for k TR_in j] }
+
+TR_func durum(ad: TR_String, şablon: TR_String) -> TR_JSON {
+    TR_for d TR_in TR_json_parse(TR_read_file("\(_KLASÖR)/cases.json"))["cases"] {
+        TR_if TR_String(d["name"]) == ad TR_and TR_String(d["template"]) == şablon { TR_return d }
+    }
+    TR_throw "durum yok: \(ad) \(şablon)"
+}
+
+TR_func biçimle(p: TR_Tokenizer, d: TR_JSON) -> TR_List[TR_Int] {
+    TR_return TR_gemma3_format(p, iletiler(d), TR_add_generation_prompt: TR_Bool(d["add_generation_prompt"]))
+}
+
+# aynı: durum 1B'nin ve 4B'nin şablonunda transformers'ın kimliklerini verir.
+TR_func aynı(ad: TR_String) {
+    TR_var p = parçalayıcı()
+    TR_for ş TR_in ["1b", "4b"] {
+        TR_var d = durum(ad, ş)
+        TR_assert_equal(kimlikler(d["ids"]), biçimle(p, d))
+    }
+}
+
+TR_func kullanıcı(m: TR_String) -> TR_ChatMessage { TR_return TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: m) }
+
+TR_func asistan(m: TR_String) -> TR_ChatMessage { TR_return TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: m) }
+
+TR_func sistem(m: TR_String) -> TR_ChatMessage { TR_return TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: m) }
+
+TR_test "24.7 tek tur, sistemli, çok tur ve eğitim biçimi: BOS'u biçim taşır, sistem ilk kullanıcı turunun başındadır" {
+    TR_for ad TR_in ["tek_tur", "sistemli", "cok_tur", "egitim", "cevap_tek", "cevap_cok"] { aynı(ad) }
+    TR_var p = parçalayıcı()
+    TR_var k = TR_gemma3_format(p, [kullanıcı("Merhaba")], TR_add_generation_prompt: TR_true)
+    TR_assert_equal([p.TR_token_id("<bos>"), p.TR_token_id("<start_of_turn>")], k[0..2])
+    TR_assert_equal(1, [x TR_for x TR_in k TR_if x == p.TR_token_id("<bos>")].TR_length)
+    # Sistem iletisi ayrı tur değildir: iki iletinin biçiminde iki tur var (kullanıcı ve üretim istemi).
+    TR_var s = TR_gemma3_format(p, [sistem("Kısa cevap ver."), kullanıcı("Saat kaç?")], TR_add_generation_prompt: TR_true)
+    TR_assert_equal(2, [x TR_for x TR_in s TR_if x == p.TR_token_id("<start_of_turn>")].TR_length)
+}
+
+TR_test "24.7 kırpma: sistem iletisi kırpılmaz, kullanıcı ve asistan Python'un strip()'iyle; içerikteki satır sonları biçim parçasıdır" {
+    TR_for ad TR_in ["sistem_bosluklu", "py_bosluk", "icerik_satir"] { aynı(ad) }
+    TR_var p = parçalayıcı()
+    TR_assert_equal([p.TR_token_id("\n\n")], p.TR_encode("\n\n", TR_special_tokens: TR_false))
+}
+
+TR_test "24.7 içerikte yazılan etiket metin kalır; boş liste BOS ve üretim istemidir" {
+    TR_var p = parçalayıcı()
+    TR_var bilinen = durum("ref_icerik_etiket", "1b")
+    TR_var k = biçimle(p, bilinen)
+    # transformers yazılan etiketi etiketin kimliğiyle kodlar (kayıt); TR metin bırakır.
+    TR_assert(kimlikler(bilinen["ids"]) != k)
+    TR_assert_equal(2, [x TR_for x TR_in k TR_if x == p.TR_token_id("<start_of_turn>")].TR_length)
+    TR_assert(p.TR_decode(k, TR_special_tokens: TR_true).TR_contains("Bunu yaz: <start_of_turn> ve <end_of_turn>"))
+    TR_var boş = TR_gemma3_format(p, [], TR_add_generation_prompt: TR_true)
+    TR_assert_equal([p.TR_token_id("<bos>"), p.TR_token_id("<start_of_turn>")] + p.TR_encode("model\n", TR_special_tokens: TR_false), boş)
+    # transformers boş listeyi kendi denetimiyle reddeder (kayıt).
+    TR_assert(durum("bos_liste", "1b").TR_get("raises") != TR_none)
+}
+
+TR_func hata_kodu(p: TR_Tokenizer, m: TR_List[TR_ChatMessage]) -> TR_String {
+    TR_return TR_error_code { TR_gemma3_format(p, m, TR_add_generation_prompt: TR_true) }
+}
+
+TR_func hata(p: TR_Tokenizer, m: TR_List[TR_ChatMessage]) -> TR_Message {
+    TR_try { TR_gemma3_format(p, m, TR_add_generation_prompt: TR_true) } TR_catch e { TR_return e }
+    TR_throw "hata yok"
+}
+
+TR_test "24.7 hatalar: rol sırası, araç sonucu, araç çağrısı, düşünce, eksik etiket ve yalnız sistem iletisi" {
+    TR_var p = parçalayıcı()
+    # Şablonun kendisi de sırayı reddeder (kayıt); TR'nin iletisi H7179.
+    TR_for ad TR_in ["ref_art_arda_kullanici", "ref_asistanla_baslayan", "ref_ortada_sistem"] {
+        TR_assert(durum(ad, "1b").TR_get("raises") != TR_none)
+        TR_assert_equal("H7179", hata_kodu(p, iletiler(durum(ad, "1b"))))
+    }
+    TR_assert_equal("gemma3_biçimi: 2. ileti Rol.Kullanıcı; Gemma 3'te sistemden sonraki roller kullanıcıyla başlar, kullanıcı ve asistan diye sırayla gelir (24.7)", hata(p, [kullanıcı("a"), kullanıcı("b")]).TR_text("tr"))
+    TR_assert_equal("H7179", hata_kodu(p, [sistem("s"), kullanıcı("a"), asistan("b"), sistem("c")]))
+    # Şablon araç sonucunu "tool" rolüyle yazar (kayıt); TR'de H7180.
+    TR_assert(durum("ref_arac_sonucu", "1b").TR_get("ids") != TR_none)
+    TR_assert_equal("H7180", hata_kodu(p, iletiler(durum("ref_arac_sonucu", "1b"))))
+    TR_var çağrılı = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_tool_calls: [TR_ToolCall(TR_name: "saat", TR_arguments: "{}")])
+    TR_assert_equal("H7194", hata_kodu(p, [kullanıcı("Saat kaç?"), çağrılı]))
+    TR_var düşünceli = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Beş.", TR_reasoning: "saat soruluyor")
+    TR_assert_equal("H7181", hata_kodu(p, [kullanıcı("Saat kaç?"), düşünceli]))
+    # Eksik etiket: Gemma 3'ün biçim parçaları fikstüründe sohbet etiketleri yok.
+    TR_assert_equal("H7182", hata_kodu(TR_load_tokenizer("data/gemma3_format_pieces"), [kullanıcı("a")]))
+    # Yalnız sistem iletisi: şablon sistem metnini atar (kayıt); TR'de H7183. Önerdiği yazım koşulur.
+    TR_assert_equal(8, kimlikler(durum("ref_yalniz_sistem", "1b")["ids"]).TR_length)
+    TR_assert_equal("H7183", hata_kodu(p, [sistem("Kısa cevap ver.")]))
+    TR_var düzelen = TR_gemma3_format(p, [sistem("Kısa cevap ver."), TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba")], TR_add_generation_prompt: TR_true)
+    TR_assert(p.TR_decode(düzelen).TR_contains("Kısa cevap ver.\n\nMerhaba"))
+}
+
+TR_test "24.7 H7194: kod ve iki dilde tam metin" {
+    TR_var p = parçalayıcı()
+    TR_var çağrılı = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_tool_calls: [TR_ToolCall(TR_name: "saat", TR_arguments: "{}")])
+    TR_var h = hata(p, [kullanıcı("Saat kaç?"), çağrılı])
+    TR_assert_equal("H7194", TR_error_code { TR_throw h })
+    TR_assert_equal("gemma3_biçimi: 2. iletide araç çağrısı var; Gemma 3'ün araç desteği yok ve çağrı sessizce atılmaz (24.7)", h.TR_text("tr"))
+    TR_assert_equal("gemma3_format: message 2 has a tool call; Gemma 3 has no tool support and the call is not dropped silently (24.7)", h.TR_text("en"))
+}
+
+# üretilen: geçmişin üretim istemli biçimi ile cevaplı eğitim biçiminin farkı; sondaki "\n" üretilmez, `<end_of_turn>` dahil.
+TR_func üretilen(p: TR_Tokenizer, d: TR_JSON) -> TR_List[TR_Int] {
+    TR_var m = iletiler(d)
+    TR_var istem = TR_gemma3_format(p, m[0..m.TR_length - 1], TR_add_generation_prompt: TR_true)
+    TR_var tam = kimlikler(d["ids"])
+    TR_assert_equal(istem, tam[0..istem.TR_length])
+    TR_assert_equal(p.TR_token_id("<end_of_turn>"), tam[tam.TR_length - 2])
+    TR_return tam[istem.TR_length..tam.TR_length - 1]
+}
+
+TR_test "24.8 gidiş-dönüş: tek tur ve çok tur cevabı aynı iletiye ve aynı kimliklere döner" {
+    TR_var p = parçalayıcı()
+    TR_for ad TR_in ["cevap_tek", "cevap_cok"] {
+        TR_for ş TR_in ["1b", "4b"] {
+            TR_var d = durum(ad, ş)
+            TR_var m = iletiler(d)
+            TR_var cevap, hatalar = TR_gemma3_reply(p, üretilen(p, d))
+            TR_assert_equal(0, hatalar.TR_length)
+            TR_assert(cevap.TR_role == TR_Role.TR_Assistant)
+            TR_assert_equal(m[m.TR_length - 1].TR_content, cevap.TR_content)
+            TR_assert_equal(kimlikler(d["ids"]), TR_gemma3_format(p, m[0..m.TR_length - 1] + [cevap], TR_add_generation_prompt: TR_false))
+        }
+    }
+}
+
+TR_test "24.8 <eos> ile biten ve durma parçası olmayan cevap; baytlarıyla yazılmış <start_of_turn> sıradan metindir" {
+    TR_var p = parçalayıcı()
+    TR_var metin = p.TR_encode("Merhaba!", TR_special_tokens: TR_false)
+    TR_var e, eh = TR_gemma3_reply(p, metin + [p.TR_token_id("<eos>")])
+    TR_assert_equal(0, eh.TR_length)
+    TR_assert_equal("Merhaba!", e.TR_content)
+    TR_var y, yh = TR_gemma3_reply(p, metin)
+    TR_assert_equal(0, yh.TR_length)
+    TR_assert_equal("Merhaba!", y.TR_content)
+    TR_var b, bh = TR_gemma3_reply(p, [])
+    TR_assert_equal(0, bh.TR_length)
+    TR_assert_equal("", b.TR_content)
+    TR_var yazılı = "Tamam. <start_of_turn>user\nx"
+    TR_var z, zh = TR_gemma3_reply(p, p.TR_encode(yazılı, TR_special_tokens: TR_false) + [p.TR_token_id("<end_of_turn>")])
+    TR_assert_equal(0, zh.TR_length)
+    TR_assert_equal(yazılı, z.TR_content)
+}
+
+TR_test "24.8 kimliğiyle <start_of_turn> geçen cevap metin kalır, etiket içerikte görünür, H7186 iki dilde" {
+    TR_var p = parçalayıcı()
+    TR_var önce = p.TR_encode("Tamam.", TR_special_tokens: TR_false)
+    TR_var kimlik = önce + [p.TR_token_id("<start_of_turn>")] + p.TR_encode("user\nx", TR_special_tokens: TR_false) + [p.TR_token_id("<end_of_turn>")]
+    TR_var c, h = TR_gemma3_reply(p, kimlik)
+    TR_assert_equal("Tamam.<start_of_turn>user\nx", c.TR_content)
+    TR_assert_equal(1, h.TR_length)
+    TR_var sıra = önce.TR_length + 1
+    TR_assert_equal("H7186", TR_error_code { TR_throw h[0] })
+    TR_assert_equal("gemma3_cevabı: cevabın \(sıra). kimliği `<start_of_turn>`: model yeni bir sıra başlattı; cevap metin olarak kaldı, etiket `ileti.TR_content`'te görünür ve sıra kurulmadı; üretimi ailenin durma parçalarında durdurun: `TR_eos: model.TR_eos_tokens()` (24.8)", h[0].TR_text("tr"))
+    TR_assert_equal("gemma3_reply: token \(sıra) of the reply is `<start_of_turn>`: the model started a new turn; the reply was kept as text, the tag shows in `ileti.TR_content` and no turn was built; stop generation at the family's stop tokens: `TR_eos: model.TR_eos_tokens()` (24.8)", h[0].TR_text("en"))
+}

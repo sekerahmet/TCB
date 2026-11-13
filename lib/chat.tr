@@ -61,26 +61,31 @@ TR_func _etiket(p: TR_Tokenizer, ad: TR_String) -> TR_Int {
     TR_return k
 }
 
-# _Dizi kimlikleri kurar: metin biriktirilir, etiket gelince birikmiş metin tek çağrıyla kodlanır.
-TR_struct _Dizi {
-    p: TR_Tokenizer
-    kimlikler: TR_List[TR_Int] = []
-    metin: TR_String = ""
+# TR_ChatTokens bir sohbet biçiminin kimliklerini kurar: metin biriktirilir, etiket gelince birikmiş metin tek çağrıyla kodlanır. Biçim etiketlerini önce kendi iletisiyle sınar: TR_add_tag eksik etikette Qwen3'ün iletisini (H7562) verir.
+TR_struct TR_ChatTokens {
+    TR_tokenizer: TR_Tokenizer
+    kimlikler: TR_List[TR_Int]
+    metin: TR_String
+    TR_func TR_init(TR_tokenizer: TR_Tokenizer) {
+        TR_self.TR_tokenizer = TR_tokenizer
+        TR_self.kimlikler = []
+        TR_self.metin = ""
+    }
 
-    TR_func _yaz(m: TR_String) { TR_self.metin += m }
+    TR_func TR_add_text(m: TR_String) { TR_self.metin += m }
 
-    TR_func _etiketle(ad: TR_String) {
+    TR_func TR_add_tag(ad: TR_String) {
         TR_self._boşalt()
-        TR_self.kimlikler.TR_append(_etiket(TR_self.p, ad))
+        TR_self.kimlikler.TR_append(_etiket(TR_self.TR_tokenizer, ad))
     }
 
     TR_func _boşalt() {
         TR_if TR_self.metin == "" { TR_return }
-        TR_for k TR_in TR_self.p.TR_encode(TR_self.metin, TR_special_tokens: TR_false) { TR_self.kimlikler.TR_append(k) }
+        TR_for k TR_in TR_self.TR_tokenizer.TR_encode(TR_self.metin, TR_special_tokens: TR_false) { TR_self.kimlikler.TR_append(k) }
         TR_self.metin = ""
     }
 
-    TR_func _bitir() -> TR_List[TR_Int] {
+    TR_func TR_finish() -> TR_List[TR_Int] {
         TR_self._boşalt()
         TR_return TR_self.kimlikler
     }
@@ -121,7 +126,7 @@ TR_func _son_sorgu(iletiler: TR_List[TR_ChatMessage]) -> TR_Int {
 TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_add_generation_prompt: TR_Bool, TR_enable_thinking: TR_Bool? = TR_none, TR_tools: TR_List[TR_JSON] = []) -> TR_List[TR_Int] {
     TR_if TR_add_generation_prompt TR_and TR_enable_thinking == TR_none { TR_throw TR_Message("H7560") }
     TR_if TR_not TR_add_generation_prompt TR_and TR_enable_thinking != TR_none { TR_throw TR_Message("H7561", TR_enable_thinking) }
-    TR_var d = _Dizi(p: p)
+    TR_var d = TR_ChatTokens(TR_tokenizer: p)
     TR_var n = iletiler.TR_length
     TR_var ilk_sistem = n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System
     TR_if TR_tools.TR_length > 0 {
@@ -142,34 +147,34 @@ TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_a
         }
     }
     TR_if TR_add_generation_prompt {
-        d._etiketle(_BAŞ)
-        d._yaz("assistant\n")
+        d.TR_add_tag(_BAŞ)
+        d.TR_add_text("assistant\n")
         TR_if TR_enable_thinking == TR_false {
-            d._etiketle(_DÜŞÜNCE)
-            d._yaz("\n\n")
-            d._etiketle(_DÜŞÜNCE_SONU)
-            d._yaz("\n\n")
+            d.TR_add_tag(_DÜŞÜNCE)
+            d.TR_add_text("\n\n")
+            d.TR_add_tag(_DÜŞÜNCE_SONU)
+            d.TR_add_text("\n\n")
         }
     }
-    TR_return d._bitir()
+    TR_return d.TR_finish()
 }
 
 # _araç_bloğu: araçlar sistem turunda, ilk sistem iletisiyle birleşir (şablonun `tools` dalı).
-TR_func _araç_bloğu(d: _Dizi, sistem: TR_String?, araçlar: TR_List[TR_JSON]) {
-    d._etiketle(_BAŞ)
-    d._yaz("system\n")
-    TR_if sistem != TR_none { d._yaz("\(sistem)\n\n") }
-    d._yaz("# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>")
-    TR_for a TR_in araçlar { d._yaz("\n\(_json_yaz(a))") }
-    d._yaz("\n</tools>\n\nFor each function call, return a json object with function name and arguments within ")
-    d._etiketle(_ÇAĞRI)
-    d._etiketle(_ÇAĞRI_SONU)
-    d._yaz(" XML tags:\n")
-    d._etiketle(_ÇAĞRI)
-    d._yaz("\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n")
-    d._etiketle(_ÇAĞRI_SONU)
-    d._etiketle(_SON)
-    d._yaz("\n")
+TR_func _araç_bloğu(d: TR_ChatTokens, sistem: TR_String?, araçlar: TR_List[TR_JSON]) {
+    d.TR_add_tag(_BAŞ)
+    d.TR_add_text("system\n")
+    TR_if sistem != TR_none { d.TR_add_text("\(sistem)\n\n") }
+    d.TR_add_text("# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>")
+    TR_for a TR_in araçlar { d.TR_add_text("\n\(_json_yaz(a))") }
+    d.TR_add_text("\n</tools>\n\nFor each function call, return a json object with function name and arguments within ")
+    d.TR_add_tag(_ÇAĞRI)
+    d.TR_add_tag(_ÇAĞRI_SONU)
+    d.TR_add_text(" XML tags:\n")
+    d.TR_add_tag(_ÇAĞRI)
+    d.TR_add_text("\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n")
+    d.TR_add_tag(_ÇAĞRI_SONU)
+    d.TR_add_tag(_SON)
+    d.TR_add_text("\n")
 }
 
 # _json_yaz şablonun `tojson`'udur (Python'un `json.dumps(x, ensure_ascii=False)`'ı): ", " ve ": " ayırıcıları,
@@ -196,50 +201,50 @@ TR_func _json_metni(m: TR_String) -> TR_String {
     TR_return parçalar.TR_join("")
 }
 
-TR_func _tur(d: _Dizi, rol: TR_String, içerik: TR_String) {
-    d._etiketle(_BAŞ)
-    d._yaz("\(rol)\n\(içerik)")
-    d._etiketle(_SON)
-    d._yaz("\n")
+TR_func _tur(d: TR_ChatTokens, rol: TR_String, içerik: TR_String) {
+    d.TR_add_tag(_BAŞ)
+    d.TR_add_text("\(rol)\n\(içerik)")
+    d.TR_add_tag(_SON)
+    d.TR_add_text("\n")
 }
 
 # _asistan: son sorgudan sonraki asistan iletisi düşüncesiyle yazılır (sonuncusu boş düşünceyle de); öncekiler düşüncesiz.
-TR_func _asistan(d: _Dizi, m: TR_ChatMessage, sorgudan_sonra: TR_Bool, sonuncu: TR_Bool) {
+TR_func _asistan(d: TR_ChatTokens, m: TR_ChatMessage, sorgudan_sonra: TR_Bool, sonuncu: TR_Bool) {
     TR_var düşünce = m.TR_reasoning ?? ""
-    d._etiketle(_BAŞ)
-    d._yaz("assistant\n")
+    d.TR_add_tag(_BAŞ)
+    d.TR_add_text("assistant\n")
     TR_if sorgudan_sonra TR_and (sonuncu TR_or düşünce != "") {
-        d._etiketle(_DÜŞÜNCE)
-        d._yaz("\n\(_kırp(düşünce, TR_true, TR_true))\n")
-        d._etiketle(_DÜŞÜNCE_SONU)
-        d._yaz("\n\n\(_kırp(m.TR_content, TR_true, TR_false))")
+        d.TR_add_tag(_DÜŞÜNCE)
+        d.TR_add_text("\n\(_kırp(düşünce, TR_true, TR_true))\n")
+        d.TR_add_tag(_DÜŞÜNCE_SONU)
+        d.TR_add_text("\n\n\(_kırp(m.TR_content, TR_true, TR_false))")
     } TR_else {
-        d._yaz(m.TR_content)
+        d.TR_add_text(m.TR_content)
     }
     TR_for j TR_in 0..m.TR_tool_calls.TR_length {
         TR_var ç = m.TR_tool_calls[j]
-        TR_if j > 0 TR_or m.TR_content != "" { d._yaz("\n") }
-        d._etiketle(_ÇAĞRI)
-        d._yaz("\n{\"name\": \"\(ç.TR_name)\", \"arguments\": \(ç.TR_arguments)}\n")
-        d._etiketle(_ÇAĞRI_SONU)
+        TR_if j > 0 TR_or m.TR_content != "" { d.TR_add_text("\n") }
+        d.TR_add_tag(_ÇAĞRI)
+        d.TR_add_text("\n{\"name\": \"\(ç.TR_name)\", \"arguments\": \(ç.TR_arguments)}\n")
+        d.TR_add_tag(_ÇAĞRI_SONU)
     }
-    d._etiketle(_SON)
-    d._yaz("\n")
+    d.TR_add_tag(_SON)
+    d.TR_add_text("\n")
 }
 
 # _araç_sonucu: ardışık araç sonuçları tek kullanıcı turunda, her biri kendi bloğunda.
-TR_func _araç_sonucu(d: _Dizi, m: TR_ChatMessage, ilk: TR_Bool, son: TR_Bool) {
+TR_func _araç_sonucu(d: TR_ChatTokens, m: TR_ChatMessage, ilk: TR_Bool, son: TR_Bool) {
     TR_if ilk {
-        d._etiketle(_BAŞ)
-        d._yaz("user")
+        d.TR_add_tag(_BAŞ)
+        d.TR_add_text("user")
     }
-    d._yaz("\n")
-    d._etiketle(_SONUÇ)
-    d._yaz("\n\(m.TR_content)\n")
-    d._etiketle(_SONUÇ_SONU)
+    d.TR_add_text("\n")
+    d.TR_add_tag(_SONUÇ)
+    d.TR_add_text("\n\(m.TR_content)\n")
+    d.TR_add_tag(_SONUÇ_SONU)
     TR_if son {
-        d._etiketle(_SON)
-        d._yaz("\n")
+        d.TR_add_tag(_SON)
+        d.TR_add_text("\n")
     }
 }
 
@@ -251,7 +256,7 @@ TR_struct _Cevap {
     içerik: TR_String = ""
     düşünce: TR_String? = TR_none
     çağrılar: TR_List[TR_ToolCall] = []
-    hatalar: TR_List[TR_String] = []
+    hatalar: TR_List[TR_Message] = []
 
     # sonraki: `i`'den başlayarak ilk etiketin sırası; yoksa uzunluk.
     TR_func _sonraki(i: TR_Int) -> TR_Int {
@@ -263,15 +268,15 @@ TR_struct _Cevap {
     TR_func _çöz(a: TR_Int, b: TR_Int) -> TR_String { TR_return TR_self.p.TR_decode(TR_self.kimlikler[a..b]) }
 
     # bozuk: bloğun yazılan metni içerikte kalır, hata sırasını ve nedenini söyler.
-    TR_func _bozuk(a: TR_Int, b: TR_Int, blok: TR_Int, neden: TR_String) {
+    TR_func _bozuk(a: TR_Int, b: TR_Int, h: TR_Message) {
         TR_self.içerik += TR_self._çöz(a, b)
-        TR_self.hatalar.TR_append("block \(blok): \(neden)")
+        TR_self.hatalar.TR_append(h)
     }
 }
 
 # qwen3_cevabı: modelin ürettiği kimlikleri bir asistan iletisine ve hatalara ayırır (24.3).
 # Bloklar etiket kimliklerinde bölünür; baytlarıyla yazılmış etiket içerikte metin kalır.
-TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatMessage, TR_List[TR_String]) {
+TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatMessage, TR_List[TR_Message]) {
     TR_var dü = _etiket(p, _DÜŞÜNCE)
     TR_var dü_son = _etiket(p, _DÜŞÜNCE_SONU)
     TR_var ça = _etiket(p, _ÇAĞRI)
@@ -296,21 +301,21 @@ TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatM
                 c.düşünce = _kırp(c._çöz(i + 1, j), TR_true, TR_true)
                 c.içerik = ""
             } TR_else {
-                c._bozuk(i, j + 1, blok, "a thinking block is only valid at the start of the reply")
+                c._bozuk(i, j + 1, TR_Message("H7187", blok, "think_start"))
             }
             i = j + 1
         } TR_else TR_if k == ça TR_and kapalı {
             TR_var hata = _çağrı_ekle(c, c._çöz(i + 1, j))
-            TR_if hata != TR_none { c._bozuk(i, j + 1, blok, hata) }
+            TR_if hata != TR_none { c._bozuk(i, j + 1, TR_Message("H7187", blok, hata)) }
             i = j + 1
         } TR_else TR_if k == dü {
-            c._bozuk(i, n, blok, "<think> is not closed")
+            c._bozuk(i, n, TR_Message("H7187", blok, "think_open"))
             i = n
         } TR_else TR_if k == ça {
-            c._bozuk(i, j, blok, "<tool_call> is not closed")
+            c._bozuk(i, j, TR_Message("H7187", blok, "call_open"))
             i = j
         } TR_else {
-            c._bozuk(i, i + 1, blok, "\(p.TR_decode([k])) has no opening tag")
+            c._bozuk(i, i + 1, TR_Message("H7188", blok, p.TR_decode([k])))
             i += 1
         }
     }
@@ -323,13 +328,13 @@ TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatM
 TR_func _çağrı_ekle(c: _Cevap, iç: TR_String) -> TR_String? {
     TR_var metin = iç.TR_strip()
     TR_var çözülen = _json_oku(metin)
-    TR_if çözülen == TR_none { TR_return "the tool call is not valid JSON" }
+    TR_if çözülen == TR_none { TR_return "json" }
     TR_var j = çözülen
-    TR_if TR_Type(j) != TR_Dict { TR_return "the tool call is not a JSON object" }
+    TR_if TR_Type(j) != TR_Dict { TR_return "object" }
     TR_var ad = j.TR_get("name")
-    TR_if ad == TR_none TR_or TR_Type(ad) != TR_String { TR_return "the tool call has no \"name\" string" }
+    TR_if ad == TR_none TR_or TR_Type(ad) != TR_String { TR_return "name" }
     TR_var arg = j.TR_get("arguments")
-    TR_if arg == TR_none TR_or TR_Type(arg) != TR_Dict { TR_return "the tool call has no \"arguments\" object" }
+    TR_if arg == TR_none TR_or TR_Type(arg) != TR_Dict { TR_return "arguments" }
     TR_if c.içerik.TR_ends_with("\n") { c.içerik = c.içerik[0..c.içerik.TR_length - 1] }
     c.çağrılar.TR_append(TR_ToolCall(TR_name: TR_String(ad), TR_arguments: _ham_alan(metin, "arguments")))
     TR_return TR_none
@@ -386,7 +391,8 @@ TR_func _değer_sonu(m: TR_String, i: TR_Int) -> TR_Int {
 
 # --- Llama 3.1 ve 3.2 (24.5, 24.6). Başvuru: tests/data/llama3_chat/KAYNAK.md.
 # Biçimin sabit metinleri (araç yönergesinin iki cümlesi, "Cutting Knowledge Date", "Today Date",
-# "Environment: ipython") Meta'nın yayımladığı Llama 3 sohbet şablonundan (unsloth'un kopyası üzerinden;
+# "Environment: ipython") Meta'nın yayımladığı Llama 3 sohbet şablonundan (Meta'nın deposunun yeniden yayımı
+# olarak bilinen unsloth depoları üzerinden, dosyalar karşılaştırılmadı;
 # KAYNAK.md'deki revizyonlar) protokol sabiti olarak alındı; şablon dosyası depoda yok.
 TR_const _L_BAŞ = "<|begin_of_text|>"
 TR_const _L_BAŞLIK = "<|start_header_id|>"
@@ -395,7 +401,7 @@ TR_const _L_SON = "<|eot_id|>"
 TR_const _L_EOM = "<|eom_id|>"
 TR_const _L_PYTHON = "<|python_tag|>"
 # Şablonun `| trim`'i Python'un `str.strip()`'idir: Unicode boşluklarına (TR_strip'in) U+001C–U+001F de girer.
-TR_const _PY_BOŞLUK = " \t\n\u{B}\u{C}\r\u{1C}\u{1D}\u{1E}\u{1F}\u{85}\u{A0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{2028}\u{2029}\u{202F}\u{205F}\u{3000}"
+TR_const TR_PY_WHITESPACE = " \t\n\u{B}\u{C}\r\u{1C}\u{1D}\u{1E}\u{1F}\u{85}\u{A0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{2028}\u{2029}\u{202F}\u{205F}\u{3000}"
 TR_const _AYLAR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 TR_const _L_YÖNERGE = "Given the following functions, please respond with a JSON for a function call with its proper arguments that best answers the given prompt.\n\nRespond in the format {\"name\": function name, \"parameters\": dictionary of argument name and its value}.Do not use variables.\n\n"
 
@@ -410,28 +416,28 @@ TR_func TR_llama3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_
     TR_var i = 0
     TR_var sistem = ""
     TR_if n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System {
-        sistem = iletiler[0].TR_content.TR_strip(_PY_BOŞLUK)
+        sistem = iletiler[0].TR_content.TR_strip(TR_PY_WHITESPACE)
         i = 1
     }
-    TR_var d = _Dizi(p: p)
-    d._etiketle(_L_BAŞ)
+    TR_var d = TR_ChatTokens(TR_tokenizer: p)
+    d.TR_add_tag(_L_BAŞ)
     _l_başlık(d, "system")
-    TR_if TR_tools.TR_length > 0 { d._yaz("Environment: ipython\n") }
-    d._yaz("Cutting Knowledge Date: December 2023\nToday Date: \(TR_date)\n\n\(sistem)")
-    d._etiketle(_L_SON)
+    TR_if TR_tools.TR_length > 0 { d.TR_add_text("Environment: ipython\n") }
+    d.TR_add_text("Cutting Knowledge Date: December 2023\nToday Date: \(TR_date)\n\n\(sistem)")
+    d.TR_add_tag(_L_SON)
     TR_if TR_tools.TR_length > 0 {
         TR_if i == n { TR_throw TR_Message("H7166", "none") }
         TR_if iletiler[i].TR_role != TR_Role.TR_User { TR_throw TR_Message("H7166", "first") }
         _l_başlık(d, "user")
-        d._yaz(_L_YÖNERGE)
-        TR_for a TR_in TR_tools { d._yaz("\(_json_girintili(a, ""))\n\n") }
-        d._yaz(iletiler[i].TR_content.TR_strip(_PY_BOŞLUK))
-        d._etiketle(_L_SON)
+        d.TR_add_text(_L_YÖNERGE)
+        TR_for a TR_in TR_tools { d.TR_add_text("\(_json_girintili(a, ""))\n\n") }
+        d.TR_add_text(iletiler[i].TR_content.TR_strip(TR_PY_WHITESPACE))
+        d.TR_add_tag(_L_SON)
         i += 1
     }
     TR_for j TR_in i..n { _l_ileti(d, iletiler[j], j + 1) }
     TR_if TR_add_generation_prompt { _l_başlık(d, "assistant") }
-    TR_return d._bitir()
+    TR_return d.TR_finish()
 }
 
 # _tarih_sına: şablonun `strftime("%d %b %Y")` yazımı: iki haneli gün (01–31), İngilizce üç harfli ay, dört haneli yıl.
@@ -445,15 +451,15 @@ TR_func _tarih_sına(t: TR_String) {
     TR_if TR_not doğru { TR_throw TR_Message("H7165", t) }
 }
 
-TR_func _l_başlık(d: _Dizi, rol: TR_String) {
-    d._etiketle(_L_BAŞLIK)
-    d._yaz(rol)
-    d._etiketle(_L_BAŞLIK_SONU)
-    d._yaz("\n\n")
+TR_func _l_başlık(d: TR_ChatTokens, rol: TR_String) {
+    d.TR_add_tag(_L_BAŞLIK)
+    d.TR_add_text(rol)
+    d.TR_add_tag(_L_BAŞLIK_SONU)
+    d.TR_add_text("\n\n")
 }
 
 # _l_ileti: içerik kırpılır (şablonun `| trim`'i); çağrı JSON'la, araç sonucu JSON metni olarak yazılır. `sıra` 1'den sayar.
-TR_func _l_ileti(d: _Dizi, m: TR_ChatMessage, sıra: TR_Int) {
+TR_func _l_ileti(d: TR_ChatTokens, m: TR_ChatMessage, sıra: TR_Int) {
     TR_if m.TR_role == TR_Role.TR_Assistant TR_and (m.TR_reasoning ?? "") != "" { TR_throw TR_Message("H7168", sıra) }
     TR_var çağrı = m.TR_tool_calls.TR_length
     TR_if çağrı > 1 { TR_throw TR_Message("H7167", sıra, çağrı) }
@@ -461,15 +467,15 @@ TR_func _l_ileti(d: _Dizi, m: TR_ChatMessage, sıra: TR_Int) {
         TR_if m.TR_content != "" { TR_throw TR_Message("H7176", sıra) }
         TR_var ç = m.TR_tool_calls[0]
         _l_başlık(d, "assistant")
-        d._yaz("{\"name\": \"\(ç.TR_name)\", \"parameters\": \(_json_yaz(TR_json_parse(ç.TR_arguments)))}")
+        d.TR_add_text("{\"name\": \"\(ç.TR_name)\", \"parameters\": \(_json_yaz(TR_json_parse(ç.TR_arguments)))}")
     } TR_else TR_if m.TR_role == TR_Role.TR_Tool {
         _l_başlık(d, "ipython")
-        d._yaz(_json_metni(m.TR_content))
+        d.TR_add_text(_json_metni(m.TR_content))
     } TR_else {
         _l_başlık(d, _rol_adı(m.TR_role))
-        d._yaz(m.TR_content.TR_strip(_PY_BOŞLUK))
+        d.TR_add_text(m.TR_content.TR_strip(TR_PY_WHITESPACE))
     }
-    d._etiketle(_L_SON)
+    d.TR_add_tag(_L_SON)
 }
 
 # _json_girintili şablonun `tojson(indent=4)`'üdür (Python'un `json.dumps(x, ensure_ascii=False, indent=4)`'ü).
@@ -488,40 +494,42 @@ TR_func _json_girintili(j: TR_JSON, girinti: TR_String) -> TR_String {
 # llama3_cevabı: üretilen kimlikleri bir asistan iletisine ve hatalara ayırır (24.6). Çağrının etiketi yoktur:
 # kırpılmış içerik tek bir `{"name": ..., "parameters": {...}}` nesnesiyse ve ad araçlardaysa çağrıdır. Çağrıya
 # benzeyen ama çağrı olmayan cevap metin kalır, nedeni `hatalar`'a girer (metin kaybolmaz).
-TR_func TR_llama3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int], TR_tools: TR_List[TR_JSON] = []) -> (TR_ChatMessage, TR_List[TR_String]) {
+TR_func TR_llama3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int], TR_tools: TR_List[TR_JSON] = []) -> (TR_ChatMessage, TR_List[TR_Message]) {
     TR_var son = kimlikler.TR_length
     TR_if son > 0 TR_and [p.TR_token_id(_L_SON), p.TR_token_id(_L_EOM)].TR_contains(kimlikler[son - 1]) { son -= 1 }
     TR_var gövde = kimlikler[0..son]
     TR_var python = p.TR_token_id(_L_PYTHON)
     TR_if python != TR_none TR_and gövde.TR_contains(python) {
         TR_var metin = p.TR_decode(gövde, TR_special_tokens: TR_true)
-        TR_return (_l_metin(metin), ["<|python_tag|> (the built-in tools of Llama 3.1) is not supported; the reply is kept as text"])
+        TR_return (_l_metin(metin), [TR_Message("H7189")])
     }
     TR_var metin = p.TR_decode(gövde)
-    TR_if metin.TR_contains(_L_PYTHON) { TR_return (_l_metin(metin), ["<|python_tag|> (the built-in tools of Llama 3.1) is not supported; the reply is kept as text"]) }
+    TR_if metin.TR_contains(_L_PYTHON) { TR_return (_l_metin(metin), [TR_Message("H7189")]) }
     TR_if TR_tools.TR_length == 0 { TR_return (_l_metin(metin), []) }
-    TR_var k = metin.TR_strip(_PY_BOŞLUK)
-    TR_var neden = "the reply looks like a tool call but is not a single JSON object"
+    TR_var k = metin.TR_strip(TR_PY_WHITESPACE)
+    TR_var hata = TR_Message("H7190", "single")
     TR_var j = _json_oku(k)
     TR_if j != TR_none TR_and TR_Type(j) == TR_Dict {
         TR_var anahtarlar = [a TR_for a TR_in j]
         TR_var ad = j.TR_get("name")
         TR_var değer = j.TR_get("parameters")
         TR_if anahtarlar.TR_contains("arguments") TR_and TR_not anahtarlar.TR_contains("parameters") {
-            neden = "the tool call writes \"arguments\"; Llama 3 writes \"parameters\""
+            hata = TR_Message("H7190", "arguments")
         } TR_else TR_if anahtarlar.TR_length != 2 TR_or ad == TR_none TR_or değer == TR_none {
-            neden = "the tool call must have exactly the keys \"name\" and \"parameters\""
-        } TR_else TR_if TR_Type(ad) != TR_String TR_or TR_not [_araç_adı(a) TR_for a TR_in TR_tools].TR_contains(TR_String(ad)) {
-            neden = "the tool call names \(TR_json_string(ad)), which is not one of the tools"
+            hata = TR_Message("H7190", "keys")
+        } TR_else TR_if TR_Type(ad) != TR_String {
+            hata = TR_Message("H7190", "name")
+        } TR_else TR_if TR_not [_araç_adı(a) TR_for a TR_in TR_tools].TR_contains(TR_String(ad)) {
+            hata = TR_Message("H7191", TR_String(ad))
         } TR_else TR_if TR_Type(değer) != TR_Dict {
-            neden = "\"parameters\" of the tool call is not a JSON object"
+            hata = TR_Message("H7190", "parameters")
         } TR_else {
             TR_var ç = TR_ToolCall(TR_name: TR_String(ad), TR_arguments: _ham_alan(k, "parameters"))
             TR_return (TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_tool_calls: [ç]), [])
         }
-        TR_return (_l_metin(metin), [neden])
+        TR_return (_l_metin(metin), [hata])
     }
-    TR_if _çağrı_işareti(metin) { TR_return (_l_metin(metin), [neden]) }
+    TR_if _çağrı_işareti(metin) { TR_return (_l_metin(metin), [hata]) }
     TR_return (_l_metin(metin), [])
 }
 

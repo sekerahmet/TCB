@@ -4,7 +4,7 @@
 # cevap tek bir JSON nesnesiyse ve adı araçlardaysa çağrıdır, değilse metindir.
 # Parçalayıcı küçük bir deneme parçalayıcısıdır (tests/data/llama3_chat); gerçek modelde GGUF dosyası verilir.
 #
-# Kendin dene: cevabın başına "Tamam: " ekle; cevap metin kalır ve hatalar'a bir satır girer.
+# Kendin dene: cevabın başına "Tamam: " ekle; cevap metin kalır ve hatalar'a bir ileti girer.
 
 TR_import "tr/chat"
 

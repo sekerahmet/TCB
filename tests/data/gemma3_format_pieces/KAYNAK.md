@@ -1,6 +1,6 @@
 # Gemma 3'ün biçim parçaları
 
-`tests/veri_parcalayici_test.tr`'nin 16.2 testi ve `internal/compute/tokenize/gguf_spm_test.go` bu klasörü okur. Klasör Gemma 3 ailesinin biçim parçalarını (dil tanımı 16.2) gerçek kimlikleriyle taşır: TR'nin aile tablosu bu kümelerin sayısını ve karmasını bekler (`internal/compute/tokenize/family.go`).
+`tests/veri_parcalayici_test.tr`'nin 16.2 testi, `internal/compute/tokenize/gguf_spm_test.go`, `tests/gemma3_chat_test.tr`'nin eksik etiket durumu (H7182) ve `tools/hf/gemma3_chat_reference.py` bu klasörü okur. Klasör Gemma 3 ailesinin biçim parçalarını (dil tanımı 16.2) gerçek kimlikleriyle taşır: TR'nin aile tablosu bu kümelerin sayısını ve karmasını bekler (`internal/compute/tokenize/family.go`).
 
 - **Kaynak:** `unsloth/gemma-3-1b-it` deposunun `5b11413a10db4e486ef16a20101fd028f8f2499c` commit'indeki `tokenizer.json` (sha256 `4667f2089529e8e7657cfb6d1c19910ae71ff5f28aa7ab2ff2763330affad795`; `unsloth/gemma-3-4b-it` ve `-12b-it`'inki bayt bayt aynı). Google'ın deposu kapılıdır; `unsloth`'unki onun yeniden yayımı olarak bilinir (iki dosya karşılaştırılmadı).
 - **Seçim:** dosyanın özel olmayan (`special: false`) eklenmiş parçalarından iki küme, 16.2'nin kuralıyla: boşluk kümesi (içeriği yalnız boşluk, `▁`, sekme, satır sonu ve satır başı olan 92 parça) ve desen kümesi (`^</?[a-z]+>$`'e uyan 59 parça). 151 parça `added_tokens`'ta ve dağarcıkta, kaynaktaki kimlik ve bayraklarıyla durur.

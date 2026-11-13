@@ -73,3 +73,16 @@ python -I tools/hf/gemma3_format_pieces.py --source G1B/tokenizer.json --out tes
 ```
 
 `G1B`, `unsloth/gemma-3-1b-it`'in parçalayıcı dosyalarının klasörüdür (revizyonu `tests/data/gemma3_format_pieces/KAYNAK.md`'de). Betik kendi çıktısını kaynak alınca da aynı baytları verir.
+
+## Gemma 3 sohbet biçimi (`gemma3_chat_reference.py`)
+
+`gemma3_chat_reference.py` Llama 3'ünkiyle aynı iki işi Gemma 3 için yapar (dil tanımı 24.7 ve 24.8'in *Test:* satırları). Küçük parçalayıcı `tests/data/gemma3_format_pieces/`'in parçalayıcısıdır, üstüne Gemma 3'ün beş sohbet etiketi (`<pad>`, `<eos>`, `<bos>`, `<start_of_turn>`, `<end_of_turn>`) yayımlanmış kimlikleriyle özel parça olarak eklenir; yalnız JSON okunur, `tokenizers` gerekmez. `--check-ids` etiketlerin kimliklerini yayımlanmış `tokenizer_config.json`'la karşılaştırır, ayrılırsa durur. Şablonlar depoya girmez; karmaları çıktıdadır.
+
+```sh
+python -I tools/hf/gemma3_chat_reference.py --tokenizer-out tests/data/gemma3_chat
+python -I tools/hf/gemma3_chat_reference.py --tokenizer tests/data/gemma3_chat --check-ids G1B/tokenizer_config.json \
+    --template 1b=G1B/chat_template.json --template 4b=G4B/chat_template.json \
+    --cases-out tests/data/gemma3_chat/cases.json
+```
+
+`G1B` ve `G4B`, `unsloth/gemma-3-1b-it` ve `unsloth/gemma-3-4b-it`'in dosyalarının klasörleridir (revizyonları `tests/data/gemma3_chat/KAYNAK.md`'de).

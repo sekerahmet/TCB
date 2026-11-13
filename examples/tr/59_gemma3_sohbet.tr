@@ -1,0 +1,29 @@
+# TR 4
+# 59 — Gemma 3 sohbet biçimi: iletileri Gemma 3'ün parça dizisine çevirmek ve modelin cevabını iletiye ayırmak
+# (`tr/chat_gemma3`). Gemma 3'te sistem iletisi ayrı bir tur değildir: ilk kullanıcı turunun başına yazılır.
+# Ailenin araç desteği ve düşünce bloğu yoktur; araç iletisi ya da araç çağrısı hatadır, sessizce atılmaz.
+# Parçalayıcı küçük bir deneme parçalayıcısıdır (tests/data/gemma3_chat); gerçek modelde GGUF dosyası verilir.
+#
+# Kendin dene: iki kullanıcı iletisini art arda ver; biçim hangi iletinin sırasının tutmadığını söyler.
+
+TR_import "tr/chat"
+TR_import "tr/chat_gemma3"
+
+TR_var p = TR_load_tokenizer("../../tests/data/gemma3_chat")
+TR_var geçmiş = [
+    TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: "Kısa cevap ver."),
+    TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?"),
+]
+
+# Çıkarım: dizi BOS'la başlar, sona modelin turunun başı eklenir.
+TR_var istem = TR_gemma3_format(p, geçmiş, TR_add_generation_prompt: TR_true)
+TR_print(istem.TR_length, "parça")
+
+# Modelin ürettiği kimlikler (burada elle kurulur): cevap ve tur sonu.
+TR_var üretilen = p.TR_encode("Bilmiyorum.", TR_special_tokens: TR_false) + [p.TR_token_id("<end_of_turn>")]
+TR_var cevap, hatalar = TR_gemma3_reply(p, üretilen)
+TR_print(cevap.TR_content, "hata:", hatalar.TR_length)
+
+# Cevap geçmişe girer; eğitim biçiminde üretim istemi yoktur.
+geçmiş.TR_append(cevap)
+TR_print(TR_gemma3_format(p, geçmiş, TR_add_generation_prompt: TR_false).TR_length, "parça")

@@ -200,16 +200,74 @@ TR_test "24.3 bozuk araç bloğu ve kapanmamış düşünce: metin içerikte kal
         TR_var ileti, hatalar = TR_qwen3_reply(p, kimlik)
         TR_assert_equal(0, ileti.TR_tool_calls.TR_length)
         TR_assert_equal(1, hatalar.TR_length)
-        TR_assert(hatalar[0].TR_starts_with("block 1: "))
+        TR_assert_equal("H7187", TR_error_code { TR_throw hatalar[0] })
+        TR_assert(hatalar[0].TR_text("tr").TR_starts_with("qwen3_cevabı: 1. blok bozuk: "))
         TR_assert_equal("Bakıyorum.\n<tool_call>\(b)</tool_call>", ileti.TR_content)
     }
     TR_var açık = [ç] + p.TR_encode("\n{\"name\": \"saat\"", TR_special_tokens: TR_false)
     TR_var ileti, hatalar = TR_qwen3_reply(p, açık)
-    TR_assert_equal(["block 1: <tool_call> is not closed"], hatalar)
+    TR_assert_equal(1, hatalar.TR_length)
+    TR_assert_equal("H7187", TR_error_code { TR_throw hatalar[0] })
+    TR_assert_equal("qwen3_cevabı: 1. blok bozuk: `<tool_call>` kapanmamış; bloğun metni içerikte kaldı (24.3)", hatalar[0].TR_text("tr"))
     TR_assert_equal("<tool_call>\n{\"name\": \"saat\"", ileti.TR_content)
     TR_var düşünce = [p.TR_token_id("<think>")] + p.TR_encode("\nkullanıcı saati", TR_special_tokens: TR_false)
     TR_var d_ileti, d_hatalar = TR_qwen3_reply(p, düşünce)
-    TR_assert_equal(["block 1: <think> is not closed"], d_hatalar)
+    TR_assert_equal(1, d_hatalar.TR_length)
+    TR_assert_equal("H7187", TR_error_code { TR_throw d_hatalar[0] })
+    TR_assert_equal("qwen3_cevabı: 1. blok bozuk: `<think>` kapanmamış; bloğun metni içerikte kaldı (24.3)", d_hatalar[0].TR_text("tr"))
     TR_assert(d_ileti.TR_reasoning == TR_none)
     TR_assert_equal("<think>\nkullanıcı saati", d_ileti.TR_content)
+}
+
+# denetle: hatanın kodu ve iki dildeki tam metni.
+TR_func denetle(h: TR_Message, kod: TR_String, tr: TR_String, en: TR_String) {
+    TR_assert_equal(kod, TR_error_code { TR_throw h })
+    TR_assert_equal(tr, h.TR_text("tr"))
+    TR_assert_equal(en, h.TR_text("en"))
+}
+
+# sarılı: 24.3'ün bozuk araç bloğu testinin bozuk çağrısı, onun sarmalamasıyla.
+TR_func sarılı(p: TR_Tokenizer, b: TR_String) -> TR_List[TR_Int] {
+    TR_return p.TR_encode("Bakıyorum.\n", TR_special_tokens: TR_false) + [p.TR_token_id("<tool_call>")] + p.TR_encode(b, TR_special_tokens: TR_false) + [p.TR_token_id("</tool_call>")]
+}
+
+TR_test "24.3 hatalar'ın her nedeni ve H7188: kod ve iki dilde tam metin" {
+    TR_var p = parçalayıcı()
+    TR_var ç = p.TR_token_id("<tool_call>")
+    TR_var ç_son = p.TR_token_id("</tool_call>")
+    TR_var dü = p.TR_token_id("<think>")
+    TR_var dü_son = p.TR_token_id("</think>")
+    TR_var ingilizceler: TR_List[TR_String] = []
+    TR_var _think_start, h_think_start = TR_qwen3_reply(p, p.TR_encode("Tamam.", TR_special_tokens: TR_false) + [dü] + p.TR_encode("x", TR_special_tokens: TR_false) + [dü_son])
+    TR_assert_equal(1, h_think_start.TR_length)
+    denetle(h_think_start[0], "H7187", "qwen3_cevabı: 1. blok bozuk: düşünce bloğu yalnız cevabın başında olur; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: a thinking block is only valid at the start of the reply; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_think_start[0].TR_text("en"))
+    TR_var _think_open, h_think_open = TR_qwen3_reply(p, [dü] + p.TR_encode("\nkullanıcı saati", TR_special_tokens: TR_false))
+    TR_assert_equal(1, h_think_open.TR_length)
+    denetle(h_think_open[0], "H7187", "qwen3_cevabı: 1. blok bozuk: `<think>` kapanmamış; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: `<think>` is not closed; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_think_open[0].TR_text("en"))
+    TR_var _call_open, h_call_open = TR_qwen3_reply(p, [ç] + p.TR_encode("\n{\"name\": \"saat\"", TR_special_tokens: TR_false))
+    TR_assert_equal(1, h_call_open.TR_length)
+    denetle(h_call_open[0], "H7187", "qwen3_cevabı: 1. blok bozuk: `<tool_call>` kapanmamış; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: `<tool_call>` is not closed; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_call_open[0].TR_text("en"))
+    TR_var _json, h_json = TR_qwen3_reply(p, sarılı(p, "\n{\"name\": \"saat\", \"arguments\": {\n"))
+    TR_assert_equal(1, h_json.TR_length)
+    denetle(h_json[0], "H7187", "qwen3_cevabı: 1. blok bozuk: araç çağrısı geçerli bir JSON değil; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: the tool call is not valid JSON; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_json[0].TR_text("en"))
+    TR_var _name, h_name = TR_qwen3_reply(p, sarılı(p, "\n{\"arguments\": {}}\n"))
+    TR_assert_equal(1, h_name.TR_length)
+    denetle(h_name[0], "H7187", "qwen3_cevabı: 1. blok bozuk: araç çağrısında metin olan bir \"name\" alanı yok; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: the tool call has no \"name\" field that is a string; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_name[0].TR_text("en"))
+    TR_var _arguments, h_arguments = TR_qwen3_reply(p, sarılı(p, "\n{\"name\": \"saat\", \"arguments\": \"{}\"}\n"))
+    TR_assert_equal(1, h_arguments.TR_length)
+    denetle(h_arguments[0], "H7187", "qwen3_cevabı: 1. blok bozuk: araç çağrısında nesne olan bir \"arguments\" alanı yok; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: the tool call has no \"arguments\" field that is an object; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_arguments[0].TR_text("en"))
+    TR_var _object, h_object = TR_qwen3_reply(p, sarılı(p, "\n[1]\n"))
+    TR_assert_equal(1, h_object.TR_length)
+    denetle(h_object[0], "H7187", "qwen3_cevabı: 1. blok bozuk: araç çağrısı bir JSON nesnesi değil; bloğun metni içerikte kaldı (24.3)", "qwen3_reply: block 1 is broken: the tool call is not a JSON object; the block's text stayed in the content (24.3)")
+    ingilizceler.TR_append(h_object[0].TR_text("en"))
+    TR_assert_equal(7, ingilizceler.TR_unique().TR_length)
+    TR_var _k, h_kapanış = TR_qwen3_reply(p, [ç_son])
+    TR_assert_equal(1, h_kapanış.TR_length)
+    denetle(h_kapanış[0], "H7188", "qwen3_cevabı: 1. blok: \"</tool_call>\" etiketinin açılışı yok; etiket içerikte metin kaldı (24.3)", "qwen3_reply: block 1: the \"</tool_call>\" tag has no opening tag; the tag stayed in the content as text (24.3)")
 }
