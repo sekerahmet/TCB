@@ -52,7 +52,7 @@ TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe c
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
     "aygıt": "", "sahte_mikrofon": "", "ffmpeg": "ffmpeg", "çalıcı": "ffplay -nodisp -autoexit -loglevel error", "sistem": _SİSTEM,
     "en_çok_parça": 160, "bağlam": TR_none, "önbelleksiz": TR_false, "nicemli_etkinleştirme": TR_false, "kimlik_dosyası": "", "en_çok_tur": 0,
-    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "ayar": "", "katalog": "katalog.json",
+    "ekran": -1, "belirteç_dosyası": "", "deneme_klasörü": "", "konuşma_dili": "tr", "cihaz": "cpu", "ayar": "", "katalog": "katalog.json",
     "tarayıcıyla_eşle": TR_false},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
@@ -67,6 +67,7 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)",
         "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok",
         "konuşma_dili": "Whisper'ın dil kodu (tr, en, ...); --ses_modeli ve --sistem aynı dilde verilir",
+        "cihaz": "dil modelinin, Whisper'ın ve sesin hesap cihazı (cpu, gpu, gpu:1); VAD her zaman işlemcidedir; ekranlı kipte yalnız cpu",
         "ayar": "ekranlı kipte ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json; klasörü Dost klasörüdür (modeller, yükleme işareti)",
         "katalog": "ekranlı kipte model kataloğu (JSON); --dil_modeli verilirse ekranlı kip katalogu ve ayarı okumaz",
         "tarayıcıyla_eşle": "ekranlı kipte tarayıcıyı tek kullanımlık eşleme koduyla açar, belirteç sorulmaz; kod tarayıcıyı açan sürecin argümanında durduğu için yalnız argümanı başka kullanıcıya göstermeyen sistemde verilir; Windows başlatıcısı verir"})
@@ -448,6 +449,13 @@ TR_func tur_ölçüleri(t: Tur) -> TR_JSON {
 
 TR_var kip = _gerekli("kip")
 _dil_denetle()
+# --cihaz: varsayılan cihaz yan etkilerden ve modellerden önce kurulur; geçersiz ya da kullanılamayan cihaz burada durur.
+# Kararlar argümansız TR_default_device()'ın adıyla verilir (motor "GPU"yu ve "gpu:0"ı "gpu" yapar). Ekranlı kipte
+# modeller ayarın cihazında kurulur (bugün yalnız cpu): başka cihaz sunucudan önce hatadır.
+TR_default_device(TR_String(ayar["cihaz"]))
+TR_if TR_Int(ayar["ekran"]) >= 0 TR_and TR_default_device() != "cpu" {
+    TR_throw "--cihaz \(TR_default_device()) ekranlı kipte verilmez: ekranlı kipte modeller ayarın cihazında kurulur (bugün yalnız cpu). --cihaz'ı kaldırın ya da Dost'u --ekran olmadan açın"
+}
 TR_var deneme_yeri = TR_String(ayar["deneme_klasörü"])
 TR_if deneme_yeri != "" {
     TR_var hata = deneme_klasörü_hatası(deneme_yeri)
@@ -455,7 +463,8 @@ TR_if deneme_yeri != "" {
     TR_var d = Deneme(klasör: deneme_yeri, başı: şimdi())
     d.başla(deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]), "whisper": TR_String(ayar["whisper"]),
         "vad": TR_String(ayar["vad"]), "ses_modeli": TR_String(ayar["ses_modeli"]), "en_çok_tur": TR_String(ayar["en_çok_tur"]),
-        "ekran": TR_String(ayar["ekran"]), "nicemli_etkinleştirme": TR_String(ayar["nicemli_etkinleştirme"])}))
+        "ekran": TR_String(ayar["ekran"]), "nicemli_etkinleştirme": TR_String(ayar["nicemli_etkinleştirme"]),
+        "cihaz": TR_default_device()}))
     deneme = d
     TR_print("DENEME", d.klasör)
 }
