@@ -36,7 +36,7 @@ func renameIn(t *testing.T, root, old, new, also string) {
 }
 
 // Kural: eşleme belgesindeki her "eski → yeni" çifti bir yeniden adlandırma olayıdır: deleted'a
-// girmez, history eski anahtarın geçmişiyle sürer (zincir de: print → write → output), eski
+// girmez, kodun geçmişi (followRenames) eski anahtarın geçmişiyle sürer (zincir de: print → write → output), eski
 // anahtar sorgusu bugünkü koda gider. Gerçekten silinen kod deleted'da kalır.
 func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 	slowFixture(t)
@@ -49,19 +49,29 @@ func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 	if strings.Contains(out, "TR_fn_print") || strings.Contains(out, "TR_fn_write") {
 		t.Errorf("a renamed code is not deleted:\n%s", out)
 	}
+	events, err := scanCodeHistory(root, nameFiles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seq []string
+	for _, e := range followRenames(events, readRenames(root))["TR_fn_output"] {
+		ev := "removed"
+		switch {
+		case e.from != "":
+			ev = e.from + " → " + e.key
+		case e.added:
+			ev = "added"
+		}
+		if len(seq) == 0 || seq[len(seq)-1] != ev { // iki dil dosyası: aynı commit'in olayı dosya başına bir kez gelir
+			seq = append(seq, ev)
+		}
+	}
+	// Olaylar en yeni önce: iki yeniden adlandırma, en sonda eski anahtarın ilk eklenişi; silinme yok.
+	if len(seq) < 3 || seq[0] != "TR_fn_write → TR_fn_output" || seq[1] != "TR_fn_print → TR_fn_write" || seq[len(seq)-1] != "added" || slices.Contains(seq, "removed") {
+		t.Errorf("the identity's history goes on with its old keys: %v", seq)
+	}
 	graph := buildInto(t, root)
-	code, out, errOut := commandIn("history", root, graph, "TR_fn_output")
-	if code != exitOK {
-		t.Fatalf("exit %d: %s", code, errOut)
-	}
-	testkit.MustContain(t, out, "renamed TR_fn_write → TR_fn_output", "renamed TR_fn_print → TR_fn_write", "added    ")
-	if i, j, k := strings.Index(out, "→ TR_fn_output"), strings.Index(out, "→ TR_fn_write"), strings.Index(out, "added"); !(i < j && j < k) {
-		t.Errorf("events newest first, the first add last:\n%s", out)
-	}
-	if strings.Contains(out, "removed") {
-		t.Errorf("a rename is not a removal:\n%s", out)
-	}
-	code, out, _ = commandIn("query", root, graph, "TR_fn_print")
+	code, out, _ := commandIn("query", root, graph, "TR_fn_print")
 	if code != exitOK || !strings.HasPrefix(out, "TR_fn_output [name]") {
 		t.Errorf("the old key leads to the code: exit %d\n%s", code, out)
 	}

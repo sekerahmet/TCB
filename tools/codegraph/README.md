@@ -11,14 +11,13 @@ go run ./tools/codegraph query messages.New     # a node and its neighbours
 go run ./tools/codegraph path interp.VM H2100   # shortest directed path between two nodes (--undirected, --through-hubs: see below)
 go run ./tools/codegraph who-uses H2100         # what uses a message code, name code or function
 go run ./tools/codegraph tests-for interp.VM.Run
-go run ./tools/codegraph history messages.New       # commits that touched it (computed from git)
 go run ./tools/codegraph changed claude/some-branch # graph nodes a branch touches, their tests, overlapping branches
 go run ./tools/codegraph deleted                  # message/name codes that existed once and are gone
 go run ./tools/codegraph tests-for internal/lang/codes/language.go:227   # the declaration that contains a line
 grep -rn "code list %s" internal | go run ./tools/codegraph query -       # each grep hit with its declaration
 ```
 
-**A location is a name.** `query`, `who-uses`, `tests-for` and `history` take `file:line` and `file:line:col`
+**A location is a name.** `query`, `who-uses` and `tests-for` take `file:line` and `file:line:col`
 (gopls' and `TR_cmd_index`'s form) for a tracked file and answer for the narrowest node whose lines contain it: the
 first to the last line of a declaration, a func literal counting as its function, a field inside its type, a doc
 comment (directly above, no blank line between) as the declaration it documents, a heading section in Markdown,
@@ -32,7 +31,8 @@ a grep hit could not be taken to the graph).
 
 Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `--limit N` (lines per
 group, default 12) and `--all`, before or after the names. Output is short plain text; edges tagged
-`[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` is another name for `query`.
+`[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` (another name for `query`) and `history`
+(git answers it) are retired: they exit 2 and print the command or the `git log` form that does their work.
 
 ## Which command answers which question
 
@@ -51,7 +51,7 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | which functions call into this package the most | `calls-into <pkg> --min N --in DIR` |
 | who uses this | `who-uses <name>` |
 | is there a path from A to B | `path <A> <B>` (`--undirected`) |
-| when and in which commit this file or function changed | `history <function\|type\|file>` (not for a field: ask its type or its file) |
+| when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` |
 | which message or name codes existed once and are gone | `deleted` |
 | functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
 | methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) |
@@ -71,7 +71,7 @@ loader reads every `.go` file of a folder; nothing reads the others). So committ
 with the same content keeps the graph fresh: a hook that asks `tests-for` before every first edit no longer rebuilds
 after a commit (TCB 2026-10-25, item 5; `TestStampFollowsContentNotCommits`). `.codegraph/` itself is ignored;
 `TestStampCoversEverySourceTheGraphReads` fails when a node or an edge comes from a file type the stamp misses. Every query
-(`query`, `explain`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
+(`query`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
 the query rebuilds the graph, rewrites `graph.json` (through a temporary file, so two parallel
 queries never read half a file) and prints one line on stderr: `graph rebuilt (N s)`.
 
@@ -310,15 +310,11 @@ stays the tool for Go code, messages and codes, docs and history.
 
 ## History commands (from git, never stored)
 
-These three ask git when you run them; `graph.json` stays small and `build` fast. They need a git
-repository (a failing git is an error, exit 1).
-
-- `history <name>`: commits (short hash, date, subject; no diffs), newest first, `--limit N`
-  (`--all` for every one). A function, method or type uses `git log -L` (by name when the
-  declaration is a plain `func`/`type` line, else by its current line range); a message or name
-  code uses a pickaxe over the dictionary files and marks the commits that **added** and
-  **removed** it, and those that **renamed** it from an older key (the history goes on with the
-  older key's commits; see the renames below); a file or doc uses `git log --follow`.
+These two ask git when you run them; `graph.json` stays small and `build` fast. They need a git
+repository (a failing git is an error, exit 1). The commits of one declaration, file or code are git's own
+answer (`history` is retired, its message gives the `git log` forms); the `-L` form is anchored to the
+declaration line, `':^func <name>(:<file>'`, because an unanchored `-L :<name>:<file>` takes the first
+line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows the constant `SecretMask`).
 - `changed <branch|range>`: maps the hunks of `git diff -U0 <base>...<branch>` (`--base`, default
   `main`; or a literal `a..b` / `a...b`) onto Go and TR declaration and doc-section line ranges, and onto
   the codes named in changed dictionary lines. On another branch, `changed main` compares `<base>...HEAD`
@@ -349,7 +345,7 @@ repository (a failing git is an error, exit 1).
 - Renames: every row of a mapping document (`identityMaps`: `docs/code_identities.md`) whose first two cells are
   code keys (``| <old code> | `TR_kw_if` |``) is a rename event. Where one commit removes the old key and adds the
   new one in the same file the two are one `renamed <old code> → TR_kw_if` event: the old key is not `deleted`,
-  the new key's `history` goes on with the old key's commits, and a `query` of the old code answers with
+  the new key's code history (`followRenames`, read by `deleted`) goes on with the old key's commits, and a `query` of the old code answers with
   `TR_kw_if` (the old key is an alias of the name code node). Chains are followed (`TR_a` renamed again to
   `TR_b`: a new row ``| TR_a | `TR_b` |``), so a later rename of an identity or the library codes of item 15
   step 3 need only their rows (`TestEveryRenameInTheMappingKeepsItsHistory` runs over every row of the document
@@ -696,7 +692,7 @@ first.
 40 languages), docs and media into `graph.json`, with `EXTRACTED` / `INFERRED` edge labels, a
 `schema_version`, and `query`, `path`, `explain` commands; an ambiguous name is refused with the
 candidates listed (exit 3), an unknown one exits 4. We take that shape: the two labels, the schema
-version, the commands (`explain` is our `query`: node plus neighbours), the 0/3/4 exit codes and
+version, the commands (Graphify's `explain` is our `query`: node plus neighbours), the 0/3/4 exit codes and
 the candidate list instead of a guess.
 
 What we do differently, and why:
@@ -747,8 +743,10 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
 - `query_test.go`: `query`, ambiguity (exit 3), not found (exit 4), `path`, `who-uses`,
   `tests-for` (direct and indirect, depth limit), text search, flags after names, usage errors,
   missing graph, `build`.
-- `fresh_test.go`, `root_test.go`, `history_test.go`, `changed_test.go`, `deleted_test.go`: the
-  stamp and automatic rebuild, finding the repository root, and the three git commands.
+- `fresh_test.go`, `root_test.go`, `changed_test.go`, `deleted_test.go`, `codehist_test.go`: the
+  stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
+  scan `deleted` reads.
+- `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
 - `test_paths_test.go`, `js_loads_test.go`, `data_coverage_test.go`: a file's answer in `tests-for` (readers, citing
   tests, the guards of a doc's rules, JavaScript loads, an untracked file not searched) and, on this repository, every
   tracked path resolving to its own file (`TestEveryTrackedFileIsANode`).

@@ -10,7 +10,7 @@ import (
 
 // identityMaps bir kodu yeni anahtarına bağlayan belgelerdir (modül köküne göre). Her tablo
 // satırı "| eski | `yeni` | ..." bir yeniden adlandırma olayıdır: geçmiş okunurken eski anahtarın
-// silinişi ile yeninin eklenişi tek olaydır (deleted'a girmez, history eski anahtarın geçmişiyle
+// silinişi ile yeninin eklenişi tek olaydır (deleted'a girmez, kodun geçmişi eski anahtarınkiyle
 // sürer), eski anahtar sorgusu yeniye gider (renamedCode). Madde 15 adım 0'ın tablosu ilk satırları
 // verdi (eski numaralı kod → TR_kw_if); bir kimlik ileride yeniden adlandırılırsa satırı aynı biçimle bir
 // eşleme belgesine yazılır ("| TR_eski | `TR_yeni` |") ve zincir izlenir (eski kod → TR_a → TR_b).

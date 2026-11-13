@@ -15,7 +15,7 @@ import (
 )
 
 // Bu dosya konumla sorgu: `dosya:satır` ve `dosya:satır:sütun` (gopls'in ve trlang index'in konum biçimi) query, who-uses,
-// tests-for ve history'de satırı içeren en içteki düğüme çözülür; `query -` grep'in çıktısını (`yol:satır:metin`) satır
+// tests-for'da satırı içeren en içteki düğüme çözülür; `query -` grep'in çıktısını (`yol:satır:metin`) satır
 // satır okur ve her satıra o düğümü yazar. Metin araması codegraph'ta yoktur (grep, ripgrep var); bu köprü bulunan
 // yeri grafiğe taşır (README, "Reading an answer": metnin içeriği grep ile aranır, sonra bulunan yer grafiğe sorulur).
 //

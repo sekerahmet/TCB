@@ -28,8 +28,8 @@ type queryOpts struct {
 	asJSON         bool   // untested: JSON çıktı
 }
 
-// runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for, untested,
-// history, changed, callees, calls-into.
+// runQuery grafiği okuyan komutları çalıştırır: query, path, who-uses, tests-for, untested, changed, callees,
+// calls-into, fields, captures.
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	return runQueryOn(nil, cmd, args, stdout, stderr)
 }
@@ -157,7 +157,7 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 
 func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	switch cmd {
-	case "query", "explain":
+	case "query":
 		ix.printQuery(o.stdout, nodes[0], o.limit)
 	case "who-uses":
 		if nodes[0].Kind == kindField {
@@ -170,8 +170,6 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	case "tests-for":
 		ix.withTestNotes(o.root)
 		ix.printTestsFor(o.stdout, nodes[0], o.limit)
-	case "history":
-		return ix.runHistory(o.root, nodes[0], o.limit, o.stdout, o.stderr)
 	case "fields":
 		if n := nodes[0]; n.Kind == kindField {
 			// Bir alanın erişimleri who-uses'ın işidir (K7): aynı soru iki komutla soruluyordu.

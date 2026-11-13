@@ -88,7 +88,6 @@ go run ./tools/codegraph who-uses tensor.Tensor.shape --mode write # alanın yaz
 go run ./tools/codegraph captures binaryKind --type Tensor # func literal'lerin yakaladığı değişkenler
 go run ./tools/codegraph callees ml.New        # bir işlevin çağırdıkları, pakete göre
 go run ./tools/codegraph who-uses H3096 --by-package # kullanıcılar pakete göre
-go run ./tools/codegraph history H2100          # kodun/işlevin/dosyanın commit geçmişi (git'ten, graph.json'a yazılmaz)
 go run ./tools/codegraph changed claude/dal      # dalın dokunduğu düğümler, testleri, aynı yere dokunan öbür claude/ dalları
 go run ./tools/codegraph deleted                 # geçmişte olup silinmiş ileti/ad kodları
 go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa yol
