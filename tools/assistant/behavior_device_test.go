@@ -22,6 +22,7 @@ TR_var ayar = TR_command_line({"cihaz": "cpu"})
 TR_default_device(TR_String(ayar["cihaz"]))
 TR_var örnekler = TR_zeros([1, 1024])
 TR_print("KURULAN", örnekler.TR_device)
+TR_print("VARSAYILAN", TR_default_device(), örnekler.TR_device == TR_default_device())
 TR_print("G1", işlemcide(örnekler[0]).TR_device)
 TR_var çerçeve = çerçeve_örnekleri(TR_Bytes([0, 128, 255, 127, 1, 0, 0, 0]))
 TR_print("C1", çerçeve.TR_device, çerçeve.TR_dtype, çerçeve[0].TR_item(), çerçeve[2].TR_item(), çerçeve[3].TR_item())
@@ -68,6 +69,8 @@ func TestChainDeviceTransitions(t *testing.T) {
 			got := string(out)
 			for _, want := range []string{
 				"KURULAN " + d.built + "\n",
+				// Kararların adı .TR_device ile aynı uzun addır (15.38): karşılaştırma kartta da doğru.
+				"VARSAYILAN " + d.built + " true\n",
 				"G1 cpu\n",
 				"C1 cpu float32 -1.0 3.0517578e-05 0.0\n",
 				"ÜST true true\n",
@@ -98,13 +101,13 @@ func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
 		want, not string
 		record    bool
 	}{
-		{"gpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "gpu"}, "dil modelinin cihazı gpu", "yüklenemedi", false},
+		{"gpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "gpu"}, "dil modelinin cihazı gpu:0", "yüklenemedi", false},
 		{"cpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "cpu"}, "yüklenemedi", "dil modelinin cihazı", false},
 		{"seçeneksiz, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme"}, "yüklenemedi", "dil modelinin cihazı", false},
 		{"kart", []string{"--kip", "dosya", "--cihaz", "kart"}, `bilinmeyen cihaz "kart"`, "DENEME", true},
 		{"boş ad", []string{"--kip", "dosya", "--cihaz", ""}, `bilinmeyen cihaz ""`, "DENEME", true},
-		{"gpu:7", []string{"--kip", "dosya", "--cihaz", "gpu:7"}, "gpu:7 cihazı kullanılamıyor", "DENEME", true},
-		{"ekranlı, gpu", []string{"--kip", "canlı", "--ekran", "0", "--cihaz", "gpu"}, "--cihaz gpu ekranlı kipte verilmez", "EKRAN", true},
+		{"gpu:7", []string{"--kip", "dosya", "--cihaz", "gpu:7"}, "gpu:7 cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: cpu, gpu:0", "DENEME", true},
+		{"ekranlı, gpu", []string{"--kip", "canlı", "--ekran", "0", "--cihaz", "gpu"}, "--cihaz gpu:0 ekranlı kipte verilmez", "EKRAN", true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()

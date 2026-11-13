@@ -699,14 +699,14 @@ tr: değişken küme = VeriKümesi("tests/data/numbers"); yazdır(küme, Tip(kü
 cihaz_bilgisi()'nin verdiği kart bilgisi.
 
 ```tr
-TR_if TR_devices().TR_contains("gpu") { TR_print(TR_Type(TR_device_info("gpu")) == TR_DeviceInfo) }; TR_print(TR_devices()[0])
+TR_if TR_devices().TR_contains("gpu:0") { TR_print(TR_Type(TR_device_info("gpu")) == TR_DeviceInfo) }; TR_print(TR_devices()[0])
 ```
 
 Görünümü:
 
 ```text
-en: if devices().contains("gpu") { print(Type(device_info("gpu")) == DeviceInfo) }; print(devices()[0])
-tr: eğer cihazlar().içerir("gpu") { yazdır(Tip(cihaz_bilgisi("gpu")) == CihazBilgisi) }; yazdır(cihazlar()[0])
+en: if devices().contains("gpu:0") { print(Type(device_info("gpu")) == DeviceInfo) }; print(devices()[0])
+tr: eğer cihazlar().içerir("gpu:0") { yazdır(Tip(cihaz_bilgisi("gpu")) == CihazBilgisi) }; yazdır(cihazlar()[0])
 ```
 
 Üyeleri: `.TR_driver_version`, `.TR_memory_total_bytes`, `.TR_name` · İlişkili: `TR_device_info(...)`, `.TR_name`, `.TR_memory_total_bytes`, `.TR_driver_version`
@@ -1994,7 +1994,7 @@ tr: değişken kare = özel_türev(ileri: (x) => [x * x, [x]], geri: (s, g) => [
 
     varsayılan_cihaz([Metin]) → Metin
 
-Argümanla çağrılınca ("cpu", "gpu", "gpu:1") bundan sonra oluşturulan bütün tensörlerin cihazını seçer: Tensör(...), sıfırlar, birler, rastgele_normal ve veri kümesi örnekleyicisinin toplu işleri o cihazda kurulur. Argümansız çağrı geçerli cihazın adını verir. Model GPU'da eğitilecekse bu çağrı model kurulmadan önce yapılır; olmayan cihaz hatadır.
+Argümanla çağrılınca ("cpu", "gpu", "gpu:1") bundan sonra oluşturulan bütün tensörlerin cihazını seçer: Tensör(...), sıfırlar, birler, rastgele_normal ve veri kümesi örnekleyicisinin toplu işleri o cihazda kurulur. Argümansız çağrı geçerli cihazın uzun adını verir ("gpu:0"); argümanlı çağrı değer vermez. Model GPU'da eğitilecekse bu çağrı model kurulmadan önce yapılır; olmayan cihaz hatadır.
 
 ```tr
 TR_print(TR_default_device()); TR_default_device("cpu"); TR_print(TR_Tensor([1.0]).TR_device)
@@ -2016,14 +2016,14 @@ tr: yazdır(varsayılan_cihaz()); varsayılan_cihaz("cpu"); yazdır(Tensör([1.0
 Bir GPU'nun adını, belleğini ve sürücü sürümünü CihazBilgisi olarak verir; "cpu" için makine() kullanılır.
 
 ```tr
-TR_var kod = TR_error_code { TR_device_info("cpu") }; TR_print(kod); TR_if kod != "H7734" { TR_print(TR_device_info("cpu")) }; TR_if TR_devices().TR_contains("gpu") { TR_print(TR_device_info("gpu").TR_name) }
+TR_var kod = TR_error_code { TR_device_info("cpu") }; TR_print(kod); TR_if kod != "H7734" { TR_print(TR_device_info("cpu")) }; TR_if TR_devices().TR_contains("gpu:0") { TR_print(TR_device_info("gpu").TR_name) }
 ```
 
 Görünümü:
 
 ```text
-en: var kod = error_code { device_info("cpu") }; print(kod); if kod != "H7734" { print(device_info("cpu")) }; if devices().contains("gpu") { print(device_info("gpu").name) }
-tr: değişken kod = hata_kodu { cihaz_bilgisi("cpu") }; yazdır(kod); eğer kod != "H7734" { yazdır(cihaz_bilgisi("cpu")) }; eğer cihazlar().içerir("gpu") { yazdır(cihaz_bilgisi("gpu").dosya_adı) }
+en: var kod = error_code { device_info("cpu") }; print(kod); if kod != "H7734" { print(device_info("cpu")) }; if devices().contains("gpu:0") { print(device_info("gpu").name) }
+tr: değişken kod = hata_kodu { cihaz_bilgisi("cpu") }; yazdır(kod); eğer kod != "H7734" { yazdır(cihaz_bilgisi("cpu")) }; eğer cihazlar().içerir("gpu:0") { yazdır(cihaz_bilgisi("gpu").dosya_adı) }
 ```
 
 İlişkili: `TR_DeviceInfo`, `TR_devices(...)`, `TR_machine(...)`
@@ -2032,17 +2032,17 @@ tr: değişken kod = hata_kodu { cihaz_bilgisi("cpu") }; yazdır(kod); eğer kod
 
     cihazlar() → Liste
 
-Bu makinede kullanılabilir cihazların adlarını liste olarak verir; ilk eleman her zaman "cpu"dur, NVIDIA GPU'su ve sürücüsü varsa "gpu" (birden çoksa "gpu:1", ...) gelir.
+Bu makinede kullanılabilir cihazların adlarını liste olarak verir; ilk eleman her zaman "cpu"dur, NVIDIA GPU'su ve sürücüsü varsa GPU'lar uzun adlarıyla ("gpu:0", "gpu:1", ...) gelir.
 
 ```tr
-TR_print(TR_devices()[0], TR_devices().TR_contains("gpu"))
+TR_print(TR_devices()[0], TR_devices().TR_contains("gpu:0"))
 ```
 
 Görünümü:
 
 ```text
-en: print(devices()[0], devices().contains("gpu"))
-tr: yazdır(cihazlar()[0], cihazlar().içerir("gpu"))
+en: print(devices()[0], devices().contains("gpu:0"))
+tr: yazdır(cihazlar()[0], cihazlar().içerir("gpu:0"))
 ```
 
 İlişkili: `TR_default_device(...)`, `.TR_to_device(...)`
@@ -6605,14 +6605,14 @@ tr: değişken g = eşzamanlı toplam([1, 2]); g.bekle(); yazdır(g.bitti_mi())
 Kartın sürücü arayüzünün sürümü, "büyük.küçük" (CihazBilgisi).
 
 ```tr
-TR_if TR_devices().TR_contains("gpu") { TR_print(TR_device_info("gpu").TR_driver_version) }; TR_print(TR_devices()[0])
+TR_if TR_devices().TR_contains("gpu:0") { TR_print(TR_device_info("gpu").TR_driver_version) }; TR_print(TR_devices()[0])
 ```
 
 Görünümü:
 
 ```text
-en: if devices().contains("gpu") { print(device_info("gpu").driver_version) }; print(devices()[0])
-tr: eğer cihazlar().içerir("gpu") { yazdır(cihaz_bilgisi("gpu").sürücü_sürümü) }; yazdır(cihazlar()[0])
+en: if devices().contains("gpu:0") { print(device_info("gpu").driver_version) }; print(devices()[0])
+tr: eğer cihazlar().içerir("gpu:0") { yazdır(cihaz_bilgisi("gpu").sürücü_sürümü) }; yazdır(cihazlar()[0])
 ```
 
 İlişkili: `TR_device_info(...)`, `TR_DeviceInfo`

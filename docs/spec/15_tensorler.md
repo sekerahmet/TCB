@@ -497,14 +497,14 @@ op.TR_zero_grad()
 
 **15.37** Cihazlar: her tensör bir cihazdadır. Cihazın adı bir metindir ve **tek yazımlıdır**: `"cpu"`, `"gpu:0"`, `"gpu:1"`, ...; `"gpu"` ilk GPU'nun kısa adıdır ve `"gpu:0"` ile aynı cihazdır, `.TR_device` her zaman uzun adı verir.
 - Büyük harf ve boşluk kabul edilmez; başka ad (`"tpu"`, `"cuda"`) hatadır, ileti geçerli adları söyler.
-- `TR_devices()` bu makinedeki cihazları verir: ilki her zaman `"cpu"`, desteklenen GPU ve sürücüsü varsa ardından GPU'lar. Sürücü ilk soruda yüklenir; sürücüsüz makinede liste `["cpu"]`'dir ve her şey CPU'da çalışır.
+- `TR_devices()` bu makinedeki cihazları uzun adlarıyla verir: ilki her zaman `"cpu"`, desteklenen GPU ve sürücüsü varsa ardından GPU'lar (`["cpu", "gpu:0"]`). Sürücü ilk soruda yüklenir; sürücüsüz makinede liste `["cpu"]`'dir ve her şey CPU'da çalışır.
 - Adlar donanım üreticisine bağlı değildir: başka hızlandırıcılar (Apple, gömülü NPU) da aynı adları alır.
 - *Test:* TR testi; tek yazım uygulanınca TR testi.
 
 **15.37a** `TR_device_info(c)` (`c` bir GPU'nun adı, 15.37) kartın bilgisini bir `TR_DeviceInfo` olarak verir: `.TR_name` (`TR_String`, kartın adı), `.TR_memory_total_bytes` (`TR_Int`, kartın belleği), `.TR_driver_version` (`TR_String`, sürücü arayüzünün sürümü, `"<büyük>.<küçük>"`). Sürücü 15.37'deki gibi ilk soruda yüklenir; bu makinede olmayan cihaz 15.38'deki gibi hatadır. `TR_device_info("cpu")` çağrı hatasıdır, ileti `TR_machine()`'i (19.12) önerir: işlemcinin bilgisi tek yerdedir. `TR_devices()` değişmez. Değer okunduğu anın görüntüsüdür (19.12).
 - *Test:* TR testi (`"cpu"`'nun hatası ve önerisi, olmayan cihaz); kartlı Go testi (`internal/stdlib/gpuprobe`, G4).
 
-**15.38** `TR_default_device(c)` (`c` cihazın adı) bundan sonra kurulan tensörlerin cihazını seçer (`TR_Tensor`, `TR_zeros`, `TR_ones`, `TR_randn`, `TR_eye`, `TR_load_tensors` ve safetensors okuması (15.46, 15.47), veri kümesinin toplu işleri, 16); var olan tensörler yerinde kalır. Argümanlı biçim değer döndürmez (13.10); argümansız biçim şimdiki adı verir; program `"cpu"` ile başlar.
+**15.38** `TR_default_device(c)` (`c` cihazın adı) bundan sonra kurulan tensörlerin cihazını seçer (`TR_Tensor`, `TR_zeros`, `TR_ones`, `TR_randn`, `TR_eye`, `TR_load_tensors` ve safetensors okuması (15.46, 15.47), veri kümesinin toplu işleri, 16); var olan tensörler yerinde kalır. Argümanlı biçim değer döndürmez (13.10); argümansız biçim şimdiki cihazın uzun adını verir (`"gpu:0"`, 15.37), `.TR_device` gibi; program `"cpu"` ile başlar.
 - Varsayılan cihaz programındır, göreve bağlı değildir: bir kez, model kurulmadan önce seçilir.
 - Bir tensörle işleme giren sayı o tensörün cihazında kullanılır.
 - Bu makinede olmayan cihaz hatadır; ileti makinedeki cihazları ve GPU sürücüsünün neden yüklenemediğini söyler, varsayılan değişmez.

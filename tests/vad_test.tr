@@ -202,7 +202,7 @@ TR_test "25.11 aralık denetlenmez: ölçeklenmemiş örnek hata vermez" {
 }
 
 TR_test "25.11 yalnız CPU'da çalışır" {
-    TR_if TR_devices().TR_contains("gpu") {
+    TR_if TR_devices().TR_contains("gpu:0") {
         TR_var d = kanal_modeli()
         TR_var kartta = TR_zeros([_BOY]).TR_to_device("gpu")
         TR_assert_equal("H7535", TR_error_code { d.TR_probability(kartta) })

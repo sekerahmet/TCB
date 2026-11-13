@@ -450,7 +450,7 @@ TR_func tur_ölçüleri(t: Tur) -> TR_JSON {
 TR_var kip = _gerekli("kip")
 _dil_denetle()
 # --cihaz: varsayılan cihaz yan etkilerden ve modellerden önce kurulur; geçersiz ya da kullanılamayan cihaz burada durur.
-# Kararlar argümansız TR_default_device()'ın adıyla verilir (motor "GPU"yu ve "gpu:0"ı "gpu" yapar). Ekranlı kipte
+# Kararlar argümansız TR_default_device()'ın adıyla verilir (motor "GPU"yu ve "gpu"yu "gpu:0" yapar). Ekranlı kipte
 # modeller ayarın cihazında kurulur (bugün yalnız cpu): başka cihaz sunucudan önce hatadır.
 TR_default_device(TR_String(ayar["cihaz"]))
 TR_if TR_Int(ayar["ekran"]) >= 0 TR_and TR_default_device() != "cpu" {

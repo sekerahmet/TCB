@@ -45,12 +45,13 @@ func parseDevice(ad string) (tensor.Device, error) {
 	return tensor.Device{}, messages.New(messages.H6800, ad)
 }
 
-// deviceNames kullanılabilir cihazların adları.
+// deviceNames kullanılabilir cihazların uzun adları ("cpu", "gpu:0", ...; 15.37: okunan ad tektir,
+// .TR_device ile aynı). TR_devices() ve H6812/H6813'ün listesi bunu yazar.
 func deviceNames() []string {
 	ds := tensor.Devices()
 	ad := make([]string, len(ds))
 	for i, d := range ds {
-		ad[i] = d.String()
+		ad[i] = d.LongName()
 	}
 	return ad
 }
@@ -102,8 +103,9 @@ func (d *TensorValue) toDevice(_ *interp.VM, args []interp.Value, _ map[string]i
 	return New(r), nil
 }
 
-// defaultDeviceBuiltin varsayılan_cihaz([ad]): argümanla cihazı seçer; her durumda
-// geçerli cihazın adını döndürür.
+// defaultDeviceBuiltin varsayılan_cihaz([ad]): argümanla cihazı seçer ve değer döndürmez
+// (15.38, 13.10; denetleyici değer yerinde H1143 verir, no_value.go); argümansız çağrı geçerli
+// cihazın uzun adını döndürür ("gpu:0", .TR_device gibi).
 func defaultDeviceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnDefaultDevice)
 	if err := bind.CheckNamed(fn.Called(), named); err != nil {
@@ -120,8 +122,9 @@ func defaultDeviceBuiltin(_ *interp.VM, args []interp.Value, named map[string]in
 		if _, err := safe(func() bool { tensor.SetDefaultDevice(dev); return true }); err != nil {
 			return nil, err
 		}
+		return interp.Null, nil
 	}
-	return &interp.StringVal{Val: tensor.DefaultDevice().String()}, nil
+	return &interp.StringVal{Val: tensor.DefaultDevice().LongName()}, nil
 }
 
 // devicesBuiltin cihazlar(): kullanılabilir cihaz adları ("cpu" ilk).

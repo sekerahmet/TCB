@@ -376,7 +376,7 @@ func (c tinyConfig) writeQuantized(t *testing.T, dir string) (quantized, opened 
 // ggufCard modeli CPU'da ve varsayılan cihaz kartken kurar; kart yoksa yalnız "kart yok" yazar.
 const ggufCard = `TR_import "tr/pretrained"
 TR_var arg = TR_command_line({"file": ""})
-TR_if TR_not TR_devices().TR_contains("gpu") {
+TR_if TR_not TR_devices().TR_contains("gpu:0") {
     TR_print("kart yok")
 } TR_else {
     TR_var kimlikler = [1, 5, 2, 7, 3, 9]
@@ -397,7 +397,7 @@ TR_if TR_not TR_devices().TR_contains("gpu") {
 // ileti hata çıkışına yazılır.
 const ggufCardFloat64 = `TR_import "tr/pretrained"
 TR_var arg = TR_command_line({"file": ""})
-TR_if TR_not TR_devices().TR_contains("gpu") {
+TR_if TR_not TR_devices().TR_contains("gpu:0") {
     TR_print("kart yok")
 } TR_else {
     TR_default_device("cpu")

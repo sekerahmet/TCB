@@ -189,6 +189,21 @@ func (c *Checker) exprNoValue(expr ast.Expression) bool {
 // valueThrough bloğun değerini geçiren yerleşiklerdir: blok değer vermiyorsa çağrı da vermez (3.5).
 var valueThrough = map[codes.Code]bool{codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnQuantizedActivations: true, codes.FnVendorMatmul: true}
 
+// ArityNoValue değeri argüman sayısına bağlı yerleşiğin çağrısı için değer vermediğini söyler;
+// decided yalnız böyle yerleşiklerde doğrudur. TR_wait_all() değer vermez, TR_wait_all(görevler)
+// sonuçları verir (10.5); TR_default_device(ad) cihazı seçer ve değer vermez, argümansız çağrı adı
+// verir (15.38, 13.10). Tanımın tek dönüşü (TR_String gibi) değer veren biçimindir; motorun dönüşünü
+// sınayan sonda (stdlib.TestSingleReturnsMatchEngine) değer vermeyen biçimi bununla atlar.
+func ArityNoValue(k codes.Code, args int) (none, decided bool) {
+	switch k {
+	case codes.FnWaitAll:
+		return args == 0, true
+	case codes.FnDefaultDevice:
+		return args > 0, true
+	}
+	return false, false
+}
+
 // callNoValue çağrının değer vermediğini söyler; objType metodun nesnesinin tipidir.
 func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 	switch f := e.Function.(type) {
@@ -201,8 +216,8 @@ func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 		if valueThrough[f.Token.Code] && len(e.Arguments) > 0 {
 			return c.functionArgNoValue(e.Arguments[len(e.Arguments)-1])
 		}
-		if f.Token.Code == codes.FnWaitAll {
-			return len(e.Arguments) == 0 // TR_wait_all(görevler) sonuçları verir (10.5)
+		if none, decided := ArityNoValue(f.Token.Code, len(e.Arguments)); decided {
+			return none
 		}
 		return builtinNoValue(f.Token.Code, typeAny)
 	case *ast.MemberExpression:
