@@ -107,7 +107,8 @@ TR_test "24.7 hatalar: rol sırası, araç sonucu, araç çağrısı, düşünce
     TR_assert_equal("H7194", hata_kodu(p, [kullanıcı("Saat kaç?"), çağrılı]))
     TR_var düşünceli = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Beş.", TR_reasoning: "saat soruluyor")
     TR_assert_equal("H7181", hata_kodu(p, [kullanıcı("Saat kaç?"), düşünceli]))
-    TR_assert_equal("H7182", hata_kodu(TR_load_tokenizer("data/llama3_chat/tokenizer.json"), [kullanıcı("a")]))
+    # Eksik etiket: Gemma 3'ün biçim parçaları fikstüründe sohbet etiketleri yok.
+    TR_assert_equal("H7182", hata_kodu(TR_load_tokenizer("data/gemma3_format_pieces"), [kullanıcı("a")]))
     # Yalnız sistem iletisi: şablon sistem metnini atar (kayıt); TR'de H7183. Önerdiği yazım koşulur.
     TR_assert_equal(8, kimlikler(durum("ref_yalniz_sistem", "1b")["ids"]).TR_length)
     TR_assert_equal("H7183", hata_kodu(p, [sistem("Kısa cevap ver.")]))
