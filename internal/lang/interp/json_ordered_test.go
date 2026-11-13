@@ -11,18 +11,19 @@ import (
 
 func TestJSONDecodeRejectsBadInput(t *testing.T) {
 	deep := strings.Repeat("[", maxJSONDepth+5) + strings.Repeat("]", maxJSONDepth+5)
-	for input, want := range map[string]string{
-		deep:             "çok derin",
-		`{"a": 1} fazla`: "beklenmeyen veri",
+	for input, want := range map[string]messages.Code{
+		deep:         messages.H2500,
+		`{"a": 1} 2`: messages.H2573, // değerden sonra fazladan veri: "metnin sonu" bekleniyordu
+		`{"a": }`:    messages.H2573, // eksik değer: TR iletisi, yeri ve nedeniyle (CheckJSON)
 	} {
-		if _, err := JSONToTR([]byte(input)); err == nil || !strings.Contains(err.Error(), want) {
-			t.Errorf("%.30q için %q içeren hata bekleniyordu, alınan: %v", input, want, err)
+		if _, err := JSONToTR([]byte(input)); !messages.Has(err, want) {
+			t.Errorf("%.30q için %v bekleniyordu, alınan: %v", input, want, err)
 		}
 	}
-	// Sözdizimi hatası Go'nun çözücüsünden gelir; metni Go sürümüne göre değişir (Go 1.27), tipi değişmez.
+	// Go'nun çözücüsünün hatası kullanıcıya gitmez (metni Go sürümüyle değişir).
 	var syntax *json.SyntaxError
-	if _, err := JSONToTR([]byte(`{"a": }`)); !errors.As(err, &syntax) {
-		t.Errorf("eksik değer sözdizimi hatası olmalı, alınan: %v", err)
+	if _, err := JSONToTR([]byte(`{"a": }`)); errors.As(err, &syntax) {
+		t.Errorf("Go'nun sözdizimi hatası sızdı: %v", err)
 	}
 	// Tam sayı ve ondalık yazımı korunur (3.7a): tam değerli ondalık Ondalık kalır
 	v, err := JSONToTR([]byte(`[1, 2.5, 3.0, 9007199254740993]`))

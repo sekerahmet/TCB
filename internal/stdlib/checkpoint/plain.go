@@ -157,7 +157,10 @@ func readPlain(b []byte) (interp.Value, error) {
 		return nil, err
 	}
 	if _, err := d.Token(); !errors.Is(err, io.EOF) {
-		return nil, messages.New(messages.H7420) // fazladan veri (decodeJSON'daki gibi)
+		// Girdi state.json'dan çözülmüş bir json.RawMessage (tek değer) ya da writePlain'in
+		// çıktısıdır; değerden sonra veri yalnız TR'nin kendi hatasıyla olur (dışa açık
+		// ReadPlain'i rastgele baytla çağıran fuzz testi dışında).
+		return nil, messages.Internalf("checkpoint: extra data after a plain value: %v", err)
 	}
 	return toPlain(raw, 0)
 }

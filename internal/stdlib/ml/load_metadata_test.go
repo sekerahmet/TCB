@@ -89,6 +89,11 @@ func TestLoadMetadataRejects(t *testing.T) {
 		{"büyük.gguf", (&gguftest.Builder{}).KV("x", uint64(math.MaxInt64)+1), messages.H6685},
 		{"nan.gguf", (&gguftest.Builder{}).KV("x", float32(math.NaN())), messages.H6685},
 		{"sonsuz.gguf", (&gguftest.Builder{}).KV("x", []float32{float32(math.Inf(1))}), messages.H6685},
+		// Geçersiz UTF-8 GGUF çözücüsünde durur (H6663); JSON'a U+FFFD olarak hiç varmaz (3.7a).
+		{"anahtar_ff.gguf", (&gguftest.Builder{}).KV("x\xff", uint32(1)), messages.H6663},
+		{"deger_ff.gguf", (&gguftest.Builder{}).KV("x", "a\xffb"), messages.H6663},
+		{"dizi_ff.gguf", (&gguftest.Builder{}).KV("x", []string{"y", "z\xff"}), messages.H6663},
+		{"vekil_utf8.gguf", (&gguftest.Builder{}).KV("x", "a\xed\xa0\x80"), messages.H6663},
 	}
 	for _, c := range cases {
 		writeGGUF(t, dir, c.name, c.b)

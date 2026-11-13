@@ -115,6 +115,22 @@
   "commit": "claude/katman3b-yapi-a92861",
   "reason": "deleted: a struct's text is its name, Nokta, not <struct Nokta> (7.6)"
  },
+ "H2499": {
+  "commit": "claude/json-utf8",
+  "reason": "deleted: interp: JSONToTR checks the text first (CheckJSON, 3.7a), so the decoder's token error cannot reach the user; extra data after the value is H2573 with line and column"
+ },
+ "H2501": {
+  "commit": "claude/json-utf8",
+  "reason": "deleted: interp: JSONToTR checks the text first (CheckJSON, 3.7a), so the decoder's token error cannot reach the user; a key that is not a string is H2572"
+ },
+ "H2502": {
+  "commit": "claude/json-utf8",
+  "reason": "deleted: interp: JSONToTR checks the text first (CheckJSON, 3.7a), so the decoder's token error cannot reach the user; an unexpected delimiter is H2572 or H2573"
+ },
+ "H2504": {
+  "commit": "claude/json-utf8",
+  "reason": "deleted: interp: JSONToTR checks the text first (CheckJSON, 3.7a), so the decoder's token error cannot reach the user; an unexpected value is H2573 or H2578"
+ },
  "H2511": {
   "commit": "claude/serene-pascal-rbkqwf",
   "reason": "deleted: source: the encoder from a view to code is gone (17.7); no conversion to check for loss"
@@ -306,6 +322,10 @@
  "H7415": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7420": {
+  "commit": "claude/json-utf8",
+  "reason": "deleted: checkpoint: decodeJSON checks the text first (CheckJSON, 3.7a), extra data after the value is H2573; readPlain reads one json.RawMessage value"
  },
  "H7447": {
   "commit": "0d6949c",
