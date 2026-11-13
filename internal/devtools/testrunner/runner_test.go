@@ -521,6 +521,39 @@ TR_test "sonra gelen test sürer" {
 	}
 }
 
+// Önceki testin kaydettiği gizli değer sonraki testin hata metnindeki değer özetini örtmez (12.5, 19.4):
+// koşucu her testin VM'sini kurmadan önce süreç boyu kümenin VM'lerin kaydettiği parçasını boşaltır.
+// a_test.tr anahtarı gizli adlı seçeneğin varsayılanıyla kaydeder; b_test.tr tip hatasını çalışma anında
+// kurar (JSON metni denetimden geçer) ve yakalar: özet anahtarın ilk 39 karakterini taşır. Sıra ters
+// çevrilince de iki dosya geçer.
+func TestAnEarlierTestsSecretDoesNotMaskTheNextSummary(t *testing.T) {
+	const key = "sk-kosucu-anahtar-0123456789abcdefghijklmnopq"
+	root := t.TempDir()
+	a := writeTR(t, root, "a_test.tr", `TR_test "a gizli anahtarı kaydeder" {
+    TR_var ayar = TR_command_line({"api_key": "`+key+`"})
+    TR_assert_equal(45, ayar["api_key"].TR_length)
+}
+`)
+	b := writeTR(t, root, "b_test.tr", `TR_test "b özet açık metni görür" {
+    TR_var metin = TR_try {
+        TR_env(TR_json_parse("\"`+key+`\""))
+        ""
+    } TR_catch e {
+        e.TR_text("tr")
+    }
+    TR_assert(metin.TR_contains("`+key[:39]+`"), metin)
+    TR_assert(metin.TR_contains("***") == TR_false, metin)
+}
+`)
+	for _, targets := range [][]string{{a, b}, {b, a}} {
+		var out bytes.Buffer
+		summary, err := Run(targets, &out)
+		if err != nil || summary.Total != 2 || !summary.OK() {
+			t.Errorf("%v: iki test de geçmeli: %+v, %v\n%s", targets, summary, err, out.String())
+		}
+	}
+}
+
 // writeTR bir test dosyasını başlığıyla (2.1) yazar; satırlar dosyanınkidir, gövdenin ilk satırı 2.
 func writeTR(t *testing.T, dir, name, body string) string {
 	t.Helper()

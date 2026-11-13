@@ -266,3 +266,25 @@ func TestCommandLineSecretLeaks(t *testing.T) {
 		t.Errorf("varsayılan liste öğeleri gizlenmeli: %q", got)
 	}
 }
+
+// Adı gizli olmayan seçeneğe verilen adresin parolası kullanım hatasında görünmez (19.4): değer önce
+// maskelenir, sonra kesilir; kesim parolanın ortasına düşse de başı kalmaz (H7211, H7212, H7207).
+func TestCommandLineAddressInUsageError(t *testing.T) {
+	code := `TR_command_line({"adım": 1, "katmanlar": [1]})`
+	long := "http://" + strings.Repeat("k", 50) + ":Vekil2026@x"
+	for _, d := range []struct {
+		args       []string
+		want, gone string
+	}{
+		{[]string{"--adım", "http://ali:Vekil2026@x"}, "http://ali:***@x", "Vekil2026"},
+		{[]string{"--adım", long}, "", ":Ve"},
+		{[]string{"--katmanlar", "1,http://ali:Vekil2026@x"}, "", "Vekil2026"},
+		{[]string{long}, "", ":Ve"},
+	} {
+		_, _, err := commandLine(t, code, d.args...)
+		c, ok := interp.IsExitRequest(err)
+		if !ok || c.Code != 2 || !strings.Contains(c.Message, d.want) || strings.Contains(c.Message, d.gone) {
+			t.Errorf("%q: iletide %q olmamalı: %v", d.args, d.gone, err)
+		}
+	}
+}

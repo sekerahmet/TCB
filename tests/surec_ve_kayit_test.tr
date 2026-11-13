@@ -68,6 +68,15 @@ TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda mas
     TR_assert(TR_not içerik.TR_contains("anahtar-varsayılan-1"))
 }
 
+TR_test "19.4 TR_env: ile dış programa verilen adresin kimlik kısmı maskelenir, veri değişmez" {
+    # Değişkenin adı gizli değil; değerdeki iki adresin parolası adresin kuralıyla gizlidir.
+    TR_var değer = "http://a:Vekil2026@x,http://b:Baska2026@y"
+    TR_run_process("gofmt", ["-tanimsiz"], TR_exit_codes: [2], TR_env: {"KUME": değer})
+    TR_var m = TR_mask_stream()
+    TR_assert_equal("a:*** b:***", m.TR_step("a:Vekil2026 b:Baska2026") + m.TR_finish())
+    TR_assert(değer.TR_contains("Vekil2026"))
+}
+
 TR_test "19.4a maskeli akış iki parçaya bölünen gizli değeri maskeler; bittikten sonra adım hatadır" {
     # Gizli değer 19.4'ün seçeneğinden gelir (api_anahtarı); parçalar onu ortasından böler.
     ayar()

@@ -157,3 +157,28 @@ func TestEnvNamesIgnoreCaseOnWindows(t *testing.T) {
 		t.Errorf("değiştirme: %s (%v)", got, err)
 	}
 }
+
+// Programın hiç okumadığı ortam değişkeni dış programa geçer; programın standart hatası onu yazarsa
+// adresin parolası 21.4'ün iletisinde örtülüdür: ortam program başlarken tarandı (19.4).
+func TestUnreadAddressIsMaskedInChildStderr(t *testing.T) {
+	prog := helperProgram(t)
+	t.Setenv("TR_DENEME_PROXY", "http://ali:Vekil2026@vekil")
+	_, err := run(t, `TR_run_process(`+prog+`, ["env-exit", "1", "TR_DENEME_PROXY"])`)
+	if err == nil || !strings.Contains(err.Error(), "http://ali:***@vekil") || strings.Contains(err.Error(), "Vekil2026") {
+		t.Errorf("iletide parola örtülü olmalı: %v", err)
+	}
+}
+
+// TR_env: ile dış programa verilen değerdeki adresin kimlik kısmı da süzgece girer, adı ne olursa
+// olsun (19.4); dış program değeri aynen alır.
+func TestEnvArgumentAddressIsMasked(t *testing.T) {
+	prog := helperProgram(t)
+	value := "http://a:Vekil2026@x,http://b:Baska2026@y"
+	got, m, err := commandLine(t, `TR_String(TR_run_process(`+prog+`, ["env", "KUME"], TR_env: {"KUME": "`+value+`"}))`)
+	if err != nil || got != value {
+		t.Errorf("dış program değeri aynen almalı: %s (%v)", got, err)
+	}
+	if s := m.Mask(value); s != "http://a:***@x,http://b:***@y" {
+		t.Errorf("iki parola da örtülmeli: %q", s)
+	}
+}

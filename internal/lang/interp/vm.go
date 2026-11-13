@@ -197,6 +197,8 @@ type vmShared struct {
 	isSecret sync.Mutex
 	secrets  []string
 	mask     atomic.Pointer[strings.Replacer]
+	// maskBuilds süzgecin kaç kez kurulduğudur (isSecret'la korunur); yalnız toplu kaydın testi okur.
+	maskBuilds int
 
 	// stringCache son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	stringCache struct {

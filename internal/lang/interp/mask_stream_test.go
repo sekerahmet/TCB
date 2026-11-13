@@ -96,6 +96,7 @@ func FuzzMaskStream(f *testing.F) {
 	f.Add("aaaaaaaaaaaaa", "aaaaaa", "", uint64(0x0102030405))
 	f.Add("şifre_ğüç şifre_ğüç", "şifre_ğüç", "re_ğüç şi", uint64(0x0301020101))
 	f.Fuzz(func(t *testing.T, text, s1, s2 string, cuts uint64) {
+		ClearRegisteredSecrets() // süreç boyu küme girdiden girdiye büyümesin
 		v := New()
 		v.AddSecret(s1)
 		v.AddSecret(s2)

@@ -1085,7 +1085,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ### 19.4
 
-- **Yapılacaklar (B, Ö1; sahip Motor, Ahmet'in onayıyla; ölçüldü a4fdb264):** adresin kimlik kısmı (2026-11-13'te yazılan cümle) uygulanmadı: değer yalnız adla gizli sayılıyor (`IsSecretName`), `HTTPS_PROXY=http://ali:Vekil2026@vekil:8080`'in parolası `TR_print`'te açık görünür [kanıtlı: `internal/stdlib/process/process.go:113`; motorda adresin kimlik kısmına bakan kod yok, `git grep -n -i userinfo`]. Gizli değeri `a4fdb264`'te kaydeden üç yer `internal/stdlib/process`'te: `TR_env`, komut satırı seçenekleri, dış programın ortamı; kural ayrıca program başlarken ortamın ve komut satırının taranmasını istiyor.
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
 
 ### 19.4a

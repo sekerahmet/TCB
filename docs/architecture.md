@@ -130,7 +130,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `AddEngine`, `VM.AddTaskHook`, `VM.TaskValue`, `VM.SetTaskValue` | Motor kaydı; görev kilidi alırken çalışan kanca ve göreve özel durum (örn. tensörün türev kipi görevden göreve sızmaz) |
 | `VM.Blocking` | Kilidi bırakarak uzun iş |
 | `ResolvePath`, `ResolveWritePath`, `OpenFileReader`, `ReadFileContent`, `WriteFileContent`, `WriteAtomic` | Yol kuralı (okuyan iş okuma sırasıyla, değiştiren iş yalnız çalışma klasörüne göre, 18.16), `.gz` saydamlığı, atomik yazma: dosya okuyan ve yazan bütün yerleşikler bunlardan geçer |
-| `WriteOutput`, `SetLiveLine`, `UpdateLiveLine`, `AddSecret`, `Mask` | İnsanın göreceği çıktı noktaları; etkin canlı satır silinip yeniden çizilir, gizli değerler `***` olur |
+| `WriteOutput`, `SetLiveLine`, `UpdateLiveLine`, `AddSecret`, `AddAddressSecrets`, `AddStartAddressSecrets`, `Mask` | İnsanın göreceği çıktı noktaları; etkin canlı satır silinip yeniden çizilir, gizli değerler ve adreslerin kimlik kısmı `***` olur |
 | `SetArgs`, `Args`, `ProgramCommand`, `UnusedArgsWarning` | Betiğin komut satırı argümanları ve programı başlatan komut |
 | `RequestStop`, `DeferStops`, `HandleStop`, `StopRequested`, `Interrupt`, `InterruptNow`, `IsInterrupt`, `AwaitNew`, `Abandonable` | Durdurma isteği (1.5–1.7): istek bayrak koyar; bir kontrol noktası kurulduysa erteleme penceresinde (`DeferStops`) adım sınırında kaydedip `InterruptNow` ile durdurur; `TR_handle_stop` çağrılınca program durdurmayı üstlenir (`HandleStop`). Yeni bir şey bekleyen yerleşik `AwaitNew`, bırakılabilen bekleme `Abandonable` ile sarılır. Motorların panik kurtarıcıları `IsInterrupt` ile kesmeyi yeniden atar |
 | `RequestExit`, `IsExitRequest`, `End` | Programın çıkışı (1.9–1.14): `TR_exit` ve bir yerleşiğin istediği çıkış (`TR_command_line`: `--help` 0, kullanım hatası 2) `TR_defer`leri çalıştırır, `TR_try` yakalamaz; `End` sinyal, yakalanmamış hata ve `TR_exit` kodunun öncelik sırasıyla çıkış kodunu verir |
@@ -159,7 +159,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `dataset` | `TR_Dataset`, örnekleyici ve sıralı okuyucu yerleşikleri (`compute/dataload` üzerine) |
 | `formats` | JSON ve CSV yerleşikleri |
 | `files` | `TR_Path` tipi ve çağrısı, listeleme, klasör oluşturma, silme, kopyalama, taşıma, `TR_read_lines`; silme korumaları, bağlantı izlememe |
-| `process` | `TR_env`, `TR_command_line` (seçenekler, `--help`, kullanım hatası) ve `TR_run_process` (dış program, 21); gizli adların süzgece kaydı |
+| `process` | `TR_env`, `TR_command_line` (seçenekler, `--help`, kullanım hatası) ve `TR_run_process` (dış program, 21); gizli adların ve ortamdaki adreslerin kimlik kısmının süzgece kaydı |
 | `logging` | Eğitim günlüğü (JSON satırları) ve ilerleme çubuğu; adım sınırı kancası; sayı ve süre yazımı |
 | `checkpoint` | Kontrol noktası: eğitimin bütün durumunun koşu klasörüne atomik çok dosyalı kaydı, doğrulanarak yüklenmesi ve kaldığı yerden devam |
 | `gpuprobe` | GPU'da dil düzeyinde eğitimin sınamaları (yalnızca testler; kartsız makinede PTX benzeticisinde koşar) |

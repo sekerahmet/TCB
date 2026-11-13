@@ -4,6 +4,9 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"unicode/utf8"
 )
 
 // Çıktı noktaları: insanın göreceği her çıktı (yazdır, girdi istemi, hata mesajları,
@@ -37,24 +40,57 @@ type LiveLine interface {
 // MinSecretLength characters is not registered and it returns false. It may be called from
 // any goroutine.
 func (v *VM) AddSecret(value string) bool {
-	if len([]rune(value)) < MinSecretLength {
+	if utf8.RuneCountInString(value) < MinSecretLength {
 		return false
 	}
+	v.addSecrets([]string{value}, false)
+	return true
+}
+
+// addSecrets registers the values of at least MinSecretLength characters with the filter and with a
+// part of the program-wide set (start: the start part). New values are gathered first and the
+// filter is built once, only when one of them is new: a value with many addresses does not rebuild
+// it per address.
+func (v *VM) addSecrets(values []string, start bool) {
+	values = slices.DeleteFunc(slices.Clone(values), func(s string) bool {
+		return utf8.RuneCountInString(s) < MinSecretLength
+	})
+	if len(values) == 0 {
+		return
+	}
+	programSecrets.add(values, start)
 	v.isSecret.Lock()
 	defer v.isSecret.Unlock()
-	if slices.Contains(v.secrets, value) {
-		return true
+	known := make(map[string]bool, len(v.secrets)+len(values))
+	for _, s := range v.secrets {
+		known[s] = true
 	}
-	v.secrets = append(v.secrets, value)
-	// Uzun değerler önce denenir: biri ötekini içerirse uzunu bütünüyle maskelensin.
-	ordered := slices.Clone(v.secrets)
-	slices.SortFunc(ordered, func(a, b string) int { return len(b) - len(a) })
+	added := false
+	for _, s := range values {
+		if !known[s] {
+			known[s] = true
+			v.secrets = append(v.secrets, s)
+			added = true
+		}
+	}
+	if added {
+		v.mask.Store(longestFirst(v.secrets))
+		v.maskBuilds++
+	}
+}
+
+// longestFirst builds the replacer of secrets; longer values are tried first, so that when one
+// contains another the longer is masked whole (strings.Replacer takes the earlier of two patterns
+// that match at the same place).
+func longestFirst(secrets []string) *strings.Replacer {
+	ordered := slices.Clone(secrets)
+	slices.Sort(ordered)
+	slices.SortStableFunc(ordered, func(a, b string) int { return len(b) - len(a) })
 	pairs := make([]string, 0, 2*len(ordered))
 	for _, g := range ordered {
 		pairs = append(pairs, g, SecretMask)
 	}
-	v.mask.Store(strings.NewReplacer(pairs...))
-	return true
+	return strings.NewReplacer(pairs...)
 }
 
 // LongestSecret is the length in bytes of the longest registered secret value (0 when there is
@@ -80,6 +116,103 @@ func (v *VM) Mask(text string) string {
 		return r.Replace(text)
 	}
 	return text
+}
+
+// programSecrets süreç boyu gizli değer kümesidir; yalnız hata iletilerindeki değer özeti
+// (summaryIn) onu kullanır: özet metni kesmeden önce bu kümeyle maskeler (19.4, önce maske sonra
+// kesim). Özeti kuran TypeAndSummary'nin ve ileti metnini yazan MessageText'in elinde VM yoktur
+// (çağrı yerlerinin çoğunda yoktur); bu yüzden küme VM başına değil süreç başınadır. Programın
+// durumu VM başınadır ilkesinden yalnız bu sapar: çıktının maskesi (Mask) VM başına kalır.
+// Bedeli: tek süreçte birden çok VM koşan yolda (trrun, Go testleri) bir VM'nin kaydı öbürünün
+// yakalanan hata metninde *** olarak görünebilir; gizli değer sızmaz, yalnız fazla örtülür.
+var programSecrets secretSet
+
+// secretSet iki parçadır: süreç başı parçası (program başlarken taranan ortam ve argüman değerleri,
+// hiç boşalmaz) ve VM'lerin kaydettiği parça (ClearRegisteredSecrets boşaltır). Değiştirici
+// tembel kurulur: kayıt yalnız kümeyi değiştirir, değiştirici maske istendiğinde ve küme
+// değişmişse bir kez kurulur.
+type secretSet struct {
+	mu         sync.Mutex
+	start      map[string]struct{}
+	registered map[string]struct{}
+	changed    atomic.Bool
+	replacer   atomic.Pointer[strings.Replacer]
+}
+
+// add değerleri bir parçaya ekler; yalnız kümede olmayan değer kümeyi "değişti" diye işaretler.
+// Süreç başı parçasına giren değer öbür parçadan çıkar: boşaltmada kaybolmasın.
+func (s *secretSet) add(values []string, start bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, value := range values {
+		if _, ok := s.start[value]; ok {
+			continue
+		}
+		_, registered := s.registered[value]
+		switch {
+		case start:
+			if s.start == nil {
+				s.start = map[string]struct{}{}
+			}
+			s.start[value] = struct{}{}
+			delete(s.registered, value)
+		case registered:
+			continue
+		default:
+			if s.registered == nil {
+				s.registered = map[string]struct{}{}
+			}
+			s.registered[value] = struct{}{}
+		}
+		if !registered {
+			s.changed.Store(true)
+		}
+	}
+}
+
+// mask metni kümeyle maskeler; değiştirici küme değiştiyse burada bir kez kurulur.
+func (s *secretSet) mask(text string) string {
+	if s.changed.Load() {
+		s.mu.Lock()
+		if s.changed.Load() {
+			s.replacer.Store(s.build())
+			s.changed.Store(false)
+		}
+		s.mu.Unlock()
+	}
+	if r := s.replacer.Load(); r != nil {
+		return r.Replace(text)
+	}
+	return text
+}
+
+// build iki parçanın değerlerinden değiştiriciyi kurar (uzun değer önce); küme boşsa nil.
+func (s *secretSet) build() *strings.Replacer {
+	values := make([]string, 0, len(s.start)+len(s.registered))
+	for value := range s.start {
+		values = append(values, value)
+	}
+	for value := range s.registered {
+		values = append(values, value)
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	return longestFirst(values)
+}
+
+// ClearRegisteredSecrets empties the part of the program-wide secret set that VMs registered
+// (AddSecret, AddAddressSecrets); the start part (AddStartAddressSecrets) stays. The test runner
+// calls it before each test's VM, so a test's error text does not depend on an earlier test's
+// secret (12.5); FuzzMaskStream calls it for each input. It would also empty the part of a VM
+// running at the same time in the same process, so only those two places call it.
+func ClearRegisteredSecrets() {
+	programSecrets.mu.Lock()
+	defer programSecrets.mu.Unlock()
+	if len(programSecrets.registered) > 0 {
+		programSecrets.registered = nil
+		programSecrets.changed.Store(true)
+	}
 }
 
 // SetLiveLine sets the active live line (nil removes it). There is one live line at a time; a

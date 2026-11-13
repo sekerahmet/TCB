@@ -107,6 +107,45 @@ func TestMethodCountsMatchDefinitions(t *testing.T) {
 	}
 }
 
+// Değer özeti metni kesmeden önce maskeler (19.4): kesim gizli değerin ortasına düşse de başı iletide
+// kalmaz. Her satır çıktıya giden metni, VM.Mask'tan geçmiş iletiyi denetler.
+func TestSummaryIsCutAfterMask(t *testing.T) {
+	t.Cleanup(ClearRegisteredSecrets)
+	v := New()
+	shown := func(given Value) string {
+		return v.Mask(ArgTypeError(codes.FnZeros, 1, given, codes.TypeInt).Error())
+	}
+	text := func(s string) Value { return &StringVal{Val: s} }
+	// Adres: 61 karakter; maskesiz kesimde "Vekil20" kalırdı.
+	address := "postgres://uygulama_kullanicisi:Vekil2026@db.sirket.local/ana"
+	v.SetArgs([]string{address})
+	if got := shown(text(address)); strings.Contains(got, "Vekil20") {
+		t.Errorf("adresin parolasının başı kalmamalı: %q", got)
+	}
+	key := "sk-ozet-anahtari-0123456789abcdefghijklmnopqr"
+	if len(key) != 45 {
+		t.Fatalf("anahtar %d karakter", len(key))
+	}
+	v.AddSecret(key)
+	if got := shown(text(key)); strings.Contains(got, key[:8]) {
+		t.Errorf("adla gizli değerin başı kalmamalı: %q", got)
+	}
+	// Uzun liste (H2425): öğe önce kendi özetinden (metin değeri) geçer; bu satır öğenin yolunu sınar.
+	long := &ListVal{Elements: []Value{text(key), NewInt(1), NewInt(2), NewInt(3), NewInt(4), NewInt(5)}}
+	if got := shown(long); strings.Contains(got, key[:8]) {
+		t.Errorf("uzun listenin önizlemesinde anahtarın başı kalmamalı: %q", got)
+	}
+	// Kısa liste: köşeli ayraç ve tırnakla metin 40 karakteri aşar, öbür değerlerin yolundan kesilir.
+	if got := shown(&ListVal{Elements: []Value{text(key)}}); strings.Contains(got, key[:8]) {
+		t.Errorf("kısa listenin özetinde anahtarın başı kalmamalı: %q", got)
+	}
+	// Kısa değer kesilmez; çıktıda maskelenir.
+	v.AddSecret("kisa-gizli-2026")
+	if got := shown(text("kisa-gizli-2026")); !strings.Contains(got, SecretMask) || strings.Contains(got, "kisa-gizli") {
+		t.Errorf("kısa gizli değer *** görünmeli: %q", got)
+	}
+}
+
 func memberSignatureOf(def codes.Definition, typ codes.Code) (codes.Signature, bool) {
 	for _, u := range def.Members {
 		if u.Type == typ {

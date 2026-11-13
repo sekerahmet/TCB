@@ -39,3 +39,24 @@ func TestEnvVar(t *testing.T) {
 		}
 	}
 }
+
+// Ortamın her değerindeki adresin kimlik kısmı, adı ne olursa olsun, program başlarken süzgece girer
+// (19.4): program değişkeni okumasa da; gizli adlı değişkenin değeri de taranır. Okunan değer gerçektir.
+func TestEnvironmentAddressIsMaskedAtStart(t *testing.T) {
+	t.Setenv("TR_TEST_PROXY", "http://ali:Vekil2026@vekil:8080")
+	t.Setenv("TR_TEST_DB_PASSWORD", "postgres://u:Parola2026@db")
+	_, m, err := commandLine(t, `1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.Mask("Vekil2026 Parola2026"); got != interp.SecretMask+" "+interp.SecretMask {
+		t.Errorf("okunmayan değişkenin parolası örtülmeli: %q", got)
+	}
+	got, m, err := commandLine(t, `TR_env("TR_TEST_PROXY")`)
+	if err != nil || got != "http://ali:Vekil2026@vekil:8080" {
+		t.Errorf("değer gerçek olmalı: %s (%v)", got, err)
+	}
+	if s := m.Mask(got); s != "http://ali:***@vekil:8080" {
+		t.Errorf("maske: %q", s)
+	}
+}

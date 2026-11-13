@@ -161,21 +161,23 @@ func (s valueSummary) MessageText(lang string) string { return summaryIn(s.v, la
 const summaryLimit = 40
 
 // summaryIn writes a value short enough for an error message, in l: strings in quotes, long
-// values cut with "…". Large lists are never printed in full.
+// values cut with "…". Large lists are never printed in full. The text is masked with the
+// program-wide secret set before it is cut (19.4): a cut in the middle of a secret would leave its
+// head, which the output's mask no longer knows.
 func summaryIn(v Value, l *codes.Language) string {
 	var s string
 	switch x := v.(type) {
 	case nil:
 		return l.Name(codes.KwNone)
 	case *StringVal:
-		return strconv.Quote(shorten(x.Val, summaryLimit))
+		return strconv.Quote(shorten(programSecrets.mask(x.Val), summaryLimit))
 	case *ListVal:
 		if len(x.Elements) > 5 {
 			pieces := make([]string, 0, 4)
 			for _, e := range x.Elements[:3] {
 				pieces = append(pieces, summaryIn(e, l))
 			}
-			return messages.TextIn(l.Code, messages.H2425, shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit), len(x.Elements))
+			return messages.TextIn(l.Code, messages.H2425, shorten(programSecrets.mask("["+strings.Join(pieces, ", ")+", …]"), summaryLimit), len(x.Elements))
 		}
 		s = valueText(x, l)
 	case *DictVal:
@@ -186,7 +188,7 @@ func summaryIn(v Value, l *codes.Language) string {
 	default:
 		s = valueText(v, l)
 	}
-	return shorten(s, summaryLimit)
+	return shorten(programSecrets.mask(s), summaryLimit)
 }
 
 // shorten metni en fazla n karaktere (rune) indirir; kısaltılınca sonuna "…" ekler.
