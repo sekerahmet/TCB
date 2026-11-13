@@ -355,12 +355,15 @@ DEADCODE=golang.org/x/tools/cmd/deadcode@v0.52.0
 # geçer: tek komut satırına yazılan 1 346 dosya Windows'un sınırını aşıp gofmt'u hiç koşturmuyordu (DENETİM 383 Ş1).
 # Tam denetim, ön denetim ve commit öncesi denetim bu fonksiyonu çağırır.
 gofmt_check() {
-	local unformatted
+	# gofmt, go.mod'un araç zincirininki: PATH'teki gofmt başka sürüm olabilir (Go 1.27'ye geçişte 1.26.0'ınki
+	# 1.27'nin hizaladığı dosyayı listeledi; DENETİM 582 Ş1).
+	local unformatted gofmt_bin
+	gofmt_bin="$(go env GOROOT)/bin/gofmt"
 	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		unformatted=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
-			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs -r -d '\n' gofmt -l)
+			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs -r -d '\n' "$gofmt_bin" -l)
 	else
-		unformatted=$(gofmt -l ./cmd ./internal ./lib ./tools)
+		unformatted=$("$gofmt_bin" -l ./cmd ./internal ./lib ./tools)
 	fi
 	[ $? -eq 0 ] || fail "gofmt çalışmadı"
 	[ -z "$unformatted" ] || fail "gofmt ile biçimlenmesi gereken dosyalar: $unformatted"
