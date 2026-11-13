@@ -46,6 +46,21 @@ TR_test "16.2 ailesiz boşluk parçalı dosya ve kümesi uymayan dosya TR_false'
     TR_assert(q.TR_encode("a\n\nb", TR_special_tokens: TR_false).TR_length > 0)
 }
 
+TR_test "16.2 Gemma 3'ün biçim parçaları fikstürü: klasör aileyle açılır, biçim parçaları TR_false'ta tek kimlik" {
+    # data/gemma3_format_pieces Gemma 3'ün resmî tokenizer.json'unun iki kümesini (151 parça) gerçek kimlikleriyle
+    # taşır (KAYNAK.md): "\n\n" 108, "<b>" 200. Aynı dosya tek başına açılınca TR_false'ta H7178'in folder kolu gelir;
+    # önerdiği çağrı klasörü aileyle açar.
+    TR_var p = TR_load_tokenizer("data/gemma3_format_pieces")
+    TR_assert_equal([236746, 108, 236763, 200], p.TR_encode("a\n\nb<b>", TR_special_tokens: TR_false))
+    TR_assert_equal([236746, 108, 236763, 200], p.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true))
+    TR_var tek = TR_load_tokenizer("data/gemma3_format_pieces/tokenizer.json")
+    TR_assert_equal("H7178", TR_error_code { tek.TR_encode("a\n\nb<b>", TR_special_tokens: TR_false) })
+    TR_var metin = ""
+    TR_try { tek.TR_encode("a\n\nb<b>", TR_special_tokens: TR_false) } TR_catch e { metin = e.TR_text("tr") }
+    TR_assert(metin.TR_contains("`TR_load_tokenizer(\"data/gemma3_format_pieces\")`"), metin)
+    TR_assert_equal(p.TR_encode("a\n\nb<b>", TR_special_tokens: TR_false), TR_load_tokenizer("data/gemma3_format_pieces").TR_encode("a\n\nb<b>", TR_special_tokens: TR_false))
+}
+
 TR_test "16.1 ön_bölme_etiketi ve bildirilen_durma_parçaları tokenizer.json'dan yüklenen parçalayıcıda yok" {
     TR_for yol TR_in ["data/tokenizer.json", "data/qwen3_chat/tokenizer.json"] {
         TR_var p = TR_load_tokenizer(yol)

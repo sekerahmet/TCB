@@ -63,3 +63,13 @@ python -I tools/hf/llama3_chat_reference.py --tokenizer tests/data/llama3_chat \
 ```
 
 `L31` ve `L32`, `unsloth/Meta-Llama-3.1-8B-Instruct` ve `unsloth/Llama-3.2-3B-Instruct`'ın parçalayıcı dosyalarının klasörleridir (revizyonları `tests/data/llama3_chat/KAYNAK.md`'de). Gerçek parçalayıcıyla `--tokenizer L32` koşar; çıktısı depoya girmez.
+
+## Gemma 3'ün biçim parçaları (`gemma3_format_pieces.py`)
+
+`gemma3_format_pieces.py` Gemma 3'ün yayımlanmış `tokenizer.json`'undan ailenin iki biçim kümesinin 151 parçasını (dil tanımı 16.2) gerçek kimlikleriyle küçük bir parçalayıcıya yazar: `tests/data/gemma3_format_pieces/`. İki kümenin sayısını ve karmasını kaynakta ve fikstürde `internal/compute/tokenize/family.go`'nunkilerle karşılaştırır, ayrılırsa durur. Ağ gerekmez.
+
+```sh
+python -I tools/hf/gemma3_format_pieces.py --source G1B/tokenizer.json --out tests/data/gemma3_format_pieces
+```
+
+`G1B`, `unsloth/gemma-3-1b-it`'in parçalayıcı dosyalarının klasörüdür (revizyonu `tests/data/gemma3_format_pieces/KAYNAK.md`'de). Betik kendi çıktısını kaynak alınca da aynı baytları verir.

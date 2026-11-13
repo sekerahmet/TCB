@@ -34,15 +34,31 @@ type FormatSet struct {
 // Family Go'daki aile tablosunun bir satırıdır. ID kitaplığın sohbet tablosundaki aile kimliğidir;
 // Arch, GGUFTag ve FolderMarker seçim anahtarlarıdır. Whitespace ve Pattern nil ise küme tanımlı değildir,
 // denetlenmez (Llama 3 ve Qwen3'ün desen kümesi); boş küme tanımlıdır ve parça istemez. Protocol ailenin protokol etiketleridir
-// (sohbet, araç, görüntü): biçim kümesine giremezler (H7185).
+// (sohbet, araç, görüntü): biçim kümesine giremezler (H7185). GGUFWhitespace ve GGUFPattern GGUF dosyasının
+// kümeleridir: GGUF aynı parçaları başka yazabilir (Gemma 3'te boşluk parçaları ham boşluk, <mask> denetim parçası);
+// nil ise GGUF'ta da Whitespace ve Pattern geçerlidir.
 type Family struct {
-	ID           string
-	Arch         string
-	GGUFTag      string
-	FolderMarker string
-	Whitespace   *FormatSet
-	Pattern      *FormatSet
-	Protocol     []string
+	ID             string
+	Arch           string
+	GGUFTag        string
+	FolderMarker   string
+	Whitespace     *FormatSet
+	Pattern        *FormatSet
+	GGUFWhitespace *FormatSet
+	GGUFPattern    *FormatSet
+	Protocol       []string
+}
+
+// sets ailenin iki kümesidir: gguf doğruysa GGUF dosyasınınkiler (tanımlı değilse klasörünkiler).
+func (f Family) sets(gguf bool) (whitespace, pattern *FormatSet) {
+	whitespace, pattern = f.Whitespace, f.Pattern
+	if gguf && f.GGUFWhitespace != nil {
+		whitespace = f.GGUFWhitespace
+	}
+	if gguf && f.GGUFPattern != nil {
+		pattern = f.GGUFPattern
+	}
+	return whitespace, pattern
 }
 
 // gemma3Protocol Gemma 3'ün protokol etiketleridir (1.6.1); dosyanın özel parçaları da kümeye giremez.
@@ -58,6 +74,15 @@ var (
 	gemma3Pattern    = FormatSet{59, "44b40d2140056d1c90b2ffc0ef450c18ab82b9994ead75383a8a2b4e6373e4c5"}
 )
 
+// gemma3GGUFWhitespace ve gemma3GGUFPattern Gemma 3'ün GGUF dosyasının iki kümesidir (kullanıcı tanımlı türdeki, tür 4,
+// parçalar): bartowski'nin 1B Q8_0'ı ve 4B Q4_K_M'i ile bir 12B Q4_K_M'de aynı (Colab 4a, 2026-11-13; D1 Gemma 3
+// tasarımı 1.7). Kimlikler tokenizer.json'unkilerdir; boşluk kümesinin 30 parçası ▁ yerine ham boşluk taşır, desen
+// kümesinde <mask> yoktur: GGUF'ta denetim parçasıdır, TR_false'ta açılmaz (TCB 2026-11-13 14:05, C2 (a)).
+var (
+	gemma3GGUFWhitespace = FormatSet{92, "7d2861f06ecb8810cb6d63767b42a7e77399babf7ef99a8487498bf60871425e"}
+	gemma3GGUFPattern    = FormatSet{58, "4949ba455e1bb77009a69407256ab5d2d40cf751fc982cebcc175aa1246debd2"}
+)
+
 // noWhitespace boş boşluk kümesidir: Llama 3 ve Qwen3'ün resmî dosyasında yalnız boşluktan oluşan özel olmayan
 // eklenmiş parça yoktur; böyle parça taşıyan dosya bu ailelere uymaz, ailesiz açılır (TCB 2026-11-13 02:44, DENETİM 579
 // Ş1). Desen kümeleri tanımsızdır: Qwen3'ün <think>'i desene uyar ve protokol etiketidir.
@@ -69,9 +94,9 @@ var families = []Family{
 	{ID: "llama3", Arch: "llama", GGUFTag: "llama-bpe", FolderMarker: "<|begin_of_text|>", Whitespace: &noWhitespace},
 	{ID: "qwen3", Arch: "qwen3", GGUFTag: "qwen2", FolderMarker: "Qwen2Tokenizer", Whitespace: &noWhitespace},
 	{ID: "gemma3", Arch: "gemma3", GGUFTag: "default", FolderMarker: "GemmaTokenizer", Whitespace: &gemma3Whitespace,
-		Pattern: &gemma3Pattern, Protocol: gemma3Protocol},
+		Pattern: &gemma3Pattern, GGUFWhitespace: &gemma3GGUFWhitespace, GGUFPattern: &gemma3GGUFPattern, Protocol: gemma3Protocol},
 	{ID: "gemma3", Arch: "gemma3_text", GGUFTag: "default", FolderMarker: "GemmaTokenizer", Whitespace: &gemma3Whitespace,
-		Pattern: &gemma3Pattern, Protocol: gemma3Protocol},
+		Pattern: &gemma3Pattern, GGUFWhitespace: &gemma3GGUFWhitespace, GGUFPattern: &gemma3GGUFPattern, Protocol: gemma3Protocol},
 }
 
 // Families aile tablosunun bir kopyasıdır (tabloları karşılaştıran test için).
@@ -204,13 +229,14 @@ func (p *Tokenizer) applyFamily(f Family) error {
 		return nil
 	}
 	whitespace, pattern := p.formatSets()
+	wantWhitespace, wantPattern := f.sets(p.fromGGUF())
 	format := make(map[int32]bool)
-	if f.Whitespace != nil {
+	if wantWhitespace != nil {
 		for _, t := range whitespace {
 			format[int32(t.ID)] = true
 		}
 	}
-	if f.Pattern != nil {
+	if wantPattern != nil {
 		for _, t := range pattern {
 			format[int32(t.ID)] = true
 		}
@@ -225,15 +251,19 @@ func (p *Tokenizer) applyFamily(f Family) error {
 	return p.openFormatPieces(format)
 }
 
-// compare dosyanın iki kümesini f'in sayı ve karmasıyla karşılaştırır; uyarsa nil, uymazsa farkı verir
-// (önce boşluk kümesi).
+// fromGGUF parçalayıcının GGUF'tan yüklendiğini söyler (yalnız GGUF'ta ön bölme etiketi vardır).
+func (p *Tokenizer) fromGGUF() bool { return p.pretokenizerTag != "" }
+
+// compare dosyanın iki kümesini f'in sayı ve karmasıyla karşılaştırır (GGUF'tan yüklenende GGUF'un
+// kümeleriyle); uyarsa nil, uymazsa farkı verir (önce boşluk kümesi).
 func (p *Tokenizer) compare(f Family) *FamilyMismatch {
 	whitespace, pattern := p.formatSets()
+	wantWhitespace, wantPattern := f.sets(p.fromGGUF())
 	for _, c := range []struct {
 		name   string
 		want   *FormatSet
 		pieces []AddedToken
-	}{{"whitespace", f.Whitespace, whitespace}, {"pattern", f.Pattern, pattern}} {
+	}{{"whitespace", wantWhitespace, whitespace}, {"pattern", wantPattern, pattern}} {
 		if c.want == nil {
 			continue
 		}

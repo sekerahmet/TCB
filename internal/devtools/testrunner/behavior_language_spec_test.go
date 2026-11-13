@@ -268,6 +268,7 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		// tr/whisper'ın üyeleri (transcribe, start, end, text, language) gelince düz sözcük olarak anılan yerler.
 		"transcribe":          "23.6, 25: özgün Whisper'ın işlevi",
 		"start":               "2.13: JSON kaydının alanı",
+		"<mask>":              "16.1: Gemma 3'ün parçasının adı, kod değil",
 		"end":                 "2.13: JSON kaydının alanı",
 		"p.TR_encode(metin)":  "16.2: parametrenin adı",
 		"\"metin \\\\(x)\"":   "status: metin içi ifade örneği",

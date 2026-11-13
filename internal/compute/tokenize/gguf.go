@@ -58,6 +58,8 @@ type ggufTag struct {
 	addBOS       bool // add_bos_token anahtarı yoksa geçerli
 	onlyArch     []string
 	notSpecial   []string // dosyada denetim türünde gelen, modelin özel saymadığı parçalar
+	decoder      string   // boşsa bayt düzeyi (ggufByteLevelNoRegex)
+	spm          bool     // SentencePiece dosyası (gguf_spm.go): birleştirmeler puanlardan, bayt yedeği
 }
 
 // ggufTags 16.1'in etiketleri. Kalıplar modellerin tokenizer.json'undandır: Qwen3-0.6B, Llama 3,
@@ -100,8 +102,10 @@ type ggufDocument struct {
 type ggufModel struct {
 	Type         string           `json:"type"`
 	IgnoreMerges bool             `json:"ignore_merges"`
+	ByteFallback bool             `json:"byte_fallback"`
+	FuseUnk      bool             `json:"fuse_unk"`
 	Vocab        map[string]int64 `json:"vocab"`
-	Merges       []string         `json:"merges"`
+	Merges       any              `json:"merges"` // GPT-2'de "a b" metinleri, SentencePiece'te [sol, sağ] dizileri
 }
 
 // loadGGUF dosyanın başlığını çözer ve parçalayıcıyı kurar; tensör verisi okunmaz.
@@ -130,10 +134,6 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 	if !ok {
 		return nil, messages.New(messages.H6681, ggufKeyTokens)
 	}
-	merges, ok := f.Values[ggufKeyMerges].Data.([]string)
-	if !ok {
-		return nil, messages.New(messages.H6681, ggufKeyMerges)
-	}
 	kinds, err := ggufTokenKinds(f, len(tokens))
 	if err != nil {
 		return nil, err
@@ -145,10 +145,14 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 		Normalizer:   json.RawMessage(tag.normalizer),
 		PreTokenizer: json.RawMessage(tag.preTokenizer),
 		Decoder:      json.RawMessage(ggufByteLevelNoRegex),
-		Model:        ggufModel{Type: "BPE", IgnoreMerges: tag.ignoreMerges, Vocab: make(map[string]int64, len(tokens)), Merges: merges},
+		Model: ggufModel{Type: "BPE", IgnoreMerges: tag.ignoreMerges, ByteFallback: tag.spm, FuseUnk: tag.spm,
+			Vocab: make(map[string]int64, len(tokens))},
 	}
 	if tag.normalizer == "" {
 		doc.Normalizer = json.RawMessage("null")
+	}
+	if tag.decoder != "" {
+		doc.Decoder = json.RawMessage(tag.decoder)
 	}
 	for id, token := range tokens {
 		if _, dup := doc.Model.Vocab[token]; dup {
@@ -159,6 +163,9 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 			special := kinds[id] == ggufTokenControl && !slices.Contains(tag.notSpecial, token)
 			doc.AddedTokens = append(doc.AddedTokens, AddedToken{ID: id, Content: token, Special: special})
 		}
+	}
+	if doc.Model.Merges, err = ggufMerges(f, tag, tokens, kinds); err != nil {
+		return nil, err
 	}
 	if doc.PostProcessor, err = ggufPostProcessor(f, tag, tokens); err != nil {
 		return nil, err
@@ -236,6 +243,9 @@ func ggufTagOf(f *gguf.File) (ggufTag, error) {
 	model, ok := f.Values[ggufKeyModel].Data.(string)
 	if !ok {
 		return ggufTag{}, messages.New(messages.H6681, ggufKeyModel)
+	}
+	if model == ggufModelSPM {
+		return spmTagOf(f)
 	}
 	if model != "gpt2" {
 		return ggufTag{}, messages.New(messages.H6678, gguf.Clip(model))
