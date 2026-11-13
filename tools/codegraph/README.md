@@ -466,8 +466,14 @@ go run ./tools/codegraph spec-refs --list # every reference with the heading it 
   used (the interface method's call sites are followed); a method that only *satisfies* an
   interface whose method nobody calls is `assertion-only`. Kinds: `unreferenced`, `assertion-only`,
   `shadowed` (an earlier interface check always catches the value first, as `ml.TensorValue.Operator`
-  was before 00d36f84), `tests-only`. Sealed-interface markers (`statementNode`) and methods of
-  external contracts (`String`, `Error`, `Unwrap`, `Read` ...) are skipped.
+  was before 00d36f84; only when every call of the interface method is inside such a shadowed check, and
+  the interfaces of one `case` line do not shadow each other), `tests-only`. Sealed-interface markers
+  (`statementNode`) and methods of external contracts (`String`, `Error`, `Unwrap`, `Read` ...) are skipped.
+  A type whose value is given to a named, non-empty interface outside the module (a call argument, a named
+  variable or assignment, a return, a composite element, a conversion, a channel send, `append`; not `any`,
+  not `error`, not `var _ I = T{}`) keeps all its exported methods: the other module calls them through that
+  interface, or through a type assertion to a wider one (`math/rand` reaches `Uint64` of a `rand.Source`
+  through `Source64`; `audit_conversions.go`).
 - **`package-state`** lists package variables that are written after their declaration, per
   package: `mutable`, `test-hook` (written only by tests), `address-taken`, and `synchronized`
   (`sync.Mutex`/`Once`, `sync/atomic` types) separately. Tables that are only read after `init`

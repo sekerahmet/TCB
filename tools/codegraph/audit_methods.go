@@ -21,9 +21,12 @@ import (
 //     çağrılmıyor: metot yalnızca arayüz denetimiyle tutuluyor;
 //   - shadowed: arayüz üzerinden çağrılıyor ama çağrı yeri, aynı işlevde daha önce yapılan ve
 //     dönen başka bir arayüz denetimiyle gölgeleniyor (`if k, ok := x.(TaskOperatorHook); ok {
-//     return ... }` sonra `x.(OperatorHook)`: ikisini de sağlayan tip için ikincisi hiç çalışmaz);
+//     return ... }` sonra `x.(OperatorHook)`: ikisini de sağlayan tip için ikincisi hiç çalışmaz); arayüz
+//     metodunun bütün üretim çağrıları böyle gölgeli denetimlerin içindeyse; aynı case satırının arayüzleri
+//     birbirini gölgelemez;
 //   - tests-only: yalnızca test dosyalarından kullanılıyor.
-// Dış sözleşme adları (String, Error, Write ...) başka paketlerin çağırdığı metotlardır, listelenmez.
+// Dış sözleşme adları (String, Error, Write ...) başka paketlerin çağırdığı metotlardır, listelenmez. Değeri modül
+// dışı bir arayüze verilen tipin dışa açık metotları da listelenmez (audit_conversions.go).
 // Reflect ve kod üretimiyle çağrılan metotlar görülmez: çıktı karardır değil, adaydır.
 
 // deadMethod bir adaydır.
@@ -78,7 +81,22 @@ type methodAudit struct {
 	concrete  []*types.Named            // modülün adlı somut tipleri
 	implement map[string][]*types.Named // somut tip anahtarı -> sağladığı modül arayüzleri
 	satisfies map[string][]ifaceSlot    // yöntem anahtarı -> karşıladığı arayüz yöntemleri (gömülü alandan yükseltilen dahil)
-	shadow    map[string]string         // "tip.metot" -> gölgeleme açıklaması
+	prodSites map[string][]srcPos       // konum anahtarı -> üretim dosyalarındaki kullanım yerleri (gölge yalnız kendi denetiminde)
+	shadow    map[string][]shadowRegion // "tip.metot" -> o metodun çağrısının hiç çalışmadığı denetimler
+	external  map[string]bool           // tip anahtarı -> değeri modül dışı bir arayüze veriliyor (audit_conversions.go)
+}
+
+// srcPos bir kaynak konumudur: dosya ve bayt ofseti (iki tip denetimi aynı dosya kümesini paylaşır).
+type srcPos struct {
+	file   string
+	offset int
+}
+
+// shadowRegion gölgeli bir arayüz denetiminin kapladığı aralıktır; içindeki çağrı o tip için hiç çalışmaz.
+type shadowRegion struct {
+	file       string
+	start, end int
+	why        string
 }
 
 // fkey bir işlev nesnesinin tip denetimleri arasında değişmeyen anahtarıdır (bildirim konumu).
@@ -97,6 +115,7 @@ func findDeadMethods(m *goload.Module) []deadMethod {
 	a.collectDecls()
 	a.collectUses()
 	a.collectShadows()
+	a.collectExternalConversions()
 	var out []deadMethod
 	for _, d := range a.decls {
 		if dm, ok := a.classify(d); ok {
@@ -156,9 +175,10 @@ func (a *methodAudit) collectDecls() {
 // collectUses her işlev ve arayüz metodunun kullanım sayısını (üretim / test) çıkarır; bir işlevin kendi
 // gövdesindeki (özyinelemeli) kullanım sayılmaz.
 func (a *methodAudit) collectUses() {
+	a.prodSites = map[string][]srcPos{}
 	forEachFile(a.m, func(u *goload.Unit, f *ast.File, rel string) {
-		counts := a.prodUses
-		if isTestFile(rel) {
+		counts, prod := a.prodUses, !isTestFile(rel)
+		if !prod {
 			counts = a.testUses
 		}
 		for _, d := range f.Decls {
@@ -176,6 +196,9 @@ func (a *methodAudit) collectUses() {
 				if fn, ok := u.Info.Uses[id].(*types.Func); ok {
 					if k := a.fkey(fn); k != self {
 						counts[k]++
+						if prod {
+							a.prodSites[k] = append(a.prodSites[k], a.posOf(id.Pos()))
+						}
 					}
 				}
 				return true
@@ -200,20 +223,22 @@ func (a *methodAudit) classify(d methodDecl) (deadMethod, bool) {
 	name := d.fn.Name()
 	key := a.fkey(d.fn)
 	dm := deadMethod{Method: shortPkg(a.m, d.recv.Obj().Pkg().Path()) + "." + d.recv.Obj().Name() + "." + name, File: d.file, Line: d.line}
-	if a.prodUses[key] > 0 || externalContract[name] || name == "init" {
+	if a.prodUses[key] > 0 || externalContract[name] || name == "init" || a.external[typeKey(d.recv)] && d.fn.Exported() {
 		return dm, false
 	}
 	var satisfied []string
-	called := false
+	var sites []srcPos // arayüz metodunun üretimdeki çağrı yerleri
 	for _, s := range a.satisfies[key] {
 		if !slices.Contains(satisfied, s.iface.Obj().Name()) {
 			satisfied = append(satisfied, s.iface.Obj().Name())
 		}
-		called = called || a.prodUses[a.fkey(s.method)] > 0
+		sites = append(sites, a.prodSites[a.fkey(s.method)]...)
 	}
 	switch {
-	case called:
-		if why, ok := a.shadow[typeKey(d.recv)+"."+name]; ok {
+	case len(sites) > 0:
+		// Gölge yalnız kendi denetimindeki çağrıyı öldürür: çağrı yerlerinin hepsi gölgeli bir denetimin içindeyse
+		// metot shadowed, biri dışındaysa canlıdır (TensorValue.SetMember başka işlevde düz çağrılıyordu).
+		if why, ok := a.allShadowed(a.shadow[typeKey(d.recv)+"."+name], sites); ok {
 			dm.Kind, dm.Detail = "shadowed", why
 			return dm, true
 		}
@@ -254,7 +279,7 @@ type guard struct {
 // collectShadows her işlevdeki arayüz denetimlerini sırayla gezer; iki modül arayüzünü birden sağlayan
 // her tip için, sonraki arayüzün önceki arayüzde olmayan metotlarını gölgeli sayar.
 func (a *methodAudit) collectShadows() {
-	a.shadow = map[string]string{}
+	a.shadow = map[string][]shadowRegion{}
 	forEachFile(a.m, func(u *goload.Unit, f *ast.File, rel string) {
 		for _, d := range f.Decls {
 			fd, ok := d.(*ast.FuncDecl)
@@ -300,14 +325,13 @@ func (a *methodAudit) guardsOf(u *goload.Unit, body *ast.BlockStmt) []guard {
 				out = append(out, g)
 			}
 		case *ast.TypeSwitchStmt:
-			idx := 0
-			for _, c := range s.Body.List {
+			// Aynı case satırındaki arayüzler aynı sırayı alır: `case A, B:` birini öbürüne gölgelemez.
+			for idx, c := range s.Body.List {
 				cc := c.(*ast.CaseClause)
 				for _, e := range cc.List {
 					if i := a.ifaceOfType(u, e); i != nil {
 						file, line := position(a.m, cc.Pos())
 						out = append(out, guard{iface: i, returns: true, file: file, line: line, pos: cc.Pos(), end: cc.End(), sw: s, idx: idx})
-						idx++
 					}
 				}
 			}
@@ -370,11 +394,32 @@ func (a *methodAudit) markShadowed(first, later guard) {
 		for k := 0; k < it.NumMethods(); k++ {
 			name := it.Method(k).Name()
 			if ifaceMethod(first.iface, name) == nil {
-				a.shadow[typeKey(t)+"."+name] = fmt.Sprintf("%s check at %s:%d never runs for %s: the earlier %s check at %s:%d returns first",
-					later.iface.Obj().Name(), later.file, later.line, t.Obj().Name(), first.iface.Obj().Name(), first.file, first.line)
+				start, end := a.posOf(later.pos), a.posOf(later.end)
+				a.shadow[typeKey(t)+"."+name] = append(a.shadow[typeKey(t)+"."+name], shadowRegion{start.file, start.offset, end.offset,
+					fmt.Sprintf("%s check at %s:%d never runs for %s: the earlier %s check at %s:%d returns first",
+						later.iface.Obj().Name(), later.file, later.line, t.Obj().Name(), first.iface.Obj().Name(), first.file, first.line)})
 			}
 		}
 	}
+}
+
+// posOf bir konumun dosyası ve ofsetidir.
+func (a *methodAudit) posOf(p token.Pos) srcPos {
+	pos := a.m.Fset.Position(p)
+	return srcPos{pos.Filename, pos.Offset}
+}
+
+// allShadowed çağrı yerlerinin her biri gölgeli bir denetimin içinde mi; öyleyse ilk denetimin açıklamasını verir.
+func (a *methodAudit) allShadowed(regions []shadowRegion, sites []srcPos) (string, bool) {
+	if len(regions) == 0 {
+		return "", false
+	}
+	for _, s := range sites {
+		if !slices.ContainsFunc(regions, func(r shadowRegion) bool { return r.file == s.file && s.offset >= r.start && s.offset < r.end }) {
+			return "", false
+		}
+	}
+	return regions[0].why, true
 }
 
 // runDeadMethods `dead-methods` komutudur.
