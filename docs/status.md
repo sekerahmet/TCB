@@ -1105,6 +1105,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 ### 19.4
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
+- **Yapılacaklar (B, Ö1; sahip Motor, 19.4'ün bir sonraki dilimi; DENETİM 660 N1):** bilinmeyen seçenek iletisi `=…` kesimini maskeden önce yapıyor; `=` adresin kimlik kısmındaysa (`--postgres://u:abcdef=gh@h/x`) parolanın başı iletide açık kalır [kanıtlı: process paketinin `unknownOption`'ı, kesim maskeden önceki satırda; hesap, koşulmadı]. Önce maske, sonra kesim.
 
 ### 19.4a
 
