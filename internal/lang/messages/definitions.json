@@ -1880,6 +1880,8 @@
 "H7732": { "param": ["value"], "slots": {"os": "TR_mem_os"} },
 "H7733": { "param": ["value"], "slots": {"arch": "TR_mem_arch"} },
 "H7735": { "param": ["fn", "item", "os"] },
+"H7736": { "param": ["fn", "path"] },
+"H7737": { "param": ["fn", "path", "dir"], "slots": {"Path": "TR_type_Path", "disk_available_bytes": "TR_mem_disk_available_bytes"} },
 "H7900": { "param": ["fn", "given", "suggestion"] },
 "H7901": { "param": ["fn", "given", "names"] },
 "H7902": { "param": ["fn", "given"] },

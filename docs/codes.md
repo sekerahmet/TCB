@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 775 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 68 tip, 178 fonksiyon, 12 sabit, 93 metot, 143 özellik, 194 adlı argüman.
+Toplam 777 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 68 tip, 178 fonksiyon, 12 sabit, 93 metot, 145 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -1068,7 +1068,7 @@ en: var y = Path("veri", "./eğitim/../derlem.txt"); print(Type(y) == Path, y)
 tr: değişken y = Yol("veri", "./eğitim/../derlem.txt"); yazdır(Tip(y) == Yol, y)
 ```
 
-Üyeleri: `.TR_absolute`, `.TR_exists`, `.TR_extension`, `.TR_is_dir`, `.TR_is_file`, `.TR_name`, `.TR_parent`, `.TR_size`, `.TR_stem` · İlişkili: `TR_list_dir(...)`
+Üyeleri: `.TR_absolute`, `.TR_disk_available_bytes`, `.TR_exists`, `.TR_extension`, `.TR_is_dir`, `.TR_is_file`, `.TR_modified_ns`, `.TR_name`, `.TR_parent`, `.TR_size`, `.TR_stem` · İlişkili: `TR_list_dir(...)`
 
 #### `TR_Process` (`TR_type_Process`, `Süreç`)
 
@@ -6485,6 +6485,25 @@ tr: yazdır(Tensör([1, 2]).cihaz)
 
 
 
+#### `.TR_disk_available_bytes` (`TR_mem_disk_available_bytes`, `diskte_kullanılabilir_bayt`)
+
+    Yol.diskte_kullanılabilir_bayt → Tam
+
+Yolun diskinde bu kullanıcıya açık boş yer, bayt; olmayan yolda hata, üst klasöre çıkmaz.
+
+```tr
+TR_print(TR_Path(".").TR_disk_available_bytes > 0)
+```
+
+Görünümü:
+
+```text
+en: print(Path(".").disk_available_bytes > 0)
+tr: yazdır(Yol(".").diskte_kullanılabilir_bayt > 0)
+```
+
+İlişkili: `.TR_parent`, `.TR_size`
+
 #### `.TR_done(...)` (`TR_mem_done`, `bitti_mi`)
 
     Görev.bitti_mi() → Mantık
@@ -7276,6 +7295,25 @@ tr: yazdır(HTTPİsteği(yöntem: "POST").yöntem)
 ```
 
 İlişkili: `TR_method:`, `.TR_path`
+
+#### `.TR_modified_ns` (`TR_mem_modified_ns`, `değişme_zamanı_ns`)
+
+    Yol.değişme_zamanı_ns → Tam
+
+Dosyanın son değiştirilme zamanı, Unix zamanı, nanosaniye; klasörde ve olmayan dosyada hata.
+
+```tr
+TR_write_file("zaman.txt", "a"); TR_print(TR_Path("zaman.txt").TR_modified_ns > 0)
+```
+
+Görünümü:
+
+```text
+en: write_file("zaman.txt", "a"); print(Path("zaman.txt").modified_ns > 0)
+tr: dosya_yaz("zaman.txt", "a"); yazdır(Yol("zaman.txt").değişme_zamanı_ns > 0)
+```
+
+İlişkili: `.TR_size`, `TR_time_ms(...)`
 
 #### `.TR_momentum` (`TR_mem_momentum`, `momentum`)
 

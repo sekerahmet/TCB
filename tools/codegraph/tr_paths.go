@@ -72,7 +72,7 @@ func linkTRPaths(root string, b *builder) {
 	l := &trLinker{
 		root: root, b: b, lang: lang, byFile: byFile, targets: all,
 		single0:   setOf(codes.FnReadFile, codes.FnReadBytes, codes.FnReadLines, codes.FnReadCsv, codes.FnReadWav, codes.FnLoadTokenizer, codes.FnLoadTensors, codes.FnLoadMetadata, codes.FnPretrainedGguf, codes.FnPretrainedVad, codes.FnCopy),
-		pathProps: setOf(codes.MemExists, codes.MemIsFile, codes.MemIsDir, codes.MemSize, codes.MemAbsolute),
+		pathProps: setOf(codes.MemExists, codes.MemIsFile, codes.MemIsDir, codes.MemSize, codes.MemAbsolute, codes.MemModifiedNs, codes.MemDiskAvailableBytes),
 		loaders:   map[string][2]string{lang.Name(codes.FnPretrainedVits): {"vits", "yol"}, lang.Name(codes.FnPretrainedWhisper): {"whisper", "yol"}, lang.Name(codes.FnPretrainedModel): {"pretrained", lang.Name(codes.ArgFolder)}},
 	}
 	for _, rel := range b.trIdx.Files {

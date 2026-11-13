@@ -101,7 +101,7 @@ func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 }
 
 // Yol üyeleri (adları kod listesinde, internal/lang/codes mem).
-var pathMemberCodes = []codes.Code{codes.MemName, codes.MemExtension, codes.MemStem, codes.MemParent, codes.MemAbsolute, codes.MemExists, codes.MemIsFile, codes.MemIsDir, codes.MemSize}
+var pathMemberCodes = []codes.Code{codes.MemName, codes.MemExtension, codes.MemStem, codes.MemParent, codes.MemAbsolute, codes.MemExists, codes.MemIsFile, codes.MemIsDir, codes.MemSize, codes.MemModifiedNs, codes.MemDiskAvailableBytes}
 
 // GetProperty üyeyi görevsiz okur (göreli yol yalnızca çalışma klasörüne göre çözülür); nokta
 // erişimi GorevliUye'yi kullanır.
@@ -128,6 +128,10 @@ func (y *Path) TaskMember(m *interp.VM, kd codes.Code, name string) (interp.Valu
 		return y.query(m, kd), nil
 	case codes.MemSize:
 		return y.size(m)
+	case codes.MemModifiedNs:
+		return y.modifiedNs(m)
+	case codes.MemDiskAvailableBytes:
+		return y.diskAvailableBytes(m)
 	}
 	return nil, bind.MemberError(PathType, name, pathMemberCodes)
 }

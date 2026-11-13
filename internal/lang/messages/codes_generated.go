@@ -1885,6 +1885,8 @@ const (
 	H7732 Code = 7732 // `.{#os}` {value|q} olamaz: değeri windows, linux, macos ya da başka bir makinede Go'nun işletim sistemi adıdır
 	H7733 Code = 7733 // `.{#arch}` {value|q} olamaz: değeri x86_64, arm64 ya da başka bir makinede Go'nun mimari adıdır
 	H7735 Code = 7735 // {fn}: {item, select, limit {bellek sınırı} available {kullanılabilir bellek} other {makinenin bilgisi}} okunamadı{os, select, macos {: bu sürüm macOS'ta okumaz} other {}}
+	H7736 Code = 7736 // {fn}: değişme zamanı dosyanın özelliğidir, {path|q} bir klasör
+	H7737 Code = 7737 // {fn}: yol yok: {path|q}; üst klasöre kendiliğinden çıkılmaz, klasörü sorun: `{#Path}({dir|q}).{#disk_available_bytes}`
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

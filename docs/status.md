@@ -1056,6 +1056,10 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 - **Yapılacaklar (B, Ö1, asistan araçları dilimi; sahip TCB tasarım, D1 uygulama; DENETİM 229 N1, N2, 230):** `TR_Path`'in denetiminden geçmeyen yollar: tek parçada birleştirilen metin (`TR_Path("veri/\(ad)")`, `TR_Path("veri/" + ad)`, `../x`'te `x` veriyor [ölçüldü: DENETİM 229]), metin yol alan yerleşikler (`TR_write_file("veri/\(ad)", ...)` [kanıtlı: 18.4; koşulmadı]), bağlantı üzerinden çıkış (temizleme metin üstünde [kanıtlı: 18.1; denenmedi]). Kural bunlara izin veriyor; modelin verdiği dosya adı için asistan araçları yazılırken tartılır.
 - **Yapılacaklar (D, Ö3; sahip D1; DENETİM 229 N2):** Windows aygıt adı (`NUL`, `CON.txt`) parça olarak hatasız [ölçüldü: DENETİM 229], kural yazmıyor; Unix'te `C:/x` parçası hata vermiyor, 18.1 koşulsuz diyor [kanıtlı: `path.go`; koşulmadı].
 
+### 18.3
+
+- **Mevcut durum (2026-11-13; Dost Interface, tek tığın E dilimi):** `.TR_modified_ns` (nanosaniye; klasörde H7736) ve `.TR_disk_available_bytes` (Windows'ta `GetDiskFreeSpaceExW`'nin kullanıcıya açık boş yeri, Linux'ta ve macOS'ta `Statfs`'in `Bavail * Bsize`'ı; olmayan yolda H7737, üst klasöre çıkmaz) uygulandı. macOS'ta sınanmadı [test: `TestPathModifiedNs`, `TestPathDiskAvailableBytes`, `tests/dosya_ve_yol_test.tr`].
+
 ### 18.5
 
 - **Mevcut durum:** Windows'ta kalıp harf büyüklüğüne bakmıyor: `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`].

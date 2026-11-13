@@ -131,6 +131,7 @@ TR_new_chunk.TR_shape	ok	0	name:TR_mem_shape
 TR_norm.TR_eps	ambiguous	3	tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_eps,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_eps,tr:field:lib/optimizers.tr:TR_type_RowRMS.TR_mem_eps
 TR_objects.TR_contains	ok	0	name:TR_mem_contains
 TR_parameters.TR_length	ok	0	name:TR_mem_length
+TR_parent.TR_disk_available_bytes	ok	0	name:TR_mem_disk_available_bytes
 TR_pattern.TR_split	ok	0	name:TR_mem_split
 TR_ple.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 TR_ple.TR_norm	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_norm,tr:field:lib/layers.tr:TR_type_PLEContext.TR_mem_norm
@@ -1038,6 +1039,7 @@ k.TR_bias	ok	0	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_bias
 k.TR_contains	ok	0	name:TR_mem_contains
 k.TR_decode	ok	0	name:TR_mem_decode
 k.TR_device	ok	0	name:TR_mem_device
+k.TR_disk_available_bytes	ok	0	name:TR_mem_disk_available_bytes
 k.TR_dtype	ok	0	name:TR_mem_dtype
 k.TR_encode	ok	0	name:TR_mem_encode
 k.TR_end	ok	0	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_end
@@ -1052,6 +1054,7 @@ k.TR_keys	ok	0	name:TR_mem_keys
 k.TR_length	ok	0	name:TR_mem_length
 k.TR_mem_flush	not_found	4	-
 k.TR_mem_push	not_found	4	-
+k.TR_modified_ns	ok	0	name:TR_mem_modified_ns
 k.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
 k.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
 k.TR_pi	not_found	4	-
@@ -1836,6 +1839,7 @@ y.TR_keys	ok	0	name:TR_mem_keys
 y.TR_length	ok	0	name:TR_mem_length
 y.TR_local_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_local_cos_table
 y.TR_local_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_local_sin_table
+y.TR_modified_ns	ok	0	name:TR_mem_modified_ns
 y.TR_name	ok	0	name:TR_mem_name
 y.TR_parent	ok	0	name:TR_mem_parent
 y.TR_permute	ok	0	name:TR_mem_permute

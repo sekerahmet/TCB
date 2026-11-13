@@ -57,6 +57,9 @@ var uncoveredNames = map[string]string{
 	"TR_mem_cpu_features":           "örneği söz bölümünde yok (dost-indirme E)",
 	"TR_mem_os":                     "örneği söz bölümünde yok (dost-indirme E)",
 	"TR_mem_arch":                   "örneği söz bölümünde yok (dost-indirme E)",
+	// Yolun iki özelliği (18.3): aynı neden.
+	"TR_mem_modified_ns":          "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_disk_available_bytes": "örneği söz bölümünde yok (dost-indirme E)",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

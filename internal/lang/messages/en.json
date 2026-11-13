@@ -1880,6 +1880,8 @@
 "H7732": "`.{#os}` cannot be {value|q}: its value is windows, linux, macos or, on another machine, Go's operating system name",
 "H7733": "`.{#arch}` cannot be {value|q}: its value is x86_64, arm64 or, on another machine, Go's architecture name",
 "H7735": "{fn}: {item, select, limit {the memory limit} available {the available memory} other {the machine's information}} could not be read{os, select, macos {: this version does not read it on macOS} other {}}",
+"H7736": "{fn}: the modification time belongs to a file, {path|q} is a folder",
+"H7737": "{fn}: the path does not exist: {path|q}; the parent is not asked by itself, ask the folder: `{#Path}({dir|q}).{#disk_available_bytes}`",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
 "H7902": "{fn} takes no parameter named '{given}' (it takes no named arguments)",
