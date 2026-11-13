@@ -1062,6 +1062,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 ### 18.11
 
 - **Yapılacaklar (A, Ö1; sahip T1; Tur 5, DENETİM 353 Ş2):** 64 MB'ı aşan satırın hatasından (H7105) sonra okuyucu kapanıyor ama kapatılmış sayılmıyor: sonraki `.TR_next()` `TR_none` veriyor, hatayı yakalayan döngü dosyanın bittiğini sanıp kalan satırları sessizce atlıyor (`internal/stdlib/files`, satır okuyucusu: satır sınırını aşınca kapatan yol `TR_close`'un bayrağını koymuyor) [kanıtlı: DENETİM 353]. 18.11'in Tur 5 hâli: sonraki istek 18.15'teki gibi hata. Geçersiz UTF-8'den sonra sıradaki satırla sürmek uygulanmış (13.1'in 2026-11-04 satırı).
+- **Yapılacaklar (A, Ö1; sahip T1, üstteki satırla aynı yer; DENETİM 621 N1, D1 Teslim C'nin Bulgu 2'si):** sonuna kadar okunmuş satır okuyucusu yeniden dolaşılınca hata vermeden boş kalıyor; 18.11 ve 18.15'e göre bitmiş okuyucudan istek H7134 olmalı [kanıtlı: satır okuyucusunun kodu internal/stdlib/files/lines.go:267-273: bitmiş okuyucu yalnız kullanıcı kapattıysa hata veriyor]. Akışı iki kez dolaşan döngünün ikinci turu sessizce boş geçer; D1'in ölçü betiği buna düştü.
 
 ### 18.16
 
