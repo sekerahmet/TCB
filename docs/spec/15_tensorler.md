@@ -501,6 +501,9 @@ op.TR_zero_grad()
 - Adlar donanım üreticisine bağlı değildir: başka hızlandırıcılar (Apple, gömülü NPU) da aynı adları alır.
 - *Test:* TR testi; tek yazım uygulanınca TR testi.
 
+**15.37a** `TR_device_info(c)` (`c` bir GPU'nun adı, 15.37) kartın bilgisini bir `TR_DeviceInfo` olarak verir: `.TR_name` (`TR_String`, kartın adı), `.TR_memory_total_bytes` (`TR_Int`, kartın belleği), `.TR_driver_version` (`TR_String`, sürücü arayüzünün sürümü, `"<büyük>.<küçük>"`). Sürücü 15.37'deki gibi ilk soruda yüklenir; bu makinede olmayan cihaz 15.38'deki gibi hatadır. `TR_device_info("cpu")` çağrı hatasıdır, ileti `TR_machine()`'i (19.12) önerir: işlemcinin bilgisi tek yerdedir. `TR_devices()` değişmez. Değer okunduğu anın görüntüsüdür (19.12).
+- *Test:* TR testi (`"cpu"`'nun hatası ve önerisi, olmayan cihaz); kartlı Go testi (`internal/stdlib/gpuprobe`, G4).
+
 **15.38** `TR_default_device(c)` (`c` cihazın adı) bundan sonra kurulan tensörlerin cihazını seçer (`TR_Tensor`, `TR_zeros`, `TR_ones`, `TR_randn`, `TR_eye`, `TR_load_tensors` ve safetensors okuması (15.46, 15.47), veri kümesinin toplu işleri, 16); var olan tensörler yerinde kalır. Argümanlı biçim değer döndürmez (13.10); argümansız biçim şimdiki adı verir; program `"cpu"` ile başlar.
 - Varsayılan cihaz programındır, göreve bağlı değildir: bir kez, model kurulmadan önce seçilir.
 - Bir tensörle işleme giren sayı o tensörün cihazında kullanılır.

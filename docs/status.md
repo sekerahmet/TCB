@@ -844,6 +844,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** `TR_default_device(" CPU ")` kabul ediliyor [ölçüldü]; `.TR_to_device(" CPU ")` de kabul ediliyor ve TR testi bunu sabitliyor. Desteklenen GPU yalnız NVIDIA.
 - **Yapılacaklar:** tek yazım (büyük harf ve boşluk hata); TR testi. Başka hızlandırıcılar (Apple, gömülü NPU) yol haritasında.
 
+### 15.37a
+
+- **Mevcut durum (2026-11-13; Dost Interface, tek tığın E dilimi):** `TR_device_info(c)` kartın adını, belleğini ve sürücü arayüzünün sürümünü veriyor (`"cpu"` H7734, `TR_machine()`'i önerir); cihaz adını 15.37'nin çözücüsü çözer, büyük harfli ad da kabul edilir (15.37'nin satırı). Gerçek kartta sınama G4'te [test: `TestGPUDeviceInfo`, `TestDeviceInfoOfDrivers`, `tests/tensor_test.tr`].
+
 ### 15.38
 
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_load_tensors` varsayılan cihazda kurar (T3).
@@ -1068,6 +1072,10 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 - **Yapılacaklar (B, Ö1, asistan araçları dilimi; sahip TCB tasarım, D1 uygulama; DENETİM 229 N1, N2, 230):** `TR_Path`'in denetiminden geçmeyen yollar: tek parçada birleştirilen metin (`TR_Path("veri/\(ad)")`, `TR_Path("veri/" + ad)`, `../x`'te `x` veriyor [ölçüldü: DENETİM 229]), metin yol alan yerleşikler (`TR_write_file("veri/\(ad)", ...)` [kanıtlı: 18.4; koşulmadı]), bağlantı üzerinden çıkış (temizleme metin üstünde [kanıtlı: 18.1; denenmedi]). Kural bunlara izin veriyor; modelin verdiği dosya adı için asistan araçları yazılırken tartılır.
 - **Yapılacaklar (D, Ö3; sahip D1; DENETİM 229 N2):** Windows aygıt adı (`NUL`, `CON.txt`) parça olarak hatasız [ölçüldü: DENETİM 229], kural yazmıyor; Unix'te `C:/x` parçası hata vermiyor, 18.1 koşulsuz diyor [kanıtlı: `path.go`; koşulmadı].
 
+### 18.3
+
+- **Mevcut durum (2026-11-13; Dost Interface, tek tığın E dilimi):** `.TR_modified_ns` (nanosaniye; klasörde H7736) ve `.TR_disk_available_bytes` (Windows'ta `GetDiskFreeSpaceExW`'nin kullanıcıya açık boş yeri, Linux'ta ve macOS'ta `Statfs`'in `Bavail * Bsize`'ı; olmayan yolda H7737, üst klasöre çıkmaz) uygulandı. macOS'ta sınanmadı [test: `TestPathModifiedNs`, `TestPathDiskAvailableBytes`, `tests/dosya_ve_yol_test.tr`].
+
 ### 18.5
 
 - **Mevcut durum:** Windows'ta kalıp harf büyüklüğüne bakmıyor: `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`].
@@ -1130,6 +1138,10 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **Mevcut durum:** mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış") [ölçüldü: main `85a19c36`, "--hızlı=doğru" ve "--help" ile çalıştırma].
 - **Yapılacaklar:** mantık değerinde yalnız "true" ve "false" (`internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri çıkar); yardımın varsayılanları komut satırının yazımıyla; Go testleri.
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz (bugün "(default: none)"). **Açık:** standart hataya yazan yerleşik yok (yol haritası).
+
+### 19.12
+
+- **Mevcut durum (2026-11-13; Dost Interface, tek tığın E dilimi):** `TR_machine()` uygulandı: toplam, sınır (Linux'ta cgroup v1 ve v2, Windows'ta iş nesnesi) ve kullanılabilir bellek, çekirdek, komut kümeleri, `.TR_os` ve `.TR_arch`; karşılaştırmadaki yazım denetimde (H7730–H7733). macOS'ta sınanmadı; orada kullanılabilir bellek ve sınır H7735 verir [test: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineMembers`, `tests/surec_ve_kayit_test.tr`].
 
 ## Bölümü olmayan işler
 

@@ -46,6 +46,24 @@ var uncoveredNames = map[string]string{
 	"TR_mem_write":        "dış program ister",
 	"TR_mem_close_stdin":  "dış program ister",
 	"TR_type_Process":     "dış program ister",
+	// Makinenin görüntüsü (19.12): örnek tek tığın tasarımının söz bölümünde yok; örneğin metni TCB'nin
+	// kararıyla yazılır (dost-indirme E dilimi, 2026-11-13). Dil tanımının örneği ve TR testi var.
+	"TR_fn_machine":                 "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_type_Machine":               "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_memory_total_bytes":     "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_memory_limit_bytes":     "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_memory_available_bytes": "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_usable_cpus":            "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_cpu_features":           "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_os":                     "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_arch":                   "örneği söz bölümünde yok (dost-indirme E)",
+	// Yolun iki özelliği (18.3): aynı neden.
+	"TR_mem_modified_ns":          "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_disk_available_bytes": "örneği söz bölümünde yok (dost-indirme E)",
+	// Kartın bilgisi (15.37a): aynı neden; değerli örnek kart da ister.
+	"TR_fn_device_info":     "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_type_DeviceInfo":    "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_driver_version": "örneği söz bölümünde yok (dost-indirme E)",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

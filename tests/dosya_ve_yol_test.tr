@@ -64,6 +64,28 @@ TR_test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
     TR_assert_equal("H2132", TR_error_code { TR_Path(k, "yok.txt").TR_size })
 }
 
+TR_test "18.3 değişme zamanı nanosaniye ve yazmadan sonra artar; klasörde ve olmayan dosyada hata" {
+    TR_var k = TR_temp_dir()
+    TR_var y = TR_Path(k, "zaman.txt")
+    TR_write_file(y, "a")
+    TR_var önce = y.TR_modified_ns
+    TR_assert(önce > 1_577_836_800_000_000_000)
+    TR_write_file(y, "ab")
+    TR_assert(y.TR_modified_ns >= önce)
+    TR_assert_equal("H7736", TR_error_code { k.TR_modified_ns })
+    TR_assert_equal("H2132", TR_error_code { TR_Path(k, "yok.txt").TR_modified_ns })
+}
+
+TR_test "18.3 diskte kullanılabilir bayt dosyada ve klasörde; olmayan yolda hata, üst klasöre çıkmaz" {
+    TR_var k = TR_temp_dir()
+    TR_assert(k.TR_disk_available_bytes > 0)
+    TR_write_file(TR_Path(k, "d.txt"), "a")
+    TR_assert(TR_Path(k, "d.txt").TR_disk_available_bytes > 0)
+    TR_assert_equal("H7737", TR_error_code { TR_Path(k, "yok", "model.bin").TR_disk_available_bytes })
+    TR_assert_equal("H7737", TR_error_code { TR_Path(k, "model.bin").TR_disk_available_bytes })
+    TR_assert(TR_Path(k, "model.bin").TR_parent.TR_disk_available_bytes > 0)
+}
+
 TR_test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
     TR_var k = TR_temp_dir()
     TR_write_file(TR_Path(k, "t.csv"), "a,b\n1,2")

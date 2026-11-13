@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 774 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 68 tip, 179 fonksiyon, 13 sabit, 95 metot, 137 özellik, 195 adlı argüman.
+Toplam 788 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 181 fonksiyon, 13 sabit, 95 metot, 147 özellik, 195 adlı argüman.
 
 ## İçindekiler
 
@@ -694,6 +694,23 @@ tr: değişken küme = VeriKümesi("tests/data/numbers"); yazdır(küme, Tip(kü
 
 Üyeleri: `.TR_sampler(...)`, `.TR_sequential(...)` · İlişkili: `.TR_sampler(...)`, `.TR_sequential(...)`
 
+#### `TR_DeviceInfo` (`TR_type_DeviceInfo`, `CihazBilgisi`)
+
+cihaz_bilgisi()'nin verdiği kart bilgisi.
+
+```tr
+TR_if TR_devices().TR_contains("gpu") { TR_print(TR_Type(TR_device_info("gpu")) == TR_DeviceInfo) }; TR_print(TR_devices()[0])
+```
+
+Görünümü:
+
+```text
+en: if devices().contains("gpu") { print(Type(device_info("gpu")) == DeviceInfo) }; print(devices()[0])
+tr: eğer cihazlar().içerir("gpu") { yazdır(Tip(cihaz_bilgisi("gpu")) == CihazBilgisi) }; yazdır(cihazlar()[0])
+```
+
+Üyeleri: `.TR_driver_version`, `.TR_memory_total_bytes`, `.TR_name` · İlişkili: `TR_device_info(...)`, `.TR_name`, `.TR_memory_total_bytes`, `.TR_driver_version`
+
 #### `TR_Dict` (`TR_type_Dict`, `Sözlük`)
 
 Eklenme sırasını koruyan anahtar–değer tablosu tipidir; anahtar köşeli parantezle okunur, olmayan anahtar hatadır, .varsa_al(k) yok verir (3.7).
@@ -935,6 +952,23 @@ tr: değişken g = Günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğ
 
 Üyeleri: `.TR_append(...)`, `.TR_close(...)` · İlişkili: `.TR_append(...)`, `.TR_close(...)`, `TR_Progress`
 
+#### `TR_Machine` (`TR_type_Machine`, `Makine`)
+
+makine()'nin verdiği anlık görüntü; dilin hiçbir yerleşiği hesabını ona göre değiştirmez.
+
+```tr
+TR_var m = TR_machine(); TR_print(TR_Type(m) == TR_Machine, m)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(Type(m) == Machine, m)
+tr: değişken m = makine(); yazdır(Tip(m) == Makine, m)
+```
+
+Üyeleri: `.TR_arch`, `.TR_cpu_features`, `.TR_memory_available_bytes`, `.TR_memory_limit_bytes`, `.TR_memory_total_bytes`, `.TR_os`, `.TR_usable_cpus` · İlişkili: `TR_machine(...)`, `.TR_memory_total_bytes`, `.TR_memory_limit_bytes`, `.TR_memory_available_bytes`, `.TR_usable_cpus`, `.TR_cpu_features`, `.TR_os`, `.TR_arch`
+
 #### `TR_MaskStream` (`TR_type_MaskStream`, `MaskeAkışı`)
 
 maskeli_akış() ile kurulan akışın tipidir: parça parça gelen metni (dil modelinin ürettiği metin gibi) insana gösterilmeden önce maskeler; iki parçaya bölünen gizli değer de *** görünür. m.adım(parça) kararı kesinleşen başı, m.bitir() kalanı verir.
@@ -1055,7 +1089,7 @@ en: var y = Path("veri", "./eğitim/../derlem.txt"); print(Type(y) == Path, y)
 tr: değişken y = Yol("veri", "./eğitim/../derlem.txt"); yazdır(Tip(y) == Yol, y)
 ```
 
-Üyeleri: `.TR_absolute`, `.TR_exists`, `.TR_extension`, `.TR_is_dir`, `.TR_is_file`, `.TR_name`, `.TR_parent`, `.TR_size`, `.TR_stem` · İlişkili: `TR_list_dir(...)`
+Üyeleri: `.TR_absolute`, `.TR_disk_available_bytes`, `.TR_exists`, `.TR_extension`, `.TR_is_dir`, `.TR_is_file`, `.TR_modified_ns`, `.TR_name`, `.TR_parent`, `.TR_size`, `.TR_stem` · İlişkili: `TR_list_dir(...)`
 
 #### `TR_Process` (`TR_type_Process`, `Süreç`)
 
@@ -1975,6 +2009,25 @@ tr: yazdır(varsayılan_cihaz()); varsayılan_cihaz("cpu"); yazdır(Tensör([1.0
 
 İlişkili: `TR_devices(...)`, `.TR_to_device(...)`, `.TR_device`
 
+#### `TR_device_info(...)` (`TR_fn_device_info`, `cihaz_bilgisi`)
+
+    cihaz_bilgisi(Metin) → CihazBilgisi
+
+Bir GPU'nun adını, belleğini ve sürücü sürümünü CihazBilgisi olarak verir; "cpu" için makine() kullanılır.
+
+```tr
+TR_var kod = TR_error_code { TR_device_info("cpu") }; TR_print(kod); TR_if kod != "H7734" { TR_print(TR_device_info("cpu")) }; TR_if TR_devices().TR_contains("gpu") { TR_print(TR_device_info("gpu").TR_name) }
+```
+
+Görünümü:
+
+```text
+en: var kod = error_code { device_info("cpu") }; print(kod); if kod != "H7734" { print(device_info("cpu")) }; if devices().contains("gpu") { print(device_info("gpu").name) }
+tr: değişken kod = hata_kodu { cihaz_bilgisi("cpu") }; yazdır(kod); eğer kod != "H7734" { yazdır(cihaz_bilgisi("cpu")) }; eğer cihazlar().içerir("gpu") { yazdır(cihaz_bilgisi("gpu").dosya_adı) }
+```
+
+İlişkili: `TR_DeviceInfo`, `TR_devices(...)`, `TR_machine(...)`
+
 #### `TR_devices(...)` (`TR_fn_devices`, `cihazlar`)
 
     cihazlar() → Liste
@@ -2748,6 +2801,25 @@ tr: yazdır(log_toplam_üs(Tensör([[0.0, 0.0], [1.0, 2.0]]), eksen: 1).değer)
     öğrenme_oranı_planı()
 
 
+
+#### `TR_machine(...)` (`TR_fn_machine`, `makine`)
+
+    makine() → Makine
+
+Sürecin çalıştığı makinenin o anki görüntüsünü Makine olarak verir: bellek, sınır, çekirdek, komut kümeleri, işletim sistemi, mimari.
+
+```tr
+TR_var m = TR_machine(); TR_var bellek = TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes); TR_print(m.TR_os, m.TR_arch, m.TR_usable_cpus, bellek > 0)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); var bellek = min(m.memory_total_bytes, m.memory_limit_bytes ?? m.memory_total_bytes); print(m.os, m.arch, m.usable_cpus, bellek > 0)
+tr: değişken m = makine(); değişken bellek = min(m.toplam_bellek_baytı, m.bellek_sınırı_baytı ?? m.toplam_bellek_baytı); yazdır(m.işletim_sistemi, m.mimari, m.kullanılabilir_çekirdek, bellek > 0)
+```
+
+İlişkili: `TR_Machine`, `.TR_memory_total_bytes`, `.TR_memory_limit_bytes`, `.TR_memory_available_bytes`, `.TR_cpu_features`
 
 #### `TR_make_dir(...)` (`TR_fn_make_dir`, `klasör_oluştur`)
 
@@ -6166,6 +6238,25 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_arch` (`TR_mem_arch`, `mimari`)
+
+    Makine.mimari → Metin
+
+"x86_64" ya da "arm64"; öbür makinelerde Go adı. Karşılaştırmada başka yazım denetim hatasıdır.
+
+```tr
+TR_var m = TR_machine(); TR_print(m.TR_arch, ["x86_64", "arm64"].TR_contains(m.TR_arch))
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(m.arch, ["x86_64", "arm64"].contains(m.arch))
+tr: değişken m = makine(); yazdır(m.mimari, ["x86_64", "arm64"].içerir(m.mimari))
+```
+
+İlişkili: `.TR_os`, `.TR_cpu_features`, `TR_machine(...)`
+
 #### `.TR_arguments` (`TR_mem_arguments`, `argümanlar`)
 
 
@@ -6384,6 +6475,25 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 
 
 
+#### `.TR_cpu_features` (`TR_mem_cpu_features`, `işlemci_yetenekleri`)
+
+    Makine.işlemci_yetenekleri → Liste
+
+İşlemcinin ve işletim sisteminin desteklediği komut kümeleri, sabit tablodan ("avx2", "fma", "avx512f", "neon" ...).
+
+```tr
+TR_var m = TR_machine(); TR_print(m.TR_arch, m.TR_cpu_features)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(m.arch, m.cpu_features)
+tr: değişken m = makine(); yazdır(m.mimari, m.işlemci_yetenekleri)
+```
+
+İlişkili: `TR_machine(...)`, `.TR_arch`
+
 #### `.TR_declared_eos_tokens` (`TR_mem_declared_eos_tokens`, `bildirilen_durma_parçaları`)
 
     Parçalayıcı.bildirilen_durma_parçaları → Liste | YokTipi
@@ -6445,6 +6555,25 @@ tr: yazdır(Tensör([1, 2]).cihaz)
 
 
 
+#### `.TR_disk_available_bytes` (`TR_mem_disk_available_bytes`, `diskte_kullanılabilir_bayt`)
+
+    Yol.diskte_kullanılabilir_bayt → Tam
+
+Yolun diskinde bu kullanıcıya açık boş yer, bayt; olmayan yolda hata, üst klasöre çıkmaz.
+
+```tr
+TR_print(TR_Path(".").TR_disk_available_bytes > 0)
+```
+
+Görünümü:
+
+```text
+en: print(Path(".").disk_available_bytes > 0)
+tr: yazdır(Yol(".").diskte_kullanılabilir_bayt > 0)
+```
+
+İlişkili: `.TR_parent`, `.TR_size`
+
 #### `.TR_done(...)` (`TR_mem_done`, `bitti_mi`)
 
     Görev.bitti_mi() → Mantık
@@ -6468,6 +6597,25 @@ tr: değişken g = eşzamanlı toplam([1, 2]); g.bekle(); yazdır(g.bitti_mi())
 #### `.TR_down_proj` (`TR_mem_down_proj`, `aşağı`)
 
 
+
+#### `.TR_driver_version` (`TR_mem_driver_version`, `sürücü_sürümü`)
+
+    CihazBilgisi.sürücü_sürümü → Metin
+
+Kartın sürücü arayüzünün sürümü, "büyük.küçük" (CihazBilgisi).
+
+```tr
+TR_if TR_devices().TR_contains("gpu") { TR_print(TR_device_info("gpu").TR_driver_version) }; TR_print(TR_devices()[0])
+```
+
+Görünümü:
+
+```text
+en: if devices().contains("gpu") { print(device_info("gpu").driver_version) }; print(devices()[0])
+tr: eğer cihazlar().içerir("gpu") { yazdır(cihaz_bilgisi("gpu").sürücü_sürümü) }; yazdır(cihazlar()[0])
+```
+
+İlişkili: `TR_device_info(...)`, `TR_DeviceInfo`
 
 #### `.TR_dry_run` (`TR_mem_dry_run`, `prova`)
 
@@ -7161,6 +7309,64 @@ tr: yazdır([1, 2, 3].haritala((x) => x * 10))
 
 
 
+#### `.TR_memory_available_bytes` (`TR_mem_memory_available_bytes`, `kullanılabilir_bellek_baytı`)
+
+    Makine.kullanılabilir_bellek_baytı → Tam
+
+Okunduğu anda yeni işe verilebilecek bellek, bayt.
+
+```tr
+TR_var m = TR_machine(); TR_print(m.TR_memory_available_bytes <= m.TR_memory_total_bytes)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(m.memory_available_bytes <= m.memory_total_bytes)
+tr: değişken m = makine(); yazdır(m.kullanılabilir_bellek_baytı <= m.toplam_bellek_baytı)
+```
+
+İlişkili: `.TR_memory_total_bytes`, `TR_machine(...)`
+
+#### `.TR_memory_limit_bytes` (`TR_mem_memory_limit_bytes`, `bellek_sınırı_baytı`)
+
+    Makine.bellek_sınırı_baytı → Tam | YokTipi
+
+Sürece konmuş bellek sınırı (cgroup, iş nesnesi), bayt; sınır yoksa yok.
+
+```tr
+TR_var m = TR_machine(); TR_print(TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes) > 0)
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); print(min(m.memory_total_bytes, m.memory_limit_bytes ?? m.memory_total_bytes) > 0)
+tr: değişken m = makine(); yazdır(min(m.toplam_bellek_baytı, m.bellek_sınırı_baytı ?? m.toplam_bellek_baytı) > 0)
+```
+
+İlişkili: `.TR_memory_total_bytes`, `TR_machine(...)`
+
+#### `.TR_memory_total_bytes` (`TR_mem_memory_total_bytes`, `toplam_bellek_baytı`)
+
+    Makine.toplam_bellek_baytı → Tam
+    CihazBilgisi.toplam_bellek_baytı → Tam
+
+Makinenin fiziksel belleği (Makine) ya da kartın belleği (CihazBilgisi), bayt.
+
+```tr
+TR_print(TR_machine().TR_memory_total_bytes > 0)
+```
+
+Görünümü:
+
+```text
+en: print(machine().memory_total_bytes > 0)
+tr: yazdır(makine().toplam_bellek_baytı > 0)
+```
+
+İlişkili: `.TR_memory_limit_bytes`, `.TR_memory_available_bytes`, `TR_machine(...)`
+
 #### `.TR_method` (`TR_mem_method`, `yöntem`)
 
     HTTPİsteği.yöntem → Metin
@@ -7180,6 +7386,25 @@ tr: yazdır(HTTPİsteği(yöntem: "POST").yöntem)
 
 İlişkili: `TR_method:`, `.TR_path`
 
+#### `.TR_modified_ns` (`TR_mem_modified_ns`, `değişme_zamanı_ns`)
+
+    Yol.değişme_zamanı_ns → Tam
+
+Dosyanın son değiştirilme zamanı, Unix zamanı, nanosaniye; klasörde ve olmayan dosyada hata.
+
+```tr
+TR_write_file("zaman.txt", "a"); TR_print(TR_Path("zaman.txt").TR_modified_ns > 0)
+```
+
+Görünümü:
+
+```text
+en: write_file("zaman.txt", "a"); print(Path("zaman.txt").modified_ns > 0)
+tr: dosya_yaz("zaman.txt", "a"); yazdır(Yol("zaman.txt").değişme_zamanı_ns > 0)
+```
+
+İlişkili: `.TR_size`, `TR_time_ms(...)`
+
 #### `.TR_momentum` (`TR_mem_momentum`, `momentum`)
 
 
@@ -7195,8 +7420,9 @@ tr: yazdır(HTTPİsteği(yöntem: "POST").yöntem)
 #### `.TR_name` (`TR_mem_name`, `dosya_adı`)
 
     Yol.dosya_adı → Metin
+    CihazBilgisi.dosya_adı → Metin
 
-Yolun son bileşenini verir ("veri/derlem.tar.gz" → "derlem.tar.gz"); . ve kök için boş metindir.
+Yolun son bileşenini verir ("veri/derlem.tar.gz" → "derlem.tar.gz"); . ve kök için boş metindir. CihazBilgisi'nde kartın adı.
 
 ```tr
 TR_print(TR_Path("veri/derlem.tar.gz").TR_name)
@@ -7271,6 +7497,25 @@ tr: değişken girdi, hedef = VeriKümesi("tests/data/numbers").sıralı(toplu: 
 #### `.TR_observe(...)` (`TR_mem_observe`, `gözle`)
 
 
+
+#### `.TR_os` (`TR_mem_os`, `işletim_sistemi`)
+
+    Makine.işletim_sistemi → Metin
+
+"windows", "linux" ya da "macos"; öbür makinelerde Go adı. Karşılaştırmada başka yazım denetim hatasıdır.
+
+```tr
+TR_var m = TR_machine(); TR_if m.TR_os == "windows" { TR_print("Windows") }; TR_print(["windows", "linux", "macos"].TR_contains(m.TR_os))
+```
+
+Görünümü:
+
+```text
+en: var m = machine(); if m.os == "windows" { print("Windows") }; print(["windows", "linux", "macos"].contains(m.os))
+tr: değişken m = makine(); eğer m.işletim_sistemi == "windows" { yazdır("Windows") }; yazdır(["windows", "linux", "macos"].içerir(m.işletim_sistemi))
+```
+
+İlişkili: `.TR_arch`, `TR_machine(...)`
 
 #### `.TR_other` (`TR_mem_other`, `diğer`)
 
@@ -8339,6 +8584,25 @@ tr: yazdır("merhaba".büyük_harf())
 ```
 
 İlişkili: `.TR_lower(...)`
+
+#### `.TR_usable_cpus` (`TR_mem_usable_cpus`, `kullanılabilir_çekirdek`)
+
+    Makine.kullanılabilir_çekirdek → Tam
+
+Bu sürecin kullanabildiği mantıksal çekirdek sayısı.
+
+```tr
+TR_print(TR_machine().TR_usable_cpus >= 1)
+```
+
+Görünümü:
+
+```text
+en: print(machine().usable_cpus >= 1)
+tr: yazdır(makine().kullanılabilir_çekirdek >= 1)
+```
+
+İlişkili: `TR_machine(...)`, `.TR_cpu_features`
 
 #### `.TR_v_buffers` (`TR_mem_v_buffers`, `v_tamponları`)
 

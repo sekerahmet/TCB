@@ -303,7 +303,11 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		"TR_write_dataset(yol, diziler, TR_shard_tokens: n)":        "16: parametrenin yer tutucusu, kod değil",
 		"TR_write_lines(yol)":                                       "18: parametrenin yer tutucusu, kod değil",
 		"path.go":                                                   "status: dosya adı",
-		"yol":                                                       "16: parametrenin yer tutucusu, kod değil",
+		// 19.12'nin TR_mem_os'u (os) gelince Go'nun os paketi olarak anılan yerler (Dost Interface E dilimi, 2026-11-13).
+		"os.Chtimes": "status: Go'nun işlevi, kod değil",
+		"_ = os.Chtimes(fpath, time.Now(), b.ModTime())": "status: Go kodundan alıntı",
+		"os.Root": "status: Go'nun tipi, kod değil",
+		"yol":     "16: parametrenin yer tutucusu, kod değil",
 	}
 	spans := regexp.MustCompile("`([^`\n]+)`")
 	words := regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)

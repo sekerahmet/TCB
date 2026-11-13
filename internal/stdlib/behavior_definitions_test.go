@@ -287,7 +287,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeRequest, `TR_Request()`}, {codes.TypeResponse, `TR_Response()`}, {codes.TypeHTTPServer, `TR_serve_http(TR_print)`},
 		{codes.TypeMaskStream, `TR_mask_stream()`}, {codes.TypeEventStream, `olay_akisi_go`},
 		{codes.TypeEventBroadcast, `TR_EventBroadcast(TR_capacity: 1, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`},
-		{codes.TypeHeaders, `TR_Request().TR_headers`},
+		{codes.TypeHeaders, `TR_Request().TR_headers`}, {codes.TypeMachine, `TR_machine()`}, {codes.TypeDeviceInfo, `kart_bilgisi_go`},
 		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}
 	t.Cleanup(logging.CloseAll)

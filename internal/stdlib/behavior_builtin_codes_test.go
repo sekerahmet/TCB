@@ -14,6 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/httpserver"
+	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
 // Kural: tüm motorlar yüklüyken genel kapsamdaki her yerleşik bir yerleşik kodunun (fn) kimliğiyle
@@ -81,6 +82,8 @@ func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 // bloğunda oluşur (28.7), TR kodu onu bloğun dışında kuramaz. Üye okunur, çağrılmaz; alanları gerekmez.
 func defineEventStream(m *interp.VM) {
 	m.GlobalEnv.Define("olay_akisi_go", &httpserver.EventStream{}, false)
+	// Kart bilgisi kartsız makinede TR kodundan kurulamaz (15.37a): değer Go'dan kurulur.
+	m.GlobalEnv.Define("kart_bilgisi_go", ml.NewDeviceInfo("Sınama Kartı", 1<<30, "12.4"), false)
 }
 
 // Kural: kod listesindeki her üye kodu (mem) en az bir tipte çalışır: kodu olup da hiçbir
@@ -114,13 +117,15 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`TR_var u_maske = TR_mask_stream()`,
 		`TR_var u_akis = olay_akisi_go`,
 		`TR_var u_yayin = TR_EventBroadcast(TR_capacity: 1, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`,
+		`TR_var u_makine = TR_machine()`,
+		`TR_var u_kart = kart_bilgisi_go`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)
 	}
 	// Sözlüğe nokta ile okuma anahtar okumadığı için (3.7) her nesnenin üyesi kendi nesnesinde denenir.
 	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme",
-		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu", "u_hata", "u_gorev", "u_bayt", "u_surec", "u_istek", "u_cevap", "u_sunucu", "u_maske", "u_akis", "u_yayin"}
+		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu", "u_hata", "u_gorev", "u_bayt", "u_surec", "u_istek", "u_cevap", "u_sunucu", "u_maske", "u_akis", "u_yayin", "u_makine", "u_kart"}
 	for _, k := range codes.Codes() {
 		// Kitaplığın üyesi çekirdek tiplerde değil, kitaplığın yapılarında karşılanır.
 		if k.Namespace() != codes.NamespaceMember || k.IsLibrary() || (k >= codes.MemSampler && k <= codes.MemNext) {

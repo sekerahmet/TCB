@@ -1,0 +1,17 @@
+# TR 4
+# TEST 19.12 .TR_os ve .TR_arch kapalı tablodan; başka yazım ve öbür üyenin değeri denetim hatası (tests/surec_ve_kayit_test.tr)
+TR_var m = TR_machine()
+TR_print(m.TR_os == "darwin") # ERROR H7730
+TR_print(m.TR_arch != "amd64") # ERROR H7731
+TR_print(m.TR_os == "Windows") # ERROR H7730
+TR_print(m.TR_arch == "x64") # ERROR H7731
+TR_print(m.TR_os == "macOS") # ERROR H7730
+TR_print(m.TR_arch == "ARM64") # ERROR H7731
+TR_print(["windows", "osx"].TR_contains(m.TR_os)) # ERROR H7730
+TR_print(m.TR_os == "beos") # ERROR H7732
+TR_print(m.TR_os == "arm64") # ERROR H7732
+TR_print(m.TR_arch == "linux") # ERROR H7733
+TR_print(m.TR_os == "amd64") # ERROR H7732
+TR_print(m.TR_arch == "Linux") # ERROR H7733
+TR_print(m.TR_os == "ARM64") # ERROR H7732
+TR_print(["x86_64", "riscv"].TR_contains(m.TR_arch)) # ERROR H7733

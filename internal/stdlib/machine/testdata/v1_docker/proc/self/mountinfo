@@ -1,0 +1,1 @@
+640 600 0:29 /docker/abc /sys/fs/cgroup/memory ro,nosuid,nodev,noexec,relatime master:12 - cgroup cgroup rw,memory

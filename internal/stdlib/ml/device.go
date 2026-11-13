@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -138,6 +139,79 @@ func devicesBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 		el[i] = &interp.StringVal{Val: a}
 	}
 	return &interp.ListVal{Elements: el}, nil
+}
+
+// ----------------------------------------------------------------------------
+// Kartın bilgisi: cihaz_bilgisi(ad) (15.37a)
+// ----------------------------------------------------------------------------
+
+// DeviceInfoType TR_DeviceInfo'nun tip adıdır.
+var DeviceInfoType = interp.TypeName(codes.TypeDeviceInfo)
+
+// DeviceInfo bir GPU'nun okunduğu andaki bilgisidir: ad, toplam bellek (bayt), sürücü
+// arayüzünün sürümü ("<büyük>.<küçük>"). Değişmez.
+type DeviceInfo struct {
+	name, driver string
+	memory       uint64
+}
+
+// NewDeviceInfo bir kart bilgisi değeri kurar (sınamalar kartsız makinede bu değeri Go'dan kurar).
+func NewDeviceInfo(name string, memory uint64, driver string) *DeviceInfo {
+	return &DeviceInfo{name: name, memory: memory, driver: driver}
+}
+
+func (d *DeviceInfo) Type() interp.ValueType { return DeviceInfoType }
+func (d *DeviceInfo) IsTruthy() bool         { return true }
+
+// Inspect değerin metnidir (3.14): tipin adı.
+func (d *DeviceInfo) Inspect() string { return codes.ValueNames().Name(codes.TypeDeviceInfo) }
+
+var deviceInfoMembers = []codes.Code{codes.MemName, codes.MemMemoryTotalBytes, codes.MemDriverVersion}
+
+// GetProperty .TR_name, .TR_memory_total_bytes ve .TR_driver_version'ı verir.
+func (d *DeviceInfo) GetProperty(kd codes.Code, name string) (interp.Value, error) {
+	switch kd {
+	case codes.MemName:
+		return &interp.StringVal{Val: d.name}, nil
+	case codes.MemMemoryTotalBytes:
+		m := d.memory
+		if m > 1<<63-1 {
+			m = 1<<63 - 1
+		}
+		return interp.NewInt(int64(m)), nil
+	case codes.MemDriverVersion:
+		return &interp.StringVal{Val: d.driver}, nil
+	}
+	return nil, bind.MemberError(DeviceInfoType, name, deviceInfoMembers)
+}
+
+var _ interp.PropertyGetter = (*DeviceInfo)(nil)
+
+// deviceInfoBuiltin cihaz_bilgisi(ad): bir GPU'nun bilgisi. "cpu" H7734 ile makine()'yi önerir
+// (işlemcinin bilgisi tek yerde, 19.12); olmayan cihaz 15.38'deki gibi H6812 ya da H6813. Sürücü
+// 15.37'deki gibi ilk soruda yüklenir (availableDevice cihazı açtırır).
+func deviceInfoBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	fn := codes.NameRef(codes.FnDeviceInfo)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
+		return nil, err
+	}
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(codes.FnDeviceInfo, 1, len(args))
+	}
+	if s, ok := args[0].(*interp.StringVal); ok {
+		if d, err := parseDevice(s.Val); err == nil && d.Kind == tensor.KindCPU {
+			return nil, messages.New(messages.H7734, fn)
+		}
+	}
+	dev, err := availableDevice(fn, args[0])
+	if err != nil {
+		return nil, err
+	}
+	name, memory, driver, ok := gpu.DeviceInfo(dev)
+	if !ok {
+		return nil, messages.New(messages.H7735, fn, "other", runtime.GOOS)
+	}
+	return NewDeviceInfo(name, memory, driver), nil
 }
 
 // Close program sonunda çağrılır (motor.Kapat): GPU ölçümü açıksa (TR_GPU_PROFILE=1) özeti

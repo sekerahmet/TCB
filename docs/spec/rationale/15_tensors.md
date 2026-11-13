@@ -399,6 +399,11 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 - *Emsal:* PyTorch'ta cihaz adı üreticiye bağlıdır (`"cuda"`, `"mps"`) [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* "Makinenin içinde çalıştırmak ... onun işlemcisinde": adlar NVIDIA'ya bağlı olmamalı, başka hızlandırıcılar aynı adlarla gelir. Bugün `" CPU "` kabul ediliyor [ölçüldü]; 17.9'un tek yazımı girdinin her yerindedir, harf ve boşluk serbestliği iki yazım demektir. `"gpu"` kısa adı kalır (tek GPU'lu programların olağan yazımı), ama `.TR_device` uzun adı verir: okunan ad tektir.
 
+### 15.37a
+
+- *Emsal:* NVML'in WDDM notu ("Under WDDM most device memory is allocated and managed on startup by Windows.").
+- *Gerekçe:* işlemcinin kalemleri tek yerde (19.12); kartın belleği Windows'ta kullanılabilir belleğin ölçüsü değildir, bu yüzden yalnız toplam verilir.
+
 ### 15.38
 
 - *Emsal:* PyTorch'un `torch.set_default_device`'ı [kanıtsız: bu tur açılmadı].

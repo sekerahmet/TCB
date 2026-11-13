@@ -17,6 +17,8 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 - *Emsal:* Python `Path.exists()`, `is_file()`, `is_dir()` bağlantıyı izler, kırık bağlantıda `False` verir [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* soran özellik okuyan işle aynı dosyayı görmelidir (18.16): `TR_exists` doğru dedikten sonra `TR_read_file` başka bir yerde aramaz.
+- *Emsal (`.TR_modified_ns`, `.TR_disk_available_bytes`):* Python `os.stat().st_mtime_ns`; `shutil.disk_usage(path).free` ("UNIX typically reserves 5% of disk space for root"); Windows `GetDiskFreeSpaceEx`'in `lpFreeBytesAvailableToCaller`'ı (kullanıcı kotası).
+- *Gerekçe (`.TR_modified_ns`, `.TR_disk_available_bytes`):* birim adda; üst klasöre çıkmamak.
 
 ### 18.4
 

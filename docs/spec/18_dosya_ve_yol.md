@@ -25,7 +25,9 @@ Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 - `.TR_absolute` çözülmüş mutlak yoldur;
 - `.TR_exists`, `.TR_is_file`, `.TR_is_dir` yolda bir dosya ya da klasör, sıradan bir dosya, bir klasör olup olmadığını söyler; olmayan yolda ve kırık bağlantıda `TR_false`;
 - `.TR_size` dosyanın bayt boyutudur (`TR_Int`; `.gz` dosyada sıkıştırılmış boyut); klasörde ve olmayan dosyada hatadır.
-- *Test:* TR testi.
+- `.TR_modified_ns` dosyanın son değiştirilme zamanıdır (`TR_Int`, Unix zamanı, nanosaniye: birimi adındadır, `TR_time_ms` milisaniyedir); klasörde ve olmayan dosyada hatadır. Çözünürlüğü dosya sistemininkidir (FAT'te 2 saniye).
+- `.TR_disk_available_bytes` yolun bulunduğu diskte bu kullanıcıya açık boş yerdir (`TR_Int`; kota ve yöneticiye ayrılan pay düşülmüş); dosyada ve klasörde çalışır, olmayan yolda hatadır. En yakın üst klasöre kendiliğinden çıkmaz: yazım yanlışı sessizce başka diskin değerini verirdi. İndirmeden önce hedefin klasörü sorulur: `TR_Path(hedef).TR_parent.TR_disk_available_bytes`.
+- *Test:* TR testi; `.TR_modified_ns` ve `.TR_disk_available_bytes` `tests/dosya_ve_yol_test.tr`'de (olmayan yol, klasör, yazmadan sonra artan zaman).
 
 **18.4** Yol alan her yerleşik (13.1a'dakiler ve bu bölümünkiler) yolu `TR_String` ya da `TR_Path` olarak alır; başka bir tip denetim hatasıdır ve ileti iki kabul edilen tipi ve verilen tipi söyler. `TR_read_csv` bir `TR_Path` alınca onu her zaman dosya sayar: dosya yoksa hata verir, metni CSV içeriği sanmaz.
 - *Test:* TR testi.

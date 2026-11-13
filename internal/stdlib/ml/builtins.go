@@ -52,6 +52,7 @@ func Register(v *interp.VM) {
 	// --- Cihazlar (cihaz.go) ---
 	wrap(v, codes.FnDefaultDevice, newBuiltin(defaultDeviceBuiltin))
 	wrap(v, codes.FnDevices, newBuiltin(devicesBuiltin))
+	wrap(v, codes.FnDeviceInfo, newBuiltin(deviceInfoBuiltin))
 
 	// --- İyileştiriciler ---
 	wrap(v, codes.FnAdamW, newBuiltin(setupAdamW))
@@ -202,7 +203,7 @@ var gradFree = map[codes.Code]bool{
 	codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnComputeDtype: true,
 	codes.FnQuantizedActivations: true, codes.FnQuantizedActivationsOn: true,
 	codes.FnVendorMatmul: true, codes.FnVendorMatmulOn: true,
-	codes.FnDefaultDevice: true, codes.FnDevices: true,
+	codes.FnDefaultDevice: true, codes.FnDevices: true, codes.FnDeviceInfo: true,
 	codes.FnCustomGrad: true, codes.FnFuse: true, codes.FnReplay: true,
 	// Yazma: türevi izlenen kaynağı checkWrite reddeder (H6956).
 	codes.FnWriteSlice: true,
