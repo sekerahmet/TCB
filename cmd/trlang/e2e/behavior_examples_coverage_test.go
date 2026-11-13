@@ -60,6 +60,10 @@ var uncoveredNames = map[string]string{
 	// Yolun iki özelliği (18.3): aynı neden.
 	"TR_mem_modified_ns":          "örneği söz bölümünde yok (dost-indirme E)",
 	"TR_mem_disk_available_bytes": "örneği söz bölümünde yok (dost-indirme E)",
+	// Kartın bilgisi (15.37a): aynı neden; değerli örnek kart da ister.
+	"TR_fn_device_info":     "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_type_DeviceInfo":    "örneği söz bölümünde yok (dost-indirme E)",
+	"TR_mem_driver_version": "örneği söz bölümünde yok (dost-indirme E)",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

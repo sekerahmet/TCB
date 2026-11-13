@@ -83,6 +83,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H7229, `TR_var ayar = TR_command_line({"adım": 1}, TR_descriptions: {"adim": "x"})`, "adim", "adım"},
 	{messages.H7730, `TR_var w: TR_Bool = TR_machine().TR_os == "darwin"`, `"darwin"`, `"macos"`},
 	{messages.H7731, `TR_var x: TR_Bool = ["arm64", "amd64"].TR_contains(TR_machine().TR_arch)`, `"amd64"`, `"x86_64"`},
+	{messages.H7734, `TR_print(TR_device_info("cpu"))`, `TR_device_info("cpu")`, "TR_machine().TR_cpu_features"},
 	{messages.H7737, `TR_var y: TR_Int = TR_Path("olmayan_model.bin").TR_disk_available_bytes`, `TR_Path("olmayan_model.bin").TR_disk_available_bytes`, `TR_Path(".").TR_disk_available_bytes`},
 	{messages.H7900, "TR_var s = TR_sum(TR_Tensor([1.0, 2.0]), axis: 0)", "axis", "TR_dim"},
 	{messages.H7903, "TR_var t = TR_Tensor([1.0]).tür_", "tür_", "TR_dtype"},

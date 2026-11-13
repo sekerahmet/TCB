@@ -1793,6 +1793,20 @@ TR_test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     }
 }
 
+TR_test "15.37a cihaz_bilgisi: cpu için makine() önerilir; olmayan cihaz hata" {
+    TR_assert_equal("H7734", TR_error_code { TR_device_info("cpu") })
+    TR_var kod = TR_error_code { TR_device_info("gpu:9") }
+    TR_assert(kod == "H6812" TR_or kod == "H6813")
+    TR_assert_equal("H6800", TR_error_code { TR_device_info("tpu") })
+    TR_assert_equal("H2012", TR_error_code { TR_device_info() })
+    TR_if TR_devices().TR_contains("gpu") {
+        TR_var b = TR_device_info("gpu")
+        TR_assert_equal(TR_DeviceInfo, TR_Type(b))
+        TR_assert(b.TR_name.TR_length > 0)
+        TR_assert(b.TR_memory_total_bytes > 0)
+    }
+}
+
 TR_test "15.38 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata, cihaz değişmez" {
     TR_assert_equal("cpu", TR_default_device())
     TR_assert_equal("cpu", TR_default_device("cpu"))

@@ -1879,6 +1879,7 @@
 "H7731": { "param": ["value", "suggestion"], "slots": {"arch": "TR_mem_arch"} },
 "H7732": { "param": ["value"], "slots": {"os": "TR_mem_os"} },
 "H7733": { "param": ["value"], "slots": {"arch": "TR_mem_arch"} },
+"H7734": { "param": ["fn"], "slots": {"machine": "TR_fn_machine", "cpu_features": "TR_mem_cpu_features"} },
 "H7735": { "param": ["fn", "item", "os"] },
 "H7736": { "param": ["fn", "path"] },
 "H7737": { "param": ["fn", "path", "dir"], "slots": {"Path": "TR_type_Path", "disk_available_bytes": "TR_mem_disk_available_bytes"} },

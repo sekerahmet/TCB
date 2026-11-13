@@ -835,6 +835,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** `TR_default_device(" CPU ")` kabul ediliyor [ölçüldü]; `.TR_to_device(" CPU ")` de kabul ediliyor ve TR testi bunu sabitliyor. Desteklenen GPU yalnız NVIDIA.
 - **Yapılacaklar:** tek yazım (büyük harf ve boşluk hata); TR testi. Başka hızlandırıcılar (Apple, gömülü NPU) yol haritasında.
 
+### 15.37a
+
+- **Mevcut durum (2026-11-13; Dost Interface, tek tığın E dilimi):** `TR_device_info(c)` kartın adını, belleğini ve sürücü arayüzünün sürümünü veriyor (`"cpu"` H7734, `TR_machine()`'i önerir); cihaz adını 15.37'nin çözücüsü çözer, büyük harfli ad da kabul edilir (15.37'nin satırı). Gerçek kartta sınama G4'te [test: `TestGPUDeviceInfo`, `TestDeviceInfoOfDrivers`, `tests/tensor_test.tr`].
+
 ### 15.38
 
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_load_tensors` varsayılan cihazda kurar (T3).

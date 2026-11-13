@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 777 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 68 tip, 178 fonksiyon, 12 sabit, 93 metot, 145 özellik, 194 adlı argüman.
+Toplam 780 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 69 tip, 179 fonksiyon, 12 sabit, 93 metot, 146 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -689,6 +689,23 @@ tr: değişken küme = VeriKümesi("tests/data/numbers"); yazdır(küme, Tip(kü
 ```
 
 Üyeleri: `.TR_sampler(...)`, `.TR_sequential(...)` · İlişkili: `.TR_sampler(...)`, `.TR_sequential(...)`
+
+#### `TR_DeviceInfo` (`TR_type_DeviceInfo`, `CihazBilgisi`)
+
+cihaz_bilgisi()'nin verdiği kart bilgisi.
+
+```tr
+TR_if TR_devices().TR_contains("gpu") { TR_print(TR_Type(TR_device_info("gpu")) == TR_DeviceInfo) }; TR_print(TR_devices()[0])
+```
+
+Görünümü:
+
+```text
+en: if devices().contains("gpu") { print(Type(device_info("gpu")) == DeviceInfo) }; print(devices()[0])
+tr: eğer cihazlar().içerir("gpu") { yazdır(Tip(cihaz_bilgisi("gpu")) == CihazBilgisi) }; yazdır(cihazlar()[0])
+```
+
+Üyeleri: `.TR_driver_version`, `.TR_memory_total_bytes`, `.TR_name` · İlişkili: `TR_device_info(...)`, `.TR_name`, `.TR_memory_total_bytes`, `.TR_driver_version`
 
 #### `TR_Dict` (`TR_type_Dict`, `Sözlük`)
 
@@ -1987,6 +2004,25 @@ tr: yazdır(varsayılan_cihaz()); varsayılan_cihaz("cpu"); yazdır(Tensör([1.0
 ```
 
 İlişkili: `TR_devices(...)`, `.TR_to_device(...)`, `.TR_device`
+
+#### `TR_device_info(...)` (`TR_fn_device_info`, `cihaz_bilgisi`)
+
+    cihaz_bilgisi(Metin) → CihazBilgisi
+
+Bir GPU'nun adını, belleğini ve sürücü sürümünü CihazBilgisi olarak verir; "cpu" için makine() kullanılır.
+
+```tr
+TR_var kod = TR_error_code { TR_device_info("cpu") }; TR_print(kod); TR_if kod != "H7734" { TR_print(TR_device_info("cpu")) }; TR_if TR_devices().TR_contains("gpu") { TR_print(TR_device_info("gpu").TR_name) }
+```
+
+Görünümü:
+
+```text
+en: var kod = error_code { device_info("cpu") }; print(kod); if kod != "H7734" { print(device_info("cpu")) }; if devices().contains("gpu") { print(device_info("gpu").name) }
+tr: değişken kod = hata_kodu { cihaz_bilgisi("cpu") }; yazdır(kod); eğer kod != "H7734" { yazdır(cihaz_bilgisi("cpu")) }; eğer cihazlar().içerir("gpu") { yazdır(cihaz_bilgisi("gpu").dosya_adı) }
+```
+
+İlişkili: `TR_DeviceInfo`, `TR_devices(...)`, `TR_machine(...)`
 
 #### `TR_devices(...)` (`TR_fn_devices`, `cihazlar`)
 
@@ -6528,6 +6564,25 @@ tr: değişken g = eşzamanlı toplam([1, 2]); g.bekle(); yazdır(g.bitti_mi())
 
 
 
+#### `.TR_driver_version` (`TR_mem_driver_version`, `sürücü_sürümü`)
+
+    CihazBilgisi.sürücü_sürümü → Metin
+
+Kartın sürücü arayüzünün sürümü, "büyük.küçük" (CihazBilgisi).
+
+```tr
+TR_if TR_devices().TR_contains("gpu") { TR_print(TR_device_info("gpu").TR_driver_version) }; TR_print(TR_devices()[0])
+```
+
+Görünümü:
+
+```text
+en: if devices().contains("gpu") { print(device_info("gpu").driver_version) }; print(devices()[0])
+tr: eğer cihazlar().içerir("gpu") { yazdır(cihaz_bilgisi("gpu").sürücü_sürümü) }; yazdır(cihazlar()[0])
+```
+
+İlişkili: `TR_device_info(...)`, `TR_DeviceInfo`
+
 #### `.TR_dry_run` (`TR_mem_dry_run`, `prova`)
 
 
@@ -7261,6 +7316,7 @@ tr: değişken m = makine(); yazdır(min(m.toplam_bellek_baytı, m.bellek_sını
 #### `.TR_memory_total_bytes` (`TR_mem_memory_total_bytes`, `toplam_bellek_baytı`)
 
     Makine.toplam_bellek_baytı → Tam
+    CihazBilgisi.toplam_bellek_baytı → Tam
 
 Makinenin fiziksel belleği (Makine) ya da kartın belleği (CihazBilgisi), bayt.
 
@@ -7330,8 +7386,9 @@ tr: dosya_yaz("zaman.txt", "a"); yazdır(Yol("zaman.txt").değişme_zamanı_ns >
 #### `.TR_name` (`TR_mem_name`, `dosya_adı`)
 
     Yol.dosya_adı → Metin
+    CihazBilgisi.dosya_adı → Metin
 
-Yolun son bileşenini verir ("veri/derlem.tar.gz" → "derlem.tar.gz"); . ve kök için boş metindir.
+Yolun son bileşenini verir ("veri/derlem.tar.gz" → "derlem.tar.gz"); . ve kök için boş metindir. CihazBilgisi'nde kartın adı.
 
 ```tr
 TR_print(TR_Path("veri/derlem.tar.gz").TR_name)

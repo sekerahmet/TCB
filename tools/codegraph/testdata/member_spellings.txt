@@ -457,6 +457,7 @@ b.TR_cancel	ok	0	name:TR_mem_cancel
 b.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 b.TR_cpu_features	ok	0	name:TR_mem_cpu_features
 b.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
+b.TR_driver_version	ok	0	name:TR_mem_driver_version
 b.TR_dtype	ok	0	name:TR_mem_dtype
 b.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 b.TR_encode	ok	0	name:TR_mem_encode
@@ -479,6 +480,7 @@ b.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma
 b.TR_length	ok	0	name:TR_mem_length
 b.TR_mem_tolist	not_found	4	-
 b.TR_memory_total_bytes	ok	0	name:TR_mem_memory_total_bytes
+b.TR_name	ok	0	name:TR_mem_name
 b.TR_next	ok	0	name:TR_mem_next
 b.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
 b.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
