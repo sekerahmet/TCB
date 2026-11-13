@@ -1058,6 +1058,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 ### 18.9
 
 - **Yapılacaklar (A adayı, diskteki veri; sessiz mi ölçülmedi):** arada kesilince geçici adıyla kalan eski klasörü söyleyen ileti; `TR_move`'un dolu klasörün yerine konmasını sınayan Go testi.
+- **Yapılacaklar (C, Ö2; sahip dosya ve yol kolu, TCB atar; dil tanımı turunun indirme kararları, 2026-11-13):** kopyalama ve taşıma dosyanın değişme zamanını korumaya çalışıyor ama `os.Chtimes`'ın hatası yok sayılıyor [kanıtlı: `internal/stdlib/files/copy_run.go:116`, `_ = os.Chtimes(fpath, time.Now(), b.ModTime())`]; zaman korunmazsa boy ve değişme zamanıyla karmayı atlayan program (tek tık) dosyayı boşuna yeniden karmalar ya da eski karmaya güvenir. Aynı ve başka diskte korunup korunmadığı Windows'ta ölçülmedi (yerine koymanın ölçüsüyle birlikte, tek tığın C diliminden önce).
 
 ### 18.11
 
