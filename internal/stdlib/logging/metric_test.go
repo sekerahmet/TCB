@@ -2,8 +2,10 @@ package logging_test
 
 import (
 	"math"
+	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
@@ -39,5 +41,13 @@ func TestFormatDurationAndBar(t *testing.T) {
 		if got := logging.Bar(d.ratio); got != d.want {
 			t.Errorf("Cubuk(%v) = %q, beklenen %q", d.ratio, got, d.want)
 		}
+	}
+}
+
+// TestMetricTextIsCutAfterMask: çubuktaki metin ölçüsü 20 karakterde kesilmeden önce maskelenir
+// (19.4): maskesiz kesim kayıtsız adresin '@'sini düşürür, "Kisa" kalırdı.
+func TestMetricTextIsCutAfterMask(t *testing.T) {
+	if got := logging.MetricText(&interp.StringVal{Val: "http://uuuuuuuu:Kisa1@h"}); strings.Contains(got, "Kisa") {
+		t.Errorf("parola kesimden önce örtülmeli: %q", got)
 	}
 }

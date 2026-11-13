@@ -280,6 +280,10 @@ func TestCommandLineAddressInUsageError(t *testing.T) {
 		{[]string{"--adım", long}, "", ":Ve"},
 		{[]string{"--katmanlar", "1,http://ali:Vekil2026@x"}, "", "Vekil2026"},
 		{[]string{long}, "", ":Ve"},
+		// Bilinmeyen seçenek (H7208) ve tek tireli argüman (H7206): argüman önce maskelenir, sonra
+		// 60 karakterde kesilir (DENETİM 641 N1).
+		{[]string{"--http://" + strings.Repeat("a", 45) + ":Vekil2026@x"}, "", "Vekil"},
+		{[]string{"-http://" + strings.Repeat("a", 45) + ":Vekil2026@x"}, "", "Vekil"},
 	} {
 		_, _, err := commandLine(t, code, d.args...)
 		c, ok := interp.IsExitRequest(err)

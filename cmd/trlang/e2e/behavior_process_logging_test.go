@@ -103,6 +103,77 @@ TR_print("vekil", ayar["vekil"])
 	}
 }
 
+// Bağlamlı maske (19.4, K1a): basılan metindeki her adresin parolası, kısa olsa ya da adres dosyadan
+// okunsa, programda kurulsa da *** olur; parolasız belirteç 6 karakterle örtülür. `DSN` adlı değişkenin
+// değeri gizlidir; aynı biçimdeki `DATABASE_URL` (`://`'sız) açık kalır (K1b'nin kalan durumu).
+func TestPrintedAddressPasswordIsMasked(t *testing.T) {
+	dir := t.TempDir()
+	writeTR(t, dir, "b.tr", `TR_print("kısa:", "postgres://u:ab@db/ana")
+TR_print("belirteç:", "https://ghp_abc123def@github.com/k/d")
+TR_print("git:", "ssh://git@github.com/k/d")
+TR_print("kapsam:", "https://www.npmjs.com/package/@scope/x")
+TR_print("eğik:", "http://ali:Vek/il2026@x")
+TR_write_file("adres.txt", "http://ali:Dosya2026@vekil")
+TR_print("dosya:", TR_read_file("adres.txt"))
+TR_var p = "Kur2026"
+TR_print("kurulan:", "http://ali:" + p + "@vekil")
+TR_print("mysql:", TR_env("MYSQL_DSN"))
+TR_print("dsn:", TR_env("DATABASE_DSN"))
+TR_print("url:", TR_env("DATABASE_URL"))
+`)
+	env := []string{"MYSQL_DSN=root:Vekil2026@tcp(db:3306)/app", "DATABASE_DSN=app:Baska2026@tcp(db)/x",
+		"DATABASE_URL=root:Url2026@tcp(db:3306)/app"}
+	s := testkit.RunBinary(t, trBinary, dir, "", env, "b.tr")
+	testkit.Wait(t, s, 0, []string{"kısa: postgres://u:***@db/ana", "belirteç: https://***@github.com/k/d",
+		"git: ssh://git@github.com/k/d", "kapsam: https://www.npmjs.com/package/@scope/x", "eğik: http://ali:Vek/il2026@x",
+		"dosya: http://ali:***@vekil", "kurulan: http://ali:***@vekil", "mysql: ***", "dsn: ***",
+		"url: root:Url2026@tcp(db:3306)/app"}, nil)
+	for _, secret := range []string{"ab@", "ghp_abc123def", "Dosya2026", "Kur2026@", "Vekil2026", "Baska2026"} {
+		if strings.Contains(s.Stdout+s.Stderr, secret) {
+			t.Errorf("%q çıktıda görünmemeli:\n%s\n%s", secret, s.Stdout, s.Stderr)
+		}
+	}
+}
+
+// Kabın metnindeki kaçışlı gizli değer (19.4): TR_print listenin, sözlüğün ve TR_JSON'un metnini
+// maskeden önce kaçışlar; kayıt değerin kaçışlı biçimini de tuttuğu için tırnaklı ve ters bölülü
+// gizli değer kapta da *** görünür.
+func TestEscapedSecretMaskedInPrintedContainers(t *testing.T) {
+	dir := t.TempDir()
+	writeTR(t, dir, "k.tr", `TR_for ad TR_in ["API_TOKEN", "API_KEY"] {
+    TR_var t = TR_env(ad)
+    TR_print(ad, "liste:", [t])
+    TR_print(ad, "sözlük:", {"a": t, t: 1})
+    TR_print(ad, "iç içe:", [[t], {"k": [t]}])
+    TR_print(ad, "json:", TR_json_parse(TR_json_string([t, {"k": t}])))
+}
+`)
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"API_TOKEN=abc\"def12345", "API_KEY=abc\\def12345"}, "k.tr")
+	var want []string
+	for _, ad := range []string{"API_TOKEN", "API_KEY"} {
+		want = append(want, ad+` liste: ["***"]`, ad+` sözlük: {"a": "***", "***": 1}`,
+			ad+` iç içe: [["***"], {"k": ["***"]}]`, ad+` json: ["***",{"k":"***"}]`)
+	}
+	testkit.Wait(t, s, 0, want, nil)
+	if strings.Contains(s.Stdout+s.Stderr, "def12345") {
+		t.Errorf("kaçışlı gizli değer çıktıda görünmemeli:\n%s\n%s", s.Stdout, s.Stderr)
+	}
+}
+
+// Çalışma hatasının iletisi turkish.Printable'dan geçip sonra maskelenir (19.4): CR taşıyan gizli
+// değer iletide \u{d}'li biçimiyle yazılırdı; kayıt o biçimi de tutar.
+func TestEscapedSecretMaskedInRunError(t *testing.T) {
+	dir := t.TempDir()
+	writeTR(t, dir, "c.tr", `TR_var t = TR_env("API_TOKEN")
+TR_throw "bağlanamadı: " + t
+`)
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"API_TOKEN=abc\rdef12345"}, "c.tr")
+	testkit.Wait(t, s, 1, nil, []string{"bağlanamadı: ***"})
+	if strings.Contains(s.Stdout+s.Stderr, "def12345") {
+		t.Errorf("gizli değer çalışma hatasında görünmemeli:\n%s", s.Stderr)
+	}
+}
+
 // İlerleme çubuğu boruya (terminal değil) yazarken standart çıktıya karışmaz, sonda özet
 // satırı yazılır; program hatayla bitse de çubuk biter, bitiş günlüğe yazılır.
 func TestProgressOnCommandLine(t *testing.T) {

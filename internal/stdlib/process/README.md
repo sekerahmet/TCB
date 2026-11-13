@@ -10,12 +10,16 @@ satırı seçenekleri (`TR_fn_command_line`) ve dış programlar (`TR_fn_run_pro
 Adı ne olursa olsun, ortamın ve komut satırının her değerindeki adresin kimlik kısmı da gizlidir (19.4):
 `Register` ortamı, `interp.VM.SetArgs` argümanları program başlarken tarar; program değişkeni okumasa da
 dış programın standart hatasında örtülür. `TR_env:` ile verilen değer de taranır (`programEnv`). Kuralın
-kendisi tek yerde, `interp`'tedir (`address_secret.go`). Kullanım hatasındaki değer önce maskelenir, sonra
-kesilir (`errorValue`, H7207): kesim parolanın ortasına düşse de başı kalmaz.
+kendisi tek yerde, `interp`'tedir (`address_secret.go`); basılan metindeki adresin parolası kayıtsız da
+örtülür (bağlamlı maske, `interp`'in `Mask`'ı). Kullanım hatasındaki değer ve bilinmeyen seçeneğin argümanı
+önce maskelenir, sonra kesilir (`errorValue`, H7207; `unknownOption`, H7206, H7208, H7209): kesim parolanın
+ortasına düşse de başı kalmaz. Standart hata kuyruğunun düşen başı bir adresin `://`'sunu götürdüyse kalan
+kimlik kısmı da atılır (`stderr_tail.go`). Gizli sözcüklerde `DSN`, `DSNS` de var (`://`'sız bağlantı dizgisi).
 Denetim: `TestIsSecretName`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`, `TestEnvVar`,
 `TestEnvironmentAddressIsMaskedAtStart`, `TestUnreadAddressIsMaskedInChildStderr`, `TestEnvArgumentAddressIsMasked`,
-`TestCommandLineAddressInUsageError`; `interp`'te `TestAddressSecrets`; ayrı süreçte `cmd/trlang/e2e`
-`TestSecretValuesMaskedInOutput`, `TestAddressUserinfoMaskedInOutput`.
+`TestCommandLineAddressInUsageError`, `TestUnknownOptionIsCutAfterMask`, `TestStderrTailDropsACutAddress`;
+`interp`'te `TestAddressSecrets`, `TestContextualAddressMask`; ayrı süreçte `cmd/trlang/e2e`
+`TestSecretValuesMaskedInOutput`, `TestAddressUserinfoMaskedInOutput`, `TestPrintedAddressPasswordIsMasked`.
 
 **Parça parça metnin maskesi akıştadır.** Maske her çıktıya ayrı uygulanır, iki parçaya bölünen gizli
 değeri görmez. `TR_fn_mask_stream()`'in değeri (`mask_stream.go`) parçaları `interp.MaskStream`'e verir:

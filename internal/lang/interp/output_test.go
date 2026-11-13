@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // fakeLiveLine silinip çizildiğini ortak çıktıya işaretleyen bir canlı satırdır.
@@ -154,5 +155,83 @@ func TestProgramSecretsAcrossVMs(t *testing.T) {
 	programSecrets.mask("")
 	if after := programSecrets.replacer.Load(); after == before || programSecrets.changed.Load() {
 		t.Error("değiştirici bir sonraki maskede bir kez kurulmalı")
+	}
+}
+
+// TestValueAndContextMaskTogether: değer maskesi ve bağlamlı maske aynı özgün metinde bulunur, ortak
+// baytı olan aralıklar tek *** olur (19.4). Sıralı iki aşamanın ikisi de birer durumda sızdırırdı:
+// kayıtlı değer "://"'yu kapsayınca bağlam bölgeyi bulamazdı, kimlik kısmını kapsayınca değer
+// eşleşmezdi. Adressiz metinde sonuç değer maskesinin kendisidir (TestSecretFilter değişmeden geçer).
+func TestValueAndContextMaskTogether(t *testing.T) {
+	t.Cleanup(ClearRegisteredSecrets)
+	for _, tc := range []struct{ secret, text, want string }{
+		{"https://ali", "https://ali:ab@h", "***:***@h"},
+		{"ali:Vekil2026", "http://ali:Vekil2026@h", "http://***@h"},
+		{"postgres", "postgres://postgres@localhost/ana", "***://***@localhost/ana"},
+	} {
+		v := New()
+		if !v.AddSecret(tc.secret) {
+			t.Fatalf("%q kaydedilmedi", tc.secret)
+		}
+		if got := v.Mask(tc.text); got != tc.want {
+			t.Errorf("kayıtlı %q: %q → %q, %q bekleniyordu", tc.secret, tc.text, got, tc.want)
+		}
+		if got := MaskBeforeCut(tc.text); got != tc.want {
+			t.Errorf("süreç boyu küme, kayıtlı %q: %q → %q", tc.secret, tc.text, got)
+		}
+	}
+}
+
+// TestEscapedSecretIsMasked: maskeden önce metni kaçışlayan üç dönüşüm (kabın metni QuoteText,
+// TR_JSON'un metni, iletinin turkish.Printable'ı) gizli değeri kendi kaçışlı biçimine çevirir; kayıt
+// o biçimleri de tutar (19.4). Maskeden önce metni değiştiren yeni bir dönüşüm eklenirse buraya
+// satırı eklenir.
+func TestEscapedSecretIsMasked(t *testing.T) {
+	t.Cleanup(ClearRegisteredSecrets)
+	program := "TR_print([t])\nTR_print({\"k\": t})\nTR_print({t: 1})\nTR_print([[t], {\"k\": [t]}])\n" +
+		"TR_print(TR_JSON([t, {\"k\": t}]))\n"
+	for _, secret := range []string{
+		"abc\"def12345", "abc\\def12345", "abc\tdef12345", "abc\rdef12345", "abc\x01def12345",
+		"abc\xe2\x80\xa8def12345", // U+2028: yalnız JSON kaçışlar
+		"abc\xe2\x80\xaedef12345", // U+202E: yalnız TR'nin metin yazımı kaçışlar
+		"abc\"def\x01gh12345",     // tırnak ve denetim harfi birlikte: Printable'ın biçimi QuoteText'inkinden ayrı
+	} {
+		var output bytes.Buffer
+		v := New()
+		v.Out, v.Err = &output, &output
+		if !v.AddSecret(secret) {
+			t.Fatalf("%q kaydedilmedi", secret)
+		}
+		v.GlobalEnv.Define("t", &StringVal{Val: secret}, false)
+		execCode(t, v, program)
+		if got := output.String(); strings.Contains(got, "12345") || strings.Count(got, SecretMask) != 7 {
+			t.Errorf("%q: kabın metninde kaçışlı biçim açık kaldı: %q", secret, got)
+		}
+		if got := v.Mask(turkish.Printable("bağlanamadı: " + secret)); got != "bağlanamadı: ***" {
+			t.Errorf("%q: iletinin yolu: %q", secret, got)
+		}
+	}
+	// Kaçışlanan harf taşımayan değer ek kayıt doğurmaz.
+	v := New()
+	v.AddSecret("abcdef12")
+	if len(v.secrets) != 1 {
+		t.Errorf("düz değer: %d kayıt, 1 bekleniyordu", len(v.secrets))
+	}
+	// Geçersiz UTF-8: kabın tek yaprağıyken biçim tutar. Sınırdaki yarım diziyi komşu bayt tamamlayıp
+	// kaçışlanan bir harf (U+0085) yapınca kaçışlı biçim eşleşmez: sınır sabitlenir, yanılgı değil.
+	// Tamamlanan harf kaçışlanmıyorsa (x\xc3 + \xa7…: ç) ham değer baytça eşleşir ve örtülür.
+	invalid := New()
+	invalid.AddSecret("ab\xffcdef12")
+	if got := invalid.Mask(QuoteText("ab\xffcdef12")); got != `"***"` {
+		t.Errorf("geçersiz UTF-8, tek yaprak: %q", got)
+	}
+	edge := New()
+	edge.AddSecret("\x85abcdef")
+	edge.AddSecret("\xa7abcdef")
+	if got := edge.Mask(turkish.Printable("x\xc2\x85abcdef")); !strings.Contains(got, "abcdef") {
+		t.Errorf("sınır değişti (U+0085'i tamamlayan komşu): %q", got)
+	}
+	if got := edge.Mask(turkish.Printable("x\xc3\xa7abcdef")); strings.Contains(got, "abcdef") {
+		t.Errorf("ç'yi tamamlayan komşuda ham değer örtülmeli: %q", got)
 	}
 }

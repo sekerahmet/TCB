@@ -144,6 +144,22 @@ func TestSummaryIsCutAfterMask(t *testing.T) {
 	if got := shown(text("kisa-gizli-2026")); !strings.Contains(got, SecretMask) || strings.Contains(got, "kisa-gizli") {
 		t.Errorf("kısa gizli değer *** görünmeli: %q", got)
 	}
+	// Kayıtsız adresin kısa parolası (bağlamlı maske): 42 karakter; maskesiz kesimde '@' düşer, "Kisa"
+	// kalırdı. Maskeli metin 40 karakterdir, kesilmez.
+	unregistered := "http://" + strings.Repeat("a", 27) + ":Kisa1@h"
+	if got := shown(text(unregistered)); strings.Contains(got, "Kisa") || !strings.Contains(got, SecretMask) {
+		t.Errorf("kayıtsız adresin parolası kesimden önce örtülmeli: %q", got)
+	}
+	// Tırnaklı gizli değerin tek öğeli listesi (H2424): liste metni değeri kaçışlı yazar; özette
+	// değerin başı kaçışlı biçimiyle de kalmaz.
+	quoted := "sk-tirnak\"li-anahtar-0123456789abcdefghijklmn"
+	if len(quoted) != 45 {
+		t.Fatalf("anahtar %d karakter", len(quoted))
+	}
+	v.AddSecret(quoted)
+	if got := shown(&ListVal{Elements: []Value{text(quoted)}}); strings.Contains(got, "sk-tirn") {
+		t.Errorf("listedeki tırnaklı anahtarın başı kalmamalı: %q", got)
+	}
 }
 
 func memberSignatureOf(def codes.Definition, typ codes.Code) (codes.Signature, bool) {

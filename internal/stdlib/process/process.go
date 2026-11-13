@@ -118,7 +118,7 @@ var secretWords = map[string]bool{
 	"PASSWORD": true, "PASSWORDS": true, "PASSWD": true, "PASS": true, "PASSPHRASE": true,
 	"PASSPHRASES": true, "AUTH": true, "CREDENTIAL": true, "CREDENTIALS": true, "PRIVATE": true,
 	"APIKEY": true, "ACCESSKEY": true, "SECRETKEY": true, "PRIVATEKEY": true, "AUTHTOKEN": true,
-	"ACCESSTOKEN": true, "APITOKEN": true,
+	"ACCESSTOKEN": true, "APITOKEN": true, "DSN": true, "DSNS": true,
 	"GIZLI": true, "SIFRE": true, "SIFRESI": true, "SIFRELER": true, "PAROLA": true, "PAROLASI": true,
 	"PAROLALAR": true, "ANAHTAR": true, "ANAHTARI": true, "ANAHTARLAR": true,
 }

@@ -45,10 +45,12 @@ func metricText(v interp.Value) string {
 	case *interp.IntVal:
 		return strconv.FormatInt(x.Val, 10)
 	case *interp.StringVal:
-		if r := []rune(x.Val); len(r) > 20 {
+		// Önce maske, sonra kesim (19.4): çubuğun satırı sonra maskelenir, kesilmiş baş tanınmaz.
+		s := interp.MaskBeforeCut(x.Val)
+		if r := []rune(s); len(r) > 20 {
 			return string(r[:20]) + "…"
 		}
-		return x.Val
+		return s
 	case *interp.ListVal:
 		if len(x.Elements) == 1 {
 			return metricText(x.Elements[0])

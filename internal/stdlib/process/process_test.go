@@ -20,11 +20,13 @@ func TestIsSecretName(t *testing.T) {
 		"GOOGLE_APPLICATION_CREDENTIALS",
 		"API_KEYS", "MY_TOKENS", "HF_ANAHTARLAR", "X_SECRETS", "X_PASSWORDS", "PASSPHRASES", "db_şifreler",
 		"parolalar", "max_tokens", "tokens", "keys",
+		"MYSQL_DSN", "DATABASE_DSN", "dsns", "DSN",
 	}
 	negated := []string{
 		"TOKENIZER_PATH", "tokenizer", "KEYBOARD_LAYOUT",
 		"PASSAGE_DIR", "BYPASS", "XAUTHORITY", "MONKEY", "öğrenme_oranı", "adım", "VERİ_KLASÖRÜ",
 		"monkeys", "", "_",
+		"DATABASE_URL", // URL gizli sözcük değildir: bütün adresleri örterdi (19.4)
 	}
 	for _, name := range secret {
 		if !IsSecretName(name) {

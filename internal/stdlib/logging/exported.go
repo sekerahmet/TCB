@@ -1,11 +1,18 @@
 package logging
 
-import "os"
+import (
+	"os"
+
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+)
 
 // Araçların (trlang watch, trlang profile) çubukla aynı kuralla yazması için dışa açılan yardımcılar.
 
 // FormatNumber bir ölçüyü 3 anlamlı basamakla Türkçe yazar (2,31 · 0,000312 → 3,12e-4).
 func FormatNumber(f float64) string { return formatNumber(f) }
+
+// MetricText bir ölçünün çubuktaki kısa yazımıdır (metin önce maskelenir, sonra kısaltılır).
+func MetricText(v interp.Value) string { return metricText(v) }
 
 // FormatDuration geçen süreyi yazar: "45 sn", "3 dk 2 sn", "2 sa 5 dk".
 func FormatDuration(sec float64) string { return formatDuration(sec) }

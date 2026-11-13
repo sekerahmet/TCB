@@ -74,6 +74,26 @@ func TestStderrTailPrintable(t *testing.T) {
 	}
 }
 
+// Tamponun düşen başı bir adres bölgesinin "://"'sunu götürünce kalan kimlik kısmı bağlamsız kalırdı
+// (19.4): pencerenin '@' taşıyan başı ilk bölge sınırına kadar atılır, '@'siz baş kalır. A en az 4090
+// bayttır: toplam 8192'yi aşınca tampon son 4096 bayta (B'ye) iner; daha kısa A'da kesim kurulmazdı.
+func TestStderrTailDropsACutAddress(t *testing.T) {
+	for _, c := range []struct{ start, want string }{
+		{"u:ab@h kalan", " kalan"},
+		{"uzunsözcük kalan", "uzunsözcük kalan"},
+	} {
+		tail := &stderrTail{longest: func() int { return 0 }}
+		b := c.start + strings.Repeat("x", stderrTailLimit-len(c.start))
+		_, _ = tail.Write([]byte(strings.Repeat("a", 4090) + "http://" + b))
+		if !tail.cut {
+			t.Fatalf("%q: tampon kesilmedi", c.start)
+		}
+		if got := tail.text(noMask); !strings.HasPrefix(got, c.want) || strings.Contains(got, "ab@") {
+			t.Errorf("%q: gelen %q…", c.start, got[:min(len(got), 20)])
+		}
+	}
+}
+
 // Kesme çok baytlı harfi ortasından bölmez.
 func TestStderrTailKeepsWholeRunes(t *testing.T) {
 	tail := &stderrTail{longest: func() int { return 0 }}

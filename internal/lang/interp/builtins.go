@@ -358,7 +358,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 		return nil, ArgTypeError(codes.FnWriteFile, 2, args[1], codes.TypeString, codes.TypeBytes)
 	}
 	// Gizli değer (19.4'ün eşiğiyle) yalnız sahibine açık dosyaya yazılır (18.13).
-	if !ownerOnly && y.HasSecrets() && y.Mask(string(content)) != string(content) {
+	if !ownerOnly && y.HasSecrets() && y.maskValues(string(content)) != string(content) {
 		return nil, messages.New(messages.H7600, CallPrefix(codes.FnWriteFile))
 	}
 	resolved, _ := y.ResolveWritePath(filePath)

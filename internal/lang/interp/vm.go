@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -192,11 +191,12 @@ type vmShared struct {
 	live     LiveLine
 	hasLive  atomic.Bool
 
-	// gizliler gizli değer süzgecine kayıtlı değerlerdir; maske onlardan kurulmuş
-	// değiştiricidir (gizli değer yoksa nil: çıktı noktalarında maliyet bir atomik okuma).
+	// gizliler gizli değer süzgecine kayıtlı değerlerdir (kaçışlı biçimleriyle); maske onlardan
+	// kurulmuş değer maskesidir (gizli değer yoksa nil: adressiz çıktıda maliyet bir atomik okuma ve
+	// bir strings.Index).
 	isSecret sync.Mutex
 	secrets  []string
-	mask     atomic.Pointer[strings.Replacer]
+	mask     atomic.Pointer[valueMask]
 	// maskBuilds süzgecin kaç kez kurulduğudur (isSecret'la korunur); yalnız toplu kaydın testi okur.
 	maskBuilds int
 

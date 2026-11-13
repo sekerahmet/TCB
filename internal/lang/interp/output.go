@@ -7,6 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // Çıktı noktaları: insanın göreceği her çıktı (yazdır, girdi istemi, hata mesajları,
@@ -47,10 +49,10 @@ func (v *VM) AddSecret(value string) bool {
 	return true
 }
 
-// addSecrets registers the values of at least MinSecretLength characters with the filter and with a
-// part of the program-wide set (start: the start part). New values are gathered first and the
-// filter is built once, only when one of them is new: a value with many addresses does not rebuild
-// it per address.
+// addSecrets registers the values of at least MinSecretLength characters, with their escaped forms
+// (escapedForms), with the filter and with a part of the program-wide set (start: the start part).
+// New values are gathered first and the filter is built once, only when one of them is new: a value
+// with many addresses does not rebuild it per address.
 func (v *VM) addSecrets(values []string, start bool) {
 	values = slices.DeleteFunc(slices.Clone(values), func(s string) bool {
 		return utf8.RuneCountInString(s) < MinSecretLength
@@ -58,6 +60,7 @@ func (v *VM) addSecrets(values []string, start bool) {
 	if len(values) == 0 {
 		return
 	}
+	values = escapedForms(values)
 	programSecrets.add(values, start)
 	v.isSecret.Lock()
 	defer v.isSecret.Unlock()
@@ -79,10 +82,39 @@ func (v *VM) addSecrets(values []string, start bool) {
 	}
 }
 
-// longestFirst builds the replacer of secrets; longer values are tried first, so that when one
+// escapedForms is values with, after each value and when different from it, the forms the value
+// takes when the text holding it is escaped before the mask: inside a container's text (QuoteText,
+// without its quotes), inside TR_JSON's text (appendJSONString, without its quotes) and in a message
+// or warning (turkish.Printable). The three escapes go character by character, so a secret inside a
+// longer text escapes to its own escaped form (for valid UTF-8). Kural (19.4): maskeden önce metni
+// değiştiren yeni bir dönüşüm eklenirse kayda onun biçimi de eklenir; testi
+// TestEscapedSecretIsMasked'tedir.
+func escapedForms(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, s := range values {
+		quoted := QuoteText(s)
+		json := string(appendJSONString(nil, s))
+		out = append(out, s)
+		for _, form := range []string{quoted[1 : len(quoted)-1], json[1 : len(json)-1], turkish.Printable(s)} {
+			if form != s {
+				out = append(out, form)
+			}
+		}
+	}
+	return out
+}
+
+// valueMask is the value mask of a set of secrets: the replacer and the same values longest first,
+// for the scan that masks them together with the contextual mask (maskWith).
+type valueMask struct {
+	replacer *strings.Replacer
+	ordered  []string
+}
+
+// longestFirst builds the value mask of secrets; longer values are tried first, so that when one
 // contains another the longer is masked whole (strings.Replacer takes the earlier of two patterns
 // that match at the same place).
-func longestFirst(secrets []string) *strings.Replacer {
+func longestFirst(secrets []string) *valueMask {
 	ordered := slices.Clone(secrets)
 	slices.Sort(ordered)
 	slices.SortStableFunc(ordered, func(a, b string) int { return len(b) - len(a) })
@@ -90,7 +122,30 @@ func longestFirst(secrets []string) *strings.Replacer {
 	for _, g := range ordered {
 		pairs = append(pairs, g, SecretMask)
 	}
-	return strings.NewReplacer(pairs...)
+	return &valueMask{replacer: strings.NewReplacer(pairs...), ordered: ordered}
+}
+
+// apply masks text with the values of m (nil: none) and the contextual mask (19.4). Text with no
+// address userinfo takes the replacer alone (one strings.Index more); otherwise the value matches
+// and the contextual spans are found in the same text and joined (maskWith).
+func (m *valueMask) apply(text string) string {
+	spans, _ := contextSpans(text, true)
+	if len(spans) == 0 {
+		if m == nil {
+			return text
+		}
+		return m.replacer.Replace(text)
+	}
+	out, _ := maskWith(m.longestFirst(), text, spans, -1, true)
+	return out
+}
+
+// longestFirst m'nin değerleridir, uzundan kısaya (m nil ise yok).
+func (m *valueMask) longestFirst() []string {
+	if m == nil {
+		return nil
+	}
+	return m.ordered
 }
 
 // LongestSecret is the length in bytes of the longest registered secret value (0 when there is
@@ -107,16 +162,28 @@ func (v *VM) LongestSecret() int {
 }
 
 // HasSecrets reports whether any secret value is registered. Places where scanning the whole
-// output is costly (e.g. debug messages) check this first.
+// output is costly (e.g. debug messages) check this first; the contextual mask needs no registered
+// value, so such a place masks text with "://" even when this is false (19.4).
 func (v *VM) HasSecrets() bool { return v.mask.Load() != nil }
 
-// Mask replaces the registered secret values in text with SecretMask.
-func (v *VM) Mask(text string) string {
-	if r := v.mask.Load(); r != nil {
-		return r.Replace(text)
+// Mask replaces the registered secret values in text, with their escaped forms, and the userinfo
+// secret of every address in text (the contextual mask, 19.4) with SecretMask.
+func (v *VM) Mask(text string) string { return v.mask.Load().apply(text) }
+
+// maskValues is Mask without the contextual mask: only the registered values and their escaped
+// forms. TR_write_file's H7600 check uses it (18.13): an address with a password in the written
+// text is data, not a registered secret.
+func (v *VM) maskValues(text string) string {
+	if m := v.mask.Load(); m != nil {
+		return m.replacer.Replace(text)
 	}
 	return text
 }
+
+// MaskBeforeCut masks text with the program-wide secret set and the contextual mask (19.4). A place
+// that cuts text meant for a person and has no VM (the debugger's value text, the progress bar's
+// text measure) calls it before cutting, so a cut does not leave the start of a secret.
+func MaskBeforeCut(text string) string { return programSecrets.mask(text) }
 
 // programSecrets süreç boyu gizli değer kümesidir; yalnız hata iletilerindeki değer özeti
 // (summaryIn) onu kullanır: özet metni kesmeden önce bu kümeyle maskeler (19.4, önce maske sonra
@@ -136,7 +203,7 @@ type secretSet struct {
 	start      map[string]struct{}
 	registered map[string]struct{}
 	changed    atomic.Bool
-	replacer   atomic.Pointer[strings.Replacer]
+	replacer   atomic.Pointer[valueMask]
 }
 
 // add değerleri bir parçaya ekler; yalnız kümede olmayan değer kümeyi "değişti" diye işaretler.
@@ -170,7 +237,8 @@ func (s *secretSet) add(values []string, start bool) {
 	}
 }
 
-// mask metni kümeyle maskeler; değiştirici küme değiştiyse burada bir kez kurulur.
+// mask metni kümeyle ve bağlamlı maskeyle maskeler (VM.Mask gibi); değiştirici küme değiştiyse
+// burada bir kez kurulur.
 func (s *secretSet) mask(text string) string {
 	if s.changed.Load() {
 		s.mu.Lock()
@@ -180,14 +248,11 @@ func (s *secretSet) mask(text string) string {
 		}
 		s.mu.Unlock()
 	}
-	if r := s.replacer.Load(); r != nil {
-		return r.Replace(text)
-	}
-	return text
+	return s.replacer.Load().apply(text)
 }
 
-// build iki parçanın değerlerinden değiştiriciyi kurar (uzun değer önce); küme boşsa nil.
-func (s *secretSet) build() *strings.Replacer {
+// build iki parçanın değerlerinden değer maskesini kurar (uzun değer önce); küme boşsa nil.
+func (s *secretSet) build() *valueMask {
 	values := make([]string, 0, len(s.start)+len(s.registered))
 	for value := range s.start {
 		values = append(values, value)

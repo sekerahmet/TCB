@@ -36,6 +36,8 @@ Kurallar: [`16_veri_parcalayici.md`](../16_veri_parcalayici.md). Bu dosya her ku
 
 - *Emsal:* `tokenizers`'ın `DecodeStream`'i çıktı U+FFFD ile bitiyorsa parçayı tamponda tutar [DENETİM açtı: tokenizers v0.21.1 `tokenizer/mod.rs`, `step_decode_stream`]. llama.cpp `common_utf8_is_complete`, Ollama `IncompleteUnicode` ile son baytların tamamlanmasını bekler [rapordan]. transformers'ın `TextStreamer`'ı bütün kimlikleri yeniden çözer ve son boşluğa kadar basar [rapordan].
 - *Gerekçe:* Jarvis üretilen metni parça parça sese ve ekrana verir. Türkçe harfler (`ğ`, `ş`) bayt düzeyindeki parçalayıcıda iki parçaya bölünebilir; parçayı tek başına çözen ajan her harfte U+FFFD yazar ve bu harfi kalıcı olarak bozar [rapordan, `[görüş]`]. Birleşimin toplu çözümle aynı olması sınanabilir bir sözdür ve parçalayıcının komşu parçaya bağlı çözücülerini (baştaki boşluk) de kapsar. `.TR_finish` kalan yarımı sessizce atmaz.
+- *Emsal (ikinci `.TR_finish()`, tur 7, K3):* WHATWG `TextDecoder.decode()` akışsız çağrıdan sonra çözücüyü yeniler, boş girdide boş metin verir; Go `hash.Hash.Sum` durumu değiştirmez, ikinci okuma aynı sonucu verir; Rust `digest` 0.11.3'ün `finalize(self)`'i nesneyi tüketir, ikinci bitiş derlenmez [kanıtlı: tur 7 araştırması 1.3, WebFetch özeti].
+- *Gerekçe (ikinci `.TR_finish()`):* ikinci bitiş çoğunlukla bir temizlik yolundadır (`TR_defer` ile döngü sonundaki bitiş). `""` vermek orada doğru çıktıyı verir, tutulan yoktur; hata vermek doğru bir programı durdururdu. 19.4a aynı cümleyi taşır.
 
 ### 16.4
 
