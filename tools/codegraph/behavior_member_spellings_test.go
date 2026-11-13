@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -88,7 +89,12 @@ func hasDeadClassedIdentity(s string) bool {
 	return false
 }
 
-func diffGoldenLines(wantText string, gotLines []string) []string {
+// diffGoldenLines altın dosyayla bugünkü cevapları karşılaştırır. Altın dosyada olmayan ve cevabı `ok` olan yazım fark
+// değildir, accepted'a girer (K3): yeni bir satırın çözülen üye yazımı testi düşürmez, -update onu kaydeder. Fark
+// kalanlar: var olan yazımın değişen cevabı, kalkan yazım, yeni yazımın `ok` olmayan cevabı (ambiguous, not_found).
+// Kabul edilen satırın adayı ancak bir sonraki -update'te altın dosyaya girer; o zamana kadar onu yalnız iki aracın
+// eşitliği korur.
+func diffGoldenLines(wantText string, gotLines []string) (diffs, accepted []string) {
 	wantMap, gotMap := map[string]string{}, map[string]string{}
 	for _, line := range strings.Split(strings.ReplaceAll(wantText, "\r\n", "\n"), "\n") {
 		if line != "" && !strings.HasPrefix(line, "#") {
@@ -103,11 +109,12 @@ func diffGoldenLines(wantText string, gotLines []string) []string {
 	keys := map[string]bool{}
 	maps.Copy(keys, mapKeysBool(wantMap))
 	maps.Copy(keys, mapKeysBool(gotMap))
-	var diffs []string
 	for _, q := range slices.Sorted(maps.Keys(keys)) {
 		w, okW := wantMap[q]
 		g, okG := gotMap[q]
 		switch {
+		case !okW && strings.HasPrefix(g, string(codeindex.StatusOK)+"\t"):
+			accepted = append(accepted, q)
 		case !okW:
 			diffs = append(diffs, "+ "+q+"\t"+g)
 		case !okG:
@@ -116,7 +123,13 @@ func diffGoldenLines(wantText string, gotLines []string) []string {
 			diffs = append(diffs, q+":\n    want: "+w+"\n     got: "+g)
 		}
 	}
-	return diffs
+	return diffs, accepted
+}
+
+// acceptedNote kabul edilen yeni `ok` yazımlarının günlük satırıdır: sayısı ve ilk beşi.
+func acceptedNote(accepted []string, path string) string {
+	return fmt.Sprintf("%d new spelling(s) answered ok are not in %s yet; accepted (-update records them): %s",
+		len(accepted), path, strings.Join(accepted[:min(len(accepted), 5)], ", "))
 }
 
 func mapKeysBool(m map[string]string) map[string]bool {
@@ -193,7 +206,57 @@ func TestDottedMemberSpellingsGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diffs := diffGoldenLines(string(wantBytes), gotLines); len(diffs) > 0 {
+	diffs, accepted := diffGoldenLines(string(wantBytes), gotLines)
+	if len(accepted) > 0 {
+		t.Log(acceptedNote(accepted, filepath.ToSlash(path)))
+	}
+	if len(diffs) > 0 {
 		t.Errorf("%d member spelling answers changed in %s (run with -update to rewrite):\n  %s", len(diffs), path, strings.Join(diffs[:min(len(diffs), 30)], "\n  "))
+	}
+}
+
+// Kural (K3): altın dosyayla karşılaştırmada altın dosyada olmayan ve cevabı `ok` olan yazım fark değildir, kabul edilir
+// ve günlüğe yazılır; fark kalanlar: var olan yazımın değişen cevabı, kalkan yazım, yeni yazımın `ok` olmayan cevabı.
+// Kabul edilenlerin sayısı ve ilk beşi günlük satırındadır.
+func TestGoldenDiffAcceptsOnlyNewOkSpellings(t *testing.T) {
+	// Örnek yazımlar kaynakta `~` ile yazılır: bu dosya da depodaki yazımların taramasına girer.
+	sp := func(s string) string { return strings.ReplaceAll(s, "~", ".") }
+	want := "# başlık\n" +
+		"a~TR_x\tok\t0\tid1\n" +
+		"b~TR_y\tok\t0\tid2\n" +
+		"c~TR_z\tok\t0\tid3\n"
+	got := []string{
+		"a~TR_x\tok\t0\tid1",
+		"b~TR_y\tambiguous\t3\tid2,id9",
+		"d~TR_n\tok\t0\tid4",
+		"e~TR_n\tnot_found\t4\t-",
+		"f~TR_n\tambiguous\t3\tid5,id6",
+	}
+	for i := range got {
+		got[i] = sp(got[i])
+	}
+	diffs, accepted := diffGoldenLines(sp(want), got)
+	if !slices.Equal(accepted, []string{sp("d~TR_n")}) {
+		t.Errorf("accepted %v, want only the new ok spelling d~TR_n", accepted)
+	}
+	wantDiffs := []string{
+		"b~TR_y:\n    want: ok\t0\tid2\n     got: ambiguous\t3\tid2,id9",
+		"- c~TR_z\tok\t0\tid3",
+		"+ e~TR_n\tnot_found\t4\t-",
+		"+ f~TR_n\tambiguous\t3\tid5,id6",
+	}
+	for i := range wantDiffs {
+		wantDiffs[i] = sp(wantDiffs[i])
+	}
+	if !slices.Equal(diffs, wantDiffs) {
+		t.Errorf("diffs:\n%q\nwant:\n%q", diffs, wantDiffs)
+	}
+	const path = "testdata/member_spellings.txt"
+	if got, want := acceptedNote([]string{"d"}, path), "1 new spelling(s) answered ok are not in testdata/member_spellings.txt yet; accepted (-update records them): d"; got != want {
+		t.Errorf("note:\n%s\nwant:\n%s", got, want)
+	}
+	seven := []string{"a1", "a2", "a3", "a4", "a5", "a6", "a7"}
+	if got, want := acceptedNote(seven, path), "7 new spelling(s) answered ok are not in testdata/member_spellings.txt yet; accepted (-update records them): a1, a2, a3, a4, a5"; got != want {
+		t.Errorf("note lists the first five:\n%s\nwant:\n%s", got, want)
 	}
 }

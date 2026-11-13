@@ -749,7 +749,9 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
 - `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
 - `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
   spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),
-  which must agree.
+  which must agree. A spelling not in the golden file yet whose answer is `ok` does not fail the test: it is logged as
+  accepted and `-update` records it. A changed answer, a spelling that is gone and a new spelling answered other than
+  `ok` (ambiguous, not found) fail it (`TestGoldenDiffAcceptsOnlyNewOkSpellings`).
 - `test_paths_test.go`, `js_loads_test.go`, `data_coverage_test.go`: a file's answer in `tests-for` (readers, citing
   tests, the guards of a doc's rules, JavaScript loads, an untracked file not searched) and, on this repository, every
   tracked path resolving to its own file (`TestEveryTrackedFileIsANode`).
