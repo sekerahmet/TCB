@@ -1,6 +1,8 @@
 package interp
 
 import (
+	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -12,11 +14,15 @@ func TestJSONDecodeRejectsBadInput(t *testing.T) {
 	for input, want := range map[string]string{
 		deep:             "çok derin",
 		`{"a": 1} fazla`: "beklenmeyen veri",
-		`{"a": }`:        "invalid",
 	} {
 		if _, err := JSONToTR([]byte(input)); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%.30q için %q içeren hata bekleniyordu, alınan: %v", input, want, err)
 		}
+	}
+	// Sözdizimi hatası Go'nun çözücüsünden gelir; metni Go sürümüne göre değişir (Go 1.27), tipi değişmez.
+	var syntax *json.SyntaxError
+	if _, err := JSONToTR([]byte(`{"a": }`)); !errors.As(err, &syntax) {
+		t.Errorf("eksik değer sözdizimi hatası olmalı, alınan: %v", err)
 	}
 	// Tam sayı ve ondalık yazımı korunur (3.7a): tam değerli ondalık Ondalık kalır
 	v, err := JSONToTR([]byte(`[1, 2.5, 3.0, 9007199254740993]`))
