@@ -11,6 +11,8 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
+- **3.7a, JSON çözmede eşi olmayan vekil kaçışı ve geçersiz UTF-8 bayt (2026-11-13, H1'in Go 1.27 araştırması; TCB yeniden üretti, karar TCB):** metindeki eşi olmayan UTF-16 vekil kaçışı (`"\ud800"`) ve ham geçersiz UTF-8 bayt çalışma hatasıdır, ileti yeri söyler; bugün hata vermeden U+FFFD oluyor (status 3.7a). Emsal: Go'nun 1.27'deki yeni `encoding/json/jsontext`'i ikisini de varsayılanda reddediyor [ölçüldü: H1]. Metin dil çekirdeğinin dilimiyle yazılır.
+
 - **15.55, `TR_config`'in anahtarları Türkçe sözcükler (2026-11-11, DENETİM 457 B1; main'in kalıbı):** hazır modelin `model.TR_config`'i `"bağlam"`, `"dağarcık"`, `"katman"`, `"rope_tabanı"` anahtarlarını taşıyor (`lib/layers.tr:504`) ve örnek 46 kullanıcıya `model.TR_config["bağlam"]`'ı öğretiyor; İngilizce okuyan ajan da Türkçe sözcük yazmak zorunda. CLAUDE.md'nin "hiçbir dilin ayrıcalığı yoktur" ilkesine aykırı. 20.12 ve 20.13'ün durum sözlükleri dilden bağımsız anahtar seçmiş. Karar (TCB 2026-11-11 23:14): anahtarlar dilden bağımsız olur ya da ayarlar yapının kendi alanlarına (kimliklere) geçer; seçim ve göç D1'in Teslim B'sinden sonra ayrı dilim, metni o dilimde. Seçime kadar `TR_config`'e yeni anahtar eklenmez; D1 Teslim A'nın eklediği altı anahtar A2'de `_aile`'ye taşınıyor (DENETİM 463 N5).
 
 

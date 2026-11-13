@@ -29,6 +29,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 3. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
 4. 21.3, `TR_env:`'deki `PATH` (A; S1; Tur 6C): program TR'nin kendi `PATH`'inde aranıyor, başka program sessizce çalışabilir.
 5. 4.7, `??`'nin sağ yanı (A; dil çekirdeği; Gemini uzak 14, DENETİM 555 N1): kapandı (main `2c35f5a2`, DENETİM 574); kalan iki D satırı 4.7'de.
+6. 3.7a, JSON çözmede eşi olmayan vekil kaçışı ve geçersiz UTF-8 bayt (A; dil çekirdeği; H1, 2026-11-13): metin hata vermeden U+FFFD'li çözülüyor.
 Sonra Ö2: 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14, 15.1'in öğe cinsi. Kol A: 8.5'in işletim sistemi hatası (DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı.
@@ -135,6 +136,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.7a
 
+- **Mevcut durum (2026-11-13, H1'in Go 1.27 araştırması; TCB yeniden üretti):** JSON çözme, metindeki eşi olmayan UTF-16 vekil kaçışını (`"\ud800"`, `"\udc00x"`) ve ham geçersiz UTF-8 baytı hata vermeden U+FFFD'ye çeviriyor [ölçüldü: TCB, `interp.JSONToTR`, go1.27.4, commit'siz program]. Neden: `internal/lang/interp/json_ordered.go` Go'nun eski çözücüsünün belirteç okumasını kullanıyor, o bunları sessizce değiştiriyor; aynı tuzak safetensors başlığında elle kapatılmış (`internal/stdlib/ml/load_safetensors.go`'daki `loneSurrogate`). Etkilenen: `TR_json_parse`, `TR_load_metadata`, sunucunun olay yayını.
+- **Yapılacaklar (A, Ö0; sahip dil çekirdeği; TCB 2026-11-13, dil kararı):** JSON çözmede metin değerindeki eşi olmayan vekil kaçışı ve geçersiz UTF-8 bayt çalışma hatasıdır, ileti yeri (satır, sütun) söyler; 3.7a'nın cümlesi dilimde yazılır (`pending.md` kritik satırı).
 - **Yapılacaklar:** genel tiplerin (Any, Object, StructType) kalkması (4a).
 
 ### 3.10
