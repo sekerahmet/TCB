@@ -147,7 +147,7 @@ codegraph query IKINCI | contains: TR_arg_pair [name] | not: is ambiguous | src:
 trlang index definition IKINCI | contains: TR_arg_pair | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
 trlang index definition Metin | contains: TR_type_String | not: birden çok düğüme | src: denetim grup 7 R1 (dilin sözcüğü), 2026-10-25; tip çağrılınca (3.12) yerleşik gibi düğümü olur, 2026-10-28
 # TCB 2026-10-25: düzenleme kancası her ilk düzenlemede tests-for <dosya> sorar; kod dışı dosyalar
-codegraph tests-for tools/full_check.sh | not: is ambiguous | group: <- tests => internal.TestGoEquivalentPackagesListed | group: tests that cite it => testrunner.TestLanguageSpecTestsPass | src: TCB 2026-10-25, 1. madde
+codegraph tests-for tools/full_check.sh --all | not: is ambiguous | group: <- tests => internal.TestGoEquivalentPackagesListed | group: tests that cite it => testrunner.TestLanguageSpecTestsPass | src: TCB 2026-10-25, 1. madde (--all: D1 codegraph dilim 3, 2026-11-14; commit kipinin beş testiyle grup 16 satır, varsayılan sınır 12)
 codegraph tests-for .gitignore | contains: .gitignore [file] | not: is ambiguous | contains: no tests read it by name | group: repository-wide checks that scan it => internal_test.TestLayoutEnglishFileNames | src: TCB 2026-10-25, 1. madde
 codegraph tests-for docs/development.md | group: tests that cite it => internal_test.TestLayoutFileSize | not: no tests found | src: TCB 2026-10-25, 2. madde
 codegraph tests-for internal/README.md | group: guard the rules it states => internal_test.TestLayoutFileNames | src: TCB 2026-10-25, 2. madde (kural belgesi)
