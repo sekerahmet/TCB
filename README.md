@@ -2,7 +2,7 @@
 
 TR, yapay zekâ ajanlarının doğru ve hatasız kullanabileceği, insanların da kodunu rahatça okuyabileceği yeni bir programlama dilidir. Yapay zekânın bütün işleri içindir: verinin hazırlanmasından modelin bir robotun içinde çalışmasına kadar her iş tek dille yapılır.
 
-**Başlamak.** Go 1.25 ile `go build -o trlang ./cmd/trlang`, sonra [kılavuz](docs/guide/README.md). Yapay zekâ ajanları için kurulum, komutlar ve çalışan bir eğitim programı: [AGENTS.md](AGENTS.md) (English).
+**Başlamak.** Go 1.27 ya da daha yenisiyle `go build -o trlang ./cmd/trlang`, sonra [kılavuz](docs/guide/README.md). Yapay zekâ ajanları için kurulum, komutlar ve çalışan bir eğitim programı: [AGENTS.md](AGENTS.md) (English).
 
 ## Amaç
 
