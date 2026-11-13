@@ -648,7 +648,6 @@ d.TR_tolist	ok	0	name:TR_mem_tolist
 d.TR_update	ok	0	name:TR_mem_update
 d.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
 d.TR_values	ok	0	name:TR_mem_values
-d.TR_vocab_size	ok	0	name:TR_mem_vocab_size
 d.TR_wait	ok	0	name:TR_mem_wait
 d.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_weight
 d.TR_window	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_window
@@ -1064,7 +1063,6 @@ k.TR_tolist	ok	0	name:TR_mem_tolist
 k.TR_transpose	ok	0	name:TR_mem_transpose
 k.TR_update	ok	0	name:TR_mem_update
 k.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
-k.TR_vocab_size	ok	0	name:TR_mem_vocab_size
 k.TR_wait	ok	0	name:TR_mem_wait
 k.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_weight
 k1.TR_sequential	ok	0	name:TR_mem_sequential

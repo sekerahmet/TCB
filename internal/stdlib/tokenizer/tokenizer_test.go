@@ -437,11 +437,13 @@ func TestLoadErrors(t *testing.T) {
 }
 
 // Kural (16.1, klasörle açma): klasörün tokenizer.json'u yüklenir; aile config.json'un model_type'ı ve tokenizer_config.json'un
-// işaretiyle seçilir (sınıf Fast'sız, genel sınıfta bos_token). config.json'u olmayan ya da tabloda olmayan klasör ailesiz.
+// işaretiyle seçilir (sınıf Fast'sız, genel sınıfta bos_token). config.json'u ya da tokenizer_config.json'u olmayan,
+// JSON'u bozuk ya da tabloda olmayan klasör ailesiz.
 func TestLoadTokenizerFolderPicksTheFamily(t *testing.T) {
 	qwen, llama := `{"tokenizer_class": "Qwen2TokenizerFast"}`, `{"tokenizer_class": "PreTrainedTokenizerFast", "bos_token": "<|begin_of_text|>"}`
 	for _, c := range []struct{ data, marker, config, family string }{{"qwen3_chat", qwen, `{"model_type": "qwen3"}`, "qwen3"},
-		{"llama3_chat", llama, `{"model_type": "llama"}`, "llama3"}, {"qwen3_chat", qwen, "", ""}, {"llama3_chat", llama, `{"model_type": "qwen3"}`, ""}} {
+		{"llama3_chat", llama, `{"model_type": "llama"}`, "llama3"}, {"qwen3_chat", qwen, "", ""}, {"llama3_chat", llama, `{"model_type": "qwen3"}`, ""},
+		{"qwen3_chat", "", `{"model_type": "qwen3"}`, ""}, {"qwen3_chat", `{"tokenizer_class": `, `{"model_type": "qwen3"}`, ""}} {
 		d := t.TempDir()
 		b, err := os.ReadFile(reporoot.Path("tests", "data", c.data, "tokenizer.json"))
 		for f, s := range map[string]string{"tokenizer.json": string(b), "tokenizer_config.json": c.marker, "config.json": c.config} {

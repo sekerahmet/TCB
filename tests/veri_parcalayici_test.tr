@@ -13,12 +13,15 @@ TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
 }
 
 TR_test "16.1 TR_load_tokenizer(klasör) ailesiz klasörde ailesiz açılır; tokenizer.json'u olmayan klasör H5610" {
-    TR_var k = TR_load_tokenizer("data/qwen3_chat")
-    TR_var d = TR_load_tokenizer("data/qwen3_chat/tokenizer.json")
-    TR_var metin = "Merhaba <think>\n\n dünya <|im_end|>"
-    TR_assert_equal(d.TR_vocab_size, k.TR_vocab_size)
-    TR_assert_equal(d.TR_encode(metin, TR_special_tokens: TR_false), k.TR_encode(metin, TR_special_tokens: TR_false))
-    TR_assert_equal(d.TR_encode(metin, TR_special_tokens: TR_true), k.TR_encode(metin, TR_special_tokens: TR_true))
+    # Klasörün config.json'u yok: aile seçilmez. Boşluk parçalı dosya aileyle açılsaydı TR_false'ta H7184 verirdi ya da
+    # parçayı tek kimlik yapardı; ailesiz açıldığı için H7178'in alone kolu gelir.
+    TR_var k = TR_load_tokenizer("data/whitespace_pieces")
+    TR_var d = TR_load_tokenizer("data/whitespace_pieces/tokenizer.json")
+    TR_assert_equal(d.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true), k.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true))
+    TR_var metin = ""
+    TR_try { k.TR_encode("a", TR_special_tokens: TR_false) } TR_catch e { metin = e.TR_text("tr") }
+    TR_assert(metin.TR_contains("parçalayıcı ailesiz açıldı"), metin)
+    TR_assert(metin.TR_contains("\"data/whitespace_pieces\" klasöründen model ailesi seçilemiyor"), metin)
     TR_assert_equal("H5610", TR_error_code { TR_load_tokenizer("data/numbers") })
 }
 

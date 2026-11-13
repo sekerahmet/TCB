@@ -210,9 +210,10 @@ func TestFamilylessMessages(t *testing.T) {
 	}
 }
 
-// Kural (16.2, ailesiz yolun hatası; H7178'in gguf kolu): (mimari, etiket) çifti tabloda olmayan boşluk parçalı
-// GGUF ailesizdir, TR_false'ın hatası gguf kolu; aynı parça kümesiz bir ailenin (qwen3) GGUF'unda hata vermez;
-// boşluk parçası olmayan ailesiz dosyada da hata yok. Tek başına açılan dosyada klasör aile seçmiyorsa alone.
+// Kural (16.2, ailesiz yolun hatası; H7178'in kolları): (mimari, etiket) çifti tabloda olmayan boşluk parçalı GGUF
+// ailesizdir, gguf kolu. Boşluk kümesi boş ailenin (qwen3) boşluk parçalı GGUF'u o aileye uymaz: ailesiz, H7184 ("bu
+// dosyada 1, resmî dosyada 0") (TCB 02:44, DENETİM 579 Ş1). Tek başına açılan dosyada klasörün ailesi kümeye uymuyorsa
+// (gemma3, qwen3) alone; folder kolu yalnız küme uyduğunda (test ailesiyle). Boşluk parçası olmayan dosyada hata yok.
 func TestFamilylessErrorBranches(t *testing.T) {
 	ws := map[int]int32{256: ggufTokenUserDefined}
 	g := mustGGUF(t, ggufVocab{arch: "llama", pre: "smollm", extra: []string{"\n\n"}, kinds: ws})
@@ -220,15 +221,17 @@ func TestFamilylessErrorBranches(t *testing.T) {
 		t.Errorf("ailesiz GGUF: %v", err)
 	}
 	q := mustGGUF(t, ggufVocab{arch: "qwen3", pre: "qwen2", extra: []string{"\n\n"}, kinds: ws})
-	if q.Family() != "qwen3" || q.FamilylessError("", "", "m") != nil {
-		t.Errorf("kümesiz ailenin GGUF'u hata vermemeli: %q", q.Family())
+	if err := q.FamilylessError("", "", "m"); q.Family() != "" || !messages.Has(err, messages.H7184) || !strings.Contains(err.Error(), "bu dosyada 1, resmî dosyada 0") {
+		t.Errorf("boşluk parçalı qwen3 GGUF'u ailesiz ve H7184 olmalı: %q, %v", q.Family(), err)
 	}
-	if err := familyTokenizer(t).FamilylessError("gemma3_text", "GemmaTokenizer", "m"); !strings.Contains(err.Error(), "klasöründen model ailesi seçilemiyor") {
-		t.Errorf("kümesi uymayan klasör ailesi alone kolu vermeli: %v", err)
+	for _, k := range [][2]string{{"gemma3_text", "GemmaTokenizer"}, {"qwen3", "Qwen2Tokenizer"}} {
+		if err := familyTokenizer(t).FamilylessError(k[0], k[1], "m"); !strings.Contains(err.Error(), "klasöründen model ailesi seçilemiyor") {
+			t.Errorf("%s: kümesi uymayan klasör ailesi alone kolu vermeli: %v", k[0], err)
+		}
 	}
-	// Kümesiz ailenin klasörü (qwen3) önerilir: klasörle açılınca aile qwen3 olur ve TR_false hata vermez.
-	if err := familyTokenizer(t).FamilylessError("qwen3", "Qwen2Tokenizer", "m"); !strings.Contains(err.Error(), "`TR_load_tokenizer(\"m\")`") {
-		t.Errorf("aile seçen klasör folder kolu vermeli: %v", err)
+	test := func(string, string) (Family, bool) { return fixtureFamily(), true }
+	if err := familyTokenizer(t).familylessError("x", "y", "m", test); !strings.Contains(err.Error(), "`TR_load_tokenizer(\"m\")`") {
+		t.Errorf("kümesi uyan klasör ailesi folder kolu vermeli: %v", err)
 	}
 	if mustGGUF(t, ggufVocab{arch: "llama", pre: "smollm"}).FamilylessError("", "", "m") != nil {
 		t.Errorf("boşluk parçası olmayan ailesiz dosya hata vermemeli")
@@ -255,18 +258,22 @@ func TestFamilyTableMatchesTheLibraryChatTable(t *testing.T) {
 	}
 }
 
-// Kural (16.2): kümesi olmayan aile (llama3, qwen3) bugünkü davranışı değiştirmez; tablodaki iki
-// satır seçim anahtarlarıyla bulunur.
-func TestFamilyWithoutSetsChangesNothing(t *testing.T) {
-	bare := familyTokenizer(t)
-	p := familyTokenizer(t)
+// Kural (16.2, TCB 02:44): llama3 ve qwen3'ün boşluk kümesi boş, desen kümesi tanımsız. Boşluk parçası olmayan
+// dosyada aile uygulanır ve kodlama değişmez (<think> bayt kalır); boşluk parçalı dosya bu aileye uymaz, ailesiz
+// açılır. Tablodaki satırlar seçim anahtarlarıyla bulunur.
+func TestEmptyWhitespaceSetFamilies(t *testing.T) {
 	f, ok := GGUFFamily("qwen3", "qwen2")
-	if !ok || f.ID != "qwen3" || f.Whitespace != nil || f.Pattern != nil {
+	if !ok || f.ID != "qwen3" || f.Whitespace == nil || *f.Whitespace != noWhitespace || f.Pattern != nil || noWhitespace.Hash != setHash(nil) {
 		t.Fatalf("qwen3 satırı: %+v %v", f, ok)
 	}
+	q := mustGGUF(t, ggufVocab{arch: "qwen3", pre: "qwen2", extra: []string{"<think>"}, kinds: map[int]int32{256: ggufTokenUserDefined}})
+	if q.Family() != "qwen3" || slices.Contains(q.EncodeWithOptions("a<think>b", Options{DontParseAdded: true}), 256) {
+		t.Errorf("boşluk parçasız dosyada aile uygulanmalı, <think> bayt kalmalı: %q", q.Family())
+	}
+	p := familyTokenizer(t)
 	must(t, p.applyFamily(f))
-	if p.Family() != "qwen3" || !slices.Equal(trFalseIDs(p, familyText), trFalseIDs(bare, familyText)) {
-		t.Errorf("kümesiz aile kodlamayı değiştirmemeli")
+	if p.Family() != "" || p.Mismatch() == nil || *p.Mismatch() != (FamilyMismatch{"qwen3", "whitespace", "count", 2, 0}) {
+		t.Errorf("boşluk parçalı dosya qwen3'e uymamalı: %q %+v", p.Family(), p.Mismatch())
 	}
 	if f, ok := FolderFamily("llama", "<|begin_of_text|>"); !ok || f.ID != "llama3" {
 		t.Errorf("llama3 satırı klasör anahtarıyla bulunmadı: %+v", f)

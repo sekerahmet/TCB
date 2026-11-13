@@ -32,8 +32,8 @@ type FormatSet struct {
 }
 
 // Family Go'daki aile tablosunun bir satırıdır. ID kitaplığın sohbet tablosundaki aile kimliğidir;
-// Arch, GGUFTag ve FolderMarker seçim anahtarlarıdır. Whitespace ve Pattern nil ise aile o kümeyi
-// tanımaz (Llama 3, Qwen3: bugünkü davranış aynen sürer). Protocol ailenin protokol etiketleridir
+// Arch, GGUFTag ve FolderMarker seçim anahtarlarıdır. Whitespace ve Pattern nil ise küme tanımlı değildir,
+// denetlenmez (Llama 3 ve Qwen3'ün desen kümesi); boş küme tanımlıdır ve parça istemez. Protocol ailenin protokol etiketleridir
 // (sohbet, araç, görüntü): biçim kümesine giremezler (H7185).
 type Family struct {
 	ID           string
@@ -58,11 +58,16 @@ var (
 	gemma3Pattern    = FormatSet{59, "44b40d2140056d1c90b2ffc0ef450c18ab82b9994ead75383a8a2b4e6373e4c5"}
 )
 
+// noWhitespace boş boşluk kümesidir: Llama 3 ve Qwen3'ün resmî dosyasında yalnız boşluktan oluşan özel olmayan
+// eklenmiş parça yoktur; böyle parça taşıyan dosya bu ailelere uymaz, ailesiz açılır (TCB 2026-11-13 02:44, DENETİM 579
+// Ş1). Desen kümeleri tanımsızdır: Qwen3'ün <think>'i desene uyar ve protokol etiketidir.
+var noWhitespace = FormatSet{0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+
 // families aile tablosudur. Sıra ve dört alan lib/model_family.tr'nin _sohbet_tablosu'yla aynıdır.
 // gemma3'ün iki satırı: çok kipli klasör ve GGUF (mimari gemma3), 1B klasörü (gemma3_text).
 var families = []Family{
-	{ID: "llama3", Arch: "llama", GGUFTag: "llama-bpe", FolderMarker: "<|begin_of_text|>"},
-	{ID: "qwen3", Arch: "qwen3", GGUFTag: "qwen2", FolderMarker: "Qwen2Tokenizer"},
+	{ID: "llama3", Arch: "llama", GGUFTag: "llama-bpe", FolderMarker: "<|begin_of_text|>", Whitespace: &noWhitespace},
+	{ID: "qwen3", Arch: "qwen3", GGUFTag: "qwen2", FolderMarker: "Qwen2Tokenizer", Whitespace: &noWhitespace},
 	{ID: "gemma3", Arch: "gemma3", GGUFTag: "default", FolderMarker: "GemmaTokenizer", Whitespace: &gemma3Whitespace,
 		Pattern: &gemma3Pattern, Protocol: gemma3Protocol},
 	{ID: "gemma3", Arch: "gemma3_text", GGUFTag: "default", FolderMarker: "GemmaTokenizer", Whitespace: &gemma3Whitespace,
@@ -246,7 +251,12 @@ func (p *Tokenizer) compare(f Family) *FamilyMismatch {
 // ailenin sayı ve karmasına uyup uymadığını söyler; aile uygulanmaz. H7178'in klasör önerisi ancak
 // ikisi de tutarsa yazılır: öneri o zaman kopyalanınca parçalayıcıyı aileyle açar.
 func (p *Tokenizer) FitsFolderFamily(arch, marker string) bool {
-	f, ok := FolderFamily(arch, marker)
+	return p.fitsFolder(arch, marker, FolderFamily)
+}
+
+// fitsFolder FitsFolderFamily'dir, tablo araması verilerek (test ailesi için).
+func (p *Tokenizer) fitsFolder(arch, marker string, lookup func(arch, marker string) (Family, bool)) bool {
+	f, ok := lookup(arch, marker)
 	return ok && p.compare(f) == nil
 }
 
@@ -256,6 +266,11 @@ func (p *Tokenizer) FitsFolderFamily(arch, marker string) bool {
 // marker: o klasörün anahtarları; klasörle açılanda boş) bir aile seçiyor ve kümeler uyuyorsa folder kolu,
 // yoksa alone kolu. folder iletiye giden klasördür.
 func (p *Tokenizer) FamilylessError(arch, marker, folder string) error {
+	return p.familylessError(arch, marker, folder, FolderFamily)
+}
+
+// familylessError FamilylessError'dır, tablo araması verilerek (folder kolu test ailesiyle sınanır).
+func (p *Tokenizer) familylessError(arch, marker, folder string, lookup func(arch, marker string) (Family, bool)) error {
 	switch {
 	case p.family != "" || !p.HasWhitespacePieces():
 		return nil
@@ -263,7 +278,7 @@ func (p *Tokenizer) FamilylessError(arch, marker, folder string) error {
 		return p.mismatch.Message()
 	case p.pretokenizerTag != "":
 		return WhitespaceError("gguf", folder)
-	case p.FitsFolderFamily(arch, marker):
+	case p.fitsFolder(arch, marker, lookup):
 		return WhitespaceError("folder", folder)
 	}
 	return WhitespaceError("alone", folder)
