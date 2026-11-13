@@ -76,7 +76,7 @@ python -I tools/hf/gemma3_format_pieces.py --source G1B/tokenizer.json --out tes
 
 ## Gemma 3 sohbet biçimi (`gemma3_chat_reference.py`)
 
-`gemma3_chat_reference.py` Llama 3'ünkiyle aynı iki işi Gemma 3 için yapar (Gemma 3'ün sohbet biçiminin ve cevabının *Test:* satırları). Küçük parçalayıcı `tests/data/gemma3_format_pieces/`'in parçalayıcısıdır, üstüne Gemma 3'ün beş sohbet etiketi (`<pad>`, `<eos>`, `<bos>`, `<start_of_turn>`, `<end_of_turn>`) yayımlanmış kimlikleriyle özel parça olarak eklenir; yalnız JSON okunur, `tokenizers` gerekmez. `--check-ids` etiketlerin kimliklerini yayımlanmış `tokenizer_config.json`'la karşılaştırır, ayrılırsa durur. Şablonlar depoya girmez; karmaları çıktıdadır.
+`gemma3_chat_reference.py` Llama 3'ünkiyle aynı iki işi Gemma 3 için yapar (dil tanımı 24.7 ve 24.8'in *Test:* satırları). Küçük parçalayıcı `tests/data/gemma3_format_pieces/`'in parçalayıcısıdır, üstüne Gemma 3'ün beş sohbet etiketi (`<pad>`, `<eos>`, `<bos>`, `<start_of_turn>`, `<end_of_turn>`) yayımlanmış kimlikleriyle özel parça olarak eklenir; yalnız JSON okunur, `tokenizers` gerekmez. `--check-ids` etiketlerin kimliklerini yayımlanmış `tokenizer_config.json`'la karşılaştırır, ayrılırsa durur. Şablonlar depoya girmez; karmaları çıktıdadır.
 
 ```sh
 python -I tools/hf/gemma3_chat_reference.py --tokenizer-out tests/data/gemma3_chat

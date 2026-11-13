@@ -67,3 +67,15 @@ func TestBuiltinReturnTypes(t *testing.T) {
 func TestUnknownValueHasNoType(t *testing.T) {
 	expectTypes(t, map[string]string{"TR_var v = " + unknownValue: typeAny})
 }
+
+// Kural (D1 Gemma 3, Teslim D): yerleşik tipte olmayan bir yapının metodu (kitaplık tipi; aktarılan
+// modülün yapısı) yerleşik üye tablosundan okunmaz: aynı adlı yerleşik üyenin imzası ona geçmez, dönüşü
+// TR_Any'dir (yapının imzası denetleyiciye gelene kadar). Kitaplık tipinin kurucusu o tipi verir; açık
+// tipli ve tipsiz alıcı aynıdır. Yerleşik tipteki alıcı değişmez: TR_MaskStream'in TR_finish'i TR_String.
+func TestLibraryStructMethodIsNotTheBuiltinMember(t *testing.T) {
+	for _, alıcı := range []string{"TR_var d: TR_ChatTokens = TR_ChatTokens(TR_tokenizer: p)", "TR_var d = TR_ChatTokens(TR_tokenizer: p)"} {
+		noErrors(t, "TR_import \"tr/chat\"\nTR_func f(p: TR_Tokenizer) -> TR_List[TR_Int] {\n    "+alıcı+"\n    TR_return d.TR_finish()\n}\n")
+	}
+	singleError(t, "TR_import \"tr/chat\"\nTR_var s: TR_String = TR_ChatTokens(TR_tokenizer: TR_none)\n", messages.H1001, 2, `"TR_String"`, `"TR_ChatTokens"`)
+	singleError(t, "TR_var m = TR_mask_stream()\nTR_var x: TR_Int = m.TR_finish()\n", messages.H1001, 2, `"TR_Int"`, `"TR_String"`)
+}

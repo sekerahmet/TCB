@@ -26,6 +26,13 @@ Denetim: `TestNameStyleWarnings`, `TestNameStyleAcceptsConventionalAndMathNames`
 bir `TR_kw_import` varsa) tanımsız ad hatası verilmez. Çalışacak bir programı haksız yere durdurmak, bir
 hatayı çalışma anına bırakmaktan daha kötüdür. Denetim: `TestUndefinedNameNoFalseAlarm`, `TestExamplesCheckWithoutErrors`.
 
+**Yapının metodu yerleşik üye değildir.** Aktarılan modülün yapıları denetleyiciye girmez; alıcısı
+yerleşik tipte olmayan bir yapı olan metodun (kitaplık tipi, aktarılan modülün yapısı) dönüşü yerleşik
+üye tablosundan okunmaz, `TR_Any`'dir: `tr/chat`'in `TR_ChatTokens.TR_finish()`'i yerleşik
+`TR_MaskStream.TR_finish()`'in `TR_String`'ini almaz. Kod listesinde modülü yazılı tipin kurucusu o tipi
+verir (`builtin_returns.go`, `knownType`). Yapının kendi imzası, aktarılan modülün yapıları denetleyiciye
+gelince geçer. Denetim: `TestLibraryStructMethodIsNotTheBuiltinMember`.
+
 **Çalışma anıyla aynı sözleri kullanır.** Aynı hata denetimde ve çalışırken aynı metinle
 anlatılır; ortak metinler `hint` paketinden gelir. Denetim: `TestUndefinedNameIsError`, `TestCheckerAndRuntimeShareWording` (interp).
 

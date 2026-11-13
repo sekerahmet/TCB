@@ -256,7 +256,7 @@ TR_struct _Cevap {
     içerik: TR_String = ""
     düşünce: TR_String? = TR_none
     çağrılar: TR_List[TR_ToolCall] = []
-    hatalar: TR_List[TR_String] = []
+    hatalar: TR_List[TR_Message] = []
 
     # sonraki: `i`'den başlayarak ilk etiketin sırası; yoksa uzunluk.
     TR_func _sonraki(i: TR_Int) -> TR_Int {
@@ -268,15 +268,15 @@ TR_struct _Cevap {
     TR_func _çöz(a: TR_Int, b: TR_Int) -> TR_String { TR_return TR_self.p.TR_decode(TR_self.kimlikler[a..b]) }
 
     # bozuk: bloğun yazılan metni içerikte kalır, hata sırasını ve nedenini söyler.
-    TR_func _bozuk(a: TR_Int, b: TR_Int, blok: TR_Int, neden: TR_String) {
+    TR_func _bozuk(a: TR_Int, b: TR_Int, h: TR_Message) {
         TR_self.içerik += TR_self._çöz(a, b)
-        TR_self.hatalar.TR_append("block \(blok): \(neden)")
+        TR_self.hatalar.TR_append(h)
     }
 }
 
 # qwen3_cevabı: modelin ürettiği kimlikleri bir asistan iletisine ve hatalara ayırır (24.3).
 # Bloklar etiket kimliklerinde bölünür; baytlarıyla yazılmış etiket içerikte metin kalır.
-TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatMessage, TR_List[TR_String]) {
+TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatMessage, TR_List[TR_Message]) {
     TR_var dü = _etiket(p, _DÜŞÜNCE)
     TR_var dü_son = _etiket(p, _DÜŞÜNCE_SONU)
     TR_var ça = _etiket(p, _ÇAĞRI)
@@ -301,21 +301,21 @@ TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatM
                 c.düşünce = _kırp(c._çöz(i + 1, j), TR_true, TR_true)
                 c.içerik = ""
             } TR_else {
-                c._bozuk(i, j + 1, blok, "a thinking block is only valid at the start of the reply")
+                c._bozuk(i, j + 1, TR_Message("H7187", blok, "think_start"))
             }
             i = j + 1
         } TR_else TR_if k == ça TR_and kapalı {
             TR_var hata = _çağrı_ekle(c, c._çöz(i + 1, j))
-            TR_if hata != TR_none { c._bozuk(i, j + 1, blok, hata) }
+            TR_if hata != TR_none { c._bozuk(i, j + 1, TR_Message("H7187", blok, hata)) }
             i = j + 1
         } TR_else TR_if k == dü {
-            c._bozuk(i, n, blok, "<think> is not closed")
+            c._bozuk(i, n, TR_Message("H7187", blok, "think_open"))
             i = n
         } TR_else TR_if k == ça {
-            c._bozuk(i, j, blok, "<tool_call> is not closed")
+            c._bozuk(i, j, TR_Message("H7187", blok, "call_open"))
             i = j
         } TR_else {
-            c._bozuk(i, i + 1, blok, "\(p.TR_decode([k])) has no opening tag")
+            c._bozuk(i, i + 1, TR_Message("H7188", blok, p.TR_decode([k])))
             i += 1
         }
     }
@@ -328,13 +328,13 @@ TR_func TR_qwen3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatM
 TR_func _çağrı_ekle(c: _Cevap, iç: TR_String) -> TR_String? {
     TR_var metin = iç.TR_strip()
     TR_var çözülen = _json_oku(metin)
-    TR_if çözülen == TR_none { TR_return "the tool call is not valid JSON" }
+    TR_if çözülen == TR_none { TR_return "json" }
     TR_var j = çözülen
-    TR_if TR_Type(j) != TR_Dict { TR_return "the tool call is not a JSON object" }
+    TR_if TR_Type(j) != TR_Dict { TR_return "object" }
     TR_var ad = j.TR_get("name")
-    TR_if ad == TR_none TR_or TR_Type(ad) != TR_String { TR_return "the tool call has no \"name\" string" }
+    TR_if ad == TR_none TR_or TR_Type(ad) != TR_String { TR_return "name" }
     TR_var arg = j.TR_get("arguments")
-    TR_if arg == TR_none TR_or TR_Type(arg) != TR_Dict { TR_return "the tool call has no \"arguments\" object" }
+    TR_if arg == TR_none TR_or TR_Type(arg) != TR_Dict { TR_return "arguments" }
     TR_if c.içerik.TR_ends_with("\n") { c.içerik = c.içerik[0..c.içerik.TR_length - 1] }
     c.çağrılar.TR_append(TR_ToolCall(TR_name: TR_String(ad), TR_arguments: _ham_alan(metin, "arguments")))
     TR_return TR_none
@@ -494,40 +494,42 @@ TR_func _json_girintili(j: TR_JSON, girinti: TR_String) -> TR_String {
 # llama3_cevabı: üretilen kimlikleri bir asistan iletisine ve hatalara ayırır (24.6). Çağrının etiketi yoktur:
 # kırpılmış içerik tek bir `{"name": ..., "parameters": {...}}` nesnesiyse ve ad araçlardaysa çağrıdır. Çağrıya
 # benzeyen ama çağrı olmayan cevap metin kalır, nedeni `hatalar`'a girer (metin kaybolmaz).
-TR_func TR_llama3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int], TR_tools: TR_List[TR_JSON] = []) -> (TR_ChatMessage, TR_List[TR_String]) {
+TR_func TR_llama3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int], TR_tools: TR_List[TR_JSON] = []) -> (TR_ChatMessage, TR_List[TR_Message]) {
     TR_var son = kimlikler.TR_length
     TR_if son > 0 TR_and [p.TR_token_id(_L_SON), p.TR_token_id(_L_EOM)].TR_contains(kimlikler[son - 1]) { son -= 1 }
     TR_var gövde = kimlikler[0..son]
     TR_var python = p.TR_token_id(_L_PYTHON)
     TR_if python != TR_none TR_and gövde.TR_contains(python) {
         TR_var metin = p.TR_decode(gövde, TR_special_tokens: TR_true)
-        TR_return (_l_metin(metin), ["<|python_tag|> (the built-in tools of Llama 3.1) is not supported; the reply is kept as text"])
+        TR_return (_l_metin(metin), [TR_Message("H7189")])
     }
     TR_var metin = p.TR_decode(gövde)
-    TR_if metin.TR_contains(_L_PYTHON) { TR_return (_l_metin(metin), ["<|python_tag|> (the built-in tools of Llama 3.1) is not supported; the reply is kept as text"]) }
+    TR_if metin.TR_contains(_L_PYTHON) { TR_return (_l_metin(metin), [TR_Message("H7189")]) }
     TR_if TR_tools.TR_length == 0 { TR_return (_l_metin(metin), []) }
     TR_var k = metin.TR_strip(TR_PY_WHITESPACE)
-    TR_var neden = "the reply looks like a tool call but is not a single JSON object"
+    TR_var hata = TR_Message("H7190", "single")
     TR_var j = _json_oku(k)
     TR_if j != TR_none TR_and TR_Type(j) == TR_Dict {
         TR_var anahtarlar = [a TR_for a TR_in j]
         TR_var ad = j.TR_get("name")
         TR_var değer = j.TR_get("parameters")
         TR_if anahtarlar.TR_contains("arguments") TR_and TR_not anahtarlar.TR_contains("parameters") {
-            neden = "the tool call writes \"arguments\"; Llama 3 writes \"parameters\""
+            hata = TR_Message("H7190", "arguments")
         } TR_else TR_if anahtarlar.TR_length != 2 TR_or ad == TR_none TR_or değer == TR_none {
-            neden = "the tool call must have exactly the keys \"name\" and \"parameters\""
-        } TR_else TR_if TR_Type(ad) != TR_String TR_or TR_not [_araç_adı(a) TR_for a TR_in TR_tools].TR_contains(TR_String(ad)) {
-            neden = "the tool call names \(TR_json_string(ad)), which is not one of the tools"
+            hata = TR_Message("H7190", "keys")
+        } TR_else TR_if TR_Type(ad) != TR_String {
+            hata = TR_Message("H7190", "name")
+        } TR_else TR_if TR_not [_araç_adı(a) TR_for a TR_in TR_tools].TR_contains(TR_String(ad)) {
+            hata = TR_Message("H7191", TR_String(ad))
         } TR_else TR_if TR_Type(değer) != TR_Dict {
-            neden = "\"parameters\" of the tool call is not a JSON object"
+            hata = TR_Message("H7190", "parameters")
         } TR_else {
             TR_var ç = TR_ToolCall(TR_name: TR_String(ad), TR_arguments: _ham_alan(k, "parameters"))
             TR_return (TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_tool_calls: [ç]), [])
         }
-        TR_return (_l_metin(metin), [neden])
+        TR_return (_l_metin(metin), [hata])
     }
-    TR_if _çağrı_işareti(metin) { TR_return (_l_metin(metin), [neden]) }
+    TR_if _çağrı_işareti(metin) { TR_return (_l_metin(metin), [hata]) }
     TR_return (_l_metin(metin), [])
 }
 

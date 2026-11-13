@@ -1,0 +1,5 @@
+# TR 4
+# TEST 24.7 Gemma 3'ün biçimi araç tanımı almaz: TR_tools: bilinmeyen adlı argümandır (6.5); denetimi kitaplık fonksiyonunda uygulanmadı, çalışma hatası H2410 (status 6.5); denetim gelince etiket ERROR olur. Parçalayıcı yerine TR_none: çalışma hatası argümanlardan sonra gelir, dosya okunmaz.
+TR_import "tr/chat"
+TR_import "tr/chat_gemma3"
+TR_print(TR_gemma3_format(TR_none, [], TR_add_generation_prompt: TR_true, TR_tools: [])) # RUN-ERROR H2410

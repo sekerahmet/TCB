@@ -153,6 +153,8 @@
   "TR_fn_from_bytes": { "kind": "function", "pure": true, "params": ["TR_Bytes"], "named": [["TR_arg_dtype", "TR_String", null], ["TR_arg_byte_order", "TR_String", null]], "returns": "TR_Tensor", "related": ["TR_mem_to_bytes", "TR_mem_read_int", "TR_type_Bytes"], "familiar": ["frombuffer"], "example": "TR_var b = TR_Bytes([1, 0, 255, 255]); TR_print(TR_from_bytes[TR_Int](b, TR_dtype: \"int16\", TR_byte_order: \"little\").TR_tolist)" },
   "TR_fn_fuse": { "kind": "function", "params": ["TR_Function|TR_BuiltinFunction"], "returns": "TR_BuiltinFunction", "related": ["TR_fn_custom_grad"], "example": "TR_var f = TR_fuse((a, b) => a * b + a); TR_print(f(TR_Tensor([1.0, 2.0]), TR_Tensor([3.0, 4.0])).TR_tolist)" },
   "TR_fn_gelu": { "kind": "function", "common_name": "gelu", "params": ["TR_Tensor|TR_Int|TR_Float"], "named": [["TR_arg_approximate", "TR_Bool", true]], "returns": "TR_Tensor|TR_Float", "related": ["TR_fn_relu"], "example": "TR_print(TR_gelu(TR_Tensor([-1.0, 0.0, 1.0])).TR_tolist, TR_gelu(1.0, TR_approximate: TR_false))" },
+  "TR_fn_gemma3_format": { "kind": "function", "module": "tr/chat_gemma3" },
+  "TR_fn_gemma3_reply": { "kind": "function", "module": "tr/chat_gemma3" },
   "TR_fn_gguf_chat_family": { "kind": "function", "module": "tr/model_family" },
   "TR_fn_gguf_linear": { "kind": "function", "module": "tr/gguf_tensors" },
   "TR_fn_gguf_norm": { "kind": "function", "module": "tr/gguf_tensors" },

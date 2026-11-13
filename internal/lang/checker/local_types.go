@@ -28,7 +28,7 @@ var coreTypes = func() map[string]bool {
 // blok görevi TR_Task[TR_NoneType] de (10.1).
 func (c *Checker) knownType(t string) bool {
 	s := shapeOf(t)
-	if s.elems == nil && !coreTypes[s.base] && c.typeDefs[s.base] == nil {
+	if s.elems == nil && !coreTypes[s.base] && c.typeDefs[s.base] == nil && !libraryType(s.base) {
 		return false
 	}
 	for _, a := range append(s.args, s.elems...) {
