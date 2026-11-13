@@ -48,7 +48,7 @@ async function pair(code) {
   setConn(json && json.error && json.error.code === "pair_code_used" ? "pair_used" : "pair_invalid");
 }
 
-/** Dost'tan yeni kodlu bir sekme ister (`GET /pair/renew`); `202` dışında bir cevapta belirteç kutusu görünür. */
+/** Sunucudan yeni kodlu bir sekme ister (`GET /pair/renew`); `202` dışında bir cevapta belirteç kutusu görünür. */
 async function renew() {
   let status = 0;
   try {

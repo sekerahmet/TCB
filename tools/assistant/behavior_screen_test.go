@@ -283,16 +283,36 @@ func TestScreenHasNoHiddenCharacters(t *testing.T) {
 	}
 }
 
-// Ad tek sabittedir: değiştirmek için tek yer vardır.
+// Ad sayfada tek sabittedir (başlık, marka, cevabın başı); sözleşmenin üstbilgi adları ayrıdır, ad değişse de değişmezler.
+// Dil dosyalarının cümleleri adı ekleriyle taşır (Dost'u, Dost'un): ek ada bağlıdır, yer tutucu onu doğru yazamaz. Bu yüzden
+// adı anan anahtarlar aşağıda adlarıyla sayılır: listedeki her metin her dilde adı anar, listede olmayan hiçbiri anmaz. Ad
+// değişince değişmeyen her cümle, adı anan yeni bir cümle de listeye girene kadar testi düşürür.
 func TestScreenNameIsOneConstant(t *testing.T) {
 	html := page(t)
 	name := capture(t, `const ASSISTANT_NAME = "([^"]+)";`, html)
-	if n := strings.Count(html, name); n != 1 {
-		t.Errorf("the name %q appears %d times; it lives only in ASSISTANT_NAME", name, n)
+	for _, header := range []string{"Dost-Pair-Code", "Dost-Pair-Renew"} { // contract.md, "Uçlar"
+		html = strings.ReplaceAll(html, header, "")
 	}
-	for _, language := range languageNames(t) {
-		if strings.Contains(readFile(t, languageDir+"/"+language), name) {
-			t.Errorf("the name %q is in %s; it lives only in ASSISTANT_NAME", name, language)
+	if n := strings.Count(html, name); n != 1 {
+		t.Errorf("the name %q appears %d times in the page; it lives only in ASSISTANT_NAME", name, n)
+	}
+	named := map[string]bool{}
+	for _, key := range []string{"banner_mock", "conn_pair_used", "conn_rejected", "devices_empty", "error_devices_unavailable",
+		"error_pair_code_used", "pair_renew", "settings_restart_note", "settings_write_failed_load_note", "token_hint"} {
+		named[key] = true
+	}
+	for code, table := range dictionary(t) {
+		for key := range named {
+			if text, ok := table[key]; !ok {
+				t.Errorf("%s has no %s; this test's list of texts that name the screen is out of date", code, key)
+			} else if !strings.Contains(text, name) {
+				t.Errorf("%s/%s does not name %q; it is a text that names the screen", code, key, name)
+			}
+		}
+		for key, text := range table {
+			if !named[key] && strings.Contains(text, name) {
+				t.Errorf("%s/%s names %q but is not in this test's list of texts that name the screen", code, key, name)
+			}
 		}
 	}
 }

@@ -148,7 +148,7 @@ const client = (() => {
     setConn(phase, values);
   }
 
-  /** `401`: belirteç vardıysa geçersizdir (Dost yeniden açıldı), silinir; yoksa kullanıcı girer (kutu). */
+  /** `401`: belirteç vardıysa geçersizdir (sunucu yeniden açıldı), silinir; yoksa kullanıcı girer (kutu). */
   function unauthorized() {
     const had = ui.token !== "";
     dropToken();

@@ -111,9 +111,9 @@ Güvenilmez metin ancak ikinci aşamadan sonra gelir; o ana kadar yüklenenler d
 
 ## Değiştirmek
 
-Betik ya da stil değişince CSP etiketindeki özet de değişmelidir, yoksa tarayıcı sayfayı çalıştırmaz. `TestScreenPolicy` düşerken beklenen özeti yazar: onu etikete kopyalayın. Özet, `<script>` ile `</script>` arasındaki baytların `sha256`'sının base64 yazımıdır.
+Stil değişince CSP etiketindeki özet de değişmelidir, yoksa tarayıcı stili uygulamaz. `TestScreenPolicy` düşerken beklenen özeti yazar: onu etikete kopyalayın. Özet, `<style>` ile `</style>` arasındaki baytların `sha256`'sının base64 yazımıdır; modüller ve dil dosyaları yollarıyla izinlidir (`script-src`).
 
-Ekranda görünen ad yalnız `ASSISTANT_NAME` sabitindedir.
+Ekranda görünen ad yalnız `ASSISTANT_NAME` sabitindedir; dil dosyalarının cümleleri adı ekleriyle taşır, ad değişince onlar da değişir (`TestScreenNameIsOneConstant` gösterir).
 
 ## Sınamak
 

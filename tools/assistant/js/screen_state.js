@@ -3,10 +3,10 @@
 // Ekranın sabitleri, eşleme kodunun adresten okunması, dil ve sözlük, ekranın durumu. Ekranın modülü (index.html; sıra contract.md, "Sunulan dosyalar").
 
 /** Ekranda görünen ad: yalnız burada yazılır. */
-const ASSISTANT_NAME = "Asistan";
+const ASSISTANT_NAME = "Dost";
 
 /**
- * Eşleme kodu (contract.md, "Kaynak"; dil tanımı 28.2b): Dost tarayıcıyı `#p=<kod>` ile açar. Kod yalnız bu biçimle
+ * Eşleme kodu (contract.md, "Kaynak"; dil tanımı 28.2b): sunucu tarayıcıyı `#p=<kod>` ile açar. Kod yalnız bu biçimle
  * okunur ve her şeyden önce adresten silinir; değer DOM'a, metne, günlüğe girmez. Başka parça yok sayılır.
  */
 const PAIR_CODE = (() => {
