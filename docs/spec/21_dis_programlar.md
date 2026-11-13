@@ -76,9 +76,10 @@ TR_for {
 - TR'nin kendisinin durdurduğu programın çıkışı çıkış hatası değildir:
   - iptalde iptal hatası (10.9), süre sınırında zaman aşımı hatası (10.7) gelir;
   - program biterken ve durdurmada (1.5) durdurulan süreç hata olarak yazılmaz, 10.6'da iptal edilen görev gibi.
-- Standart hata çıktısı arka planda okunur, iki çıktı birbirini kilitlemez. Program başarıyla biterse standart hata çıktısı atılır.
+- Standart hata çıktısı arka planda okunur, iki çıktı birbirini kilitlemez. Program başarıyla biterse standart hata çıktısı atılır: sonucunu standart hataya yazan program (ffmpeg'in aygıt listesi) başarıda boş çıktı verir.
+- `TR_run_process(program, argümanlar, TR_merge_stderr: TR_true)` programın standart hatasını standart çıktıyla aynı boruya yazar (kabuğun `2>&1`'i); dönüş yine `TR_Bytes`'tır, iki çıktı programın yazdığı sırayla gelir. Varsayılan `TR_false`'tur.
 - Bazı programlar başarıyı başka kodlarla bildirir: `grep` eşleşme bulamayınca 1 döner. Kabul edilen kodlar açıkça yazılır: `TR_exit_codes: [0, 1]`. Hangi kodla bittiğini bilmesi gereken program kabul ettiği kodları `TR_exit_codes:`'a yazar ve hangisi olduğunu `p.TR_wait()`'in sonucundan alır: `TR_spawn_process("grep", ["-q", "hata", "günlük.txt"], TR_exit_codes: [0, 1]).TR_wait() == 0`.
-- *Test:* TR testi: `tests/dis_program_test.tr`; Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestSignalName`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`.
+- *Test:* TR testi: `tests/dis_program_test.tr`; Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestSignalName`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`; `TR_merge_stderr:` uygulanınca TR testi.
 
 **21.5** İptal (10.9), süre sınırı (10.7), `p.TR_cancel()` ve durdurma (1.5) programı aynı yolla durdurur:
 - Önce nazik bir istek gider: Unix'te SIGTERM, Windows'ta Ctrl+Break olayı.

@@ -73,6 +73,8 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - Sorgulu istek belirteç ister (`/?` dahil: Go'da sorgusu boş ama `?`'i var, DENETİM 392 N6): `GET /`'ü sorguya göre yönlendiren bir işleyici veriyi belirteçsiz açardı; önbellek kırmak için sorgu yazan sayfa `401` alır, yüksek sesli.
   - Ad: `TR_tokenless_paths:` kuralın yaptığını ve `TR_token:`'la bağını söylüyor; "public" `public/` klasörünü (Rails, Express, Next.js) ve "internete açık"ı çağrıştırırdı, oysa `127.0.0.1`'de 28.1a sürer (DENETİM 392).
   - **Jupyter Server** (`v2.14.2`, `jupyter_server/base/handlers.py`): statik dosya işleyicisinin (`FileFindHandler`) yalnız `get` ve `head`'i `@allow_unauthenticated`; yorumu "access is allowed as this class is used to serve static assets on login page" [kanıtlı: DENETİM 392]. Jupyter önekle (`/static/...`) bağlıyor, TR tam yolla.
+  - `TR_host:` yalnız IP adresidir (tur 7): ad açılışta çözülür ve çözüm (DNS, `hosts` dosyası) sunucunun açıldığı arayüzü programın göremeyeceği biçimde değiştirebilir; bir ad döngü adresine de varabilir. Motor adı H7622 ile reddediyor.
+  - `TR_tokenless_paths:`'ın adı (tur 7): ad mekanizmayı (belirteç) söyler; emsallerin adları (Cloud Run'ın `--allow-unauthenticated`'ı, ASP.NET'in `AllowAnonymous`'ı, Spring'in `permitAll`'ı) kimlik doğrulama sözlüğündendir ve birbirinden ayrıdır. Motorun açık yolları kendisinin sunması reddedildi: eşleme yolu (28.2b) bir belirteçsiz `GET`'tir ve cevabı programın kodudur.
 
 ### 28.2a
 
@@ -119,6 +121,8 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - `HEAD`'de işleyicinin `"GET"` görmesi emsalden bir adım öte: çerçevelerde açık bir `HEAD` kolu `GET`'ten önce gelir; TR'de yönlendirme demet desenidir (28.6), ajan `("GET", "/saglik")` yazar ve `HEAD`'i düşünmez. `HEAD`'i işleyiciye olduğu gibi vermek her `GET` ucunu sağlık yoklamasında (`curl -I`) `404`'e çevirirdi. `TR_Request(TR_method: "HEAD")`'in hata olması testin gerçek sunucunun göstermediği bir yöntemi kurmasını önler; kurucu her geçersiz yöntem adını reddeder (RFC 9110'un `token`'ı).
   - JSON'un tek yazımı `TR_json:`: ajan türü elle yazmayı unutunca geçerli JSON `text/plain` gider ve sıkı istemci reddeder. `TR_body: TR_json_string(x)` metin olarak kalır; iki yol aynı sonucu verseydi ajan hangisini yazacağını bilemezdi.
   - İşleyicinin sıradan fonksiyon olması onu ağsız sınanabilir yapar ("aynı veri aynı sonuç").
+  - `Trailer`, `Keep-Alive` ve `Upgrade` (tur 7): TR değer cevabında `Content-Length` yazar, bildirilen trailer gitmezdi; bağlantıyı ve `Keep-Alive`'ı sunucu yönetir; RFC 9110 7.8'e göre `426` cevabı `Upgrade` başlığını taşır. Kural RFC'den katıdır; "TR sessiz değiştirmez" ilkesiyle aynı.
+  - Değerin HTAB'ı (tur 7): RFC 9110 5.5'in grameri alan değerinin içinde HTAB'a izin verir, baştaki ve sondaki boşluğu değerin parçası saymaz. TR sessiz kırpmaz: uçtaki boşluk hatadır, içteki HTAB geçer.
 
 ### 28.3a
 
@@ -137,6 +141,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - Tam harf eşleşmesinin bedeli: her bileşende üst klasörü okuyup bayt bayt karşılaştırmak; 20 dosyalık klasörde ortanca 162 µs (düz açma 55 µs), 2000 dosyada 825 µs [ölçüldü: DENETİM 347, Windows, D1 çalışırken].
   - Tam harf eşleşmesi Windows ve macOS'un büyük-küçük harfe bakmayan dosya sisteminde `/Index.html`'in ayrı sonuç vermesini önler; kısa adları (`INDEX~1.HTM`) da kapatır.
   - Türün sabit tablodan bulunması aynı dosyanın iki makinede ayrı türle gitmesini önler; `nosniff` tarayıcının türü tahmin etmesini kapatır.
+  - Dosyanın boyutu (tur 7): cevap bir değerdir (`.TR_body` her zaman `TR_Bytes`), gövde bellekte durur; gigabaytlık bir dosya isteği belleği bitirirdi [hesap]. Varsayılan `TR_max_body_bytes:`'ınkiyle aynıdır: bellekte duran gövdenin tek sınırı ajanın tek öğreneceği sayıdır. Ekranın en büyük dosyası 33 211 bayt [ölçüldü: `git ls-tree -r -l a28200ea tools/assistant`, `index.html`]. Akıtma `.TR_body`'nin tipiyle çatıştığı için reddedildi. Yolun iki kez çözülmesi kapalıdır: motor dosyayı `os.Root`'ta açar (`TestFileSwapAfterResolveIsRefused`).
 
 ### 28.4
 
@@ -151,7 +156,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - Çıkış kodunun değişmemesi: sunucu hatayı yakalayıp `500` yazar, 10.6 "yakalanan hata çıkış kodunu bozmaz" der. Eğitimin durum ucundaki tek bir bozuk istek, başarıyla biten eğitimi "düştü" göstermemeli.
   - Denetimlerin görev açılmadan yapılması: 10.2'nin sözüyle önünde 1000 görev bekleyen görev kilidi ~5 sn'de alır [hesap]; kimliksiz bir sel görev açamazsa robotun döngüsünü de bekletemez.
   - Bekletmek yerine `503`: bekleyen istek bağlantı ve bellek biriktirir, `503` istemcinin geri çekilmesini sağlar. `Retry-After`'sız, çünkü sunucu ne zaman boşalacağını bilmez.
-  - Sınıra TR kodu koşan işler sayılır: işleyici, istek akışının bloğu ve dinleyici açılırken çağrılan `TR_snapshot:`. Yayın dinleyicisine olayı ve nabzı sunucu kilit dışında yazar, TR kodu koşmaz; sayılsaydı açık sekmeler sunucuyu kilitlerdi.
+  - Sınıra TR kodu koşan işler sayılır: işleyici ve istek akışının bloğu. Yayın dinleyicisine olayı ve nabzı sunucu kilit dışında yazar, TR kodu koşmaz; sayılsaydı açık sekmeler sunucuyu kilitlerdi.
   - Dinleyici sayısı bilinçli olarak sınırsızdır: bedeli bir bağlantı ve tamponudur; yerelde 28.1a, dış adreste belirteç korur; yavaş okuyanın bağlantısı kapanır (28.7). Ekranın ölçüsünde 7 sekme ve 4'lük bir dinleyici sınırı 60 saniyede 133 açılış ve atılma döngüsü kurmuştu [ölçüldü: ekran kolu, 2026-11-08]. Yerelde başka bir süreç de sınırsız bağlantı açabilir; bu, yerel bir sürecin zaten yapabildiklerinin içindedir.
   - Sınır robotun sabit hızlı döngüsünü tek başına korumaz: kilidi bırakmayan tek bir uzun işleyici de döngüyü bekletir (10.2). Bu yüzden maddede yazılı.
 
@@ -168,6 +173,8 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - 1 MiB ekranın 64 KiB'lık komutlarını rahatça karşılar; çok kipli girdi `TR_max_body_bytes:` ile büyütülür.
   - Yazma ve işleyici süresi yok: akış (28.7) ve uzun üretim kesilmemeli. Süreyi program kendi koyar.
   - Gövde okumasında iki okuma arası süre, toplam süre değil: büyük ama akan bir yükleme kesilmez, duran kesilir.
+  - `TR_max_body_bytes:` istek başınadır (tur 7): gövde yüklemesi isteğin görevi açılmadan yapılır, `TR_max_concurrent:`'a sayılmaz; toplam belleği sınırlamak programın işidir.
+  - Başlıkların sınırı (tur 7, DENETİM 638 Ş3, 639 N2): Go 1.27'nin sunucusu 500'den fazla başlık değerini işleyiciden önce `400` ile, okuma sınırını aşan isteği `431` ile reddeder [kanıtlı: go1.27.4, `net/textproto/reader.go:573-575`, `net/http/server.go:2091-2098`, `:2117-2123`]. Go'nun okuma sınırı `MaxHeaderBytes + 4096`'dır (`net/http/server.go:956-957`); sayıyı Go'nun ara değeri değil TR koyar, motor `MaxHeaderBytes`'ı toplam 1 MiB olacak biçimde ayarlar. Aynı bağlantıdaki sonraki istekte iki gevşeklik kalır: önceki okumada tampona düşmüş baytlar yeni sınıra sayılmaz; `POST`'tan sonra baştaki CR ve LF sayılır ama atılır [hesap: DENETİM 639 N2]. Metin bu yüzden "bağlantının her isteğinde" demez. Sınırlar seçenek değildir: ihtiyaç doğmadı.
 
 ### 28.6
 
@@ -197,9 +204,11 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - Kimliğin yayıncıya özgü ön eki (TCB, 2026-11-10, DENETİM 387 N2): yalnız sayı olan kimlik yeniden başlayan sunucuda 1'den başlıyordu; eski kimlikle dönen istemci yeni olayları eski durumun üstüne alıyordu, sessiz yanlış. Ön eki tutmayan kimliğe görüntü gider. Ön ek rastgeledir ve telin baytları koşudan koşuya değişir; program kimliği üretmez, yalnız istemcinin geri gönderdiği `Last-Event-ID` başlığında görebilir. Yeniden üretilebilen bir ön ek (sabit ya da sayaçtan) aynı yanlışı geri getirirdi.
   - Olay akışı 19.4'ün insanın göreceği çıktılarındandır: maskeyi `.TR_send_event` yapar, çünkü gizli değerleri yalnız çalışma anı bilir (19.1 ortamı listeletmez). Maske JSON'a çevrilmeden önce uygulanır; sonra `\"` ve `\uXXXX` kaçışı eşleşmeyi bozardı. Düz `TR_Response` gövdesi veridir, maskelenmez.
   - İstek akışında bloğun hatası akışı düzgün bitirmeden keser: başlıklar gittiği için `500` yazılamaz; akış yalnız kapansaydı dil modelinin cevabını bekleyen istemci yarım cevabı tam sanırdı (sessiz yanlış, DENETİM 374 Ş3). Kesilen `chunked` akış son parçasız biter, istemci hatayı görür [hipotez: Go'nun bu yolu koşulmadı].
-  - Anlık görüntü sürerken gönderenin beklemesi "kaybolmaz, iki kez gelmez" sözünün tek yoludur: görüntü kilidi bırakırsa (`TR_sleep`, dosya okuma) araya giren olay kimlik başta alınırsa iki kez gelir, sonda alınırsa kaybolur. Gönderen kilidi tutarak bekleseydi görüntünün görevi kilide dönemez, kilitlenirdi (DENETİM 374 Ş2).
+  - Görüntü olaylardan katlanır (TCB, 2026-11-10, DENETİM 377; tur 7): görüntüyü programın durumundan kuran fonksiyon gönderimle yarışıyordu: programın durumu ile `.TR_send_event` iki deyimdir, arada (10.2'nin devir noktası) abone olan dinleyici olayı iki kez alır ya da hiç almazdı. Katlama gönderimle aynı dışlamadadır. Katlama kilidi bırakırsa (`TR_sleep`) bekleyen gönderen ve abone de kilidi bırakarak bekler; kilidi tutarak bekleselerdi katlamanın görevi kilide dönemez, kilitlenirdi (DENETİM 374 Ş2). Emsal: Redux'un reducer'ı ve olay kaynaklı durum (görüntü olayların katlanmasıdır). Bedeli: değişmez görüntü her olayda yeniden kurulur, T baytlık cevap k olayda yaklaşık T·k/2 bayt kopyalar [hesap: tur 7 araştırması 2.3]; ölçüsü HTTP sunucusu kolunun işidir (status 28).
   - Parça parça giden metnin maskesi 19.4a'dadır (gerekçesi orada): olay başına maske iki olaya bölünen değeri görmez, hangi metinlerin birleşeceğini yalnız program bilir.
-  - `TR_snapshot:` dinleyici açılırken işleyicinin içinde çağrılır: anlık görüntü ile kimlik arasında olay kaybolmaz ve süresi 28.4'ün sınırına girer.
+  - İstek akışının okuyucusu `fetch`'tir (tur 7): WHATWG HTML'in `EventSource`'u düzgün biten bağlantıya da yeniden bağlanır; istek akışında bu bloğu yeniden koşturur, aynı soru ikinci kez cevaplanır. Go'nun istemcisi, httpx, requests ve Fetch kesilen akışı hata sayar [kanıtlı: tur 7 araştırması 2.4]. Ekran `fetch` ile okuyor, `EventSource` testle yasak (`tools/assistant/js/transport.js:33`, `tools/assistant/behavior_screen_test.go:182`).
+  - Maskenin anı tek ilkedir (tur 7): maske çıktının yazıldığı anda kayıtlı gizli değerlerle uygulanır, yazılmış çıktı geri alınmaz (19.4a'nın akış maskesiyle aynı sınır). `a28200ea`'da geri oynatılan olay maskelenmiyordu, görüntü maskeleniyordu: bir dinleyici görüntüyü maskeli, olayı maskesiz alabilirdi [kanıtlı: `internal/stdlib/httpserver/broadcast.go:205`, `:266-280`, `a28200ea`].
+  - Unutulan maskenin yakalanması yola bağlı değildir (tur 7): `choices[0].delta.content` gibi sabit bir yol yalnız OpenAI'nin sohbet biçimidir; Anthropic, Responses, Ollama, llama.cpp'nin yerli ucu ve `n > 1` metni başka yolda taşır [kanıtlı: tur 7 araştırması 1.4]. Akışın olayı kendisinin `TR_MaskStream`'den geçirmesi reddedildi: olayı programın yazdığından başka yapardı. Gitmiş baş geri alınmaz; kazanç sızıntının sessiz kalmamasıdır.
   - Nabız kimliksizdir: ekranın ayrıştırıcısı son kimliği tutar, yeniden bağlanmada `Last-Event-ID` doğru kalır.
   - Nabzın biçimi kipe göre ayrıdır. "Sunmak"ın yaygın biçimi istek akışıdır ve OpenAI uyumlu istemci adsız her olayı bir parça sayar; orada veri olayı olan nabız her 15 saniyede sahte bir parça olurdu. Yorum satırını her SSE istemcisi atlar (axum ve sse-starlette'in varsayılanı). Ekranın tarayıcı kodu yorumu göremez; ekran yayın akışını kullanır, orada nabız veri olayıdır ve sözleşmenin biçimi `TR_heartbeat:` ile verilir. Aralık emsallerle aynı, 15 saniye.
 
@@ -210,6 +219,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - **Rust axum:** `with_graceful_shutdown` (`axum/src/serve/mod.rs:403`).
   - **TR:** 21.5'in 2 saniyelik nazik durdurması, 1.5 durdurma, 10.9 iptal; `TR_Bool` dönüşü 18.15 gibi.
 - *Gerekçe:* kapanış dilin geri kalanıyla aynı yoldan geçer; yarım yazılmış olay istemcide bozuk çerçeve bırakmaz.
+  - Görevin içinde açılan sunucu görevin alt işidir (tur 7): Trio, kotlinx.coroutines ve Go'nun `context`'i alt işi üst işe bağlar. Karşı seçenekte ajan görevi iptal edip kapının kapandığını sanır, kapı sessizce açık kalırdı (güvenlik). Gövdesinin dönüş değeri açık bir sunucu olan görev hiç bitmezdi; hata iki doğru yazımı önerir (DENETİM 638 N5).
 
 ### 28.9
 
@@ -217,3 +227,4 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - TR'nin 8.5'i (iletiler kodlu, işletim sisteminin metni taşınmaz).
   - **Rust:** kapı dolu hatası işletim sisteminden bağımsız bir türdür (`rust-lang/rust` `1.91.0`, `library/std/src/io/error.rs:256`: `AddrInUse,`).
 - *Gerekçe:* kapı dolu hatasının metni işletim sistemine göre değişir. Kodlu ileti onu her dilde aynı yazar ve çaresini önerir: başka kapı ya da `TR_port: 0`.
+  - Kopan istemci hata değildir (tur 7): sekmenin kapanması olağan bir olaydır; işleyicinin hatası değildir, standart hataya satır yazılmaz. Başlık sınırlarının `431` ve `400`'ü işleyiciden önce yazılır, kodlu ileti değildir.
