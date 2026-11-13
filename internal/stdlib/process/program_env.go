@@ -30,11 +30,16 @@ func programEnv(m *interp.VM, fn any, named map[string]interp.Value) (env, filte
 			filtered = append(filtered, name)
 		}
 	}
+	values := make([]string, 0, len(given))
 	for _, g := range given {
 		if IsSecretName(g[0]) {
 			addSecret(m, g[1])
 		}
+		values = append(values, g[1])
 		env = append(env, g[0]+"="+g[1])
+	}
+	if m != nil {
+		m.AddAddressSecrets(values...) // adresin kimlik kısmı, adı ne olursa olsun (19.4)
 	}
 	slices.Sort(filtered)
 	return env, filtered, nil

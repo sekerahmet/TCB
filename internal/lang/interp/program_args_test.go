@@ -74,3 +74,17 @@ func TestCheckArguments(t *testing.T) {
 		t.Errorf("ileti seçenek adını yazmalı, değerini yazmamalı: %q", got)
 	}
 }
+
+// Komut satırının her değerindeki adresin kimlik kısmı, seçeneğin adı ne olursa olsun, program
+// başlarken süzgece girer (19.4); başlatıcının argümanları da taranır. Argümanın kendisi değişmez.
+func TestArgumentAddressIsSecret(t *testing.T) {
+	t.Cleanup(ClearRegisteredSecrets)
+	v := New()
+	v.SetArgs([]string{"--vekil", "http://ali:Vekil2026@vekil", "--ros-args", "--x=http://u:Rosgizli26@h", "--"})
+	if got := v.Mask("Vekil2026 Rosgizli26"); got != "*** ***" {
+		t.Errorf("iki parola da örtülmeli: %q", got)
+	}
+	if got, want := v.Args(), []string{"--vekil", "http://ali:Vekil2026@vekil"}; !slices.Equal(got, want) {
+		t.Errorf("argümanlar gerçek değeri taşımalı: %q, %q bekleniyordu", got, want)
+	}
+}

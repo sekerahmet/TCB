@@ -16,8 +16,10 @@ import (
 // (bkz. command_line_reach.go).
 
 // SetArgs records the program's arguments (once, before the program starts). Launchers' own
-// arguments are left out (programArguments).
+// arguments are left out (programArguments). Every raw argument, the launchers' too, is scanned
+// first: the userinfo of an address in it is secret whatever the option's name (19.4).
 func (v *VM) SetArgs(arguments []string) {
+	v.AddStartAddressSecrets(arguments...)
 	v.arguments = programArguments(arguments)
 }
 

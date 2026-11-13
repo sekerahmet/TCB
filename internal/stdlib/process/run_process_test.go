@@ -67,6 +67,12 @@ func helperExtra(args []string) {
 		}
 		n, _ := strconv.Atoi(args[1])
 		os.Exit(n)
+	case "env-exit": // kod, sonra adları verilen değişkenlerin değerlerini standart hataya yazar
+		for _, name := range args[2:] {
+			_, _ = os.Stderr.WriteString(os.Getenv(name) + "\n")
+		}
+		n, _ := strconv.Atoi(args[1])
+		os.Exit(n)
 	case "flood": // iki çıktıya birden, parça parça büyük yazar
 		chunk := strings.Repeat("x", 1<<16)
 		for range 64 {

@@ -7,7 +7,15 @@ satırı seçenekleri (`TR_fn_command_line`) ve dış programlar (`TR_fn_run_pro
 
 **Gizli değer gizli kalır.** Adı gizli bir şey söyleyen ortam değişkenlerinin ve seçeneklerin
 (anahtar, belirteç, parola ...) değerleri, insanın göreceği her çıktıda `***` olarak görünür.
-Denetim: `TestIsSecretName`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`, `TestEnvVar`; ayrı süreçte `cmd/trlang/e2e` `TestSecretValuesMaskedInOutput`.
+Adı ne olursa olsun, ortamın ve komut satırının her değerindeki adresin kimlik kısmı da gizlidir (19.4):
+`Register` ortamı, `interp.VM.SetArgs` argümanları program başlarken tarar; program değişkeni okumasa da
+dış programın standart hatasında örtülür. `TR_env:` ile verilen değer de taranır (`programEnv`). Kuralın
+kendisi tek yerde, `interp`'tedir (`address_secret.go`). Kullanım hatasındaki değer önce maskelenir, sonra
+kesilir (`errorValue`, H7207): kesim parolanın ortasına düşse de başı kalmaz.
+Denetim: `TestIsSecretName`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`, `TestEnvVar`,
+`TestEnvironmentAddressIsMaskedAtStart`, `TestUnreadAddressIsMaskedInChildStderr`, `TestEnvArgumentAddressIsMasked`,
+`TestCommandLineAddressInUsageError`; `interp`'te `TestAddressSecrets`; ayrı süreçte `cmd/trlang/e2e`
+`TestSecretValuesMaskedInOutput`, `TestAddressUserinfoMaskedInOutput`.
 
 **Parça parça metnin maskesi akıştadır.** Maske her çıktıya ayrı uygulanır, iki parçaya bölünen gizli
 değeri görmez. `TR_fn_mask_stream()`'in değeri (`mask_stream.go`) parçaları `interp.MaskStream`'e verir:

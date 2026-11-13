@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // fakeLiveLine silinip çizildiğini ortak çıktıya işaretleyen bir canlı satırdır.
@@ -90,5 +92,67 @@ func TestLongestSecret(t *testing.T) {
 	v.AddSecret("altı_harf")
 	if got, want := v.LongestSecret(), len("uzun_değer"); got != want {
 		t.Errorf("%d, beklenen %d", got, want)
+	}
+}
+
+// Değer özetinin süreç boyu kümesi (19.4): bir VM'nin kaydı öbür VM'nin hata iletisindeki özette de
+// örtülür; ClearRegisteredSecrets VM'lerin kaydettiğini siler, süreç başında taranan kalır; uzun
+// değer önce denenir; kümede olan değerin yeniden kaydı değiştiriciyi yeniden kurdurmaz.
+func TestProgramSecretsAcrossVMs(t *testing.T) {
+	t.Cleanup(ClearRegisteredSecrets)
+	ClearRegisteredSecrets()
+	summary := func(text string) string {
+		return ArgTypeError(codes.FnZeros, 1, &StringVal{Val: text}, codes.TypeInt).Error()
+	}
+	key := "sk-vmler-arasi-0123456789abcdefghijklmnopqrst"
+	if len(key) != 45 {
+		t.Fatalf("anahtar %d karakter", len(key))
+	}
+	a := New()
+	a.AddSecret(key)
+	_ = New() // B: kendi süzgecinde anahtar yok; özet süreç boyu kümeden maskelenir
+	if got := summary(key); strings.Contains(got, key[:8]) {
+		t.Errorf("A'nın kaydı B'nin özetinde örtülmeli: %q", got)
+	}
+	ClearRegisteredSecrets()
+	if got := summary(key); !strings.Contains(got, key[:39]) || strings.Contains(got, SecretMask) {
+		t.Errorf("boşaltmadan sonra özet anahtarın ilk 39 karakterini taşımalı: %q", got)
+	}
+	address := "postgres://uygulama_kullanicisi:Surecbasi26@db.sirket.local/ana"
+	a.AddStartAddressSecrets(address)
+	ClearRegisteredSecrets()
+	if got := summary(address); strings.Contains(got, "Surecba") {
+		t.Errorf("süreç başı parçası boşaltmadan sonra da örtülü kalmalı: %q", got)
+	}
+	// Örtüşme: uzun değer süreç başı parçasında, başı olan kısa değer VM'lerin parçasında; iki kayıt
+	// sırasında da uzunun hiçbir parçası açık kalmaz.
+	a.AddStartAddressSecrets("https://ghp_abc123def456@github.com")
+	a.AddSecret("ghp_abc123")
+	a.AddSecret("ghp_xyz789")
+	a.AddStartAddressSecrets("https://ghp_xyz789uvw012@github.com")
+	for text, rest := range map[string]string{"anahtar: ghp_abc123def456 son": "def456", "anahtar: ghp_xyz789uvw012 son": "uvw012"} {
+		if got := summary(text); strings.Contains(got, rest) {
+			t.Errorf("uzun değer bütünüyle maskelenmeli: %q", got)
+		}
+	}
+	// Yeniden kayıt kümeyi "değişti" diye işaretlemez; yeni değer işaretler, değiştirici bir kez kurulur.
+	programSecrets.mask("")
+	before := programSecrets.replacer.Load()
+	a.AddSecret("ghp_abc123")
+	a.AddStartAddressSecrets("https://ghp_abc123def456@github.com")
+	if programSecrets.changed.Load() {
+		t.Error("kümede olan değerin yeniden kaydı kümeyi değiştirmemeli")
+	}
+	programSecrets.mask("")
+	if programSecrets.replacer.Load() != before {
+		t.Error("değiştirici yeniden kurulmamalı")
+	}
+	a.AddSecret("yeni-gizli-2026")
+	if !programSecrets.changed.Load() {
+		t.Error("yeni değer kümeyi değiştirmeli")
+	}
+	programSecrets.mask("")
+	if after := programSecrets.replacer.Load(); after == before || programSecrets.changed.Load() {
+		t.Error("değiştirici bir sonraki maskede bir kez kurulmalı")
 	}
 }

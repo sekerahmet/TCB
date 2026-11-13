@@ -215,8 +215,11 @@ func runFile(fpath string, out io.Writer) (Summary, []string) {
 }
 
 // loadMachine dosyayı yeni bir makinede yükler: en dıştaki tanımlar, aktarılan modüller ve paylaşılan
-// üreteç başlangıç durumundadır, bir önceki testin değiştirdiği hiçbir şey görünmez (12.5).
+// üreteç başlangıç durumundadır, bir önceki testin değiştirdiği hiçbir şey görünmez (12.5). Önceki
+// testlerin kaydettiği gizli değerler de süreç boyu kümeden silinir: bir testin hata metnindeki
+// değer özeti onlara bağlı olmaz (19.4). Koşucu sıralıdır; aynı anda koşan başka VM yoktur.
 func loadMachine(fpath, text string, prog *ast.Program, out io.Writer) (*interp.VM, error) {
+	interp.ClearRegisteredSecrets()
 	machine := interp.New()
 	machine.Out = out
 	machine.Err = out // eşzamanlı görev hataları da raporda görünür

@@ -75,6 +75,34 @@ TR_throw "bozuk: " + ayar["api_key"]
 	}
 }
 
+// Adresin kimlik kısmı (19.4): adı ne olursa olsun ortam değişkeninin ve komut satırı argümanının
+// değerindeki adresin parolası (':' yoksa kimlik kısmının tamamı) TR_print'te *** görünür. ':'siz
+// kimlik kısmı her geçişinde örtülür (postgres://postgres@... → ***://***@...); bu yüzden o değişken
+// ayrı koşuda: aynı süreçte öbür adreslerin "postgres" şemasını da örterdi.
+func TestAddressUserinfoMaskedInOutput(t *testing.T) {
+	dir := t.TempDir()
+	writeTR(t, dir, "a.tr", `TR_var ayar = TR_command_line({"vekil": ""})
+TR_for ad TR_in ["HTTPS_PROXY", "DATABASE_URL", "REDIS_URL", "KAYNAK", "KUME", "YEREL", "GIT"] {
+    TR_print(ad, TR_env(ad) ?? "")
+}
+TR_print("vekil", ayar["vekil"])
+`)
+	env := []string{"HTTPS_PROXY=http://ali:Vekil2026@vekil:8080", "DATABASE_URL=postgres://uygulama:Vekil2027@db/ana",
+		"REDIS_URL=redis://:20262026@onbellek:6379/0", "KAYNAK=https://ghp_abc123def@github.com/k/d",
+		"KUME=http://a:Vekil2028@x,http://b:Baska2026@y", "GIT=ssh://git@github.com/k/d"}
+	s := testkit.RunBinary(t, trBinary, dir, "", env, "a.tr", "--vekil", "http://veli:Arguman2026@v")
+	testkit.Wait(t, s, 0, []string{"HTTPS_PROXY http://ali:***@vekil:8080", "DATABASE_URL postgres://uygulama:***@db/ana",
+		"REDIS_URL redis://:***@onbellek:6379/0", "KAYNAK https://***@github.com/k/d", "KUME http://a:***@x,http://b:***@y",
+		"GIT ssh://git@github.com/k/d", "vekil http://veli:***@v"}, nil)
+	local := testkit.RunBinary(t, trBinary, dir, "", []string{"YEREL=postgres://postgres@localhost/ana"}, "a.tr")
+	testkit.Wait(t, local, 0, []string{"YEREL ***://***@localhost/ana"}, nil)
+	for _, secret := range []string{"Vekil2026", "Vekil2027", "20262026", "ghp_abc123def", "Vekil2028", "Baska2026", "Arguman2026"} {
+		if strings.Contains(s.Stdout+s.Stderr, secret) {
+			t.Errorf("%q çıktıda görünmemeli:\n%s\n%s", secret, s.Stdout, s.Stderr)
+		}
+	}
+}
+
 // İlerleme çubuğu boruya (terminal değil) yazarken standart çıktıya karışmaz, sonda özet
 // satırı yazılır; program hatayla bitse de çubuk biter, bitiş günlüğe yazılır.
 func TestProgressOnCommandLine(t *testing.T) {

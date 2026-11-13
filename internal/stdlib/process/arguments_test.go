@@ -26,7 +26,7 @@ func TestHelpDefaultsReadBack(t *testing.T) {
 	} {
 		s := &option{name: "x", optKind: c.kind, itemKind: c.item, defaultVal: c.value}
 		text := defaultText(c.value)
-		got, err := parseValue(s, text, true)
+		got, err := parseValue(nil, s, text, true)
 		if err != nil || got.Inspect() != c.value.Inspect() {
 			t.Errorf("%s varsayılanı %q geri okunamadı: %v, %v", c.value.Type(), text, got, err)
 		}

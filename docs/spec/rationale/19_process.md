@@ -22,6 +22,11 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 
 - *Emsal:* GitHub Actions gizli değerleri günlükte `***` ile maskeler; değer dönüştürülünce eşleşmez [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* ajanlar programın çıktısını okur ve başka yerlere taşır; çıktıya düşen bir anahtar sızmış bir anahtardır. Veriyi değiştirmemek programın doğru çalışmasını korur: maskeleme yalnız insanın göreceği yerdedir. Sözcüklerin dil dosyalarında durması hiçbir dile ayrıcalık tanımaz: yeni bir gösterim dili kendi sözcüklerini getirir (`contraseña`).
+- *Gerekçe (adresin kimlik kısmı, uygulama 2026-11-13):* vekil ve veritabanı adresi parolasını adında değil değerinde taşır (`HTTPS_PROXY`, `DATABASE_URL`); ad kuralı onu görmez, sızıntı sessizdir.
+  - **Taramanın yeri program başıdır:** komut satırı `SetArgs`'ta (programı çalıştıran üç yerin üçü de onu `Run`'dan önce çağırır), ortam süreç motorunun `Register`'ında (her VM'de, programdan önce). Program okumadığı değişkeni de dış programa geçirir; o programın standart hatası 21.4'ün iletisine girer, bu yüzden okuma anında taramak geç kalırdı. `TR_env` okuması yeniden taramaz: kural tek yerde (`interp`, `address_secret.go`) kalır.
+  - **Toplu kayıt:** bir değerin bütün adresleri tek seferde kaydedilir, süzgeç bir kez kurulur. Tek tek kayıt, adresi çok olan bir değerde süreyi adres sayısının karesiyle büyütürdü.
+  - **Önce maske, sonra kesim:** iletiye kesilerek giren değer (kullanım hatasının değeri, H7207, hata iletisindeki değer özeti) önce maskelenir. Maske çıktı yazılırken uygulanır; kesim parolanın ortasına düşerse kalan baş artık hiçbir gizli değerle eşleşmez. Standart hatanın kuyruğu zaten böyle yapıyordu.
+  - **Süreç boyu küme, VM başına kayıt ilkesine istisna:** programın durumu VM başınadır. Değer özetini kuran `TypeAndSummary`'nin ve ileti metnini yazan `MessageText`'in elinde VM yoktur (test dışındaki 54 çağrının 37'sinde imzada VM yok); VM'yi oraya taşımak 100'ü aşkın değişiklik isterdi. Bu yüzden yalnız özetin kesimi için süreç boyu bir küme tutulur; çıktının maskesi VM başına kalır. Bedel: tek süreçte birden çok VM koşan yolda bir VM'nin kaydı öbürünün yakalanan hata metninde `***` görünebilir; yön güvenlidir, gizli değer sızmaz. `trlang test` her testten önce VM'lerin kaydettiği parçayı boşaltır, testin hata metni önceki teste bağlı olmaz (12.5).
 
 ### 19.4a
 

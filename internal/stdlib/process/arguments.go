@@ -95,7 +95,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 		if len(a) > argLimit {
 			return nil, messages.New(messages.H7201, i+1, len(a))
 		}
-		name, value, valued, err := optionName(a, options)
+		name, value, valued, err := optionName(m, a, options)
 		if err != nil {
 			// Gizli adlı mantık seçeneği değer almaz; arkasındaki argüman büyük olasılıkla onun
 			// değeridir (--hf_token GIZLI): iletiye uzunluğuna bakılmadan konmaz (19.10).
@@ -135,7 +135,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 				return nil, messages.New(messages.H7238, s.display(), shorten(argv[i+1]))
 			}
 		}
-		v, err := parseValue(s, value, valued)
+		v, err := parseValue(m, s, value, valued)
 		if err != nil {
 			return nil, err
 		}
@@ -147,7 +147,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 
 // optionName bir argümanı seçenek adına ve (--ad=değer biçiminde) değerine ayırır;
 // argüman bir seçenek değilse kullanıcıya yol gösteren hatayı verir.
-func optionName(a string, options []*option) (name, value string, valued bool, err error) {
+func optionName(m *interp.VM, a string, options []*option) (name, value string, valued bool, err error) {
 	switch {
 	case a == "--":
 		return "", "", false, messages.New(messages.H7205)
@@ -161,7 +161,7 @@ func optionName(a string, options []*option) (name, value string, valued bool, e
 		e := unknownOption(a, options)
 		return "", "", false, messages.New(messages.H7206, e)
 	}
-	return "", "", false, messages.New(messages.H7207, shorten(a))
+	return "", "", false, messages.New(messages.H7207, shorten(masked(m, a)))
 }
 
 // find adı verilen seçeneği bulur: seçeneğin adı metin anahtarının kendisidir (3.7), çevrilmez.
@@ -215,7 +215,7 @@ func unknownOption(given string, options []*option) error {
 }
 
 // parseValue bir argüman değerini seçeneğin tipine çevirir.
-func parseValue(s *option, value string, valued bool) (interp.Value, error) {
+func parseValue(m *interp.VM, s *option, value string, valued bool) (interp.Value, error) {
 	if s.optKind == kindBool {
 		if !valued {
 			return interp.True, nil
@@ -223,12 +223,12 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		if b, ok := boolName(value); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7210, s.display(), codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), errorValue(s, value))
+		return nil, messages.New(messages.H7210, s.display(), codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), errorValue(m, s, value))
 	}
 	if s.optKind != kindList {
 		v, err := parsePlainValue(s.optKind, value)
 		if err != nil {
-			return nil, messages.New(messages.H7211, s.display(), codes.NameRef(s.optKind.typeCode()), errorValue(s, value), err)
+			return nil, messages.New(messages.H7211, s.display(), codes.NameRef(s.optKind.typeCode()), errorValue(m, s, value), err)
 		}
 		return v, nil
 	}
@@ -240,7 +240,7 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		item := strings.TrimSpace(p)
 		v, err := parsePlainValue(s.itemKind, item)
 		if err != nil {
-			return nil, messages.New(messages.H7212, s.display(), codes.NameRef(s.itemKind.typeCode()), i+1, errorValue(s, p), err)
+			return nil, messages.New(messages.H7212, s.display(), codes.NameRef(s.itemKind.typeCode()), i+1, errorValue(m, s, p), err)
 		}
 		list.Elements = append(list.Elements, v)
 	}
@@ -249,11 +249,21 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 
 // errorValue kullanım hatasında gösterilecek argüman değeridir: gizli adlı seçeneğin değeri
 // uzunluğuna bakılmadan iletiye konmaz (19.10); yalnız sayı ya da mantık değeri gizli sayılmaz (19.4).
-func errorValue(s *option, value string) string {
+// Öbür değer önce maskelenir, sonra kesilir: kesim bir adresin parolasının ortasına düşerse parolanın
+// başı kalırdı, çıktının maskesi onu tanımazdı (19.4).
+func errorValue(m *interp.VM, s *option, value string) string {
 	if (s.secret || IsSecretName(s.name)) && !isNumberOrBool(value) {
 		return interp.SecretMask
 	}
-	return shorten(value)
+	return shorten(masked(m, value))
+}
+
+// masked metni VM'nin gizli değer süzgecinden geçirir (VM yoksa metin aynen kalır).
+func masked(m *interp.VM, text string) string {
+	if m == nil {
+		return text
+	}
+	return m.Mask(text)
 }
 
 // parsePlainValue Tam, Ondalık, Mantık ya da Metin bir değeri çözer. Hata metni, mesaja eklenecek

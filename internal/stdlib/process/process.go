@@ -3,7 +3,10 @@
 // tanımlayıp dolduran komut_satırı (TR_fn_command_line) ve dış programı çalıştıran program_çalıştır
 // (TR_fn_run_process). Adı (Türkçe kuralla) gizli bir sözcük içeren
 // ortam değişkenlerinin ve seçeneklerin değerleri yorumlayıcının gizli değer süzgecine
-// verilir (interp.VM.AddSecret): insanın göreceği çıktılarda *** olarak görünürler.
+// verilir (interp.VM.AddSecret): insanın göreceği çıktılarda *** olarak görünürler. Adı ne
+// olursa olsun ortamın her değerindeki adresin kimlik kısmı da program başlarken süzgece girer
+// (interp.VM.AddStartAddressSecrets, 19.4); TR_env: ile dış programa verilen değer de
+// (interp.VM.AddAddressSecrets).
 //
 // Komut satırının sonucu (State.Settings) başka motorlar için de saklanır: eğitim günlüğü
 // (internal/stdlib/logging) onu başlangıç kaydına yazar, kontrol noktası da kaydına koyabilir.
@@ -12,6 +15,7 @@
 package process
 
 import (
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -87,7 +91,21 @@ func Register(v *interp.VM) *State {
 	v.RegisterBuiltinCode(codes.FnSpawnProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnSpawnProcess), d.spawnProcess))
 	v.AddEndWork(func() []interp.EndError { return d.endProcesses(v) })
 	v.AddHardStop(d.killJobs)
+	v.AddStartAddressSecrets(environmentValues()...)
 	return d
+}
+
+// environmentValues ortamın bütün değerleridir: adı ne olursa olsun her değerdeki adresin kimlik
+// kısmı program başlarken süzgece girer (19.4); program değişkeni hiç okumasa da dış programın
+// standart hatasında örtülür. Motor her VM için kaydedilir; ortamı programdan önce değiştiren tek
+// yer codes.ExportEnvironment'tır ve o her şeyden önce koşar.
+func environmentValues() []string {
+	entries := os.Environ()
+	values := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		values = append(values, entry[min(len(envEntryName(entry))+1, len(entry)):])
+	}
+	return values
 }
 
 // secretWords adın sözcüklerinden biri bunlardan biriyse değer gizli sayılır (ASCII,
