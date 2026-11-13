@@ -290,7 +290,7 @@ TR_test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
 }
 
 TR_test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
-    TR_if TR_devices().TR_contains("gpu") {
+    TR_if TR_devices().TR_contains("gpu:0") {
         TR_var v = TR_randn([4, 7], TR_seed: 5)
         TR_func hesap(c: TR_String) -> (TR_List[TR_List[TR_Float]], TR_List[TR_List[TR_Int]], TR_List[TR_List[TR_Int]], TR_List[TR_List[TR_Float]]) {
             TR_var x = TR_Tensor(v.TR_to_device(c), TR_requires_grad: TR_true)

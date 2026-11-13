@@ -204,6 +204,9 @@ func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 		if f.Token.Code == codes.FnWaitAll {
 			return len(e.Arguments) == 0 // TR_wait_all(görevler) sonuçları verir (10.5)
 		}
+		if f.Token.Code == codes.FnDefaultDevice {
+			return len(e.Arguments) > 0 // TR_default_device(ad) cihazı seçer, değer vermez (15.38, 13.10)
+		}
 		return builtinNoValue(f.Token.Code, typeAny)
 	case *ast.MemberExpression:
 		return c.memberNoValue(e, f, objType)

@@ -94,7 +94,8 @@ func TestAFunctionWithoutAValueBodyInAValuePlace(t *testing.T) {
 
 // Kural (13.10, 19, 20.3): işini yapıp değer vermeyen yerleşik değer yerinde H1143'tür: alıcıya göre
 // ayrışan TR_update İlerleme'de değer vermez, TR_Checkpoint'te verir; TR_wait_all() değer vermez,
-// TR_wait_all(görevler) sonuçları verir (10.5).
+// TR_wait_all(görevler) sonuçları verir (10.5). TR_default_device(ad) cihazı seçer, değer vermez;
+// argümansız çağrı adı verir (15.38). Metin içi yerleştirme de değer yeridir.
 func TestBuiltinsWithoutAValueInAValuePlace(t *testing.T) {
 	const opt = "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_AdamW([w]); "
 	for _, source := range []string{
@@ -111,6 +112,8 @@ func TestBuiltinsWithoutAValueInAValuePlace(t *testing.T) {
 		"TR_var ç = TR_Progress(3); TR_var y = ç.TR_update()",
 		opt + "TR_var y = op.TR_load_state(op.TR_state)",
 		"TR_print(TR_print(1))",
+		"TR_var y = TR_default_device(\"cpu\")",
+		"TR_print(\"\\(TR_default_device(\"x\"))\")",
 	} {
 		_, errs := checkErrs(t, source)
 		if !hasCode(errs, messages.H1143) {
@@ -121,6 +124,8 @@ func TestBuiltinsWithoutAValueInAValuePlace(t *testing.T) {
 		"TR_var y = TR_wait_all([TR_async TR_sum([1])])",
 		"TR_var w = TR_Tensor([1.0]); TR_var kn = TR_Checkpoint(\"a\", {\"w\": w}); TR_var y = kn.TR_update(1)",
 		"TR_var ç = TR_Progress(3); TR_var y = ç.TR_stop()",
+		"TR_var y = TR_default_device()",
+		"TR_default_device(\"cpu\"); TR_print(\"\\(TR_default_device())\")",
 		"TR_var f = TR_print; TR_var y = f(\"a\")", // tipi TR_BuiltinFunction: 4a'ya kadar bilinmez
 	} {
 		noErrors(t, source)

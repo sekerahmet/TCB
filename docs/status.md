@@ -838,6 +838,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** `TR_default_device(" CPU ")` kabul ediliyor [ölçüldü]; `.TR_to_device(" CPU ")` de kabul ediliyor ve TR testi bunu sabitliyor. Desteklenen GPU yalnız NVIDIA.
 - **Yapılacaklar:** tek yazım (büyük harf ve boşluk hata); TR testi. Başka hızlandırıcılar (Apple, gömülü NPU) yol haritasında.
+- **Yapılacaklar (F, Ö3; sahip T1, Ö1 tensör tasarımlarından sonra; TCB 2026-11-14):** iletiler cihazı kısa adla yazıyor (`checkDevice`, `availableDevice`'ın kullanılamayan cihaz alanı ve öbürleri; codegraph'ın who-uses sorgusuyla tensör cihazının kısa ad yöntemine 10 çağrı). Okunan adla aynı olmalı (15.37).
 
 ### 15.37a
 
@@ -846,7 +847,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.38
 
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_load_tensors` varsayılan cihazda kurar (T3).
-- **Yapılacaklar (A, Ö0; sahip T1, dilim 5'ten sonraki ilk dilim; tur 7, 2026-11-13; DENETİM 638, 639, 644):** argümansız `TR_default_device()` kısa adı (`"gpu"`) veriyor, `.TR_device` uzun adı (`"gpu:0"`) [kanıtlı: DENETİM 619 Ş1, `pending.md`'nin 15.38 satırı]; kartta `x.TR_device == TR_default_device()` hatasız yanlış olur [hipotez: dilimin ilk testi]. Karar: argümansız biçim uzun adı verir; metin 15.38'e Dost Interface'in E dilimi birleşince. Göç: argümansız çağrı 15 satır [ölçüldü: tur 7 araştırması]; kayıtlı `"gpu"` → `"gpu:0"` (`lib/training.tr:125`, üç ölçü betiği), okuyan araç dilimin ilk adımında aranır.
 
 ### 15.41
 

@@ -116,7 +116,7 @@ toplu işler GPU'da oluşur.
 
 ```tr
 # TR 4
-TR_if TR_devices().TR_contains("gpu") { TR_default_device("gpu") }   # GPU yoksa CPU'da kalır
+TR_if TR_devices().TR_contains("gpu:0") { TR_default_device("gpu") }   # GPU yoksa CPU'da kalır
 TR_var W = TR_Tensor(TR_no_grad(TR_randn([16, 4], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)              # varsayılan cihazda
 TR_var iyileştirici = TR_AdamW([W], TR_lr: 0.01)
@@ -132,7 +132,7 @@ TR_print(W.TR_device, TR_default_device())
 Veri kümesinin örnekleyicisi (`TR_Dataset(...).TR_sampler(...)`) de toplu işleri varsayılan
 cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.tr`.
 
-- `TR_devices()` kullanılabilir cihazları verir (`["cpu", "gpu"]`); `TR_default_device()` geçerli
+- `TR_devices()` kullanılabilir cihazları verir (`["cpu", "gpu:0"]`); `TR_default_device()` geçerli
   cihazın adını. `t.TR_device` bir tensörün cihazını, `t.TR_to_device("cpu")` taşınmış kopyasını verir.
 - Türev izleyen bir ağırlığı tek tek taşımak da olur: `TR_self.W = ağırlık(...).TR_to_device("gpu")`
   GPU'da **yeni bir yaprak** verir; iyileştiriciye bu verilir (gradyanı onun `.TR_grad`ında).

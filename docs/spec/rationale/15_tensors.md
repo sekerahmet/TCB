@@ -406,8 +406,8 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 ### 15.38
 
-- *Emsal:* PyTorch'un `torch.set_default_device`'ı [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* "Herkes için": bir modeli GPU'da eğitmenin en sade yolu, model kurulmadan önce varsayılan cihazı seçmektir; ağırlıklar, iyileştiricinin durumu ve toplu işler orada olur. Varsayılan programındır, göreve bağlı değildir: model bir kez, kurulmadan önce seçilen cihazda kurulur. Sayının tensörün cihazında kullanılması 15.40'ın "sessiz kopya yok"uyla tutarlıdır.
+- *Emsal:* PyTorch'un `torch.set_default_device`'ı [kanıtsız: bu tur açılmadı]. PyTorch'un `get_default_device`'ı indeksi doldurur, çünkü indeksli ve indeksiz ad eşit sayılmaz [kanıtsız: tur 7 araştırmasının okuması (v2.15.0), bu dilimde açılmadı].
+- *Gerekçe:* "Herkes için": bir modeli GPU'da eğitmenin en sade yolu, model kurulmadan önce varsayılan cihazı seçmektir; ağırlıklar, iyileştiricinin durumu ve toplu işler orada olur. Varsayılan programındır, göreve bağlı değildir: model bir kez, kurulmadan önce seçilen cihazda kurulur. Sayının tensörün cihazında kullanılması 15.40'ın "sessiz kopya yok"uyla tutarlıdır. Argümansız biçim de uzun adı verir: okunan ad tektir (15.37); kısa ad `x.TR_device == TR_default_device()`'ı kartta hatasız yanlış yapardı.
 
 ### 15.39
 

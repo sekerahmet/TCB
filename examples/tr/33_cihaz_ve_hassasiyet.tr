@@ -7,7 +7,7 @@
 # Bu örnek her makinede CPU'da çalışır; GPU varsa "gpu" cihazı da seçilebilir.
 
 # cihazlar() bu makinedeki cihaz adlarını verir; ilk eleman her zaman "cpu"dur.
-TR_print("ilk cihaz:", TR_devices()[0], "| gpu var mı:", TR_devices().TR_contains("gpu"))
+TR_print("ilk cihaz:", TR_devices()[0], "| gpu var mı:", TR_devices().TR_contains("gpu:0"))
 
 # varsayılan_cihaz() geçerli cihazı söyler; argümanla ("cpu", "gpu", "gpu:1") bundan sonra kurulan
 # bütün tensörlerin cihazını seçer. GPU'da eğitim için model kurulmadan önce çağrılır.

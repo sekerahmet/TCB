@@ -34,7 +34,8 @@ TR_const ISINMA = b["ISINMA"]
 TR_var V = 40000
 TR_if TR_String(ayar["boyut"]) == "deneme" { V = 200 }
 
-TR_print("cihaz: \(TR_default_device(TR_String(ayar["cihaz"]))) · cihazlar: \(TR_devices())")
+TR_default_device(TR_String(ayar["cihaz"]))
+TR_print("cihaz: \(TR_default_device()) · cihazlar: \(TR_devices())")
 TR_print("ayar: \(TR_String(ayar["boyut"])) B=\(B) T=\(T) D=\(D) H=\(H) FF=\(FF) katman=\(KATMAN) V=\(V)")
 
 # Toplu işler: veri kümesinden (varsayılan cihazda) ya da sabit sentetik.
