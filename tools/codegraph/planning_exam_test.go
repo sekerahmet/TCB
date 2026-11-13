@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -423,80 +422,6 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 		}
 		if !maps.Equal(want, got) {
 			bad = append(bad, fmt.Sprintf("%s: trlang index %d, tests-for %d", gn.Name, len(want), len(got)))
-		}
-	}
-	sort.Strings(bad)
-	return bad, checked
-}
-
-// trNameSetMismatches her TR adını iki araca sorar: `trlang index` (codeindex.Resolve) ile codegraph (trByName, kaynakta
-// yazıldığı gibi sorulunca lookup'ın kendisi) çıplak ad için aynı TR aday kümesini vermeli (deneme 7 R1: tanım 3,
-// yeniden_adlandır 7, query 4 aday veriyordu; bağımsız denetim grup 6 R1: büyük harfli sorgu, modül + yerleşik ve
-// yerleşik + test çakışması farklıydı). Adlar: her bildirimin kısa adı, modülün adı ve takma adları, testin açıklaması,
-// dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle, Türkçe ve ASCII büyük harfle (`GİZLİ_DURUM`, `GIZLI_DURUM`) sorulur.
-// Karşılaştırma trlang index'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
-// sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
-func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
-	ix := newIndex(g)
-	known := map[string]bool{} // trlang index'in düğümlerinin grafik kimlikleri
-	names := map[string]bool{}
-	for _, n := range idx.Nodes {
-		id := graphID(n)
-		known[id] = true
-		switch n.Kind {
-		case codeindex.KindBuiltin:
-			if gn := ix.byID[id]; gn != nil {
-				for _, a := range nameNodeNames(gn) {
-					names[a] = true
-				}
-			}
-		case codeindex.KindModule:
-			names[n.Name] = true
-			for _, a := range n.Aliases {
-				names[a] = true
-			}
-		case codeindex.KindTest:
-			names[n.Name] = true // açıklamada '.' olabilir: kısaltılmaz
-		default:
-			for _, a := range codeindex.DeclNames(&n) {
-				names[a] = true
-			}
-			if codeindex.IsLibraryDecl(&n) {
-				names[n.Code] = true
-			}
-		}
-	}
-	for name := range names {
-		for vi, q := range []string{name, codeindex.Fold(name), strings.ToUpperSpecial(unicode.TurkishCase, name), strings.ToUpper(name)} {
-			if vi > 0 && q == name {
-				continue
-			}
-			checked++
-			want := map[string]bool{}
-			for _, n := range reader.Resolve(q, "") {
-				want[graphID(*n)] = true
-			}
-			got := map[string]bool{}
-			found, _ := ix.trByName(q, nil)
-			if vi == 0 && (!strings.ContainsAny(q, "./:") || codeindex.IdentityQuery(q)) {
-				found = ix.lookup(q) // yazıldığı gibi sorulan adda sorgunun kendisi
-			}
-			for _, n := range found {
-				if known[n.ID] {
-					got[n.ID] = true
-				}
-				// Kitaplık kodunun kimliği grafikte ad düğümünü, dizinde bildirimi gösterir: ikisi aynı koddur.
-				if k, err := codes.Parse(strings.TrimPrefix(n.ID, "name:")); err == nil && k.IsLibrary() {
-					for _, e := range ix.in[n.ID] {
-						if e.Kind == edgeUsesName && known[e.From] && strings.HasPrefix(e.From, "tr:") {
-							got[e.From] = true
-						}
-					}
-				}
-			}
-			if !maps.Equal(want, got) {
-				bad = append(bad, fmt.Sprintf("%q: trlang index %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
-			}
 		}
 	}
 	sort.Strings(bad)
