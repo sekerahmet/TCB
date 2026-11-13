@@ -187,6 +187,10 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H5611": {
+  "commit": "claude/d1-gemma3-b",
+  "reason": "deleted: tokenizer: TR_load_tokenizer opens a model folder (16.1); a folder without tokenizer.json is H5610"
+ },
  "H5613": {
   "commit": "b3a5b22",
   "reason": "deleted: tokenizer: load errors keep the core's message instead of editing its text"

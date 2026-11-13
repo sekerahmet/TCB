@@ -22,6 +22,8 @@ TR_func _sohbet_tablosu() -> TR_List[_Sohbet] {
     TR_return [
         _Sohbet("llama3", "llama", "llama-bpe", "<|begin_of_text|>", ["<|eot_id|>", "<|eom_id|>", "<|end_of_text|>"]),
         _Sohbet("qwen3", "qwen3", "qwen2", "Qwen2Tokenizer", ["<|im_end|>", "<|endoftext|>"]),
+        _Sohbet("gemma3", "gemma3", "default", "GemmaTokenizer", ["<end_of_turn>", "<eos>"]),
+        _Sohbet("gemma3", "gemma3_text", "default", "GemmaTokenizer", ["<end_of_turn>", "<eos>"]),
     ]
 }
 
@@ -59,7 +61,9 @@ TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR
 # eot ya da eom kimlik değil; ayrıntı dosyanın adıdır). Elle kurulan GPT'de neden yoktur (none). hata
 # yakalanan hatadır: H7170 onu nedeni olarak taşır (TCB 21:51, 8.2), kullanıcı e.TR_cause ile okur.
 TR_func _ailesiz(model: TR_GPT, neden: TR_String, aile: TR_String, ayrıntı: TR_String, hata: TR_Error? = TR_none) -> TR_GPT {
-    model._ailesiz_yaz(neden, [a.aile TR_for a TR_in _sohbet_tablosu()].TR_join(", "), aile, ayrıntı, hata)
+    TR_var aileler: TR_List[TR_String] = []
+    TR_for a TR_in _sohbet_tablosu() { TR_if TR_not aileler.TR_contains(a.aile) { aileler.TR_append(a.aile) } }
+    model._ailesiz_yaz(neden, aileler.TR_join(", "), aile, ayrıntı, hata)
     TR_return model
 }
 
@@ -122,7 +126,7 @@ TR_func TR_folder_chat_family(model: TR_GPT, k: TR_Path, ayar: TR_JSON) -> TR_GP
         TR_return _ailesiz(model, "file", s.aile, kaynak, e)
     }
     TR_var p: TR_Tokenizer? = TR_none
-    TR_try { p = TR_load_tokenizer(sözlük) } TR_catch e {
+    TR_try { p = TR_load_tokenizer(k) } TR_catch e {
         TR_return _ailesiz(model, "tokenizer", s.aile, "tokenizer.json", e)
     }
     TR_return _aileyi_kur(model, s, p, bildirilen)

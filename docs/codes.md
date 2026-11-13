@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 762 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 173 fonksiyon, 12 sabit, 93 metot, 136 özellik, 194 adlı argüman.
+Toplam 766 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 67 tip, 177 fonksiyon, 12 sabit, 93 metot, 136 özellik, 194 adlı argüman.
 
 ## İçindekiler
 
@@ -2268,6 +2268,30 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 
 
 
+#### `TR_gguf_linear(...)` (`TR_fn_gguf_linear`, `gguf_doğrusal`)
+
+    gguf_doğrusal()
+
+
+
+#### `TR_gguf_norm(...)` (`TR_fn_gguf_norm`, `gguf_normu`)
+
+    gguf_normu()
+
+
+
+#### `TR_gguf_take(...)` (`TR_fn_gguf_take`, `gguf_al`)
+
+    gguf_al()
+
+
+
+#### `TR_gguf_tensor(...)` (`TR_fn_gguf_tensor`, `gguf_tensörü`)
+
+    gguf_tensörü()
+
+
+
 #### `TR_grad_check(...)` (`TR_fn_grad_check`, `türev_denetle`)
 
     türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, fark_adımı: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → YokTipi
@@ -2574,7 +2598,7 @@ tr: tensör_kaydet("a.trt", {"w": Tensör([1.0])}); yazdır(tensör_yükle("a.tr
 
     parçalayıcı_yükle(Metin) → Parçalayıcı
 
-tokenizer.json biçimindeki bir parçalayıcı dosyasını ya da GGUF dosyasının parçalayıcısını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
+tokenizer.json biçimindeki bir parçalayıcı dosyasını ya da GGUF dosyasının parçalayıcısını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz. Bir model klasörü verilirse klasörün tokenizer.json'unu yükler ve model ailesini klasörün config.json'u ile tokenizer_config.json'undan seçer; klasörde tokenizer.json yoksa hata verir.
 
 ```tr
 TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p)

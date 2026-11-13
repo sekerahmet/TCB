@@ -1,0 +1,6 @@
+{"added_tokens": [
+ {"id": 20, "content": "\n\n", "special": false, "normalized": false, "lstrip": false, "rstrip": false, "single_word": false},
+ {"id": 21, "content": "<b>", "special": false, "normalized": false, "lstrip": false, "rstrip": false, "single_word": false},
+ {"id": 22, "content": "<bos>", "special": true, "normalized": false, "lstrip": false, "rstrip": false, "single_word": false}],
+ "model": {"type": "BPE", "vocab": {"<unk>": 0, "\n": 1, "a": 2, "b": 3, "<": 4, ">": 5},
+  "merges": [], "unk_token": "<unk>", "byte_fallback": false}}

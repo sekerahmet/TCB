@@ -89,6 +89,12 @@ var uncoveredLibraryNames = map[string]string{
 	// tr/model_family: tr/pretrained'in iç adımları; kullanıcı onları hazır_model ve hazır_gguf'la çağırır.
 	"model_family.gguf_sohbet_ailesi":   "hazır_gguf onu kendisi çağırır, GGUF dosyası depoda yok; behavior_chat_family_test.go Go ile kurulan GGUF'la sınar",
 	"model_family.klasör_sohbet_ailesi": "hazır_model onu kendisi çağırır, ailesi olan hazır model depoda yok; behavior_chat_family_test.go Go ile kurulan klasörle sınar",
+
+	// tr/gguf_tensors: tr/pretrained'in iç adımları; kullanıcı onları hazır_gguf'la çağırır.
+	"gguf_tensors.gguf_al":       "hazır_gguf onu kendisi çağırır, GGUF dosyası depoda yok; behavior_ready_gguf_test.go ve behavior_gemma3_gguf_test.go Go ile kurulan GGUF'la sınar",
+	"gguf_tensors.gguf_doğrusal": "hazır_gguf onu kendisi çağırır, GGUF dosyası depoda yok; behavior_ready_gguf_test.go ve behavior_gemma3_gguf_test.go Go ile kurulan GGUF'la sınar",
+	"gguf_tensors.gguf_normu":    "hazır_gguf onu kendisi çağırır, GGUF dosyası depoda yok; behavior_ready_gguf_test.go ve behavior_gemma3_gguf_test.go Go ile kurulan GGUF'la sınar",
+	"gguf_tensors.gguf_tensörü":  "hazır_gguf onu kendisi çağırır, GGUF dosyası depoda yok; behavior_ready_gguf_test.go ve behavior_gemma3_gguf_test.go Go ile kurulan GGUF'la sınar",
 }
 
 var (

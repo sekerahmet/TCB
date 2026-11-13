@@ -12,6 +12,40 @@ TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_assert_equal(TR_none, p.TR_token_id("böyle-bir-parça-yok"))
 }
 
+TR_test "16.1 TR_load_tokenizer(klasör) ailesiz klasörde ailesiz açılır; tokenizer.json'u olmayan klasör H5610" {
+    # Klasörün config.json'u yok: aile seçilmez. Boşluk parçalı dosya aileyle açılsaydı TR_false'ta H7184 verirdi ya da
+    # parçayı tek kimlik yapardı; ailesiz açıldığı için H7178'in alone kolu gelir.
+    TR_var k = TR_load_tokenizer("data/whitespace_pieces")
+    TR_var d = TR_load_tokenizer("data/whitespace_pieces/tokenizer.json")
+    TR_assert_equal(d.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true), k.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true))
+    TR_var metin = ""
+    TR_try { k.TR_encode("a", TR_special_tokens: TR_false) } TR_catch e { metin = e.TR_text("tr") }
+    TR_assert(metin.TR_contains("parçalayıcı ailesiz açıldı"), metin)
+    TR_assert(metin.TR_contains("\"data/whitespace_pieces\" klasöründen model ailesi seçilemiyor"), metin)
+    TR_assert_equal("H5610", TR_error_code { TR_load_tokenizer("data/numbers") })
+}
+
+TR_test "16.2 ailesiz boşluk parçalı dosya ve kümesi uymayan dosya TR_false'ta hatadır, TR_true'da kodlanır" {
+    # Kendi küçük fikstürler: özel olmayan eklenmiş "\n\n" ve "<b>". gemma3_mismatch klasörü Gemma 3'ün ailesini seçer
+    # (config.json ve tokenizer_config.json), ama kümesi resmî dosyanınkine uymaz: dosya ailesiz açılır.
+    TR_var p = TR_load_tokenizer("data/whitespace_pieces/tokenizer.json")
+    TR_assert_equal("H7178", TR_error_code { p.TR_encode("a\n\nb", TR_special_tokens: TR_false) })
+    TR_assert_equal("H7178", TR_error_code { p.TR_encode(["a", "b"], TR_special_tokens: TR_false) })
+    TR_assert_equal([2, 20, 3, 21], p.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true))
+    TR_var metin = ""
+    TR_try { p.TR_encode("a", TR_special_tokens: TR_false) } TR_catch e { metin = e.TR_text("tr") }
+    TR_assert(metin.TR_contains("\"data/whitespace_pieces\" klasöründen model ailesi seçilemiyor"), metin)
+    TR_var g = TR_load_tokenizer("data/gemma3_mismatch")
+    TR_assert_equal("H7184", TR_error_code { g.TR_encode("a", TR_special_tokens: TR_false) })
+    TR_try { g.TR_encode("a", TR_special_tokens: TR_false) } TR_catch e { metin = e.TR_text("tr") }
+    TR_assert(metin.TR_contains("\"gemma3\" ailesinin") TR_and metin.TR_contains("bu dosyada 1, resmî dosyada 92"), metin)
+    TR_assert_equal([2, 20, 3, 21], g.TR_encode("a\n\nb<b>", TR_special_tokens: TR_true))
+    TR_assert_equal("H7178", TR_error_code { TR_load_tokenizer("data/gemma3_mismatch/tokenizer.json").TR_encode("a", TR_special_tokens: TR_false) })
+    # Boşluk parçası olmayan ailesiz dosyada kapatma bugünkü gibidir: hata yok.
+    TR_var q = TR_load_tokenizer("data/qwen3_chat/tokenizer.json")
+    TR_assert(q.TR_encode("a\n\nb", TR_special_tokens: TR_false).TR_length > 0)
+}
+
 TR_test "16.1 ön_bölme_etiketi ve bildirilen_durma_parçaları tokenizer.json'dan yüklenen parçalayıcıda yok" {
     TR_for yol TR_in ["data/tokenizer.json", "data/qwen3_chat/tokenizer.json"] {
         TR_var p = TR_load_tokenizer(yol)

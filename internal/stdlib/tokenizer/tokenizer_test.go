@@ -436,6 +436,28 @@ func TestLoadErrors(t *testing.T) {
 	}
 }
 
+// Kural (16.1, klasörle açma): klasörün tokenizer.json'u yüklenir; aile config.json'un model_type'ı ve tokenizer_config.json'un
+// işaretiyle seçilir (sınıf Fast'sız, genel sınıfta bos_token). config.json'u ya da tokenizer_config.json'u olmayan,
+// JSON'u bozuk ya da tabloda olmayan klasör ailesiz.
+func TestLoadTokenizerFolderPicksTheFamily(t *testing.T) {
+	qwen, llama := `{"tokenizer_class": "Qwen2TokenizerFast"}`, `{"tokenizer_class": "PreTrainedTokenizerFast", "bos_token": "<|begin_of_text|>"}`
+	for _, c := range []struct{ data, marker, config, family string }{{"qwen3_chat", qwen, `{"model_type": "qwen3"}`, "qwen3"},
+		{"llama3_chat", llama, `{"model_type": "llama"}`, "llama3"}, {"qwen3_chat", qwen, "", ""}, {"llama3_chat", llama, `{"model_type": "qwen3"}`, ""},
+		{"qwen3_chat", "", `{"model_type": "qwen3"}`, ""}, {"qwen3_chat", `{"tokenizer_class": `, `{"model_type": "qwen3"}`, ""}} {
+		d := t.TempDir()
+		b, err := os.ReadFile(reporoot.Path("tests", "data", c.data, "tokenizer.json"))
+		for f, s := range map[string]string{"tokenizer.json": string(b), "tokenizer_config.json": c.marker, "config.json": c.config} {
+			if err != nil || (s != "" && os.WriteFile(filepath.Join(d, f), []byte(s), 0o644) != nil) {
+				t.Fatal(f, err)
+			}
+		}
+		p := al(t, mustRun(t, `TR_var p = TR_load_tokenizer("`+filepath.ToSlash(d)+`")`), "p").(interface{ Tokenizer() *tokenize.Tokenizer })
+		if got := p.Tokenizer().Family(); got != c.family {
+			t.Errorf("%s, %q: aile %q, beklenen %q", c.data, c.config, got, c.family)
+		}
+	}
+}
+
 // Kural: tam sayı olmayan kimliğin hangi listede olduğu iletiye ileti parçası ya da Türkçe sözcük
 // olarak değil satır numarası olarak gider (0: düz liste); sözcükleri şablon seçer (H5639).
 func TestDecodeNonIntegerIDNamesTheRow(t *testing.T) {

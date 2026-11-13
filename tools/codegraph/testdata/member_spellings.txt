@@ -392,6 +392,9 @@ adres.TR_length	ok	0	name:TR_mem_length
 adresler.TR_append	ok	0	name:TR_mem_append
 adresler.TR_length	ok	0	name:TR_mem_length
 adımlar.TR_length	ok	0	name:TR_mem_length
+aileler.TR_append	ok	0	name:TR_mem_append
+aileler.TR_contains	ok	0	name:TR_mem_contains
+aileler.TR_join	ok	0	name:TR_mem_join
 ak.TR_length	ok	0	name:TR_mem_length
 akış.TR_finish	ok	0	name:TR_mem_finish
 akış.TR_send_event	ok	0	name:TR_mem_send_event
@@ -612,6 +615,7 @@ d.TR_cancel	ok	0	name:TR_mem_cancel
 d.TR_contains	ok	0	name:TR_mem_contains
 d.TR_dtype	ok	0	name:TR_mem_dtype
 d.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
+d.TR_encode	ok	0	name:TR_mem_encode
 d.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 d.TR_get	ok	0	name:TR_mem_get
 d.TR_grad	ok	0	name:TR_mem_grad
@@ -798,6 +802,7 @@ g.TR_code	ok	0	name:TR_mem_code
 g.TR_device	ok	0	name:TR_mem_device
 g.TR_done	ok	0	name:TR_mem_done
 g.TR_dtype	ok	0	name:TR_mem_dtype
+g.TR_encode	ok	0	name:TR_mem_encode
 g.TR_ends_with	ok	0	name:TR_mem_ends_with
 g.TR_fill	ok	0	spec:15.54	tr_index:not_found:4
 g.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
@@ -1027,6 +1032,7 @@ k.TR_contains	ok	0	name:TR_mem_contains
 k.TR_decode	ok	0	name:TR_mem_decode
 k.TR_device	ok	0	name:TR_mem_device
 k.TR_dtype	ok	0	name:TR_mem_dtype
+k.TR_encode	ok	0	name:TR_mem_encode
 k.TR_end	ok	0	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_end
 k.TR_exists	ok	0	name:TR_mem_exists
 k.TR_flush	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_flush
@@ -1302,6 +1308,7 @@ model.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
 model.TR_synthesize	ok	0	tr:method:lib/vits.tr:TR_type_Vits.TR_mem_synthesize
 model.TR_transcribe	ok	0	tr:method:lib/whisper.tr:TR_type_Whisper.TR_mem_transcribe
 modüller.TR_contains	ok	0	name:TR_mem_contains
+n.TR_eps	ambiguous	3	tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_eps,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_eps,tr:field:lib/optimizers.tr:TR_type_RowRMS.TR_mem_eps
 n.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 n.TR_groups	ambiguous	3	tr:field:lib/optimizers.tr:TR_type_Muon.TR_mem_groups,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_groups
 n.TR_keys	ok	0	name:TR_mem_keys
@@ -1466,6 +1473,7 @@ personel.TR_map	ok	0	name:TR_mem_map
 ple.TR_mem_table	not_found	4	-
 q.TR_close	ok	0	name:TR_mem_close
 q.TR_dtype	ok	0	name:TR_mem_dtype
+q.TR_encode	ok	0	name:TR_mem_encode
 q.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 q.TR_get	ok	0	name:TR_mem_get
 q.TR_grad	ok	0	name:TR_mem_grad

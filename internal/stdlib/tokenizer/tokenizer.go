@@ -18,6 +18,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
@@ -34,6 +35,9 @@ var TypeName = string(interp.TypeName(codes.TypeTokenizer))
 type Object struct {
 	p    *tokenize.Tokenizer
 	path string
+	// trFalse ailesiz parçalayıcının TR_special_tokens: TR_false'taki hatasıdır (16.2; H7178 ya da H7184); nil ise
+	// TR_false bugünkü gibi bütün eklenmiş parçaları kapatır. Yüklemede bir kez kurulur.
+	trFalse error
 }
 
 // Tokenizer sarılı Go parçalayıcısını verir.
@@ -152,27 +156,73 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 	var p *tokenize.Tokenizer
 	var err error
 	var info os.FileInfo
+	file, shown := path, raw
 	// Dosyadan yükleme programın durumunu değiştirmez: durdurma onu bırakır (1.5).
 	if waitErr := m.Abandonable(func() {
-		info, err = os.Stat(path)
-		if err == nil && !info.IsDir() {
-			p, err = tokenize.Load(path)
+		if info, err = os.Stat(path); err != nil {
+			return
+		}
+		if info.IsDir() {
+			// Model klasörü (16.1): klasörün tokenizer.json'u; aile config.json ve tokenizer_config.json'dan.
+			file, shown = filepath.Join(path, "tokenizer.json"), filepath.ToSlash(filepath.Join(raw, "tokenizer.json"))
+			if _, e := os.Stat(file); e != nil {
+				return
+			}
+		}
+		if p, err = tokenize.Load(file); err == nil && info.IsDir() {
+			err = p.ApplyFolderFamily(folderKeys(path))
 		}
 	}); waitErr != nil {
 		return nil, waitErr
 	}
 	if err != nil {
-		return nil, loadError(raw, err, tried)
+		return nil, loadError(shown, err, tried)
 	}
-	if info.IsDir() {
-		candidate := filepath.Join(path, "tokenizer.json")
-		if _, e := os.Stat(candidate); e == nil {
-			return nil, messages.New(messages.H5611, fn, raw, filepath.ToSlash(filepath.Join(raw, "tokenizer.json")))
-		}
+	if p == nil {
 		return nil, messages.New(messages.H5610, fn, raw)
 	}
-	writeWarnings(path, p)
-	return &Object{p: p, path: path}, nil
+	writeWarnings(file, p)
+	// 16.2'nin ailesiz yolu: klasörle açılanda klasör zaten denendi; tek başına açılan dosyanın klasörü önerilebilir.
+	folder, arch, marker := raw, "", ""
+	if !info.IsDir() {
+		folder = filepath.ToSlash(filepath.Dir(raw))
+		arch, marker = folderKeys(filepath.Dir(file))
+	}
+	return &Object{p: p, path: file, trFalse: p.FamilylessError(arch, marker, folder)}, nil
+}
+
+// genericTokenizerClasses tokenizer_class'ı aileyi söylemeyen sınıflardır: işaret bos_token'ın adıdır
+// (lib/model_family.tr'nin _GENEL_SINIFLAR'ı ve _klasör_işareti'yle aynı kural).
+var genericTokenizerClasses = map[string]bool{"PreTrainedTokenizer": true, "PreTrainedTokenizerFast": true}
+
+// folderKeys model klasörünün aile anahtarlarıdır (15.55'in seçimi): config.json'un model_type'ı ve
+// tokenizer_config.json'un işareti (tokenizer_class, sondaki Fast atılarak; genel sınıfta bos_token'ın
+// adı). Dosya yoksa ya da okunamıyorsa anahtar boştur: parçalayıcı ailesiz açılır.
+func folderKeys(dir string) (arch, marker string) {
+	var config struct {
+		ModelType string `json:"model_type"`
+	}
+	if b, err := os.ReadFile(filepath.Join(dir, "config.json")); err == nil {
+		_ = json.Unmarshal(b, &config)
+	}
+	var tc struct {
+		Class string          `json:"tokenizer_class"`
+		BOS   json.RawMessage `json:"bos_token"`
+	}
+	if b, err := os.ReadFile(filepath.Join(dir, "tokenizer_config.json")); err == nil {
+		_ = json.Unmarshal(b, &tc)
+	}
+	if !genericTokenizerClasses[tc.Class] {
+		return config.ModelType, strings.TrimSuffix(tc.Class, "Fast")
+	}
+	var name string
+	var obj struct {
+		Content string `json:"content"`
+	}
+	if json.Unmarshal(tc.BOS, &name) != nil && json.Unmarshal(tc.BOS, &obj) == nil {
+		name = obj.Content
+	}
+	return config.ModelType, name
 }
 
 // isUnsupported err'in, parçalayıcı dosyasındaki desteklenmeyen bir özelliği bildirip bildirmediğini
@@ -208,6 +258,11 @@ func loadError(path string, err error, tried []string) error {
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
 		return turkish.FileError(fn, path, messages.H2107, pe)
+	}
+	var oe *tokenize.FamilyOverlapError
+	if errors.As(err, &oe) {
+		// Ailenin biçim kümesi protokol etiketiyle kesişiyor: Go tablosunun hatası (16.2).
+		return oe.Message(fn)
 	}
 	return messages.New(messages.H5620, fn, path, err)
 }
@@ -255,6 +310,19 @@ func stepError(fn any, err error) error {
 	return messages.New(messages.H2000, fn, err)
 }
 
+// encodeOptions kodlamanın seçenekleridir (TR_special_tokens:). 16.2: TR_false'ta metindeki eklenmiş parça yazımı da
+// kimlik olmaz, özel olsun olmasın; ailesiz parçalayıcıda boşluk parçaları baytlara bölünmez, kodlama hatadır (trFalse).
+func (n *Object) encodeOptions(fn any, named map[string]interp.Value) (tokenize.Options, error) {
+	special, err := bind.OptionalBool(fn, named, nameSpecial, true)
+	if err != nil {
+		return tokenize.Options{}, err
+	}
+	if !special && n.trFalse != nil {
+		return tokenize.Options{}, n.trFalse
+	}
+	return tokenize.Options{DontAddSpecial: !special, DontParseAdded: !special}, nil
+}
+
 func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(memberEncode)
 	if err := bind.CheckNamed(fn.Called(), named, nameSpecial, nameSecond); err != nil {
@@ -263,13 +331,10 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 	if len(args) != 1 {
 		return nil, messages.New(messages.H5624, fn, len(args))
 	}
-	var pick tokenize.Options
-	special, err := bind.OptionalBool(fn, named, nameSpecial, true)
+	pick, err := n.encodeOptions(fn, named)
 	if err != nil {
 		return nil, err
 	}
-	pick.DontAddSpecial = !special
-	pick.DontParseAdded = !special // 16.2: metindeki eklenmiş parça yazımı da kimlik olmaz, özel olsun olmasın
 	secondV, hasSecond := bind.GetNamed(named, nameSecond)
 
 	switch x := args[0].(type) {

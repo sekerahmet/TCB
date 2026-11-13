@@ -28,6 +28,7 @@
 
 TR_import "tr/hugging_face"
 TR_import "tr/layers"
+TR_import "tr/gguf_tensors"
 TR_import "tr/model_family"
 
 TR_const TR_SUPPORTED_ARCHITECTURES = ["llama", "qwen3", "gemma3"]
@@ -101,7 +102,7 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var katman = _gguf_tam(üst, "\(mimari).block_count", TR_none, yol)
     TR_var g = TR_if y.gemma3 { _gguf_gemma(üst, yol, katman, bb, ölçek) } TR_else { _Gemma(pencereler: [0 TR_for i TR_in 0..katman], ölçek: 1.0, yerel_taban: 0.0) }
     TR_var tensörler = TR_load_tensors(yol)
-    TR_var dağarcık = _gguf_tam(üst, "\(mimari).vocab_size", TR_JSON(_gguf_tensör(tensörler, "token_embd.weight").TR_shape[0]), yol)
+    TR_var dağarcık = _gguf_tam(üst, "\(mimari).vocab_size", TR_JSON(TR_gguf_tensor(tensörler, "token_embd.weight").TR_shape[0]), yol)
     TR_var alınan: TR_Dict[TR_String, TR_Bool] = {}
     TR_var bağlam = _gguf_tam(üst, "\(mimari).context_length", TR_JSON(2048), yol)
     TR_var taban_anahtarı = "\(mimari).rope.freq_base"
@@ -118,14 +119,14 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
         TR_num_heads: bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_tied: TR_true, TR_eps: eps, TR_qk_norm: y.qk_normu,
         TR_head_dim: bb, TR_rope_theta: taban, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_init_std: 0.0)
     TR_if y.rope_bölenleri TR_and tensörler.TR_contains("rope_freqs.weight") {
-        _gguf_rope_bölenleri(model, _gguf_al(tensörler, alınan, "rope_freqs.weight", [bb // 2]), bağlam, bb, taban)
+        _gguf_rope_bölenleri(model, TR_gguf_take(tensörler, alınan, "rope_freqs.weight", [bb // 2]), bağlam, bb, taban)
     }
-    model.TR_embedding.TR_table = _gguf_al(tensörler, alınan, "token_embd.weight", [dağarcık, boyut])
-    model.TR_final_norm.TR_weight = _gguf_al(tensörler, alınan, "output_norm.weight", [boyut])
+    model.TR_embedding.TR_table = TR_gguf_take(tensörler, alınan, "token_embd.weight", [dağarcık, boyut])
+    model.TR_final_norm.TR_weight = TR_gguf_take(tensörler, alınan, "output_norm.weight", [boyut])
     TR_var paylaşımlı = TR_not tensörler.TR_contains("output.weight")
     TR_if TR_not paylaşımlı {
         model.TR_logit_layer = TR_Linear(1, 1, TR_init_std: 0.0)
-        model.TR_logit_layer.TR_weight = _gguf_al(tensörler, alınan, "output.weight", [dağarcık, boyut]).TR_transpose()
+        model.TR_logit_layer.TR_weight = TR_gguf_take(tensörler, alınan, "output.weight", [dağarcık, boyut]).TR_transpose()
     }
     model.TR_blocks = [_gguf_blok(tensörler, alınan, y, [boyut, bakış, kv, bb, ara, g.pencereler[i]], eps, i) TR_for i TR_in 0..katman]
     TR_if y.gemma3 { _gemma_modeli(model, g, boyut, bağlam, bb, taban, eps) }
@@ -203,20 +204,6 @@ TR_func _gguf_gemma(üst: TR_JSON, yol: TR_String, katman: TR_Int, bb: TR_Int, �
     TR_return _Gemma(pencereler: [TR_if i % düzen == düzen - 1 { 0 } TR_else { pencere } TR_for i TR_in 0..katman], ölçek: ölçek, yerel_taban: taban)
 }
 
-# _gguf_tensör adı dosyada olmayan tensörde hata verir.
-TR_func _gguf_tensör(tensörler: TR_Dict[TR_String, TR_Tensor], ad: TR_String) -> TR_Tensor {
-    TR_if TR_not tensörler.TR_contains(ad) { TR_throw TR_Message("H6697", ad) }
-    TR_return tensörler[ad]
-}
-
-# _gguf_al tensörü şekli denetlenerek alır ve alınanlara işler: alınmayan ad sonda hatadır.
-TR_func _gguf_al(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_String, TR_Bool], ad: TR_String, şekil: TR_List[TR_Int]) -> TR_Tensor {
-    TR_var t = _gguf_tensör(tensörler, ad)
-    TR_if t.TR_shape != şekil { TR_throw TR_Message("H6698", ad, t.TR_shape, şekil) }
-    alınan[ad] = TR_true
-    TR_return t
-}
-
 # _gguf_rope_bölenleri döner konum tablolarını dosyanın frekans bölenleriyle yeniden kurar. Llama 3.1
 # ve 3.2'de RoPE ölçeği üstveride değil bu tensördedir; tensör isteğe bağlıdır, yoksa bölen 1'dir
 # (llama.cpp `src/models/llama.cpp:66`). Bölen her konumda uygulanır, eşik yoktur: `theta / ff`
@@ -286,16 +273,6 @@ TR_func _gguf_satır_sırası(bakış: TR_Int, bakış_boyutu: TR_Int) -> TR_Ten
     TR_return TR_Tensor[TR_Int](sıra)
 }
 
-# _gguf_doğrusal Doğrusal'ın ağırlığını kurar: alan [çıkış, giriş] tensörün devriğidir.
-TR_func _gguf_doğrusal(k: TR_Linear, t: TR_Tensor) { k.TR_weight = t.TR_transpose() }
-
-# _gguf_norm dosyadaki ağırlıkla bir RMS normu kurar.
-TR_func _gguf_norm(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_String, TR_Bool], ad: TR_String, boyut: TR_Int, eps: TR_Float) -> TR_RMSNorm {
-    TR_var n = TR_RMSNorm(boyut, TR_eps: eps)
-    n.TR_weight = _gguf_al(tensörler, alınan, ad, [boyut])
-    TR_return n
-}
-
 # _gguf_blok N. bloğu dosyanın tensörleriyle kurar. boyutlar: [boyut, bakış, kv, bakış boyutu, ara, pencere].
 # gemma3'te attn_norm dikkatten, ffn_norm ileri katmandan önceki normdur; post_attention_norm ve
 # post_ffw_norm ikisinin çıktı normudur.
@@ -310,30 +287,30 @@ TR_func _gguf_blok(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[T
     TR_var b = TR_TransformerBlock(2, bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_init_std: 0.0, TR_output_init_std: 0.0,
         TR_eps: eps, TR_qk_norm: y.qk_normu, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_head_dim: bb, TR_window: boyutlar[5])
     TR_var ön = "blk.\(i)."
-    TR_var q = _gguf_al(tensörler, alınan, ön + "attn_q.weight", [q_boy, boyut])
-    TR_var k = _gguf_al(tensörler, alınan, ön + "attn_k.weight", [kv_boy, boyut])
+    TR_var q = TR_gguf_take(tensörler, alınan, ön + "attn_q.weight", [q_boy, boyut])
+    TR_var k = TR_gguf_take(tensörler, alınan, ön + "attn_k.weight", [kv_boy, boyut])
     TR_if y.gguf_satır_sırası {
         q = q[_gguf_satır_sırası(bakış, bb)]
         k = k[_gguf_satır_sırası(kv, bb)]
     }
     TR_var dikkat = b.TR_attention
-    _gguf_doğrusal(dikkat.TR_q_proj, q)
-    _gguf_doğrusal(dikkat.TR_k_proj, k)
-    _gguf_doğrusal(dikkat.TR_v_proj, _gguf_al(tensörler, alınan, ön + "attn_v.weight", [kv_boy, boyut]))
-    _gguf_doğrusal(dikkat.TR_o_proj, _gguf_al(tensörler, alınan, ön + "attn_output.weight", [boyut, q_boy]))
+    TR_gguf_linear(dikkat.TR_q_proj, q)
+    TR_gguf_linear(dikkat.TR_k_proj, k)
+    TR_gguf_linear(dikkat.TR_v_proj, TR_gguf_take(tensörler, alınan, ön + "attn_v.weight", [kv_boy, boyut]))
+    TR_gguf_linear(dikkat.TR_o_proj, TR_gguf_take(tensörler, alınan, ön + "attn_output.weight", [boyut, q_boy]))
     TR_if y.qk_normu {
-        dikkat.TR_q_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "attn_q_norm.weight", [bb])
-        dikkat.TR_k_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "attn_k_norm.weight", [bb])
+        dikkat.TR_q_norm.TR_weight = TR_gguf_take(tensörler, alınan, ön + "attn_q_norm.weight", [bb])
+        dikkat.TR_k_norm.TR_weight = TR_gguf_take(tensörler, alınan, ön + "attn_k_norm.weight", [bb])
     }
     TR_var ileri = b.TR_feed_forward
-    _gguf_doğrusal(ileri.TR_gate_proj, _gguf_al(tensörler, alınan, ön + "ffn_gate.weight", [ara, boyut]))
-    _gguf_doğrusal(ileri.TR_up_proj, _gguf_al(tensörler, alınan, ön + "ffn_up.weight", [ara, boyut]))
-    _gguf_doğrusal(ileri.TR_down_proj, _gguf_al(tensörler, alınan, ön + "ffn_down.weight", [boyut, ara]))
-    b.TR_input_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "attn_norm.weight", [boyut])
-    b.TR_post_attention_norm.TR_weight = _gguf_al(tensörler, alınan, ön + "ffn_norm.weight", [boyut])
+    TR_gguf_linear(ileri.TR_gate_proj, TR_gguf_take(tensörler, alınan, ön + "ffn_gate.weight", [ara, boyut]))
+    TR_gguf_linear(ileri.TR_up_proj, TR_gguf_take(tensörler, alınan, ön + "ffn_up.weight", [ara, boyut]))
+    TR_gguf_linear(ileri.TR_down_proj, TR_gguf_take(tensörler, alınan, ön + "ffn_down.weight", [boyut, ara]))
+    b.TR_input_norm.TR_weight = TR_gguf_take(tensörler, alınan, ön + "attn_norm.weight", [boyut])
+    b.TR_post_attention_norm.TR_weight = TR_gguf_take(tensörler, alınan, ön + "ffn_norm.weight", [boyut])
     TR_if y.gemma3 {
-        b.TR_attention_output_norm = _gguf_norm(tensörler, alınan, ön + "post_attention_norm.weight", boyut, eps)
-        b.TR_feed_forward_output_norm = _gguf_norm(tensörler, alınan, ön + "post_ffw_norm.weight", boyut, eps)
+        b.TR_attention_output_norm = TR_gguf_norm(tensörler, alınan, ön + "post_attention_norm.weight", boyut, eps)
+        b.TR_feed_forward_output_norm = TR_gguf_norm(tensörler, alınan, ön + "post_ffw_norm.weight", boyut, eps)
     }
     TR_return b
 }
