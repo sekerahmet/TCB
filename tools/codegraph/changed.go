@@ -518,3 +518,14 @@ func printBranchDecls(w io.Writer, decls map[string][]string, limit int) {
 	fmt.Fprintf(w, "  declarations on the branch that the graph does not have (%d files; new functions, new tests):\n", len(lines))
 	printLimited(w, lines, limit, "    ")
 }
+
+// nonEmptyLines git çıktısının boş olmayan satırlarıdır (satır sonundaki \r atılır).
+func nonEmptyLines(s string) []string {
+	var out []string
+	for _, l := range strings.Split(s, "\n") {
+		if strings.TrimSpace(l) != "" {
+			out = append(out, strings.TrimRight(l, "\r"))
+		}
+	}
+	return out
+}

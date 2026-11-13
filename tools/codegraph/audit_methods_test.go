@@ -109,3 +109,178 @@ func TestDeadMethodsFindsInterfaceKeptMethods(t *testing.T) {
 		t.Errorf("text output names the shadowing check:\n%s", out.String())
 	}
 }
+
+// deadKinds dead-methods'un JSON çıktısını yöntem -> sınıf eşlemine çevirir.
+func deadKinds(t *testing.T, root string) map[string]string {
+	t.Helper()
+	got := map[string]string{}
+	list, _ := auditJSON(t, "dead-methods", root)["methods"].([]any) // aday yoksa null
+	for _, v := range list {
+		m := v.(map[string]any)
+		got[m["method"].(string)] = m["kind"].(string)
+	}
+	return got
+}
+
+// conversionsSource her dönüşüm yeri için bir tiptir (K4): her tip math/rand'in dış arayüzü rand.Source'u sağlar
+// (Int63, Seed) ve bir de arayüzde olmayan dışa açık Extra metodu taşır. any'ye, error'a ve boş tanımlayıcıya verilen
+// tipler dönüşüm değildir.
+const conversionsSource = `package p
+
+import "math/rand"
+
+type cArg struct{}
+type cVar struct{}
+type cAssign struct{}
+type cReturn struct{}
+type cField struct{}
+type cSlice struct{}
+type cMapKey struct{}
+type cMapValue struct{}
+type cConv struct{}
+type cChan struct{}
+type cAppend struct{}
+type cAny struct{}
+type cBlank struct{}
+type cErr struct{}
+
+func (cArg) Int63() int64 { return 0 }
+func (cArg) Seed(int64)   {}
+func (cArg) Extra()       {}
+func (cVar) Int63() int64 { return 0 }
+func (cVar) Seed(int64)   {}
+func (cVar) Extra()       {}
+func (cAssign) Int63() int64 { return 0 }
+func (cAssign) Seed(int64)   {}
+func (cAssign) Extra()       {}
+func (cReturn) Int63() int64 { return 0 }
+func (cReturn) Seed(int64)   {}
+func (cReturn) Extra()       {}
+func (cField) Int63() int64 { return 0 }
+func (cField) Seed(int64)   {}
+func (cField) Extra()       {}
+func (cSlice) Int63() int64 { return 0 }
+func (cSlice) Seed(int64)   {}
+func (cSlice) Extra()       {}
+func (cMapKey) Int63() int64 { return 0 }
+func (cMapKey) Seed(int64)   {}
+func (cMapKey) Extra()       {}
+func (cMapValue) Int63() int64 { return 0 }
+func (cMapValue) Seed(int64)   {}
+func (cMapValue) Extra()       {}
+func (*cConv) Int63() int64 { return 0 }
+func (*cConv) Seed(int64)   {}
+func (*cConv) Extra()       {}
+func (cChan) Int63() int64 { return 0 }
+func (cChan) Seed(int64)   {}
+func (cChan) Extra()       {}
+func (cAppend) Int63() int64 { return 0 }
+func (cAppend) Seed(int64)   {}
+func (cAppend) Extra()       {}
+func (cAny) Extra()          {}
+func (cBlank) Int63() int64  { return 0 }
+func (cBlank) Seed(int64)    {}
+func (cBlank) Extra()        {}
+func (cErr) Error() string   { return "" }
+func (cErr) Extra()          {}
+
+type holder struct{ src rand.Source }
+
+var _ rand.Source = cBlank{}
+
+func Use(c chan rand.Source, l []rand.Source) (rand.Source, holder, []rand.Source, map[rand.Source]int, map[string]rand.Source, any, error) {
+	_ = rand.New(cArg{})
+	var v rand.Source = cVar{}
+	var w rand.Source
+	w = cAssign{}
+	_, _ = v, w
+	_ = rand.Source(&cConv{})
+	c <- cChan{}
+	l = append(l, cAppend{})
+	return cReturn{}, holder{src: cField{}}, []rand.Source{cSlice{}}, map[rand.Source]int{cMapKey{}: 1}, map[string]rand.Source{"a": cMapValue{}}, cAny{}, cErr{}
+}
+`
+
+// Kural (K4): modülün somut tipinin değeri modül dışındaki adlı, boş olmayan bir arayüze dönüşüyorsa (çağrı argümanı,
+// adlı var ve atama, return, alan, dilim öğesi, eşlem anahtarı ve değeri, açık dönüşüm, kanal gönderimi, append) o tipin
+// dışa açık bütün metotları canlıdır, arayüzde olmayanlar da (math/rand Uint64'e Source64 iddiasıyla ulaşır). any'ye,
+// error'a ve boş tanımlayıcıya (`var _ rand.Source = T{}`, derleme denetimi) verilen tipin metodu aday kalır.
+func TestDeadMethodsCountsAnExternalInterfaceConversion(t *testing.T) {
+	got := deadKinds(t, auditModule(t, map[string]string{"p.go": conversionsSource}))
+	for _, ty := range []string{"cArg", "cVar", "cAssign", "cReturn", "cField", "cSlice", "cMapKey", "cMapValue", "cConv", "cChan", "cAppend"} {
+		for _, m := range []string{"Int63", "Seed", "Extra"} {
+			if k, listed := got["audit."+ty+"."+m]; listed {
+				t.Errorf("audit.%s.%s is given to rand.Source and listed as %q", ty, m, k)
+			}
+		}
+	}
+	for _, m := range []string{"audit.cAny.Extra", "audit.cErr.Extra", "audit.cBlank.Int63", "audit.cBlank.Seed", "audit.cBlank.Extra"} {
+		if got[m] != "unreferenced" {
+			t.Errorf("%s: %q, want unreferenced (all: %v)", m, got[m], got)
+		}
+	}
+}
+
+// shadowSource gölgenin kendi deyiminde kaldığı iki durumdur (K4): aynı case satırındaki iki arayüz birbirini gölgelemez;
+// bir işlevde gölgelenen metot başka bir işlevde arayüzden düz çağrılıyorsa canlıdır.
+const shadowSource = `package p
+
+type AHook interface{ A() int }
+type BHook interface{ B() int }
+type PHook interface{ P() int }
+type QHook interface{ Q() int }
+
+type S struct{}
+
+func (S) A() int { return 1 }
+func (S) B() int { return 2 }
+
+type R struct{}
+
+func (R) P() int { return 1 }
+func (R) Q() int { return 2 }
+
+var (
+	_ AHook = S{}
+	_ BHook = S{}
+	_ PHook = R{}
+	_ QHook = R{}
+)
+
+func pick(v any) int {
+	switch k := v.(type) {
+	case AHook, BHook:
+		if b, ok := k.(BHook); ok {
+			return b.B()
+		}
+	}
+	return 0
+}
+
+func apply(v any) int {
+	if k, ok := v.(PHook); ok {
+		return k.P()
+	}
+	if k, ok := v.(QHook); ok {
+		return k.Q()
+	}
+	return 0
+}
+
+func direct(q QHook) int { return q.Q() }
+
+func Run() int { return pick(S{}) + apply(R{}) + direct(R{}) + S{}.A() }
+`
+
+func TestDeadMethodsShadowStaysInItsStatement(t *testing.T) {
+	got := deadKinds(t, auditModule(t, map[string]string{"p.go": shadowSource}))
+	for _, live := range []string{"audit.S.B", "audit.R.Q"} {
+		if k, listed := got[live]; listed {
+			t.Errorf("%s is listed as %q: a check in the same case, or a plain call elsewhere, keeps it live (all: %v)", live, k, got)
+		}
+	}
+	got = deadKinds(t, auditModule(t, map[string]string{"p.go": hooksSource}))
+	if got["audit.T.Operator"] != "shadowed" {
+		t.Errorf("audit.T.Operator: %q, want shadowed (its only call is in the shadowed check)", got["audit.T.Operator"])
+	}
+}

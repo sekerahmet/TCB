@@ -11,14 +11,13 @@ go run ./tools/codegraph query messages.New     # a node and its neighbours
 go run ./tools/codegraph path interp.VM H2100   # shortest directed path between two nodes (--undirected, --through-hubs: see below)
 go run ./tools/codegraph who-uses H2100         # what uses a message code, name code or function
 go run ./tools/codegraph tests-for interp.VM.Run
-go run ./tools/codegraph history messages.New       # commits that touched it (computed from git)
 go run ./tools/codegraph changed claude/some-branch # graph nodes a branch touches, their tests, overlapping branches
 go run ./tools/codegraph deleted                  # message/name codes that existed once and are gone
 go run ./tools/codegraph tests-for internal/lang/codes/language.go:227   # the declaration that contains a line
 grep -rn "code list %s" internal | go run ./tools/codegraph query -       # each grep hit with its declaration
 ```
 
-**A location is a name.** `query`, `who-uses`, `tests-for` and `history` take `file:line` and `file:line:col`
+**A location is a name.** `query`, `who-uses` and `tests-for` take `file:line` and `file:line:col`
 (gopls' and `TR_cmd_index`'s form) for a tracked file and answer for the narrowest node whose lines contain it: the
 first to the last line of a declaration, a func literal counting as its function, a field inside its type, a doc
 comment (directly above, no blank line between) as the declaration it documents, a heading section in Markdown,
@@ -32,7 +31,8 @@ a grep hit could not be taken to the graph).
 
 Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `--limit N` (lines per
 group, default 12) and `--all`, before or after the names. Output is short plain text; edges tagged
-`[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` is another name for `query`.
+`[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` (another name for `query`) and `history`
+(git answers it) are retired: they exit 2 and print the command or the `git log` form that does their work.
 
 ## Which command answers which question
 
@@ -43,14 +43,15 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) |
 | which nodes and Go tests my branch or uncommitted change touches | `changed HEAD [--go-tests]` (with `HEAD` as the tip the working tree is included); another branch: `changed <branch>` (exact only with that branch checked out: otherwise a new file's tests are missed, see gaps) |
 | a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` |
-| who reads or writes this field | `fields <Type.field> --mode write` (or `read`); every field of a type: `fields <Type>` |
+| who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) |
+| which fields a type has and how often each is read and written | `fields <Type>` |
 | who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) |
 | which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) |
 | what this function calls | `callees <function>` |
 | which functions call into this package the most | `calls-into <pkg> --min N --in DIR` |
 | who uses this | `who-uses <name>` |
 | is there a path from A to B | `path <A> <B>` (`--undirected`) |
-| when and in which commit this file or function changed | `history <function\|type\|file>` (not for a field: ask its type or its file) |
+| when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` |
 | which message or name codes existed once and are gone | `deleted` |
 | functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
 | methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) |
@@ -70,7 +71,7 @@ loader reads every `.go` file of a folder; nothing reads the others). So committ
 with the same content keeps the graph fresh: a hook that asks `tests-for` before every first edit no longer rebuilds
 after a commit (TCB 2026-10-25, item 5; `TestStampFollowsContentNotCommits`). `.codegraph/` itself is ignored;
 `TestStampCoversEverySourceTheGraphReads` fails when a node or an edge comes from a file type the stamp misses. Every query
-(`query`, `explain`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
+(`query`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
 the query rebuilds the graph, rewrites `graph.json` (through a temporary file, so two parallel
 queries never read half a file) and prints one line on stderr: `graph rebuilt (N s)`.
 
@@ -234,8 +235,9 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 `*x.f = v`: the contents change), `addr` (`&x.f`), `literal` (`T{f: v}`). Unkeyed literals
 (`T{1, 2}`) and fields of unnamed struct types are not recorded.
 
-- `who-uses Tensor.grad` or `fields Tensor.grad [--mode read|write]`: the accesses by file:line,
-  mode and accessor; inside a func literal the accessor is `binaryKind > func literal@L102`.
+- `who-uses tensor.Tensor.shape [--mode read|write]`: the accesses by file:line, mode and
+  accessor; inside a func literal the accessor is `binaryKind > func literal@L102`. With `--mode`
+  the name resolves only to a field: a name that matches no field is not found (exit 4).
 - `fields <Type>`: a table of the type's fields with read and write counts.
 - Every `func literal` is a `closure` node (`outer > func literal@Lnn`, `contains` from the
   function or the enclosing literal) carrying `captured`: the local variables and parameters it
@@ -308,15 +310,11 @@ stays the tool for Go code, messages and codes, docs and history.
 
 ## History commands (from git, never stored)
 
-These three ask git when you run them; `graph.json` stays small and `build` fast. They need a git
-repository (a failing git is an error, exit 1).
-
-- `history <name>`: commits (short hash, date, subject; no diffs), newest first, `--limit N`
-  (`--all` for every one). A function, method or type uses `git log -L` (by name when the
-  declaration is a plain `func`/`type` line, else by its current line range); a message or name
-  code uses a pickaxe over the dictionary files and marks the commits that **added** and
-  **removed** it, and those that **renamed** it from an older key (the history goes on with the
-  older key's commits; see the renames below); a file or doc uses `git log --follow`.
+These two ask git when you run them; `graph.json` stays small and `build` fast. They need a git
+repository (a failing git is an error, exit 1). The commits of one declaration, file or code are git's own
+answer (`history` is retired, its message gives the `git log` forms); the `-L` form is anchored to the
+declaration line, `':^func <name>(:<file>'`, because an unanchored `-L :<name>:<file>` takes the first
+line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows the constant `SecretMask`).
 - `changed <branch|range>`: maps the hunks of `git diff -U0 <base>...<branch>` (`--base`, default
   `main`; or a literal `a..b` / `a...b`) onto Go and TR declaration and doc-section line ranges, and onto
   the codes named in changed dictionary lines. On another branch, `changed main` compares `<base>...HEAD`
@@ -347,7 +345,7 @@ repository (a failing git is an error, exit 1).
 - Renames: every row of a mapping document (`identityMaps`: `docs/code_identities.md`) whose first two cells are
   code keys (``| <old code> | `TR_kw_if` |``) is a rename event. Where one commit removes the old key and adds the
   new one in the same file the two are one `renamed <old code> → TR_kw_if` event: the old key is not `deleted`,
-  the new key's `history` goes on with the old key's commits, and a `query` of the old code answers with
+  the new key's code history (`followRenames`, read by `deleted`) goes on with the old key's commits, and a `query` of the old code answers with
   `TR_kw_if` (the old key is an alias of the name code node). Chains are followed (`TR_a` renamed again to
   `TR_b`: a new row ``| TR_a | `TR_b` |``), so a later rename of an identity or the library codes of item 15
   step 3 need only their rows (`TestEveryRenameInTheMappingKeepsItsHistory` runs over every row of the document
@@ -468,8 +466,14 @@ go run ./tools/codegraph spec-refs --list # every reference with the heading it 
   used (the interface method's call sites are followed); a method that only *satisfies* an
   interface whose method nobody calls is `assertion-only`. Kinds: `unreferenced`, `assertion-only`,
   `shadowed` (an earlier interface check always catches the value first, as `ml.TensorValue.Operator`
-  was before 00d36f84), `tests-only`. Sealed-interface markers (`statementNode`) and methods of
-  external contracts (`String`, `Error`, `Unwrap`, `Read` ...) are skipped.
+  was before 00d36f84; only when every call of the interface method is inside such a shadowed check, and
+  the interfaces of one `case` line do not shadow each other), `tests-only`. Sealed-interface markers
+  (`statementNode`) and methods of external contracts (`String`, `Error`, `Unwrap`, `Read` ...) are skipped.
+  A type whose value is given to a named, non-empty interface outside the module (a call argument, a named
+  variable or assignment, a return, a composite element, a conversion, a channel send, `append`; not `any`,
+  not `error`, not `var _ I = T{}`) keeps all its exported methods: the other module calls them through that
+  interface, or through a type assertion to a wider one (`math/rand` reaches `Uint64` of a `rand.Source`
+  through `Source64`; `audit_conversions.go`).
 - **`package-state`** lists package variables that are written after their declaration, per
   package: `mutable`, `test-hook` (written only by tests), `address-taken`, and `synchronized`
   (`sync.Mutex`/`Once`, `sync/atomic` types) separately. Tables that are only read after `init`
@@ -694,7 +698,7 @@ first.
 40 languages), docs and media into `graph.json`, with `EXTRACTED` / `INFERRED` edge labels, a
 `schema_version`, and `query`, `path`, `explain` commands; an ambiguous name is refused with the
 candidates listed (exit 3), an unknown one exits 4. We take that shape: the two labels, the schema
-version, the commands (`explain` is our `query`: node plus neighbours), the 0/3/4 exit codes and
+version, the commands (Graphify's `explain` is our `query`: node plus neighbours), the 0/3/4 exit codes and
 the candidate list instead of a guess.
 
 What we do differently, and why:
@@ -745,8 +749,15 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
 - `query_test.go`: `query`, ambiguity (exit 3), not found (exit 4), `path`, `who-uses`,
   `tests-for` (direct and indirect, depth limit), text search, flags after names, usage errors,
   missing graph, `build`.
-- `fresh_test.go`, `root_test.go`, `history_test.go`, `changed_test.go`, `deleted_test.go`: the
-  stamp and automatic rebuild, finding the repository root, and the three git commands.
+- `fresh_test.go`, `root_test.go`, `changed_test.go`, `deleted_test.go`, `codehist_test.go`: the
+  stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
+  scan `deleted` reads.
+- `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
+- `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
+  spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),
+  which must agree. A spelling not in the golden file yet whose answer is `ok` does not fail the test: it is logged as
+  accepted and `-update` records it. A changed answer, a spelling that is gone and a new spelling answered other than
+  `ok` (ambiguous, not found) fail it (`TestGoldenDiffAcceptsOnlyNewOkSpellings`).
 - `test_paths_test.go`, `js_loads_test.go`, `data_coverage_test.go`: a file's answer in `tests-for` (readers, citing
   tests, the guards of a doc's rules, JavaScript loads, an untracked file not searched) and, on this repository, every
   tracked path resolving to its own file (`TestEveryTrackedFileIsANode`).

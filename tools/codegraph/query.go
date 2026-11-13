@@ -205,6 +205,25 @@ func (ix *index) otherCase(q string, chosen *Node, kinds []string) []string {
 	return out
 }
 
+// noteFoldedNonField `Tip.ad` biçimli bir soru yalnız harf katlamasıyla alan olmayan bir Go düğümüne çözüldüyse bunu
+// stderr'e yazar; cevap verilir (K7). Alan sorusu sanılan cevap sessizce bir metodun çağıranlarını veriyordu:
+// `who-uses Tensor.grad` tensor.Tensor.Grad'a gidiyordu, Tensor'da grad alanı yok. Tam harfle uyan ad sorulanın
+// kendisidir, not yazılmaz.
+func noteFoldedNonField(w io.Writer, q string, n *Node) {
+	if n.Kind == kindField || !strings.HasPrefix(n.ID, "go:") || !strings.Contains(q, ".") || strings.ContainsAny(q, "/:") {
+		return
+	}
+	if n.Name == q || strings.HasSuffix(n.Name, "."+q) || idTailEquals(n.ID, q) || strings.HasSuffix(n.ID, "/"+q) {
+		return
+	}
+	for _, f := range folds {
+		if name, fq := f(n.Name), f(q); name == fq || strings.HasSuffix(name, "."+fq) {
+			fmt.Fprintf(w, "codegraph: %s matched %s only by letter case, and it is a %s, not a field; a field's reads and writes: go run ./tools/codegraph who-uses <Type.field> --mode write (or read)\n", q, n.Name, n.Kind)
+			return
+		}
+	}
+}
+
 // idTailEquals kimliğin ':' sonrası kuyruklarından biri q mu (doc:docs/a.md#b için docs/a.md#b).
 func idTailEquals(id, q string) bool {
 	for i := 0; i < len(id); i++ {

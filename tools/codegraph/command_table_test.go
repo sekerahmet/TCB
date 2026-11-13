@@ -2,13 +2,9 @@ package main
 
 import (
 	"os"
-	"regexp"
 	"strings"
 	"testing"
 )
-
-// usageAlias usage satırındaki parantez içi takma adı yakalar: "(or explain)".
-var usageAlias = regexp.MustCompile(`\(or ([a-z-]+)\)`)
 
 // Kural: README.md'deki soru-komut tablosu ("Which command answers which question") ile usage sabitindeki
 // komut listesi (gerekçeli muaflar dışında) aynı kümede kalır: usage'daki her komutun kendi satırı vardır,
@@ -16,11 +12,9 @@ var usageAlias = regexp.MustCompile(`\(or ([a-z-]+)\)`)
 // bilinen bir komuttur.
 func TestCommandTableMatchesUsage(t *testing.T) {
 	// Tabloda yer alması gerekmeyen usage komutları:
-	// - explain: query komutunun takma adıdır (README.md:35).
 	// - build: grafik gerektiğinde kendiliğinden kurulur (README.md: "Nobody has to remember `build`.").
 	exempt := map[string]string{
-		"explain": "alias for query (README.md:35)",
-		"build":   "Nobody has to remember `build`. (README.md)",
+		"build": "Nobody has to remember `build`. (README.md)",
 	}
 	// help komutu usage sabitinde değil, run() içindeki switch kolundadır (main.go:95).
 	const helpCommand = "help"
@@ -79,7 +73,7 @@ func TestCommandTableMatchesUsage(t *testing.T) {
 	}
 }
 
-// usageCommands usage sabitindeki girintili komut satırlarından komut adlarını ve takma adlarını çıkarır.
+// usageCommands usage sabitindeki girintili komut satırlarından komut adlarını çıkarır.
 func usageCommands(text string) []string {
 	var out []string
 	seen := map[string]bool{}
@@ -98,9 +92,6 @@ func usageCommands(text string) []string {
 			continue
 		}
 		add(fields[0])
-		for _, m := range usageAlias.FindAllStringSubmatch(line, -1) {
-			add(m[1])
-		}
 	}
 	return out
 }

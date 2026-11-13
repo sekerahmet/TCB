@@ -16,7 +16,7 @@ func TestAMovedMembersOldFullNameSuggestsItsNewPlace(t *testing.T) {
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)
 	testkit.WriteFile(t, root, "paint/paint.go", "package paint\n\n// Brush has a field named like shape's.\ntype Brush struct{ n int }\n")
 	graph := buildInto(t, root)
-	code, out, errOut := commandIn("fields", root, graph, "--no-rebuild", "shape.Moved.n", "--mode", "write")
+	code, out, errOut := commandIn("who-uses", root, graph, "--no-rebuild", "shape.Moved.n", "--mode", "write")
 	if code != exitNotFound {
 		t.Errorf("exit %d, want %d (the name is still not found)", code, exitNotFound)
 	}

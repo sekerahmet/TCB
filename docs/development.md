@@ -84,11 +84,10 @@ go run ./tools/codegraph who-uses H2100          # ileti/ad kodunu ya da işlevi
 go run ./tools/codegraph tests-for interp.VM.Run # sınayan testler ve koruduğu kurallar
 go run ./tools/codegraph query zaman_ms         # yerleşik adı → kod → Go kaydı/uygulaması → belge başlığı
 go run ./tools/codegraph calls-into tensor --in internal/stdlib # tensör işlevlerinden ≥2 tanesini çağıranlar
-go run ./tools/codegraph fields Tensor.grad       # alanın okunduğu/yazıldığı yerler (tipe göre, kapanışlar işaretli)
+go run ./tools/codegraph who-uses tensor.Tensor.shape --mode write # alanın yazıldığı yerler (tipe göre, kapanışlar işaretli; --mode read okumalar)
 go run ./tools/codegraph captures binaryKind --type Tensor # func literal'lerin yakaladığı değişkenler
 go run ./tools/codegraph callees ml.New        # bir işlevin çağırdıkları, pakete göre
 go run ./tools/codegraph who-uses H3096 --by-package # kullanıcılar pakete göre
-go run ./tools/codegraph history H2100          # kodun/işlevin/dosyanın commit geçmişi (git'ten, graph.json'a yazılmaz)
 go run ./tools/codegraph changed claude/dal      # dalın dokunduğu düğümler, testleri, aynı yere dokunan öbür claude/ dalları
 go run ./tools/codegraph deleted                 # geçmişte olup silinmiş ileti/ad kodları
 go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa yol

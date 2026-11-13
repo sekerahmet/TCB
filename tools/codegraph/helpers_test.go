@@ -142,6 +142,28 @@ func gitMust(t *testing.T, root string, args ...string) {
 	}
 }
 
+// commitAll geçici fikstür deposunda her şeyi verilen konuyla commit'ler.
+func commitAll(t *testing.T, root, subject string) {
+	t.Helper()
+	gitMust(t, root, "add", "-A")
+	gitMust(t, root, "commit", "-q", "-m", subject)
+}
+
+// replaceIn dosyadaki ilk old'u new ile değiştirir; old yoksa test durur.
+func replaceIn(t *testing.T, path, old, new string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), old) {
+		t.Fatalf("%s lacks %q", path, old)
+	}
+	if err := os.WriteFile(path, []byte(strings.Replace(string(data), old, new, 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // repoState bu deponun bir kez yüklenmiş modülü ve ondan kurulan grafiğidir: planlama sınavı ve go/types'a karşı
 // tutarlılık testleri (kullanım kapsamı, arayüz gönderimi) aynı yüklemeyi paylaşır; böylece -short'ta da koşarlar
 // (bağımsız denetim S7: tam denetim -short koşar, bu güvence günlük denetimde kapalıydı).

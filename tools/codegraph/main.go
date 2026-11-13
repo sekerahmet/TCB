@@ -40,13 +40,12 @@ const (
 const usage = `usage: codegraph <command> [flags] [args]
 
   build                      build the graph (flags: --root DIR, --out FILE, --warnings)
-  query <name>  (or explain)   a node and its neighbours; a name may be file:line[:col] (the declaration that contains it); query - reads grep -n output and writes each line's declaration
+  query <name>               a node and its neighbours; a name may be file:line[:col] (the declaration that contains it); query - reads grep -n output and writes each line's declaration
   path <from> <to> [--undirected|--through-hubs]   shortest directed path (calls, uses, dispatches ...); none is said plainly; --undirected also ignores direction but never goes through a type, package or file, --through-hubs allows those (marked)
-  who-uses <name>            what uses a function, type, message code or name code
+  who-uses <name> [--mode read|write]   what uses a function, type, message code or name code; for a struct field its reads and writes (--mode: only those, and the name resolves only to a field)
   tests-for <name>           tests that exercise a function, type or package
   untested [--in DIR] [--json]   non-test Go functions and methods grouped by the seven branches of tests-for
-  history <name>             commits that touched a function, type, file, message code or name code (computed from git)
-  fields <Type.field | Type> [--mode read|write]  where a struct field is read and written (typed; closures marked), or the table of a type's fields
+  fields <Type>              the table of a type's fields with read and write counts (one field: who-uses <Type.field> --mode read|write)
   captures <func> [--type T]  the variables its func literals capture, with types
   callees <func> [--in PKG]  the functions it calls, by package
   calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package
@@ -76,8 +75,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
-	case "query", "explain", "path", "who-uses", "tests-for", "untested", "history", "changed", "callees", "calls-into", "fields", "captures":
+	case "query", "path", "who-uses", "tests-for", "untested", "changed", "callees", "calls-into", "fields", "captures":
 		return runQuery(args[0], args[1:], stdout, stderr)
+	case "explain", "history":
+		return runRetired(args[0], args[1:], stderr)
 	case "spec-refs":
 		return runSpecRefs(args[1:], stdout, stderr)
 	case "time-ceilings":
@@ -220,4 +221,24 @@ func countList(m map[string]int) string {
 		parts[i] = fmt.Sprintf("%s %d", k, m[k])
 	}
 	return strings.Join(parts, ", ")
+}
+
+// historyGone emekliye ayrılan `history`'nin yerini söyler (K6): adın dosyası query ile, geçmişi git'in bildirim
+// satırına sabitlenmiş biçimleriyle. Sabitlenmemiş `-L :<ad>:<dosya>` adı içeren ilk satıra gider
+// (`-L :Mask:internal/lang/interp/output.go` metodun değil SecretMask sabitinin geçmişini veriyordu).
+const historyGone = `codegraph: "history" is gone; git answers it. The file of a name: go run ./tools/codegraph query <name>. Then: git log -L ':^func <name>(:<file>' -s --oneline for a function, git log -L ':^func (.*) <name>(:<file>' -s --oneline for a method, git log -L ':^type <name> :<file>' -s --oneline for a type, git log --follow --oneline -- <file> for a file, git log -S'<code>' --oneline -- internal/lang/messages/definitions.json internal/lang/codes/definitions.json for a code (renames are not followed)`
+
+// runRetired emekliye ayrılan komutların (explain, history) yerine geçen yolu yazar; çıkış 2 (K6). explain query'nin
+// öbür adıydı: aynı argümanlarla query satırı verilir.
+func runRetired(cmd string, args []string, stderr io.Writer) int {
+	if cmd == "history" {
+		fmt.Fprintln(stderr, historyGone)
+		return exitUsage
+	}
+	rest := strings.Join(args, " ")
+	if rest == "" {
+		rest = "<name>"
+	}
+	fmt.Fprintf(stderr, "codegraph: %q was another name for query and is gone: go run ./tools/codegraph query %s\n", cmd, rest)
+	return exitUsage
 }

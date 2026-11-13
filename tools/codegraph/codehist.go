@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -106,20 +105,4 @@ func sortEvents(events map[string][]codeEvent) {
 			}
 		}
 	}
-}
-
-// formatEvents bir kodun geçmişini satırlara döker: "added"/"removed"/"renamed" işaretli commit'ler.
-func formatEvents(list []codeEvent) []string {
-	var out []string
-	for _, e := range list {
-		verb := "removed"
-		switch {
-		case e.from != "":
-			verb = "renamed " + e.from + " → " + e.key
-		case e.added:
-			verb = "added  "
-		}
-		out = append(out, fmt.Sprintf("%s  %s  (%s)", verb, e.commit, e.file))
-	}
-	return out
 }

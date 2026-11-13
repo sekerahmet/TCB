@@ -20,7 +20,7 @@ type queryOpts struct {
 	min            int    // calls-into: en az kaç ayrı işlev
 	tests          bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
 	byPackage      bool   // who-uses: kullanıcıları pakete göre özetle
-	mode           string // who-uses, fields: yalnızca "read" ya da "write" erişimleri
+	mode           string // who-uses (alan): yalnızca "read" ya da "write" erişimleri; verilince ad yalnız alana çözülür
 	typeFilter     string // captures: yakalanan değişkenin tipinde geçen metin
 	undirected     bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
 	throughHubs    bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
@@ -28,8 +28,8 @@ type queryOpts struct {
 	asJSON         bool   // untested: JSON çıktı
 }
 
-// runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for, untested,
-// history, changed, callees, calls-into.
+// runQuery grafiği okuyan komutları çalıştırır: query, path, who-uses, tests-for, untested, changed, callees,
+// calls-into, fields, captures.
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	return runQueryOn(nil, cmd, args, stdout, stderr)
 }
@@ -49,7 +49,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.StringVar(&o.in, "in", "", "callees, calls-into, untested: restrict to a package or folder")
 	fs.IntVar(&o.min, "min", 2, "calls-into: at least this many distinct functions")
 	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
-	fs.StringVar(&o.mode, "mode", "", "fields: only read or write accesses")
+	fs.StringVar(&o.mode, "mode", "", "who-uses on a field: only read or write accesses")
 	fs.StringVar(&o.typeFilter, "type", "", "captures: only variables whose type contains this text")
 	fs.BoolVar(&o.undirected, "undirected", false, "path: also look for a connection ignoring edge direction (never through a type, package or file)")
 	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
@@ -136,6 +136,11 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 	kinds := map[string][]string{
 		"calls-into": {kindPackage}, "captures": {kindFunc, kindMethod, kindClosure}, "fields": {kindField, kindType},
 	}[cmd]
+	if cmd == "who-uses" && o.mode != "" {
+		// --mode bir alanın okuma ya da yazmalarını sorar: ad yalnız alana çözülür. Yoksa harf katlaması onu aynı adlı bir
+		// metoda götürüyordu (`who-uses Tensor.grad --mode write` tensor.Tensor.Grad'ın çağıranlarını veriyordu, K7).
+		kinds = []string{kindField}
+	}
 	nodes := make([]*Node, 0, len(names))
 	for _, q := range names {
 		n, code := ix.resolve(q, o, kinds...)
@@ -144,12 +149,15 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 		}
 		nodes = append(nodes, n)
 	}
+	if cmd == "who-uses" && o.mode == "" {
+		noteFoldedNonField(o.stderr, names[0], nodes[0])
+	}
 	return ix.answer(cmd, nodes, o)
 }
 
 func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	switch cmd {
-	case "query", "explain":
+	case "query":
 		ix.printQuery(o.stdout, nodes[0], o.limit)
 	case "who-uses":
 		if nodes[0].Kind == kindField {
@@ -162,14 +170,17 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	case "tests-for":
 		ix.withTestNotes(o.root)
 		ix.printTestsFor(o.stdout, nodes[0], o.limit)
-	case "history":
-		return ix.runHistory(o.root, nodes[0], o.limit, o.stdout, o.stderr)
 	case "fields":
-		if nodes[0].Kind == kindField {
-			ix.printFieldUses(nodes[0], o)
-		} else {
-			ix.printFieldTable(nodes[0], o)
+		if n := nodes[0]; n.Kind == kindField {
+			// Bir alanın erişimleri who-uses'ın işidir (K7): aynı soru iki komutla soruluyordu.
+			mode := ""
+			if o.mode != "" {
+				mode = " --mode " + o.mode
+			}
+			fmt.Fprintf(o.stderr, "codegraph: fields takes a type; the reads and writes of the field %s: go run ./tools/codegraph who-uses %s%s\n", n.Name, n.ID, mode)
+			return exitUsage
 		}
+		ix.printFieldTable(nodes[0], o)
 	case "captures":
 		return ix.printCaptures(nodes[0], o)
 	case "callees":
