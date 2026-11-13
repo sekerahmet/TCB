@@ -149,6 +149,9 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 		}
 		nodes = append(nodes, n)
 	}
+	if cmd == "who-uses" && o.mode == "" {
+		noteFoldedNonField(o.stderr, names[0], nodes[0])
+	}
 	return ix.answer(cmd, nodes, o)
 }
 
@@ -170,11 +173,16 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	case "history":
 		return ix.runHistory(o.root, nodes[0], o.limit, o.stdout, o.stderr)
 	case "fields":
-		if nodes[0].Kind == kindField {
-			ix.printFieldUses(nodes[0], o)
-		} else {
-			ix.printFieldTable(nodes[0], o)
+		if n := nodes[0]; n.Kind == kindField {
+			// Bir alanın erişimleri who-uses'ın işidir (K7): aynı soru iki komutla soruluyordu.
+			mode := ""
+			if o.mode != "" {
+				mode = " --mode " + o.mode
+			}
+			fmt.Fprintf(o.stderr, "codegraph: fields takes a type; the reads and writes of the field %s: go run ./tools/codegraph who-uses %s%s\n", n.Name, n.ID, mode)
+			return exitUsage
 		}
+		ix.printFieldTable(nodes[0], o)
 	case "captures":
 		return ix.printCaptures(nodes[0], o)
 	case "callees":

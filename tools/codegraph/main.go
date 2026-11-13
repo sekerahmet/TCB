@@ -46,7 +46,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   tests-for <name>           tests that exercise a function, type or package
   untested [--in DIR] [--json]   non-test Go functions and methods grouped by the seven branches of tests-for
   history <name>             commits that touched a function, type, file, message code or name code (computed from git)
-  fields <Type.field | Type> [--mode read|write]  where a struct field is read and written (typed; closures marked), or the table of a type's fields
+  fields <Type>              the table of a type's fields with read and write counts (one field: who-uses <Type.field> --mode read|write)
   captures <func> [--type T]  the variables its func literals capture, with types
   callees <func> [--in PKG]  the functions it calls, by package
   calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package

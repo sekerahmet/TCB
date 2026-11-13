@@ -133,3 +133,53 @@ func TestWhoUsesModeResolvesOnlyFields(t *testing.T) {
 	}
 	testkit.MustContain(t, out, "shape.Counter.n [field]", "write accesses (", "shape/shape.go:84  write")
 }
+
+// Kural (K7): `fields` bir tipin alan tablosudur; bir alanı (`Tip.alan` ya da alana çözülen çıplak ad) soran `fields`
+// çıkış 2 verir ve aynı soruyu soran `who-uses` satırını yazar (--mode verildiyse onunla). İletideki komut koşulunca
+// alanın erişimleri gelir: eskiden `fields <alan>`'ın verdiği çıktı (`who-uses`'la aynı yazıcı).
+func TestFieldsOfAFieldNamesTheWhoUsesLine(t *testing.T) {
+	const prefix = "go run ./tools/codegraph "
+	for _, tc := range []struct {
+		args []string
+		line string
+	}{
+		{[]string{"Counter.n"}, "who-uses " + counterN},
+		{[]string{"Counter.n", "--mode", "write"}, "who-uses " + counterN + " --mode write"},
+		{[]string{"list", "--mode", "read"}, "who-uses " + counterList + " --mode read"},
+	} {
+		code, out, errOut := cli(t, append([]string{"fields"}, tc.args...)...)
+		if code != exitUsage || out != "" {
+			t.Errorf("fields %v: exit %d, want %d, stdout %q", tc.args, code, exitUsage, out)
+			continue
+		}
+		testkit.MustContain(t, errOut, "codegraph: fields takes a type; the reads and writes of the field ", prefix+tc.line+"\n")
+		args := strings.Fields(strings.TrimSuffix(errOut[strings.Index(errOut, prefix)+len(prefix):], "\n"))
+		code, got, _ := cli(t, args...)
+		_, old, _ := cli(t, append([]string{"who-uses"}, tc.args...)...)
+		if code != exitOK || got != old || !strings.Contains(got, "[field]") {
+			t.Errorf("%s: exit %d; its answer is not the field's accesses:\n%s\nwant:\n%s", strings.Join(args, " "), code, got, old)
+		}
+	}
+	if code, out, _ := cli(t, "fields", "shape.Counter"); code != exitOK || !strings.Contains(out, "list [[]int]: 0 reads, 1 writes") {
+		t.Errorf("fields of a type is the table: exit %d\n%s", code, out)
+	}
+}
+
+// Kural (K7): `--mode`'suz `who-uses Tip.ad` adı yalnız harf katlamasıyla alan olmayan bir düğüme çözerse cevabı verir
+// (çıkış 0) ve bunu stderr'e yazar; alan sorusu sanılan cevap bir metodun çağıranlarıydı. Tam harfle uyan ad (alan ya
+// da metot) not almaz.
+func TestWhoUsesSaysAFoldedMatchIsNotAField(t *testing.T) {
+	code, out, errOut := cli(t, "who-uses", "Square.area")
+	if code != exitOK || !strings.HasPrefix(out, "shape.Square.Area [method]") {
+		t.Fatalf("exit %d: the answer is still given\n%s", code, out)
+	}
+	const note = "codegraph: Square.area matched shape.Square.Area only by letter case, and it is a method, not a field; a field's reads and writes: go run ./tools/codegraph who-uses <Type.field> --mode write (or read)\n"
+	if !strings.Contains(errOut, note) {
+		t.Errorf("stderr lacks the note:\n%s", errOut)
+	}
+	for _, q := range []string{"Counter.n", "Square.Area"} {
+		if _, _, errOut := cli(t, "who-uses", q); strings.Contains(errOut, "only by letter case") {
+			t.Errorf("%s matches by its own spelling, no note:\n%s", q, errOut)
+		}
+	}
+}
