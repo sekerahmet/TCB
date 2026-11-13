@@ -132,7 +132,13 @@ func probeReturns(t *testing.T, k, ret codes.Code, receivers []codes.Code) strin
 	found := calls(prog, func(c *ast.CallExpression) bool {
 		switch f := c.Function.(type) {
 		case *ast.Identifier:
-			return f.Token.Code == k
+			// Değeri argüman sayısına bağlı yerleşiğin değer vermeyen çağrısı (TR_default_device("cpu"))
+			// tek tipli dönüşle sarılmaz: denetleyici onu değer yerinde H1143 ile keser.
+			if f.Token.Code != k {
+				return false
+			}
+			none, decided := checker.ArityNoValue(k, len(c.Arguments))
+			return !decided || !none || ret == codes.TypeNoneType
 		case *ast.MemberExpression:
 			return f.NameToken.Code == k
 		case *ast.IndexExpression: // tip argümanlı çağrı: TR_from_bytes[TR_Int](...)
