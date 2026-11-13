@@ -32,14 +32,12 @@ func cgroupMemoryLimit(root string) (bytes int64, limited bool, err error) {
 		return 0, false, err
 	}
 	v1Path, v2Path := cgroupPaths(string(cg))
-	v1Mount, v1Root, v2Mount, v2Root := cgroupMounts(string(mi))
+	mounts := cgroupMounts(string(mi))
+	v1Mount, v1Rel, v1ok := pickMount(mounts, false, v1Path)
+	v2Mount, v2Rel, v2ok := pickMount(mounts, true, v2Path)
 	switch {
-	case v1Path != "" && v1Mount != "":
-		rel, ok := relativeTo(v1Path, v1Root)
-		if !ok {
-			return 0, false, errNoCgroup
-		}
-		b, err := os.ReadFile(filepath.Join(root, v1Mount, rel, "memory.limit_in_bytes"))
+	case v1ok:
+		b, err := os.ReadFile(filepath.Join(root, v1Mount, v1Rel, "memory.limit_in_bytes"))
 		if err != nil {
 			return 0, false, err
 		}
@@ -51,14 +49,10 @@ func cgroupMemoryLimit(root string) (bytes int64, limited bool, err error) {
 			return 0, false, nil
 		}
 		return int64(n), true, nil
-	case v2Path != "" && v2Mount != "":
-		rel, ok := relativeTo(v2Path, v2Root)
-		if !ok {
-			return 0, false, errNoCgroup
-		}
-		b, err := os.ReadFile(filepath.Join(root, v2Mount, rel, "memory.max"))
-		if errors.Is(err, os.ErrNotExist) && rel == "/" {
-			return 0, false, nil // kök cgroup'un memory.max'ı yoktur: sınır yok
+	case v2ok:
+		b, err := os.ReadFile(filepath.Join(root, v2Mount, v2Rel, "memory.max"))
+		if errors.Is(err, os.ErrNotExist) && v2Path == "/" {
+			return 0, false, nil // sürecin ad alanındaki kök cgroup'un memory.max'ı yoktur: sınır yok
 		}
 		if err != nil {
 			return 0, false, err
@@ -97,10 +91,18 @@ func cgroupPaths(text string) (v1, v2 string) {
 	return v1, v2
 }
 
-// cgroupMounts /proc/self/mountinfo'dan v1'in bellek denetleyicisinin ve v2'nin bağlama
-// noktasını ve bağlanan kökünü verir. Satır: "kimlik üst ana:alt kök nokta seçenekler ... -
-// tür kaynak üstseçenekler"; boşluk ve ters bölü sekizlik kaçışla yazılır (\040).
-func cgroupMounts(text string) (v1Mount, v1Root, v2Mount, v2Root string) {
+// cgroupMount bir cgroup dosya sisteminin bağlama noktası ve bağlanan köküdür.
+type cgroupMount struct {
+	point, root string
+	v2          bool
+}
+
+// cgroupMounts /proc/self/mountinfo'dan v2'nin ve v1'in bellek denetleyicisinin bağlamalarını
+// verir. Satır: "kimlik üst ana:alt kök nokta seçenekler ... - tür kaynak üstseçenekler"; boşluk
+// ve ters bölü sekizlik kaçışla yazılır (\040). Aynı hiyerarşi birden çok yere bağlanabilir
+// (Colab: /sys/fs/cgroup ve sürecin cgroup'u /var/colab/cgroup/... altında).
+func cgroupMounts(text string) []cgroupMount {
+	var out []cgroupMount
 	for _, line := range strings.Split(text, "\n") {
 		pre, post, ok := strings.Cut(line, " - ")
 		if !ok {
@@ -110,18 +112,39 @@ func cgroupMounts(text string) (v1Mount, v1Root, v2Mount, v2Root string) {
 		if len(f) < 5 || len(g) < 1 {
 			continue
 		}
-		switch g[0] {
-		case "cgroup2":
-			if v2Mount == "" {
-				v2Mount, v2Root = unescapeMount(f[4]), unescapeMount(f[3])
-			}
-		case "cgroup":
-			if len(g) >= 3 && hasOption(g[2], "memory") && v1Mount == "" {
-				v1Mount, v1Root = unescapeMount(f[4]), unescapeMount(f[3])
-			}
+		m := cgroupMount{point: unescapeMount(f[4]), root: unescapeMount(f[3])}
+		switch {
+		case g[0] == "cgroup2":
+			m.v2 = true
+			out = append(out, m)
+		case g[0] == "cgroup" && len(g) >= 3 && hasOption(g[2], "memory"):
+			out = append(out, m)
 		}
 	}
-	return v1Mount, v1Root, v2Mount, v2Root
+	return out
+}
+
+// pickMount sürecin cgroup yolunu (path) gösteren bağlamayı seçer: kökü yolu içeren
+// bağlamalardan kökü en uzun olanı. Yol bağlamanın kökünün dışındaysa (cgroup ad alanının
+// dışında, "/../.." ile başlayan yol) o bağlama sürecin cgroup'unu göstermez.
+func pickMount(mounts []cgroupMount, v2 bool, path string) (point, rel string, ok bool) {
+	if path == "" {
+		return "", "", false
+	}
+	best := -1
+	for _, m := range mounts {
+		if m.v2 != v2 {
+			continue
+		}
+		r, in := relativeTo(path, m.root)
+		if !in || r == "/.." || strings.HasPrefix(r, "/../") {
+			continue
+		}
+		if best < 0 || len(m.root) > best {
+			point, rel, ok, best = m.point, r, true, len(m.root)
+		}
+	}
+	return point, rel, ok
 }
 
 func hasOption(opts, name string) bool {

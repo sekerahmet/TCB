@@ -23,6 +23,9 @@ func TestMachineMemoryLimitCgroup(t *testing.T) {
 		{"v1_unlimited", 0, false, false},
 		{"v1_docker", 2 << 30, true, false},
 		{"hybrid", 3 << 30, true, false},
+		// Colab'ın G4 kabının düzeni (ölçüldü): süreç ad alanının dışında, ikinci bağlama gösterir.
+		{"v2_colab", 56371445760, true, false},
+		{"v2_escaped", 0, false, true},
 		{"none", 0, false, true},
 		{"does_not_exist", 0, false, true},
 	}

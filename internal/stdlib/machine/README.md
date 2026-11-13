@@ -14,8 +14,10 @@ yalnız `.TR_memory_limit_bytes`'ta "sınır yok" demektir. macOS'ta kullanılab
 okunmaz (H7735, macOS cümlesiyle). Denetim: `TestMachineMembers`.
 
 **Bellek sınırı.** Linux'ta `/proc/self/cgroup` sürecin yolunu, `/proc/self/mountinfo` cgroup dosya sisteminin
-bağlandığı yeri ve kökünü verir; v1'in bellek denetleyicisi varsa (karma düzende de) `memory.limit_in_bytes`
-(2^62'den büyüğü sınırsız), yoksa v2'nin `memory.max`'ı (`max` sınırsız; kök cgroup'ta dosya yoktur, sınırsız).
+bağlandığı yerleri ve köklerini verir; sürecin yolunu içeren bağlamalardan kökü en uzun olan seçilir (Colab'da süreç
+cgroup ad alanının dışındadır, `0::/../../jupyter-children`, ve cgroup'u ayrıca `/var/colab/cgroup/...` altına
+bağlanır). v1'in bellek denetleyicisi varsa (karma düzende de) `memory.limit_in_bytes` (2^62'den büyüğü sınırsız),
+yoksa v2'nin `memory.max`'ı (`max` sınırsız; sürecin yolu `/` iken dosya yoksa kök cgroup'tur, sınırsız).
 Windows'ta iş nesnesinin `JOB_OBJECT_LIMIT_PROCESS_MEMORY` ve `JOB_OBJECT_LIMIT_JOB_MEMORY` sınırlarının küçüğü.
 Ayrıştırma `limit.go`'dadır, her işletim sisteminde testdata'yla sınanır.
 Denetim: `TestMachineMemoryLimitCgroup`, `TestUnescapeMount`, `TestJobMemoryLimit`, `TestJobLimitLayout`,
