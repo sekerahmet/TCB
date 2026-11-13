@@ -62,3 +62,51 @@ TR_print(g.TR_device, g.TR_shape)`); out != "cpu [2049]\n" {
 		{`TR_stft(TR_ones([16]).TR_to_device("gpu"), 4, TR_hop_length: 1, TR_window: TR_ones([4]), TR_center: TR_false)`, messages.H6102},
 	})
 }
+
+// Kural (15.45, `15_tensorler.md:559`, `:564`): `TR_replay`'in ilk çağrısı `f`'yi doğrudan
+// çalıştırır, ikincisi kaydeder; kayıtta konaktan yeni veri kodlu hatadır, sessiz yükleme yoktur.
+// (i) Kartta `TR_rfft`: tabanı ısınma çağrısı kurar (önbellek boşken, kayıt dışında), kayıt
+// onu önbellekten alır; üç çağrıda sonuç doğrudan çağrıyla bit bit aynı. n = 91 paketin başka
+// testinde geçmez: taban önbelleği süreç boyudur, başka test ısıtmış olmasın.
+// (ii) Kartta `TR_stft`: çerçevelerin konum tablosu her çağrıda konaktan yüklenir
+// (`fourier_card.go`'nun `stftOnCard`'ı); ısınma doğrudan çağrıyla aynı, kayıt H4066. Bugünkü
+// davranışın kilidi (T1 dilim 5'in B6'sı, status 15.41): tablo kartta önbelleğe alınınca (ii)
+// "doğrudan çağrıyla aynı"ya döner.
+func TestReplayFourierOnTheCard(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `TR_default_device("gpu")
+TR_func f(x: TR_Tensor) -> TR_List[TR_Tensor] {
+    TR_var g, s = TR_rfft(x, TR_n: 91)
+    TR_return [g, s]
+}
+TR_var oy = TR_replay(f)
+TR_no_grad {
+    TR_for i TR_in 0..3 {
+        TR_var x = TR_randn([2, 85], TR_seed: i)
+        TR_var r = oy(x)
+        TR_var d = f(x)
+        TR_print(d[0].TR_tolist == r[0].TR_tolist TR_and d[1].TR_tolist == r[1].TR_tolist, r[0].TR_device)
+    }
+}`)
+	if want := "true gpu:0\ntrue gpu:0\ntrue gpu:0\n"; out != want {
+		t.Fatalf("kayıtta kartın TR_rfft'i: %q, beklenen %q", out, want)
+	}
+	out = mustRun(t, `TR_default_device("gpu")
+TR_var w = TR_hann_window(12, TR_periodic: TR_true)
+TR_func g(x: TR_Tensor) -> TR_List[TR_Tensor] {
+    TR_var a, b = TR_stft(x, 12, TR_hop_length: 5, TR_window: w, TR_center: TR_true, TR_pad_mode: "reflect")
+    TR_return [a, b]
+}
+TR_var oy = TR_replay(g)
+TR_no_grad {
+    TR_var x = TR_randn([2, 61], TR_seed: 0)
+    TR_var r = oy(x)
+    TR_var d = g(x)
+    TR_print(d[0].TR_tolist == r[0].TR_tolist TR_and d[1].TR_tolist == r[1].TR_tolist, r[0].TR_device)
+    TR_print(TR_error_code { oy(TR_randn([2, 61], TR_seed: 1)) })
+}`)
+	if want := "true gpu:0\nH4066\n"; out != want {
+		t.Fatalf("kayıtta kartın TR_stft'i: %q, beklenen %q (ısınma aynı, kayıt H4066)", out, want)
+	}
+}
