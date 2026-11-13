@@ -31,9 +31,12 @@
 #                     satırında durdurulur, öbür adımlar (düzen kuralları, depo taramaları, yarış,
 #                     zorlama) bitince durulur; sonraki adımlar koşmaz, sonuç satırı ❌ olur. Yalnız betiğin kendi alt süreçleri
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
-#   --kip=commit      commit öncesi denetim (~35 sn; yan oturumların ve TCB'nin tek commit öncesi komutu,
-#                     CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi (format_checks), tekrar
-#                     adayları, dil tanımı atıfları, düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests). Bu makinede koşan
+#   --kip=commit      commit öncesi denetim (en çok 120 sn ve kaydın yazılması; yan oturumların
+#                     ve TCB'nin tek commit öncesi komutu, CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi
+#                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), tekrar
+#                     adayları, dil tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
+#                     --go-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120 sn'sinin kalanıyla; kalanlar "G4'e
+#                     kaldı" diye yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -160,6 +163,55 @@ commit_test_pkgs=(
 	./internal/devtools/testrunner
 	./internal/lang/codes
 )
+# commit_heavy_tests commit kipinin değişen dosyalar seçiminden çıkan ağır testlerdir (paket:ad): G4'te herhangi bir
+# koşuda 5 sn'yi aşan üst testler (D1 codegraph dilim 1'in ölçüsü, 2026-11-13). Seçimde adları geçerse koşmaz, "G4'e
+# kaldı" diye yazılır. Liste her büyük birleşmeden sonra G4 ölçüsüyle karşılaştırılır; değiştiren ana oturumdur.
+# Her ad kendi paketinde tanımlı olmalı (TestCommitHeavyTestsExist).
+commit_heavy_tests=(
+	./cmd/trlang/e2e:TestExamplesSameOutputInEveryDisplayLanguage
+	./cmd/trlang/e2e:TestReadyModelMatchesTransformers
+	./internal/lang/interp:TestTheLockIsHandedOffInTimeAfterStatementsSlowDown
+	./internal/stdlib/httpserver:TestSlowListenerOnlyItsConnectionCloses
+	./internal/stdlib/ml:TestOtherTasksRunDuringLongTensorWork
+	./internal/stdlib/process:TestEscapedGrandchildDoesNotBlockTheStop
+	./internal/stdlib/process:TestGrandchildDoesNotHangTheProcess
+	./internal/stdlib/process:TestGrandchildHoldingThePipeDoesNotBlock
+	./internal/stdlib/process:TestOutputOutlivesTheProgram
+	./tools/codegraph:TestASourceFileListsItsTestFilesTestsFirst
+	./tools/codegraph:TestAnExpectedMessageIsTheTargetsOwn
+	./tools/codegraph:TestDottedMemberSpellingsGolden
+	./tools/codegraph:TestEveryCodegraphCommandIsTestedDirectlyByTheTestsThatNameIt
+	./tools/codegraph:TestEveryMemberSpellingInRepoTRFilesResolves
+	./tools/codegraph:TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration
+	./tools/codegraph:TestNoChainIsLongerThanTheStepLimit
+	./tools/codegraph:TestPlanningQuestionsAreAnswered
+)
+# commit_late_packages seçimin son parçalarına konan ağır paketlerdir (tools/codegraph/query_run_listed.go'nun
+# heavyTestPackages'ı): büyük commit'te süreyi onlar dolduruyor; öndeyken arkalarındaki küçük paketler hiç başlamadı.
+commit_late_packages=(
+	./cmd/trlang/e2e
+	./internal/compute/gpu
+	./internal/detmath
+	./internal/lang/parser
+	./tools/codegraph
+)
+# commit_seconds commit kipinin baştan sona süre sınırıdır, derleme dahil; commit_chunk_chars bir parçanın -run
+# deseninin üst sınırı (Windows'un komut satırı ~32 000 karakter; büyük commit'in deseni 40 903 karakterdi, tek komut
+# hiç başlamadı). İkisinin ölçüsü D1 codegraph dilim 3'ün dizüstü penceresinde (2026-11-14).
+commit_seconds=120
+commit_chunk_chars=19000
+# Commit kipinin bu koşusu (commit_record yazar): koşulan ve G4'e kalan testler ("./paket Ad"), kalanların nedenleri,
+# tekrar adayı ve dil tanımı atıfı sayıları, düşen ilk adım.
+commit_deadline_ms=0
+commit_ran=()
+commit_left=()
+commit_left_heavy=0
+commit_left_cut=0
+commit_cut_pkgs=0
+commit_failed_tests=0
+commit_dups=-
+commit_specrefs=-
+commit_failed_step=""
 repo_scan_pkgs=(
 	./cmd/trlang
 	./cmd/trlang/e2e
@@ -235,6 +287,7 @@ record_failure() {
 	if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Tam denetim::$1"; fi
 	failures+=("$1")
 	failed=1
+	[ -n "$commit_failed_step" ] || commit_failed_step=${step_name:-$1}
 	if [ -n "$stop_first" ]; then
 		stopped_early=1
 		echo "!! İlk kalanda durdu (--ilk-kalanda-dur): sonraki adımlar koşmadı"
@@ -441,6 +494,7 @@ dups_check() {
 	codegraph_built=1
 	printf '%s\n' "$out" | head -40
 	n=$(printf '%s\n' "$out" | sed -n 's/^\([0-9][0-9]*\) duplicate candidate.*/\1/p' | head -1)
+	commit_dups=${n:--}
 	if [ -z "$n" ]; then
 		fail "codegraph dups çıktısında aday sayısı yok"
 	elif [ "$n" -gt 0 ]; then
@@ -459,22 +513,244 @@ spec_refs_check() {
 		IFS= read -r bin <.codegraph/last-codegraph || true
 		bin=${bin%$'\r'}
 	fi
+	local code=0
 	if [ -n "$bin" ] && [ -f "$bin" ]; then
-		out=$("$bin" spec-refs 2>&1) || {
-			printf '%s\n' "$out" | head -40
-			fail "dil tanımı atıfları (codegraph spec-refs)"
-			return
-		}
+		out=$("$bin" spec-refs 2>&1) || code=$?
 	else
-		out=$(go run ./tools/edithook codegraph spec-refs 2>&1) || {
-			printf '%s\n' "$out" | head -40
-			fail "dil tanımı atıfları (codegraph spec-refs)"
-			return
-		}
+		out=$(go run ./tools/edithook codegraph spec-refs 2>&1) || code=$?
+	fi
+	# Kaydın alanı (commit_record): hata ve not sayısı; çıktıda yoksa "-".
+	commit_specrefs="$(printf '%s\n' "$out" | sed -n 's/.* \([0-9][0-9]*\) error(s), \([0-9][0-9]*\) note(s).*/\1,not:\2/p' | head -1)"
+	commit_specrefs=${commit_specrefs:--}
+	if [ "$code" -ne 0 ]; then
+		printf '%s\n' "$out" | head -40
+		fail "dil tanımı atıfları (codegraph spec-refs)"
+		return
 	fi
 	printf '%s\n' "$out" | head -40
 	# G4'ün sınavı "0 note(s)" bekler (planning_questions.txt); kapı da notu kalan sayar (DENETİM 483 N5).
 	printf '%s\n' "$out" | grep -qE '(^|[^0-9])0 note\(s\)' || fail "dil tanımı atıfları: not var (codegraph spec-refs)"
+}
+
+# commit_now_ms Unix zamanı, milisaniye: kipin zamanlayıcısı ve go test satırlarının geliş anı.
+commit_now_ms() { date +%s%3N; }
+
+# commit_plan commit kipinin seçimini (stdin: codegraph changed --go-tests satırları, "klasör ad") parçalara böler,
+# "parça<TAB>./paket<TAB>ad" yazar. ./internal ve ./internal/reporoot çıkar (kip onları bütün olarak koşar). Ağır
+# listesindeki bir adı taşıyan her test, paketi ne olursa olsun G4'e kalır: parçanın -skip'i paketten bağımsızdır.
+# Paketler ilk görüldükleri sırayla; commit_late_packages yeni bir parçadan başlayarak sonda. Bir paketin adları
+# sığdığı sürece tek parçada; tek başına sınırı aşan paketin adları birden çok parçaya bölünür.
+commit_plan() {
+	local dir name pkg n chunk=1 len=0 pkg_len late_started=""
+	local -A heavy=() seen=() is_late=() names=()
+	local order=() tail=()
+	for n in "${commit_heavy_tests[@]}"; do heavy[${n#*:}]=1; done
+	for pkg in "${commit_late_packages[@]}"; do is_late[$pkg]=1; done
+	while read -r dir name; do
+		case $name in Test* | Fuzz*) ;; *) continue ;; esac
+		pkg=./$dir
+		case $pkg in ./internal | ./internal/reporoot) continue ;; esac
+		[ -z "${seen[$pkg $name]:-}" ] || continue
+		seen[$pkg $name]=1
+		if [ -n "${heavy[$name]:-}" ]; then
+			commit_left+=("$pkg $name")
+			commit_left_heavy=$((commit_left_heavy + 1))
+			continue
+		fi
+		if [ -z "${names[$pkg]+x}" ]; then
+			if [ -n "${is_late[$pkg]:-}" ]; then tail+=("$pkg"); else order+=("$pkg"); fi
+			names[$pkg]=""
+		fi
+		names[$pkg]+="$name "
+	done
+	for pkg in "${order[@]}" "${tail[@]}"; do
+		if [ -n "${is_late[$pkg]:-}" ] && [ -z "$late_started" ]; then
+			late_started=1
+			[ $len -eq 0 ] || { chunk=$((chunk + 1)); len=0; }
+		fi
+		pkg_len=0
+		for name in ${names[$pkg]}; do pkg_len=$((pkg_len + ${#name} + 1)); done
+		if [ $len -gt 0 ] && [ $((len + pkg_len)) -gt "$commit_chunk_chars" ]; then
+			chunk=$((chunk + 1))
+			len=0
+		fi
+		for name in ${names[$pkg]}; do
+			if [ $len -gt 0 ] && [ $((len + ${#name} + 1)) -gt "$commit_chunk_chars" ]; then
+				chunk=$((chunk + 1))
+				len=0
+			fi
+			printf '%d\t%s\t%s\n' "$chunk" "$pkg" "$name"
+			len=$((len + ${#name} + 1))
+		done
+	done
+}
+
+# commit_run_chunks commit_plan'ın parçalarını (dosya) sırayla, kipin kalan süresiyle (commit_deadline_ms) koşar. Her
+# parça tek go test komutudur; ağır listesi -skip ile dışarıda. Sonuç satırlarının geliş anı kaydedilir: paket ancak
+# zamanlayıcı dolduysa kesilmiş sayılır (commit_settle). Süre biterse sonraki parçalar başlamaz.
+commit_run_chunks() {
+	local plan=$1 module chunk last skip run remaining code log
+	local pkgs=()
+	module=$(sed -n 's/^module[[:space:]]*//p' go.mod | head -1)
+	module=${module%$'\r'}
+	skip="^($(printf '%s\n' "${commit_heavy_tests[@]}" | sed 's/^[^:]*://' | sort -u | paste -sd'|'))\$"
+	last=$(tail -1 "$plan" | cut -f1)
+	for ((chunk = 1; chunk <= last; chunk++)); do
+		mapfile -t pkgs < <(awk -F'\t' -v c="$chunk" '$1 == c && !s[$2]++ { print $2 }' "$plan")
+		run="^($(awk -F'\t' -v c="$chunk" '$1 == c { print $3 }' "$plan" | sort -u | paste -sd'|'))\$"
+		remaining=$((commit_deadline_ms - $(commit_now_ms)))
+		log=$(mktemp)
+		code=124
+		if [ $remaining -gt 0 ]; then
+			timeout "$((remaining / 1000)).$(printf '%03d' $((remaining % 1000)))" go test "${p_flag[@]}" -short -count=1 -run "$run" -skip "$skip" "${pkgs[@]}" 2>&1 |
+				while IFS= read -r line; do
+					case $line in ok* | FAIL* | "--- FAIL"*) printf '%s\t%s\n' "$(commit_now_ms)" "$line" >>"$log" ;; esac
+					printf '%s\n' "$line"
+				done | grep --line-buffered -v '^ok\|no test files' | watch_failures
+			code=${PIPESTATUS[0]}
+		fi
+		commit_settle "$chunk" "$plan" "$log" "$code" "$module"
+		rm -f "$log"
+	done
+}
+
+# commit_settle bir parçanın paketlerini sonuçlandırır. Zamanlayıcı dolmadan "ok" basan paketin testleri koşuldu;
+# "FAIL" basan paket düştü (süre dolmadan geldiyse --- FAIL satırı olmasa da: TestMain, os.Exit). Zamanlayıcı dolduysa
+# (çıkış 124) sonucu hiç gelmeyen ya da FAIL'i süre dolduktan sonra --- FAIL'siz gelen paket kesildi: bütün seçilmiş
+# testleri G4'e kalır, hiçbiri geçti sayılmaz. go test bir paketin çıktısını bütün olarak, sonuç satırıyla bitirerek basar:
+# iki sonuç satırı arasındaki --- FAIL satırları sonrakinin paketinindir.
+commit_settle() {
+	local chunk=$1 plan=$2 log=$3 code=$4 module=$5 pkg rel path state name
+	local pkgs=() names=()
+	mapfile -t pkgs < <(awk -F'\t' -v c="$chunk" '$1 == c && !s[$2]++ { print $2 }' "$plan")
+	for pkg in "${pkgs[@]}"; do
+		rel=${pkg#./}
+		if [ "$rel" = . ]; then path=$module; else path=$module/$rel; fi
+		mapfile -t names < <(awk -F'\t' -v c="$chunk" -v p="$pkg" '$1 == c && $2 == p { print $3 }' "$plan")
+		state=$(awk -F'\t' -v p="$path" -v d="$commit_deadline_ms" '
+			{ split($3, f, " ") }
+			$2 ~ /^--- FAIL/ { pending++; next }
+			$2 ~ /^ok/ && f[1] == p { print "ok"; found = 1; exit }
+			$2 == "FAIL" && f[1] == p { print (($1 < d || pending) ? "fail" : "cut"); found = 1; exit }
+			($2 ~ /^ok/ || $2 == "FAIL") && f[1] != "" { pending = 0 }
+			END { if (!found) print "none" }' "$log")
+		[ "$state" != none ] || { if [ "$code" -eq 124 ]; then state=cut; else state=fail; fi; }
+		case $state in
+		ok) for name in "${names[@]}"; do commit_ran+=("$pkg $name"); done ;;
+		fail)
+			commit_failed_tests=1
+			for name in "${names[@]}"; do commit_ran+=("$pkg $name"); done
+			;;
+		cut)
+			commit_cut_pkgs=$((commit_cut_pkgs + 1))
+			for name in "${names[@]}"; do
+				commit_left+=("$pkg $name")
+				commit_left_cut=$((commit_left_cut + 1))
+			done
+			;;
+		esac
+	done
+}
+
+# commit_selection commit kipinin son adımıdır (seçim: $1, codegraph changed --go-tests satırları): seçim boşsa adım yok.
+# Kalan test varsa adımın sonunda adlarıyla yazılır; düşen test adımı düşürür.
+commit_selection() {
+	local plan light pkgs n shown more=""
+	plan=$(mktemp)
+	commit_plan <<<"$1" >"$plan"
+	light=$(($(wc -l <"$plan")))
+	pkgs=$(($(cut -f2 "$plan" | sort -u | wc -l)))
+	if [ "$light" -eq 0 ] && [ ${#commit_left[@]} -eq 0 ]; then
+		rm -f "$plan"
+		return 0
+	fi
+	step "Değişen dosyaların hafif testleri ($light test, $pkgs paket; codegraph changed --go-tests; ağır listesindeki ve kipin $commit_seconds sn'si (kipin başından, derleme dahil) dolunca bitmemiş paketlerin testleri G4'e kalır)"
+	[ "$light" -eq 0 ] || commit_run_chunks "$plan"
+	rm -f "$plan"
+	n=${#commit_left[@]}
+	if [ "$n" -gt 0 ]; then
+		shown=$(printf '%s\n' "${commit_left[@]}" | head -20 | sed 's/^[^ ]* //' | paste -sd',' | sed 's/,/, /g')
+		[ "$n" -le 20 ] || more=" ve $((n - 20)) test daha"
+		echo "G4'e kaldı ($n test: $commit_left_heavy ağır listesinde, $commit_left_cut test $commit_seconds sn'de kesilen $commit_cut_pkgs pakette): $shown$more"
+	fi
+	[ "$commit_failed_tests" -eq 0 ] || fail "değişen dosyaların hafif testleri"
+}
+
+# commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen
+# dosyalar dahil), dalın bütünü değil. dups_check bu koşuda codegraph'ı derlediyse o ikili koşar.
+commit_light_tests() {
+	local out errfile bin="" code=0
+	errfile=$(mktemp)
+	if [ ! -f .codegraph/graph.json ]; then
+		go run ./tools/codegraph build >/dev/null 2>"$errfile" || {
+			head -20 "$errfile"
+			rm -f "$errfile"
+			fail "codegraph build çalışmadı"
+			return
+		}
+	fi
+	if [ "${codegraph_built:-}" = 1 ] && [ -f .codegraph/last-codegraph ]; then
+		IFS= read -r bin <.codegraph/last-codegraph || true
+		bin=${bin%$'\r'}
+	fi
+	if [ -n "$bin" ] && [ -f "$bin" ]; then
+		out=$("$bin" changed --go-tests --base HEAD HEAD 2>"$errfile") || code=$?
+	else
+		out=$(go run ./tools/edithook codegraph changed --go-tests --base HEAD HEAD 2>"$errfile") || code=$?
+	fi
+	if [ "$code" -ne 0 ]; then
+		head -20 "$errfile"
+		rm -f "$errfile"
+		fail "codegraph changed --go-tests çalışmadı"
+		return
+	fi
+	rm -f "$errfile"
+	commit_selection "$out"
+}
+
+# commit_record commit kipinin bu koşusunu deponun ortak git klasörüne yazar: codegraph-kip/<UTC saat>-<ağacın ilk
+# 12'si>.tsv, tek satır, geçici adla yazılıp taşınır (birkaç çalışma ağacı aynı anda yazar). Depoya girmez; birleşme
+# sonrası denetim (D1'in K5'i) okur. Ağaç kipin sınadığı çalışma ağacıdır: index'in kopyasıyla geçici bir index'e
+# `git add -A`; gerçek index'e dokunulmaz. Satırda yol ve kullanıcı adı yok: paketler ./ ile, dal adı ya da "-".
+# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:<n> (dups), hata:<n>,not:<m>
+# (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
+commit_record() {
+	local dir idx tmp tree branch result name
+	dir=$(git rev-parse --git-common-dir 2>/dev/null) || return 0
+	dir=$dir/codegraph-kip
+	idx=$(git rev-parse --git-path index)
+	# Geçici index gerçeğin yanında, git'in verdiği yolla: Windows'ta git, /tmp'deki bir GIT_INDEX_FILE'ı görmüyor, gerçek
+	# index'e yazıyordu (TestCommitModeRecordsItsRun).
+	tmp=$idx.commit-kip.$$
+	cp "$idx" "$tmp" 2>/dev/null || rm -f "$tmp"
+	tree=$(GIT_INDEX_FILE=$tmp git add -A >/dev/null 2>&1 && GIT_INDEX_FILE=$tmp git write-tree 2>/dev/null)
+	rm -f "$tmp"
+	if [ -z "$tree" ]; then
+		echo "not: commit kipinin kaydı yazılamadı (geçici index'le git write-tree)"
+		return 0
+	fi
+	branch=$(git symbolic-ref --short -q HEAD) || branch=-
+	result=geçti
+	[ "$failed" -eq 0 ] || result=${commit_failed_step:-kaldı}
+	result=${result//[$'\t\n\r']/ }
+	mkdir -p "$dir" || return 0
+	name=$(date -u +%Y%m%dT%H%M%SZ)-${tree:0:12}.tsv
+	{
+		printf '%s\t%s\t%s\t%s\taday:%s\thata:%s\t' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$tree" "$branch" "$result" "$commit_dups" "$commit_specrefs"
+		(
+			IFS=,
+			printf '%s\t%s\n' "${commit_ran[*]}" "${commit_left[*]}"
+		)
+	} >"$dir/.$name.tmp" && mv "$dir/.$name.tmp" "$dir/$name"
+}
+
+# commit_passed_line commit kipinin sonuç satırıdır; kalan test varsa sayısını taşır.
+commit_passed_line() {
+	if [ ${#commit_left[@]} -gt 0 ]; then
+		echo "✅ Commit öncesi denetim geçti (tam denetim değildir; ${#commit_left[@]} test G4'e kaldı)"
+	else
+		echo "✅ Commit öncesi denetim geçti (tam denetim değildir)"
+	fi
 }
 
 static_checks() {
@@ -742,8 +1018,9 @@ finish() {
 	printf '%s\n' "${durations[@]}"
 	write_metrics
 	if [ "$modes" = commit ]; then
+		commit_record
 		if [ $failed -eq 0 ]; then
-			echo "✅ Commit öncesi denetim geçti (tam denetim değildir)"
+			commit_passed_line
 		else
 			echo "❌ Commit öncesi denetimde kalan var:"
 			printf '  - %s\n' "${failures[@]}"
@@ -824,6 +1101,8 @@ for mode in $modes; do
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "GOGC=1 go test"
 		;;
 	commit)
+		# Kipin zamanlayıcısı: 120 sn baştan sona, derleme dahil; son adım (değişen dosyaların testleri) kalanla koşar.
+		commit_deadline_ms=$(($(commit_now_ms) + commit_seconds * 1000))
 		step "Biçim (gofmt)"
 		gofmt_check
 		step "TR dosyalarının biçimi"
@@ -836,6 +1115,7 @@ for mode in $modes; do
 		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
 		dups_check
 		spec_refs_check
+		commit_light_tests
 		;;
 	on)
 		quick_static_checks
