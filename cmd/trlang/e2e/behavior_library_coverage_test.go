@@ -21,6 +21,10 @@ import (
 // uncoveredLibraryNames, örneği henüz olmayan ya da örnek gerektirmeyen kitaplık adlarıdır ve gerekçesiyle durur.
 // Liste yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredLibraryNames = map[string]string{
+	"chat.SohbetParçaları":             "biçim yazanın yapı taşı, kullanıcı programı biçim fonksiyonunu çağırır; tr/chat'in biçimleri kullanır, tests/chat_format_test.tr ve tests/llama3_chat_test.tr dolaylı sınar",
+	"chat.metin_ekle()":                "biçim yazanın yapı taşı, kullanıcı programı biçim fonksiyonunu çağırır; tr/chat'in biçimleri kullanır, tests/chat_format_test.tr ve tests/llama3_chat_test.tr dolaylı sınar",
+	"chat.etiket_ekle()":               "biçim yazanın yapı taşı, kullanıcı programı biçim fonksiyonunu çağırır; tr/chat'in biçimleri kullanır, tests/chat_format_test.tr ve tests/llama3_chat_test.tr dolaylı sınar",
+	"chat.PY_BOŞLUK":                   "biçim yazanın yapı taşı, kullanıcı programı biçim fonksiyonunu çağırır; tr/chat'in biçimleri kullanır, tests/chat_format_test.tr ve tests/llama3_chat_test.tr dolaylı sınar",
 	"layers.durma_parçaları()":         "ailesi olan hazır model ister (Llama 3, Qwen3), depoda yok; cmd/trlang/e2e/behavior_chat_family_test.go Go ile kurulan GGUF'la sınar",
 	"vad.SesAlgılayıcı":                "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
 	"vad.KonuşmaKesici":                "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",

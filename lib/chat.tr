@@ -61,26 +61,31 @@ TR_func _etiket(p: TR_Tokenizer, ad: TR_String) -> TR_Int {
     TR_return k
 }
 
-# _Dizi kimlikleri kurar: metin biriktirilir, etiket gelince birikmiş metin tek çağrıyla kodlanır.
-TR_struct _Dizi {
-    p: TR_Tokenizer
-    kimlikler: TR_List[TR_Int] = []
-    metin: TR_String = ""
+# TR_ChatTokens bir sohbet biçiminin kimliklerini kurar: metin biriktirilir, etiket gelince birikmiş metin tek çağrıyla kodlanır. Biçim etiketlerini önce kendi iletisiyle sınar: TR_add_tag eksik etikette Qwen3'ün iletisini (H7562) verir.
+TR_struct TR_ChatTokens {
+    TR_tokenizer: TR_Tokenizer
+    kimlikler: TR_List[TR_Int]
+    metin: TR_String
+    TR_func TR_init(TR_tokenizer: TR_Tokenizer) {
+        TR_self.TR_tokenizer = TR_tokenizer
+        TR_self.kimlikler = []
+        TR_self.metin = ""
+    }
 
-    TR_func _yaz(m: TR_String) { TR_self.metin += m }
+    TR_func TR_add_text(m: TR_String) { TR_self.metin += m }
 
-    TR_func _etiketle(ad: TR_String) {
+    TR_func TR_add_tag(ad: TR_String) {
         TR_self._boşalt()
-        TR_self.kimlikler.TR_append(_etiket(TR_self.p, ad))
+        TR_self.kimlikler.TR_append(_etiket(TR_self.TR_tokenizer, ad))
     }
 
     TR_func _boşalt() {
         TR_if TR_self.metin == "" { TR_return }
-        TR_for k TR_in TR_self.p.TR_encode(TR_self.metin, TR_special_tokens: TR_false) { TR_self.kimlikler.TR_append(k) }
+        TR_for k TR_in TR_self.TR_tokenizer.TR_encode(TR_self.metin, TR_special_tokens: TR_false) { TR_self.kimlikler.TR_append(k) }
         TR_self.metin = ""
     }
 
-    TR_func _bitir() -> TR_List[TR_Int] {
+    TR_func TR_finish() -> TR_List[TR_Int] {
         TR_self._boşalt()
         TR_return TR_self.kimlikler
     }
@@ -121,7 +126,7 @@ TR_func _son_sorgu(iletiler: TR_List[TR_ChatMessage]) -> TR_Int {
 TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_add_generation_prompt: TR_Bool, TR_enable_thinking: TR_Bool? = TR_none, TR_tools: TR_List[TR_JSON] = []) -> TR_List[TR_Int] {
     TR_if TR_add_generation_prompt TR_and TR_enable_thinking == TR_none { TR_throw TR_Message("H7560") }
     TR_if TR_not TR_add_generation_prompt TR_and TR_enable_thinking != TR_none { TR_throw TR_Message("H7561", TR_enable_thinking) }
-    TR_var d = _Dizi(p: p)
+    TR_var d = TR_ChatTokens(TR_tokenizer: p)
     TR_var n = iletiler.TR_length
     TR_var ilk_sistem = n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System
     TR_if TR_tools.TR_length > 0 {
@@ -142,34 +147,34 @@ TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_a
         }
     }
     TR_if TR_add_generation_prompt {
-        d._etiketle(_BAŞ)
-        d._yaz("assistant\n")
+        d.TR_add_tag(_BAŞ)
+        d.TR_add_text("assistant\n")
         TR_if TR_enable_thinking == TR_false {
-            d._etiketle(_DÜŞÜNCE)
-            d._yaz("\n\n")
-            d._etiketle(_DÜŞÜNCE_SONU)
-            d._yaz("\n\n")
+            d.TR_add_tag(_DÜŞÜNCE)
+            d.TR_add_text("\n\n")
+            d.TR_add_tag(_DÜŞÜNCE_SONU)
+            d.TR_add_text("\n\n")
         }
     }
-    TR_return d._bitir()
+    TR_return d.TR_finish()
 }
 
 # _araç_bloğu: araçlar sistem turunda, ilk sistem iletisiyle birleşir (şablonun `tools` dalı).
-TR_func _araç_bloğu(d: _Dizi, sistem: TR_String?, araçlar: TR_List[TR_JSON]) {
-    d._etiketle(_BAŞ)
-    d._yaz("system\n")
-    TR_if sistem != TR_none { d._yaz("\(sistem)\n\n") }
-    d._yaz("# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>")
-    TR_for a TR_in araçlar { d._yaz("\n\(_json_yaz(a))") }
-    d._yaz("\n</tools>\n\nFor each function call, return a json object with function name and arguments within ")
-    d._etiketle(_ÇAĞRI)
-    d._etiketle(_ÇAĞRI_SONU)
-    d._yaz(" XML tags:\n")
-    d._etiketle(_ÇAĞRI)
-    d._yaz("\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n")
-    d._etiketle(_ÇAĞRI_SONU)
-    d._etiketle(_SON)
-    d._yaz("\n")
+TR_func _araç_bloğu(d: TR_ChatTokens, sistem: TR_String?, araçlar: TR_List[TR_JSON]) {
+    d.TR_add_tag(_BAŞ)
+    d.TR_add_text("system\n")
+    TR_if sistem != TR_none { d.TR_add_text("\(sistem)\n\n") }
+    d.TR_add_text("# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>")
+    TR_for a TR_in araçlar { d.TR_add_text("\n\(_json_yaz(a))") }
+    d.TR_add_text("\n</tools>\n\nFor each function call, return a json object with function name and arguments within ")
+    d.TR_add_tag(_ÇAĞRI)
+    d.TR_add_tag(_ÇAĞRI_SONU)
+    d.TR_add_text(" XML tags:\n")
+    d.TR_add_tag(_ÇAĞRI)
+    d.TR_add_text("\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n")
+    d.TR_add_tag(_ÇAĞRI_SONU)
+    d.TR_add_tag(_SON)
+    d.TR_add_text("\n")
 }
 
 # _json_yaz şablonun `tojson`'udur (Python'un `json.dumps(x, ensure_ascii=False)`'ı): ", " ve ": " ayırıcıları,
@@ -196,50 +201,50 @@ TR_func _json_metni(m: TR_String) -> TR_String {
     TR_return parçalar.TR_join("")
 }
 
-TR_func _tur(d: _Dizi, rol: TR_String, içerik: TR_String) {
-    d._etiketle(_BAŞ)
-    d._yaz("\(rol)\n\(içerik)")
-    d._etiketle(_SON)
-    d._yaz("\n")
+TR_func _tur(d: TR_ChatTokens, rol: TR_String, içerik: TR_String) {
+    d.TR_add_tag(_BAŞ)
+    d.TR_add_text("\(rol)\n\(içerik)")
+    d.TR_add_tag(_SON)
+    d.TR_add_text("\n")
 }
 
 # _asistan: son sorgudan sonraki asistan iletisi düşüncesiyle yazılır (sonuncusu boş düşünceyle de); öncekiler düşüncesiz.
-TR_func _asistan(d: _Dizi, m: TR_ChatMessage, sorgudan_sonra: TR_Bool, sonuncu: TR_Bool) {
+TR_func _asistan(d: TR_ChatTokens, m: TR_ChatMessage, sorgudan_sonra: TR_Bool, sonuncu: TR_Bool) {
     TR_var düşünce = m.TR_reasoning ?? ""
-    d._etiketle(_BAŞ)
-    d._yaz("assistant\n")
+    d.TR_add_tag(_BAŞ)
+    d.TR_add_text("assistant\n")
     TR_if sorgudan_sonra TR_and (sonuncu TR_or düşünce != "") {
-        d._etiketle(_DÜŞÜNCE)
-        d._yaz("\n\(_kırp(düşünce, TR_true, TR_true))\n")
-        d._etiketle(_DÜŞÜNCE_SONU)
-        d._yaz("\n\n\(_kırp(m.TR_content, TR_true, TR_false))")
+        d.TR_add_tag(_DÜŞÜNCE)
+        d.TR_add_text("\n\(_kırp(düşünce, TR_true, TR_true))\n")
+        d.TR_add_tag(_DÜŞÜNCE_SONU)
+        d.TR_add_text("\n\n\(_kırp(m.TR_content, TR_true, TR_false))")
     } TR_else {
-        d._yaz(m.TR_content)
+        d.TR_add_text(m.TR_content)
     }
     TR_for j TR_in 0..m.TR_tool_calls.TR_length {
         TR_var ç = m.TR_tool_calls[j]
-        TR_if j > 0 TR_or m.TR_content != "" { d._yaz("\n") }
-        d._etiketle(_ÇAĞRI)
-        d._yaz("\n{\"name\": \"\(ç.TR_name)\", \"arguments\": \(ç.TR_arguments)}\n")
-        d._etiketle(_ÇAĞRI_SONU)
+        TR_if j > 0 TR_or m.TR_content != "" { d.TR_add_text("\n") }
+        d.TR_add_tag(_ÇAĞRI)
+        d.TR_add_text("\n{\"name\": \"\(ç.TR_name)\", \"arguments\": \(ç.TR_arguments)}\n")
+        d.TR_add_tag(_ÇAĞRI_SONU)
     }
-    d._etiketle(_SON)
-    d._yaz("\n")
+    d.TR_add_tag(_SON)
+    d.TR_add_text("\n")
 }
 
 # _araç_sonucu: ardışık araç sonuçları tek kullanıcı turunda, her biri kendi bloğunda.
-TR_func _araç_sonucu(d: _Dizi, m: TR_ChatMessage, ilk: TR_Bool, son: TR_Bool) {
+TR_func _araç_sonucu(d: TR_ChatTokens, m: TR_ChatMessage, ilk: TR_Bool, son: TR_Bool) {
     TR_if ilk {
-        d._etiketle(_BAŞ)
-        d._yaz("user")
+        d.TR_add_tag(_BAŞ)
+        d.TR_add_text("user")
     }
-    d._yaz("\n")
-    d._etiketle(_SONUÇ)
-    d._yaz("\n\(m.TR_content)\n")
-    d._etiketle(_SONUÇ_SONU)
+    d.TR_add_text("\n")
+    d.TR_add_tag(_SONUÇ)
+    d.TR_add_text("\n\(m.TR_content)\n")
+    d.TR_add_tag(_SONUÇ_SONU)
     TR_if son {
-        d._etiketle(_SON)
-        d._yaz("\n")
+        d.TR_add_tag(_SON)
+        d.TR_add_text("\n")
     }
 }
 
@@ -396,7 +401,7 @@ TR_const _L_SON = "<|eot_id|>"
 TR_const _L_EOM = "<|eom_id|>"
 TR_const _L_PYTHON = "<|python_tag|>"
 # Şablonun `| trim`'i Python'un `str.strip()`'idir: Unicode boşluklarına (TR_strip'in) U+001C–U+001F de girer.
-TR_const _PY_BOŞLUK = " \t\n\u{B}\u{C}\r\u{1C}\u{1D}\u{1E}\u{1F}\u{85}\u{A0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{2028}\u{2029}\u{202F}\u{205F}\u{3000}"
+TR_const TR_PY_WHITESPACE = " \t\n\u{B}\u{C}\r\u{1C}\u{1D}\u{1E}\u{1F}\u{85}\u{A0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{2028}\u{2029}\u{202F}\u{205F}\u{3000}"
 TR_const _AYLAR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 TR_const _L_YÖNERGE = "Given the following functions, please respond with a JSON for a function call with its proper arguments that best answers the given prompt.\n\nRespond in the format {\"name\": function name, \"parameters\": dictionary of argument name and its value}.Do not use variables.\n\n"
 
@@ -411,28 +416,28 @@ TR_func TR_llama3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_
     TR_var i = 0
     TR_var sistem = ""
     TR_if n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System {
-        sistem = iletiler[0].TR_content.TR_strip(_PY_BOŞLUK)
+        sistem = iletiler[0].TR_content.TR_strip(TR_PY_WHITESPACE)
         i = 1
     }
-    TR_var d = _Dizi(p: p)
-    d._etiketle(_L_BAŞ)
+    TR_var d = TR_ChatTokens(TR_tokenizer: p)
+    d.TR_add_tag(_L_BAŞ)
     _l_başlık(d, "system")
-    TR_if TR_tools.TR_length > 0 { d._yaz("Environment: ipython\n") }
-    d._yaz("Cutting Knowledge Date: December 2023\nToday Date: \(TR_date)\n\n\(sistem)")
-    d._etiketle(_L_SON)
+    TR_if TR_tools.TR_length > 0 { d.TR_add_text("Environment: ipython\n") }
+    d.TR_add_text("Cutting Knowledge Date: December 2023\nToday Date: \(TR_date)\n\n\(sistem)")
+    d.TR_add_tag(_L_SON)
     TR_if TR_tools.TR_length > 0 {
         TR_if i == n { TR_throw TR_Message("H7166", "none") }
         TR_if iletiler[i].TR_role != TR_Role.TR_User { TR_throw TR_Message("H7166", "first") }
         _l_başlık(d, "user")
-        d._yaz(_L_YÖNERGE)
-        TR_for a TR_in TR_tools { d._yaz("\(_json_girintili(a, ""))\n\n") }
-        d._yaz(iletiler[i].TR_content.TR_strip(_PY_BOŞLUK))
-        d._etiketle(_L_SON)
+        d.TR_add_text(_L_YÖNERGE)
+        TR_for a TR_in TR_tools { d.TR_add_text("\(_json_girintili(a, ""))\n\n") }
+        d.TR_add_text(iletiler[i].TR_content.TR_strip(TR_PY_WHITESPACE))
+        d.TR_add_tag(_L_SON)
         i += 1
     }
     TR_for j TR_in i..n { _l_ileti(d, iletiler[j], j + 1) }
     TR_if TR_add_generation_prompt { _l_başlık(d, "assistant") }
-    TR_return d._bitir()
+    TR_return d.TR_finish()
 }
 
 # _tarih_sına: şablonun `strftime("%d %b %Y")` yazımı: iki haneli gün (01–31), İngilizce üç harfli ay, dört haneli yıl.
@@ -446,15 +451,15 @@ TR_func _tarih_sına(t: TR_String) {
     TR_if TR_not doğru { TR_throw TR_Message("H7165", t) }
 }
 
-TR_func _l_başlık(d: _Dizi, rol: TR_String) {
-    d._etiketle(_L_BAŞLIK)
-    d._yaz(rol)
-    d._etiketle(_L_BAŞLIK_SONU)
-    d._yaz("\n\n")
+TR_func _l_başlık(d: TR_ChatTokens, rol: TR_String) {
+    d.TR_add_tag(_L_BAŞLIK)
+    d.TR_add_text(rol)
+    d.TR_add_tag(_L_BAŞLIK_SONU)
+    d.TR_add_text("\n\n")
 }
 
 # _l_ileti: içerik kırpılır (şablonun `| trim`'i); çağrı JSON'la, araç sonucu JSON metni olarak yazılır. `sıra` 1'den sayar.
-TR_func _l_ileti(d: _Dizi, m: TR_ChatMessage, sıra: TR_Int) {
+TR_func _l_ileti(d: TR_ChatTokens, m: TR_ChatMessage, sıra: TR_Int) {
     TR_if m.TR_role == TR_Role.TR_Assistant TR_and (m.TR_reasoning ?? "") != "" { TR_throw TR_Message("H7168", sıra) }
     TR_var çağrı = m.TR_tool_calls.TR_length
     TR_if çağrı > 1 { TR_throw TR_Message("H7167", sıra, çağrı) }
@@ -462,15 +467,15 @@ TR_func _l_ileti(d: _Dizi, m: TR_ChatMessage, sıra: TR_Int) {
         TR_if m.TR_content != "" { TR_throw TR_Message("H7176", sıra) }
         TR_var ç = m.TR_tool_calls[0]
         _l_başlık(d, "assistant")
-        d._yaz("{\"name\": \"\(ç.TR_name)\", \"parameters\": \(_json_yaz(TR_json_parse(ç.TR_arguments)))}")
+        d.TR_add_text("{\"name\": \"\(ç.TR_name)\", \"parameters\": \(_json_yaz(TR_json_parse(ç.TR_arguments)))}")
     } TR_else TR_if m.TR_role == TR_Role.TR_Tool {
         _l_başlık(d, "ipython")
-        d._yaz(_json_metni(m.TR_content))
+        d.TR_add_text(_json_metni(m.TR_content))
     } TR_else {
         _l_başlık(d, _rol_adı(m.TR_role))
-        d._yaz(m.TR_content.TR_strip(_PY_BOŞLUK))
+        d.TR_add_text(m.TR_content.TR_strip(TR_PY_WHITESPACE))
     }
-    d._etiketle(_L_SON)
+    d.TR_add_tag(_L_SON)
 }
 
 # _json_girintili şablonun `tojson(indent=4)`'üdür (Python'un `json.dumps(x, ensure_ascii=False, indent=4)`'ü).
@@ -501,7 +506,7 @@ TR_func TR_llama3_reply(p: TR_Tokenizer, kimlikler: TR_List[TR_Int], TR_tools: T
     TR_var metin = p.TR_decode(gövde)
     TR_if metin.TR_contains(_L_PYTHON) { TR_return (_l_metin(metin), ["<|python_tag|> (the built-in tools of Llama 3.1) is not supported; the reply is kept as text"]) }
     TR_if TR_tools.TR_length == 0 { TR_return (_l_metin(metin), []) }
-    TR_var k = metin.TR_strip(_PY_BOŞLUK)
+    TR_var k = metin.TR_strip(TR_PY_WHITESPACE)
     TR_var neden = "the reply looks like a tool call but is not a single JSON object"
     TR_var j = _json_oku(k)
     TR_if j != TR_none TR_and TR_Type(j) == TR_Dict {

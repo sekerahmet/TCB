@@ -238,6 +238,7 @@ TR_self.TR_step	ok	0	name:TR_mem_step
 TR_self.TR_step_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_step_position
 TR_self.TR_table	ambiguous	3	tr:field:lib/layers.tr:TR_type_Embedding.TR_mem_table,tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_table
 TR_self.TR_threshold	ok	0	tr:field:lib/training.tr:TR_type_SpikeGuard.TR_mem_threshold
+TR_self.TR_tokenizer	ok	0	tr:field:lib/chat.tr:TR_type_ChatTokens.TR_mem_tokenizer
 TR_self.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 TR_self.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
 TR_self.TR_v_buffers	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_v_buffers
@@ -609,6 +610,8 @@ cos_tablosu.TR_slice	ok	0	name:TR_mem_slice
 cümle.TR_contains	ok	0	name:TR_mem_contains
 cümle.TR_length	ok	0	name:TR_mem_length
 cümle.TR_strip	ok	0	name:TR_mem_strip
+d.TR_add_tag	ok	0	tr:method:lib/chat.tr:TR_type_ChatTokens.TR_mem_add_tag
+d.TR_add_text	ok	0	tr:method:lib/chat.tr:TR_type_ChatTokens.TR_mem_add_text
 d.TR_append	ok	0	name:TR_mem_append
 d.TR_bias	ok	0	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_bias
 d.TR_cancel	ok	0	name:TR_mem_cancel
@@ -616,6 +619,7 @@ d.TR_contains	ok	0	name:TR_mem_contains
 d.TR_dtype	ok	0	name:TR_mem_dtype
 d.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 d.TR_encode	ok	0	name:TR_mem_encode
+d.TR_finish	ok	0	name:TR_mem_finish
 d.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 d.TR_get	ok	0	name:TR_mem_get
 d.TR_grad	ok	0	name:TR_mem_grad
