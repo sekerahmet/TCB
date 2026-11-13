@@ -65,4 +65,28 @@ func TestWriteFileSecretNeedsOwnerOnly(t *testing.T) {
 			t.Fatalf("%s: hatalı çağrı dosya yazmamalı", c.call)
 		}
 	}
+	// Tırnaklı gizli değerin JSON metni değeri kaçışlı biçimiyle taşır; o da gizli değerdir (18.13,
+	// 19.4): kayıttaki bütün biçimler denetlenir. Metin, TR_json_string([t])'nin vereceği metindir.
+	v := New()
+	v.AddSecret(`abc"def12345`)
+	call := `TR_write_file("` + path + `", "[\"abc\\\"def12345\"]")`
+	if _, err := v.Run(mustParseProgram(t, call)); !messages.Has(err, messages.H7600) {
+		t.Fatalf("%s: H7600 bekleniyordu, alınan %v", call, err)
+	}
+}
+
+// TestWriteFileAddressPasswordIsData: H7600'ün denetimi bağlamsız değer maskesiyledir (19.4, 18.13):
+// kimlik kısmında parolası olan adres, parolası kayıtlı değilse veridir; TR_owner_only: olmadan
+// yazılır ve dosya gerçek değeri taşır.
+func TestWriteFileAddressPasswordIsData(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adres.txt")
+	v := New()
+	v.AddSecret("başka-gizli-2026")
+	call := `TR_write_file("` + filepath.ToSlash(path) + `", "http://u:ab@h")`
+	if _, err := v.Run(mustParseProgram(t, call)); err != nil {
+		t.Fatalf("%s: %v", call, err)
+	}
+	if got, err := os.ReadFile(path); err != nil || string(got) != "http://u:ab@h" {
+		t.Fatalf("dosya %q %v, beklenen gerçek değer", got, err)
+	}
 }

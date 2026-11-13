@@ -110,7 +110,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 		}
 		s := find(options, name)
 		if s == nil {
-			return nil, unknownOption("--"+name, options)
+			return nil, unknownOption(m, "--"+name, options)
 		}
 		if _, before := given[s.name]; before {
 			return nil, messages.New(messages.H7202, s.display())
@@ -158,7 +158,7 @@ func optionName(m *interp.VM, a string, options []*option) (name, value string, 
 		}
 		return name, value, valued, nil
 	case strings.HasPrefix(a, "-") && len(a) > 1:
-		e := unknownOption(a, options)
+		e := unknownOption(m, a, options)
 		return "", "", false, messages.New(messages.H7206, e)
 	}
 	return "", "", false, messages.New(messages.H7207, shorten(masked(m, a)))
@@ -175,8 +175,9 @@ func find(options []*option, name string) *option {
 }
 
 // unknownOption en yakın seçeneği öneren hatayı verir; verilen, argümanın yazıldığı
-// biçimdir (--ogrenme_orani, -adım).
-func unknownOption(given string, options []*option) error {
+// biçimdir (--ogrenme_orani, -adım). İletideki argüman önce maskelenir, sonra kesilir (19.4): kesim
+// bir adresin parolasının ortasına düşerse parolanın başı kalırdı, çıktının maskesi onu tanımazdı.
+func unknownOption(m *interp.VM, given string, options []*option) error {
 	name := strings.TrimLeft(given, "-")
 	if i := strings.IndexByte(name, '='); i >= 0 {
 		name = name[:i]
@@ -186,6 +187,7 @@ func unknownOption(given string, options []*option) error {
 	if i := strings.IndexByte(given, '='); i >= 0 {
 		given = given[:i] + "=…"
 	}
+	shown := shorten(masked(m, given))
 	// Yardım seçeneği her yazım dilinin adıyla kabul edilir (--help, --help): hepsi adaydır.
 	helps := map[string]bool{}
 	var candidates []string
@@ -203,7 +205,7 @@ func unknownOption(given string, options []*option) error {
 		o = name // -adım → --adım
 	}
 	if o == "" && name != "h" {
-		return messages.New(messages.H7208, shorten(given))
+		return messages.New(messages.H7208, shown)
 	}
 	// Programın seçeneği yazıldığı gibi önerilir; yardım seçeneği (-h ya da bir dildeki --help)
 	// iletinin dilindeki adıyla: hiçbir dilin adı öncelikli değildir (17.8).
@@ -211,7 +213,7 @@ func unknownOption(given string, options []*option) error {
 	if o == "" || (helps[o] && find(options, o) == nil) {
 		suggestion = codes.NameRef(codes.OptHelp)
 	}
-	return messages.New(messages.H7209, shorten(given), suggestion)
+	return messages.New(messages.H7209, shown, suggestion)
 }
 
 // parseValue bir argüman değerini seçeneğin tipine çevirir.

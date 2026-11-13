@@ -32,10 +32,20 @@ func (t *stderrTail) Write(p []byte) (int, error) {
 
 // text iletiye girecek metindir: mask gizli değerleri süzer, sonra sınıra kesilir ve yazdırılamayan
 // baytlar atılır. Tamponun başı düştüyse ilk baytlar bir gizli değerin kalanı olabilir: onlar da atılır.
+// Atılan baş bir adres bölgesinin "://"'sunu da götürmüş olabilir; kalan kimlik kısmı bağlamsız
+// kalırdı (19.4): pencerenin ilk bölge sınırına ('/', '?', '#', boşluk) kadarki başı '@' taşıyorsa
+// (kimlik kısmı '@'den öncedir) o da atılır.
 func (t *stderrTail) text(mask func(string) string) string {
 	s := mask(string(t.buf))
 	if t.cut {
 		s = s[min(t.longest(), len(s)):]
+		head := s
+		if i := strings.IndexFunc(s, isRegionEnd); i >= 0 {
+			head = s[:i]
+		}
+		if strings.Contains(head, "@") {
+			s = s[len(head):]
+		}
 	}
 	if len(s) > stderrTailLimit {
 		s = s[len(s)-stderrTailLimit:]
@@ -45,6 +55,9 @@ func (t *stderrTail) text(mask func(string) string) string {
 	}
 	return printableText(s)
 }
+
+// isRegionEnd 19.4'ün adres bölgesini bitiren harftir.
+func isRegionEnd(r rune) bool { return r == '/' || r == '?' || r == '#' || unicode.IsSpace(r) }
 
 // printableText programın baytlarını iletiye uygun metne çevirir: geçersiz UTF-8 U+FFFD olur, satır
 // sonu dışındaki denetim karakterleri uçbirimi ve günlüğü bozmasın diye atılır (sekme boşluk olur).

@@ -191,10 +191,11 @@ func (s *dapServer) send(m map[string]interface{}) {
 // gizli değerlerini *** yapar: düzenleyicide görünen her şey insanın göreceği çıktıdır.
 // Protokolün kendisi maskelenmez: zarf alanları (type, command, event, ...), JSON anahtarları
 // ve sabit değerler (protocolFields). Gizli değer onlardan biriyle aynı ya da onların parçası
-// olsa da ileti bozulmaz. Gizli değer yoksa ileti olduğu gibi kalır.
+// olsa da ileti bozulmaz. Adreslerin parolası gizli değer kayıtlı olmasa da örtülür (19.4'ün
+// bağlamlı maskesi); gizli değer ve adres ("://") yoksa ileti olduğu gibi kalır.
 func (s *dapServer) maskSecrets(data []byte) []byte {
 	m := s.machine
-	if m == nil || !m.HasSecrets() {
+	if m == nil || !m.HasSecrets() && !bytes.Contains(data, []byte("://")) {
 		return data
 	}
 	d := json.NewDecoder(bytes.NewReader(data))

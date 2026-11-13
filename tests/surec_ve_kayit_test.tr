@@ -18,7 +18,7 @@ TR_var ayar_sonucu = TR_none
 
 TR_func ayar() {
     TR_if ayar_sonucu == TR_none {
-        ayar_sonucu = TR_command_line({"step": 100, "oran": 0.5, "veri": "veri/train", "katmanlar": [64, 32], "hızlı": TR_false, "etiket": TR_none, "api_anahtarı": "anahtar-varsayılan-1"},
+        ayar_sonucu = TR_command_line({"step": 100, "oran": 0.5, "veri": "veri/train", "katmanlar": [64, 32], "hızlı": TR_false, "etiket": TR_none, "api_anahtarı": "anahtar-varsayılan-1", "api_key": "abc\"def12345"},
             TR_description: "Deneme", TR_descriptions: {"step": "eğitim adımı"})
     }
 }
@@ -35,7 +35,7 @@ TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir değerde 
     ayar()
     TR_var seçenekler = ayar_sonucu
     TR_assert_equal(TR_Dict, TR_Type(seçenekler))
-    TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], seçenekler.TR_keys())
+    TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı", "api_key"], seçenekler.TR_keys())
     TR_assert_equal(100, seçenekler["step"])
     TR_assert_equal(0.5, seçenekler["oran"])
     TR_assert_equal([64, 32], seçenekler["katmanlar"])
@@ -92,6 +92,20 @@ TR_test "19.4a maskeli akış iki parçaya bölünen gizli değeri maskeler; bit
     TR_assert_equal("H7634", TR_error_code { m.TR_step("x") })
     TR_assert_equal("H2423", TR_error_code { TR_mask_stream().TR_step(5) })
     TR_assert_equal("H2012", TR_error_code { TR_mask_stream(1) })
+}
+
+TR_test "19.4 kabın metnindeki kaçışlı gizli değer maskelenir" {
+    # Gizli değer 19.4'ün seçeneğinden gelir (api_key, tırnaklı); kabın metni onu kaçışlı yazar.
+    ayar()
+    TR_var a = ayar_sonucu["api_key"]
+    TR_var m = TR_mask_stream()
+    TR_assert_equal("[\"***\", {\"k\": \"***\"}]", m.TR_step(TR_String([a, {"k": a}])) + m.TR_finish())
+}
+
+TR_test "19.4 bağlamlı maske: akış kayıtsız kısa parolayı örter" {
+    TR_var m = TR_mask_stream()
+    TR_assert_equal("http://u:***@h ", m.TR_step("http://u:") + m.TR_step("ab@h ") + m.TR_finish())
+    TR_assert_equal("", m.TR_finish())
 }
 
 TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {

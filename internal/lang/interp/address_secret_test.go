@@ -131,3 +131,57 @@ func addressSecretsBuildTheFilterOnce(t *testing.T) {
 		t.Errorf("aynı değerler: süzgeç %d kez kuruldu, 1 bekleniyordu", v.maskBuilds)
 	}
 }
+
+// TestContextualAddressMask: bağlamlı maske (19.4, K1a). Değer kaydı yokken basılan metindeki her
+// adresin kimlik kısmı bağlamından tanınır: ':' varsa ilk ':'den sonrası uzunluğuna bakılmadan, ':'
+// yoksa 6 karakter (rune) ve uzun kimlik kısmı örtülür. Kaçışsız '/' ya da '#' taşıyan parola
+// kapsanmaz; boşluksuz JSON'da bölge son '@'ye kadar sürer (fazla maske, sabitlenir).
+func TestContextualAddressMask(t *testing.T) {
+	t.Cleanup(ClearRegisteredSecrets)
+	for _, tc := range []struct {
+		name, text, want string
+	}{
+		{"kısa parola", "postgres://u:ab@db/ana", "postgres://u:***@db/ana"},
+		{"sayı parola", "http://u:1234@h", "http://u:***@h"},
+		{"belirteç", "https://ghp_abc123def@github.com/k/d", "https://***@github.com/k/d"},
+		{"belirteç rune sayılır", "https://şşşşşş@h", "https://***@h"},
+		{"5 karakterlik belirteç", "https://ghp_a@github.com/k/d", "https://ghp_a@github.com/k/d"},
+		{"git", "ssh://git@github.com/k/d", "ssh://git@github.com/k/d"},
+		{"yolda '@'", "https://www.npmjs.com/package/@scope/x", "https://www.npmjs.com/package/@scope/x"},
+		{"kaçışsız '/'", "http://ali:Vek/il2026@x", "http://ali:Vek/il2026@x"},
+		{"kaçışsız '#'", "http://ali:Vek#il2026@x", "http://ali:Vek#il2026@x"},
+		{"boş parola", "http://ali:@vekil", "http://ali:@vekil"},
+		{"son '@'", "http://u:Vekil@2026@host", "http://u:***@host"},
+		{"sekme ve satır sonu", "http://a:pw@x\thttp://b:qq@y\nhttp://c:rr@z", "http://a:***@x\thttp://b:***@y\nhttp://c:***@z"},
+		{"iç içe ://", "x://a://b:pw@c", "x://a://b:***@c"},
+		{"JSON bedeli", `["http://a:pw@h","u@v"]`, `["http://a:***@v"]`},
+		{"'://'sız bağlantı dizgisi", "root:Vekil2026@tcp(db:3306)/app", "root:Vekil2026@tcp(db:3306)/app"},
+		{"kaçışlı parola, listenin metni", `["http://u:a\"b@h", "postgres://u:x\\y@db"]`, `["http://u:***@h", "postgres://u:***@db"]`},
+		{"boş metin", "", ""},
+		{"yalnız ://", "://", "://"},
+	} {
+		if got := New().Mask(tc.text); got != tc.want {
+			t.Errorf("%s: %q → %q, %q bekleniyordu", tc.name, tc.text, got, tc.want)
+		}
+	}
+	plain := strings.Repeat("a", 1<<20)
+	if got := New().Mask(plain); got != plain {
+		t.Error("adressiz 1 MiB'lık metin değişmemeli")
+	}
+	var many strings.Builder
+	for i := range 10000 {
+		fmt.Fprintf(&many, "http://u:p%d@h ", i)
+	}
+	got := New().Mask(many.String())
+	if n := strings.Count(got, "u:***@h "); n != 10000 || strings.Contains(got, "u:p") {
+		t.Errorf("10 000 adres: %d örtüldü", n)
+	}
+	// Bağlamdan tanınan parola kaydedilmez: aynı parola tek başına geçince açık kalır.
+	v := New()
+	if got := v.Mask("http://u:Vekil2026@h ve Vekil2026"); got != "http://u:***@h ve Vekil2026" {
+		t.Errorf("kayıtsız parola: %q", got)
+	}
+	if v.HasSecrets() {
+		t.Error("bağlam gizli değer kaydetmemeli")
+	}
+}

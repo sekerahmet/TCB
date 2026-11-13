@@ -52,3 +52,34 @@ TR_print("bitti")
 		}
 	}
 }
+
+// TestDAPMasksAnAddressWithoutSecrets: gizli değer kayıtlı olmasa da değişken görünümündeki adresin
+// parolası örtülür (19.4'ün bağlamlı maskesi): iletinin koruması adresli iletiyi atlamaz.
+func TestDAPMasksAnAddressWithoutSecrets(t *testing.T) {
+	path := writeProgram(t, `TR_var adres = "postgres://u:ab@db/ana"
+TR_print("bekle")
+TR_print("bitti")
+`)
+	c := startDAP(t)
+	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
+	c.event("initialized")
+	c.request("launch", map[string]interface{}{"program": path})
+	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": path},
+		"breakpoints": []map[string]interface{}{{"line": 3}}})
+	c.request("configurationDone", nil)
+	c.event("stopped")
+	if v := c.varsOf(c.scopeRef("Genel"))["adres"]; !strings.Contains(v, "u:***@db") {
+		t.Errorf("adresin parolası örtülmeli: %q", v)
+	}
+	c.request("continue", map[string]interface{}{"threadId": 1})
+	c.event("terminated")
+}
+
+// TestDAPDisplayIsCutAfterMask: değişkenin değer metni 200 karakterde kesilmeden önce maskelenir
+// (19.4): 200. karakter kayıtsız bir adresin parolasının ortasına düşer; görünümde başı kalmaz.
+func TestDAPDisplayIsCutAfterMask(t *testing.T) {
+	text := strings.Repeat("a", 186) + " http://u:Vekil2026@h"
+	if got := display(&interp.StringVal{Val: text}); strings.Contains(got, "Vek") {
+		t.Errorf("parolanın başı kalmamalı: %q", got[180:])
+	}
+}

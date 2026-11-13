@@ -166,7 +166,9 @@ func display(val interp.Value) string {
 	case *interp.DictVal:
 		prefix = fmt.Sprintf("{%d} ", len(v.Pairs))
 	}
-	text := prefix + interp.DisplayText(val)
+	// Önce maske, sonra kesim (19.4): kesim bir gizli değerin ya da adres parolasının ortasına
+	// düşerse başı kalırdı, iletinin maskesi onu tanımazdı.
+	text := interp.MaskBeforeCut(prefix + interp.DisplayText(val))
 	if r := []rune(text); len(r) > 200 {
 		text = string(r[:200]) + "…"
 	}

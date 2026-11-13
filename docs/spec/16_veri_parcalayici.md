@@ -41,7 +41,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 **16.3a** Akışlı çözme: `p.TR_decode_stream(TR_special_tokens: b)` bir `TR_DecodeStream` verir; `akış.TR_step(kimlik)` o kimlikle tamamlanan yeni metni verir.
 - Yarım kalan karakter beklenir: son kimlik bir karakterin ortasında bitiyorsa `.TR_step` `""` verir, karakter sonraki kimlikle tamamlanınca birlikte verilir. Kimlikleri tek tek `p.TR_decode([k])` ile çözmek her yarımda U+FFFD yazar (16.3).
 - Dağarcıkta olmayan kimlik 16.3'teki gibi hatadır, o kimliğin `.TR_step`'inde.
-- `akış.TR_finish()` kalan metni verir; yarım kalan dizi 16.3'teki gibi U+FFFD olur. Sonra `.TR_step` hatadır.
+- `akış.TR_finish()` kalan metni verir; yarım kalan dizi 16.3'teki gibi U+FFFD olur. Sonra `.TR_step` hatadır. İkinci `.TR_finish()` `""` verir.
 - **Söz:** bir akıştaki bütün `.TR_step` ve `.TR_finish` sonuçlarının birleşimi, aynı kimliklerin `p.TR_decode(kimlikler, TR_special_tokens: b)`'siyle aynı metindir.
 - `.TR_step`'in sonucu veridir, maskelenmez (19.4). İnsana parça parça gösterilecek metin 19.4a'nın `TR_mask_stream()`'inden geçer: her `TR_print` ayrı maskelenir, iki parçaya bölünen gizli değeri görmez.
 

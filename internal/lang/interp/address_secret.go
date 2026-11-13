@@ -20,31 +20,13 @@ import (
 func addressSecrets(value string) []string {
 	var out []string
 	for i := 0; ; {
-		k := strings.Index(value[i:], "://")
-		if k < 0 {
+		_, start, end, _, ok := addressRegion(value, i)
+		if !ok {
 			return out
 		}
-		start := i + k + len("://")
-		end := start
-		for end < len(value) {
-			r, size := utf8.DecodeRuneInString(value[end:])
-			if r == '/' || r == '?' || r == '#' || unicode.IsSpace(r) {
-				break
-			}
-			end += size
-		}
-		// Bölge '/'da biter ve "://" '/' içerir: sonraki arama bölgenin içinden başlasa da bir bayt
-		// en çok iki kez okunur, süre değerin uzunluğuyla doğrusaldır.
 		i = start
-		at := strings.LastIndexByte(value[start:end], '@')
-		if at < 0 {
-			continue
-		}
-		info := value[start : start+at]
-		if c := strings.IndexByte(info, ':'); c >= 0 {
-			info = info[c+1:]
-		}
-		if info == "" {
+		info, _, _, ok := userinfoSecret(value[start:end])
+		if !ok || info == "" {
 			continue
 		}
 		out = append(out, info)
@@ -52,6 +34,70 @@ func addressSecrets(value string) []string {
 			out = append(out, decoded)
 		}
 	}
+}
+
+// span, metnin SecretMask'la değişecek bayt aralığıdır: [start, end).
+type span struct{ start, end int }
+
+// contextSpans is the contextual mask's part of text (19.4): in each address region the bytes of
+// the userinfo's secret, found by the same walk as addressSecrets. With a ':' the part after the
+// first ':' is covered whatever its length (an empty one is left alone); without a ':' the whole
+// userinfo, when it has at least MinSecretLength characters. Nothing is registered: the spans are
+// positions in this text only. atEnd: the end of text closes a region; otherwise the walk stops at
+// the first region with no boundary yet, whose "://" offset is open (-1 when every region closed).
+func contextSpans(text string, atEnd bool) (spans []span, open int) {
+	for i := 0; ; {
+		p, start, end, closed, ok := addressRegion(text, i)
+		if !ok {
+			return spans, -1
+		}
+		if !closed && !atEnd {
+			return spans, p
+		}
+		i = start
+		secret, off, colon, ok := userinfoSecret(text[start:end])
+		if !ok || secret == "" || !colon && utf8.RuneCountInString(secret) < MinSecretLength {
+			continue
+		}
+		spans = append(spans, span{start + off, start + off + len(secret)})
+	}
+}
+
+// addressRegion finds the first address region at or after i: p is the offset of its "://", start
+// the byte after it, end the first '/', '?', '#' or space (unicode.IsSpace) from start, or len(text)
+// with closed false. ok is false when there is no "://" from i on.
+func addressRegion(text string, i int) (p, start, end int, closed, ok bool) {
+	k := strings.Index(text[i:], "://")
+	if k < 0 {
+		return 0, 0, 0, false, false
+	}
+	p = i + k
+	start = p + len("://")
+	for end = start; end < len(text); {
+		r, size := utf8.DecodeRuneInString(text[end:])
+		if r == '/' || r == '?' || r == '#' || unicode.IsSpace(r) {
+			// Bölge '/'da biter ve "://" '/' içerir: sonraki arama bölgenin içinden (start'tan)
+			// başlasa da bir bayt en çok iki kez okunur, süre metnin uzunluğuyla doğrusaldır.
+			return p, start, end, true, true
+		}
+		end += size
+	}
+	return p, start, end, false, true
+}
+
+// userinfoSecret is the secret of a region's userinfo (the text before the region's last '@'): the
+// part after its first ':' (colon true), or the whole userinfo; off is its offset in region. ok is
+// false when region has no '@'.
+func userinfoSecret(region string) (secret string, off int, colon, ok bool) {
+	at := strings.LastIndexByte(region, '@')
+	if at < 0 {
+		return "", 0, false, false
+	}
+	info := region[:at]
+	if c := strings.IndexByte(info, ':'); c >= 0 {
+		return info[c+1:], c + 1, true, true
+	}
+	return info, 0, false, true
 }
 
 // AddAddressSecrets registers the secret value of every address in values with the secret-value

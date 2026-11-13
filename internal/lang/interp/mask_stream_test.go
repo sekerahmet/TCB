@@ -86,6 +86,31 @@ func TestMaskStreamAfterFinish(t *testing.T) {
 	}
 }
 
+// TestMaskStreamHoldsAnOpenAddress: gizli değer kayıtlı değilken de sınırı gelmemiş adres bölgesi
+// "://"'dan başlayarak tutulur (19.4a, 19.4'ün bağlamlı maskesi); sondaki ":" ve ":/" da tutulur.
+// İki parçaya bölünen kısa parola örtülür.
+func TestMaskStreamHoldsAnOpenAddress(t *testing.T) {
+	m := New().NewMaskStream()
+	for _, step := range []struct{ piece, out string }{
+		{"bak: https://", "bak: https"},
+		{"ornek.com", ""},
+		{" sonra", "://ornek.com sonra"},
+		{" http://u:", " http"},
+		{"ab@h", ""},
+		{"/yol", "://u:***@h/yol"},
+		{" son:", " son"},
+		{"/", ""},
+		{"/x:ab@y", ""},
+	} {
+		if out, ok := m.Step(step.piece); !ok || out != step.out {
+			t.Fatalf("Step(%q) = %q %v, beklenen %q", step.piece, out, ok, step.out)
+		}
+	}
+	if got := m.Finish(); got != "://x:***@y" {
+		t.Fatalf("Finish = %q, beklenen \"://x:***@y\"", got)
+	}
+}
+
 // FuzzMaskStream 19.4a'nın sözünü sınar: rastgele metin, rastgele bölme, örtüşen gizli değerler;
 // parçaların çıktılarının birleşimi birleşimin VM.Mask'ına eşittir. Gizli değerler metnin küçük
 // abecesinden seçilir ki örtüşsünler; bölme bayt konumundadır, çok baytlı harfin ortası dahil.
@@ -95,6 +120,8 @@ func FuzzMaskStream(f *testing.F) {
 	f.Add("QQabcd", "QQabcd", "abcdWXYZ", uint64(0))
 	f.Add("aaaaaaaaaaaaa", "aaaaaa", "", uint64(0x0102030405))
 	f.Add("şifre_ğüç şifre_ğüç", "şifre_ğüç", "re_ğüç şi", uint64(0x0301020101))
+	f.Add("bak: http://u:ab@h son", "", "", uint64(0x0203010405))
+	f.Add("x https://ali:ab@h y", "https://ali", "", uint64(0x0102030102))
 	f.Fuzz(func(t *testing.T, text, s1, s2 string, cuts uint64) {
 		ClearRegisteredSecrets() // süreç boyu küme girdiden girdiye büyümesin
 		v := New()
