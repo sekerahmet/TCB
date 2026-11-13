@@ -1847,6 +1847,8 @@ const (
 	H7561 Code = 7561 // {@qwen3_format}: `{#enable_thinking}:` yalnız `{#add_generation_prompt}: {#true}` ile geçerlidir; {given} verildi. Eğitim için biçimlerken kaldırın: `{#add_generation_prompt}: {#false}` (24.2)
 	H7562 Code = 7562 // parçalayıcıda {tag|q} parçası yok: Qwen3'ün sohbet biçimi bir Qwen3 modelinin parçalayıcısını ister (24.2)
 	H7563 Code = 7563 // {@qwen3_reply}: geçerli bir araç çağrısının {field|q} alanı modelin metninde bulunamadı; bu tr/chat'in hatasıdır, lütfen bildirin (24.3)
+	H7564 Code = 7564 // {fn}: `{#env}:`'deki PATH boş, {name|q} programı hiçbir yerde aranmadı; dosyanın kendisi yol olarak verilir: `{run}({#path}({file|q}), {args})`; `{#env}:` ve öbür adlı argümanlar aynen kalır
+	H7565 Code = 7565 // {fn}: `{#env}:`'deki PATH boş, {name|q} programı hiçbir yerde aranmadı; dosyanın kendisi {@path} olarak verilir
 	H7600 Code = 7600 // {fn}: içerik gizli bir değer taşıyor; dosyayı yalnız size açık yazın: `{#write_file}(yol, içerik, {#owner_only}: {#true})`
 	H7601 Code = 7601 // Görev kaynağı kapandı: yeni görev açılmaz
 	H7602 Code = 7602 // {fn}: başlık adı bir metin olmalı, {given} verildi

@@ -315,3 +315,145 @@ func TestMissingProgramMessages(t *testing.T) {
 		}
 	}
 }
+
+// TR_env:'de PATH verildiyse ad orada aranır, TR'nin PATH'inde değil; iki yerleşik de aynı yoldan geçer.
+// Göreli, boş ve açılmamış değişkenli girdi orada da aranmaz (21.3).
+func TestEnvPathIsSearched(t *testing.T) {
+	own, given := t.TempDir(), t.TempDir()
+	installTool(t, own, "araç")
+	want := installTool(t, given, "araç")
+	installTool(t, given, "yalnızburada")
+	t.Setenv("PATH", own)
+	env := `TR_env: {"PATH": ` + strconv.Quote(given) + `}`
+	for _, code := range []string{
+		`TR_String(TR_run_process("araç", ["self"], ` + env + `))`,
+		"TR_var p = TR_spawn_process(\"araç\", [\"self\"], " + env + ")\nTR_var b = p.TR_read(65536)\np.TR_wait()\nTR_String(b)",
+	} {
+		if got, err := run(t, code); err != nil || !sameFile(t, got, want) {
+			t.Errorf("%s (%v), beklenen TR_env:'deki %s", got, err, want)
+		}
+	}
+	if _, err := run(t, `TR_run_process("yalnızburada", ["args"], `+env+`)`); err != nil {
+		t.Errorf("yalnız TR_env:'deki klasörde olan program: %v", err)
+	}
+	work := t.TempDir()
+	unexpanded := "%SystemRoot%"
+	if err := os.Mkdir(filepath.Join(work, unexpanded), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	installTool(t, work, "yerel")
+	installTool(t, filepath.Join(work, unexpanded), "yerel")
+	t.Chdir(work)
+	sep := string(os.PathListSeparator)
+	for _, path := range []string{".", sep, "." + sep, sep + sep, unexpanded} {
+		code := `TR_run_process("yerel", [], TR_env: {"PATH": ` + strconv.Quote(path) + `})`
+		if _, err := run(t, code); !messages.Has(err, messages.H7497) {
+			t.Errorf("PATH=%q: H7497 bekleniyordu: %v", path, err)
+		}
+	}
+}
+
+// TR_env:'deki PATH'in adı Windows'ta harf ayırmaz, Unix'te ayırır (21.3, 21.6). Windows'ta birden çok
+// yazımın sonuncusu aranır; dış programın ortamında da sonuncusu geçer.
+func TestEnvPathNameCaseOnWindows(t *testing.T) {
+	own, given := t.TempDir(), t.TempDir()
+	ownTool := installTool(t, own, "araç")
+	givenTool := installTool(t, given, "araç")
+	t.Setenv("PATH", own)
+	want := ownTool
+	if windows {
+		want = givenTool
+	}
+	code := `TR_String(TR_run_process("araç", ["self"], TR_env: {"Path": ` + strconv.Quote(given) + `}))`
+	if got, err := run(t, code); err != nil || !sameFile(t, got, want) {
+		t.Errorf("Path anahtarı: %s (%v), beklenen %s", got, err, want)
+	}
+	if !windows {
+		return
+	}
+	both := `TR_env: {"PATH": ` + strconv.Quote(own) + `, "Path": ` + strconv.Quote(given) + `}`
+	if got, err := run(t, `TR_String(TR_run_process("araç", ["self"], `+both+`))`); err != nil || !sameFile(t, got, givenTool) {
+		t.Errorf("son yazım: %s (%v), beklenen %s", got, err, givenTool)
+	}
+	if got, err := run(t, `TR_String(TR_run_process("araç", ["env", "PATH"], `+both+`))`); err != nil || got != given {
+		t.Errorf("dış programın PATH'i %q (%v), aranan %q", got, err, given)
+	}
+}
+
+// Ad argümanlar ve TR_env: okunduktan sonra aranır; adın biçimi yine ilk denetlenir (21.3).
+func TestArgumentErrorsComeBeforeTheSearch(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	for code, want := range map[string]messages.Code{
+		`TR_run_process("olmayan", [1])`:                     messages.H7491,
+		`TR_run_process("olmayan", [], TR_env: {"A": 1})`:    messages.H7507,
+		`TR_run_process("olmayan", [], TR_exit_codes: [""])`: messages.H7506,
+		`TR_run_process("./olmayan", [1])`:                   messages.H7494,
+	} {
+		if _, err := run(t, code); !messages.Has(err, want) {
+			t.Errorf("%s: %s bekleniyordu: %v", code, want, err)
+		}
+	}
+}
+
+// TR_env:'deki boş PATH hiçbir yerde aramaz (21.3): TR'nin PATH'indeki program çalışmaz, ileti o dosyayı
+// yol olarak önerir (H7564); bulunmayan ad, boşluk içerse de, yalnız yolu söyler (H7565). Boş ad ve
+// mutlak girdisi olmayan PATH şimdiki iletiyi alır (H7497). Windows'ta yalnız toplu iş dosyası olan ad
+// H7496 alır; önerisi boş PATH'te H7564'e götürür.
+func TestEmptyEnvPathSearchesNowhere(t *testing.T) {
+	dir := t.TempDir()
+	installTool(t, dir, "araç")
+	t.Setenv("PATH", dir)
+	empty := `TR_env: {"PATH": ""}`
+	for code, want := range map[string]messages.Code{
+		`TR_run_process("araç", ["self"], ` + empty + `)`:      messages.H7564,
+		`TR_spawn_process("araç", ["self"], ` + empty + `)`:    messages.H7564,
+		`TR_run_process("olmayan", [], ` + empty + `)`:         messages.H7565,
+		`TR_run_process("araç args a.wav", [], ` + empty + `)`: messages.H7565,
+		`TR_run_process("", [], ` + empty + `)`:                messages.H7497,
+		`TR_run_process("araç", [], TR_env: {"PATH": "."})`:    messages.H7497,
+		`TR_run_process("araç", [], TR_env: {"PATH": ";"})`:    messages.H7497,
+	} {
+		if _, err := run(t, code); !messages.Has(err, want) {
+			t.Errorf("%s: %s bekleniyordu: %v", code, want, err)
+		}
+	}
+	if !windows {
+		return
+	}
+	if err := os.WriteFile(filepath.Join(dir, "npm.cmd"), []byte("@echo merhaba\r\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+filepath.Join(os.Getenv("SystemRoot"), "System32"))
+	_, err := run(t, `TR_run_process("npm", [], `+empty+`)`)
+	suggestion := `TR_run_process("cmd", ["/c", "npm.cmd"])`
+	if !messages.Has(err, messages.H7496) || !strings.Contains(err.Error(), suggestion) {
+		t.Fatalf("H7496 ve %s bekleniyordu: %v", suggestion, err)
+	}
+	if _, err := run(t, strings.TrimSuffix(suggestion, ")")+", "+empty+")"); !messages.Has(err, messages.H7564) {
+		t.Errorf("H7496'nın önerisi boş PATH'te H7564'e götürmeli: %v", err)
+	}
+}
+
+// H7564'ün önerisi, adlı argümanlar aynen kalınca, kopyalanınca çalışır; dış programın ortamında PATH
+// boştur ve öbür değişkenler gelir (21.3).
+func TestEmptyEnvPathSuggestionRuns(t *testing.T) {
+	dir := t.TempDir()
+	installTool(t, dir, "araç")
+	t.Setenv("PATH", dir)
+	named := `TR_env: {"PATH": "", "KUME": "a"}, TR_exit_codes: [0]`
+	_, err := run(t, `TR_run_process("araç", ["env", "PATH", "KUME"], `+named+`)`)
+	if !messages.Has(err, messages.H7564) {
+		t.Fatalf("H7564 bekleniyordu: %v", err)
+	}
+	text := err.Error()
+	start := strings.Index(text, "`TR_run_process(TR_Path(")
+	if start < 0 {
+		t.Fatalf("öneri yok: %v", err)
+	}
+	suggestion := text[start+1:]
+	suggestion = suggestion[:strings.IndexByte(suggestion, '`')]
+	call := strings.TrimSuffix(suggestion, ")") + ", " + named + ")"
+	if got, err := run(t, `TR_String(`+call+`)`); err != nil || got != "|a" {
+		t.Errorf("%s: %q (%v), beklenen boş PATH ve KUME=a", call, got, err)
+	}
+}

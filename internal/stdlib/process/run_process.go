@@ -199,7 +199,8 @@ func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]int
 	return call, nil
 }
 
-// readProgramCall iki çağrının ortak argümanlarını okur: program, argümanlar, çıkış kodları, ortam.
+// readProgramCall iki çağrının ortak argümanlarını okur: program, argümanlar, çıkış kodları, ortam. Ad
+// en son aranır: arama TR_env:'deki PATH'e bakar, boş PATH'in önerisi argümanları taşır (21.3).
 func readProgramCall(m *interp.VM, code codes.Code, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(code, 2, len(args))
@@ -207,7 +208,7 @@ func readProgramCall(m *interp.VM, code codes.Code, args []interp.Value, named m
 	fn := interp.CallPrefix(code)
 	call := &runCall{}
 	var err error
-	if call.name, call.path, err = findProgram(code, args[0]); err != nil {
+	if call.name, call.path, err = readProgram(code, args[0]); err != nil {
 		return nil, err
 	}
 	if call.args, err = programArguments(code, args[1]); err != nil {
@@ -216,10 +217,16 @@ func readProgramCall(m *interp.VM, code codes.Code, args []interp.Value, named m
 	if call.codes, err = exitCodes(fn, named); err != nil {
 		return nil, err
 	}
-	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
+	given, err := givenEnv(fn, named)
+	if err != nil {
 		return nil, err
 	}
-	_, call.byPath = args[0].(interp.PathValuer)
+	call.env, call.filtered = programEnv(m, given)
+	if _, call.byPath = args[0].(interp.PathValuer); !call.byPath {
+		if call.path, err = findName(code, call.name, given, call.args); err != nil {
+			return nil, err
+		}
+	}
 	return call, nil
 }
 

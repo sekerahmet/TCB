@@ -40,8 +40,8 @@ Denetim: `TestNumberParsing`, `TestIsNumberOrBool`.
 kendinin dış programıdır (`helperMain`), her işletim sisteminde aynı program koşar.
 Denetim: `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessOutputIsBytes`, `TestRunProcessInput`, `TestRunProcessReleasesTheLock`.
 
-**Program yalnız izin verilen yerden bulunur.** Ad, `PATH`'in mutlak girdilerinde aranır; çalışma klasörü ve göreli girdi aranmaz, yol mutlak yapılır. `exec.LookPath` ve `exec.Command` kullanılmaz: ikisi de bu sınırları tutmuyor (DENETİM 217). Windows'ta son yol izin listesiyle sınanır, `.bat` ve `.cmd` hiçbir yazımla çalışmaz.
-Denetim: `TestProgramNameIsSearchedInPath`, `TestRelativePathEntriesAreNotSearched`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestWindowsBatchFilesAreRefused`.
+**Program yalnız izin verilen yerden bulunur.** Ad, `TR_env:`'de `PATH` verildiyse onun, verilmediyse TR programının `PATH`'inin mutlak girdilerinde aranır; çalışma klasörü ve göreli girdi aranmaz, yol mutlak yapılır. `TR_env:`'deki boş `PATH` hiçbir yerde aramaz. Arama argümanlar ve `TR_env:` okunduktan sonra yapılır (`readProgramCall`), adın biçimi önce denetlenir. `exec.LookPath` ve `exec.Command` kullanılmaz: ikisi de bu sınırları tutmuyor (DENETİM 217). Windows'ta son yol izin listesiyle sınanır, `.bat` ve `.cmd` hiçbir yazımla çalışmaz.
+Denetim: `TestProgramNameIsSearchedInPath`, `TestRelativePathEntriesAreNotSearched`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestWindowsBatchFilesAreRefused`, `TestEnvPathIsSearched`, `TestEmptyEnvPathSearchesNowhere`, `TestArgumentErrorsComeBeforeTheSearch`.
 
 **Başarısız bitiş iletide okunur, gizli değer görünmez.** Kabul edilmeyen çıkış kodu çalışma hatasıdır: ad, kod, standart hatanın sonu. Standart hata sınırlı tamponla okunur (`stderrTailLimit`); tampon sınır artı en uzun gizli değer kadar tutar, önce süzülür sonra kesilir, yazdırılamayan bayt iletiye girmez.
 Denetim: `TestExitCodeIsARunError`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestBothOutputsDoNotDeadlock`.

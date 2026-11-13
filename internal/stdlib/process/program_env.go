@@ -13,14 +13,10 @@ import (
 // Dış programın ortamı (21.6): TR programının ortamı, gizli adlı değişkenler olmadan. TR_env: ekler ya
 // da değiştirir, geri kalanı silmez; aynı adın son yazımı geçerlidir (os/exec, Windows'ta harf ayırmadan).
 
-// programEnv programın ortamını ve süzülen adları verir. TR_env: ile açıkça verilen gizli değişken
-// süzülmüş sayılmaz; değeri gizli değer süzgecine girer: dosyadan okunan anahtar süzgeçte yoktur ve
-// programın standart hatası onu iletiye taşırdı.
-func programEnv(m *interp.VM, fn any, named map[string]interp.Value) (env, filtered []string, err error) {
-	given, err := givenEnv(fn, named)
-	if err != nil {
-		return nil, nil, err
-	}
+// programEnv programın ortamını ve süzülen adları verir; given TR_env:'in çiftleridir (givenEnv).
+// TR_env: ile açıkça verilen gizli değişken süzülmüş sayılmaz; değeri gizli değer süzgecine girer:
+// dosyadan okunan anahtar süzgeçte yoktur ve programın standart hatası onu iletiye taşırdı.
+func programEnv(m *interp.VM, given [][2]string) (env, filtered []string) {
 	env = make([]string, 0, len(given))
 	for _, entry := range os.Environ() {
 		name := envEntryName(entry)
@@ -42,7 +38,7 @@ func programEnv(m *interp.VM, fn any, named map[string]interp.Value) (env, filte
 		m.AddAddressSecrets(values...) // adresin kimlik kısmı, adı ne olursa olsun (19.4)
 	}
 	slices.Sort(filtered)
-	return env, filtered, nil
+	return env, filtered
 }
 
 // givenEnv TR_env: argümanının ad ve değer çiftleridir. Ad 19.1'in kuralına uyar (H7231): boş ad, '='

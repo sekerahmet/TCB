@@ -1842,6 +1842,8 @@
 "H7561": "{@qwen3_format}: `{#enable_thinking}:` only applies with `{#add_generation_prompt}: {#true}`; got {given}. Remove it when formatting for training: `{#add_generation_prompt}: {#false}` (24.2)",
 "H7562": "the tokenizer has no {tag|q} token: the Qwen3 chat format needs the tokenizer of a Qwen3 model (24.2)",
 "H7563": "{@qwen3_reply}: the {field|q} field of a valid tool call was not found in the model's text; this is an error in tr/chat, please report it (24.3)",
+"H7564": "{fn}: PATH in `{#env}:` is empty, so the program {name|q} was not searched anywhere; the file itself is given as a path: `{run}({#path}({file|q}), {args})`; `{#env}:` and the other named arguments stay as they are",
+"H7565": "{fn}: PATH in `{#env}:` is empty, so the program {name|q} was not searched anywhere; the file itself is given as a {@path}",
 "H7600": "{fn}: the content carries a secret value; write the file open only to you: `{#write_file}(path, content, {#owner_only}: {#true})`",
 "H7601": "The task host is closed: no new task opens",
 "H7602": "{fn}: a header name must be a string, {given} given",
