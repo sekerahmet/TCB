@@ -42,7 +42,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   build                      build the graph (flags: --root DIR, --out FILE, --warnings)
   query <name>  (or explain)   a node and its neighbours; a name may be file:line[:col] (the declaration that contains it); query - reads grep -n output and writes each line's declaration
   path <from> <to> [--undirected|--through-hubs]   shortest directed path (calls, uses, dispatches ...); none is said plainly; --undirected also ignores direction but never goes through a type, package or file, --through-hubs allows those (marked)
-  who-uses <name>            what uses a function, type, message code or name code
+  who-uses <name> [--mode read|write]   what uses a function, type, message code or name code; for a struct field its reads and writes (--mode: only those, and the name resolves only to a field)
   tests-for <name>           tests that exercise a function, type or package
   untested [--in DIR] [--json]   non-test Go functions and methods grouped by the seven branches of tests-for
   history <name>             commits that touched a function, type, file, message code or name code (computed from git)

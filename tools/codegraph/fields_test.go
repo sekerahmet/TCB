@@ -95,7 +95,7 @@ func TestFieldsCommands(t *testing.T) {
 	if strings.Contains(out, ":88 ") {
 		t.Errorf("Other.n must not appear:\n%s", out)
 	}
-	_, out, _ = cli(t, "fields", "Counter.n", "--mode", "write")
+	_, out, _ = cli(t, "who-uses", "Counter.n", "--mode", "write")
 	testkit.MustContain(t, out, "write accesses (", "shape/shape.go:84  write")
 	if strings.Contains(out, ":89 ") {
 		t.Errorf("--mode write hides plain reads:\n%s", out)

@@ -290,7 +290,7 @@ codegraph tests-for --root untracked shape/shape.go | not: untracked: | contains
 codegraph changed --root untracked --go-tests HEAD | contains: untracked: shape/untracked.go | contains: repository-wide checks do not see it | contains: git add shape/untracked.go | contains: shape TestDescribe | src: codegraph-2 madde 6, 2026-11-02 (changed --go-tests izlenmeyen değişen dosyayı aynı uyarıyla söyler)
 
 # Deneme: gaps.md'nin gözden geçirmesi (2026-11-09): yan oturumların istediği ama var olan sorular
-codegraph fields gilSince --mode write | contains: interp.VM.gilSince [field] | contains: interp.VM.acquireGIL | not: interp.VM.clockExpired | src: gaps gözden geçirmesi, 2026-11-09 (D1'in "alanı kim yazıyor" isteği; alan vmShared'den VM'e taşınmıştı; clockExpired yalnız okur, DENETİM 349)
+codegraph who-uses gilSince --mode write | contains: interp.VM.gilSince [field] | contains: interp.VM.acquireGIL | not: interp.VM.clockExpired | src: gaps gözden geçirmesi, 2026-11-09 (D1'in "alanı kim yazıyor" isteği; alan vmShared'den VM'e taşınmıştı; clockExpired yalnız okur, DENETİM 349)
 codegraph package-state --in internal/compute/tensor | contains: @{internal/compute/tensor/cpu_matmul.go#packPoolB = }  written by gemmPart (address taken), quantGemm (address taken) | src: gaps gözden geçirmesi, 2026-11-09 (H1'in "havuzu başka kim kullanıyor" isteği; yazanlar packPoolB'nin satırında, DENETİM 349)
 codegraph captures tensor.quantGemmPanels | group: func literal@ => dt tensor.DType | src: gaps gözden geçirmesi, 2026-11-09 (captures'ın var olduğu: Go işlev değişmezinin yakaladıkları; T1'in .tr fonksiyonları için isteği açık, DENETİM 348, 349)
 
@@ -304,7 +304,7 @@ codegraph tests-for internal/compute/gpu | first-item: gpu.Test | not: exam ques
 codegraph tests-for docs/spec/28_ag.md | contains: e2e.TestDocTRCodeBlocks [func] | contains: |TestDocTRCodeBlocks| | src: codegraph A2 madde 6, 2026-11-09 (cevapta adı geçen test run: satırında adlandırılır; 28. bölümün G4'ü TestDocTRCodeBlocks listelendi, koşulmadı)
 codegraph tests-for tools/codegraph/query_run_line.go | contains: run: go test -short ./tools/codegraph/ -run '^( | contains: ./tools/codegraph/ is a heavy package | src: codegraph A2 madde 8, 2026-11-09 (ağır paketteki dosyanın koşu satırı paketi -run'sız önermez; D1 ipucu 2026-11-06, kanca durduruyordu)
 codegraph tests-for lib/audio.tr | contains: run: go run ./cmd/trlang test lib/audio_test.tr | src: codegraph A2 madde 7, 2026-11-09 (.tr modülünün cevapta adı geçen TR test dosyaları tek trlang test satırıyla koşar; S1'in doğrusu, 2026-11-05)
-codegraph fields interp.vmShared.gilSince --mode write | exit: 4 | contains: did you mean: | contains: interp.VM.gilSince [field] | src: codegraph A2 madde 9, 2026-11-09 (taşınan alanın eski tam adı yeni yerini önerir; çıkış 4 kalır, DENETİM 358 Ş6)
+codegraph who-uses interp.vmShared.gilSince --mode write | exit: 4 | contains: did you mean: | contains: interp.VM.gilSince [field] | src: codegraph A2 madde 9, 2026-11-09 (taşınan alanın eski tam adı yeni yerini önerir; çıkış 4 kalır, DENETİM 358 Ş6)
 codegraph help | contains: "changed HEAD", the diff runs to the working tree | src: codegraph A2 madde 10, 2026-11-09 (changed'in help satırı çalışma ağacını söyler, DENETİM 348 Ş4)
 codegraph dups --root tools/codegraph/testdata/mod --changed HEAD..HEAD | exit: 0 | contains: no changes to scan: HEAD...HEAD adds or changes no Go line | src: codegraph A2 madde 11, 2026-11-09 (değişiklik yokken dups --changed bunu söyler; D1 15.5 devri)
 

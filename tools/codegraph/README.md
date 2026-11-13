@@ -43,7 +43,8 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) |
 | which nodes and Go tests my branch or uncommitted change touches | `changed HEAD [--go-tests]` (with `HEAD` as the tip the working tree is included); another branch: `changed <branch>` (exact only with that branch checked out: otherwise a new file's tests are missed, see gaps) |
 | a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` |
-| who reads or writes this field | `fields <Type.field> --mode write` (or `read`); every field of a type: `fields <Type>` |
+| who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) |
+| which fields a type has and how often each is read and written | `fields <Type>` |
 | who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) |
 | which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) |
 | what this function calls | `callees <function>` |
@@ -234,8 +235,9 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 `*x.f = v`: the contents change), `addr` (`&x.f`), `literal` (`T{f: v}`). Unkeyed literals
 (`T{1, 2}`) and fields of unnamed struct types are not recorded.
 
-- `who-uses Tensor.grad` or `fields Tensor.grad [--mode read|write]`: the accesses by file:line,
-  mode and accessor; inside a func literal the accessor is `binaryKind > func literal@L102`.
+- `who-uses tensor.Tensor.shape [--mode read|write]`: the accesses by file:line, mode and
+  accessor; inside a func literal the accessor is `binaryKind > func literal@L102`. With `--mode`
+  the name resolves only to a field: a name that matches no field is not found (exit 4).
 - `fields <Type>`: a table of the type's fields with read and write counts.
 - Every `func literal` is a `closure` node (`outer > func literal@Lnn`, `contains` from the
   function or the enclosing literal) carrying `captured`: the local variables and parameters it

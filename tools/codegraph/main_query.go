@@ -20,7 +20,7 @@ type queryOpts struct {
 	min            int    // calls-into: en az kaç ayrı işlev
 	tests          bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
 	byPackage      bool   // who-uses: kullanıcıları pakete göre özetle
-	mode           string // who-uses, fields: yalnızca "read" ya da "write" erişimleri
+	mode           string // who-uses (alan): yalnızca "read" ya da "write" erişimleri; verilince ad yalnız alana çözülür
 	typeFilter     string // captures: yakalanan değişkenin tipinde geçen metin
 	undirected     bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
 	throughHubs    bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
@@ -49,7 +49,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.StringVar(&o.in, "in", "", "callees, calls-into, untested: restrict to a package or folder")
 	fs.IntVar(&o.min, "min", 2, "calls-into: at least this many distinct functions")
 	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
-	fs.StringVar(&o.mode, "mode", "", "fields: only read or write accesses")
+	fs.StringVar(&o.mode, "mode", "", "who-uses on a field: only read or write accesses")
 	fs.StringVar(&o.typeFilter, "type", "", "captures: only variables whose type contains this text")
 	fs.BoolVar(&o.undirected, "undirected", false, "path: also look for a connection ignoring edge direction (never through a type, package or file)")
 	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
@@ -136,6 +136,11 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 	kinds := map[string][]string{
 		"calls-into": {kindPackage}, "captures": {kindFunc, kindMethod, kindClosure}, "fields": {kindField, kindType},
 	}[cmd]
+	if cmd == "who-uses" && o.mode != "" {
+		// --mode bir alanın okuma ya da yazmalarını sorar: ad yalnız alana çözülür. Yoksa harf katlaması onu aynı adlı bir
+		// metoda götürüyordu (`who-uses Tensor.grad --mode write` tensor.Tensor.Grad'ın çağıranlarını veriyordu, K7).
+		kinds = []string{kindField}
+	}
 	nodes := make([]*Node, 0, len(names))
 	for _, q := range names {
 		n, code := ix.resolve(q, o, kinds...)

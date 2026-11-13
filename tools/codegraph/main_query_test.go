@@ -114,3 +114,22 @@ func TestUndefinedMessageSlotKeepsStaleGraphAndExitsOnBuild(t *testing.T) {
 		t.Errorf("missing-graph stderr want single line without panic, got:\n%s", missing.Stderr)
 	}
 }
+
+// Kural (K7): `who-uses <ad> --mode read|write` bir alanın erişimlerini sorar; ad yalnız alana çözülür. Fikstürde
+// Square'in alanı Side'dır, `Square.area` yalnız harf katlamasıyla Area metoduna uyar: --mode ile cevap "not found"dur
+// (çıkış 4), metodun kullanımları verilmez. Gerçek alan --mode ile cevaplanır.
+func TestWhoUsesModeResolvesOnlyFields(t *testing.T) {
+	code, out, errOut := cli(t, "who-uses", "Square.area", "--mode", "write")
+	if code != exitNotFound {
+		t.Fatalf("exit %d, want %d (no field matches)\n%s%s", code, exitNotFound, out, errOut)
+	}
+	testkit.MustContain(t, errOut, `"Square.area" not found`)
+	if strings.Contains(out, "shape.Square.Area") {
+		t.Errorf("the method is not the answer:\n%s", out)
+	}
+	code, out, _ = cli(t, "who-uses", "Counter.n", "--mode", "write")
+	if code != exitOK {
+		t.Fatalf("a real field: exit %d\n%s", code, out)
+	}
+	testkit.MustContain(t, out, "shape.Counter.n [field]", "write accesses (", "shape/shape.go:84  write")
+}
