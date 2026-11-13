@@ -747,6 +747,9 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
   stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
   scan `deleted` reads.
 - `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
+- `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
+  spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),
+  which must agree.
 - `test_paths_test.go`, `js_loads_test.go`, `data_coverage_test.go`: a file's answer in `tests-for` (readers, citing
   tests, the guards of a doc's rules, JavaScript loads, an untracked file not searched) and, on this repository, every
   tracked path resolving to its own file (`TestEveryTrackedFileIsANode`).
