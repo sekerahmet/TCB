@@ -26,3 +26,11 @@ TR_test "21.4 program_başlat: kabul edilmeyen kod beklemede hatadır" {
     TR_var q = TR_spawn_process("gofmt", ["-tanimsiz"])
     TR_assert_equal("H7503", TR_error_code { q.TR_wait() })
 }
+
+TR_test "21.3 verilen ortamın PATH'inde aranır, boş PATH hiçbir yerde aramaz" {
+    # gofmt TR'nin PATH'inde var; verilen PATH'te yok, boş PATH'te aranmaz.
+    TR_assert_equal("H7497", TR_error_code { TR_run_process("gofmt", [], TR_env: {"PATH": "/tr_olmayan_klasor"}) })
+    TR_assert_equal("H7564", TR_error_code { TR_run_process("gofmt", [], TR_env: {"PATH": ""}) })
+    TR_assert_equal("H7565", TR_error_code { TR_run_process("tr_olmayan_program", [], TR_env: {"PATH": ""}) })
+    TR_assert_equal("H7565", TR_error_code { TR_spawn_process("tr_olmayan_program", [], TR_env: {"PATH": ""}) })
+}

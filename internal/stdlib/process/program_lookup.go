@@ -14,7 +14,8 @@ import (
 
 // Programı bulmak (21.3). exec.LookPath kullanılmaz: göreli PATH girdisini, Unix'te boş girdiyi aranır
 // sayar ve Windows'ta uzantısız adı PATHEXT ile .bat ve .cmd'ye çözer; exec.Command ayırıcısız yolu da
-// PATH'e götürür. Burada sonuç hep mutlak yoldur, os/exec'e arama bırakılmaz.
+// PATH'e götürür ve adı TR_env:'deki PATH'te değil sürecin kendi PATH'inde arar. Burada sonuç hep mutlak
+// yoldur, os/exec'e arama bırakılmaz.
 
 const onWindows = runtime.GOOS == "windows"
 
@@ -25,12 +26,12 @@ var (
 	batchSuffixes   = []string{".bat", ".cmd"}
 )
 
-// findProgram programın iletilerdeki adını ve çalışacak dosyanın mutlak yolunu verir.
-func findProgram(code codes.Code, v interp.Value) (name, path string, err error) {
+// readProgram programın iletilerdeki adını verir; yolu denetleyip mutlak yapar, adın yalnız biçimini
+// denetler. Ad burada aranmaz: arama TR_env:'i ve argümanları ister, onlar okununca findName arar.
+func readProgram(code codes.Code, v interp.Value) (name, path string, err error) {
 	switch x := v.(type) {
 	case *interp.StringVal:
-		path, err = findName(code, x.Val)
-		return x.Val, path, err
+		return x.Val, "", checkName(code, x.Val)
 	case interp.PathValuer:
 		path, err = checkFile(code, x.FilePath())
 		return x.FilePath(), path, err
@@ -38,36 +39,87 @@ func findProgram(code codes.Code, v interp.Value) (name, path string, err error)
 	return "", "", interp.ArgTypeError(code, 1, v, codes.TypeString, codes.TypePath)
 }
 
-// findName adı PATH'in mutlak girdilerinde arar; çalışma klasörü aranmaz.
-func findName(code codes.Code, name string) (string, error) {
+// checkName adın biçimini denetler: boş bayt, yol ayırıcısı ve uzantı (21.3).
+func checkName(code codes.Code, name string) error {
 	fn := interp.CallPrefix(code)
 	if strings.IndexByte(name, 0) >= 0 {
-		return "", messages.New(messages.H7502, fn, name)
+		return messages.New(messages.H7502, fn, name)
 	}
 	if strings.ContainsAny(name, `/\`) {
-		return "", messages.New(messages.H7494, fn, name, codes.Spelling(code))
+		return messages.New(messages.H7494, fn, name, codes.Spelling(code))
 	}
-	if err := checkNameSuffix(code, name); err != nil {
-		return "", err
-	}
-	dirs := filepath.SplitList(os.Getenv("PATH"))
-	dirs = slices.DeleteFunc(dirs, func(d string) bool { return !filepath.IsAbs(d) })
-	if name != "" && !(onWindows && strings.ContainsRune(name, ':')) {
-		for _, dir := range dirs {
-			if p, ok := programIn(dir, name); ok {
-				return p, nil
-			}
+	return checkNameSuffix(code, name)
+}
+
+// searchPath aramanın PATH'idir (21.3): TR_env:'de PATH adlı bir anahtar varsa onun değeri (Windows'ta
+// harf ayrılmaz; birden çoksa sonuncusu, dış programın ortamında da sonuncusu geçer), yoksa TR
+// programının PATH'i.
+func searchPath(given [][2]string) (value string, fromEnv bool) {
+	for i := len(given) - 1; i >= 0; i-- {
+		if sameEnvName(given[i][0], "PATH") {
+			return given[i][1], true
 		}
-		if onWindows {
-			if batch, ok := batchIn(dirs, name); ok {
-				return "", messages.New(messages.H7496, fn, batch, codes.Spelling(code))
-			}
+	}
+	return os.Getenv("PATH"), false
+}
+
+// absoluteEntries PATH değerinin mutlak girdileridir: göreli girdi, boş girdi (POSIX'te çalışma
+// klasörü) ve açılmamış değişkenli girdi (%SystemRoot%) aranmaz.
+func absoluteEntries(value string) []string {
+	return slices.DeleteFunc(filepath.SplitList(value), func(d string) bool { return !filepath.IsAbs(d) })
+}
+
+// findName adı aramanın PATH'inin mutlak girdilerinde arar; çalışma klasörü aranmaz. TR_env:'deki PATH
+// boşsa ad hiçbir yerde aranmaz (emptyPathError).
+func findName(code codes.Code, name string, given [][2]string, args []string) (string, error) {
+	fn := interp.CallPrefix(code)
+	value, fromEnv := searchPath(given)
+	searchable := name != "" && !(onWindows && strings.ContainsRune(name, ':'))
+	if fromEnv && value == "" && searchable {
+		return "", emptyPathError(code, name, args)
+	}
+	if searchable {
+		switch p, batch := lookIn(absoluteEntries(value), name); {
+		case p != "":
+			return p, nil
+		case batch != "":
+			return "", messages.New(messages.H7496, fn, batch, codes.Spelling(code))
 		}
 	}
 	if words := strings.Fields(name); len(words) > 1 {
 		return "", messages.New(messages.H7498, fn, name, words[0], listText(words[1:]), codes.Spelling(code))
 	}
 	return "", messages.New(messages.H7497, fn, name)
+}
+
+// emptyPathError TR_env:'deki boş PATH'in iletisidir (21.3): ad aranmadı. TR programının PATH'inde aynı
+// kurallarla bulunan dosya yol olarak önerilir; orada yalnız toplu iş dosyası varsa onun iletisi gelir,
+// hiç yoksa (boşluk içeren ad da) öneri yoktur.
+func emptyPathError(code codes.Code, name string, args []string) error {
+	fn := interp.CallPrefix(code)
+	switch p, batch := lookIn(absoluteEntries(os.Getenv("PATH")), name); {
+	case p != "":
+		return messages.New(messages.H7564, fn, name, codes.Spelling(code), p, listText(args))
+	case batch != "":
+		return messages.New(messages.H7496, fn, batch, codes.Spelling(code))
+	}
+	return messages.New(messages.H7565, fn, name)
+}
+
+// lookIn adı klasörlerde sırayla arar: çalışan dosyanın yolunu ya da, Windows'ta ad yalnız toplu iş
+// dosyası olarak varsa, o dosyanın adını verir; ikisi de yoksa ikisi de boştur.
+func lookIn(dirs []string, name string) (path, batch string) {
+	for _, dir := range dirs {
+		if p, ok := programIn(dir, name); ok {
+			return p, ""
+		}
+	}
+	if onWindows {
+		if b, ok := batchIn(dirs, name); ok {
+			return "", b
+		}
+	}
+	return "", ""
 }
 
 // checkNameSuffix adın sonunu denetler: .exe, .com, .bat ya da .cmd ile biten ad her işletim sisteminde
