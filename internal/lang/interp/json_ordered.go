@@ -6,7 +6,6 @@ import (
 	"io"
 	"math"
 	"slices"
-	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -29,8 +28,14 @@ func jsonDepthError(depth int) error {
 // map-based decoding it keeps the key order of objects: json_çöz("{\"b\": 1, \"a\": 2}") gives b, a.
 // A number keeps its spelling (3.7a): an integer written without '.' or exponent that fits Int is an
 // Int, every other number a Float (2.0 stays a Float, a larger integer is a Float). A key written
-// twice in one object is an error that names the key and both places (3.7a, 13.8).
+// twice in one object is an error that names the key and both places (3.7a, 13.8). The text is
+// checked first (CheckJSON): a lone surrogate escape, an invalid UTF-8 byte and a syntax error
+// are errors with line and column, so the decoder below never meets them; its own error after the
+// check is a TR bug (messages.Internal).
 func JSONToTR(data []byte) (Value, error) {
+	if err := CheckJSON(data); err != nil {
+		return nil, err
+	}
 	p := jsonParser{dec: json.NewDecoder(bytes.NewReader(data)), data: data}
 	p.dec.UseNumber()
 	val, err := p.value(0)
@@ -38,9 +43,21 @@ func JSONToTR(data []byte) (Value, error) {
 		return nil, err
 	}
 	if _, err := p.dec.Token(); err != io.EOF {
-		return nil, messages.New(messages.H2499)
+		return nil, decoderError(err)
 	}
 	return val, nil
+}
+
+// decoderError, CheckJSON'dan geçmiş metinde Go'nun çözücüsünün hatasıdır: yalnız TR'nin kendi
+// hatasıyla olur (tarama ile çözücü ayrışmıştır).
+func decoderError(err error) error {
+	return messages.Internalf("JSONToTR: the decoder rejected text that CheckJSON accepted: %v", err)
+}
+
+// unexpectedToken, CheckJSON'dan geçmiş metinde çözücünün yerinde beklenmeyen bir belirteç
+// vermesidir (what: "delimiter", "token", "key"); decoderError gibi yalnız TR'nin kendi hatasıyla olur.
+func unexpectedToken(what string, tok json.Token) error {
+	return messages.Internalf("JSONToTR: the decoder gave an unexpected %s %v in text that CheckJSON accepted", what, tok)
 }
 
 // jsonParser JSON metnini belirteç belirteç okur; data yinelenen anahtarın yerini söylemek içindir.
@@ -53,7 +70,7 @@ type jsonParser struct {
 func (p *jsonParser) value(depth int) (Value, error) {
 	tok, err := p.dec.Token()
 	if err != nil {
-		return nil, err
+		return nil, decoderError(err)
 	}
 	switch t := tok.(type) {
 	case json.Delim:
@@ -73,11 +90,11 @@ func (p *jsonParser) value(depth int) (Value, error) {
 				l.Elements = append(l.Elements, val)
 			}
 			if _, err := p.dec.Token(); err != nil { // ']'
-				return nil, err
+				return nil, decoderError(err)
 			}
 			return l, nil
 		}
-		return nil, messages.New(messages.H2502, t)
+		return nil, unexpectedToken("delimiter", t)
 	case string:
 		return &StringVal{Val: t}, nil
 	case json.Number:
@@ -94,7 +111,7 @@ func (p *jsonParser) value(depth int) (Value, error) {
 	case nil:
 		return Null, nil
 	}
-	return nil, messages.New(messages.H2504, tok)
+	return nil, unexpectedToken("token", tok)
 }
 
 // object bir nesnenin anahtarlarını ve değerlerini okur ('{' okunmuştur). Aynı nesnede ikinci kez
@@ -107,11 +124,11 @@ func (p *jsonParser) object(depth int) (Value, error) {
 		start := p.dec.InputOffset()
 		kt, err := p.dec.Token()
 		if err != nil {
-			return nil, err
+			return nil, decoderError(err)
 		}
 		key, ok := kt.(string)
 		if !ok {
-			return nil, messages.New(messages.H2501)
+			return nil, unexpectedToken("key", kt)
 		}
 		stored := stringKey(key) // NUL ile başlayan anahtar sözlükte kodlanmış durur
 		if _, twice := d.Pairs[stored]; twice {
@@ -127,19 +144,17 @@ func (p *jsonParser) object(depth int) (Value, error) {
 		d.Set(key, val)
 	}
 	if _, err := p.dec.Token(); err != nil { // '}'
-		return nil, err
+		return nil, decoderError(err)
 	}
 	return d, nil
 }
 
 // position, offset'ten sonra boşluk ve ',' atlanınca gelen ilk karakterin (anahtarın tırnağının)
-// 1'den başlayan satırı ve sütunudur; sütun karakter sayar.
+// 1'den başlayan satırı ve sütunudur; sütun karakter sayar (jsonPosition, json_check.go).
 func (p *jsonParser) position(offset int64) (line, column int) {
 	i := int(offset)
 	for i < len(p.data) && bytes.IndexByte([]byte(" \t\r\n,"), p.data[i]) >= 0 {
 		i++
 	}
-	before := p.data[:i]
-	line = bytes.Count(before, []byte("\n")) + 1
-	return line, utf8.RuneCount(before[bytes.LastIndexByte(before, '\n')+1:]) + 1
+	return jsonPosition(p.data, i)
 }

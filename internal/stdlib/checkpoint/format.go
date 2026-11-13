@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
@@ -134,15 +135,21 @@ func decodeKind(name string) (objectKind, bool) {
 	return 0, false
 }
 
-// decodeJSON b'yi katı çözer: bilinmeyen alan ve değerden sonra fazladan veri hatadır.
+// decodeJSON b'yi katı çözer: bilinmeyen alan ve değerden sonra fazladan veri hatadır. Metin
+// önce taranır (3.7a, interp.CheckJSON): eşi olmayan vekil kaçışı, geçersiz bayt ve sözdizimi
+// hatası satır ve sütunla gelir; adlar, ayarlar ve düz değerler (json.RawMessage) bu dosyadan
+// çözüldüğü için hepsi bu tek denetimden geçer.
 func decodeJSON(b []byte, target any) error {
+	if err := interp.CheckJSON(b); err != nil {
+		return err
+	}
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
 	if err := d.Decode(target); err != nil {
 		return err
 	}
 	if _, err := d.Token(); !errors.Is(err, io.EOF) {
-		return messages.New(messages.H7420)
+		return messages.Internalf("checkpoint: extra data after a value that CheckJSON accepted: %v", err)
 	}
 	return nil
 }

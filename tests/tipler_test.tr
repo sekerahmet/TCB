@@ -372,6 +372,19 @@ TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_assert_equal(2, TR_Int(TR_json_parse(`{"a": {"a": 1}, "b": {"a": 2}}`)["b"]["a"]))
 }
 
+TR_test "3.7a eşi olmayan vekil kaçışı ve geçersiz UTF-8 çalışma hatasıdır" {
+    # Eşi olmayan UTF-16 vekil kaçışı, değerde de anahtarda da, sessizce U+FFFD olmaz.
+    TR_assert_equal("H2570", TR_error_code { TR_json_parse(`"\ud800"`) })
+    TR_assert_equal("H2570", TR_error_code { TR_json_parse(`{"\ud800": 1, "\udbff": 2}`) })
+    # Geçerli çift ve noncharacter metin verir.
+    TR_assert_equal("😀", TR_String(TR_json_parse(`"\ud83d\ude00"`)))
+    TR_assert_equal(TR_chr(65535), TR_String(TR_json_parse(`"\uffff"`)))
+    # Sözdizimi hatası TR iletisiyle gelir: sondaki virgül, Python'un True'su, boş metin.
+    TR_assert_equal("H2573", TR_error_code { TR_json_parse("[1,]") })
+    TR_assert_equal("H2578", TR_error_code { TR_json_parse("True") })
+    TR_assert_equal("H2579", TR_error_code { TR_json_parse("") })
+}
+
 TR_test "3.7a beklenen tipi TR_JSON olan değişmez JSON değeri olarak kurulur: değişken, parametre, dönüş, alan ve atama" {
     TR_var g: TR_JSON = {"a": 1, "l": [1, "x", TR_none], "o": {"k": TR_true}}
     TR_assert(g == TR_JSON({"a": 1, "l": [1, "x", TR_none], "o": {"k": TR_true}}))

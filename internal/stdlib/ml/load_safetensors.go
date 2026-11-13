@@ -11,11 +11,11 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/compute/gguf"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -79,7 +79,9 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 	if _, err := io.ReadFull(r, header); err != nil {
 		return nil, messages.New(messages.H6639, n, size-8, maxSafetensorsHeader)
 	}
-	if !utf8.Valid(header) || loneSurrogate(header) {
+	// Eşi olmayan vekil kaçışı ve geçersiz bayt H6640'tır (3.7a'nın taraması); öbür hatalarda
+	// (sözdizimi, derinlik) başlık kendi çözücüsüne gider ve onun hatasını verir.
+	if err := interp.CheckJSON(header); messages.Has(err, messages.H2570) || messages.Has(err, messages.H2571) {
 		return nil, messages.New(messages.H6640)
 	}
 	entries, err := safetensorsHeader(header)
@@ -205,41 +207,6 @@ func naturals(v json.RawMessage) ([]uint64, bool) {
 		out[i] = n
 	}
 	return out, true
-}
-
-// loneSurrogate başlıkta eşi olmayan bir UTF-16 vekil kaçışı (\ud800) var mı? encoding/json onu
-// sessizce U+FFFD yapar; böyle bir ad UTF-8'de yazılamaz, başlık geçersizdir.
-func loneSurrogate(b []byte) bool {
-	hex4 := func(i int) (rune, bool) {
-		if i+6 > len(b) || b[i] != '\\' || b[i+1] != 'u' {
-			return 0, false
-		}
-		n, err := strconv.ParseUint(string(b[i+2:i+6]), 16, 32)
-		return rune(n), err == nil
-	}
-	for i := 0; i < len(b); i++ {
-		if b[i] != '\\' {
-			continue
-		}
-		r, ok := hex4(i)
-		if !ok {
-			i++ // başka bir kaçış (\\, \", \n ...): iki bayt atlanır
-			continue
-		}
-		switch {
-		case r >= 0xDC00 && r <= 0xDFFF:
-			return true
-		case r >= 0xD800 && r <= 0xDBFF:
-			low, ok := hex4(i + 6)
-			if !ok || low < 0xDC00 || low > 0xDFFF {
-				return true
-			}
-			i += 11
-		default:
-			i += 5
-		}
-	}
-	return false
 }
 
 // safetensorsEntryOf bir tensör kaydını katı çözer ve tür, eksen, eleman ve ad sınırlarını
