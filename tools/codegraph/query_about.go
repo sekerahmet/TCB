@@ -172,18 +172,19 @@ func (ix *index) fixtureRunners(f *Node) []*Node {
 func (ix *index) aboutReason(t, target *Node, names []string, msgs []*Node) string {
 	if !isNegativeFixture(t) {
 		title := testTitle(t)
+		tf := ix.testFoldsOf(t)
 		own, qual := ownName(target)
 		for _, name := range names {
 			if name == own && qual != "" && ix.pkgOf(t.ID) != ix.pkgOf(target.ID) {
 				// Başka paketteki test bir Go işlevinin kısa adını ancak niteleyicisiyle anar (`TestTensorData`,
 				// `codes.Name`): kısa ad çoğu zaman yaygın bir sözcüktür (bağımsız denetim grup 7: `codes.Name` için
 				// checker'ın "Name" geçen 12 testi "about" sayılıyordu).
-				if containsWords(nameWords(title), append(nameWords(qual), nameWords(own)...)) || hasWord(t.Doc, qual+"."+own) {
+				if containsWords(nameWords(title), append(nameWords(qual), nameWords(own)...)) || tf.doc.hasWord(foldText(qual+"."+own)) {
 					return "names it"
 				}
 				continue
 			}
-			if hasWord(title, name) || hasWord(t.Doc, name) ||
+			if fn := foldText(name); tf.title.hasWord(fn) || tf.doc.hasWord(fn) ||
 				strings.HasPrefix(t.ID, "go:") && containsWords(nameWords(title), nameWords(name)) {
 				return "names it"
 			}
@@ -208,10 +209,14 @@ func (ix *index) aboutReason(t, target *Node, names []string, msgs []*Node) stri
 		return ""
 	}
 	lines := strings.Split(string(data), "\n")
+	foldedNames := make([]foldedText, len(names)) // her ad bir kez katlanır, her satır bir kez
+	for i, name := range names {
+		foldedNames[i] = foldText(name)
+	}
 	best, bestLen := "", 0 // birden çok ileti uyarsa sabit metni en uzun olan (en belirgin) söylenir
 	for no := t.Line; no <= max(t.End, t.Line) && no <= len(lines); no++ {
 		line := lines[no-1]
-		if !slices.ContainsFunc(names, func(name string) bool { return hasWord(line, name) }) {
+		if !slices.ContainsFunc(foldedNames, foldText(line).hasWord) {
 			continue
 		}
 		for _, m := range msgs {
@@ -244,6 +249,24 @@ func testTitle(t *Node) string {
 		return t.Name[strings.Index(t.Name, ": ")+2:]
 	}
 	return t.Name[strings.LastIndex(t.Name, ".")+1:]
+}
+
+// testFold bir testin katlanmış başlığı (testTitle) ve belge yorumudur.
+type testFold struct{ title, doc foldedText }
+
+// testFoldsOf t'nin katlanmış başlığı ve belgesidir; test başına bir kez hesaplanır (aboutReason her hedef ve her ad
+// için ikisini de yeniden katlıyordu). Belge nodeFolds'tan okunmaz: o dizi düğümün sırasıyladır, buraya gelen düğüm
+// byID'den işaretçidir.
+func (ix *index) testFoldsOf(t *Node) *testFold {
+	if f := ix.testFolds[t]; f != nil {
+		return f
+	}
+	if ix.testFolds == nil {
+		ix.testFolds = map[*Node]*testFold{}
+	}
+	f := &testFold{foldText(testTitle(t)), foldText(t.Doc)}
+	ix.testFolds[t] = f
+	return f
 }
 
 // nameWords bir adın sözcükleridir, Türkçe katlanmış: alt çizgide, harf ve rakam olmayan karakterde ve büyük harf

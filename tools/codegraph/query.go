@@ -24,6 +24,7 @@ type index struct {
 	note       func(*Node) string         // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
 	trNames    []trName                   // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
 	folded     []foldedNode               // düğümlerin katlanmış adları (nodeFolds; tembel)
+	testFolds  map[*Node]*testFold        // testlerin katlanmış başlığı ve belgesi (testFoldsOf; tembel)
 	linked     map[string]map[string]bool // paket -> ikilisine giren paketler (inTestBinary; tembel)
 	callerMemo map[callersKey][]string    // çağıranlar (callers; tembel, index_cache.go)
 	pkgMemo    map[string]string          // düğüm -> paket klasörü (pkgOf; tembel)
@@ -461,7 +462,18 @@ func (ix *index) printFields(w io.Writer, n *Node) []*Edge {
 // hasWord text, q'yu bütün bir sözcük olarak içeriyor mu: Türkçe harf katlamasıyla (İ/i, I/ı) karşılaştırılır, eşleşmenin iki
 // yanında harf, rakam ya da alt çizgi olmamalıdır.
 func hasWord(text, q string) bool {
-	return hasWordFolded(folds[0](text), folds[0](q)) || hasWordFolded(folds[1](text), folds[1](q))
+	return foldText(text).hasWord(foldText(q))
+}
+
+// foldedText bir metnin iki katlamasıdır (folds sırasıyla). Aynı metin birçok sözcükle karşılaştırılacaksa bir kez
+// katlanır: her hasWord çağrısında yeniden katlamak tests-for'un en büyük kalemiydi (aboutReason, profil 2026-11-13).
+type foldedText [2]string
+
+func foldText(s string) foldedText { return foldedText{folds[0](s), folds[1](s)} }
+
+// hasWord hasWord(text, q)'nun katlanmış hâlidir: iki katlamadan biri tutarsa eşleşir.
+func (ft foldedText) hasWord(q foldedText) bool {
+	return hasWordFolded(ft[0], q[0]) || hasWordFolded(ft[1], q[1])
 }
 
 // hasWordFolded katlanmış metinde katlanmış sözcüğün sözcük sınırında geçip geçmediğidir.

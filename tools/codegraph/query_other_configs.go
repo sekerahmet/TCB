@@ -56,8 +56,9 @@ func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigM
 			}
 		}
 		sort.Slice(decls, func(a, b int) bool { return decls[a].line < decls[b].line })
+		fw := foldText(word) // sözcük bir kez katlanır, her satır bir kez
 		for no, line := range strings.Split(string(data), "\n") {
-			if !hasWord(line, word) || strings.HasPrefix(strings.TrimSpace(line), "//") {
+			if !foldText(line).hasWord(fw) || strings.HasPrefix(strings.TrimSpace(line), "//") {
 				continue // yorum satırı kullanım değildir
 			}
 			m := otherConfigMention{file: f.Name, line: no + 1}
