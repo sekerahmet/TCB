@@ -1683,6 +1683,7 @@ tam_y.TR_dtype	ok	0	name:TR_mem_dtype
 targets.TR_append	ok	0	name:TR_mem_append
 tek.TR_contains	ok	0	name:TR_mem_contains
 tek.TR_dtype	ok	0	name:TR_mem_dtype
+tek.TR_encode	ok	0	name:TR_mem_encode
 tek.TR_tolist	ok	0	name:TR_mem_tolist
 tek_sıcak.TR_shape	ok	0	name:TR_mem_shape
 tekler.TR_append	ok	0	name:TR_mem_append
