@@ -179,7 +179,7 @@ Kodlama modelleri TR'yi doğru yazıyor mu, yanlış yazınca hata gürültülü
 
 Dilin kuralı değil; kodlama modellerinin ve insanların dili rahat kullanması için.
 
-- **Go araç zinciri:** 1.27'ye geçildi (Ahmet 2026-11-13: açık işler bitince ilk iş; ayrıntı status'un "Bölümü olmayan işler"i). Windows'taki yığın hatasının düzeltmesi 1.27.5'le gelecek. 1.27'nin dil ve kitaplık özelliklerinden hangilerinin kullanılacağı ayrı karar (Ahmet 2026-11-13 09:04 araştırmayı sordu); dil sürümü satırı o karara kadar 1.25.
+- **Go araç zinciri:** 1.27'ye geçildi (Ahmet 2026-11-13: açık işler bitince ilk iş; ayrıntı status'un "Bölümü olmayan işler"i). Windows'taki yığın hatasının düzeltmesi 1.27.5'le gelecek. Dil sürümü satırı 1.27 (status). H1'in araştırmasından (2026-11-13) sıradakiler: arka plan işi sızıntısı testlerinde Go'nun sızıntı profili; kod değişmeden gelen iki hızlandırmanın ölçüsü (Ahmet'in kararında); arm64 vektör çekirdeği Go'nun deneysel `simd`'iyle, robot işinden önce değil; zaman bekleyen testlerde sahte saat.
 - **Makinece okunur dilbilgisi dosyası:** model kod üretirken sözdizimine uymayan sözcüğü baştan dışarıda bırakabilsin.
 - **Kodlama modeline tek sayfalık başvuru:** var ([`agent_reference.md`](agent_reference.md), giriş [`AGENTS.md`](../AGENTS.md)); `sekerahmet/tcb-research`'teki Evre A ve B başvuruları kayıttır.
 - **Claude Code kancaları** ([`tools/edithook`](../tools/edithook/README.md)): her kanca ajanı gerçekten doğru şeye yönlendiriyor mu, bedeli ne, diye tartılır. Açık kalanlar:

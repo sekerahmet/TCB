@@ -115,6 +115,8 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 - **`TestTRPathsInRepositoryGraph`'ın olumsuz örneği depodaki gerçek bir fikstür (2026-11-13, D1 Teslim B devrinin 7. bulgusu; DENETİM 579 N3).** Test `tests/data/llama3_chat/tokenizer_config.json`'u "okuyanı olmayan dosya" diye tutuyor (`tools/codegraph/tr_paths_test.go:476-478`); dosyayı okumaya başlayan doğru bir değişiklik G4'ü düşürüyor (D1'in G4 5'i). Cevap doğru, test kırılgan. Olumsuz örnek codegraph'ın kendi `testdata`'sına taşınır; `uncovered_data.txt`'in geniş `tests/data/**` girdisi de aynı işte daraltılır. Sahip: sonraki codegraph dilimi (Dilim 3'ün ardılıyla, ikisi de `tr_paths_test.go`).
 
+- **Standart kitaplık paketini içe aktaran dosyalar sorulamıyor (2026-11-13, H1'in Go 1.27 araştırması).** `codegraph query "encoding/json"` modül sembollerinden 12 aday veriyor, içe aktaran dosya yok; `imports` kenarı yalnız modül paketleri arasında (`tools/codegraph/README.md`'nin kenar tablosu). Go sürüm geçişinde ilk soru bu; H1 düzenli ifadeyle buldu (`encoding/json` 113, `net/http` 14, `unicode` 43 dosya). İstenen: `who-uses encoding/json` içe aktaran dosyaları ve satırlarını versin. Sahip: sonraki codegraph dilimi.
+
 ## Kalan işler (eksik değil, yeni yetenek)
 
 - **Üye yazımında yerel alıcının türü (2026-11-12, H1 ve D1; DENETİM 550 N3, 554 N3).** Altın dosya üyeyi yalnız adla çözüyor: aynı ad iki yapıda alansa "ambiguous" (89 satır, `9b43a9bf`) [ölçüldü: DENETİM 550]. `f.TR_gate_proj`'un doğru türü `TR_SwiGLU`, ama bunu bulmak için yerel değişkenin türü alan erişiminden çıkarılmalı (`f = b.TR_feed_forward`); D1 Teslim A 7 "ambiguous" satır daha ekledi. Tip denetleyicisi bunu biliyor, codegraph kullanmıyor.
