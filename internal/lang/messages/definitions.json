@@ -1900,6 +1900,7 @@
 "H7660": { "param": ["fn", "path"], "slots": {"tokenless_paths": "TR_arg_tokenless_paths"} },
 "H7661": { "param": ["fn"], "slots": {"tokenless_paths": "TR_arg_tokenless_paths", "token": "TR_arg_token", "secret_token": "TR_fn_secret_token"} },
 "H7662": { "param": ["fn", "path", "decoded"], "slots": {"tokenless_paths": "TR_arg_tokenless_paths"} },
+"H7729": { "param": ["fn", "path"] },
 "H7730": { "param": ["value", "suggestion"], "slots": {"os": "TR_mem_os"} },
 "H7731": { "param": ["value", "suggestion"], "slots": {"arch": "TR_mem_arch"} },
 "H7732": { "param": ["value"], "slots": {"os": "TR_mem_os"} },

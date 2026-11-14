@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 788 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 181 fonksiyon, 13 sabit, 95 metot, 147 özellik, 195 adlı argüman.
+Toplam 790 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 183 fonksiyon, 13 sabit, 95 metot, 147 özellik, 195 adlı argüman.
 
 ## İçindekiler
 
@@ -3618,6 +3618,44 @@ tr: fonksiyon cevapla(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövd
 ```
 
 İlişkili: `TR_HTTPServer`, `TR_Request`, `TR_Response`, `TR_file_response(...)`, `TR_secret_token(...)`
+
+#### `TR_sha256(...)` (`TR_fn_sha256`, `sha256`)
+
+    sha256(Baytlar) → Metin
+
+Baytların sha256 karmasını 64 küçük onaltılık karakterli Metin olarak verir.
+
+```tr
+TR_print(TR_sha256(TR_Bytes([])))
+```
+
+Görünümü:
+
+```text
+en: print(sha256(Bytes([])))
+tr: yazdır(sha256(Baytlar([])))
+```
+
+İlişkili: `TR_sha256_file(...)`, `TR_read_bytes(...)`
+
+#### `TR_sha256_file(...)` (`TR_fn_sha256_file`, `dosya_sha256`)
+
+    dosya_sha256(Metin | Yol) → Metin
+
+Dosyanın baytlarının sha256 karmasını verir; akışla okur, .gz'yi açmaz.
+
+```tr
+TR_write_file("not.txt", "merhaba"); TR_print(TR_sha256_file("not.txt") == TR_sha256(TR_read_bytes("not.txt")))
+```
+
+Görünümü:
+
+```text
+en: write_file("not.txt", "merhaba"); print(sha256_file("not.txt") == sha256(read_bytes("not.txt")))
+tr: dosya_yaz("not.txt", "merhaba"); yazdır(dosya_sha256("not.txt") == sha256(dosya_baytları("not.txt")))
+```
+
+İlişkili: `TR_sha256(...)`, `TR_read_bytes(...)`
 
 #### `TR_shape_groups(...)` (`TR_fn_shape_groups`, `şekil_grupları`)
 

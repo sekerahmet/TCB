@@ -42,3 +42,8 @@ Karşılaştırma:
 - İletideki kabuk yazımı: 21 uygulanmadı, `TR_run_process` önerisi kopyalanınca çalışmaz (DENETİM istek 154 Ş3); kabuk komutu dilden bağımsız çalışır.
 - Yeniden örnekleme kitaplıkta yoktur, çünkü Whisper'la aynı sonuç `ffmpeg`'in kendi yeniden örneklemesiyle alınır [DENETİM açtı: whisper `cmd`'de `-ar`]. Basit bir ara değerleme örtüşmeyle doğruluğu düşürür [rapordan].
 - *Tur 6C (2026-11-10, iletinin yazımı):* 21 uygulandığı için ileti kabuk komutu yerine `TR_run_process` yazımını verir: kopyalanan kabuk komutu ajanı ya adı boşluklu bir programa (21.3'te hata) ya da kabuğa (21.1'in kaçındığı) götürür. `-y` önerinin parçasıdır: `-nostdin` varken `ffmpeg` var olan çıktının üstüne yazmayı soramaz ve hatayla biter, kopyalanan öneri ikinci koşuda düşerdi (DENETİM 402 N3).
+
+### 22.5
+
+- *Emsal:* 20.5'in `digest.json`'u sha256'yı 64 küçük onaltılık karakterle yazar [kanıtlı: `internal/stdlib/checkpoint/read.go`, `sha256.New()` ve `digestMatches`]; Hugging Face'in LFS işaretçisi (`lfs.oid`) de aynı biçimdedir. Go'nun `crypto/sha256`'sı ve `hex.EncodeToString` küçük harf verir.
+- *Gerekçe:* ayrı bir dosya yerleşiği, iki yanlışı kapatır: `TR_sha256(TR_read_bytes(yol))` büyük bir model dosyasını bütünüyle belleğe alır; `TR_read_file` 18.12'nin `.gz` saydamlığıyla açılmış içeriği verir ve karma sessizce başka bir dosyanınki olur. Algoritma adı alan genel bir karma yerleşiği bu turda yoktur: dosya indirmenin ve 20.5'in ihtiyacı yalnız sha256'dır.

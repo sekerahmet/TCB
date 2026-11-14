@@ -65,3 +65,17 @@ TR_var tek_kanal = ses.TR_samples[0] # şekli [örnek]
 ```
 
 - *Test:* Go: `TestWavMessagesGiveTheFix`, `FuzzReadWav`; kitaplık testi `lib/audio_test.tr`.
+
+**22.5** `TR_sha256(b)` baytların (`TR_Bytes`, 3.3a), `TR_sha256_file(yol)` bir dosyanın baytlarının sha256 karmasını verir. İkisinin sonucu da 64 küçük onaltılık karakterli bir `TR_String`'dir: 20.5'in `digest.json`'u ve Hugging Face'in `lfs.oid`'iyle aynı biçim; karşılaştırma `==` ile yapılır.
+- `TR_sha256_file` diskteki baytı karmalar: `.gz` dosyayı açmaz (`TR_read_bytes` gibi, 18.12). Dosyayı akışla okur, bellek dosyanın boyutundan bağımsızdır; okurken kilidi bırakır (10.3). Yol 18.16'nın okuma kuralıyla çözülür; olmayan dosya ve klasör hatadır.
+- Neden ayrı bir yerleşik: `TR_sha256(TR_read_bytes(yol))` büyük dosyayı bütünüyle belleğe alır; `TR_sha256(TR_Bytes(TR_read_file(yol)))` `.gz`'yi açar ve sessizce başka bir karma verir.
+- Algoritma adı alan genel bir karma yerleşiği yoktur.
+
+```tr
+# TR 4
+TR_print(TR_sha256(TR_Bytes([])) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855") # TR_true
+TR_write_file("not.txt", "merhaba")
+TR_print(TR_sha256_file("not.txt") == TR_sha256(TR_read_bytes("not.txt"))) # TR_true
+```
+
+- *Test:* TR testi (`tests/bayt_ve_sayi_test.tr`, 22.5: boş bayt, bilinen değer, dosya ile baytın eşitliği, `.gz`'nin açılmaması, klasör ve olmayan dosya hatası); Go: `TestSha256FileStreams`.

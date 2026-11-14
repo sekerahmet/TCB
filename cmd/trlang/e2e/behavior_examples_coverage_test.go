@@ -64,6 +64,9 @@ var uncoveredNames = map[string]string{
 	"TR_fn_device_info":     "örneği söz bölümünde yok (dost-indirme E)",
 	"TR_type_DeviceInfo":    "örneği söz bölümünde yok (dost-indirme E)",
 	"TR_mem_driver_version": "örneği söz bölümünde yok (dost-indirme E)",
+	// sha256 (22.5): aynı neden (dost-indirme C dilimi, 2026-11-14). Dil tanımının örneği ve TR testi var.
+	"TR_fn_sha256":      "örneği söz bölümünde yok (dost-indirme C)",
+	"TR_fn_sha256_file": "örneği söz bölümünde yok (dost-indirme C)",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

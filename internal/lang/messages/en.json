@@ -1900,6 +1900,7 @@
 "H7660": "{fn}: {path|q} in `{#tokenless_paths}:` is not an exact path: a path starts with `/` and carries no query, backslash, control character or `..` component; write each file by name: `{#tokenless_paths}: [\"/\", \"/index.html\"]`",
 "H7661": "{fn}: `{#tokenless_paths}:` means something only on a server with a token; without a token every path is open already; give a token to protect the others: `{#token}: {#secret_token}()`",
 "H7662": "{fn}: {path|q} in `{#tokenless_paths}:` carries `%`: the list is written with decoded paths and a request is compared by its decoded path; write the decoded form: `{#tokenless_paths}: [{decoded|q}]`",
+"H7729": "{fn}: a folder is not hashed: {path|q}",
 "H7730": "`.{#os}` is compared with {value|q}; the table's spelling is {suggestion|q}",
 "H7731": "`.{#arch}` is compared with {value|q}; the table's spelling is {suggestion|q}",
 "H7732": "`.{#os}` cannot be {value|q}: its value is windows, linux, macos or, on another machine, Go's operating system name",

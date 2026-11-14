@@ -222,6 +222,8 @@
   "TR_fn_save_tensors": { "name": "save_tensors" },
   "TR_fn_secret_token": { "name": "secret_token" },
   "TR_fn_serve_http": { "name": "serve_http" },
+  "TR_fn_sha256": { "name": "sha256" },
+  "TR_fn_sha256_file": { "name": "sha256_file" },
   "TR_fn_shape_groups": { "name": "shape_groups" },
   "TR_fn_sign": { "name": "sign" },
   "TR_fn_sleep": { "name": "sleep" },

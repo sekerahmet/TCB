@@ -1,5 +1,5 @@
 # TR 4
-# Bayt ve sayı (22.1–22.3): baytlardan tensör ve sayı okumak, bayta yazmak.
+# Bayt ve sayı (22.1–22.3, 22.5): baytlardan tensör ve sayı okumak, bayta yazmak, sha256.
 
 TR_test "22.1 örnek: iki baytlık işaretli sayılar küçük uçlu okunur" {
     TR_var b = TR_Bytes([1, 0, 255, 255])
@@ -118,4 +118,31 @@ TR_test "22.3 float64 16 bite bir kez yuvarlanır: float32'den geçen çift yuva
     # 1 + 2^-11 + 2^-40: float32'ye yuvarlanınca tam orta nokta olur, oradan fp16 1.0'a inerdi.
     TR_var x = 1.0 + 0.00048828125 + 0.0000000000009094947017729282
     TR_assert_equal(TR_Bytes([1, 60]), TR_float_to_bytes(x, TR_dtype: "fp16", TR_byte_order: "little"))
+}
+
+TR_test "22.5 boş baytın ve bilinen değerin karması 64 küçük onaltılık karakterdir" {
+    TR_assert_equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", TR_sha256(TR_Bytes([])))
+    TR_assert_equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", TR_sha256(TR_Bytes("abc")))
+}
+
+TR_test "22.5 dosyanın karması baytlarının karmasıdır" {
+    TR_var y = TR_Path(TR_temp_dir(), "not.txt")
+    TR_write_file(y, "merhaba")
+    TR_assert_equal(TR_sha256(TR_read_bytes(y)), TR_sha256_file(y))
+    TR_assert_equal(TR_sha256(TR_Bytes("merhaba")), TR_sha256_file(y))
+}
+
+TR_test "22.5 gz açılmaz: diskteki bayt karmalanır" {
+    TR_var y = TR_Path(TR_temp_dir(), "not.txt.gz")
+    # .gz yoluna yazılan metin sıkıştırılır (18.12); dosya_oku açar, karma açmaz.
+    TR_write_file(y, "merhaba")
+    TR_assert_equal("merhaba", TR_read_file(y))
+    TR_assert_equal(TR_sha256(TR_read_bytes(y)), TR_sha256_file(y))
+    TR_assert(TR_sha256_file(y) != TR_sha256(TR_Bytes("merhaba")))
+}
+
+TR_test "22.5 klasör ve olmayan dosya hatadır" {
+    TR_var k = TR_temp_dir()
+    TR_assert_equal("H7729", TR_error_code { TR_sha256_file(k) })
+    TR_assert_equal("H2132", TR_error_code { TR_sha256_file(TR_Path(k, "yok.bin")) })
 }

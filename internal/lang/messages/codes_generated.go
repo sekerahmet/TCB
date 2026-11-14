@@ -1905,6 +1905,7 @@ const (
 	H7660 Code = 7660 // {fn}: `{#tokenless_paths}:`'taki {path|q} tam bir yol değil: yol `/` ile başlar, sorgu, ters bölü, denetim karakteri ve `..` bileşeni taşımaz; her dosya adıyla yazılır: `{#tokenless_paths}: ["/", "/index.html"]`
 	H7661 Code = 7661 // {fn}: `{#tokenless_paths}:` yalnız belirteçli sunucuda anlamlıdır, belirteçsiz sunucuda her yol zaten açıktır; korumak için belirteç verin: `{#token}: {#secret_token}()`
 	H7662 Code = 7662 // {fn}: `{#tokenless_paths}:`'taki {path|q} `%` taşıyor: liste çözülmüş yolla yazılır, istek de çözülmüş yoluyla karşılaştırılır; çözülmüş biçimini yazın: `{#tokenless_paths}: [{decoded|q}]`
+	H7729 Code = 7729 // {fn}: bir klasör karmalanmaz: {path|q}
 	H7730 Code = 7730 // `.{#os}` {value|q} ile karşılaştırılıyor; tablodaki yazımı {suggestion|q}
 	H7731 Code = 7731 // `.{#arch}` {value|q} ile karşılaştırılıyor; tablodaki yazımı {suggestion|q}
 	H7732 Code = 7732 // `.{#os}` {value|q} olamaz: değeri windows, linux, macos ya da başka bir makinede Go'nun işletim sistemi adıdır

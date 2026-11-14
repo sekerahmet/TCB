@@ -1287,6 +1287,10 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md).
 - **Mevcut durum:** WAV okumasının bellek tepesi dosyanın yaklaşık 10 katı: 38,4 MB'lık dosyada 395 904 KB [ölçüldü: S1].
 - **Yapılacaklar (F, Ö3; sahip S1):** iletide bayt adı okunmuyor: H7067 metin olmayan parça adını sayı listesi diye gösteriyor [ölçüldü: S1]. Uzun dosyalar için parça parça okuma, önce gerçek ihtiyaç ölçülür.
 
+### 22.5
+
+- **Mevcut durum (Dost Interface, indirmenin C dilimi):** `TR_sha256` ve `TR_sha256_file` `internal/stdlib/files/sha256.go`'da; dosya akışla okunuyor, `.gz` açılmıyor, klasör H7729 [test: `TestSha256FileStreams`, `tests/bayt_ve_sayi_test.tr` 22.5].
+
 ## 23. Sinyal ve spektrum
 
 Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).

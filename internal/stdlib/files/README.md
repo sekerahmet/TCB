@@ -1,7 +1,8 @@
 # files
 
 TR'nin dosya ve klasör yerleşikleri: `TR_type_Path(...)` değeri, satır okuyucu (`TR_fn_read_lines`),
-listeleme ve kalıplar, kopyalama, taşıma, silme ve geçici klasörler.
+listeleme ve kalıplar, kopyalama, taşıma, silme, geçici klasörler ve sha256 (`TR_fn_sha256`,
+`TR_fn_sha256_file`, 22.5).
 
 ## Standartlar
 
@@ -28,6 +29,11 @@ Denetim: `TestDeleteOpenReader`, `TestMoveOpenReader`, `TestLineReaderClose`.
 **Okuyucu sızmaz.** Satır okuyucular bitince, kapatılınca, erişilemez olunca ya da program
 bitince kapanır; çok uzun satırlar belleği tüketmeden hatayla durur.
 Denetim: `TestLineReaderClose`, `TestLineReaderClosesAtEOFWithoutNewline`, `TestLineReaderClosedWhenUnreachable`, `TestTempDirDeletedByProgram`, `TestFileLinesGzipAndLongLine`.
+
+**Karma diskteki baytındır ve tek biçimdedir.** `TR_sha256_file` dosyayı akışla okur, `.gz`'yi
+açmaz; sonuç 64 küçük onaltılık karakterdir. Biçim tek yerdedir (`Sha256Hex`): indirme (28.10)
+sonucunu da onunla yazar.
+Denetim: `TestSha256KnownValues`, `TestSha256FileStreams`.
 
 ## Testler
 

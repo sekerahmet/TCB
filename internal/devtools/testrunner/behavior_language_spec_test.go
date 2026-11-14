@@ -309,6 +309,9 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		"_ = os.Chtimes(fpath, time.Now(), b.ModTime())": "status: Go kodundan alıntı",
 		"os.Root": "status: Go'nun tipi, kod değil",
 		"yol":     "16: parametrenin yer tutucusu, kod değil",
+		// 22.5'in TR_fn_sha256'sı (sha256) gelince Go dosyasının adı olarak anılan yer (Dost Interface C dilimi, 2026-11-14).
+		"TR_sha256_file(yol)":             "22: parametrenin yer tutucusu, kod değil",
+		"internal/stdlib/files/sha256.go": "status: dosya yolu",
 	}
 	spans := regexp.MustCompile("`([^`\n]+)`")
 	words := regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
