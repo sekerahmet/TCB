@@ -116,11 +116,14 @@ func mapTypeNames(t string, f func(string) string) string {
 // yazımı ise ondalık beklenen yerde ondalıktır (3.13). Öğe tipi bilinmeyen kap asıl adıyla karşılaştırılır.
 
 // compat iki tipin uyumuna karar verir. isStruct adın denetleyicinin bildiği bir yapı olup
-// olmadığını söyler (nil: hiçbir yapı bilinmiyor); literal verilen değer bir değişmezdir; exact
-// tam sayının ondalık yerine geçmesini kapatır: çalışma anı çevirmeyen yerde tip tam aynı olur
-// ('??'nin sağ yanı, 4.7).
+// olmadığını söyler (nil: hiçbir yapı bilinmiyor). place bir değerin tipli yere girişidir
+// (assignable): orada tam sayı ondalık yere yalnız yazımsa geçer, literal değerin tam sayılarının
+// hepsinin yazım olduğudur (1, -2, [1, 2]; 3.13); TR_Int tipli bir değer geçmez. Yer dışında
+// literal değerin bir değişmez olduğudur. exact tam sayının ondalık yerine geçmesini kapatır:
+// çalışma anı çevirmeyen yerde tip tam aynı olur ('??'nin sağ yanı, 4.7; çalışma denetimi, 1.2).
 type compat struct {
 	isStruct func(string) bool
+	place    bool
 	literal  bool
 	exact    bool
 }
@@ -139,7 +142,62 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 		c.checkJSONLiteral(value) // 3.7a: öğeleri JSON değeri olarak kurulur (json_values.go)
 		return true
 	}
-	return compat{isStruct: c.knownStruct, literal: literalValue(value)}.types(expected, actual)
+	return c.placeCompat(value).types(expected, actual)
+}
+
+// placeCompat bir değerin tipli yere girişinin uygunluğudur (assignable, strictFits).
+func (c *Checker) placeCompat(value ast.Expression) compat {
+	return compat{isStruct: c.knownStruct, place: true, literal: c.intSpellings(value)}
+}
+
+// intSpellings değerin tam sayılarının hepsi yazım mı (3.13): sayı yazımı (eksi işaretlisi de) ya da
+// tam sayı tipli öğeleri böyle olan liste, sözlük ve demet değişmezi; öbür öğelerin (metin anahtar,
+// ondalık değişken) tipi bakılmaz. Ondalık yere yalnız yazımdaki tam sayı geçer; ad, çağrı ya da işlem
+// (n, f(), n + 1) TR_Int tipli değerdir.
+func (c *Checker) intSpellings(value ast.Expression) bool {
+	switch v := value.(type) {
+	case *ast.IntegerLiteral, *ast.FloatLiteral:
+		return true
+	case *ast.PrefixExpression:
+		switch v.Right.(type) {
+		case *ast.IntegerLiteral, *ast.FloatLiteral:
+			return v.Operator == "-"
+		}
+	case *ast.ListLiteral:
+		return c.elementSpellings(v.Elements...)
+	case *ast.TupleExpression:
+		return c.elementSpellings(v.Elements...)
+	case *ast.DictLiteral:
+		for _, p := range v.Pairs {
+			if !c.elementSpellings(p.Key, p.Value) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// elementSpellings değişmezin öğelerinin tam sayıları yazım mı: öğe bir yazım ya da değişmezse ona
+// iner, değilse tipinde TR_Int yoksa uyar.
+func (c *Checker) elementSpellings(elems ...ast.Expression) bool {
+	for _, e := range elems {
+		if c.intSpellings(e) || !literalValue(e) && !hasIntName(c.itemTypes[e]) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+// hasIntName tip metninde TR_Int geçiyor mu (bilinmeyen tip boştur, geçmez)?
+func hasIntName(t string) bool {
+	found := false
+	mapTypeNames(t, func(name string) string {
+		found = found || normalizeTypeName(name) == typeInt
+		return name
+	})
+	return found
 }
 
 // literalValue değer bir liste, sözlük ya da demet değişmezi mi (içindeki tam sayı yazımı ondalık
@@ -221,10 +279,11 @@ func (k compat) tuplesFit(e, a typeShape) bool {
 	return true
 }
 
-// namesFit ayrı iki asıl adın uyumudur. Tam sayı Ondalık beklenen yere atanabilir (kabın içinde
-// yalnız değişmezde). Kabın içinde bilinmeyen ad (tip parametresi, arayüz) her tipi karşılayabilir.
+// namesFit ayrı iki asıl adın uyumudur. Tam sayı yazımı Ondalık beklenen yere geçer (değişmezin
+// içinde de); tipli yerin dışında tam sayı en dışta Ondalık'a uyar. Kabın içinde bilinmeyen ad (tip
+// parametresi, arayüz) her tipi karşılayabilir.
 func (k compat) namesFit(exp, act string, inner bool) bool {
-	if exp == typeFloat && act == typeInt && (!inner || k.literal) && !k.exact {
+	if exp == typeFloat && act == typeInt && !k.exact && (k.literal || !k.place && !inner) {
 		return true
 	}
 	if inner && (k.unknownName(exp) || k.unknownName(act)) {

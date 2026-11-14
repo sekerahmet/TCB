@@ -52,6 +52,9 @@ func noSignal(d statementCode) exprCode {
 }
 
 func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
+	if m := c.checks.of(expr); m != nil && expr != c.unchecked {
+		return c.runtimeChecked(k, expr, m) // tipli yere giren tipi bilinmeyen değer (1.2)
+	}
 	switch e := expr.(type) {
 	case nil:
 		return nullCode

@@ -110,7 +110,7 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 
 // assignStatement atamayı (bileşik atama dahil) derler.
 func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) statementCode {
-	value := c.expression(k, s.Value)
+	value := c.compoundChecked(s, c.expression(k, s.Value)) // bileşik atamanın sonucu tipli yere girer (1.2)
 	if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == "=" {
 		value = k.placeOfName(id.Value).code(value, s.Line()) // tipi yazılı ada atama (3.13)
 	}

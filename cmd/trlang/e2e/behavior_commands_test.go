@@ -337,6 +337,39 @@ func TestBuildCleansUpOnRunError(t *testing.T) {
 	}
 }
 
+// Kural (1.2): üretilen uygulama ana programını ve gömülü modüllerini açılışta denetler ve
+// denetlenmiş ağaçla çalıştırır; 'trlang run' ile aynı sonucu verir. Denetlenmeden çalışınca tipli boş
+// tensör listesinin toplamı 15.18'in hatası yerine sessizce 0 veriyordu. Uyarılar derlenirken
+// yazılır, uygulamanın açılışında yazılmaz.
+func TestBuiltAppRunsTheUntypedValueCheck(t *testing.T) {
+	source := t.TempDir()
+	writeTR(t, source, "ana.tr", "TR_var l: TR_List[TR_Tensor] = []\nTR_print(TR_sum(l))\n")
+	writeTR(t, source, "modullu.tr", "TR_import \"toplayan\"\nTR_var deger_Adi = 1\nTR_print(\"başladı \\(deger_Adi)\")\nTR_print(toplam_bos())\n")
+	writeTR(t, source, "toplayan.tr", "TR_func toplam_bos() -> TR_Tensor {\n    TR_var l: TR_List[TR_Tensor] = []\n    TR_return TR_sum(l)\n}\n")
+	// Tipi bilinmeyen değerin tipli yere girişi de (1.2) uygulamada yerin koduyla durur.
+	writeTR(t, source, "ag.tr", "TR_var m = [1, \"a\"]\nTR_var y: TR_Int = m[1]\nTR_print(\"girdi\")\n")
+	empty := "boş tensör listesinin toplamı yoktur"
+	for _, c := range []struct{ file, out, err string }{
+		{"ana.tr", "", empty}, {"modullu.tr", "başladı 1", empty}, {"ag.tr", "", "\"y\" değişkeni \"TR_Int\" tipinde tanımlandı ancak \"TR_String\""},
+	} {
+		var out []string
+		if c.out != "" {
+			out = []string{c.out}
+		}
+		testkit.Wait(t, tr(t, source, c.file), 1, out, []string{c.err})
+		exit := filepath.Join(t.TempDir(), "app.exe")
+		testkit.Wait(t, tr(t, source, "build", c.file, exit), 0, nil, nil)
+		s := testkit.RunBinary(t, exit, t.TempDir(), "", nil)
+		testkit.Wait(t, s, 1, out, []string{"❌ Çalışma Zamanı Hatası:", c.err})
+		if strings.Contains(s.Stdout, "girdi") {
+			t.Errorf("%s: değer tipli yere girmemeli:\n%s", c.file, s.Stdout)
+		}
+		if strings.Contains(s.Stderr, "deger_Adi") {
+			t.Errorf("%s: uygulama açılışta uyarı yazmamalı:\n%s", c.file, s.Stderr)
+		}
+	}
+}
+
 func TestBuildModuleErrors(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "eksik.tr", "TR_import \"yok_boyle_modul\"\nTR_print(1)\n")

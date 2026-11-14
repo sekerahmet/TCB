@@ -281,8 +281,7 @@ TR_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile 
 # bir_adım: model parametrelerine sabit gradyan basıp op.adım() çalıştırır (kayıp = Σ p · G).
 TR_func sabit_gradyanla_adım(model: TR_GPT, op: TR_MuonAndAdamW) {
     op.TR_zero_grad()
-    TR_var k = 0.0
-    TR_for p TR_in TR_parameters(model) { k = k + TR_sum(p * (0.01 + 0 * p)) }
+    TR_var k = TR_sum([TR_sum(p * (0.01 + 0 * p)) TR_for p TR_in TR_parameters(model)])
     TR_backward(k)
     op.TR_step()
 }

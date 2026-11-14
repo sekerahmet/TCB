@@ -154,6 +154,10 @@ type compiler struct {
 	blocks blockFlagCache
 	// copySteps derlenmekte olan yazma hedeflerinin zincirindeki indeks adımlarıdır (copy_writes.go).
 	copySteps map[*ast.IndexExpression]uint64
+	// checks VM'in çalışma denetimi işaretleridir; unchecked işaretli olup işaretsiz derlenen
+	// ifadedir (1.2; runtime_checks.go).
+	checks    *runtimeCheckSet
+	unchecked ast.Expression
 }
 
 // blockFlags bloğun kapsam bayraklarıdır (blockDefines, blockCaptures).
@@ -163,7 +167,8 @@ func (c *compiler) blockFlags(b *ast.BlockStatement) uint8 {
 
 // newCompiler görevin o an çalıştığı dosya için bir derleyici açar.
 func (v *VM) newCompiler() *compiler {
-	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source, textLang: v.textLanguage(), blocks: blockFlagCache{}}
+	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source, textLang: v.textLanguage(), blocks: blockFlagCache{},
+		checks: &v.runtimeChecks}
 }
 
 // subScope ust içinde yeni bir ortama karşılık gelen kapsam açar.

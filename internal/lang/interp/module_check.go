@@ -2,6 +2,7 @@ package interp
 
 import (
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 
@@ -15,8 +16,9 @@ import (
 // çalışmaz. 'trlang check', 'trlang build' (cmd/trlang) ve çalıştıran her yol aynı CheckModule'ü
 // kullanır; modül aktaranın adlarını görmez (5.14). Yürütme sırasında modül denetlenmiş ağacıyla
 // çalışır (checked_modules.go); dosya denetimden sonra değiştiyse yalnız okunup ayrıştırılır
-// (runModule), ikinci bir denetim yolu yoktur. Dilin gömülü kitaplık modülleri derlemeyle gelir,
-// denetlenmez.
+// (runModule), ikinci bir denetim yolu yoktur. Dilin gömülü kitaplığının aktarılan modülleri de
+// (ve onların aktardıkları) aynı yoldan, süreç başına bir kez denetlenir: denetleyicinin ağaca
+// yazdığı bilgi kitaplıkta da çalışsın (1.2).
 
 // CheckImportedModules mainFile adlı prog'un aktardığı diskteki bütün modülleri çalıştırmadan
 // denetler. İlk hatayı döndürür: denetim hatası için *ModuleError (aktar satırı ve modülün
@@ -65,13 +67,13 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 	if !strings.HasSuffix(path, ".tr") {
 		path += ".tr"
 	}
-	if name, library := LibraryModule(path); library {
-		// Dilin gömülü kitaplığı derlemeyle gelir, denetlenmez; ama olmayan bir kitaplık modülü
-		// çalışmadan önce bulunur (1.3).
-		if _, err := ReadLibrary(name); err != nil {
-			return messages.At(im.Line(), 0, err)
-		}
-		return nil
+	name, library := LibraryModule(path)
+	if !library && importer != nil && importer.Embedded && !filepath.IsAbs(path) {
+		// Kitaplık modülünün göreli aktarımı kitaplıkta çözülür (moduleTarget ile aynı).
+		name, library = pathpkg.Join(pathpkg.Dir(strings.TrimPrefix(importer.Path, LibraryPrefix)), filepath.ToSlash(path)), true
+	}
+	if library {
+		return c.library(importer, name, im)
 	}
 	dirs := FileDirs(file, c.mainFile)
 	resolved, searched, ok := ResolveModulePath(path, dirs)
@@ -96,4 +98,27 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 	}
 	rememberCheckedModule(resolved, string(data), checked)
 	return c.check(modSource, filepath.Clean(resolved), checked.Program)
+}
+
+// library dilin gömülü kitaplığındaki name modülünü denetler ve onun aktardıklarına iner. Olmayan
+// kitaplık modülü çalışmadan önce bulunur (1.3). Kitaplığın metni süreç boyunca değişmediği için
+// modül süreç başına bir kez denetlenir (checkedLibraryModule); kitaplık dosya değildir, files'a
+// girmez.
+func (c *moduleChecker) library(importer *Source, name string, im *ast.ImportStatement) error {
+	key := LibraryPrefix + name
+	if c.seen[key] {
+		return nil
+	}
+	payload, err := ReadLibrary(name)
+	if err != nil {
+		return messages.At(im.Line(), 0, err)
+	}
+	c.seen[key] = true
+	checked := checkedLibraryModule(name, string(payload))
+	modSource := &Source{Path: key, Name: key, Code: checked.Text, Embedded: true}
+	if checked.Stage != "" {
+		return &ModuleError{Source: modSource, Kind: checked.Stage, Errors: checked.Errors,
+			ModulePath: im.Path, ImportLine: im.Line(), Importer: importer}
+	}
+	return c.check(modSource, key, checked.Program)
 }

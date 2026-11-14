@@ -1,0 +1,60 @@
+# TR 4
+# docs/spec/01_program.md §1.2 — tipi bilinmeyen değer tipli bir yere girerken çalışırken denetlenir
+# (Go: TestUntypedValuesAreCheckedAtTypedPlaces, TestRuntimeFitsMatchesTheChecker).
+
+TR_var karışık = [1, "a", 1.5]
+
+TR_struct Kutu {
+    x: TR_Int
+}
+
+TR_func tam_döndür(v: TR_Int) -> TR_Int {
+    TR_return v
+}
+
+TR_func ikinciyi_döndür() -> TR_Int {
+    TR_return karışık[1]
+}
+
+TR_test "1.2 tipi bilinmeyen değer yedi tipli yerde yerin denetimdeki koduyla durur" {
+    TR_assert_equal("H1001", TR_error_code { TR_var y: TR_Int = karışık[1] })
+    TR_assert_equal("H1005", TR_error_code {
+        TR_var y: TR_Int = 0
+        y = karışık[1]
+    })
+    TR_assert_equal("H1004", TR_error_code { tam_döndür(karışık[1]) })
+    TR_assert_equal("H1003", TR_error_code { ikinciyi_döndür() })
+    TR_assert_equal("H1124", TR_error_code {
+        TR_var k = Kutu(x: 1)
+        k.x = karışık[1]
+    })
+    TR_assert_equal("H1125", TR_error_code { Kutu(x: karışık[1]) })
+    TR_assert_equal("H1136", TR_error_code {
+        TR_var l: TR_List[TR_Int] = [1]
+        l[0] = karışık[1]
+    })
+}
+
+TR_test "1.2 kap iç içe, her öğesiyle denetlenir; boş kap uyar; uyan değer olduğu gibi girer" {
+    TR_var iç = [[1, 2], ["a"]]
+    TR_assert_equal("H1001", TR_error_code { TR_var y: TR_List[TR_List[TR_Int]] = iç })
+    TR_var boşlu = [[], "x"]
+    TR_var e: TR_List[TR_Int] = boşlu[0]
+    TR_assert_equal(0, e.TR_length)
+    TR_var y: TR_Int = karışık[0]
+    TR_assert_equal(1, y)
+}
+
+TR_test "3.13 tam sayı değeri çalışırken ondalık yere girmez; tam sayı yazımı denetimde girer" {
+    TR_assert_equal("H1001", TR_error_code { TR_var r: TR_Float = karışık[0] })
+    TR_var r: TR_Float = 1
+    TR_assert_equal(1.0, r)
+}
+
+TR_test "1.2 tipsiz bir adla paylaşılan kaba sonradan yazılan öğe denetlenmez" {
+    TR_var kaplar = [["a"], 1]
+    TR_var l = kaplar[0]
+    TR_var g: TR_List[TR_String] = l
+    l.TR_append(1)
+    TR_assert_equal(2, g.TR_length)
+}

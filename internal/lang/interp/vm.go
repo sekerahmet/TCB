@@ -70,7 +70,9 @@ type vmShared struct {
 	// Debugger her deyimde okunur; sık okunan alanlar başta tutulur.
 	Debugger  Debugger
 	GlobalEnv *Environment
-	Out       io.Writer
+	// runtimeChecks çalıştırılan ve aktarılan programların çalışma denetimleridir (1.2).
+	runtimeChecks runtimeCheckSet
+	Out           io.Writer
 	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). Düzenleyicinin hata ayıklama
 	// modunda standart giriş protokole ayrıldığı için burası değiştirilir. Okuma VM'in tek
 	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
@@ -460,6 +462,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 		v.acquireGIL()
 		defer v.releaseGIL()
 	}
+	v.addRuntimeChecks(prog) // denetleyicinin çalışma denetimleri (1.2, runtime_checks.go)
 	val, err := v.runMain(prog)
 	err = v.takeUnwindErrors(err) // durdurmada ertelenen işlerin hataları (9.4)
 	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli

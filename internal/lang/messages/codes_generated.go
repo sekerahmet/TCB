@@ -197,7 +197,7 @@ const (
 	H1133 Code = 1133 // {value, select, empty {değişmez olmayan bir {given} değeri} other {`{value}` değişmez değil, bir {given} değeri}}: {@JSON} beklenen değişmezin içinde JSON değeri olarak kurulmaz (3.7a); {value, select, empty {onu `{#JSON}(...)` ile çevirin} other {kopyasını çevirin: `{#JSON}({value})`}}
 	H1134 Code = 1134 // `{#Type}` {@JSON} değerinin türünü verir (yokluk, mantık değeri, sayı, metin, liste ya da sözlük), {@JSON|acc} hiç vermez; sonuç hep aynı olurdu (3.7a); {suggestion, select, empty {türlerden birini sınayın} other {türlerden birini sınayın: `{suggestion}`}}
 	H1135 Code = 1135 // {container} kabının öğeleri {elem} tipindedir: ona isteğe bağlı {given} tipinde değer yazılmaz (3.5){hint}
-	H1136 Code = 1136 // {container} kabının {kind, select, dict {değerleri} other {öğeleri}} {elem} tipindedir: ona {given} tipinde değer yazılmaz ({kind, select, dict {3.7} other {3.6}})
+	H1136 Code = 1136 // {container} kabının {kind, select, dict {değerleri} other {öğeleri}} {elem} tipindedir: ona {given} tipinde değer yazılmaz ({kind, select, dict {3.7} other {3.6}}){hint}
 	H1138 Code = 1138 // '+' aynı tipten iki listeyi uç uca ekler (4.10); {left} ile {right} eklenmez
 	H1139 Code = 1139 // {list} listesinin öğeleri başvuruyla paylaşılır (3.6): `*` ile yinelenince her satır aynı öğe olur, birini değiştirmek hepsini değiştirir (4.10); {suggestion, select, empty {her satırı ayrı kurun, örneğin bir üreteçle} other {her satırı ayrı kurun: `{suggestion}`}}
 	H1140 Code = 1140 // {container} sözlüğünün anahtarları {key} tipindedir: {given} tipinde anahtarla okunmaz ve yazılmaz (3.7)
@@ -217,6 +217,8 @@ const (
 	H1160 Code = 1160 // `{target}` hedefinin yeri, aynı atamada solunda atanan `{name}` yerine bakıyor (kap öğesinde indeks fark etmez; 5.3): yer atamadan önce, eski değerle hesaplanır (Python'da yeni değerle); {split, select, empty {değerleri önce ayrı değişkenlere alıp atamayı ikiye ayırın} other {atamayı ikiye ayırın: `{split}`}}
 	H1161 Code = 1161 // dalların hepsi `{#none}` veriyor ve beklenen tip yok (5.5, 5.6): değerin asıl tipi bilinemez (3.13); tipi yazılmış bir yere verin (`{#var} y: {#Int}? = ...`) ya da dallardan birinde değer verin
 	H1162 Code = 1162 // `{call}` giriş bitince `{#none}` verir ve `{#none} != {other}` hep doğrudur: bu döngü girdi bitince durmaz (13.1); girdi sonunda da durmak için `({call} ?? {other}) != {other}` yazın ya da satırı bir değişkene alıp `{#none}`'ı sınayın
+	H1170 Code = 1170 // ; uymayan ilk öğe `{path}`, tipi {given|q}
+	H1171 Code = 1171 // ; uymayan ilk anahtar `{path}` sözlüğündeki {key|q}, tipi {given|q}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
