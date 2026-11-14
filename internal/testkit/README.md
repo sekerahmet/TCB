@@ -5,7 +5,7 @@ Birden çok paketin testlerinde aynı yazılan küçük yardımcıların tek yer
 ## Kurallar
 
 - Yalnızca testler (`_test.go`) içe aktarır; üretim koduna sızmaz. Denetim: `internal/layers_test.go` (`TestLayerRule`).
-- `testkit` yalnızca `reporoot`'u bilir; `trrun` yalnızca dil çekirdeğini (`internal/lang/`) bilir. Bu yüzden dil çekirdeğinin kendi testleri `trrun`'u kullanamaz (içe aktarma döngüsü); motor, araç ve komut testleri kullanır. Denetim: `internal/layers_test.go` (`TestLayerRule`).
+- `testkit` yalnızca `reporoot`'u bilir; `trrun` dil çekirdeğini (`internal/lang/`) ve `internal/stdlib/files`'ı bilir: programın `TR_temp_dir()` ile açtığı klasörleri test bitince `files.CloseAll` siler (18.14; `trrun`'u kullanan testler paralel koşmaz, temizlik bütün süreç içindir). Bu yüzden dil çekirdeğinin kendi testleri `trrun`'u kullanamaz (içe aktarma döngüsü); motor, araç ve komut testleri kullanır. Denetim: `internal/layers_test.go` (`TestLayerRule`).
 - Paketler arası gerçek farklar (tip denetimi, VM kurulumu, günlük/denetim noktası yazıcıları, motor kaydı) paketin kendi ince sarmalayıcısında kalır; ortak çekirdek burada durur.
 
 ## Testler

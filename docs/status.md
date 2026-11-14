@@ -1062,6 +1062,10 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 - **Yapılacaklar (A adayı, diskteki veri; sessiz mi ölçülmedi):** arada kesilince geçici adıyla kalan eski klasörü söyleyen ileti; `TR_move`'un dolu klasörün yerine konmasını sınayan Go testi.
 - **Yapılacaklar (C, Ö2; sahip dosya ve yol kolu, TCB atar; dil tanımı turunun indirme kararları, 2026-11-13):** kopyalama ve taşıma dosyanın değişme zamanını korumaya çalışıyor ama `os.Chtimes`'ın hatası yok sayılıyor [kanıtlı: `internal/stdlib/files/copy_run.go:116`, `_ = os.Chtimes(fpath, time.Now(), b.ModTime())`]; zaman korunmazsa boy ve değişme zamanıyla karmayı atlayan program (tek tık) dosyayı boşuna yeniden karmalar [hesap: DENETİM 639 N4]. Aynı ve başka diskte korunup korunmadığı Windows'ta ölçülmedi (yerine koymanın ölçüsüyle birlikte, tek tığın C diliminden önce).
 
+### 18.14
+
+- **Yapılacaklar (C, Ö2; sahip DIL UZMANI; geçici klasör işi, TCB 2026-11-15 00:02):** 2026-11-14 11:22–14:55 arasında 105 süreç %TEMP%'te 6 422 geçici klasör bıraktı (süreç başına 5, 195 ya da 258–263, çoğu boş; içindekiler `tests/dosya_ve_yol_test.tr`'nin ve kontrol noktası testlerinin adları); kaynağı bulunamadı [ölçüldü: klasörlerin süreç numarasına göre sayımı; oturum kayıtlarındaki komutlarla eşleşen yok]. O günün öbür iki kaynağı kapandı: `tests/` takımını temizliksiz koşan `TestLanguageSpecTestsPass` (`6852b131`) ve programın klasörlerini silmeyen `trrun.Exec` (bu commit). Sıradaki: bir daha görülürse süreç numarasını kayıtlı komutla eşleştir.
+
 ### 18.16
 
 - **Yapılacaklar (E ve D, Ö3; sınıf uzak 14):** 18.17'nin yazıcıları (`TR_write_lines`, `TR_LineWriter`) `ResolveWritePath`'le; `.TR_exists` okuma sırasıyla bakıyor, `TR_remove` çalışma klasörüne: `TR_if KOŞU.TR_exists { TR_remove(KOŞU) }` başka klasördeki dosyada H2630 veriyor (bakışımsızlık, 18'in kararı; DEVİR'de).
