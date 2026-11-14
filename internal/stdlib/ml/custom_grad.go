@@ -221,13 +221,22 @@ func sumTensors(v interp.Value, out *[]*tensor.Tensor, depth int) {
 
 // backwardFn çekirdeğin dış düğümüne verilen geri çağrıyı kurar. Bağlam (ctx) geri
 // yayılımı başlatan görevin VM'idir; verilmemişse (Go'dan doğrudan geri yayılım) ileri
-// hesabı yapan görev kullanılır.
+// hesabı yapan görev kullanılır. f_geri f_ileri'nin çağrıldığı andaki karışık hassasiyet
+// türüyle çalışır (15.29, yerleşiklerin geri yönü gibi): tür ileri adımda okunur, geri
+// çağrı süresince görevde kurulur ve sonra geri alınır.
 func (o *customOp) backwardFn(forwardVM *interp.VM, args []interp.Value, savedVals *interp.ListVal, many bool) tensor.CustomBackward {
+	var forwardMixed any
+	if forwardVM != nil {
+		forwardMixed = forwardVM.TaskValue(mixedKey{})
+	}
 	return func(ctx any, grads []*tensor.Tensor) []*tensor.Tensor {
 		m, _ := ctx.(*interp.VM)
 		if m == nil {
 			m = forwardVM
 		}
+		prev := m.TaskValue(mixedKey{})
+		m.SetTaskValue(mixedKey{}, forwardMixed)
+		defer m.SetTaskValue(mixedKey{}, prev)
 		var g interp.Value
 		if many {
 			el := make([]interp.Value, len(grads))

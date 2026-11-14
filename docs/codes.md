@@ -8113,7 +8113,7 @@ tr: değişken ö = VeriKümesi("tests/data/text").örnekleyici(toplu: 2, bağla
 
 #### `.TR_slice(...)` (`TR_mem_slice`, `dilim`)
 
-    Tensör.dilim(Tam, Tam, Tam) → Tensör
+    Tensör.dilim(Tam, Tam, [Tam]) → Tensör
 
 Verilen eksende [baş, son) aralığını keser; negatif konumlar sondan sayılır. Sonuç veriyi paylaşan bir görünümdür.
 

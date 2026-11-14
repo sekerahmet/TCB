@@ -33,9 +33,11 @@ TR_grad_check(kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])`)
 	}
 }
 
-// geri, geri_yayılım'ı çağıran görevin VM'iyle çalışır: ileri ana görevde blok dışında,
-// geri yayılım ise karışık_hassasiyet("bf16") bloğu kurmuş bir eşzamanlı görevde yapılınca
-// geri'nin içindeki '@' bloğun türüyle (bf16) hesaplanır. Tersi de doğrudur.
+// geri, geri_yayılım'ı çağıran görevin VM'iyle, ama ileri'nin çağrıldığı andaki karışık
+// hassasiyet türüyle çalışır (15.29): ileri blok dışında, geri yayılım karışık_hassasiyet("bf16")
+// bloğu kurmuş bir eşzamanlı görevde yapılınca geri'nin içindeki '@' float32'dedir (1.001); ileri
+// bf16 bloğunda, geri yayılım blok dışındaki görevde yapılınca bf16'dadır (1.0). Önceki hâli bu
+// testin tersiydi: tür geri yayılımı çağıran görevden geliyordu.
 func TestCustomGradBackwardRunsInCallerTask(t *testing.T) {
 	out := mustRun(t, `TR_var görülen = []
 TR_var f = TR_custom_grad(
@@ -52,7 +54,7 @@ TR_var z = TR_mixed_precision("bf16") { f(TR_Tensor([1.0], TR_requires_grad: TR_
 TR_async { TR_backward(TR_sum(z)) }
 TR_wait_all()
 TR_print(görülen)`)
-	if want := "[1.0, 1.001]\n"; out != want {
+	if want := "[1.001, 1.0]\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
 	}
 }

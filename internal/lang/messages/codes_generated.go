@@ -1397,7 +1397,7 @@ const (
 	H6714 Code = 6714 // {fn}: eksenler tam sayı olmalıdır, {value} verildi
 	H6715 Code = 6715 // {fn}: {axis}. eksen birden çok kez verildi; her eksen bir kez yer almalı
 	H6716 Code = 6716 // türev izleyen bir yaprağa (ve görünümüne) türevsiz kipin dışında yerinde yazılamaz; değeri {noGrad} {{ ... }} içinde değiştirin
-	H6717 Code = 6717 // {fn}(eksen, baş, son) 3 parametre bekler, {given} verildi
+	H6717 Code = 6717 // {fn}(eksen, baş, son) 2 ya da 3 parametre bekler (son verilmezse eksenin sonudur), {given} verildi
 	H6718 Code = 6718 // {fn}(eksen, baş, son) tam sayılar bekler, {value} verildi
 	H6719 Code = 6719 // tensör ataması: {target} şeklindeki yere {given} şeklinde veri atanamaz (şekiller aynı olmalı)
 	H6720 Code = 6720 // {fn}: {axis}. eksenin uzunluğu {length} ({shape}); [{start}, {end}) aralığı geçersiz (0 ≤ baş ≤ son ≤ {length} olmalı)

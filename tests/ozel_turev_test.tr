@@ -16,6 +16,22 @@ TR_var kare = TR_custom_grad(
     }
 )
 
+TR_test "15.29 f_geri f_ileri'nin çağrıldığı andaki karışık hassasiyet türüyle çalışır" {
+    TR_var tür = [""]
+    TR_var f = TR_custom_grad(
+        TR_forward: (x) => { TR_return [x * 2.0, []] },
+        TR_backward: (saklananlar, g) => {
+            tür[0] = TR_compute_dtype()
+            TR_return [g * 2.0]
+        }
+    )
+    TR_var x = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var y = TR_mixed_precision("bf16") { f(x) }
+    TR_backward(TR_sum(y))
+    TR_assert_equal("bf16", tür[0])
+    TR_assert_equal("float32", TR_compute_dtype())
+}
+
 TR_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     TR_assert_equal(TR_BuiltinFunction, TR_Type(kare))
     TR_var x = TR_Tensor([3.0], TR_requires_grad: TR_true)

@@ -599,7 +599,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** sürüm iletisi (H3012) `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM]. Hesap ondalığından float64'e `.TR_to_dtype` türev izlemiyor [ölçüldü].
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM 231 N2):** `.TR_fill` kuralda var, kimliği yok [ölçüldü: DENETİM 231]. 15.34'ün iki örneği (`g.TR_fill(0.0)` ve 16 bitlik parametrenin iletisindeki `p.TR_fill(ana)`) onunla çalışır; tur 8'de metin değişmedi (2026-11-14, DENETİM 708 N3).
-- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 280):** iki argümanlı `.TR_slice(eksen, baş)` H6717 veriyor; 15.3'ün örneği (`x.TR_slice(1, 1)`) kopyalanınca çalışmıyor [ölçüldü: S1].
 - **Yapılacaklar:**
   - **(E ve F, Ö3; sınıf uzak 14):** `TR_wrapping_add`, `TR_wrapping_sub` ve `TR_wrapping_mul`'ın tensör imzası; PyTorch'un `.float()`/`.long()`/`.bool()`/`.to(...)` alışkanlığına doğru yazımı öneren ileti (bugün genel "özellik ya da metot bulunamadı");
   - **(E, Ö3; sınıf uzak 14):** GPU'nun hata yuvası (`fault_slot.go`) `int64` işlemleri, dönüşümler, `TR_embedding_lookup` ve `TR_write_slice` için var; dar tam sayıların GPU çekirdekleri kalıyor (15.6'nın bekleme listesi);
@@ -621,7 +620,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.6
 
 - **Mevcut durum:** kitaplıkta pencerenin sınırı konumların float32 kopyasıyla karşılaştırılır (`lib/layers.tr:443`; konum < 2²⁴ kesin): kartta "int64" çıkarma var, ama `TR_replay` kaydında tam sayı tensörünün sayıyla işlemi H4066 [ölçüldü: benzetici, `d6adf7e3`].
-- **Yapılacaklar (F, Ö3; sahip T1; Gemini uzak 14, TCB 14:39):** `lib/layers.tr:443`'ün yorumu "GPU'da tam sayı çıkarması yok" diyor; kartta "int64" çıkarma var (üstteki satır).
 - **Yapılacaklar (D ve E, Ö3; sınıf uzak 14):** cinsli işleç tablosunun kalanı: hesap ondalığında `//` ve `%` (H6703), işaretsiz sağa kaydırma (kimliği yok), kartta dar tam sayılar (H6969) [ölçüldü: `d6adf7e3`, benzetici]; cins farkının denetim hatası (4c; `d6adf7e3`'te çalışmada H6966); 15.6'nın bekleme listesindeki öbür işlemler (bayrağın altyapısı, `TR_replay`'deki yuvası ve dönüşüm T1 dilim 2a'da, "int64" T1 dilim 2b'de); TR testi.
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
 - **Yapılacaklar (C, Ö2; sahip T1; tur 8, 2026-11-14; DENETİM 708):** işlemcide `TR_Int` tensörünün `**`'ı tabanı -1 olan büyük üste asılır: `powInt` üssü tek tek çarpar, yalnız sonuç 0 ya da taban 1 iken erken çıkar, taban -1'de döngü üs kadar döner [kanıtlı: `internal/compute/tensor/cpu_typed_ops.go:333-345`, erken çıkış `:343`]; kart ve sayı yolu kare alarak hesaplar [hipotez: tur 8 araştırması, koddan okuma, koşulmadı]. İşlemci kare alarak hesaplamaya geçerken iki cihazın ilk hatalı öğesi aynı kalır (15.6).
@@ -787,7 +785,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** eski metne göre `geri` liste döndürüyor [ölçüldü: DENETİM].
 - **Yapılacaklar (D ve E, Ö3; sınıf uzak 14):** tek girdide kendisi, birden çokta demet; fonksiyon ifadesinde öğe sayısının denetim hatası.
-- **Yapılacaklar (A, Ö1; sahip T1, tensör kolu; Gemini uzak 14, 2026-11-13):** `f_geri` `f_ileri`'nin çağrıldığı andaki karışık hassasiyet türünü korumuyor: ileri adım `TR_mixed_precision("bf16")` içinde, `TR_backward` dışarıda iken `f_geri` içinde `TR_compute_dtype()` float32 [ölçüldü: TCB, trlang ile, main `1c473082`]; geri yöndeki çarpımlar yanlış hassasiyette koşar.
 
 ### 15.32
 
@@ -806,7 +803,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** kitaplığın `TR_Muon` ve `TR_NorMuon`'u 16 bitlik parametrede ana kopya tutmuyor; güncelleme yutuluyor ve artık uyarı veriyor (`lib/optimizers.tr:96-97`) [kanıtlı: T1 devri]. İş: iki iyileştiriciye ana kopya.
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** H6994'ün önerisi `.TR_fill` yokken `p[0..p.TR_shape[0]] = ana`; `.TR_fill` gelince `p.TR_fill(ana)` olur (15.6d).
 - **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş4):** H6994'ün önerisi (`p[0..p.TR_shape[0]] = ana`) 0 boyutlu parametrede "Liste indeksi sınır dışı" veriyor; öneri boyuttan bağımsız yazılmalı. Kitaplığın `TR_Muon`'unda uyarı `tr/optimizers.tr` satır 97'yi gösterip kullanıcıya ana kopya tutmasını söylüyor; kullanıcı orayı değiştiremez, ileti "parametreyi float32 kurun" demeli.
-- **Yapılacaklar (F, Ö3; T1 Kol B teslim 2c):** iyileştiricinin iki iletisi parametrenin sırasını farklı sayıyor: H6920 0'dan, H6995 1'den. İkisi de 1'den saymalı.
 - **Yapılacaklar (F, Ö3; DENETİM istek 85 N1):** kitaplığın iyileştiricisinde (`TR_Muon` vb.) H6995 kullanıcının satırını değil `tr/optimizers.tr`'nin 118. satırını gösteriyor.
 - **Yapılacaklar (F1, Ö3; DENETİM istek 85 N2):** ara sonuç (yaprak olmayan tensör) kitaplığın `TR_Muon`'unda H6995, Go'daki `TR_SGD`'de H6514 veriyor; iki yol aynı durumu farklı kodla anlatıyor.
 - **Yapılacaklar (F, Ö3; DENETİM istek 85 N3):** teslim 2c'de `typed_code_known.txt` kaymasın diye ilgisiz bir yorum tek satıra birleştirildi; liste anahtarı düzelince ("Denetim katmanlarının gözden geçirmesi") geri açılır.
