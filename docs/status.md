@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 ## Önem ve öncelik
 
-Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61, 2026-11-03; 6–9. bölümler istek 68). Etiket her maddenin "Yapılacaklar"ında: sınıf, öncelik, kol ya da dilim ve ölçüm tabanı, ör. **Yapılacaklar (A, Ö1, 4a4; ölçüldü 30b44b01)**. Etiketsiz madde D, E ya da F sınıfındadır ve Ö3'tür. Etiket ölçüm tabanını taşır: taban eskidikçe iddia yeniden ölçülür.
+Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61, 2026-11-03; 6–9. bölümler istek 68). Etiket her maddenin "Yapılacaklar"ında: sınıf, öncelik, kol ya da dilim ve ölçüm tabanı, ör. **Yapılacaklar (A, Ö1, 4a4; ölçüldü 30b44b01)**. Etiketsiz madde D, F1, E ya da F sınıfındadır ve Ö3'tür. Etiket ölçüm tabanını taşır: taban eskidikçe iddia yeniden ölçülür.
 
 **Sınıf karar anında yazılır** (DENETİM istek 76): her karar ve bulgu yazılırken (yol haritası, status ya da `pending.md`) sınıfı da yazılır. A, B ya da C ise aynı gün buraya etiketli bir "Yapılacaklar" satırı açılır; dil tanımında bölümü olmayan iş "Bölümü olmayan işler"e girer. D, E ve F yol haritasında kalabilir. Önem taramaları status'un yanında `pending.md`'yi ve TCB'nin takip tablosunu da okur; yol haritasını TCB ya da DENETİM okur.
 
@@ -106,6 +106,11 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md).
 
 Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/tipler_test.tr`'nin 3.6 testi (`tests/tipler_test.tr:116-117`) eski kuralı (karışık tipli liste) sınıyor; kural uygulanırken yeniden yazılır. Eski 3.15'in (katalog iletisinin tipi) `tests/` altındaki testi hata bölümüne taşınacaktı.
 
+### 3.3
+
+- **Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu; DENETİM 755 N2):** metne indeksle yazma denetlenmiyor: `TR_var s = "abc"` ve `s[0] = "x"` denetimden geçiyor, çalışırken H2403; metin değiştirilemez (3.3). Tipi bilinen ve indekslenemeyen değerde de aynı: `TR_var n = 5` ile `n[0] = 1` (H2403) ve `TR_print(n[0])` (H2465) denetimden geçiyor [ölçüldü: trlang'ın denetimi ve çalıştırma, `f73e7f04`].
+- **Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu; DENETİM 755 N2):** H2465 ve H2403 `{type}` yuvasına tipin kimliğini değil görünüm adını yazıyor: "type Int cannot be indexed", "Tam tipi indekslenemez", "assignment by index is not possible on this type (String)", "(Metin)" [ölçüldü: İngilizce ve Türkçe iletiyle, `f73e7f04`; kanıtlı: `interp/expressions.go:143` ve `assign.go:169`, yuvaya değerin tipi iletinin dilindeki görünüm adıyla gidiyor]. `TR_none`'da bunu Motor'un 5.4 Dilim B'si düzeltti (H2742, H2744) [kanıtlı: `assign_test.go:180-187`: iletide `TR_NoneType` var, görünüm adı yok]. 13.8'in `TR_json_parse[Ayar]` satırı aynı yuvanın iç adı sızdırmasını anıyor.
+
 ### 3.3a
 
 - **Yapılacaklar (A, Ö0; sahip HTTP sunucusu, TCB atar; Motor'un JSON tasarımının B2'si, 2026-11-13):** HTTP isteğinin başlık değeri geçerli UTF-8 denetiminden geçmeden metin oluyor (HTTP sunucusu paketinin başlıkları metne çeviren `headersOf`'u); Go'nun sunucusu `0xFF`'li başlığı kabul ediyor ve bu metin JSON'a yazılınca sessizce U+FFFD oluyor [ölçüldü: Motor, go1.27.4]. Geçersiz UTF-8 girişte hata olmalı (3.3a). Ortam değişkeni, süreç argümanı ve süreç çıktısı ölçülmedi.
@@ -122,7 +127,9 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 - **Yapılacaklar (D, Ö3; sahip D1):** `T?` asıl tipin yerinde denetlenmiyor: `TR_input()`'un değeriyle `TR_Int(m)` ve `.TR_length` denetimden geçiyor, boş girdide çalışma hatası.
 - **Yapılacaklar (A, Ö1, 4a5; sahip T1; DENETİM 400 kapanış 2, K2-N1):** `TR_none`, düz de dalları hepsi `TR_none` veren ifade de, `TR_Int` bekleyen üç yere denetimsiz giriyor: `(TR_Bool) -> TR_Int` tipli fonksiyon ifadesinin gövdesi, `TR_List[TR_Int]` tipli değişkene verilen `[TR_none]` değişmezi, `x: TR_Int = TR_none` varsayılanı [ölçüldü: DENETİM 400 kapanış 2]. Tur 6A'dan önce de vardı.
 - **Yapılacaklar (F1, Ö3; sahip dil çekirdeği kolu (Motor); Motor 5.4 Dilim B devri, 2026-11-14):** H1182'nin tanım deyimindeki önerisi adı sınamanın bloğunun içinde tanımlar: `TR_var y = k.l[0]` için `TR_var c = k.l; TR_if c != TR_none { TR_var y = c[0] }`; öneri koşar ve denetimden geçer, ama sonraki satır `y`'yi kullanıyorsa tanımsız ad hatası gelir [kanıtlı: Motor'un devri, `optional_values.go` `unopenedHint`]. Biçim DENETİM 720 Ş2 (a) ile seçilmişti; tanımda adı dışarıda bırakan biçim (değer ifadesi olarak `TR_if` ya da `??`'li öneri) tasarlanır.
-- **Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu; Motor 5.4 Dilim B devri, 2026-11-14):** `examples/tr/hatalar/13_yok_uzerinde_ozellik.tr:7`'nin yorumundaki doğru yazım üç kodu kimlik yerine Türkçe görünüm adıyla yazıyor; `.tr` dosyası kimlikle yazılır. Ayrıca `tests/yerlesikler_test.tr:137` var olmayan `TestShownErrorKeepsTheMessageText`'i anıyor [kanıtlı: Motor'un devri; `git grep` boş].
+- **Yapılacaklar (F1, Ö3; sahip dil çekirdeği kolu (Motor); Motor 5.4 Dilim B devri, 2026-11-14; DENETİM 755 N3):** `examples/tr/hatalar/13_yok_uzerinde_ozellik.tr:7`'nin yorumundaki doğru yazım üç kodu kimlik yerine Türkçe görünüm adıyla yazıyor (`TR_print`, `.TR_get` ve `.TR_upper`'ın Türkçe adları); görünüm çalışmaz (H2541: "görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez"), kopyalanan yazım koşmaz [kanıtlı: `13_yok_uzerinde_ozellik.tr:7`, `tr.json:427`].
+- **Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu (Motor); Motor 5.4 Dilim B devri, 2026-11-14; DENETİM 755 Ş1):** `tests/yerlesikler_test.tr:150`'nin yorumu var olmayan `TestShownErrorKeepsTheMessageText`'i anıyor [ölçüldü: `git grep -n -F TestShownErrorKeepsTheMessageText`: yalnız bu yorum, tanım yok].
+- **Yapılacaklar (F1, Ö3; sahip dil çekirdeği kolu (Motor); DENETİM 755 N1):** yerinde değiştirici metot (`codes.IsInPlace`) `TR_none`'da H2744'ün okuma kolunu alıyor ve `??` öneriyor: `o.TR_append(1)` için öneriyle yazım `(o ?? [5]).TR_append(1)` olur, bu kopyaya yazmadır (H2740, 5.4); öneri istenen sonucu vermez [kanıtlı: `internal/lang/interp/expressions.go:198`, okuma kolu; `assign_test.go:172`, okuma kolunu bekliyor]. Sıradaki: yerinde değiştirici H2744'ün yazma koluna gider; `TestNoneIndexError` ya da yeni test yerinde değiştiriciyi de koşar.
 
 ### 3.6
 
