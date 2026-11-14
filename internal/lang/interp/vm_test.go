@@ -180,6 +180,28 @@ func TestLockHandoffRecursiveLoop(t *testing.T) {
 	}
 }
 
+// Üretecin her turu da devir noktasıdır (10.2, loopTurn): görev uyurken üreteç başlar, görev
+// uyanınca kilidi üretecin bir turunda alır ve bayrağı kurar; üretecin son öğeleri bayrağı görür.
+// Süreye değil olaya bakılır: üreteç tur başında kilidi bırakmasaydı görev ancak liste kurulunca
+// çalışır, öğelerin hepsi yanlış olurdu.
+func TestLockHandoffComprehensionTurn(t *testing.T) {
+	_, val, err := runTROut(t, `
+		TR_var bitti = TR_false
+		TR_async {
+			TR_sleep(0.02)
+			bitti = TR_true
+		}
+		TR_var l = [bitti TR_for i TR_in 0..3000000]
+		TR_var result = (l[0], l[l.TR_length - 1])
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := val.Inspect(); got != "(false, true)" {
+		t.Fatalf("görev üretecin turunda çalışmalıydı: ilk ve son öğe %s, beklenen (false, true)", got)
+	}
+}
+
 type testKey struct{}
 
 // Görev değeri yalnızca kendi VM görünümünde görünür; yeni görevler boş başlar.

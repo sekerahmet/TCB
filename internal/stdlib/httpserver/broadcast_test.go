@@ -480,6 +480,36 @@ TR_var parça = "a" * 262144`, "")
 	t.Logf("yavaş dinleyici %d olaydan sonra kesildi", last)
 }
 
+// TestListenerBehindTheRingCloses: kaçırdığı olay halkadan düşen canlı dinleyicinin bağlantısı kapanır,
+// olay atlanmaz (28.7). Yazma süresi uzun kalır: kapanmayı süre değil halka verir.
+func TestListenerBehindTheRingCloses(t *testing.T) {
+	ts, _ := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 2, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)
+TR_var parça = "a" * 262144`, "")
+	_, slow, sc := subscribeRaw(t, ts, "GET", "")
+	_ = sc.(*net.TCPConn).SetReadBuffer(4096)
+	frame(t, slow)
+	const total = 40
+	if err := send(t, ts, fmt.Sprintf(`TR_for k TR_in 1..=%d { y.TR_send_event(parça) }`, total)); err != nil {
+		t.Fatal(err)
+	}
+	// Dinleyici ilk olayların yazmasında takılıyken halka ilerledi; okuma sürünce geride kaldığını görür.
+	last := int64(0)
+	for {
+		f, err := readFrame(slow)
+		if err != nil {
+			break
+		}
+		if id := frameID(f); id != last+1 {
+			t.Fatalf("olay atlanmamalı: %d'den sonra %d", last, id)
+		}
+		last++
+	}
+	if last >= total {
+		t.Fatalf("halkadan düşen dinleyicinin bağlantısı kapanmalıydı, %d olayın hepsini aldı", total)
+	}
+	t.Logf("dinleyici %d olaydan sonra kesildi", last)
+}
+
 // TestListenerNotCountedInMaxConcurrent: açık dinleyici TR_max_concurrent: sınırına sayılmaz (28.4, 28.7).
 func TestListenerNotCountedInMaxConcurrent(t *testing.T) {
 	ts, _ := broadcastServer(t, fmt.Sprintf(counting, 10), ", TR_max_concurrent: 1")

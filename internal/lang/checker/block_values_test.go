@@ -137,6 +137,8 @@ func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
 		"TR_var a = TR_if c { " + none + " } TR_else { TR_none }",
 		"TR_var m = [" + none + "]",
 		"TR_var u = [1, \"a\"]\nu[0] = " + none,
+		// öbür dalı TR_return ile biten kol değer vermez: değer veren tek dal TR_none'dır
+		"TR_func h() -> TR_Int {\n    TR_var a = TR_if c { TR_none } TR_else { TR_return 1 }\n    TR_return 0\n}",
 	} {
 		_, errs := checkErrs(t, head+src)
 		if len(errs) != 1 || !messages.Has(errs[0], messages.H1161) {
@@ -157,6 +159,7 @@ func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
 		"d[\"b\"] = " + match,
 		"TR_var w = TR_if c { " + none + " } TR_else { 1 }",
 		"TR_var y: TR_Int? = TR_if c { " + none + " } TR_else { TR_none }",
+		"TR_func h() -> TR_Int {\n    TR_var a: TR_Int? = TR_if c { TR_none } TR_else { TR_return 1 }\n    TR_return a ?? 0\n}",
 	} {
 		if _, errs := checkErrs(t, head+src); len(errs) > 0 {
 			t.Errorf("%q hatasız olmalı: %v", src, errs)

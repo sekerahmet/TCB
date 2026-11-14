@@ -41,6 +41,22 @@ TR_test "20.1 kurulum hataları" {
     TR_var taban = TR_temp_dir()
     TR_write_file(TR_Path(taban, "dosya"), "x")
     TR_assert_equal("H7407", TR_error_code { TR_Checkpoint(TR_Path(taban, "dosya"), {"w": w}) })
+    # Üst sınırlar: aralık en çok 1 000 000 dakika, saklanan en çok 1000 nokta
+    TR_assert_equal("H7408", TR_error_code { TR_Checkpoint(koşu("h"), {"w": w}, TR_every_minutes: 1000001) })
+    TR_assert_equal("H7409", TR_error_code { TR_Checkpoint(koşu("h"), {"w": w}, TR_keep: 1001) })
+    TR_var üst = TR_Checkpoint(koşu("üst"), {"w": w}, TR_every_minutes: 1000000, TR_keep: 1000)
+    TR_assert_equal(0, üst.TR_resume_step)
+}
+
+TR_test "20.1 koşu klasöründeki öbür dosyalara dokunulmaz" {
+    TR_var k = koşu("öbür")
+    TR_make_dir(k)
+    TR_write_file(TR_Path(k, "notlar.txt"), "benim")
+    TR_var kn = TR_Checkpoint(k, {"w": param([2], 1)})
+    kn.TR_update(1)
+    kn.TR_save()
+    TR_assert_equal("benim", TR_read_file(TR_Path(k, "notlar.txt")))
+    TR_assert_equal(["checkpoints", "notlar.txt"], [p.TR_name TR_for p TR_in TR_list_dir(k)].TR_sort())
 }
 
 TR_test "20.2 kaydedilebilen nesneler ve hatalar" {
@@ -515,4 +531,7 @@ TR_test "20.17 paylaşılan üretecin durumu noktaya yazılır; yüklenen nokta 
     TR_var rng = TR_String(durum["rng"])
     TR_assert(rng.TR_starts_with("pcg:"))
     TR_assert_equal(36, rng.TR_length)
+    # Üretecin her programda başladığı sabit durum: nokta rastgelelik çekilmeden yazıldı (bu dosyada
+    # bu testten önce tohumsuz çekiş yoktur; olursa bu satır düşer).
+    TR_assert_equal("pcg:00000000000054520000000000002017", rng)
 }
