@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -39,7 +40,7 @@ func commitPrelude(t *testing.T) string {
 		parts = append(parts, m)
 	}
 	for _, name := range []string{"commit_plan", "commit_run_chunks", "commit_settle", "commit_selection", "commit_record",
-		"commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests"} {
+		"commit_counts", "commit_kind", "commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests"} {
 		m := regexp.MustCompile(`(?ms)^` + name + `\(\) \{\n.*?^\}$`).FindString(script)
 		if m == "" {
 			t.Fatalf("tools/full_check.sh: %s işlevi bulunamadı", name)
@@ -134,13 +135,13 @@ func TestCommitModeRunsTheLightSelection(t *testing.T) {
 	dir, env := fakeGo(t, map[string]string{"a.out": "ok  \texample.com/fix/a\t0.1s\n"})
 	out := runCommitBash(t, dir, env, "commit_deadline_ms=$(($(commit_now_ms) + 60000))\n"+
 		"commit_selection $'a TestA1\\na TestA2\\ninternal TestLayout\\ninternal/reporoot TestRoot\\n"+
-		"tools/codegraph TestPlanningQuestionsAreAnswered\\nb TestPlanningQuestionsAreAnswered\\na helperNotATest'\n"+
+		"tools/codegraph TestPlanningQuestionsAreAnswered far\\nb TestPlanningQuestionsAreAnswered far\\na helperNotATest'\n"+
 		"echo \"RAN=${commit_ran[*]}\"\ncommit_passed_line\n")
 	for _, want := range []string{
-		"== Değişen dosyaların hafif testleri (2 test, 1 paket; codegraph changed --go-tests; ağır listesindeki ve kipin 120 sn'si (kipin başından, derleme dahil) dolunca bitmemiş paketlerin testleri G4'e kalır)",
+		"== Değişen dosyaların hafif testleri, yakından uzağa (2 test, 1 paket, 2 yakın; codegraph changed --go-tests --by-distance; ağır listesindeki ve kipin 120 sn'si (kipin başından, derleme dahil) dolunca bitmemiş testler G4'e kalır)",
 		"G4'e kaldı (2 test: 2 ağır listesinde, 0 test 120 sn'de kesilen 0 pakette): TestPlanningQuestionsAreAnswered, TestPlanningQuestionsAreAnswered",
-		"RAN=./a TestA1 ./a TestA2",
-		"✅ Commit öncesi denetim geçti (tam denetim değildir; 2 test G4'e kaldı)",
+		"RAN=./internal TestLayout ./internal/reporoot TestRoot ./a TestA1 ./a TestA2",
+		"✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu; 2 uzak test G4'e kaldı)",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("çıktıda yok: %q\n%s", want, out)
@@ -160,8 +161,8 @@ func TestCommitModeRunsTheLightSelection(t *testing.T) {
 		t.Errorf("koşmaması gereken paket go'ya verildi: %s", line)
 	}
 	empty := runCommitBash(t, dir, env, "commit_selection ''\ncommit_passed_line\n")
-	if strings.Contains(empty, "==") || !strings.Contains(empty, "✅ Commit öncesi denetim geçti (tam denetim değildir)\n") {
-		t.Errorf("boş seçimde adım olmamalı ve sonuç satırı sayısız kalmalı:\n%s", empty)
+	if strings.Contains(empty, "==") || !strings.Contains(empty, "ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için hiç test seçilmedi; düzen kuralları ve hafif testler koştu.\n") {
+		t.Errorf("boş seçimde adım olmamalı ve sonuç satırı ℹ️ olmalı:\n%s", empty)
 	}
 	// Seçime girmeyen codegraph testleri (D6-3, S7): kalan varsa aynı satırda, yoksa kendi satırında sayılır.
 	self := runCommitBash(t, dir, env, "commit_self_out=7\ncommit_deadline_ms=$(($(commit_now_ms) + 60000))\n"+
@@ -219,7 +220,7 @@ func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
 		t.Errorf("go yalnız bir kez (spec-refs için) koşmalıydı: %q", args)
 	}
 	cgArgs, err := os.ReadFile(filepath.Join(dir, "fake", "cg_args"))
-	if err != nil || strings.TrimSpace(string(cgArgs)) != "changed --go-tests --without-codegraph-self-tests --base HEAD HEAD" {
+	if err != nil || strings.TrimSpace(string(cgArgs)) != "changed --go-tests --by-distance --without-codegraph-self-tests --base HEAD HEAD" {
 		t.Errorf("hafif testlerin seçimi spec-refs'in derlediği ikiliden alınmalıydı: %q %v\n%s", cgArgs, err, out)
 	}
 	// Seçime girmeyen codegraph testlerinin sayısı codegraph'ın standart hatasından "G4'e kaldı" satırına gelir (D6-3, S7).
@@ -413,7 +414,8 @@ func TestCommitModeRecordsItsRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	run := "commit_dups=0\ncommit_specrefs=0,not:0\ncommit_ran=('./a TestA1' './a TestA2')\ncommit_left=('./b TestB')\ncommit_record\n"
+	run := "commit_dups=0\ncommit_specrefs=0,not:0\ncommit_ran=('./a TestA1' './a TestA2')\ncommit_left=('./b TestB')\n" +
+		"commit_near=(['./a TestA1']=1 ['./b TestB']=1)\ncommit_record\n"
 	runCommitBash(t, dir, os.Environ(), run)
 	after, err := os.ReadFile(index)
 	if err != nil {
@@ -455,10 +457,11 @@ func TestCommitModeRecordsItsRun(t *testing.T) {
 		lines = append(lines, strings.TrimSuffix(string(b), "\n"))
 	}
 	first := strings.Split(lines[0], "\t") // dosyalar saate göre sıralı: ilki eklenmemiş değişiklikle koşan kip
-	if len(first) != 8 || first[1] != tree {
+	if len(first) != 9 || first[1] != tree {
 		t.Fatalf("ilk kaydın ağacı commit'in ağacına (%s) eşit değil:\n%s", tree, strings.Join(lines, "\n"))
 	}
-	if want := []string{"main", "geçti", "aday:0", "hata:0,not:0", "./a TestA1,./a TestA2", "./b TestB"}; !slices.Equal(first[2:], want) {
+	// Sonuç alanı satırın türüdür (geçti, uyarı, bilgi; DENETİM 748 N2), yakın: alanı koşan ve seçilen yakın testlerdir (B3).
+	if want := []string{"main", "geçti", "aday:0", "hata:0,not:0", "yakın:1/2", "./a TestA1,./a TestA2", "./b TestB"}; !slices.Equal(first[2:], want) {
 		t.Errorf("alanlar %q, beklenen %q", first[2:], want)
 	}
 	all := strings.Join(lines, "\n")
@@ -468,6 +471,58 @@ func TestCommitModeRecordsItsRun(t *testing.T) {
 	for _, leak := range []string{":/", ":\\", "/Users/", "/home/", "github.com/"} {
 		if strings.Contains(all, leak) {
 			t.Errorf("kayıt yol ya da kimlik taşıyor (%q):\n%s", leak, all)
+		}
+	}
+}
+
+// Kural (tools/full_check.sh, --kip=commit; codegraph 7 B2): kip seçimi codegraph changed --go-tests --by-distance'tan
+// alır ve önce bütün yakınları, sonra uzakları parçalar; bir paket iki parçada görünebilir, ağır paketler kendi bandının
+// sonunda kalır. Süre dolunca G4'e kalan uzak testlerdir: alfabetik sırada değişen paketin 0,03 sn'lik testi kipin
+// 120 sn'sine sığmamıştı (Dilim A, commit 1).
+func TestCommitModeRunsNearTestsFirst(t *testing.T) {
+	ok := func(pkg string) string { return "ok  \texample.com/fix/" + pkg + "\t0.1s\n" }
+	dir, env := fakeGo(t, map[string]string{"a.out": ok("a"), "z.out": ok("z"), "tools_codegraph.out": ok("tools/codegraph")})
+	sel := "a TestAFar far\na TestANear near\ntools/codegraph TestCgNear near\nz TestZNear near\ntools/codegraph TestCgFar far"
+	out := runCommitBash(t, dir, env, "printf '%s\\n' $'"+strings.ReplaceAll(sel, "\n", "\\n")+"' | commit_plan\n")
+	plan := "1\t./a\tTestANear\n1\t./z\tTestZNear\n2\t./tools/codegraph\tTestCgNear\n3\t./a\tTestAFar\n4\t./tools/codegraph\tTestCgFar\n"
+	if out != plan {
+		t.Errorf("yakınlar önce, ağır paket bandının sonunda olmalı:\n%s\nbeklenen:\n%s", out, plan)
+	}
+}
+
+// Kural (tools/full_check.sh, --kip=commit; codegraph 7 B3, S6; DENETİM 748 Ş1): sonuç satırı dürüsttür, beş kolu var
+// ve her kol metnini ve çıkış kodunu taşır: yakın testlerin hepsi koştu (uzak kalan varsa sayısıyla; 0); bir kısmı
+// kaldı (0); yakın seçilip hiçbiri koşmadı (⚠️, 3); yalnız uzaklar seçildi (ℹ️, 0); hiç seçim yok (ℹ️, 0). Kaydın türü
+// aynı ayrımı yazar (geçti, uyarı, bilgi; DENETİM 748 N2). ./internal'ın seçilen testleri düzen adımında koşar,
+// koşulmuş sayılır. Neden: kip 52 kaydın 12'sinde hiçbir test koşmadan "✅ geçti" diyordu (R276).
+func TestCommitModeSaysWhenNearTestsAreLeft(t *testing.T) {
+	dir, env := fakeGo(t, map[string]string{"a.out": "ok  \texample.com/fix/a\t0.1s\n", "b.out": "ok  \texample.com/fix/b\t0.1s\n",
+		"c.sleep": "30"})
+	for _, c := range []struct {
+		name, sel, line, kind string
+		code                  int
+	}{
+		{"hepsi", "a TestA near\nb TestB near", "✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu)\n", "geçti", 0},
+		{"hepsi, uzak kalan", "a TestA near\ntools/codegraph TestPlanningQuestionsAreAnswered far",
+			"✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu; 1 uzak test G4'e kaldı)\n", "geçti", 0},
+		{"internal", "internal TestLayout near", "✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu)\n", "geçti", 0},
+		{"bir kısmı", "a TestA near\nc TestC near\nb TestB far",
+			"✅ Commit öncesi denetim geçti (tam denetim değildir; 1 yakın test koşmadı: 0 ağır listesinde, 1 süreye sığmadı; 2 test G4'e kaldı)\n", "geçti", 0},
+		// Kipin bu daldaki ilk gerçek koşusu: kalan tek yakın test ağır listesindeydi, satır "süreye sığmadı" diyordu.
+		{"ağır yakın", "a TestA near\ntools/codegraph TestPlanningQuestionsAreAnswered near",
+			"✅ Commit öncesi denetim geçti (tam denetim değildir; 1 yakın test koşmadı: 1 ağır listesinde, 0 süreye sığmadı; 1 test G4'e kaldı)\n", "geçti", 0},
+		{"hiçbiri", "c TestC near\nb TestB far",
+			"⚠️ Commit öncesi denetim değişen dosyaların hiçbir testini koşamadı (0 ağır listesinde, 1 süreye sığmadı; 2 test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş.\n", "uyarı", 3},
+		{"yalnız uzak", "a TestA far\nb TestB far",
+			"ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için yakın test seçilmedi; 2 uzak test koştu, 0 test G4'e kaldı.\n", "bilgi", 0},
+		{"seçim yok", "",
+			"ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için hiç test seçilmedi; düzen kuralları ve hafif testler koştu.\n", "bilgi", 0},
+	} {
+		src := "commit_deadline_ms=$(($(commit_now_ms) + 2000))\ncommit_selection $'" + strings.ReplaceAll(c.sel, "\n", "\\n") + "' >/dev/null\n" +
+			"echo \"KIND=$(commit_kind)\"\ncommit_passed_line\necho \"CODE=$?\"\n"
+		out := runCommitBash(t, dir, env, src)
+		if want := "KIND=" + c.kind + "\n" + c.line + "CODE=" + strconv.Itoa(c.code) + "\n"; !strings.HasSuffix(out, want) {
+			t.Errorf("%s: çıktının sonu beklenen gibi değil:\n%s\nbeklenen sonu:\n%s", c.name, out, want)
 		}
 	}
 }

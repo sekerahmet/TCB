@@ -6,7 +6,7 @@ files. No network, no model, no new dependency: Go's standard library only. Deve
 shipped to users.
 
 What it is for: for a changed file it gives two lists. The **narrow** list (`tests-for`'s `run:` lines) is run while
-writing; the **wide** list (`changed --go-tests`) is run by the commit mode as its time allows and by G4 in full. The
+writing; the **wide** list (`changed --go-tests`) is run by the commit mode near tests first as its time allows (`--by-distance`) and by G4 in full. The
 edit hook shows the agent at most the narrow lines; after an edit of a code file the graph is stale and it shows only the
 command that gives them. A question this does not answer goes to `grep` or to the command table
 below; a new command needs a measured use.
@@ -147,10 +147,10 @@ programs through the type checker, chains through calls, weak evidence and subpr
 the groups and are not on the narrow lines (two commands: `-run` applies to every package of one `go test`). One line
 below them counts the far ones, from the pre-check's own selection (`goTestSelection`, the function of
 `changed --go-tests`): "narrow: these lines run the near tests; N more are left to the commit check and G4 (among
-the groups below)" (`--list names them` in the short answer). The commit mode runs that **wide** list as its time
-allows and G4 runs it all; no test is skipped. Codegraph's own tests outside its folders (codegraph slice 6, D6-3,
+the groups below)" (`--list names them` in the short answer). The commit mode runs that **wide** list near tests first as
+its time allows and G4 runs it all; no test is skipped. Codegraph's own tests outside its folders (codegraph slice 6, D6-3,
 `self_tests.go`) are in that count: for a file outside `tools/codegraph/` and `internal/devtools/codeindex/`, a
-`tools/codegraph` test enters the commit mode's selection (`changed --go-tests --without-codegraph-self-tests`, which
+`tools/codegraph` test enters the commit mode's selection (`changed --go-tests --by-distance --without-codegraph-self-tests`, which
 counts the others on stderr: "not run by these commands: N codegraph tests (the full check on Colab runs them)") only
 when it starts with `repoRule(t)`, the mark of a repository rule: a test that checks the repository's own files (the
 fix is in that file) or a golden test that reads them (`TestDottedMemberSpellingsGolden`). A new repository rule

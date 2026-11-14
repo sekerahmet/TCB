@@ -34,10 +34,11 @@
 #   --kip=commit      commit öncesi denetim (en çok 120 sn ve kaydın yazılması; yan oturumların
 #                     ve TCB'nin tek commit öncesi komutu, CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi
 #                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), dil
-#                     tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
-#                     --go-tests --without-codegraph-self-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120
-#                     sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph testlerinin sayısı "G4'e kaldı" diye
-#                     yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
+#                     tanımı atıfları, son olarak değişen dosyaların hafif testleri, yakından uzağa (codegraph changed
+#                     --go-tests --by-distance --without-codegraph-self-tests, ağır listesi commit_heavy_tests dışarıda,
+#                     kipin 120 sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph testlerinin sayısı "G4'e kaldı"
+#                     diye yazılır). Sonuç ✅ (yakın testler koştu), ⚠️ (yakın seçildi, hiçbiri koşmadı; çıkış 3) ya da ℹ️
+#                     (yakın test seçilmedi). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -224,6 +225,8 @@ commit_left_cut=0
 commit_cut_pkgs=0
 commit_self_out=0 # seçime girmeyen codegraph testleri (changed --without-codegraph-self-tests'in S3'ü; codegraph dilim 6)
 commit_failed_tests=0
+# Yakın seçilen testler ("./paket Ad"; commit_plan yazar, commit_counts sayar; codegraph 7 B3).
+declare -A commit_near=()
 commit_dups=-
 commit_specrefs=-
 commit_failed_step=""
@@ -555,52 +558,76 @@ spec_refs_check() {
 # commit_now_ms Unix zamanı, milisaniye: kipin zamanlayıcısı ve go test satırlarının geliş anı.
 commit_now_ms() { date +%s%3N; }
 
-# commit_plan commit kipinin seçimini (stdin: codegraph changed --go-tests satırları, "klasör ad") parçalara böler,
-# "parça<TAB>./paket<TAB>ad" yazar. ./internal ve ./internal/reporoot çıkar (kip onları bütün olarak koşar). Ağır
-# listesindeki bir adı taşıyan her test, paketi ne olursa olsun G4'e kalır: parçanın -skip'i paketten bağımsızdır.
-# Paketler ilk görüldükleri sırayla; commit_late_packages yeni bir parçadan başlayarak sonda. Bir paketin adları
-# sığdığı sürece tek parçada; tek başına sınırı aşan paketin adları birden çok parçaya bölünür.
+# commit_plan commit kipinin seçimini (stdin: codegraph changed --go-tests --by-distance satırları, "klasör ad near|far")
+# parçalara böler, "parça<TAB>./paket<TAB>ad" yazar. Önce bütün yakınlar, sonra uzaklar (codegraph 7 B2): bir paket iki
+# parçada görünebilir; bandı yazılmayan satır yakındır. Yakın adlar commit_near'a girer. ./internal ve ./internal/reporoot
+# parçalara girmez: kip onları düzen adımında bütün olarak koşar, seçilen testleri koşulmuş sayılır (commit_ran). Ağır
+# listesindeki bir adı taşıyan her test, paketi ne olursa olsun G4'e kalır: parçanın -skip'i paketten bağımsızdır. Her
+# bantta paketler ilk görüldükleri sırayla; commit_late_packages bandın sonunda, yeni bir parçadan başlayarak. Bir paketin
+# adları sığdığı sürece tek parçada; tek başına sınırı aşan paketin adları birden çok parçaya bölünür.
 commit_plan() {
-	local dir name pkg n chunk=1 len=0 pkg_len late_started=""
+	local dir name band pkg n key chunk=1 len=0 pkg_len late_started
 	local -A heavy=() seen=() is_late=() names=()
-	local order=() tail=()
+	local near_keys=() near_late=() far_keys=() far_late=() keys=()
 	for n in "${commit_heavy_tests[@]}"; do heavy[${n#*:}]=1; done
 	for pkg in "${commit_late_packages[@]}"; do is_late[$pkg]=1; done
-	while read -r dir name; do
+	while read -r dir name band; do
 		case $name in Test* | Fuzz*) ;; *) continue ;; esac
+		[ "$band" = far ] || band=near
 		pkg=./$dir
-		case $pkg in ./internal | ./internal/reporoot) continue ;; esac
 		[ -z "${seen[$pkg $name]:-}" ] || continue
 		seen[$pkg $name]=1
+		[ "$band" = far ] || commit_near[$pkg $name]=1
+		case $pkg in ./internal | ./internal/reporoot)
+			commit_ran+=("$pkg $name")
+			continue
+			;;
+		esac
 		if [ -n "${heavy[$name]:-}" ]; then
 			commit_left+=("$pkg $name")
 			commit_left_heavy=$((commit_left_heavy + 1))
 			continue
 		fi
-		if [ -z "${names[$pkg]+x}" ]; then
-			if [ -n "${is_late[$pkg]:-}" ]; then tail+=("$pkg"); else order+=("$pkg"); fi
-			names[$pkg]=""
+		key="$band $pkg"
+		if [ -z "${names[$key]+x}" ]; then
+			case $band:${is_late[$pkg]:-} in
+			near:) near_keys+=("$key") ;;
+			near:1) near_late+=("$key") ;;
+			far:) far_keys+=("$key") ;;
+			far:1) far_late+=("$key") ;;
+			esac
+			names[$key]=""
 		fi
-		names[$pkg]+="$name "
+		names[$key]+="$name "
 	done
-	for pkg in "${order[@]}" "${tail[@]}"; do
-		if [ -n "${is_late[$pkg]:-}" ] && [ -z "$late_started" ]; then
-			late_started=1
+	for band in near far; do
+		if [ "$band" = near ]; then
+			keys=("${near_keys[@]}" "${near_late[@]}")
+		else
+			keys=("${far_keys[@]}" "${far_late[@]}")
 			[ $len -eq 0 ] || { chunk=$((chunk + 1)); len=0; }
 		fi
-		pkg_len=0
-		for name in ${names[$pkg]}; do pkg_len=$((pkg_len + ${#name} + 1)); done
-		if [ $len -gt 0 ] && [ $((len + pkg_len)) -gt "$commit_chunk_chars" ]; then
-			chunk=$((chunk + 1))
-			len=0
-		fi
-		for name in ${names[$pkg]}; do
-			if [ $len -gt 0 ] && [ $((len + ${#name} + 1)) -gt "$commit_chunk_chars" ]; then
+		late_started=""
+		for key in "${keys[@]}"; do
+			pkg=${key#* }
+			if [ -n "${is_late[$pkg]:-}" ] && [ -z "$late_started" ]; then
+				late_started=1
+				[ $len -eq 0 ] || { chunk=$((chunk + 1)); len=0; }
+			fi
+			pkg_len=0
+			for name in ${names[$key]}; do pkg_len=$((pkg_len + ${#name} + 1)); done
+			if [ $len -gt 0 ] && [ $((len + pkg_len)) -gt "$commit_chunk_chars" ]; then
 				chunk=$((chunk + 1))
 				len=0
 			fi
-			printf '%d\t%s\t%s\n' "$chunk" "$pkg" "$name"
-			len=$((len + ${#name} + 1))
+			for name in ${names[$key]}; do
+				if [ $len -gt 0 ] && [ $((len + ${#name} + 1)) -gt "$commit_chunk_chars" ]; then
+					chunk=$((chunk + 1))
+					len=0
+				fi
+				printf '%d\t%s\t%s\n' "$chunk" "$pkg" "$name"
+				len=$((len + ${#name} + 1))
+			done
 		done
 	done
 }
@@ -688,20 +715,22 @@ commit_settle() {
 	done
 }
 
-# commit_selection commit kipinin son adımıdır (seçim: $1, codegraph changed --go-tests satırları): seçim boşsa adım yok.
+# commit_selection commit kipinin son adımıdır (seçim: $1, codegraph changed --go-tests --by-distance satırları): seçim
+# boşsa adım yok (sonuç satırı ℹ️ olur, commit_passed_line).
 # Kalan test varsa adımın sonunda adlarıyla yazılır; düşen test adımı düşürür.
 commit_selection() {
-	local plan light pkgs n shown more="" self=""
+	local plan light pkgs near=0 p name n shown more="" self=""
 	plan=$(mktemp)
 	commit_plan <<<"$1" >"$plan"
 	light=$(($(wc -l <"$plan")))
 	pkgs=$(($(cut -f2 "$plan" | sort -u | wc -l)))
+	while IFS=$'\t' read -r _ p name; do [ -z "${commit_near[$p $name]:-}" ] || near=$((near + 1)); done <"$plan"
 	if [ "$light" -eq 0 ] && [ ${#commit_left[@]} -eq 0 ]; then
 		rm -f "$plan"
 		[ "$commit_self_out" -eq 0 ] || echo "G4'e kaldı (seçime girmeyen $commit_self_out codegraph testi)"
 		return 0
 	fi
-	step "Değişen dosyaların hafif testleri ($light test, $pkgs paket; codegraph changed --go-tests; ağır listesindeki ve kipin $commit_seconds sn'si (kipin başından, derleme dahil) dolunca bitmemiş paketlerin testleri G4'e kalır)"
+	step "Değişen dosyaların hafif testleri, yakından uzağa ($light test, $pkgs paket, $near yakın; codegraph changed --go-tests --by-distance; ağır listesindeki ve kipin $commit_seconds sn'si (kipin başından, derleme dahil) dolunca bitmemiş testler G4'e kalır)"
 	[ "$light" -eq 0 ] || commit_run_chunks "$plan"
 	rm -f "$plan"
 	n=${#commit_left[@]}
@@ -737,9 +766,9 @@ commit_light_tests() {
 		bin=${bin%$'\r'}
 	fi
 	if [ -n "$bin" ] && [ -f "$bin" ]; then
-		out=$("$bin" changed --go-tests --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
+		out=$("$bin" changed --go-tests --by-distance --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	else
-		out=$(go run ./tools/edithook codegraph changed --go-tests --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
+		out=$(go run ./tools/edithook codegraph changed --go-tests --by-distance --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	fi
 	if [ "$code" -ne 0 ]; then
 		head -20 "$errfile"
@@ -758,10 +787,11 @@ commit_light_tests() {
 # 12'si>.tsv, tek satır, geçici adla yazılıp taşınır (birkaç çalışma ağacı aynı anda yazar). Depoya girmez; birleşme
 # sonrası denetim (D1'in K5'i) okur. Ağaç kipin sınadığı çalışma ağacıdır: index'in kopyasıyla geçici bir index'e
 # `git add -A`; gerçek index'e dokunulmaz. Satırda yol ve kullanıcı adı yok: paketler ./ ile, dal adı ya da "-".
-# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:- (kip dups koşmaz, alan
-# biçim için kalır; codegraph dilim 6), hata:<n>,not:<m> (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
+# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti, uyarı ya da bilgi, commit_kind; düşen kipte düşen ilk adım), aday:- (kip
+# dups koşmaz, alan biçim için kalır; codegraph dilim 6), hata:<n>,not:<m> (spec-refs), yakın:<koşan>/<seçilen> (codegraph 7
+# B3), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
 commit_record() {
-	local dir idx tmp bak before after tree branch result name
+	local dir idx tmp bak before after tree branch result name sel near far
 	dir=$(git rev-parse --git-common-dir 2>/dev/null) || return 0
 	dir=$dir/codegraph-kip
 	idx=$(git rev-parse --git-path index)
@@ -788,13 +818,14 @@ commit_record() {
 		return 0
 	fi
 	branch=$(git symbolic-ref --short -q HEAD) || branch=-
-	result=geçti
+	result=$(commit_kind)
 	[ "$failed" -eq 0 ] || result=${commit_failed_step:-kaldı}
+	read -r sel near far _ < <(commit_counts)
 	result=${result//[$'\t\n\r']/ }
 	mkdir -p "$dir" || return 0
 	name=$(date -u +%Y%m%dT%H%M%SZ)-${tree:0:12}.tsv
 	{
-		printf '%s\t%s\t%s\t%s\taday:%s\thata:%s\t' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$tree" "$branch" "$result" "$commit_dups" "$commit_specrefs"
+		printf '%s\t%s\t%s\t%s\taday:%s\thata:%s\tyakın:%s/%s\t' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$tree" "$branch" "$result" "$commit_dups" "$commit_specrefs" "$near" "$sel"
 		(
 			IFS=,
 			printf '%s\t%s\n' "${commit_ran[*]}" "${commit_left[*]}"
@@ -802,12 +833,58 @@ commit_record() {
 	} >"$dir/.$name.tmp" && mv "$dir/.$name.tmp" "$dir/$name"
 }
 
-# commit_passed_line commit kipinin sonuç satırıdır; kalan test varsa sayısını taşır.
-commit_passed_line() {
-	if [ ${#commit_left[@]} -gt 0 ]; then
-		echo "✅ Commit öncesi denetim geçti (tam denetim değildir; ${#commit_left[@]} test G4'e kaldı)"
+# commit_counts commit kipinin yakın sayılarıdır: "<yakın seçilen> <yakın koşan> <uzak koşan> <ağır listesinde kalan yakın>"
+# (commit_near, commit_ran ve commit_left'ten; codegraph 7 B3). Sonuç satırı ve kayıt buradan sayar.
+commit_counts() {
+	local t n near=0 far=0 heavy=0
+	local -A heavy_names=()
+	for n in "${commit_heavy_tests[@]}"; do heavy_names[${n#*:}]=1; done
+	for t in "${commit_ran[@]}"; do
+		if [ -n "${commit_near[$t]:-}" ]; then near=$((near + 1)); else far=$((far + 1)); fi
+	done
+	for t in "${commit_left[@]}"; do
+		[ -z "${commit_near[$t]:-}" ] || [ -z "${heavy_names[${t#* }]:-}" ] || heavy=$((heavy + 1))
+	done
+	echo "${#commit_near[@]} $near $far $heavy"
+}
+
+# commit_kind geçen kipin sonuç türüdür (kaydın sonuç alanı, DENETİM 748 N2): geçti (✅), uyarı (⚠️: yakın test seçildi,
+# hiçbiri koşmadı) ya da bilgi (ℹ️: yakın test seçilmedi).
+commit_kind() {
+	local sel near far heavy
+	read -r sel near far heavy < <(commit_counts)
+	if [ "$sel" -eq 0 ]; then
+		echo bilgi
+	elif [ "$near" -eq 0 ]; then
+		echo uyarı
 	else
-		echo "✅ Commit öncesi denetim geçti (tam denetim değildir)"
+		echo geçti
+	fi
+}
+
+# commit_passed_line geçen kipin sonuç satırıdır (S6): yakın testlerin hepsi koştuysa bunu, bir kısmı kaldıysa sayısını
+# kalan yakınları nedenine göre söyler (ağır listesinde, süreye sığmayan); yakın seçilip hiçbiri koşmadıysa ⚠️ yazar ve 3
+# döner (commit'siz geçme, DENETİM 747 Açık-4); yakın test seçilmediyse ✅ değil ℹ️ yazar. Neden: "✅ geçti" değişen
+# dosyanın hiçbir testi koşmamışken de yazılıyordu, 52 kaydın 12'sinde (codegraph 7 B3).
+commit_passed_line() {
+	local sel near far heavy n=${#commit_left[@]}
+	read -r sel near far heavy < <(commit_counts)
+	local why="$heavy ağır listesinde, $((sel - near - heavy)) süreye sığmadı"
+	if [ "$sel" -eq 0 ]; then
+		if [ $((far + n)) -gt 0 ]; then
+			echo "ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için yakın test seçilmedi; $far uzak test koştu, $n test G4'e kaldı."
+		else
+			echo "ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için hiç test seçilmedi; düzen kuralları ve hafif testler koştu."
+		fi
+	elif [ "$near" -eq 0 ]; then
+		echo "⚠️ Commit öncesi denetim değişen dosyaların hiçbir testini koşamadı ($why; $n test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş."
+		return 3
+	elif [ "$near" -lt "$sel" ]; then
+		echo "✅ Commit öncesi denetim geçti (tam denetim değildir; $((sel - near)) yakın test koşmadı: $why; $n test G4'e kaldı)"
+	elif [ "$n" -gt 0 ]; then
+		echo "✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu; $n uzak test G4'e kaldı)"
+	else
+		echo "✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu)"
 	fi
 }
 
@@ -1081,7 +1158,7 @@ finish() {
 	if [ "$modes" = commit ]; then
 		commit_record
 		if [ $failed -eq 0 ]; then
-			commit_passed_line
+			commit_passed_line || exit $?
 		else
 			echo "❌ Commit öncesi denetimde kalan var:"
 			printf '  - %s\n' "${failures[@]}"
