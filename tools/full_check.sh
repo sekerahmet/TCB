@@ -33,8 +33,8 @@
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=commit      commit öncesi denetim (en çok 120 sn ve kaydın yazılması; yan oturumların
 #                     ve TCB'nin tek commit öncesi komutu, CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi
-#                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), tekrar
-#                     adayları, dil tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
+#                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), dil
+#                     tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
 #                     --go-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120 sn'sinin kalanıyla; kalanlar "G4'e
 #                     kaldı" diye yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
@@ -509,7 +509,9 @@ dups_check() {
 # spec_refs_check dil tanımı (docs/spec) madde atıflarını denetler: olmayan maddeye atıf ve
 # madde numarasından sonraki ekin ses uyumsuzluğu denetimi düşürür. dups_check bu koşuda
 # codegraph'ı derlediyse (.codegraph/last-codegraph) o ikiliyi doğrudan koşar; ortak ata yoksa
-# ya da ikili bulunamazsa edithook üzerinden go run'a düşer.
+# ya da ikili bulunamazsa edithook üzerinden go run'a düşer. go run yolu geçince derleme işaretini
+# kendisi koyar (codegraph_built): commit kipinde dups_check yok, değişen dosyaların hafif testleri
+# (commit_light_tests) codegraph'ı bir daha derlemeden bu ikiliyi koşar (codegraph dilim 6, D6-2).
 spec_refs_check() {
 	local bin="" out
 	step "Dil tanımı atıfları (codegraph spec-refs)"
@@ -522,6 +524,7 @@ spec_refs_check() {
 		out=$("$bin" spec-refs 2>&1) || code=$?
 	else
 		out=$(go run ./tools/edithook codegraph spec-refs 2>&1) || code=$?
+		[ "$code" -ne 0 ] || codegraph_built=1
 	fi
 	# Kaydın alanı (commit_record): hata ve not sayısı; çıktıda yoksa "-".
 	commit_specrefs="$(printf '%s\n' "$out" | sed -n 's/.* \([0-9][0-9]*\) error(s), \([0-9][0-9]*\) note(s).*/\1,not:\2/p' | head -1)"
@@ -681,7 +684,8 @@ commit_selection() {
 }
 
 # commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen
-# dosyalar dahil), dalın bütünü değil. dups_check bu koşuda codegraph'ı derlediyse o ikili koşar.
+# dosyalar dahil), dalın bütünü değil. Bu koşuda codegraph derlendiyse (commit kipinde spec_refs_check, öbür
+# kiplerde dups_check) o ikili koşar.
 commit_light_tests() {
 	local out errfile bin="" code=0
 	errfile=$(mktemp)
@@ -716,8 +720,8 @@ commit_light_tests() {
 # 12'si>.tsv, tek satır, geçici adla yazılıp taşınır (birkaç çalışma ağacı aynı anda yazar). Depoya girmez; birleşme
 # sonrası denetim (D1'in K5'i) okur. Ağaç kipin sınadığı çalışma ağacıdır: index'in kopyasıyla geçici bir index'e
 # `git add -A`; gerçek index'e dokunulmaz. Satırda yol ve kullanıcı adı yok: paketler ./ ile, dal adı ya da "-".
-# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:<n> (dups), hata:<n>,not:<m>
-# (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
+# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:- (kip dups koşmaz, alan
+# biçim için kalır; codegraph dilim 6), hata:<n>,not:<m> (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
 commit_record() {
 	local dir idx tmp bak before after tree branch result name
 	dir=$(git rev-parse --git-common-dir 2>/dev/null) || return 0
@@ -1129,7 +1133,8 @@ for mode in $modes; do
 		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
 			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
-		dups_check
+		# Tekrar adayları (dups_check) bu kipte yok: dups --changed commit'siz değişikliği görmüyor, kipin her kaydında
+		# aday:0 çıkıyordu (codegraph dilim 6, D6-2); commit'ten sonra `dups --changed main` koşulur. Kaydın aday: alanı -.
 		spec_refs_check
 		commit_light_tests
 		;;

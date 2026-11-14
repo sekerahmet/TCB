@@ -39,7 +39,7 @@ func commitPrelude(t *testing.T) string {
 		parts = append(parts, m)
 	}
 	for _, name := range []string{"commit_plan", "commit_run_chunks", "commit_settle", "commit_selection", "commit_record",
-		"commit_passed_line", "watch_failures", "watched_ok"} {
+		"commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests"} {
 		m := regexp.MustCompile(`(?ms)^` + name + `\(\) \{\n.*?^\}$`).FindString(script)
 		if m == "" {
 			t.Fatalf("tools/full_check.sh: %s işlevi bulunamadı", name)
@@ -162,6 +162,53 @@ func TestCommitModeRunsTheLightSelection(t *testing.T) {
 	empty := runCommitBash(t, dir, env, "commit_selection ''\ncommit_passed_line\n")
 	if strings.Contains(empty, "==") || !strings.Contains(empty, "✅ Commit öncesi denetim geçti (tam denetim değildir)\n") {
 		t.Errorf("boş seçimde adım olmamalı ve sonuç satırı sayısız kalmalı:\n%s", empty)
+	}
+}
+
+// Kural (tools/full_check.sh, --kip=commit; D1 codegraph dilim 6, D6-2): commit kipi tekrar adaylarını aramaz (dups
+// --changed commit'siz değişikliği görmüyor, kipin her kaydında aday:0 çıkıyordu); codegraph'ı dil tanımı atıfları
+// adımı derler ve değişen dosyaların hafif testleri aynı ikiliyi koşar: kipte codegraph bir kez derlenir.
+func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	branch := regexp.MustCompile(`(?ms)^\tcommit\)\n.*?^\t\t;;$`).FindString(strings.ReplaceAll(string(data), "\r\n", "\n"))
+	if branch == "" {
+		t.Fatal("tools/full_check.sh: commit) kolu bulunamadı")
+	}
+	if regexp.MustCompile(`(?m)^\s*dups_check\s*$`).MatchString(branch) {
+		t.Errorf("commit kipi dups_check koşmamalı:\n%s", branch)
+	}
+	if spec, light := strings.Index(branch, "\t\tspec_refs_check\n"), strings.Index(branch, "\t\tcommit_light_tests\n"); spec < 0 || light < spec {
+		t.Errorf("commit kipinde spec_refs_check commit_light_tests'ten önce koşmalı:\n%s", branch)
+	}
+	dir, env := fakeGo(t, map[string]string{"tools_edithook.out": "345 item(s), 7956 mention(s), 0 error(s), 0 note(s)\n"})
+	built := filepath.ToSlash(filepath.Join(dir, "bin", "codegraph-built"))
+	files := map[string]string{
+		"bin/codegraph-built":       "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$FAKE_GO_DIR/cg_args\"\n",
+		".codegraph/graph.json":     "{}\n",
+		".codegraph/last-codegraph": built + "\n",
+	}
+	for name, body := range files {
+		p := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out := runCommitBash(t, dir, env, "spec_refs_check\ncommit_light_tests\necho \"SPECREFS=$commit_specrefs\"\n")
+	if strings.Contains(out, "!! KALDI") || !strings.Contains(out, "SPECREFS=0,not:0") {
+		t.Errorf("iki adım da geçmeliydi:\n%s", out)
+	}
+	if args := fakeArgs(t, dir); len(args) != 1 || !strings.Contains(args[0], "run ./tools/edithook codegraph spec-refs") {
+		t.Errorf("go yalnız bir kez (spec-refs için) koşmalıydı: %q", args)
+	}
+	cgArgs, err := os.ReadFile(filepath.Join(dir, "fake", "cg_args"))
+	if err != nil || strings.TrimSpace(string(cgArgs)) != "changed --go-tests --base HEAD HEAD" {
+		t.Errorf("hafif testlerin seçimi spec-refs'in derlediği ikiliden alınmalıydı: %q %v\n%s", cgArgs, err, out)
 	}
 }
 
