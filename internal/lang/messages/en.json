@@ -2197,7 +2197,7 @@
 "H8680": "The Go profile could not be started: {error}",
 "H8691": "Please specify a .tr file or folder. E.g. trlang {command} example.tr or trlang {command} {check} .",
 "H8692": "{path}: {error} — please report this file with a bug report",
-"H8693": "needs formatting: {path}",
+"H8693": "needs formatting: {path}:{line} ({reason, select, crlf {the line end is CRLF, it should be LF} eol {the last line has no line end} other {the first line that differs from the format}})",
 "H8694": "formatted: {path}",
 "H8695": "{count} of {total} {total, plural, one {file needs} other {files need}} formatting. To fix: trlang {command} <file|folder>",
 "H8696": "{count} of {total} {total, plural, one {file} other {files}} could not be formatted (see the errors above).",

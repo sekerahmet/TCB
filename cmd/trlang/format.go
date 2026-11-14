@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"os"
+	"strings"
 )
 
 // formatCommand 'trlang format [--check] <dosya.tr | klasör>...' komutudur. Dosyaları standart
@@ -54,7 +55,8 @@ func formatCommand(args []string) {
 		}
 		changed++
 		if check {
-			fmt.Println(messages.Text(messages.H8693, filePath))
+			reason, line := formatDifference(string(content), updated)
+			fmt.Println(messages.Text(messages.H8693, filePath, reason, line))
 			continue
 		}
 		if err := writeInPlace(filePath, updated); err != nil {
@@ -89,4 +91,23 @@ func trFiles(target string, failed messages.Code) ([]string, error) {
 	}, func(path string, err error) error {
 		return turkish.FileError("", path, messages.H2109, err)
 	})
+}
+
+// formatDifference --check'in neden biçimlenmesi gerektiğini ve satırını söyler (ajan nedeni tahmin
+// etmesin): CRLF satır sonu ("crlf", ilk CRLF'li satır), son satırın sonunda satır sonu yok ("eol",
+// son satır), değilse biçimin ilk farklı satırı.
+func formatDifference(content, formatted string) (reason string, line int) {
+	if i := strings.Index(content, "\r\n"); i >= 0 {
+		return "crlf", strings.Count(content[:i], "\n") + 1
+	}
+	if content+"\n" == formatted {
+		return "eol", strings.Count(content, "\n") + 1
+	}
+	a, b := strings.Split(content, "\n"), strings.Split(formatted, "\n")
+	for i := range min(len(a), len(b)) {
+		if a[i] != b[i] {
+			return "line", i + 1
+		}
+	}
+	return "line", min(len(a), len(b)) + 1
 }

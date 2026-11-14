@@ -2202,7 +2202,7 @@ const (
 	H8680 Code = 8680 // Go profili başlatılamadı: {error}
 	H8691 Code = 8691 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: trlang {command} ornek.tr veya trlang {command} {check} .
 	H8692 Code = 8692 // {path}: {error} — lütfen bu dosyayı bir hata kaydıyla bildirin
-	H8693 Code = 8693 // biçimlenmeli: {path}
+	H8693 Code = 8693 // biçimlenmeli: {path}:{line} ({reason, select, crlf {satır sonu CRLF, LF olmalı} eol {son satırın sonunda satır sonu yok} other {biçimin ilk farklı satırı}})
 	H8694 Code = 8694 // biçimlendi: {path}
 	H8695 Code = 8695 // {total} dosyadan {count} tanesi biçimlenmeli. Düzeltmek için: trlang {command} <dosya|klasör>
 	H8696 Code = 8696 // {total} dosyadan {count} tanesi biçimlenemedi (yukarıdaki hatalara bakın).

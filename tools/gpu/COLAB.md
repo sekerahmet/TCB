@@ -772,21 +772,23 @@ else echo "sürüyor: $(tail -c 160 tr.log 2>/dev/null)"; fi
 
 Bir kitaplık değişikliğini dile ve depoya almadan önce ölçer: `/content/TCB`'nin kopyasında
 `lib/layers.tr` yamalanır (kitaplık ikiliye gömülüdür), `tr_deney` derlenir; iki ikili aynı
-sentetik veride sırayla ikişer kez 120 adım koşar. Örnekteki yama, f32 girdili normların
-(`TR_mem_input_norm`, `TR_mem_post_attention_norm`, `TR_mem_final_norm`) çıktısını doğrudan bf16 yazar (`TR_arg_dtype:`): bu modelde onları yalnızca
-çarpımlar okur, çarpımın kendi dönüşümü gereksizleşir. Yamayı deneye göre değiştirin
-(`assert`, her aranan metnin kitaplıkta bir kez geçtiğini denetler).
+sentetik veride sırayla ikişer kez 120 adım koşar. Kitaplık kimlikle yazılır; yama da kimlik
+metniyle yazılır. Örnekteki yama kitaplığa girmiş bir değişikliğin kazancını tersinden ölçer:
+normlar (`TR_mem_input_norm`, `TR_mem_post_attention_norm`, `TR_mem_final_norm`) çıktıyı hesap
+hassasiyetinde yazar (`TR_arg_output_dtype:`), yamalı ikili onları float32 bırakır. Yamayı deneye
+göre değiştirin (`assert`, her aranan metnin kitaplıkta bir kez geçtiğini denetler; depoda da
+`TestColabLibraryPatchFindsItsText` denetler).
 
 ```bash
-# 21 · DENEY A/B: NORM ÇIKTISI bf16 (tür:) — KİTAPLIK YAMALI İKİLİ vs OLDUĞU GİBİ (ARKA PLANDA, ~4 DK) · GPU
+# 21 · DENEY A/B: NORM ÇIKTISI float32 (çıktı türü yok) — KİTAPLIK YAMALI İKİLİ vs OLDUĞU GİBİ (ARKA PLANDA, ~4 DK) · GPU
 # Hücre hemen döner; durum: hücre 22. Önce hücre 1 (DAL=gpu-dogrulama).
 export PATH=/usr/local/go/bin:$PATH
 rm -rf /content/TCB_b && cp -r /content/TCB /content/TCB_b && cd /content/TCB_b
 python3 - <<'PY'
 p = "lib/layers.tr"; s = open(p, encoding="utf-8").read()
-r = [("kendi.norm1.ileri(x)", 'rms_normu(x, kendi.norm1.ağırlık, epsilon: kendi.norm1.epsilon, tür: "bf16")'),
-     ("kendi.norm2.ileri(h)", 'rms_normu(h, kendi.norm2.ağırlık, epsilon: kendi.norm2.epsilon, tür: "bf16")'),
-     ("sonuç kendi.son_norm.ileri(x)", 'sonuç rms_normu(x, kendi.son_norm.ağırlık, epsilon: kendi.son_norm.epsilon, tür: "bf16")')]
+r = [("TR_self.TR_input_norm.TR_forward(TR_x, TR_output_dtype: TR_compute_dtype())", "TR_self.TR_input_norm.TR_forward(TR_x)"),
+     ("TR_self.TR_post_attention_norm.TR_forward(h, TR_output_dtype: TR_compute_dtype())", "TR_self.TR_post_attention_norm.TR_forward(h)"),
+     ("TR_return TR_self.TR_final_norm.TR_forward(x, TR_output_dtype: TR_compute_dtype())", "TR_return TR_self.TR_final_norm.TR_forward(x)")]
 for a, b in r:
     assert s.count(a) == 1, a
     s = s.replace(a, b)

@@ -454,7 +454,7 @@ _dil_denetle()
 # modeller ayarın cihazında kurulur (bugün yalnız cpu): başka cihaz sunucudan önce hatadır.
 TR_default_device(TR_String(ayar["cihaz"]))
 TR_if TR_Int(ayar["ekran"]) >= 0 TR_and TR_default_device() != "cpu" {
-    TR_throw "--cihaz \(TR_default_device()) ekranlı kipte verilmez: ekranlı kipte modeller ayarın cihazında kurulur (bugün yalnız cpu). --cihaz'ı kaldırın ya da Dost'u --ekran olmadan açın"
+    TR_throw "--cihaz \(TR_String(ayar["cihaz"])) ekranlı kipte verilmez: ekranlı kipte modeller ayarın cihazında kurulur (bugün yalnız cpu). --cihaz'ı kaldırın ya da Dost'u --ekran olmadan açın"
 }
 TR_var deneme_yeri = TR_String(ayar["deneme_klasörü"])
 TR_if deneme_yeri != "" {

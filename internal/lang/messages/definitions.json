@@ -2197,7 +2197,7 @@
 "H8680": { "param": ["error"] },
 "H8691": { "param": ["command", "check"] },
 "H8692": { "param": ["path", "error"] },
-"H8693": { "param": ["path"] },
+"H8693": { "param": ["path", "reason", "line"] },
 "H8694": { "param": ["path"] },
 "H8695": { "param": ["total", "count", "command"] },
 "H8696": { "param": ["total", "count"] },

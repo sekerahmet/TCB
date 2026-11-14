@@ -160,10 +160,15 @@ TR_struct TR_SpeechSplitter {
         _süre("pre_roll", TR_pre_roll)
         _süre("silence", TR_silence)
         _süre("max_speech", TR_max_speech)
-        TR_self._ön = TR_Int(TR_ceil(TR_pre_roll * _ÇERÇEVE_HIZI))
-        TR_self._sessizlik = TR_Int(TR_ceil(TR_silence * _ÇERÇEVE_HIZI))
-        TR_self._sınır = TR_Int(TR_floor(TR_max_speech * _ÇERÇEVE_HIZI))
-        TR_if TR_self._sınır < TR_self._ön + TR_self._sessizlik { TR_throw TR_Message("H7539", TR_max_speech, TR_self._sınır) }
+        # Sınır ondalıkta karşılaştırılır, sonra tam sayıya çevrilir: çok büyük süre (1e300) tam sayı
+        # taşması değil 25.12'nin iletisidir.
+        TR_var ön = TR_ceil(TR_pre_roll * _ÇERÇEVE_HIZI)
+        TR_var sessizlik = TR_ceil(TR_silence * _ÇERÇEVE_HIZI)
+        TR_var sınır = TR_floor(TR_max_speech * _ÇERÇEVE_HIZI)
+        TR_if sınır < ön + sessizlik { TR_throw TR_Message("H7539", TR_max_speech, TR_Int(sınır)) }
+        TR_self._ön = TR_Int(ön)
+        TR_self._sessizlik = TR_Int(sessizlik)
+        TR_self._sınır = TR_Int(sınır)
         TR_self._d = d
         TR_self._başlangıç = TR_start_threshold
         TR_self._bitiş = bitiş
