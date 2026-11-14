@@ -164,15 +164,19 @@ commit_test_pkgs=(
 	./internal/lang/codes
 )
 # commit_heavy_tests commit kipinin değişen dosyalar seçiminden çıkan ağır testlerdir (paket:ad): G4'te herhangi bir
-# koşuda 5 sn'yi aşan üst testler (D1 codegraph dilim 1'in ölçüsü, 2026-11-13). Seçimde adları geçerse koşmaz, "G4'e
-# kaldı" diye yazılır. Liste her büyük birleşmeden sonra G4 ölçüsüyle karşılaştırılır; değiştiren ana oturumdur.
+# koşuda 5 sn'yi aşan üst testler (D1 codegraph dilim 1'in ölçüsü, 2026-11-13; K5 1cc41d11'in G4 ölçüsüyle üç test eklendi,
+# 2026-11-14). Seçimde adları geçerse koşmaz, "G4'e kaldı" diye yazılır. Liste her büyük birleşmeden sonra G4 ölçüsüyle
+# karşılaştırılır; değiştiren ana oturumdur.
 # Her ad kendi paketinde tanımlı olmalı (TestCommitHeavyTestsExist).
 commit_heavy_tests=(
 	./cmd/trlang/e2e:TestExamplesSameOutputInEveryDisplayLanguage
 	./cmd/trlang/e2e:TestReadyModelMatchesTransformers
+	./internal/detmath:TestNoFusedInstructions
 	./internal/lang/interp:TestTheLockIsHandedOffInTimeAfterStatementsSlowDown
+	./internal/lang/parser:TestNestingDepthLimit
 	./internal/stdlib/httpserver:TestSlowListenerOnlyItsConnectionCloses
 	./internal/stdlib/ml:TestOtherTasksRunDuringLongTensorWork
+	./internal/stdlib/ml:TestSafetensorsPythonRoundTrip
 	./internal/stdlib/process:TestEscapedGrandchildDoesNotBlockTheStop
 	./internal/stdlib/process:TestGrandchildDoesNotHangTheProcess
 	./internal/stdlib/process:TestGrandchildHoldingThePipeDoesNotBlock
