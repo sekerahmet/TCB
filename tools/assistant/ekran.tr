@@ -427,7 +427,7 @@ TR_func tur_yürüt(e: Ekran, kaynak: TR_String, u: TurUçları) -> ÇalmaAralı
         neden = TR_if hata.TR_code == "H2920" { "stopped" } TR_else { "error" }
         TR_if neden == "error" {
             TR_print("TUR HATASI:", hata)
-            kod = hata.TR_code
+            kod = hata.TR_code ?? ""
         }
     }
     TR_var a = u.aralık()
