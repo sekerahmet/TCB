@@ -68,6 +68,7 @@ type snippetFlow struct {
 type snippetState struct {
 	flows       []snippetFlow
 	sinks       map[paramKey]bool
+	fileSinks   map[paramKey]bool    // sinks'in .tr dosyasına yazan parametreleri: metin trlang ikilisinde koşar (viaTrlang)
 	varTexts    map[string][]textSrc // değişken (bildirim konumu) -> atanan metinler
 	returnTexts map[string][]textSrc // işlev kimliği -> döndürdüğü metinler
 	curParams   map[*types.Var]paramKey
@@ -79,7 +80,7 @@ type snippetState struct {
 }
 
 func newSnippetState() *snippetState {
-	return &snippetState{sinks: map[paramKey]bool{}, varTexts: map[string][]textSrc{}, returnTexts: map[string][]textSrc{},
+	return &snippetState{sinks: map[paramKey]bool{}, fileSinks: map[paramKey]bool{}, varTexts: map[string][]textSrc{}, returnTexts: map[string][]textSrc{},
 		curParams: map[*types.Var]paramKey{}, tables: map[string]*ast.CompositeLit{}, fieldTexts: map[string][]textSrc{}}
 }
 
@@ -452,6 +453,10 @@ func linkSnippets(b *builder, idx *goIndex, reach *testReach, library fs.FS) {
 				st.sinks[f.from] = true
 				changed = true
 			}
+			if f.from.fn != "" && st.fileSinks[f.callee] && !st.fileSinks[f.from] {
+				st.fileSinks[f.from] = true
+				changed = true
+			}
 		}
 	}
 	cache := map[string][]codeindex.SnippetUse{}
@@ -472,6 +477,9 @@ func linkSnippets(b *builder, idx *goIndex, reach *testReach, library fs.FS) {
 			for _, u := range uses {
 				for _, t := range tests {
 					b.addEdge(t, "name:"+u.Code, edgeTests, inferred, f.file, f.line)
+					if f.trFile || st.fileSinks[f.callee] { // .tr dosyasına yazılan metin trlang'da koşar
+						b.edges[edgeKey{t, "name:" + u.Code, edgeTests}].Via = viaTrlang
+					}
 				}
 			}
 		}

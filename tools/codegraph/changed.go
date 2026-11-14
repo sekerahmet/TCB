@@ -17,6 +17,8 @@ type changeOpts struct {
 	limit int
 	// goTests: yalnız koşulacak Go testleri (printGoTests); ön denetim okur.
 	goTests bool
+	// withoutSelfTests: goTests'ten codegraph'ın kendi testlerini çıkarır (commit kipi; self_tests.go, D6-3).
+	withoutSelfTests bool
 }
 
 // runChanged ref'in (dal ya da a..b / a...b aralığı) değişikliklerini grafiğin düğümlerine eşler:
@@ -53,7 +55,11 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 		if len(hs) == 0 && len(untracked) == 0 && flag != "" && ref != "HEAD" && ref != o.base && isAncestor(o.root, ref, o.base) {
 			fmt.Fprintf(stdout, "%s is an ancestor of %s (git diff %s is empty); for a single commit's change, use `%s~1..%s`\n", ref, o.base, rng, ref, ref)
 		}
-		ix.printGoTests(stdout, main)
+		if o.withoutSelfTests {
+			ix.printGoTestsWithoutSelfTests(stdout, stderr, main)
+		} else {
+			ix.printGoTests(stdout, main)
+		}
 		return exitOK
 	}
 	fmt.Fprintf(stdout, "changed %s: %d hunks in %d files\n  mapping: %s\n", rng, len(hs), len(main.files), mapping)

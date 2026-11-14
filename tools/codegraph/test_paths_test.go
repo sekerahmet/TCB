@@ -129,7 +129,7 @@ func TestTestsForShowsTheRuleLineOfEachGoTest(t *testing.T) {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "lib/a.tr", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "lib/a.tr", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	got := out.String()
@@ -210,7 +210,7 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "TR_if", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "TR_if", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	walks, _, _ := strings.Cut(out.String(), "<- tests (")
@@ -219,7 +219,7 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 		t.Errorf("tests-for TR_if (TR_kw_if) must list only the walking test, with its rule line first:\n%s", out.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "internal/lang/codes/tr.json", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "internal/lang/codes/tr.json", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for tr.json: %d %s", code, errb.String())
 	}
 	fileWalks, fileDirect, ok := strings.Cut(out.String(), "<- tests (")
@@ -326,7 +326,7 @@ func TestTestsForAnUntrackedFileSaysNothingWasSearched(t *testing.T) {
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	testkit.WriteFile(t, root, "notes/draft.sh", "echo shape.Describe\n")
-	code, out, errOut := commandIn("tests-for", root, graph, "--no-rebuild", "notes/draft.sh")
+	code, out, errOut := commandIn("tests-for", root, graph, "--list", "--no-rebuild", "notes/draft.sh")
 	if code != exitNotFound || out != "" || !strings.Contains(errOut, "git does not track") {
 		t.Errorf("exit %d\nstdout: %s\nstderr: %s", code, out, errOut)
 	}

@@ -64,6 +64,72 @@ func TestACommandRunByNameIsTestedDirectly(t *testing.T) {
 	}
 }
 
+// caseChainFiles: "dead" kolunun işlevi runDead, find üstünden collect'e varır; orphan aynı dosyada, kimse çağırmaz.
+var caseChainFiles = map[string]string{
+	"cli/cli.go": `package cli
+
+func runDead() int { return find() }
+
+func answer(cmd string) int {
+	switch cmd {
+	case "dead":
+		return runDead()
+	}
+	return 0
+}
+
+func Run(args []string) int { return answer(args[0]) }
+`,
+	"cli/markers.go": `package cli
+
+func find() int { return collect() }
+
+func collect() int { return 1 }
+
+func orphan() int { return 2 }
+`,
+	"cli/cli_test.go": `package cli
+
+import "testing"
+
+func TestDeadKeepsMarkers(t *testing.T) { _ = Run([]string{"dead"}) }
+`,
+}
+
+// Kural (codegraph dilim 6, D6-4 (b), Karar 6): kol kenarı (viaCase) zincirin ulaştığı işleve geliyorsa, testi o işlevin
+// testi olur, adımı zincirinkidir: TestDeadKeepsMarkers → runDead (kol) → find → collect 3 adım; Run → answer üstünden
+// giden 5 adımlık çağrı zinciri zayıf kanıttı (eksikler listesinin Kritik maddesi: audit_markers.go'nun
+// TestDeadMethodsKeepsMarkerInterfaceMethods'u).
+// Test aynı pakette olsa da sayılır. Kolun işlevinden çağrılmayan, aynı dosyadaki orphan bağlanmaz (DENETİM 708 Ş2).
+func TestACommandCaseTestReachesWhatTheCaseCalls(t *testing.T) {
+	g, err := buildGraph(auditModule(t, caseChainFiles))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg := "go:func:example.com/audit/cli."
+	if e := edge(g, pkg+"TestDeadKeepsMarkers", pkg+"runDead", edgeTests); e == nil || e.Via != viaCase {
+		t.Fatalf("the case edge to runDead carries via %q: %+v", viaCase, e)
+	}
+	ix := newIndex(g)
+	steps := func(fn string) int {
+		for _, it := range ix.indirectTests(ix.byID[pkg+fn]) {
+			if it.test.ID == pkg+"TestDeadKeepsMarkers" {
+				return it.steps
+			}
+		}
+		return -1
+	}
+	if got := steps("collect"); got != 3 {
+		t.Errorf("TestDeadKeepsMarkers reaches collect in %d steps, want 3 (case edge to runDead, then find, collect)", got)
+	}
+	if got := steps("find"); got != 2 {
+		t.Errorf("TestDeadKeepsMarkers reaches find in %d steps, want 2", got)
+	}
+	if got := steps("orphan"); got != -1 {
+		t.Errorf("orphan is in the case's file but nothing calls it; it got TestDeadKeepsMarkers at %d steps", got)
+	}
+}
+
 // Kural: codegraph'ın kendi komutları için de: `answer`'ın her dize kolunun çağırdığı işlevin, kolun değerini taşıyan bir
 // test varsa en az bir doğrudan testi vardır. Kollar ve testlerdeki metinler go/parser ile bağımsız okunur.
 func TestEveryCodegraphCommandIsTestedDirectlyByTheTestsThatNameIt(t *testing.T) {

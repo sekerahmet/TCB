@@ -51,7 +51,7 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 				continue
 			}
 			for _, t := range ix.in[name.ID] {
-				if t.Kind != edgeTests || seenTest[t.From] || !ix.inTestBinary(ix.byID[t.From], n) {
+				if t.Kind != edgeTests || seenTest[t.From] || t.Via != viaTrlang && !ix.inTestBinary(ix.byID[t.From], n) {
 					continue
 				}
 				seenTest[t.From] = true
@@ -92,7 +92,8 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 // da (test dosyalarının içe aktarmaları dahil) onu dolaylı içe aktarır. Ad kodu bağı yalnızca bu koşulla geçer:
 // checker'ın `yazdır` geçen testleri `package main`'deki trlang.startsWithPrint'i hiç çalıştıramaz, ama ad kodu üzerinden
 // onun testi sayılıyordu (TCB 2026-10-25, 3. madde: tests-for cmd/tr/main.go 175 test, başta checker testleri). TR testi
-// (tr: düğümü) trlang ikilisinde koşar, her paket ona girer.
+// (tr: düğümü) trlang ikilisinde koşar, her paket ona girer; Go testinin .tr dosyasına yazıp koştuğu metinden gelen
+// kenar da (Via: viaTrlang) bu süzgeçten geçmez (testsThroughNames; codegraph dilim 6, D6-4 (a)).
 func (ix *index) inTestBinary(t, fn *Node) bool {
 	if t == nil || fn == nil || !strings.HasPrefix(t.ID, "go:") || !strings.HasPrefix(fn.ID, "go:") {
 		return true

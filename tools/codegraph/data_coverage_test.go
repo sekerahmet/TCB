@@ -67,6 +67,7 @@ func trackedSet(root string) (map[string]bool, bool) {
 }
 
 func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
+	repoRule(t)
 	root, _, g := repoGraph(t) // sınavla paylaşılan yükleme
 	tracked, ok := trackedSet(root)
 	if !ok {

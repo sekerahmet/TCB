@@ -68,6 +68,9 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, ts *touchSet, decls i
 	}
 	writeRunPlan(w, func(l listedTests) runPlan { return ix.runPlanWith(file, ts, s, l) })
 	ix.printSizes(w, file)
+	if len(s.own)+len(s.about)+len(s.others)+len(s.subprocess) > 0 {
+		markHeadEnd(w) // testi olmayan dosyanın "tests: none found" satırı kısa kipte de yazılır
+	}
 	fmt.Fprintf(w, "  declarations in this file: %d\n", decls)
 	ix.printFileTests(w, file, s, limit)
 	ix.printGoFileExams(w, file, ts, s)

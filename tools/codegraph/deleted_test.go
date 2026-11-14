@@ -167,6 +167,7 @@ func deletingCommit(root string) (string, error) {
 // reddeder (tools/gen/msgconsts/main.go, checkRetired); bu test silinen her kodun orada olduğunu deponun kendi
 // geçmişiyle sınar. Geçici depoda her yolun iletisi izlenir: TestRetiredCheck* testleri.
 func TestEveryDeletedMessageCodeIsRetired(t *testing.T) {
+	repoRule(t)
 	root := reporoot.Root()
 	out, err := gitOut(root, "rev-parse", "--is-shallow-repository")
 	if err != nil {

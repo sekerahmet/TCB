@@ -39,7 +39,7 @@ func TestATestBeyondTheStepLimitMakesAFunctionTestedAndIsSummarized(t *testing.T
 	if code != exitOK || !strings.Contains(out, "11 non-test Go functions and methods: 11 tested") {
 		t.Errorf("untested: %d %s\n%s", code, errOut, out)
 	}
-	code, out, errOut = runCLI("tests-for", "--root", root, "--no-rebuild", "p.F0")
+	code, out, errOut = runCLI("tests-for", "--list", "--root", root, "--no-rebuild", "p.F0")
 	if code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errOut)
 	}
@@ -54,7 +54,7 @@ func TestATestBeyondTheStepLimitMakesAFunctionTestedAndIsSummarized(t *testing.T
 	if strings.Contains(out, "TestOther") {
 		t.Errorf("TestOther's chain crosses a package, it keeps the limit:\n%s", out)
 	}
-	if _, out, _ = runCLI("tests-for", "--root", root, "--no-rebuild", "p.F3"); !strings.Contains(out, "p.TestFar [func] p/far_test.go") {
+	if _, out, _ = runCLI("tests-for", "--list", "--root", root, "--no-rebuild", "p.F3"); !strings.Contains(out, "p.TestFar [func] p/far_test.go") {
 		t.Errorf("tests-for of the entry lists TestFar within the limit:\n%s", out)
 	}
 }

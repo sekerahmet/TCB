@@ -36,6 +36,8 @@ type runPlan struct {
 	pkgCut  int      // onlardan satıra sığmayanların sayısı
 	trFiles []string // .tr dosyasında cevapta adı geçen TR test dosyaları (`go run ./cmd/trlang test ...`)
 	rest    []goTest // ön denetimin seçiminden komutların koşmadıkları
+	// selfTests iki klasörün dışındaki dosyada komutlardan ve rest'ten çıkan codegraph testleridir (self_tests.go, S3).
+	selfTests []goTest
 }
 
 // runPlanFor koşu satırlarını ön denetimin seçiminden (goTestSelection, `changed --go-tests`) kurar: dosyanın paketi
@@ -53,6 +55,16 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 	}
 	p.trFiles = trRunFiles(listed, s)
 	extra, golden, own := ix.collectPlanTests(file, p.pkg, s, listed)
+	selfOut := !inSelfTestFolders(file.File)
+	if selfOut {
+		for t := range extra {
+			if ix.isCodegraphSelfTest(t) {
+				delete(extra, t)
+				delete(golden, t.name)
+				p.selfTests = append(p.selfTests, t)
+			}
+		}
+	}
 	if isHeavyPackage(p.pkg) {
 		p.pkgFit, p.pkgCut = p.fitNames([]string{p.pkg}, sortedKeys(own))
 	}
@@ -69,6 +81,15 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 		p.fit, p.cut = p.fitNames(p.heavy, sortedKeys(heavyNames))
 	}
 	p.rest = ix.unrunSelection(file, ts, s, p)
+	if selfOut {
+		var out []goTest
+		p.rest, out = ix.withoutSelfTests(p.rest)
+		for _, t := range out {
+			if !slices.Contains(p.selfTests, t) {
+				p.selfTests = append(p.selfTests, t)
+			}
+		}
+	}
 	return p
 }
 
@@ -257,9 +278,18 @@ func (p runPlan) commands() []string {
 
 // printRunPlan koşu satırlarını girintisiz `run:` başlığıyla, dosya satırının hemen altına yazar (öğe satırı değildir:
 // planlama sınavının first-item sorusu en az 4 boşlukla girintili ilk satırı okur); altında koşulmayanların sayısı.
-func printRunPlan(w io.Writer, p runPlan) {
+func printRunPlan(w io.Writer, p runPlan) { printRunPlanText(w, p, false) }
+
+// printRunPlanText printRunPlan'dır; short tests-for'un bayraksız cevabıdır: orada grup yoktur, gruplara gönderen
+// satırlar --list'e gönderir (codegraph dilim 6, S8).
+func printRunPlanText(w io.Writer, p runPlan, short bool) {
+	inGroups, amongGroups := "they are in the groups below", "(among the groups below)"
+	if short {
+		inGroups, amongGroups = "--list names them", "(--list names them)"
+	}
 	cmds := p.commands()
 	if len(cmds) == 0 && !isHeavyPackage(p.pkg) {
+		printSelfTestsLine(w, p)
 		return
 	}
 	for _, c := range cmds {
@@ -270,7 +300,7 @@ func printRunPlan(w io.Writer, p runPlan) {
 			p.pkg, countOf(len(p.pkgFit), "listed test"))
 	}
 	if p.pkgCut > 0 {
-		fmt.Fprintf(w, "  %s of ./%s/ did not fit the command line; they are in the groups below\n", countOf(p.pkgCut, "more listed test"), p.pkg)
+		fmt.Fprintf(w, "  %s of ./%s/ did not fit the command line; %s\n", countOf(p.pkgCut, "more listed test"), p.pkg, inGroups)
 	}
 	if len(p.golden) > 0 {
 		fmt.Fprintf(w, "  golden files (%s): if they change, rewrite with -update and read the diff\n", strings.Join(p.golden, ", "))
@@ -279,11 +309,14 @@ func printRunPlan(w io.Writer, p runPlan) {
 		fmt.Fprintf(w, "  the second command runs its packages whole: its -run list is longer than %d characters (the Windows command line)\n", commandLineLimit)
 	}
 	if p.cut > 0 {
-		fmt.Fprintf(w, "  %s of %s did not fit the command line (heavy packages do not run whole here); they are in the groups below\n",
-			countOf(p.cut, "more listed test"), strings.Join(p.heavy, ", "))
+		fmt.Fprintf(w, "  %s of %s did not fit the command line (heavy packages do not run whole here); %s\n",
+			countOf(p.cut, "more listed test"), strings.Join(p.heavy, ", "), inGroups)
 	}
+	defer printSelfTestsLine(w, p)
 	if len(p.rest) == 0 {
-		fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
+		if len(p.selfTests) == 0 {
+			fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
+		}
 		return
 	}
 	pkgs := map[string]bool{}
@@ -291,8 +324,8 @@ func printRunPlan(w io.Writer, p runPlan) {
 		pkgs[t.dir] = true
 	}
 	// Koşulmayanlar ayrı listelenmez: aşağıdaki gruplardadırlar (DENETİM: "listed below" ayrı bir liste vaat ediyordu).
-	fmt.Fprintf(w, "  not run by these commands: %s in %s (among the groups below); the full check (`tools/full_check.sh`, on Colab) runs them all\n",
-		countOf(len(p.rest), "more Go test"), countOf(len(pkgs), "package"))
+	fmt.Fprintf(w, "  not run by these commands: %s in %s %s; the full check (`tools/full_check.sh`, on Colab) runs them all\n",
+		countOf(len(p.rest), "more Go test"), countOf(len(pkgs), "package"), amongGroups)
 }
 
 // countOf "1 package", "2 packages": sayıya göre tekil ya da çoğul İngilizce ad.

@@ -18,6 +18,7 @@ import (
 // onlar her adı sayıp hiçbirini davranışıyla sınamaz. Yeni bir yerleşik eklenip testsiz bırakılırsa ya da bir testin
 // silinmesiyle bir ad testsiz kalırsa bu test düşer; bayat bir istisna da düşürür; liste yalnızca küçülür (onlyShrinks).
 func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
+	repoRule(t)
 	const maxUntestedNames = 2 // testdata/untested_names.txt: yalnızca küçülür (onlyShrinks)
 	_, _, g := repoGraph(t)    // sınavla paylaşılan yükleme
 	direct := map[string]bool{}
@@ -111,7 +112,7 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 	}
 	for _, fn := range []string{"app.Update", "app.Save"} {
 		out.Reset()
-		if code := run([]string{"tests-for", fn, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		if code := run([]string{"tests-for", "--list", fn, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", fn, code, errb.String())
 		}
 		if !strings.Contains(out.String(), "tests through the name codes") || !strings.Contains(out.String(), "adım ilerlemesi bildirilir") {

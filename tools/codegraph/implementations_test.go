@@ -86,7 +86,7 @@ func TestInterfaceMethodsDispatchToTheirImplementations(t *testing.T) {
 	if got := ask("path", "tensor.SoftmaxOp", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "(directed, 2 steps)") {
 		t.Errorf("path follows the dispatch:\n%s", got)
 	}
-	if got := ask("tests-for", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "tensor.TestBackendOp") || !strings.Contains(got, "[INFERRED]") {
+	if got := ask("tests-for", "--list", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "tensor.TestBackendOp") || !strings.Contains(got, "[INFERRED]") {
 		t.Errorf("tests-for reaches the implementation through the interface call:\n%s", got)
 	}
 }
@@ -247,7 +247,7 @@ func TestExternalInterfaceFieldLinksOnlyImplementedMethodsToTests(t *testing.T) 
 	ask := func(target string) string {
 		out.Reset()
 		errb.Reset()
-		if code := run([]string{"tests-for", target, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		if code := run([]string{"tests-for", "--list", target, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", target, code, errb.String())
 		}
 		return out.String()

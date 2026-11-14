@@ -208,6 +208,7 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 // yalnızca testlerin çağırdığı bir yardımcı üzerinden): değişkenin etkisi sınanır, yalnızca okunması değil. Yeni bir
 // ortam değişkeni koyan testi olmadan eklenirse bu test düşer; istisna listesi yoktur (değer dili 3. tur).
 func TestEveryEnvironmentVariableIsSetByATest(t *testing.T) {
+	repoRule(t)
 	root, _, g := repoGraph(t)
 	codes := map[string]bool{}
 	for _, code := range envCodes(root) {

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -79,14 +81,24 @@ func TestEveryListedTestIsNamedByARunLine(t *testing.T) {
 		ix.printTestsFor(&out, n, defaultLimit)
 		cmds := runLines(out.String())
 		inRun := runCovers(cmds)
+		self := ix.selfTestsOf(n)
 		for _, gt := range listedIn(out.String()).goTests {
-			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") {
+			// codegraph'ın kendi testleri iki klasörün dışında koşmaz, S3 sayar (codegraph dilim 6, D6-3).
+			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") && !slices.Contains(self, gt) {
 				t.Errorf("%s: the answer lists %s %s, no run: line runs it", n.File, gt.dir, gt.name)
 			}
 		}
+		for _, gt := range self {
+			if !ix.isCodegraphSelfTest(gt) || inSelfTestFolders(n.File) || inRun(gt) {
+				t.Errorf("%s: %s %s is left out of the run: lines but is not a codegraph self-test of another folder's file", n.File, gt.dir, gt.name)
+			}
+		}
+		if want := fmt.Sprintf(selfTestsLine, len(self)); (len(self) > 0) != strings.Contains(out.String(), want) {
+			t.Errorf("%s: %d codegraph tests are left out, the answer must say so with %q:\n%s", n.File, len(self), want, out.String())
+		}
 		indTests, indBenchs := independentListedGoTests(out.String())
 		for _, gt := range indTests {
-			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") {
+			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") && !slices.Contains(self, gt) {
 				t.Errorf("%s: independent scan found %s %s in answer, no run: line runs it", n.File, gt.dir, gt.name)
 			}
 		}
@@ -342,5 +354,47 @@ func TestListedInKeepsExamplesAndRejectsLowercasePrefixContinuations(t *testing.
 		if slices.Contains(names, reject) {
 			t.Errorf("unexpected %s in -run list %v (cmd: %q)", reject, names, cmds[0])
 		}
+	}
+}
+
+// Kural (codegraph dilim 6, D6-1, Karar 1): tests-for'un bayraksız cevabı dosya satırı, run: satırları, size: satırı ve
+// listelenen test sayısıdır (S1); grupların ilk sayfası --list ile (--limit de açar), hepsi --all ile gelir. Kısa cevabın
+// satırları --list cevabının başıdır ve koşu satırları aynı adları koşar; gruplara gönderen satır --list'e gönderir (S8).
+// Testi bulunmayan düğümün cevabı (dal satırı) kısa kipte de tamdır.
+func TestTestsForShowsTheRunAndSizeLinesUnlessListed(t *testing.T) {
+	root := gitFixture(t)
+	graph := buildInto(t, root)
+	ask := func(args ...string) string {
+		t.Helper()
+		code, out, errOut := commandIn("tests-for", root, graph, append([]string{"--no-rebuild"}, args...)...)
+		if code != exitOK {
+			t.Fatalf("tests-for %v: exit %d: %s", args, code, errOut)
+		}
+		return out
+	}
+	short, list, all := ask("shape/shape.go"), ask("--list", "shape/shape.go"), ask("--all", "shape/shape.go")
+	lines := strings.Split(strings.TrimSuffix(short, "\n"), "\n")
+	s1 := lines[len(lines)-1]
+	n := len(listedIn(list).goTests) + len(listedIn(list).trFiles)
+	if want := "  tests: " + strconv.Itoa(n) + " listed (--list shows the first page of each group, --all every test)"; n == 0 || s1 != want {
+		t.Errorf("last line of the short answer %q, want %q:\n%s", s1, want, short)
+	}
+	head := strings.Join(lines[:len(lines)-1], "\n") + "\n"
+	head = strings.ReplaceAll(head, "(--list names them)", "(among the groups below)")
+	// Fikstürde boyut testi yok, size: satırı da yok; depo dosyasındaki size: satırını kısa cevapta
+	// TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxError sınar.
+	if !strings.HasPrefix(list, head) || !strings.Contains(head, "\nrun: ") {
+		t.Errorf("the short answer must be the file and run: lines that start the --list answer:\nshort:\n%s\nlist:\n%s", short, list)
+	}
+	for _, group := range []string{"  declarations in this file", "  this file's tests ("} {
+		if strings.Contains(short, group) || !strings.Contains(list, group) || !strings.Contains(all, group) {
+			t.Errorf("%q must be in --list and --all, not in the short answer:\nshort:\n%s", group, short)
+		}
+	}
+	if limited := ask("--limit", "3", "shape/shape.go"); !strings.Contains(limited, "  declarations in this file") {
+		t.Errorf("--limit must list the groups too:\n%s", limited)
+	}
+	if orphan := ask("shape.Orphan"); !strings.Contains(orphan, "no tests found") || orphan != ask("--list", "shape.Orphan") {
+		t.Errorf("a node without tests keeps its whole answer:\n%s", orphan)
 	}
 }

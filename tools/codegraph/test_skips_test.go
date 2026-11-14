@@ -176,11 +176,11 @@ func TestTestsForMarksTestsThatSkipUnderACondition(t *testing.T) {
 	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
 		t.Fatalf("build: %d %s", code, errOut)
 	}
-	_, out, _ := runCLI("tests-for", "p.Lib", "--root", root, "--no-rebuild")
+	_, out, _ := runCLI("tests-for", "--list", "p.Lib", "--root", root, "--no-rebuild")
 	if !strings.Contains(out, "[skips when: g.lt == nil]") || !strings.Contains(out, "CI may run none of them") {
 		t.Errorf("both tests of Lib skip under a condition:\n%s", out)
 	}
-	if _, out, _ = runCLI("tests-for", "p.Plain", "--root", root, "--no-rebuild"); strings.Contains(out, "CI may run none") {
+	if _, out, _ = runCLI("tests-for", "--list", "p.Plain", "--root", root, "--no-rebuild"); strings.Contains(out, "CI may run none") {
 		t.Errorf("Plain has a test with no condition:\n%s", out)
 	}
 }
@@ -190,6 +190,7 @@ func TestTestsForMarksTestsThatSkipUnderACondition(t *testing.T) {
 // deyimden sonraki atlama, döngüden sonra) kaçırmaz (bağımsız denetim grup 6, H2: sekiz doğrudan atlama kaçıyordu).
 // Bu denetim yolu değil yalnızca Skip çağrısının varlığını arar.
 func TestEveryRepositoryTestThatSkipsIsLabelled(t *testing.T) {
+	repoRule(t)
 	_, m, g := repoGraph(t)
 	skips := map[string]string{}
 	for _, n := range g.Nodes {
@@ -262,6 +263,7 @@ func TestEveryRepositoryTestThatSkipsIsLabelled(t *testing.T) {
 // düşer ve okuyucunun TestMain'i de okuması gerekir (bağımsız denetim grup 6, H2; bugün depoda beş TestMain var, hiçbiri
 // böyle değil).
 func TestNoTestMainSkipsItsPackage(t *testing.T) {
+	repoRule(t)
 	_, m, _ := repoGraph(t)
 	checked := 0
 	for _, u := range m.Units {

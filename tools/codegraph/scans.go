@@ -176,7 +176,8 @@ func (x *goExtractor) collectScans(fc *fileCtx, f *ast.File) {
 	}
 }
 
-// scanCall depo dosyalarını listeleyen çağrıyı tanır: reporoot.WalkDir, codeindex.ListFiles, codeindex.GitTracked ve `git ... ls-files`.
+// scanCall depo dosyalarını listeleyen çağrıyı tanır: reporoot.WalkDir, codeindex.ListFiles, codeindex.GitTracked, `git ... ls-files`
+// ve paket klasörünü listeleyen reporoot.ReadDir(".") ile os.ReadDir(".").
 func (x *goExtractor) scanCall(fc *fileCtx, fn *ast.FuncDecl, owner string, call *ast.CallExpr) (scanSite, bool) {
 	site := scanSite{owner: owner, fc: fc, fn: fn, line: x.line(call.Pos())}
 	if f, ok := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func); ok && f.Pkg() != nil {
@@ -198,6 +199,11 @@ func (x *goExtractor) scanCall(fc *fileCtx, fn *ast.FuncDecl, owner string, call
 			return site, true
 		case strings.HasSuffix(pkg, "internal/devtools/codeindex") && f.Name() == "GitTracked" && len(call.Args) == 1:
 			site.base, site.listOnly = call.Args[0], true
+			return site, true
+		case (strings.HasSuffix(pkg, "internal/reporoot") || pkg == "os") && f.Name() == "ReadDir" && len(call.Args) == 1 && isDotLiteral(call.Args[0]):
+			// Testin paket klasörünü listeler (`reporoot.ReadDir(".")`): kalıp o klasörün dosyalarıdır, süzgeç işlevin ve
+			// (liste dönen yardımcıda) çağıranların gövdesindedir (codegraph dilim 6, D6-4 (c), Karar 7).
+			site.fromPkg, site.listOnly = true, true
 			return site, true
 		}
 	}
@@ -221,6 +227,12 @@ func (x *goExtractor) scanCall(fc *fileCtx, fn *ast.FuncDecl, owner string, call
 		}
 	}
 	return site, true
+}
+
+// isDotLiteral e yazılı "." dizesi mi (testin çalışma klasörü, yani paket klasörü).
+func isDotLiteral(e ast.Expr) bool {
+	lit, ok := e.(*ast.BasicLit)
+	return ok && lit.Kind == token.STRING && lit.Value == `"."`
 }
 
 func containsString(list []string, s string) bool {

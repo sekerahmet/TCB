@@ -159,6 +159,7 @@ var flowValues = map[string]bool{"gate": true, "hook": true, "merge audit": true
 // dosyalarındaki `codegraph(<kök>, "<komut>", ...)` çağrısı. merge audit ve agent rules depo dışındaki belgelere
 // dayanır: onlarda yalnız kümeye bakılır.
 func TestCommandTableFlowsMatchTheGateAndHook(t *testing.T) {
+	repoRule(t)
 	data, err := os.ReadFile("README.md")
 	if err != nil {
 		t.Fatal(err)

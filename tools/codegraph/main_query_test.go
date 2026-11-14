@@ -25,7 +25,7 @@ func TestABrokenLanguageFileLeavesTheGoAnswers(t *testing.T) {
 
 	built := testkit.RunBinary(t, exe, root, "", nil, "build", "--root", root)
 	testkit.Wait(t, built, exitOK, []string{"warnings:", trSkipped}, nil)
-	answer := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--root", root, "shape/shape.go")
+	answer := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--list", "--root", root, "shape/shape.go")
 	testkit.Wait(t, answer, exitOK, []string{"shape.TestDescribe"}, []string{"answers about .tr code are missing", "language list tr"})
 }
 
@@ -50,7 +50,7 @@ func TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy(t *testing.T) {
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)
 	testkit.WritePath(t, filepath.Join(root, "internal", "lang", "codes", "tr.json"), withTemp)
 
-	answer := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--root", root, "shape/shape.go")
+	answer := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--list", "--root", root, "shape/shape.go")
 	testkit.Wait(t, answer, exitOK, []string{"shape.TestDescribe"}, []string{
 		"answers about .tr code are missing",
 		tempCode,
@@ -92,7 +92,7 @@ func TestUndefinedMessageSlotKeepsStaleGraphAndExitsOnBuild(t *testing.T) {
 	// libraryImports -> codeindex.Snippet -> PosError.Error -> messages.load zincirini de tetikle.
 	appendTo(t, filepath.Join(root, "shape", "shape_test.go"), "\nconst _ = `\"tr/missing\" @`\n")
 
-	stale := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--root", root, "shape/shape.go")
+	stale := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--list", "--root", root, "shape/shape.go")
 	testkit.Wait(t, stale, exitOK, []string{"shape.TestDescribe"}, []string{"warning: rebuild failed", "H7012", "no such name slot", "using the existing, stale graph"})
 	if strings.Count(stale.Stderr, "\n") != 1 || strings.Contains(stale.Stderr, "panic:") {
 		t.Errorf("want single-line warning without panic traceback, got:\n%s", stale.Stderr)
@@ -106,7 +106,7 @@ func TestUndefinedMessageSlotKeepsStaleGraphAndExitsOnBuild(t *testing.T) {
 		t.Errorf("build stderr want single line without panic, got:\n%s", built.Stderr)
 	}
 
-	missing := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--root", root, "--graph", filepath.Join(root, "missing.json"), "shape/shape.go")
+	missing := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--list", "--root", root, "--graph", filepath.Join(root, "missing.json"), "shape/shape.go")
 	if missing.Code == exitOK {
 		t.Errorf("tests-for without an existing graph must fail, got exit 0")
 	}

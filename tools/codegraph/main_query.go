@@ -14,18 +14,21 @@ import (
 type queryOpts struct {
 	stdin          io.Reader // query -: grep çıktısı (query_lines.go)
 	stdout, stderr io.Writer
-	limit          int    // gruptaki en çok satır (0: sınırsız)
-	root, base     string // depo kökü; changed için karşılaştırılan dal
-	in             string // callees / calls-into: paket sınırı
-	min            int    // calls-into: en az kaç ayrı işlev
-	tests          bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
-	byPackage      bool   // who-uses: kullanıcıları pakete göre özetle
-	mode           string // who-uses (alan): yalnızca "read" ya da "write" erişimleri; verilince ad yalnız alana çözülür
-	typeFilter     string // captures: yakalanan değişkenin tipinde geçen metin
-	undirected     bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
-	throughHubs    bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
-	goTests        bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
-	asJSON         bool   // untested: JSON çıktı
+	limit          int  // gruptaki en çok satır (0: sınırsız)
+	list           bool // tests-for: grupları da yaz (--list, --all ya da --limit); yoksa kısa cevap
+	// withoutSelfTests changed --go-tests'ten codegraph'ın kendi testlerini çıkarır (--without-codegraph-self-tests).
+	withoutSelfTests bool
+	root, base       string // depo kökü; changed için karşılaştırılan dal
+	in               string // callees / calls-into: paket sınırı
+	min              int    // calls-into: en az kaç ayrı işlev
+	tests            bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
+	byPackage        bool   // who-uses: kullanıcıları pakete göre özetle
+	mode             string // who-uses (alan): yalnızca "read" ya da "write" erişimleri; verilince ad yalnız alana çözülür
+	typeFilter       string // captures: yakalanan değişkenin tipinde geçen metin
+	undirected       bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
+	throughHubs      bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
+	goTests          bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
+	asJSON           bool   // untested: JSON çıktı
 }
 
 // runQuery grafiği okuyan komutları çalıştırır: query, path, who-uses, tests-for, untested, changed, callees,
@@ -41,6 +44,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.SetOutput(stderr)
 	graphPath := fs.String("graph", "", "graph file (default <root>/.codegraph/graph.json)")
 	all := fs.Bool("all", false, "no line limit")
+	list := fs.Bool("list", false, "tests-for: also the first page of each group (without it only the file, run: and size: lines)")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
 	o := &queryOpts{stdin: os.Stdin, stdout: stdout, stderr: stderr}
 	fs.IntVar(&o.limit, "limit", defaultLimit, "lines per group")
@@ -55,6 +59,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
 	fs.BoolVar(&o.goTests, "go-tests", false, "changed: print only the Go tests to run, one \"folder TestName\" per line (the pre-check runs them)")
+	fs.BoolVar(&o.withoutSelfTests, "without-codegraph-self-tests", false, "changed --go-tests: leave out codegraph's own tests unless a change in tools/codegraph or internal/devtools/codeindex selects them (the commit mode; their count goes to stderr)")
 	fs.BoolVar(&o.asJSON, "json", false, "untested: machine-readable output")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
@@ -82,6 +87,9 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	if *all {
 		o.limit = 0
 	}
+	// tests-for'un grupları --list, --all ya da --limit ile gelir; bayraksız cevap kısadır (codegraph dilim 6, D6-1).
+	o.list = *list || *all
+	fs.Visit(func(f *flag.Flag) { o.list = o.list || f.Name == "limit" })
 	g := loaded
 	if g == nil {
 		var code int
@@ -128,7 +136,8 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 		return ix.runUntested(o)
 	}
 	if cmd == "changed" { // adı değil, git revizyonu alır
-		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests}, names[0], o.stdout, o.stderr)
+		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests, withoutSelfTests: o.withoutSelfTests},
+			names[0], o.stdout, o.stderr)
 	}
 	if cmd == "query" && len(names) == 1 && names[0] == "-" { // grep çıktısı: her satıra içeren düğüm
 		return ix.printLocations(o.stdin, o.stdout)
@@ -169,7 +178,11 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 		}
 	case "tests-for":
 		ix.withTestNotes(o.root)
-		ix.printTestsFor(o.stdout, nodes[0], o.limit)
+		if o.list {
+			ix.printTestsFor(o.stdout, nodes[0], o.limit)
+		} else {
+			ix.printTestsForShort(o.stdout, nodes[0])
+		}
 	case "fields":
 		if n := nodes[0]; n.Kind == kindField {
 			// Bir alanın erişimleri who-uses'ın işidir (K7): aynı soru iki komutla soruluyordu.

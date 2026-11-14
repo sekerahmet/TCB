@@ -46,7 +46,7 @@ func TestElsewhere(t *testing.T) { _ = OnlyElsewhere(); _ = Describe(nil) }
 	_, out, _ = commandIn("query", root, graph, "--no-rebuild", "shape.OnlyElsewhere")
 	testkit.MustContain(t, out, "not built for ")
 	// Derlenmeyen testteki düz çağrı zincire girer: başka işletim sisteminin testi bu yapılandırmadaki işlevi sınar.
-	_, out, _ = commandIn("tests-for", root, graph, "--no-rebuild", "shape.Describe")
+	_, out, _ = commandIn("tests-for", root, graph, "--list", "--no-rebuild", "shape.Describe")
 	testkit.MustContain(t, out, "shape.TestElsewhere")
 	// O test derlenmediği yapılandırmanın kısıtıyla etiketlidir ve "başka yapılandırma" grubunda bir kez daha yazılmaz
 	// (bağımsız denetim grup 7).

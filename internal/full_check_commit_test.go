@@ -39,7 +39,7 @@ func commitPrelude(t *testing.T) string {
 		parts = append(parts, m)
 	}
 	for _, name := range []string{"commit_plan", "commit_run_chunks", "commit_settle", "commit_selection", "commit_record",
-		"commit_passed_line", "watch_failures", "watched_ok"} {
+		"commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests"} {
 		m := regexp.MustCompile(`(?ms)^` + name + `\(\) \{\n.*?^\}$`).FindString(script)
 		if m == "" {
 			t.Fatalf("tools/full_check.sh: %s işlevi bulunamadı", name)
@@ -163,12 +163,76 @@ func TestCommitModeRunsTheLightSelection(t *testing.T) {
 	if strings.Contains(empty, "==") || !strings.Contains(empty, "✅ Commit öncesi denetim geçti (tam denetim değildir)\n") {
 		t.Errorf("boş seçimde adım olmamalı ve sonuç satırı sayısız kalmalı:\n%s", empty)
 	}
+	// Seçime girmeyen codegraph testleri (D6-3, S7): kalan varsa aynı satırda, yoksa kendi satırında sayılır.
+	self := runCommitBash(t, dir, env, "commit_self_out=7\ncommit_deadline_ms=$(($(commit_now_ms) + 60000))\n"+
+		"commit_selection $'b TestPlanningQuestionsAreAnswered'\ncommit_left=()\ncommit_left_heavy=0\ncommit_selection ''\n")
+	for _, want := range []string{
+		"G4'e kaldı (1 test: 1 ağır listesinde, 0 test 120 sn'de kesilen 0 pakette; seçime girmeyen 7 codegraph testi): TestPlanningQuestionsAreAnswered\n",
+		"G4'e kaldı (seçime girmeyen 7 codegraph testi)\n",
+	} {
+		if !strings.Contains(self, want) {
+			t.Errorf("çıktıda yok: %q\n%s", want, self)
+		}
+	}
+}
+
+// Kural (tools/full_check.sh, --kip=commit; D1 codegraph dilim 6, D6-2): commit kipi tekrar adaylarını aramaz (dups
+// --changed commit'siz değişikliği görmüyor, kipin her kaydında aday:0 çıkıyordu); codegraph'ı dil tanımı atıfları
+// adımı derler ve değişen dosyaların hafif testleri aynı ikiliyi koşar: kipte codegraph bir kez derlenir.
+func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	branch := regexp.MustCompile(`(?ms)^\tcommit\)\n.*?^\t\t;;$`).FindString(strings.ReplaceAll(string(data), "\r\n", "\n"))
+	if branch == "" {
+		t.Fatal("tools/full_check.sh: commit) kolu bulunamadı")
+	}
+	if regexp.MustCompile(`(?m)^\s*dups_check\s*$`).MatchString(branch) {
+		t.Errorf("commit kipi dups_check koşmamalı:\n%s", branch)
+	}
+	if spec, light := strings.Index(branch, "\t\tspec_refs_check\n"), strings.Index(branch, "\t\tcommit_light_tests\n"); spec < 0 || light < spec {
+		t.Errorf("commit kipinde spec_refs_check commit_light_tests'ten önce koşmalı:\n%s", branch)
+	}
+	dir, env := fakeGo(t, map[string]string{"tools_edithook.out": "345 item(s), 7956 mention(s), 0 error(s), 0 note(s)\n"})
+	built := filepath.ToSlash(filepath.Join(dir, "bin", "codegraph-built"))
+	files := map[string]string{
+		"bin/codegraph-built": "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$FAKE_GO_DIR/cg_args\"\n" +
+			"echo '  not run by these commands: 7 codegraph tests (the full check on Colab runs them)' >&2\n",
+		".codegraph/graph.json":     "{}\n",
+		".codegraph/last-codegraph": built + "\n",
+	}
+	for name, body := range files {
+		p := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out := runCommitBash(t, dir, env, "spec_refs_check\ncommit_light_tests\necho \"SPECREFS=$commit_specrefs\"\n")
+	if strings.Contains(out, "!! KALDI") || !strings.Contains(out, "SPECREFS=0,not:0") {
+		t.Errorf("iki adım da geçmeliydi:\n%s", out)
+	}
+	if args := fakeArgs(t, dir); len(args) != 1 || !strings.Contains(args[0], "run ./tools/edithook codegraph spec-refs") {
+		t.Errorf("go yalnız bir kez (spec-refs için) koşmalıydı: %q", args)
+	}
+	cgArgs, err := os.ReadFile(filepath.Join(dir, "fake", "cg_args"))
+	if err != nil || strings.TrimSpace(string(cgArgs)) != "changed --go-tests --without-codegraph-self-tests --base HEAD HEAD" {
+		t.Errorf("hafif testlerin seçimi spec-refs'in derlediği ikiliden alınmalıydı: %q %v\n%s", cgArgs, err, out)
+	}
+	// Seçime girmeyen codegraph testlerinin sayısı codegraph'ın standart hatasından "G4'e kaldı" satırına gelir (D6-3, S7).
+	if want := "G4'e kaldı (seçime girmeyen 7 codegraph testi)"; !strings.Contains(out, want) {
+		t.Errorf("çıktıda yok: %q\n%s", want, out)
+	}
 }
 
 // Kural (tools/full_check.sh, --kip=commit; D1 codegraph dilim 3, DENETİM 681 N3): 120 sn kipin baştan sona süresidir.
 // Süre dolmadan gelen FAIL düşüştür, --- FAIL satırı olmasa da (TestMain, os.Exit); paket ancak zamanlayıcı dolduysa
-// kesilir: sonucu gelmeyen ya da FAIL'i süre dolduktan sonra --- FAIL'siz gelen (go test, test ikilisi durdurulunca böyle
-// basar) paketin bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz. Süre bitince sonraki parça başlamaz ve
+// kesilir: sonucu gelmeyen ya da FAIL'i süre dolduktan sonra gelen (go test, test ikilisi durdurulunca böyle basar)
+// paketin bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz; süre dolduktan sonra gelen --- FAIL de düşüş
+// sayılmaz (durdurma testin alt sürecini öldürür, test onu düşüş diye yazar; codegraph dilim 6, TCB 14:53). Süre bitince sonraki parça başlamaz ve
 // durdurulan komut süreç olarak kalmaz (DENETİM 670 N2).
 func TestCommitModeCutsAtTheLimitByPackage(t *testing.T) {
 	dir, env := fakeGo(t, map[string]string{
@@ -176,7 +240,9 @@ func TestCommitModeCutsAtTheLimitByPackage(t *testing.T) {
 		"c.out":   "FAIL\texample.com/fix/c\t0.1s\n",
 		"b.sleep": "30",
 		"d.sleep": "30",
-		"d.kill":  "FAIL\texample.com/fix/d\t3.0s\n",
+		// Durdurulan paket testin alt sürecini de öldürür; test süre dolduktan sonra --- FAIL basar (codegraph dilim 6,
+		// TestTimeCeilingsListsConstantCeilings'in `go list: exit status 143`'ü): bu satır düşüş sayılmaz.
+		"d.kill": "--- FAIL: TestD (3.00s)\n    d_test.go:1: go list: exit status 143\nFAIL\nFAIL\texample.com/fix/d\t3.0s\n",
 	})
 	out := runCommitBash(t, dir, env, "commit_chunk_chars=24\ncommit_deadline_ms=$(($(commit_now_ms) + 3000))\n"+
 		"commit_selection $'a TestA\\nc TestC\\nb TestB\\nd TestD\\ne TestE'\n"+

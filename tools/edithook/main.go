@@ -43,7 +43,9 @@ import (
 // olmayan bir dosyada ilk 30 satır başka paketlerin uzak testleriydi (2026-10-29, compiler_assign.go, 496 test).
 // Yeten, codegraph'ın Go dosyası için en üste koyduğu iki satırdır: koşu satırları (`run:`, dosyanın paketi, onu
 // tarayan kurallar ve konu edinen testler; koşmadıkları sayıyla) ve boyut satırı (`size (...)`: dosyanın ve sınıra
-// yakın fonksiyonların bugünkü boyu ve sınırı). Gruplar kanıt sırasıyla gelir; gerisi elle sorulur.
+// yakın fonksiyonların bugünkü boyu ve sınırı). codegraph dilim 6'dan beri (D6-1) bayraksız tests-for yalnız bunları
+// ve listelenen test sayısını verir, gruplar `--list` ile elle sorulur; sınır güvenlik için kalır (testi olmayan
+// düğümün cevabı tamdır).
 const maxLines = 30
 
 type hookInput struct {

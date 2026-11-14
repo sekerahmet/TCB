@@ -35,7 +35,7 @@ func TestTestsForKeepsMeasurementsApartFromTests(t *testing.T) {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "p.Work", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "p.Work", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	got := out.String()
@@ -115,7 +115,7 @@ func TestPowerValue(t *testing.T) {
 	}
 	ask := func(name string) string {
 		var out, errb strings.Builder
-		if code := run([]string{"tests-for", name, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		if code := run([]string{"tests-for", "--list", name, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", name, code, errb.String())
 		}
 		return out.String()
@@ -140,7 +140,7 @@ func TestTestsForAGoFileListsTheTestsOfItsDeclarations(t *testing.T) {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "p/p.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "p/p.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	got := out.String()
@@ -158,7 +158,7 @@ func TestTestsForATestFileListsItsOwnTests(t *testing.T) {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "p/p_test.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "p/p_test.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	got := out.String()
@@ -190,7 +190,7 @@ func TestAreaOfSquare(t *testing.T) { _ = Area(3) }
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "p.Area", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "p.Area", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	got := out.String()
@@ -298,7 +298,7 @@ func TestTable(t *testing.T) { _ = codes.Name() }
 	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
 		t.Fatalf("build: %d %s", code, errOut)
 	}
-	_, out, _ := runCLI("tests-for", "codes.Name", "--root", root, "--no-rebuild")
+	_, out, _ := runCLI("tests-for", "--list", "codes.Name", "--root", root, "--no-rebuild")
 	about, _, _ := strings.Cut(out, "<- tests (")
 	for _, want := range []string{"codes.TestNameIsSet", "checker.TestCodesNameReadsTheTable", "checker.TestTable"} {
 		if !strings.Contains(about, want) {
@@ -556,7 +556,7 @@ func TestUseCalledVar(t *testing.T)   { useCalledVar(box{}, true, nil) }
 		t.Errorf("called local variable edge must have Via=%q: got %+v", viaVar, e)
 	}
 	ask := func(name string) string {
-		code, out, errOut := runCLI("tests-for", name, "--root", root, "--no-rebuild")
+		code, out, errOut := runCLI("tests-for", "--list", name, "--root", root, "--no-rebuild")
 		if code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", name, code, errOut)
 		}

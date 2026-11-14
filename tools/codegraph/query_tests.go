@@ -45,7 +45,9 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 		if !isTestNode(n) && !isTRMeasurement(n) {
 			if ix.pkgOf(r.ID) == ix.pkgOf(target.ID) && r.Steps < testMaxSteps {
 				for _, e := range ix.in[r.ID] {
-					if tn := ix.byID[e.From]; e.Kind == edgeTests && e.Confidence == inferred && isTestNode(tn) && ix.pkgOf(tn.ID) != ix.pkgOf(r.ID) {
+					// Başka paketin INFERRED test kenarı (checker koşucusu) ya da kol kenarı (viaCase, aynı paket de):
+					// zincirin ulaştığı işlevin testi, zincirin adımıyla (codegraph dilim 6, D6-4 (b)).
+					if tn := ix.byID[e.From]; e.Kind == edgeTests && e.Confidence == inferred && isTestNode(tn) && (ix.pkgOf(tn.ID) != ix.pkgOf(r.ID) || e.Via == viaCase) {
 						note(tn, n, r.Steps+1)
 					}
 				}
@@ -249,6 +251,15 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	flushAnswer(w, ab, listed)
 }
 
+// printTestsForShort tests-for'un bayraksız cevabıdır (codegraph dilim 6, D6-1; düzenleme kancasının çağrısı): dosya
+// satırı, koşu satırları, boyut satırı ve listelenen test sayısı (S1). Gruplar --list ile gelir; dal satırı olan cevap
+// (testi bulunmayan düğüm) tamdır.
+func (ix *index) printTestsForShort(w io.Writer, n *Node) {
+	ab := &answerBuffer{}
+	ix.testsForBody(n)(ab, defaultLimit)
+	flushShortAnswer(w, ab)
+}
+
 // testsForBody printTestsFor'un gövdesidir: testleri bir kez toplar, dönen işlev onları verilen sınırla yazar;
 // koşu satırlarının yerini ayırır (writeRunPlan).
 func (ix *index) testsForBody(n *Node) func(io.Writer, int) {
@@ -275,6 +286,9 @@ func (ix *index) printNodeTests(w io.Writer, n *Node, t nodeTests, limit int) {
 	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindDoc || n.Kind == kindFile {
 		writeRunPlan(w, func(l listedTests) runPlan { return ix.nodeRunPlan(n, t, tests, l) })
+	}
+	if t.branch == branchTested {
+		markHeadEnd(w) // öbür dallar "below" diye gruplara gönderir: kısa kipte de tam yazılırlar
 	}
 	switch t.branch {
 	case branchWeak, branchExam, branchUntested:

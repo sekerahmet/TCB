@@ -33,10 +33,11 @@
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=commit      commit öncesi denetim (en çok 120 sn ve kaydın yazılması; yan oturumların
 #                     ve TCB'nin tek commit öncesi komutu, CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi
-#                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), tekrar
-#                     adayları, dil tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
-#                     --go-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120 sn'sinin kalanıyla; kalanlar "G4'e
-#                     kaldı" diye yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
+#                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), dil
+#                     tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
+#                     --go-tests --without-codegraph-self-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120
+#                     sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph testlerinin sayısı "G4'e kaldı" diye
+#                     yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -115,9 +116,11 @@ fi
 
 # repo_scans düzen kurallarının paketleri dışında depoyu tarayan kural testleridir (ön denetim hepsini koşar).
 repo_scans=(
+	TestBackendDataCallsGoThroughTheGate
 	TestBuildTagsNeverSelectCPUFeatures
 	TestCloseCallsEveryPackageCloser
 	TestCodeListAndTRFileWalkersAreInTestsForAndChangedGoTests
+	TestDAPWireFieldsHaveExplicitNames
 	TestDocCodeBlocksShow
 	TestDottedMemberSpellingsGolden
 	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
@@ -130,10 +133,13 @@ repo_scans=(
 	TestExamplesCoverLibraryNames
 	TestExamplesCoverNames
 	TestExprWalkersMatchReferenceOnRepositoryPrograms
+	TestExtractorRevisionFollowsExtractorCode
 	TestFileSelectionIsConsistentInEveryConfiguration
 	TestGoCodeDoesNotEditMessageText
 	TestHeaderRulesLiveOnlyInSourceAndLexer
 	TestHintMessagesBuiltOnlyHere
+	TestHostBlockReadersKeepTheirTensors
+	TestHostBlockSlicesStayWithTheirBlock
 	TestJSONFieldsHaveExplicitNames
 	TestLibraryModulesDoNotReadTheCommandLine
 	TestMessageArgsAreNotMessageFragments
@@ -212,6 +218,7 @@ commit_left=()
 commit_left_heavy=0
 commit_left_cut=0
 commit_cut_pkgs=0
+commit_self_out=0 # seçime girmeyen codegraph testleri (changed --without-codegraph-self-tests'in S3'ü; codegraph dilim 6)
 commit_failed_tests=0
 commit_dups=-
 commit_specrefs=-
@@ -220,6 +227,8 @@ repo_scan_pkgs=(
 	./cmd/trlang
 	./cmd/trlang/e2e
 	./internal/compute
+	./internal/compute/tensor
+	./internal/devtools/debugger
 	./internal/lang/hint
 	./internal/lang/interp
 	./internal/lang/messages
@@ -509,7 +518,9 @@ dups_check() {
 # spec_refs_check dil tanımı (docs/spec) madde atıflarını denetler: olmayan maddeye atıf ve
 # madde numarasından sonraki ekin ses uyumsuzluğu denetimi düşürür. dups_check bu koşuda
 # codegraph'ı derlediyse (.codegraph/last-codegraph) o ikiliyi doğrudan koşar; ortak ata yoksa
-# ya da ikili bulunamazsa edithook üzerinden go run'a düşer.
+# ya da ikili bulunamazsa edithook üzerinden go run'a düşer. go run yolu geçince derleme işaretini
+# kendisi koyar (codegraph_built): commit kipinde dups_check yok, değişen dosyaların hafif testleri
+# (commit_light_tests) codegraph'ı bir daha derlemeden bu ikiliyi koşar (codegraph dilim 6, D6-2).
 spec_refs_check() {
 	local bin="" out
 	step "Dil tanımı atıfları (codegraph spec-refs)"
@@ -522,6 +533,7 @@ spec_refs_check() {
 		out=$("$bin" spec-refs 2>&1) || code=$?
 	else
 		out=$(go run ./tools/edithook codegraph spec-refs 2>&1) || code=$?
+		[ "$code" -ne 0 ] || codegraph_built=1
 	fi
 	# Kaydın alanı (commit_record): hata ve not sayısı; çıktıda yoksa "-".
 	commit_specrefs="$(printf '%s\n' "$out" | sed -n 's/.* \([0-9][0-9]*\) error(s), \([0-9][0-9]*\) note(s).*/\1,not:\2/p' | head -1)"
@@ -620,8 +632,10 @@ commit_run_chunks() {
 
 # commit_settle bir parçanın paketlerini sonuçlandırır. Zamanlayıcı dolmadan "ok" basan paketin testleri koşuldu;
 # "FAIL" basan paket düştü (süre dolmadan geldiyse --- FAIL satırı olmasa da: TestMain, os.Exit). Zamanlayıcı dolduysa
-# (çıkış 124) sonucu hiç gelmeyen ya da FAIL'i süre dolduktan sonra --- FAIL'siz gelen paket kesildi: bütün seçilmiş
-# testleri G4'e kalır, hiçbiri geçti sayılmaz. go test bir paketin çıktısını bütün olarak, sonuç satırıyla bitirerek basar:
+# (çıkış 124) sonucu hiç gelmeyen ya da FAIL'i süre dolduktan sonra, süre dolmadan gelmiş bir --- FAIL'i olmadan gelen
+# paket kesildi: bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz. Süre dolduktan sonra gelen --- FAIL sayılmaz:
+# durdurma testin alt süreçlerini de öldürür, test durdurulmadan önce onları düşüş diye yazabilir (codegraph dilim 6;
+# TestTimeCeilingsListsConstantCeilings, `go list: exit status 143`). go test bir paketin çıktısını bütün olarak, sonuç satırıyla bitirerek basar:
 # iki sonuç satırı arasındaki --- FAIL satırları sonrakinin paketinindir.
 commit_settle() {
 	local chunk=$1 plan=$2 log=$3 code=$4 module=$5 pkg rel path state name
@@ -633,7 +647,7 @@ commit_settle() {
 		mapfile -t names < <(awk -F'\t' -v c="$chunk" -v p="$pkg" '$1 == c && $2 == p { print $3 }' "$plan")
 		state=$(awk -F'\t' -v p="$path" -v d="$commit_deadline_ms" '
 			{ split($3, f, " ") }
-			$2 ~ /^--- FAIL/ { pending++; next }
+			$2 ~ /^--- FAIL/ { if ($1 < d) pending++; next }
 			$2 ~ /^ok/ && f[1] == p { print "ok"; found = 1; exit }
 			$2 == "FAIL" && f[1] == p { print (($1 < d || pending) ? "fail" : "cut"); found = 1; exit }
 			($2 ~ /^ok/ || $2 == "FAIL") && f[1] != "" { pending = 0 }
@@ -659,13 +673,14 @@ commit_settle() {
 # commit_selection commit kipinin son adımıdır (seçim: $1, codegraph changed --go-tests satırları): seçim boşsa adım yok.
 # Kalan test varsa adımın sonunda adlarıyla yazılır; düşen test adımı düşürür.
 commit_selection() {
-	local plan light pkgs n shown more=""
+	local plan light pkgs n shown more="" self=""
 	plan=$(mktemp)
 	commit_plan <<<"$1" >"$plan"
 	light=$(($(wc -l <"$plan")))
 	pkgs=$(($(cut -f2 "$plan" | sort -u | wc -l)))
 	if [ "$light" -eq 0 ] && [ ${#commit_left[@]} -eq 0 ]; then
 		rm -f "$plan"
+		[ "$commit_self_out" -eq 0 ] || echo "G4'e kaldı (seçime girmeyen $commit_self_out codegraph testi)"
 		return 0
 	fi
 	step "Değişen dosyaların hafif testleri ($light test, $pkgs paket; codegraph changed --go-tests; ağır listesindeki ve kipin $commit_seconds sn'si (kipin başından, derleme dahil) dolunca bitmemiş paketlerin testleri G4'e kalır)"
@@ -675,13 +690,19 @@ commit_selection() {
 	if [ "$n" -gt 0 ]; then
 		shown=$(printf '%s\n' "${commit_left[@]}" | head -20 | sed 's/^[^ ]* //' | paste -sd',' | sed 's/,/, /g')
 		[ "$n" -le 20 ] || more=" ve $((n - 20)) test daha"
-		echo "G4'e kaldı ($n test: $commit_left_heavy ağır listesinde, $commit_left_cut test $commit_seconds sn'de kesilen $commit_cut_pkgs pakette): $shown$more"
+		[ "$commit_self_out" -eq 0 ] || self="; seçime girmeyen $commit_self_out codegraph testi"
+		echo "G4'e kaldı ($n test: $commit_left_heavy ağır listesinde, $commit_left_cut test $commit_seconds sn'de kesilen $commit_cut_pkgs pakette$self): $shown$more"
+	elif [ "$commit_self_out" -gt 0 ]; then
+		echo "G4'e kaldı (seçime girmeyen $commit_self_out codegraph testi)"
 	fi
 	[ "$commit_failed_tests" -eq 0 ] || fail "değişen dosyaların hafif testleri"
 }
 
 # commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen
-# dosyalar dahil), dalın bütünü değil. dups_check bu koşuda codegraph'ı derlediyse o ikili koşar.
+# dosyalar dahil), dalın bütünü değil. codegraph'ın repoRule'suz testleri, tools/codegraph ve
+# internal/devtools/codeindex dışındaki değişiklikte seçime girmez; sayıları "G4'e kaldı" satırındadır (codegraph
+# dilim 6, D6-3). Ön denetimin seçimi (selected_tests) onları da alır. Bu koşuda codegraph derlendiyse (commit kipinde spec_refs_check, öbür
+# kiplerde dups_check) o ikili koşar.
 commit_light_tests() {
 	local out errfile bin="" code=0
 	errfile=$(mktemp)
@@ -698,9 +719,9 @@ commit_light_tests() {
 		bin=${bin%$'\r'}
 	fi
 	if [ -n "$bin" ] && [ -f "$bin" ]; then
-		out=$("$bin" changed --go-tests --base HEAD HEAD 2>"$errfile") || code=$?
+		out=$("$bin" changed --go-tests --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	else
-		out=$(go run ./tools/edithook codegraph changed --go-tests --base HEAD HEAD 2>"$errfile") || code=$?
+		out=$(go run ./tools/edithook codegraph changed --go-tests --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	fi
 	if [ "$code" -ne 0 ]; then
 		head -20 "$errfile"
@@ -708,6 +729,9 @@ commit_light_tests() {
 		fail "codegraph changed --go-tests çalışmadı"
 		return
 	fi
+	# Seçime girmeyen codegraph testlerinin sayısı standart hatadadır (S3); "G4'e kaldı" satırına girer (S7).
+	commit_self_out=$(sed -n 's/^  not run by these commands: \([0-9][0-9]*\) codegraph tests .*/\1/p' "$errfile" | head -1)
+	commit_self_out=${commit_self_out:-0}
 	rm -f "$errfile"
 	commit_selection "$out"
 }
@@ -716,8 +740,8 @@ commit_light_tests() {
 # 12'si>.tsv, tek satır, geçici adla yazılıp taşınır (birkaç çalışma ağacı aynı anda yazar). Depoya girmez; birleşme
 # sonrası denetim (D1'in K5'i) okur. Ağaç kipin sınadığı çalışma ağacıdır: index'in kopyasıyla geçici bir index'e
 # `git add -A`; gerçek index'e dokunulmaz. Satırda yol ve kullanıcı adı yok: paketler ./ ile, dal adı ya da "-".
-# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:<n> (dups), hata:<n>,not:<m>
-# (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
+# Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti ya da düşen ilk adım), aday:- (kip dups koşmaz, alan
+# biçim için kalır; codegraph dilim 6), hata:<n>,not:<m> (spec-refs), koşulan testler, G4'e kalanlar ("./paket Ad", virgülle).
 commit_record() {
 	local dir idx tmp bak before after tree branch result name
 	dir=$(git rev-parse --git-common-dir 2>/dev/null) || return 0
@@ -1129,7 +1153,8 @@ for mode in $modes; do
 		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
 			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
-		dups_check
+		# Tekrar adayları (dups_check) bu kipte yok: dups --changed commit'siz değişikliği görmüyor, kipin her kaydında
+		# aday:0 çıkıyordu (codegraph dilim 6, D6-2); commit'ten sonra `dups --changed main` koşulur. Kaydın aday: alanı -.
 		spec_refs_check
 		commit_light_tests
 		;;
