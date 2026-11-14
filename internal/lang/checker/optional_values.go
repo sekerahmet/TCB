@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -297,7 +299,8 @@ func (c *Checker) reportUnopened(stmt ast.Statement, mark int) {
 
 // unopenedHint H1180'in ipucudur: kabın öğesini veren üyede kabın indeksi (H1181), öbür değerde
 // değeri yerel ada alıp sınamak (H1182). İfade deyimi, atama, tanım ve dönüş bütünüyle yeniden
-// yazılır; öbür deyimde (koşul, döngü başı: bloğu vardır) H1181 yalnız kullanımı yazar, H1182'nin
+// yazılır; tanımda sınama erken çıkıştır (TR_none iken ifadenin metni fırlatılır, tanımlanan ad
+// sonraki satırlarda görünür; 3.5'in daraltması, TCB 2026-11-15); öbür deyimde (koşul, döngü başı: bloğu vardır) H1181 yalnız kullanımı yazar, H1182'nin
 // sınaması "..." sarar, çünkü kullanım tek başına deyim olamaz (2.8). Deyim ya da kullanım tek
 // satıra sığmıyorsa ipucu yoktur.
 func (c *Checker) unopenedHint(stmt ast.Statement, u unopenedUse) any {
@@ -326,7 +329,18 @@ func (c *Checker) unopenedHint(stmt ast.Statement, u unopenedUse) any {
 	if !ok1 || !ok2 {
 		return ""
 	}
-	return messages.New(messages.H1182, name, value, s)
+	switch stmt.(type) {
+	case *ast.VarStatement, *ast.MultiVarStatement: // erken çıkış: tanımlanan ad sonraki satırlarda görünür
+		return messages.New(messages.H1182, name, value, trStringLiteral(value), "guard", "; "+s)
+	}
+	return messages.New(messages.H1182, name, value, s, "wrap", "") // deyim sınamanın içinde
+}
+
+// trStringLiteral metni TR'nin dizgi yazımıyla verir (2.6: ters bölü ve tırnak kaçar, 2.7'nin
+// yerleştirmesi de ters bölüyle başladığı için kaçmış olur); H1182'nin
+// erken çıkışı ifadenin metnini fırlatır.
+func trStringLiteral(s string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) + `"`
 }
 
 // blockExpression ifade deyim olarak yazılan bloklu ifade mi (TR_if, TR_match): bütünü öneriye girmez.

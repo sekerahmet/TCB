@@ -161,3 +161,43 @@ TR_var y = TR_Int("b")
 		t.Fatalf("%q ve 9. satırda H2640 beklenirdi, gelen %q (%v)", want, out, err)
 	}
 }
+
+// Kural (4.8): `a?.m(x)`'te `a` `TR_none` ise sonuç `TR_none`'dır ve argümanlar hesaplanmaz (kısa devre);
+// `a` bir değerse çağrı yapılır, argümanlar hesaplanır. Konumlu argümanlı yerleşik ve yapı metodu,
+// adlı argümanlı yapı metodu, yerinde değiştirici (.TR_append, alıcıya yazar). Program denetimden de
+// geçer. Güvenli çağrı ayrı bir kapanıştır (safeMemberCall); düz çağrının kapanışı sınama taşımaz.
+func TestSafeCallOnNoneSkipsTheCall(t *testing.T) {
+	const src = `TR_var sayaç: TR_List[TR_Int] = []
+TR_func f() -> TR_Int {
+    sayaç.TR_append(1)
+    TR_return 0
+}
+TR_struct P {
+    x: TR_Int = 2
+    TR_func m(a: TR_Int, b: TR_Int = 1) -> TR_Int { TR_return TR_self.x + a + b }
+}
+TR_var yok: TR_List[TR_Int]? = TR_none
+TR_var dolu: TR_List[TR_Int]? = [5]
+TR_var s: TR_String? = TR_none
+TR_var p: P? = TR_none
+TR_var q: P? = P()
+TR_print(yok?.TR_get(f()), s?.TR_upper(), p?.m(f()), p?.m(f(), b: f()))
+yok?.TR_append(f())
+TR_print(sayaç.TR_length)
+TR_print(dolu?.TR_get(f()), q?.m(f()), q?.m(f(), b: f()))
+dolu?.TR_append(f())
+TR_print(dolu, sayaç.TR_length)
+`
+	if errs := checkedErrs(t, src); len(errs) != 0 {
+		t.Fatalf("program denetimden geçmeli: %v", errs)
+	}
+	out, err := runSourced(t, src)
+	if want := "none none none none\n0\n5 3 2\n[5, 0] 5\n"; err != nil || out != want {
+		t.Errorf("güvenli çağrı: %q %v, beklenen %q", out, err, want)
+	}
+	// Kısa devre yalnız alıcı TR_none iken: alıcı değer, çağrılan alan TR_none ise H2421 kalır
+	// (çağrılanın yokluğu yutulmaz; DENETİM 766 N1).
+	if _, err := runSourced(t, "TR_struct F {\n    f: (() -> TR_Int)? = TR_none\n}\nTR_print(F()?.f())"); !messages.Has(err, messages.H2421) {
+		t.Errorf("F()?.f(), f TR_none: H2421 bekleniyordu, gelen %v", err)
+	}
+}

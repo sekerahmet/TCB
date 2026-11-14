@@ -50,7 +50,9 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 ### 4.8
 
 - *Emsal:* Swift'in ve Kotlin'in isteğe bağlı zinciri sonucu isteğe bağlı verir; Swift: "If the type you are trying to retrieve is already optional, it will not become more optional because of the chaining." ([Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/optionalchaining/), [Kotlin 2.4](https://kotlinlang.org/docs/null-safety.html#safe-call-operator))
+- *Emsal (çağrının kısa devresi):* C#'ta `?.` kısa devre yapar: `A?.B?.Do(C)`'de `A` `null` ise `B` ve `C` hesaplanmaz, "the rest of the chain doesn't execute"; JavaScript'te de sol yan `null` ya da `undefined` ise ifade hesaplanmaz. ([C#](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/member-access-operators), [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining))
 - *Gerekçe:* yok olabilecek bir alanın içine güvenle inilir; yokluk tipte görünmeye devam eder.
+- *Gerekçe (çağrı):* `a?.m(x)` `a` yokken çağrıyı yapmaz, argümanı da hesaplamaz. Ajan `?.`'nın sağındaki argümanın, alıcı yokken koşmamasını bekler; öbür diller de böyle davranır. Daha önce yorumlayıcı `?.`'nın `TR_none`'ını çağırmaya çalışıyor ve H2421 veriyordu; `?.`'yı öneren iletiler (H2744) metot çağrısında koşmayan bir yazım veriyordu (Motor, 2026-11-15).
 
 ### 4.9
 

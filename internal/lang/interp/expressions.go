@@ -195,7 +195,11 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if e.Safe {
 			return Null, nil
 		}
-		return nil, messages.At(e.Line(), 0, messages.New(messages.H2744, u.written(e.Property), "other")) // 3.5
+		op := "other"
+		if codes.IsInPlace(e.NameToken.Code) { // yerinde değiştirici (.TR_append): '??' kopyaya yazardı (H2740)
+			op = "change"
+		}
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2744, u.written(e.Property), op)) // 3.5
 	}
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri
@@ -269,5 +273,5 @@ func rangeCount(first, last, step int64) int64 {
 // indexRangeError köşeli parantezle sınır dışı okumanın hatasıdır (3.6): sessizce yok vermek
 // program yanlışını saklardı. Öğenin olmayabileceği bilinçli durum için varsa_al'ı önerir.
 func indexRangeError(line int, container ValueType, index int64, length int) error {
-	return messages.At(line, 0, messages.New(messages.H2515, container, index, length, codes.NameRef(codes.MemGet)))
+	return messages.At(line, 0, messages.New(messages.H2515, container, index, length))
 }

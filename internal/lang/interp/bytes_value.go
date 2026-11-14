@@ -74,7 +74,7 @@ func (b *BytesVal) Index(idx Value) (Value, error) {
 	case *IntVal:
 		pos, ok := resolveIndex(x.Val, len(b.b))
 		if !ok {
-			return nil, messages.New(messages.H2515, ValBytes, x.Val, len(b.b), codes.NameRef(codes.MemGet))
+			return nil, messages.New(messages.H2515, ValBytes, x.Val, len(b.b))
 		}
 		return NewInt(int64(b.b[pos])), nil
 	case *RangeVal:

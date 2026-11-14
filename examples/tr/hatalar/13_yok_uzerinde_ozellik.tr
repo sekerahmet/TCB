@@ -4,7 +4,7 @@
 # Ne olur: Açılmamış isteğe bağlı değerin özelliğine ya da metoduna erişmek denetim hatasıdır; program hiç çalışmaz.
 # Neden: `TR_get` sözlükte olmayan anahtarda `TR_none` verir; değer önce açılır (3.5).
 # Düzeltilmiş hâli:
-#     yazdır((kişi.varsa_al("soyad") ?? "bilinmiyor").büyük_harf()) # ya da güvenli erişim: kişi.varsa_al("soyad")?.büyük_harf()
+#     TR_print((kişi.TR_get("soyad") ?? "bilinmiyor").TR_upper()) # ya da güvenli erişim: kişi.TR_get("soyad")?.TR_upper()
 # Çalıştırma (proje kökünden): trlang examples/tr/hatalar/13_yok_uzerinde_ozellik.tr   (çıkış kodu 1)
 
 TR_var kişi = {"ad": "Ali"}

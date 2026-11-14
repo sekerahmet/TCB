@@ -28,7 +28,6 @@ var LongFuncs = map[string]int{
 	"internal/lang/interp/compiler_loop.go:compiler.inLoop":     172,
 	"internal/lang/interp/compiler_expr.go:compiler.expression": 168,
 	"internal/lang/interp/compiler_op.go:compiler.binary":       132,
-	"internal/lang/interp/compiler_call.go:compiler.call":       95,
 	"internal/lang/interp/methods.go:setupListMethods":          88,
 	"internal/lang/checker/checker.go:Checker.checkStatement":   147,
 	"internal/lang/codes/language.go:load":                      160,

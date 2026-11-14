@@ -125,7 +125,7 @@ func (j *JSONVal) Index(idx Value) (Value, error) {
 		}
 		pos, in := resolveIndex(i.Val, len(x.Elements))
 		if !in {
-			return nil, messages.New(messages.H2515, ValJSON, i.Val, len(x.Elements), codes.NameRef(codes.MemGet))
+			return nil, messages.New(messages.H2515, ValJSON, i.Val, len(x.Elements))
 		}
 		return &JSONVal{v: x.Elements[pos]}, nil
 	}

@@ -18,62 +18,9 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	line := e.Line()
 
 	if len(e.NamedArgs) == 0 {
-		// x.metot(...): yapı metotları ile Metin/Liste/Sözlük yerleşik metotları, bağlı
-		// fonksiyon/yerleşik değeri ayrılmadan doğrudan çağrılır (liste.ekle(x) argüman
-		// dilimi de ayırmaz). Diğer durumlarda üye değeri okunup çağrılır.
+		// x.metot(...) memberCall'dadır; diğer durumlarda çağrılan değer okunup çağrılır.
 		if mem, ok := e.Function.(*ast.MemberExpression); ok {
-			object := c.inPlaceReceiver(k, e, mem)
-			u := c.member(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
-			add := u.core != nil && u.codeVal == addMember
-			memberLine := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
-			return func(v *VM, env *Environment) (Value, error) {
-				obj, err := object(v, env)
-				if err != nil {
-					return nil, err
-				}
-				if inst, ok := obj.(*StructInstanceVal); ok {
-					if _, field := inst.Fields[mem.Property]; !field {
-						if meth, ok := inst.Def.Methods[mem.Property]; ok && meth.codeVal != nil {
-							return v.callMethod(meth, inst, argCode, env, line)
-						}
-					}
-				} else if m := findMethod(obj, u.core); m != nil {
-					if l, listVal := obj.(*ListVal); listVal && add && nargs == 1 {
-						av, err := argCode[0](v, env)
-						if err != nil {
-							return nil, err
-						}
-						writeToList(l, nil, av) // eklenen kaçar, liste değil (15.43)
-						l.Elements = append(l.Elements, av)
-						return Null, nil // değer döndürmez (13.10), çok argümanlı yolla aynı
-					}
-					// Metin/Liste/Sözlük metotları alıcıyı ve argümanları başka listelere
-					// koyabilir: sahip liste ve argümanlar kaçar (ownership.go).
-					escape(obj)
-					// Yerleşik çağrısıyla aynı sıra: önce tüm argümanlar, sonra gövde
-					args, err := arguments(v, env, argCode)
-					if err != nil {
-						return nil, err
-					}
-					escapeAll(args, nil)
-					res, err := m.f(v, obj, args, memberLine)
-					if err != nil {
-						return nil, lineSuffix(line, err)
-					}
-					return res, nil
-				}
-				if def, ok := enumOf(obj); ok { // 7.7: enum_ops.go
-					return v.callVariant(def, mem, argCode, env, line)
-				}
-				fnVal, err := v.calledMember(obj, mem, u)
-				if err != nil {
-					return nil, err
-				}
-				if err := valueCall(fnVal, mem.Property, nargs, false, line); err != nil {
-					return nil, err
-				}
-				return v.callAt(fnVal, argCode, env, line)
-			}
+			return c.memberCall(k, e, mem, argCode)
 		}
 		return positionalCall(k, e, fun, argCode, line)
 	}
@@ -81,8 +28,12 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	fun = c.namedCallee(k, e, fun)
 	namedCode := c.compileNamedArgs(k, e.NamedArgs)
 	called := calledName(k, e.Function)
+	safe := isSafeMember(e.Function)
 	return func(v *VM, env *Environment) (Value, error) {
 		fnVal, err := fun(v, env)
+		if safe && fnVal == nil && err == nil {
+			return Null, nil // x?.metot(a: ...), x TR_none: argümanlar hesaplanmaz (4.8)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -101,6 +52,70 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 			return nil, err
 		}
 		return v.applyCompiled(fnVal, args, named, line)
+	}
+}
+
+// memberCall x.metot(...) çağrısının kodudur (adlı argümansız): yapı metotları ile Metin/Liste/Sözlük
+// yerleşik metotları, bağlı fonksiyon/yerleşik değeri ayrılmadan doğrudan çağrılır (.TR_append(x) argüman
+// dilimi de ayırmaz). `x?.metot(...)` safeMemberCall'dadır: ?. derleme anında bilinir, düz çağrının
+// kapanışı onun sınamasını taşımaz.
+func (c *compiler) memberCall(k *compilerScope, e *ast.CallExpression, mem *ast.MemberExpression, argCode []exprCode) exprCode {
+	if mem.Safe {
+		return c.safeMemberCall(k, e, mem, argCode)
+	}
+	nargs := len(argCode)
+	line := e.Line()
+	object := c.inPlaceReceiver(k, e, mem)
+	u := c.member(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
+	add := u.core != nil && u.codeVal == addMember
+	memberLine := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
+	return func(v *VM, env *Environment) (Value, error) {
+		obj, err := object(v, env)
+		if err != nil {
+			return nil, err
+		}
+		if inst, ok := obj.(*StructInstanceVal); ok {
+			if _, field := inst.Fields[mem.Property]; !field {
+				if meth, ok := inst.Def.Methods[mem.Property]; ok && meth.codeVal != nil {
+					return v.callMethod(meth, inst, argCode, env, line)
+				}
+			}
+		} else if m := findMethod(obj, u.core); m != nil {
+			if l, listVal := obj.(*ListVal); listVal && add && nargs == 1 {
+				av, err := argCode[0](v, env)
+				if err != nil {
+					return nil, err
+				}
+				writeToList(l, nil, av) // eklenen kaçar, liste değil (15.43)
+				l.Elements = append(l.Elements, av)
+				return Null, nil // değer döndürmez (13.10), çok argümanlı yolla aynı
+			}
+			// Metin/Liste/Sözlük metotları alıcıyı ve argümanları başka listelere
+			// koyabilir: sahip liste ve argümanlar kaçar (ownership.go).
+			escape(obj)
+			// Yerleşik çağrısıyla aynı sıra: önce tüm argümanlar, sonra gövde
+			args, err := arguments(v, env, argCode)
+			if err != nil {
+				return nil, err
+			}
+			escapeAll(args, nil)
+			res, err := m.f(v, obj, args, memberLine)
+			if err != nil {
+				return nil, lineSuffix(line, err)
+			}
+			return res, nil
+		}
+		if def, ok := enumOf(obj); ok { // 7.7: enum_ops.go
+			return v.callVariant(def, mem, argCode, env, line)
+		}
+		fnVal, err := v.calledMember(obj, mem, u)
+		if err != nil {
+			return nil, err
+		}
+		if err := valueCall(fnVal, mem.Property, nargs, false, line); err != nil {
+			return nil, err
+		}
+		return v.callAt(fnVal, argCode, env, line)
 	}
 }
 
@@ -160,7 +175,7 @@ func calledName(k *compilerScope, e ast.Expression) string {
 
 // namedCallee adlı argümanlı çağrının çağrılanını verir. x.metot(a, ad: b) için bağlı metot
 // değeri bir değişkene verilmediğinden alıcı kaçmaz (konumlu çağrıdaki gibi); yalnızca üye
-// değeri okunup çağrılır.
+// değeri okunup çağrılır. x?.metot(...)'ta x TR_none ise çağrılan yoktur (nil, nil): çağrı kısa devre yapar (4.8).
 func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun exprCode) exprCode {
 	mem, ok := e.Function.(*ast.MemberExpression)
 	if !ok {
@@ -173,6 +188,9 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 		if err != nil {
 			return nil, err
 		}
+		if mem.Safe && obj.Type() == ValNull {
+			return nil, nil // çağrılan yok: çağıran TR_none verir
+		}
 		if u.core != nil && findMethod(obj, u.core) != nil {
 			escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
 		}
@@ -180,6 +198,28 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 			return v.variantCallee(def, mem), nil
 		}
 		return v.calledMember(obj, mem, u)
+	}
+}
+
+// safeMemberCall x?.metot(...)'ün kodudur (adlı argümansız, 4.8): x TR_none ise argümanlar hesaplanmaz,
+// sonuç TR_none'dır; değilse çağrı adlı argümanlı çağrıdaki gibi yapılır: üye değeri okunur
+// (namedCallee: alıcı kaçar, enum durumu kurulur) ve çağrılır (callAt). Yeni bir yoldur; düz
+// çağrının hızlı yollarını (memberCall) taşımaz.
+func (c *compiler) safeMemberCall(k *compilerScope, e *ast.CallExpression, mem *ast.MemberExpression, argCode []exprCode) exprCode {
+	callee := c.namedCallee(k, e, nil)
+	nargs, line := len(argCode), e.Line()
+	return func(v *VM, env *Environment) (Value, error) {
+		fnVal, err := callee(v, env)
+		if fnVal == nil && err == nil {
+			return Null, nil // x TR_none: çağrılan yok
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err := valueCall(fnVal, mem.Property, nargs, false, line); err != nil {
+			return nil, err
+		}
+		return v.callAt(fnVal, argCode, env, line)
 	}
 }
 
@@ -349,4 +389,10 @@ func defaultsSuffice(fn *FuncVal, nargs int) bool {
 		}
 	}
 	return true
+}
+
+// isSafeMember çağrılanın x?.metot biçiminde olduğudur (4.8'in kısa devresi).
+func isSafeMember(f ast.Expression) bool {
+	mem, ok := f.(*ast.MemberExpression)
+	return ok && mem.Safe
 }

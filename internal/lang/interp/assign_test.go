@@ -115,7 +115,10 @@ func TestUnopenedIndexSuggestionsRun(t *testing.T) {
 		{"TR_var y = d.TR_get(\"a\").TR_length", messages.H1181, "%s\nTR_print(y)", "", "2"},
 		{"TR_print(k.l[1])", messages.H1182, "%s", "", "8"},
 		{"z = k.n.x", messages.H1182, "%s", "z", "4"},
-		{"TR_var y = k.l[0]", messages.H1182, "%s", "", ""},
+		{"TR_var y = k.l[0]", messages.H1182, "%s", "y + 1", "8"}, // tanım: erken çıkış, ad sonra görünür
+		{"TR_var y, w = k.l[0], 1", messages.H1182, "%s", "y + w", "8"},
+		{"TR_func q(s: TR_String) -> K { TR_return k }\nTR_var y = q(\"a\").l[1]", messages.H1182,
+			"TR_func q(s: TR_String) -> K { TR_return k }\n%s", "y", "8"}, // fırlatılan metinde tırnak kaçar
 		{"k.l[0] = 9", messages.H1182, "%s", "k.l", "[9, 8]"},
 		{"k.n.x = 3", messages.H1182, "%s", "k.n?.x", "3"},
 		{"k.l.TR_append(1)", messages.H1182, "%s", "k.l", "[7, 8, 1]"},
@@ -143,7 +146,16 @@ func TestUnopenedIndexSuggestionsRun(t *testing.T) {
 			t.Errorf("%s: öneri %q: %q %v, beklenen %q", c.wrong, sug, out, err, want)
 		}
 	}
-	errs := checkedErrs(t, unopenedPre+"TR_if k.l[0] > 1 { TR_print(1) }")
+	// Tanımın erken çıkışı `TR_none`'da yine hata verir (değeri ifadenin metni).
+	errs := checkedErrs(t, unopenedPre+"TR_var y = k.l[0]")
+	if len(errs) == 1 {
+		parts := strings.Split(messages.ErrorIn(errs[0], "en"), "`")
+		code := unopenedPre + "k.l = TR_none\nTR_try { " + parts[len(parts)-2] + " } TR_catch h { TR_print(h.TR_value) }"
+		if out, err := runSourced(t, code); err != nil || out != "k.l\n" {
+			t.Errorf("erken çıkış TR_none'da \"k.l\" fırlatmalı: %q %v", out, err)
+		}
+	}
+	errs = checkedErrs(t, unopenedPre+"TR_if k.l[0] > 1 { TR_print(1) }")
 	if len(errs) != 1 || !strings.Contains(messages.ErrorIn(errs[0], "en"), "`TR_var c = k.l; TR_if c != TR_none { ... }`") {
 		t.Errorf("koşulda öneri sınamayı \"...\" ile yazmalı: %v", errs)
 	}
@@ -152,7 +164,8 @@ func TestUnopenedIndexSuggestionsRun(t *testing.T) {
 // Kural (3.5, KB3): çalışırken TR_none indekslenince ya da indeksle yazılınca H2742, alanı, özelliği
 // ya da metodu kullanılınca H2744 verilir. İleti TR_none'ı, tipini (TR_NoneType) ve üyeyi kimliğiyle
 // (programın alanında adıyla) yazar; görünüm adı ('yok', YokTipi, uzunluk) sızmaz. Yazma kolu okuma
-// önerisi ('??', '?.') vermez. Önerilen yazımlar koşar.
+// önerisi ('??', '?.') vermez; yerinde değiştirici metot (in_place, .TR_append) da yazmadır, çünkü
+// '(o ?? [5]).TR_append(1)' kopyaya yazar (H2740, DENETİM 755 N1). Önerilen yazımlar koşar.
 func TestNoneIndexError(t *testing.T) {
 	const pre = "TR_struct N {\n    x: TR_Int = 0\n}\nTR_var o = {\"a\": [1]}.TR_get(\"b\")\n" +
 		"TR_struct K {\n    n: N? = TR_none\n}\nTR_var n = K().n\n"
@@ -169,7 +182,7 @@ func TestNoneIndexError(t *testing.T) {
 		{"TR_print(n.x)", messages.H2744, "no member `x` to use", true},
 		{"n.x = 1", messages.H2744, "no member `x` to write to", false},
 		{"TR_print(o.TR_length)", messages.H2744, "no member `TR_length` to use", true},
-		{"o.TR_append(1)", messages.H2744, "no member `TR_append` to use", true},
+		{"o.TR_append(1)", messages.H2744, "no member `TR_append` to change it with", false}, // yerinde değiştirici: '??' kopyaya yazardı (H2740)
 	} {
 		_, err := runSourced(t, pre+c.src)
 		if !messages.Has(err, c.code) {
@@ -190,13 +203,18 @@ func TestNoneIndexError(t *testing.T) {
 		}
 	}
 	for code, want := range map[string]string{ // önerilen yazımlar
-		"TR_print(o?.TR_length)":                         "none",
-		"TR_print((o ?? [5])[0])":                        "5",
-		"TR_if o != TR_none { o[0] = 1 }\nTR_print(o)":   "none",
-		"TR_if n != TR_none { n.x = 1 }\nTR_print(n?.x)": "none",
+		"TR_print(o?.TR_length)":                             "none",
+		"TR_print((o ?? [5])[0])":                            "5",
+		"TR_if o != TR_none { o[0] = 1 }\nTR_print(o)":       "none",
+		"TR_if n != TR_none { n.x = 1 }\nTR_print(n?.x)":     "none",
+		"TR_if o != TR_none { o.TR_append(1) }\nTR_print(o)": "none",
+		"TR_print(o?.TR_get(0))":                             "none", // okuma kolunun '?.' önerisi metot çağrısında (4.8)
 	} {
 		if out, err := runSourced(t, pre+code); err != nil || out != want+"\n" {
 			t.Errorf("%q: %q %v, beklenen %s", code, out, err, want)
 		}
+	}
+	if _, err := runSourced(t, pre+"(o ?? [5]).TR_append(1)"); !messages.Has(err, messages.H2740) { // okuma önerisi burada yanlış olurdu
+		t.Errorf("'??' ile yerinde değiştirme kopyaya yazar, H2740 bekleniyordu: %v", err)
 	}
 }
