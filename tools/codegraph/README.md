@@ -38,27 +38,29 @@ group, default 12) and `--all`, before or after the names. Output is short plain
 
 Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the sections below give the details. Before asking for a new capability, try the closest command here and keep the line of its answer that shows what is missing.
 
-| question | command |
-| :-- | :-- |
-| which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) |
-| which nodes and Go tests my branch or uncommitted change touches | `changed HEAD [--go-tests]` (with `HEAD` as the tip the working tree is included); another branch: `changed <branch>` (exact only with that branch checked out: otherwise a new file's tests are missed, see gaps) |
-| a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` |
-| who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) |
-| which fields a type has and how often each is read and written | `fields <Type>` |
-| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) |
-| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) |
-| what this function calls | `callees <function>` |
-| which functions call into this package the most | `calls-into <pkg> --min N --in DIR` |
-| who uses this | `who-uses <name>` |
-| is there a path from A to B | `path <A> <B>` (`--undirected`) |
-| when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` |
-| which message or name codes existed once and are gone | `deleted` |
-| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
-| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) |
-| is there a function like this one | `similar <function>` |
-| which code in a folder is repeated | `dups --in <folder>` |
-| tests with a wall-clock ceiling | `time-ceilings --in DIR` |
-| broken references to language-definition items | `spec-refs` |
+| question | command | flow |
+| :-- | :-- | :-- |
+| which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) | hook, agent rules |
+| which nodes and Go tests my branch or uncommitted change touches | `changed HEAD [--go-tests]` (with `HEAD` as the tip the working tree is included); another branch: `changed <branch>` (exact only with that branch checked out: otherwise a new file's tests are missed, see gaps) | gate |
+| a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` | agent rules |
+| who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) | agent rules |
+| which fields a type has and how often each is read and written | `fields <Type>` | none |
+| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) | merge audit |
+| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) | none |
+| what this function calls | `callees <function>` | agent rules |
+| which functions call into this package the most | `calls-into <pkg> --min N --in DIR` | none |
+| who uses this | `who-uses <name>` | agent rules |
+| is there a path from A to B | `path <A> <B>` (`--undirected`) | none |
+| when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` | agent rules |
+| which message or name codes existed once and are gone | `deleted` | merge audit |
+| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers | merge audit |
+| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) | merge audit |
+| is there a function like this one | `similar <function>` | agent rules |
+| which code in a folder is repeated | `dups --in <folder>` | gate, merge audit, agent rules |
+| tests with a wall-clock ceiling | `time-ceilings --in DIR` | merge audit |
+| broken references to language-definition items | `spec-refs` | gate, merge audit |
+
+The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `merge audit` (the audit read after each large merge), `agent rules` (the agents' rules name it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
 
 ## Staying fresh
 
