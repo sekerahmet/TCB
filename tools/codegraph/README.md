@@ -141,7 +141,8 @@ graph cannot see), then one `go test -short` with `-run '^(...)$'` over the file
 the Go runner, `testrunner.TestNegativeFixtures`, of any negative `.tr` fixture about it) and its direct tests in other
 packages (the "tests" group: for a Go file the tests that use it, for a non-Go file the tests that read it by name)
 when there are at most 20 of them (`narrowHubLimit`; `vm.go` has 291, `checker.go` 175); more are counted on a line
-of their own, "narrow: N direct tests in other packages are left to the commit check (more than 20)". For a non-Go file
+of their own after the count line, as part of it: "narrow: N of them are direct tests in other packages (more than 20
+stay off the run line)" (before it, as a count of its own, the two lines were added up: DENETİM 750 N1). For a non-Go file
 the tests that walk its whole list are near too. Repository-wide checks that scan the file, the Go tests that run
 programs through the type checker, chains through calls, weak evidence and subprocess tests are far: they stay in
 the groups and are not on the narrow lines (two commands: `-run` applies to every package of one `go test`). One line

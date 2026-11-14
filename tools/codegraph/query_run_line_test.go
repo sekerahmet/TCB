@@ -201,12 +201,14 @@ func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
 
 // Kural (codegraph 7, A2): başka paketlerdeki doğrudan testler narrowHubLimit'i aşınca dar satıra girmez; satır sayılarını
 // söyler (S3) ve onları commit öncesi denetime bırakır. `vm.go`'nun başka paketlerde yüzlerce doğrudan testi var; `library.go`'nun
-// on tanesi satıra girer.
+// on tanesi satıra girer. Hub satırı sayı satırından sonra gelir ve onun içini söyler (B6, DENETİM 750 N1): önce ve ayrı bir
+// sayı gibi yazılınca iki satır toplanabiliyordu.
 func TestTheNarrowRunLineLeavesHubTestsToTheCommitCheck(t *testing.T) {
 	var out strings.Builder
-	printRunPlan(&out, runPlan{pkg: "a", hub: 21})
-	if !strings.Contains(out.String(), "  narrow: 21 direct tests in other packages are left to the commit check (more than 20)\n") {
-		t.Errorf("the hub line:\n%s", out.String())
+	printRunPlan(&out, runPlan{pkg: "a", hub: 21, rest: make([]goTest, 30)})
+	if want := "  narrow: these lines run the near tests; 30 more are left to the commit check and G4 (among the groups below)\n" +
+		"  narrow: 21 of them are direct tests in other packages (more than 20 stay off the run line)\n"; !strings.Contains(out.String(), want) {
+		t.Errorf("the count line, then the hub line inside it:\n%s", out.String())
 	}
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -362,7 +364,7 @@ func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
 					readers[gt] = true
 				}
 			}
-			hub := strings.Contains(out.String(), "direct tests in other packages are left to the commit check")
+			hub := strings.Contains(out.String(), "are direct tests in other packages (more than")
 			for gt := range readers {
 				if !hub && !inRun(gt) && !slices.Contains(self, gt) {
 					t.Errorf("tools/full_check.sh: direct test %s (%s) not covered by run: line", gt.name, gt.dir)

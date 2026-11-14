@@ -313,15 +313,17 @@ func printRunPlanText(w io.Writer, p runPlan, short bool) {
 		fmt.Fprintf(w, "  %s of %s did not fit the command line (heavy packages do not run whole here); %s\n",
 			countOf(p.cut, "more near test"), strings.Join(p.heavy, ", "), inGroups)
 	}
-	if p.hub > 0 {
-		fmt.Fprintf(w, "  narrow: %d direct tests in other packages are left to the commit check (more than %d)\n", p.hub, narrowHubLimit)
-	}
 	// Tek sayı satırı (A3, S2): kalanlar ayrı listelenmez, gruplardadırlar; codegraph'ın kendi testleri de sayıya girer.
 	switch left := len(p.rest) + len(p.selfTests); {
 	case left > 0:
 		fmt.Fprintf(w, "  narrow: these lines run the near tests; %d more are left to the commit check and G4 %s\n", left, amongGroups)
 	case len(cmds) > 0:
 		fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
+	}
+	// Hub satırı (A2, S3) sayı satırının içini söyler, ondan sonra gelir: önce ve ayrı bir sayı gibi yazılınca iki satır
+	// toplanabiliyordu (`lib/layers.tr`'de 22 ve 119; 22, 119'un içinde; DENETİM 750 N1, codegraph 7 B6).
+	if p.hub > 0 {
+		fmt.Fprintf(w, "  narrow: %d of them are direct tests in other packages (more than %d stay off the run line)\n", p.hub, narrowHubLimit)
 	}
 }
 
