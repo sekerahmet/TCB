@@ -1400,6 +1400,8 @@ const (
 	H6725 Code = 6725 // {fn} {{ ... }} yalnız bir blok alır, {given} parametre verildi
 	H6726 Code = 6726 // {fn} {{ ... }} bir blok bekler, {given} verildi
 	H6730 Code = 6730 // Uyarı: {fn}: bırakılan tensörlerin {waiting_bytes} baytlık belleği {seconds} sn içinde geri verilmedi; yükleme sürüyor, bellek tepesi bu kadar yüksek olabilir.
+	H6740 Code = 6740 // `{step}` tensörle indekstir ve kopya verir (15.6d): yazma kopyada kalırdı, `{base}` değişmezdi. Kopyayı değiştirmek için ona ad verin: `{#var} {copy} = {step}; {write}`. `{base}` tensörüne yazmak için, `{index}` yinelenmeyen bir tam sayı tensörüyse, kopyayı değiştirip satırlarını geri yazın: `{#var} {copy} = {step}; {write}; {#for} {k}, {i} {#in} {index}.{#reshape}([-1]) {{ {base}[{i}] = {copy}.{#reshape}([-1] + {base}[0].{#shape})[{k}] }}`
+	H6741 Code = 6741 // `{step}` {kind, select, op {bir işlemin sonucudur} call {bir çağrının sonucudur} method {görünüm sayılmayan bir metodun sonucudur} other {ad, alan, kap öğesi ya da görünüm değildir}}: yerinde yazmanın hedefi kopyadan geçmez (15.6d), yazma bir kopyada kalıp kaybolabilirdi. Yazmayı adı olan bir değere yapın: `{#var} {copy} = {step}; {write}` (yazma bu ada gider); asıl tensörü değiştirmek için ona yazın.
 	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
 	H6801 Code = 6801 // {fn}() cihaz adını metin olarak bekler ("cpu" ya da "gpu"), {given} verildi
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler

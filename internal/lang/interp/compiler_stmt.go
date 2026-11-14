@@ -115,7 +115,7 @@ func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) sta
 		value = k.placeOfName(id.Value).code(value, s.Line()) // tipi yazılı ada atama (3.13)
 	}
 	codeVal := opCode(string(s.Operator))
-	if place, write := c.assignPlace(k, s.Target, codeVal, s.Line()); place != nil {
+	if place, write := c.assignPlace(k, s.Target, codeVal, s.Line(), writeStmt{s.Target, s.Value}); place != nil {
 		return assignAtPlace(place, write, value)
 	}
 	dest := c.assignTarget(k, s.Target, codeVal, s.Line())
@@ -164,7 +164,7 @@ func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStat
 	dests := make([]func(*VM, *Environment, Value) error, n)
 	anyPlace := false
 	for i, t := range s.Targets {
-		if places[i], writes[i] = c.assignPlace(k, t, opAssign, s.Line()); places[i] == nil {
+		if places[i], writes[i] = c.assignPlace(k, t, opAssign, s.Line(), writeStmt{s.Targets[0], s.Values[len(s.Values)-1]}); places[i] == nil {
 			dests[i] = c.assignTarget(k, t, opAssign, s.Line())
 		}
 		anyPlace = anyPlace || places[i] != nil

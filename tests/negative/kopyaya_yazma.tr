@@ -1,0 +1,17 @@
+# TR 4
+# TEST 15.6d yerinde yazma kopyadan geçmez: hedef zincirinde kopya veren adım denetim hatasıdır (tensörle indeks H6740, öbürü H6741)
+TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0])
+TR_var idx = TR_Tensor([1, 2])
+TR_var m = TR_zeros([3, 2])
+TR_func al(x: TR_Tensor) -> TR_Tensor { TR_return x }
+t[idx][0] = 9.0 # ERROR H6740
+t[idx][0] += 5.0 # ERROR H6740
+t[t > 2.0][0] = 1.0 # ERROR H6740
+TR_write_slice(m[idx], TR_ones([2, 1]), TR_dim: 1, TR_start: 0) # ERROR H6740
+(t * 2.0)[0] = 9.0 # ERROR H6741
+TR_Tensor(t)[0] = 9.0 # ERROR H6741
+t.TR_to_dtype("float64")[0] = 9.0 # ERROR H6741
+t.TR_to_device("cpu")[0] = 9.0 # ERROR H6741
+t.TR_reshape([2, 2])[0][0] = 9.0 # ERROR H6741
+al(t)[0] = 9.0 # ERROR H6741
+TR_print(t, m)

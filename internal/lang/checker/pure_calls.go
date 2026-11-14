@@ -84,50 +84,5 @@ func (c *Checker) callText(call *ast.CallExpression, k codes.Code, receiver ast.
 // exprText ifadenin dosyadaki yazımıdır; ok false ise satır bilinmiyor ya da ifade tek satıra
 // sığmıyor (dosyası verilmemiş denetim).
 func (c *Checker) exprText(n ast.Expression) (string, bool) {
-	r := ast.RangeOf(n)
-	if r.Line < 1 || r.Line > len(c.fileLines) || r.EndLine != r.Line || r.Col < 1 {
-		return "", false
-	}
-	line := []rune(c.fileLines[r.Line-1])
-	if r.EndCol-1 > len(line) || r.Col >= r.EndCol {
-		return "", false
-	}
-	return closeParens(line[r.Col-1:r.EndCol-1], line[r.EndCol-1:])
-}
-
-// closeParens ifadenin ağaçtaki aralığına (kapanan ')', ']' ve '}' ağaçta tutulmaz) satırın devamından
-// eksik kapanan parantezleri sırayla ekler; metin içindekiler sayılmaz.
-func closeParens(text, rest []rune) (string, bool) {
-	var open []rune // kapanmayı bekleyenler, en içteki sonda
-	quote := rune(0)
-	for _, r := range text {
-		switch {
-		case quote != 0:
-			if r == quote {
-				quote = 0
-			}
-		case r == '"' || r == '\'':
-			quote = r
-		case r == '(':
-			open = append(open, ')')
-		case r == '[':
-			open = append(open, ']')
-		case r == '{':
-			open = append(open, '}')
-		case (r == ')' || r == ']' || r == '}') && len(open) > 0:
-			open = open[:len(open)-1]
-		}
-	}
-	out := string(text)
-	for _, r := range rest {
-		if len(open) == 0 {
-			break
-		}
-		if r != open[len(open)-1] {
-			return "", false
-		}
-		out += string(r)
-		open = open[:len(open)-1]
-	}
-	return out, len(open) == 0
+	return ast.SourceText(c.fileLines, n)
 }

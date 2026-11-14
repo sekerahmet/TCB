@@ -20,3 +20,8 @@ ve yorumlayıcı aynı yardımcılardan alır: `SubExpressions`, `ExprDefinedNam
 (`scopes.go`). İkisinin ayrışması bir dil kuralı hatasıdır. Denetim: `TestExprDefinedNamesFollowsScopeRule`,
 `TestStatementDefinedNames`, `TestSubExpressionsOrderAndStop`; yorumlayıcı tarafı
 `TestExprWalkersMatchReferenceOnRepositoryPrograms`.
+
+**Yerinde yazmanın zinciri tektir.** Yazma hedefinin hangi adımının görünüm, hangisinin kopya olduğunu
+(15.6d) denetleyici ve yorumlayıcı aynı yerden alır: `WriteChain`, `NearestCopy` (`write_chain.go`);
+iletinin önerisindeki deyimi `NewCopyWriteText`, ifadenin dosyadaki yazımını `SourceText` kurar
+(`source_text.go`). Denetim: `TestWriteChainSteps`, `TestNearestCopy`, `TestNewCopyWriteText`, `TestSourceText`.
