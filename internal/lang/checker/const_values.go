@@ -200,7 +200,9 @@ func ownNames(f *ast.FunctionLiteral) map[string]bool {
 				own[name.Value] = true
 			}
 		case *ast.ForInStatement:
-			own[s.KeyVar], own[s.ValueVar] = true, true
+			for _, n := range s.Names() {
+				own[n.Name] = true
+			}
 		}
 		return true
 	})

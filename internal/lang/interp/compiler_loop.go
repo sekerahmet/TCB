@@ -67,13 +67,7 @@ func (d *loopScope) close(iter Value) {
 func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode {
 	source := c.expression(k, s.Iterable)
 	sub := subScope(k)
-	keySlot := -1
-	if s.KeyVar != "" {
-		keySlot = sub.info.slot(s.KeyVar)
-		sub.recordShadow(s.KeyVar, s.Line(), messages.H2452)
-	}
-	valueSlot := sub.info.slot(s.ValueVar)
-	sub.recordShadow(s.ValueVar, s.Line(), messages.H2452)
+	keySlot, valueSlot, unpack := c.loopSlots(sub, s) // desen öğeyi açar (compiler_loop_bind.go)
 	var bodyStatements []ast.Statement
 	again := true
 	if s.Body != nil {
@@ -82,6 +76,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 	}
 	sub.predefine(bodyStatements)
 	bodyBlock := c.scopedStatements(sub, bodyStatements)
+	bodyBlock.prepend(unpack)
 	info := sub.info
 	info.local = again
 	line := s.Line()

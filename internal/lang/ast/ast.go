@@ -116,8 +116,12 @@ type ForInStatement struct {
 	ValueVar string      // element variable
 	// KeyToken and ValueToken are the tokens of the two variables' names (zero when not written).
 	KeyToken, ValueToken lexer.Token
-	Iterable             Expression
-	Body                 *BlockStatement
+	// Pattern opens a tuple in the value's place (5.7; ValueVar is then empty); Names gives every
+	// name (loop_names.go). IterableToken spans the iterable's source text for the messages' examples.
+	Pattern       []LoopName
+	IterableToken lexer.Token
+	Iterable      Expression
+	Body          *BlockStatement
 }
 
 func (fs *ForInStatement) statementNode()       {}
