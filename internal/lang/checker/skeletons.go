@@ -58,8 +58,9 @@ func (c *Checker) checkSkeletons(prog *ast.Program) {
 				visit(f.Name, f.NameToken, x.Line())
 			}
 		case *ast.ForInStatement:
-			visit(x.KeyVar, x.KeyToken, x.Line())
-			visit(x.ValueVar, x.ValueToken, x.Line())
+			for _, n := range x.Names() {
+				visit(n.Name, n.Token, x.Line())
+			}
 		}
 		return true
 	})

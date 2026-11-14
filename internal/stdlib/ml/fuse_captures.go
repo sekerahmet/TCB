@@ -207,7 +207,9 @@ func (w *captureWalk) visit(s scope, n any) bool {
 	case *ast.ForInStatement:
 		w.walk(s, x.Iterable)
 		in := s.child()
-		in.local[x.KeyVar], in.local[x.ValueVar] = true, true
+		for _, n := range x.Names() {
+			in.local[n.Name] = true
+		}
 		w.block(in, x.Body)
 		return false
 	case *ast.FunctionLiteral:

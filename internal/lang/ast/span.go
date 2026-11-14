@@ -71,11 +71,16 @@ func union(a, b messages.Range) messages.Range {
 
 // UnpackSuggestion builds the select key ("extra" when there are more names than elements,
 // "missing" when fewer) and the corrected statement example for a tuple unpack count mismatch
-// (5.3, 6.3). The right-hand side comes from ValueToken, cut from the source by token positions.
+// (5.3, 6.3). The right-hand side comes from ValueToken, cut from the source by token positions. In a
+// loop's tuple pattern (5.7) the example is the corrected loop header: TR_for (a, b, _) TR_in l.
 func UnpackSuggestion(stmt Node, count int) (kind, example string) {
 	var prefix, rhs string
 	var names []string
+	render := func(n []string) string { return prefix + strings.Join(n, ", ") + " = " + rhs }
 	switch s := stmt.(type) {
+	case *ForInStatement:
+		names = s.patternNames()
+		render = func(n []string) string { return s.loopHeader(PatternText(n)) }
 	case *MultiVarStatement:
 		kw := codes.KwVar
 		if s.IsConst {
@@ -93,13 +98,18 @@ func UnpackSuggestion(stmt Node, count int) (kind, example string) {
 		rhs = s.ValueToken.Literal
 	}
 	if len(names) > count {
-		return "extra", prefix + strings.Join(names[:count], ", ") + " = " + rhs
+		return "extra", render(names[:count])
 	}
+	return "missing", render(PadNames(names, count))
+}
+
+// PadNames fills names up to count with "_", the name of an unneeded value (5.3).
+func PadNames(names []string, count int) []string {
 	padded := append([]string(nil), names...)
 	for len(padded) < count {
 		padded = append(padded, "_")
 	}
-	return "missing", prefix + strings.Join(padded, ", ") + " = " + rhs
+	return padded
 }
 
 // TargetName returns the dotted spelling of an identifier or member chain (x, m.t, a?.b), or empty
