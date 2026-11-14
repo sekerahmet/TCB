@@ -269,6 +269,35 @@ func TestCommitModeCutsAtTheLimitByPackage(t *testing.T) {
 	}
 }
 
+// Kural (tools/full_check.sh, --kip=commit): süreyi timeout belirler, duvar saati değil. timeout parçayı durdurunca
+// sonraki parça başlamaz ve durdurmadan sonra gelen FAIL kesilmiş sayılır, `date` süreden geri kalsa da. CI'da üç kez
+// (status, TestCommitModeCutsAtTheLimitByPackage) `date` timeout'tan geri kaldı: ikinci parça başladı, durdurulan d'nin
+// FAIL'i düşüş sayıldı. Burada saat hiç ilerlemez: eski betik aynı biçimde düşüyordu.
+func TestCommitModeTrustsTheTimeoutOverTheClock(t *testing.T) {
+	dir, env := fakeGo(t, map[string]string{
+		"a.out":   "ok  \texample.com/fix/a\t0.1s\n",
+		"c.out":   "ok  \texample.com/fix/c\t0.1s\n",
+		"b.sleep": "30",
+		"d.sleep": "30",
+		"d.kill":  "--- FAIL: TestD (1.00s)\nFAIL\nFAIL\texample.com/fix/d\t1.0s\n",
+	})
+	// İlk parça a, c, b, d (24 karakterin altı); e ikinci parçadadır.
+	out := runCommitBash(t, dir, env, "commit_chunk_chars=24\ncommit_now_ms() { echo 1000; }\ncommit_deadline_ms=2000\n"+
+		"commit_selection $'a TestA\\nc TestC\\nb TestB\\nd TestD\\ne TestE'\n"+
+		"echo \"RAN=${commit_ran[*]}\"\necho \"LEFT=${commit_left[*]}\"\n")
+	for _, want := range []string{"RAN=./a TestA ./c TestC\n", "LEFT=./b TestB ./d TestD ./e TestE\n"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("çıktıda yok: %q\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "timeout: ") {
+		t.Errorf("timeout'un satırı çıktıya girmemeli:\n%s", out)
+	}
+	if args := fakeArgs(t, dir); len(args) != 1 {
+		t.Errorf("timeout durdurunca ikinci parça başlamamalı; go %d kez koştu: %q", len(args), args)
+	}
+}
+
 // Kural (tools/full_check.sh, --kip=commit; D1 codegraph dilim 3, DENETİM 681 N2): seçim komut satırı sınırının
 // altında parçalara bölünür. Paketin adları sığdığı sürece tek parçada; tek başına sınırı aşan paketin adları birden
 // çok parçada; ağır paketler (commit_late_packages) yeni bir parçadan başlayarak sonda; her parçanın komutu ağır listesini

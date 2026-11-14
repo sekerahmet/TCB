@@ -94,6 +94,34 @@ func TestBaseThatIsNotOneCommitStops(t *testing.T) {
 	}
 }
 
+// Kural (tools/full_check.sh, no_base_note; DENETİM 561 N1): sığ klonun notu kipin atladığı adımları sayar. dagitim'de
+// tabana bağlı tek adım GPU yarışıdır; not orada da ön denetimin üç adımını sayıyordu. Taban olmayan bir commit'tir.
+func TestNoBaseNoteNamesTheModesSkippedSteps(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash yok")
+	}
+	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn := regexp.MustCompile(`(?ms)^no_base_note\(\) \{\n.*?^\}$`).FindString(strings.ReplaceAll(string(data), "\r\n", "\n"))
+	if fn == "" {
+		t.Fatal("tools/full_check.sh: no_base_note bulunamadı")
+	}
+	for mode, want := range map[string]string{
+		"dagitim": "ortak ata yok (sığ klon): GPU yarışı atlanıyor",
+		"on":      "ortak ata yok (sığ klon): değişen paketlerin testleri, değişen dosyaları koruyan testler ve GPU yarışı atlanıyor",
+	} {
+		cmd := exec.Command(bash, "-c", "compare_base() { echo 0000000000000000; }\n"+fn+"\nno_base_note "+mode+"\n")
+		cmd.Dir = reporoot.Path(".")
+		out, err := cmd.CombinedOutput()
+		if err != nil || !strings.Contains(string(out), want) {
+			t.Errorf("kip %s: %q beklenirdi, gelen %q (%v)", mode, want, out, err)
+		}
+	}
+}
+
 // sharedCommitPrefix iki commit'in ortak dört harfli önekini verir; yoksa boş döner.
 func sharedCommitPrefix(t *testing.T, root string) string {
 	t.Helper()

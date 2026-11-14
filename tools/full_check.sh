@@ -622,15 +622,25 @@ commit_run_chunks() {
 		log=$(mktemp)
 		code=124
 		if [ $remaining -gt 0 ]; then
-			timeout "$((remaining / 1000)).$(printf '%03d' $((remaining % 1000)))" go test "${p_flag[@]}" -short -count=1 -run "$run" -skip "$skip" "${pkgs[@]}" 2>&1 |
+			# --verbose: timeout durdurmadan önce satırını yazar; satır günlüğe "KESİLDİ" olarak girer, ondan sonra gelen sonuç
+			# satırları duvar saatine bakılmadan süre dolduktan sonra sayılır (commit_settle).
+			timeout --verbose "$((remaining / 1000)).$(printf '%03d' $((remaining % 1000)))" go test "${p_flag[@]}" -short -count=1 -run "$run" -skip "$skip" "${pkgs[@]}" 2>&1 |
 				while IFS= read -r line; do
-					case $line in ok* | FAIL* | "--- FAIL"*) printf '%s\t%s\n' "$(commit_now_ms)" "$line" >>"$log" ;; esac
+					case $line in
+					ok* | FAIL* | "--- FAIL"*) printf '%s\t%s\n' "$(commit_now_ms)" "$line" >>"$log" ;;
+					"timeout: "*) printf '%s\tKESİLDİ\n' "$(commit_now_ms)" >>"$log" && continue ;;
+					esac
 					printf '%s\n' "$line"
 				done | grep --line-buffered -v '^ok\|no test files' | watch_failures
 			code=${PIPESTATUS[0]}
 		fi
 		commit_settle "$chunk" "$plan" "$log" "$code" "$module"
 		rm -f "$log"
+		# Süre timeout'a göre doldu: duvar saati geride kalsa da sonraki parça başlamaz (CI'da üç kez, `date` timeout'un
+		# süresinden geri kaldı; ikinci parça başladı, durdurulan paketin FAIL'i düşüş sayıldı).
+		if [ "$code" -eq 124 ] && [ "$(commit_now_ms)" -lt "$commit_deadline_ms" ]; then
+			commit_deadline_ms=$(commit_now_ms)
+		fi
 	done
 }
 
@@ -651,9 +661,10 @@ commit_settle() {
 		mapfile -t names < <(awk -F'\t' -v c="$chunk" -v p="$pkg" '$1 == c && $2 == p { print $3 }' "$plan")
 		state=$(awk -F'\t' -v p="$path" -v d="$commit_deadline_ms" '
 			{ split($3, f, " ") }
-			$2 ~ /^--- FAIL/ { if ($1 < d) pending++; next }
+			$2 == "KESİLDİ" { killed = 1; next }
+			$2 ~ /^--- FAIL/ { if ($1 < d && !killed) pending++; next }
 			$2 ~ /^ok/ && f[1] == p { print "ok"; found = 1; exit }
-			$2 == "FAIL" && f[1] == p { print (($1 < d || pending) ? "fail" : "cut"); found = 1; exit }
+			$2 == "FAIL" && f[1] == p { print ((($1 < d && !killed) || pending) ? "fail" : "cut"); found = 1; exit }
 			($2 ~ /^ok/ || $2 == "FAIL") && f[1] != "" { pending = 0 }
 			END { if (!found) print "none" }' "$log")
 		[ "$state" != none ] || { if [ "$code" -eq 124 ]; then state=cut; else state=fail; fi; }
@@ -871,10 +882,13 @@ slowest_packages() {
 }
 
 # no_base_note birleşme tabanı yoksa (sığ klon) değişen paketlere bağlı adımların atlandığını yazar: changed_packages
-# ve selected_tests o durumda hiçbir şey yazmadan boş dönüyordu (T1 B4, DENETİM 544 N3, 555 N4).
+# ve selected_tests o durumda hiçbir şey yazmadan boş dönüyordu (T1 B4, DENETİM 544 N3, 555 N4). Atlanan adımlar kipe
+# göredir ($1): dagitim'de tabana bağlı tek adım GPU yarışıdır, ön denetimde üç adım (DENETİM 561 N1).
 no_base_note() {
 	git merge-base "$(compare_base)" HEAD >/dev/null 2>&1 && return 0
-	echo "not: $(compare_base) ile ortak ata yok (sığ klon): değişen paketlerin testleri, değişen dosyaları koruyan testler ve GPU yarışı atlanıyor"
+	local skipped="değişen paketlerin testleri, değişen dosyaları koruyan testler ve GPU yarışı"
+	[ "$1" != dagitim ] || skipped="GPU yarışı"
+	echo "not: $(compare_base) ile ortak ata yok (sığ klon): $skipped atlanıyor"
 }
 
 # changed_packages ana dala göre (birleşme tabanından, çalışma ağacındaki ve izlenmeyen dosyalar
@@ -955,7 +969,7 @@ gpu_race() {
 	CGO_ENABLED=1 go test -race -short -timeout 10m ./internal/compute/gpu 2>&1 | grep -v '^ok\|no test files'
 	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test -race ./internal/compute/gpu"
 	if [ $((SECONDS - start)) -gt 300 ]; then
-		echo "uyarı: GPU paketi yarış dedektörüyle $((SECONDS - start)) sn sürdü; otomatik sınamanın sınırı 10 dk (büyük boyları !testing.Short() arkasına alın)"
+		echo "uyarı: GPU paketi yarış dedektörüyle $((SECONDS - start)) sn sürdü; otomatik sınamanın sınırı 10 dk (büyük boyları yarış dedektöründe atlayın: raceEnabled ya da skipUnderRace; -short arkasına almayın, kartın sınaması -short koşar)"
 	fi
 }
 
@@ -1098,7 +1112,7 @@ for mode in $modes; do
 		step "Derleme (go build, GOAMD64=$GOAMD64)"
 		go build ./... || fail "go build"
 		go_tests "$mode" -short
-		[ "$mode" = v3 ] || { no_base_note; gpu_race; }
+		[ "$mode" = v3 ] || { no_base_note "$mode"; gpu_race; }
 		step "TR testleri ve örnekler ($mode)"
 		if build_tr; then
 			summarize "trlang test tests" "$TR" test tests
@@ -1181,7 +1195,7 @@ for mode in $modes; do
 			format_checks
 			summarize "trlang test tests" "$TR" test tests
 		else fail "trlang derlenemedi"; fi
-		no_base_note
+		no_base_note "$mode"
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
