@@ -72,3 +72,19 @@ func TestWaitingForATaskWithoutAValue(t *testing.T) {
 	}
 	singleError(t, noValueFn+"TR_var g: TR_Task[TR_Int] = TR_async f()", messages.H1001, 2)
 }
+
+// Kural (10.5, 3.5): değer vermeyen görevlerin listesinin TR_wait_all'u da değer vermez (T
+// TR_NoneType'sa): değer yerinde H1143, deyim olarak geçer. Değer veren görevlerde TR_List[T] kalır.
+func TestWaitAllOfTasksWithoutAValue(t *testing.T) {
+	for _, source := range []string{
+		"TR_var l = TR_wait_all([TR_async { f() }, TR_async f()])",
+		"TR_func h(g: TR_List[TR_Task[TR_NoneType]]) { TR_print(TR_wait_all(g)) }",
+	} {
+		_, errs := checkErrs(t, noValueFn+source)
+		if !hasCode(errs, messages.H1143) {
+			t.Errorf("H1143 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+		}
+	}
+	noErrors(t, noValueFn+"TR_var g = [TR_async { f() }]\nTR_wait_all(g)")
+	expectTypes(t, map[string]string{squareFn + "TR_var l = TR_wait_all([TR_async kare(1)])": listType(typeInt)})
+}
