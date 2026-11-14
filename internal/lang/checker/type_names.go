@@ -21,6 +21,7 @@ var (
 	typeList     = codes.Name(codes.TypeList)
 	typeDict     = codes.Name(codes.TypeDict)
 	typeRange    = codes.Name(codes.TypeRange)
+	typeBytes    = codes.Name(codes.TypeBytes)
 	typeFunction = codes.Name(codes.TypeFunction)
 	typeTensor   = codes.Name(codes.TypeTensor)
 	typeAny      = codes.Name(codes.TypeAny)
