@@ -151,6 +151,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.13
 
+- **Yapılacaklar (A, Ö1; sahip dil çekirdeği kolu (Motor), 5.7'den sonra; DENETİM 692 N1, 2026-11-14):** tipli tanım çalışırken denetlenmiyor: okuyucuda `TR_var g: TR_String = iş` hatasız geçiyor, `iş` bir liste [ölçüldü: Motor, `d5_okuyucu`, `d9_okuyucu_tek`]. Değişken açıklanan tipten başka bir değerle sürüyor. Okuyucunun öğe tipi bunun bir kaynağı (Motor'un 5.7 tasarımı, Açık-4); `TR_Any` dönen her ifade aynı kapıdan geçer. Karar `pending.md`'nin 3.13 satırında.
+
 - **Mevcut durum:** tipi çıkarılamayan ilk değerin değişkeni `TR_Any` kalıyor (1.2).
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** çıkarımın kalanı (1.2; bu dilimde isteğe bağlı tip, alan, `TR_if`/`TR_match`, indeks ve döngü değişkeni eklendi); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu. Tam sayının ondalık beklenen yerde ondalık olmasının kalanı tip haritasını ister: kabın öğesi (`l.TR_append(1)`, `l: TR_List[TR_Float]`, `[1]` ve `TR_Int` kalıyor; `d["a"] = 1` de; indekse değişkenle yazma da: `f: TR_List[TR_Float]`, `n: TR_Int` iken `f[0] = n` denetimden geçiyor, öğe `TR_Int` kalıyor, H1136 sayıları ayrı tip saymıyor [ölçüldü: DENETİM istek 70]) [ölçüldü: DENETİM istek 27 D-5], tam sayı değişkenli değişmez (`[a, 2.5]`) ve tipi ilk değerinden çıkan değişkene atama (`TR_var t = 0.0` sonra `t = 1`). `TR_Int` tipli değişkenin `TR_Float` yerine verilmesi (`f(i)`) denetim hatası olacak, bugün geçiyor ve motor değeri ondalığa çeviriyor; denetleyicinin işi.
 - **Geri alınabilir göç (T1 dilim 2, bulgu 2):** T1, 3.13 yokken `TR_Float` parametresine tam sayı veren yerleri ondalık yazıma çevirdi (`p(n)` → `p(n.0)`): `tests/tensor_test.tr` "15.33 parametreler" testi ve `internal/stdlib/ml/model_tools_test.go`'nun `TestParameters`'ı. 3.13 main'de olduğuna göre bu yerler tam sayı yazımına dönebilir.
@@ -206,6 +208,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 ### 5.4
 
+- **Yapılacaklar (A, Ö1; sahip dil çekirdeği kolu (Motor); DENETİM 693 N1, 2026-11-14):** yeni kurulan değere yazma kayboluyor: `t.TR_tolist[0] = 5` hatasız geçiyor, `t` değişmiyor [hesap: T1'in 15.6d tasarımının Bulgular cümlesi; koşulmadı, ilk adımda ölçülür]. 15.6d'nin tensördeki kuralının listedeki eşi. Karar `pending.md`'nin 5.4 satırında.
 - **Mevcut durum (T1, Tur 6A):** düz `=`'de de önce hedefin yeri (indeks, alanın sahibi), sonra sağ yan: `l[f()] = g()` önce `f`'yi çağırıyor [test: `tests/deyimler_test.tr`, "5.4 düz ='de de önce hedefin yeri"].
 - **Yapılacaklar:** `/=` iletisi `//=`'yi önerir.
 
