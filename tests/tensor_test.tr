@@ -2002,6 +2002,25 @@ TR_test "15.6d tensörle indekse yazma hata verir, öğeler döngüyle yazılır
     TR_assert_equal("H6707", TR_error_code { t[t > 2.0] += 1.0 })
 }
 
+TR_test "15.6d yerinde yazma kopyadan geçmez: adlı kopya kopyada kalır, görünüm ve kap öğesi asıl tensöre yazar" {
+    TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0])
+    TR_var idx = TR_Tensor[TR_Int]([1, 2])
+    TR_var c = t[idx]
+    c[0] = 9.0
+    TR_assert_equal([1.0, 2.0, 3.0, 4.0], t.TR_tolist)
+    TR_assert_equal([9.0, 3.0], c.TR_tolist)
+    TR_for k, i TR_in idx.TR_reshape([-1]) { t[i] = c.TR_reshape([-1] + t[0].TR_shape)[k] }
+    TR_assert_equal([1.0, 9.0, 3.0, 4.0], t.TR_tolist)
+    t[2..4][0] = 7.0
+    t.TR_slice(0, 0, 1)[0] += 1.0
+    TR_var kap = [t]
+    kap[0][3] = 0.0
+    TR_assert_equal([2.0, 9.0, 7.0, 0.0], t.TR_tolist)
+    TR_var r = t.TR_reshape([2, 2])
+    r[1][1] = 5.0
+    TR_assert_equal([2.0, 9.0, 7.0, 5.0], t.TR_tolist)
+}
+
 TR_test "15.6d tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     TR_assert_equal(5.0, t[-1].TR_tolist)

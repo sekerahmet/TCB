@@ -316,6 +316,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			ident, ok := t.(*ast.Identifier)
 			if !ok {
 				c.inferExpression(t)
+				c.checkCopyWriteMulti(s, t) // 15.6d (copy_writes.go)
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
@@ -361,6 +362,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.statementExpr = prev
 		c.checkUnusedValue(s)
 		c.checkPureCall(s)
+		c.checkCopyWriteCall(s) // TR_write_slice'ın hedefi (15.6d, copy_writes.go)
 	}
 }
 
@@ -578,6 +580,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		c.checkModuleAssign(s.Target)
 		c.checkFieldAssign(s, valType)                      // alanın tipi (7.5)
 		c.expectTyped(c.inferExpression(s.Target), s.Value) // hedefin tipi beklenen tiptir (5.5)
+		c.checkCopyWriteTarget(s.Target, s.Target, s.Value) // yerinde yazma kopyadan geçmez (15.6d, copy_writes.go)
 		c.checkIndexAssign(s, valType)                      // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
 		c.checkElementAssign(s, valType)                    // öğe tipi bilinen kaba başka tipte değer (3.6, 3.7)
 		c.checkJSONIndexAssign(s)                           // TR_JSON değiştirilemez (3.7a, json_values.go)

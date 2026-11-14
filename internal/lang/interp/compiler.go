@@ -152,6 +152,8 @@ type compiler struct {
 	textLang *codes.Language
 	// blocks blokların kapsam bayraklarının önbelleğidir (scope_analysis.go).
 	blocks blockFlagCache
+	// copySteps derlenmekte olan yazma hedeflerinin zincirindeki indeks adımlarıdır (copy_writes.go).
+	copySteps map[*ast.IndexExpression]uint64
 }
 
 // blockFlags bloğun kapsam bayraklarıdır (blockDefines, blockCaptures).

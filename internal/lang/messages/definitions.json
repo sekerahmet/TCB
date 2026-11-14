@@ -1395,6 +1395,8 @@
 "H6725": { "param": ["fn", "given"] },
 "H6726": { "param": ["fn", "given"] },
 "H6730": { "param": ["fn", "waiting_bytes", "seconds"] },
+"H6740": { "param": ["step", "base", "index", "write", "copy", "k", "i"], "slots": {"var": "TR_kw_var", "for": "TR_kw_for", "in": "TR_kw_in", "reshape": "TR_mem_reshape", "shape": "TR_mem_shape"} },
+"H6741": { "param": ["step", "kind", "write", "copy"], "slots": {"var": "TR_kw_var"} },
 "H6800": { "param": ["name"] },
 "H6801": { "param": ["fn", "given"] },
 "H6802": { "param": ["fn"] },

@@ -176,7 +176,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 
 	case *ast.IndexExpression:
 		leftFn := c.expression(k, e.Left)
-		index := c.expression(k, e.Index)
+		index := c.copyStepIndex(e, c.expression(k, e.Index)) // yazma hedefinin adımıysa (15.6d)
 		return func(v *VM, env *Environment) (Value, error) {
 			left, err := leftFn(v, env)
 			if err != nil {
@@ -214,7 +214,8 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 
 // callExpr çağrının kodudur.
 func (c *compiler) callExpr(k *compilerScope, e *ast.CallExpression) exprCode {
-	codeVal := c.call(k, e)
+	w := c.beginCopyWrite(k, writeSliceTarget(e), writeStmt{e, e}, true) // TR_write_slice'ın hedefi (15.6d)
+	codeVal := w.end(c, c.call(k, e))
 	// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (shadow.go).
 	if id, ok := e.Function.(*ast.Identifier); ok && builtinName(id.Value, c.textLang) {
 		if g, ok := k.findShadow(id.Value); ok {

@@ -240,6 +240,9 @@ type VM struct {
 	gilGen   uint64
 	gilSince time.Duration
 	clock    lockClock
+	// copyIndexSteps değerlendirilmekte olan yazma hedefinin zincirinde tensörle indeks olan adımlardır
+	// (copy_writes.go); her hedef kendi değerini saklayıp geri koyar.
+	copyIndexSteps uint64
 
 	// source şu an çalışan kodun dosyasıdır (nil: ana program; bkz. Kaynak). Paylaşılan
 	// durumda değil görevde tutulur: bir modül yüklenirken kilidi bırakınca başka bir görev

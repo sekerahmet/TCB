@@ -1395,6 +1395,8 @@
 "H6725": "{fn} {{ ... }} takes only a block, {given} {given, plural, one {parameter} other {parameters}} given",
 "H6726": "{fn} {{ ... }} expects a block, {given} given",
 "H6730": "Warning: {fn}: memory of released tensors ({waiting_bytes} bytes) was not returned within {seconds} s; loading continues, and peak memory may be that much higher.",
+"H6740": "`{step}` is a tensor index and gives a copy (15.6d): the write would stay in the copy and `{base}` would not change. To change the copy, give it a name: `{#var} {copy} = {step}; {write}`. To write to `{base}`, if `{index}` is an integer tensor with no repeated item, change the copy and write its rows back: `{#var} {copy} = {step}; {write}; {#for} {k}, {i} {#in} {index}.{#reshape}([-1]) {{ {base}[{i}] = {copy}.{#reshape}([-1] + {base}[0].{#shape})[{k}] }}`",
+"H6741": "`{step}` is {kind, select, op {the result of an operation} call {the result of a call} method {the result of a method that is not a view} other {not a name, field, container item or view}}: the target of an in-place write does not go through a copy (15.6d), and the write could stay in a copy and be lost. Write to a value that has a name: `{#var} {copy} = {step}; {write}` (the write goes to that name); to change the original tensor, write to it.",
 "H6800": "unknown device {name|q}; give a name such as \"cpu\", \"gpu\" or \"gpu:1\"",
 "H6801": "{fn}() expects the device name as a string (\"cpu\" or \"gpu\"), {given} given",
 "H6802": "{fn}(\"cpu\") expects 1 parameter",

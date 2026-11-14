@@ -151,7 +151,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
   - **yaprak olmayan** türevli tensöre (türev izleyen bir işlemin sonucu ya da görünümü) yerinde yazmak türevsiz kipte de hatadır (15.3); ileti bütün hedefte `h = h + ...`'yı, indeksli hedefte `TR_where` ile yerinde olmayan yazımı önerir;
   - türev izlemeyen bir hedefe, türevsiz kipin dışında, **türev izleyen bir değer** yazmak hatadır: gradyan bağını sessizce koparırdı (`havuz[idx] += d`). EMA'nın gölge ağırlığı ve KV önbelleği bu yüzden türevsiz kipte güncellenir.
   - Türev izlemeyen ama geri yayılım için saklanmış bir tensöre yazmak serbesttir; `TR_backward` onu sürümden yakalar (15.3).
-- *Test:* TR testi; Go: `TestMatrixIndexAndAssign`, `TestIndexAssignSingleCopy`, `TestWriteRulesForGradients`, `TestCompoundAssignInPlace`, `TestCompoundAssignDTypeShapeOverlap`, `TestCompoundAssignGradRules`, `TestTypedAssign` (cinsli hedef), `TestTypedCompoundAssignAliases` (bütün bileşik atamalar yerinde), GPU'da `TestGPUInPlaceCompoundAssign` ve `TestTypedPathsOnGPU`; tensörle indeks, maske ve `.TR_select` uygulanınca TR testi; kopyaya yazmanın hatası: gerekmez, henüz uygulanmadı.
+- *Test:* TR testi; Go: `TestMatrixIndexAndAssign`, `TestIndexAssignSingleCopy`, `TestWriteRulesForGradients`, `TestCompoundAssignInPlace`, `TestCompoundAssignDTypeShapeOverlap`, `TestCompoundAssignGradRules`, `TestTypedAssign` (cinsli hedef), `TestTypedCompoundAssignAliases` (bütün bileşik atamalar yerinde), GPU'da `TestGPUInPlaceCompoundAssign` ve `TestTypedPathsOnGPU`; tensörle indeks, maske ve `.TR_select` uygulanınca TR testi; kopyaya yazmanın hatası: olumsuz fikstür `tests/negative/kopyaya_yazma.tr`; Go: `TestWriteChainSteps`, `TestCopyWriteTargets`, `TestCopyWriteTargetsAtRunTime`, `TestCopyWriteSuggestionsRun`.
 
 **15.6e** Üs: `t ** u`'da `u` sayı ya da tensördür; `2 ** t` de geçerlidir. `TR_Float`'ta IEEE 754'ün `pow`'u uygulanır: eksi tabanın tam olmayan üssü NaN, sıfırın eksi üssü sonsuzdur (15.50; sayıdaki 4.3 bunları hata sayar, tensörde öğe başına hata yoktur, 15.50'deki `TR_sqrt` gibi). `TR_Int`'te üs eksi olamaz; bir öğe bile eksiyse çalışma hatası. Türev `TR_Float`'ta iki işlenene de akar.
 - *Test:* Go: `TestGeluAndZeroPowerGrad`, `TestSpecialValuesTable`; tensör üs ve tam sayı tensörü uygulanınca TR testi.
@@ -167,7 +167,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Kaynak hedefle örtüşüyorsa (hedefin bir dilimiyse) önce kopyalanır.
 - Türevle ilişkisi 15.6d'nin üç kuralıdır (türevsiz kip).
 - `hedef.TR_slice(...)[...] = kaynak` ile aynı işi yapar; farkı `TR_replay` kaydındadır: tensörle verilen başlangıç her oynatmada okunur ve sınır dışı değer kırpılmaz, cihaz içi bayrakla hata verir (15.45). Bu denetimler kayıt içinde ve dışında aynıdır.
-- *Test:* TR testi; Go: `TestWriteSliceChecks`, `TestWriteSliceSameRulesInsideAndOutsideRecording`, `TestReplayIndexFaultsMatchDirectCall`; adsız kopya hedefin hatası: gerekmez, henüz uygulanmadı (15.6d).
+- *Test:* TR testi; Go: `TestWriteSliceChecks`, `TestWriteSliceSameRulesInsideAndOutsideRecording`, `TestReplayIndexFaultsMatchDirectCall`; adsız kopya hedefin hatası: 15.6d'nin testleri (`TestCopyWriteTargets`, `tests/negative/kopyaya_yazma.tr`).
 
 ## Öğe öğe matematik
 

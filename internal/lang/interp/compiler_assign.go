@@ -68,7 +68,7 @@ func (c *compiler) assignTo(k *compilerScope, target ast.Expression, codeVal uin
 		}
 
 	case *ast.IndexExpression, *ast.MemberExpression:
-		place, write := c.assignPlace(k, target, codeVal, line)
+		place, write := c.assignPlace(k, target, codeVal, line, writeStmt{target, target})
 		return func(v *VM, env *Environment, rhs Value) error {
 			owner, key, err := place(v, env)
 			if err != nil {
@@ -119,10 +119,11 @@ type writeFunc func(v *VM, owner, key, rhs Value) error
 // sağ yandan önce, bir kez hesaplanır (5.4). A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır
 // (tensör satırı veriyi paylaşan bir görünümdür; bkz. IndeksAtanabilir). Modül değerine köşeli
 // ayraçla atanmaz (11.2). Ad hedefinin yeri yoktur: place nil.
-func (c *compiler) assignPlace(k *compilerScope, target ast.Expression, codeVal uint8, line int) (placeFunc, writeFunc) {
+func (c *compiler) assignPlace(k *compilerScope, target ast.Expression, codeVal uint8, line int, stmt writeStmt) (placeFunc, writeFunc) {
 	switch t := target.(type) {
 	case *ast.IndexExpression:
-		leftFn := c.expression(k, t.Left)
+		w := c.beginCopyWrite(k, t.Left, stmt, false) // yerinde yazma kopyadan geçmez (15.6d, copy_writes.go)
+		leftFn := w.end(c, c.expression(k, t.Left))
 		index := c.expression(k, t.Index)
 		place := func(v *VM, env *Environment) (Value, Value, error) {
 			left, err := leftFn(v, env)
