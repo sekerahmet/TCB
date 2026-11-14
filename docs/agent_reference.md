@@ -194,7 +194,7 @@ TR_var n = TR_try { oku() } TR_catch e {
   - `.TR_sort()` ve `.TR_reverse()` yeni bir kopya verir, listeyi değiştirmez. Değeri atılırsa denetim hatasıdır: `l.TR_sort()` tek başına yazılmaz; `l = l.TR_sort()` ya da `TR_var s = l.TR_sort()`.
   - Anahtarlı sıralama `.TR_sort((x) => anahtar)`: anahtar sayı, metin ya da bunların demetidir; eşitlerin sırası korunur. Büyükten küçüğe sayı için `-x`; birden çok ölçüt için demet: `.TR_sort((x) => (-x.puan, x.ad))`.
   - `.TR_join(ayırıcı)`, `.TR_unique()`.
-  - `.TR_first`, `.TR_last` ve `.TR_get(i)` isteğe bağlı değer verir. `l[i]` sınır dışında çalışma hatasıdır; negatif indeks sondan sayar.
+  - `.TR_first`, `.TR_last` ve `.TR_get(i)` isteğe bağlı değer verir ve açılmadan indekslenmez: `l.TR_first[0]` yerine `l[0][0]`. `l[i]` sınır dışında çalışma hatasıdır; negatif indeks sondan sayar.
 - **Sözlük:** `d[k]` (olmayan anahtar çalışma hatasıdır), `d.TR_get(k)` (`V?`), `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_length`.
 
 - **Test:** `TR_test "ad" { }` dosyanın en dışında yazılır. İçinde `TR_assert(koşul, mesaj)` ve `TR_assert_equal(beklenen, gerçek, mesaj)`; mesaj isteğe bağlıdır. Hatayı sınamak: `TR_assert_equal("H7221", TR_error_code { ... })`.

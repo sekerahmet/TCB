@@ -119,6 +119,10 @@
   "commit": "2eab12b",
   "reason": "deleted: messages: case suffixes move from Go into templates"
  },
+ "H2466": {
+  "commit": "claude/yazma-zinciri-b",
+  "reason": "deleted: interp: a member of none is H2744, which names TR_none, TR_NoneType and the member by identity (3.5)"
+ },
  "H2488": {
   "commit": "5259dddc",
   "reason": "deleted: messages: fragment test sees variables and + joins; leftover fragments become full templates"

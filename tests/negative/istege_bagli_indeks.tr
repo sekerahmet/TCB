@@ -1,0 +1,24 @@
+# TR 4
+# TEST 3.5 açılmamış isteğe bağlı değerin indeksi, alanı ve üyesi denetim hatasıdır (H1180); 5.4'ün raporladığı adımda tek ileti H2741'dir
+TR_struct Nokta {
+    x: TR_Int = 0
+}
+TR_struct Kutu {
+    n: Nokta? = TR_none
+    l: TR_List[TR_Int]? = TR_none
+}
+TR_var d: TR_Dict[TR_String, TR_List[TR_Int]] = {"a": [1, 2]}
+TR_var lf: TR_List[TR_List[TR_Int]] = [[1]]
+TR_var ll: TR_List[TR_List[TR_Int]?] = [[1], TR_none]
+TR_var k = Kutu()
+TR_print(d.TR_get("a")[0]) # ERROR H1180
+TR_print(lf.TR_first[0]) # ERROR H1180
+TR_print(ll[1][0]) # ERROR H1180
+k.l[0] = 5 # ERROR H1180
+TR_print(k.n.x) # ERROR H1180
+k.n.x = 3 # ERROR H1180
+TR_print(d.TR_get("a").TR_length) # ERROR H1180
+k.l.TR_append(1) # ERROR H1180
+d.TR_get("a")[0] = 5 # ERROR H2741
+TR_var o = d.TR_get("a")
+TR_print(o?.TR_length, k.n?.x, (d.TR_get("b") ?? [0])[0])

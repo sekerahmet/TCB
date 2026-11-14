@@ -130,6 +130,9 @@ func (v *VM) indexValue(left Value, idx Value, e *ast.IndexExpression) (Value, e
 		return val, lineSuffix(line, err)
 	}
 
+	if left.Type() == ValNull {
+		return nil, messages.At(line, 0, messages.New(messages.H2742, "other")) // isteğe bağlı değer önce açılır (3.5)
+	}
 	if _, ok := left.(Stream); ok {
 		// Sırayla okunan değer (satır okuyucu, veri okuyucusu) indekslenmez; nasıl okunacağı söylenir.
 		return nil, messages.At(line, 0, messages.New(messages.H2525, left.Type(), codes.NameRef(codes.KwFor), codes.NameRef(codes.KwIn), codes.NameRef(codes.MemNext)))
@@ -192,7 +195,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if e.Safe {
 			return Null, nil
 		}
-		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.NameRef(codes.KwNone), e.Property))
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2744, u.written(e.Property), "other")) // 3.5
 	}
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri

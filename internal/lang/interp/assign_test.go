@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -83,5 +85,118 @@ func TestIndexAssignTaskHookGetsTheLine(t *testing.T) {
 	}
 	if got := plain.cell[0].Inspect(); got != "7" {
 		t.Fatalf("kancasız değerde SetIndex yolu: %v", got)
+	}
+}
+
+const unopenedPre = "TR_struct N {\n    x: TR_Int = 0\n}\nTR_struct K {\n    n: N? = TR_none\n    l: TR_List[TR_Int]? = TR_none\n}\n" +
+	"TR_var d: TR_Dict[TR_String, TR_List[TR_Int]] = {\"a\": [1, 2]}\nTR_var k = K(N(4), [7, 8])\nTR_var z = 0\n"
+
+// checkedErrs src'yi dosyasının yazımıyla denetler (öneriler dosyanın metninden kurulur).
+func checkedErrs(t *testing.T, src string) []error {
+	t.Helper()
+	ch := checker.New()
+	ch.SetFile(checker.ProgramFile, src)
+	ch.CheckProgram(mustParseProgram(t, src))
+	return ch.Errs()
+}
+
+// Kural (3.5, KB2): H1180'in önerisi kopyalanınca denetimden geçer, koşar ve kaynağa yazar. Kabın
+// öğesini veren üyede H1181 kabı indeksler; öbür değerde H1182 değeri yerel ada alıp sınar: ifade
+// deyimi, atama, tanım, dönüş, indekse ve alana yazma ve yerinde değiştirici bütünüyle yeniden
+// yazılır. Koşulda öneri "..." sarar (kullanım tek başına deyim olamaz, 2.8).
+func TestUnopenedIndexSuggestionsRun(t *testing.T) {
+	for _, c := range []struct {
+		wrong            string
+		hint             messages.Code
+		wrap, show, want string // wrap'te %s önerinin yeri; show sonra yazdırılan
+	}{
+		{"TR_print(d.TR_get(\"a\")[1])", messages.H1181, "%s", "", "2"},
+		{"z = d.TR_get(\"a\")[0]", messages.H1181, "%s", "z", "1"},
+		{"TR_var y = d.TR_get(\"a\").TR_length", messages.H1181, "%s\nTR_print(y)", "", "2"},
+		{"TR_print(k.l[1])", messages.H1182, "%s", "", "8"},
+		{"z = k.n.x", messages.H1182, "%s", "z", "4"},
+		{"TR_var y = k.l[0]", messages.H1182, "%s", "", ""},
+		{"k.l[0] = 9", messages.H1182, "%s", "k.l", "[9, 8]"},
+		{"k.n.x = 3", messages.H1182, "%s", "k.n?.x", "3"},
+		{"k.l.TR_append(1)", messages.H1182, "%s", "k.l", "[7, 8, 1]"},
+		{"TR_func f() -> TR_Int { TR_return k.l[0] }", messages.H1182, "TR_func f() -> TR_Int { %s }", "f()", "7"},
+	} {
+		errs := checkedErrs(t, unopenedPre+c.wrong)
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H1180) || !messages.Has(errs[0], c.hint) {
+			t.Errorf("%s: tek %s ipuçlu H1180 bekleniyordu, gelen %v", c.wrong, c.hint, errs)
+			continue
+		}
+		parts := strings.Split(messages.ErrorIn(errs[0], "en"), "`")
+		sug := parts[len(parts)-2] // öneri iletinin son kod örneğidir
+		code := unopenedPre + fmt.Sprintf(c.wrap, sug)
+		if c.show != "" {
+			code += "\nTR_print(" + c.show + ")"
+		}
+		if errs := checkedErrs(t, code); len(errs) > 0 {
+			t.Errorf("%s: öneri %q denetimden geçmeli: %v", c.wrong, sug, errs)
+		}
+		want := c.want
+		if want != "" {
+			want += "\n"
+		}
+		if out, err := runSourced(t, code); err != nil || out != want {
+			t.Errorf("%s: öneri %q: %q %v, beklenen %q", c.wrong, sug, out, err, want)
+		}
+	}
+	errs := checkedErrs(t, unopenedPre+"TR_if k.l[0] > 1 { TR_print(1) }")
+	if len(errs) != 1 || !strings.Contains(messages.ErrorIn(errs[0], "en"), "`TR_var c = k.l; TR_if c != TR_none { ... }`") {
+		t.Errorf("koşulda öneri sınamayı \"...\" ile yazmalı: %v", errs)
+	}
+}
+
+// Kural (3.5, KB3): çalışırken TR_none indekslenince ya da indeksle yazılınca H2742, alanı, özelliği
+// ya da metodu kullanılınca H2744 verilir. İleti TR_none'ı, tipini (TR_NoneType) ve üyeyi kimliğiyle
+// (programın alanında adıyla) yazar; görünüm adı ('yok', YokTipi, uzunluk) sızmaz. Yazma kolu okuma
+// önerisi ('??', '?.') vermez. Önerilen yazımlar koşar.
+func TestNoneIndexError(t *testing.T) {
+	const pre = "TR_struct N {\n    x: TR_Int = 0\n}\nTR_var o = {\"a\": [1]}.TR_get(\"b\")\n" +
+		"TR_struct K {\n    n: N? = TR_none\n}\nTR_var n = K().n\n"
+	for _, c := range []struct {
+		src  string
+		code messages.Code
+		has  string // İngilizce iletide
+		read bool   // okuma kolu: '?.' ya da '??' önerir
+	}{
+		{"TR_print(o[0])", messages.H2742, "cannot be indexed", true},
+		{"TR_print(o[0..1])", messages.H2742, "cannot be indexed", true},
+		{"o[0] = 1", messages.H2742, "cannot be written by index", false},
+		{"o[0] += 1", messages.H2742, "cannot be written by index", false},
+		{"TR_print(n.x)", messages.H2744, "no member `x` to use", true},
+		{"n.x = 1", messages.H2744, "no member `x` to write to", false},
+		{"TR_print(o.TR_length)", messages.H2744, "no member `TR_length` to use", true},
+		{"o.TR_append(1)", messages.H2744, "no member `TR_append` to use", true},
+	} {
+		_, err := runSourced(t, pre+c.src)
+		if !messages.Has(err, c.code) {
+			t.Errorf("%s: %v bekleniyordu, gelen %v", c.src, c.code, err)
+			continue
+		}
+		en, tr := messages.ErrorIn(err, "en"), messages.ErrorIn(err, "tr")
+		if !strings.Contains(en, c.has) || !strings.Contains(en, "`TR_none`") || !strings.Contains(en, "`TR_NoneType`") {
+			t.Errorf("%s: iletide %q, `TR_none` ve `TR_NoneType` olmalı: %s", c.src, c.has, en)
+		}
+		if strings.Contains(en, "??") != c.read || strings.Contains(tr, "??") != c.read {
+			t.Errorf("%s: okuma önerisi yalnız okuma kolunda: %s", c.src, en)
+		}
+		for _, view := range []string{"YokTipi", "'yok'", "uzunluk", "ekle"} {
+			if strings.Contains(tr, view) {
+				t.Errorf("%s: iletide görünüm adı %q var: %s", c.src, view, tr)
+			}
+		}
+	}
+	for code, want := range map[string]string{ // önerilen yazımlar
+		"TR_print(o?.TR_length)":                         "none",
+		"TR_print((o ?? [5])[0])":                        "5",
+		"TR_if o != TR_none { o[0] = 1 }\nTR_print(o)":   "none",
+		"TR_if n != TR_none { n.x = 1 }\nTR_print(n?.x)": "none",
+	} {
+		if out, err := runSourced(t, pre+code); err != nil || out != want+"\n" {
+			t.Errorf("%q: %q %v, beklenen %s", code, out, err, want)
+		}
 	}
 }

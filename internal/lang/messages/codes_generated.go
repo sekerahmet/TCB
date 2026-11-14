@@ -219,6 +219,9 @@ const (
 	H1162 Code = 1162 // `{call}` giriş bitince `{#none}` verir ve `{#none} != {other}` hep doğrudur: bu döngü girdi bitince durmaz (13.1); girdi sonunda da durmak için `({call} ?? {other}) != {other}` yazın ya da satırı bir değişkene alıp `{#none}`'ı sınayın
 	H1170 Code = 1170 // ; uymayan ilk öğe `{path}`, tipi {given|q}
 	H1171 Code = 1171 // ; uymayan ilk anahtar `{path}` sözlüğündeki {key|q}, tipi {given|q}
+	H1180 Code = 1180 // `{value}` isteğe bağlıdır ({given}) ve açılmadan {op, select, field {alanı kullanılıyor} member {üyesi kullanılıyor} other {indeksleniyor}} (3.5): değer `{#none}` olunca çalışırken hata verirdi{hint}
+	H1181 Code = 1181 // ; öğe her zaman varsa kabı doğrudan indeksleyin: `{direct}` (öğe yoksa çalışma hatası eksik öğeyi söyler)
+	H1182 Code = 1182 // ; alan ve indeks daraltılmaz: değeri yerel bir ada alıp `{#none}`'la sınayın: `{#var} {copy} = {value}; {#if} {copy} != {#none} {{ {stmt} }}`
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
@@ -369,7 +372,6 @@ const (
 	H2463 Code = 2463 // liste üreteci en fazla {max} öğe toplayabilir; akışı döngüyle gezin
 	H2464 Code = 2464 // {container} üretecinde {type} tipi üzerinde döngü kurulamaz
 	H2465 Code = 2465 // {type} tipi indekslenemez
-	H2466 Code = 2466 // '{keyword}' değerin {prop|q} özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)
 	H2467 Code = 2467 // {type} tipinde {prop|q} özelliği bulunamadı
 	H2468 Code = 2468 // {struct} yapısında {prop|q} alanı ya da metodu yok{hint}
 	H2469 Code = 2469 // {left} ve {right} tipleri arasında {op|q} işlemi desteklenmiyor
@@ -533,7 +535,9 @@ const (
 	H2731 Code = 2731 // döngüdeki `{pattern}` deseni bir demeti açar, ama öğenin tipi {type}: öğeyi tek adla alın, `{#for} {head} {#in} {source}`{kind, select, list { ve listeyi gövdede açın (5.3)} other {}}
 	H2740 Code = 2740 // `{step}` {kind, select, op {bir işlemin sonucudur} call {bir çağrının sonucudur} method {bir metodun sonucudur} slice {bir dilimdir} other {yeni kurulan bir değerdir}}: yerinde yazmanın hedefi yalnız adlardan, alanlardan ve kap öğelerinden geçer (5.4), yazma adı olmayan bir değerde kalıp kaybolabilirdi. Değeri değiştirmek için ona ad verin: `{#var} {copy} = {step}; {write}` (yazma bu ada gider).
 	H2741 Code = 2741 // `{step}` kabın öğesini isteğe bağlı bir değer olarak verir: yerinde yazmanın hedefi yalnız adlardan, alanlardan ve kap öğelerinden geçer (5.4). Kabın öğesine yazmak için kabı indeksleyin: `{direct}` (öğe yoksa çalışırken hata verir).
+	H2742 Code = 2742 // `{#none}` {op, select, write {değerine indeksle yazılmaz} other {değeri indekslenmez}} (`{#NoneType}`): isteğe bağlı değer önce açılır (3.5); `{#none}`'la sınayın{op, select, write { ve sınamanın içinde yazın} other { ya da `??` ile bir varsayılan verin}}
 	H2743 Code = 2743 // `{step}` bir dilimdir ve yeni bir listedir (3.6): yazma bu kopyada kalır, `{base}` değişmezdi (5.4). `{base}` listesine yazmak için onu indeksleyin: `{source}` (yalnız `{index}` negatif değilken; negatif indeks dilimin sonundan sayar); kopyayı değiştirmek için ona ad verin: `{#var} {copy} = {step}; {write}`.
+	H2744 Code = 2744 // `{#none}` değerinin `{name}` {op, select, write {alanına yazılmaz} other {üyesi yoktur}} (`{#NoneType}`): isteğe bağlı değer önce açılır (3.5); `{#none}`'la sınayın{op, select, write { ve alana sınamanın içinde yazın} other {, `??` ile bir varsayılan verin ya da üyeyi `?.` ile okuyun}}
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
 	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
 	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}

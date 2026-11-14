@@ -226,3 +226,114 @@ func (c *Checker) checkIndexAssign(s *ast.AssignStatement, valType string) {
 		c.addErrorAt(s.Value, messages.New(messages.H1135, c.typeArg(valType), c.typeArg(container), c.typeArg(elem), c.openHint(elem, valType, s.Value)))
 	}
 }
+
+// Ad olmayan açılmamış değerin kullanımı (3.5, H1180): T? tipli bir ifadenin indeksi, alanı (okuma
+// ve yazma) ve üyesi (özellik, metot çağrısının alıcısı) asıl tipin kullanımıdır. Kullanım çıkarımda
+// kaydedilir, deyim bitince bildirilir: ipucu deyimin metnini yazar (H1181, H1182), 5.4'ün aynı
+// adımda verdiği ileti de (H2741, H2740) onun yerine geçer, çünkü onun önerisi ikisini birden
+// düzeltir. Ad (*ast.Identifier) 4b'ye kalır; '?.' değeri açar.
+
+// unopenedUse use'un (indeks, alan ya da metot çağrısı) value'su açılmamış isteğe bağlıdır; typ
+// value'nun tipi, op iletinin select anahtarıdır (index, field, member).
+type unopenedUse struct {
+	use, value ast.Expression
+	typ, op    string
+}
+
+// unopenedUses deyim bitmeden kaydedilen kullanımlar ve 5.4'ün bildirdiği adımlardır.
+type unopenedUses struct {
+	pending []unopenedUse
+	copied  map[ast.Expression]bool
+}
+
+// noteUnopened u'nun değeri ad olmayan açılmamış isteğe bağlıysa kaydeder.
+func (c *Checker) noteUnopened(u unopenedUse) {
+	if _, isName := u.value.(*ast.Identifier); !isName && shapeOf(u.typ).optional {
+		c.opt.pending = append(c.opt.pending, u)
+	}
+}
+
+// noteMember mem'in nesnesinin (tipi typ) kullanımını kaydeder; '?.' açar. op boşsa yapının alanı
+// "field", öbür üye "member"dır.
+func (c *Checker) noteMember(use ast.Expression, mem *ast.MemberExpression, typ, op string) {
+	if mem.Safe {
+		return
+	}
+	if op == "" {
+		op = "member"
+		if c.knownStruct(shapeOf(typ).base) {
+			op = "field"
+		}
+	}
+	c.noteUnopened(unopenedUse{use, mem.Object, typ, op})
+}
+
+// noteCopyStep 5.4'ün bildirdiği adımı kaydeder: orada H1180 verilmez.
+func (c *Checker) noteCopyStep(e ast.Expression) {
+	if c.opt.copied == nil {
+		c.opt.copied = map[ast.Expression]bool{}
+	}
+	c.opt.copied[e] = true
+}
+
+// reportUnopened stmt'nin içinde kaydedilen kullanımları (mark'tan sonrakiler) bildirir; içteki
+// deyimler kendi kullanımlarını önce bildirmiştir.
+func (c *Checker) reportUnopened(stmt ast.Statement, mark int) {
+	uses := append([]unopenedUse(nil), c.opt.pending[mark:]...)
+	c.opt.pending = c.opt.pending[:mark]
+	seen := map[ast.Expression]bool{}
+	for _, u := range uses {
+		if seen[u.value] || c.opt.copied[u.value] {
+			continue
+		}
+		seen[u.value] = true
+		value, ok := c.exprText(u.value)
+		if !ok {
+			value = c.nodeText(u.value)
+		}
+		c.addErrorAt(u.value, messages.New(messages.H1180, value, c.typeArg(u.typ), u.op, c.unopenedHint(stmt, u)))
+	}
+}
+
+// unopenedHint H1180'in ipucudur: kabın öğesini veren üyede kabın indeksi (H1181), öbür değerde
+// değeri yerel ada alıp sınamak (H1182). İfade deyimi, atama, tanım ve dönüş bütünüyle yeniden
+// yazılır; öbür deyimde (koşul, döngü başı: bloğu vardır) H1181 yalnız kullanımı yazar, H1182'nin
+// sınaması "..." sarar, çünkü kullanım tek başına deyim olamaz (2.8). Deyim ya da kullanım tek
+// satıra sığmıyorsa ipucu yoktur.
+func (c *Checker) unopenedHint(stmt ast.Statement, u unopenedUse) any {
+	var part ast.Node = u.use
+	switch s := stmt.(type) {
+	case *ast.ExpressionStatement:
+		if !blockExpression(s.Expression) {
+			part = stmt
+		}
+	case *ast.AssignStatement, *ast.MultiAssignStatement, *ast.VarStatement, *ast.MultiVarStatement,
+		*ast.ReturnStatement:
+		part = stmt
+	}
+	if step := (ast.WriteStep{Expr: u.value}); c.containerAccessor(step) {
+		if d := accessorDirect(c.fileLines, part, part, step); d != "..." {
+			return messages.New(messages.H1181, d)
+		}
+		return ""
+	}
+	value, ok1 := c.exprText(u.value)
+	name := ast.FreshName(c.fileLines, "c", func(n string) bool { _, ok := c.scope.Resolve(n); return ok })
+	s, ok2 := "...", true
+	if part == stmt {
+		s, ok2 = ast.StatementWith(c.fileLines, part, part, u.value, name)
+	}
+	if !ok1 || !ok2 {
+		return ""
+	}
+	return messages.New(messages.H1182, name, value, s)
+}
+
+// blockExpression ifade deyim olarak yazılan bloklu ifade mi (TR_if, TR_match): bütünü öneriye girmez.
+func blockExpression(e ast.Expression) bool {
+	switch e.(type) {
+	case *ast.IfExpression, *ast.MatchExpression:
+		return true
+	}
+	return false
+}

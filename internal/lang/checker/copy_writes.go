@@ -79,6 +79,7 @@ func (c *Checker) checkCopyChain(chain []ast.WriteStep, first, last ast.Node) {
 	if !ok {
 		t = ast.CopyWriteText{Step: c.nodeText(chain[j].Expr), Write: "...", Copy: "c", K: "k", I: "i"}
 	}
+	c.noteCopyStep(chain[j].Expr) // adımın açılmamış değeri ayrıca bildirilmez (3.5, H1180)
 	c.addErrorAt(chain[j].Expr, CopyWriteError(chain[j], clean, t))
 }
 
@@ -207,6 +208,7 @@ func (c *Checker) checkContainerChain(base ast.Expression, above *ast.IndexExpre
 	if !ok {
 		step = "..." // dosyasız denetim: adımın yazımı bilinmez
 	}
+	c.noteCopyStep(chain[j].Expr) // önerisi açılmamış değeri de düzeltir (3.5, H1180 verilmez)
 	c.addErrorAt(chain[j].Expr, w.Error(c.fileLines, first, last, taken, step))
 }
 

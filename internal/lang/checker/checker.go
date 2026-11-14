@@ -100,6 +100,7 @@ type Checker struct {
 	valueTypes map[ast.Expression]string
 	// itemTypes liste, sözlük ve demet değişmezlerinin öğelerinin çıkarılan tipleridir (optional_values.go).
 	itemTypes map[ast.Expression]string
+	opt       unopenedUses // ad olmayan açılmamış değerin indeksi ve üyesi, deyim bitince (optional_values.go)
 	// jsonLiterals öğeleri denetlenmiş, TR_JSON beklenen değişmezlerdir (json_values.go).
 	jsonLiterals map[ast.Expression]bool
 	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
@@ -226,6 +227,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	if stmt == nil {
 		return
 	}
+	defer c.reportUnopened(stmt, len(c.opt.pending)) // 3.5, H1180: ipucu deyimin metnidir
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Name.Token)
@@ -498,6 +500,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	case isMember:
 		objType = c.inferExpression(member.Object) // metodun nesnesi (local_types.go, callType)
 		c.receivers[e] = objType
+		c.noteMember(e, member, objType, "member") // açılmamış alıcı (3.5)
 	default:
 		c.inferExpression(e.Function)
 	}

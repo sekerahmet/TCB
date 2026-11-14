@@ -286,7 +286,8 @@ TR_test "15.43 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değ
     TR_assert_equal(11.0, kapanış15_44()())
     TR_var ö = ÖnbellekSınaması(TR_none)
     TR_for i TR_in 0..3 { ö.t = TR_Tensor([i * 1.0]) * 2.0 }
-    TR_assert_equal([4.0], ö.t.TR_tolist)
+    TR_var öt = ö.t
+    TR_assert_equal([4.0], öt.TR_tolist)
     TR_var l = [TR_Tensor([1.0]) + 1.0, TR_Tensor([2.0]) + 1.0]
     TR_assert_equal([3.0], l[1].TR_tolist)
 }

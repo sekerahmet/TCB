@@ -1,8 +1,8 @@
 # TR 4
-# Hata 13 — yok değerin özelliği.
-# İleti kodu: H2466
-# Ne olur: Değeri yok olan bir şeyin özelliğine ya da metoduna erişilirse çalışma anında hata alınır.
-# Neden: varsa_al sözlükte olmayan anahtarda yok verir; yok'un metodu yoktur.
+# Hata 13 — açılmamış değerin özelliği.
+# İleti kodu: H1180
+# Ne olur: Açılmamış isteğe bağlı değerin özelliğine ya da metoduna erişmek denetim hatasıdır; program hiç çalışmaz.
+# Neden: `TR_get` sözlükte olmayan anahtarda `TR_none` verir; değer önce açılır (3.5).
 # Düzeltilmiş hâli:
 #     yazdır((kişi.varsa_al("soyad") ?? "bilinmiyor").büyük_harf()) # ya da güvenli erişim: kişi.varsa_al("soyad")?.büyük_harf()
 # Çalıştırma (proje kökünden): trlang examples/tr/hatalar/13_yok_uzerinde_ozellik.tr   (çıkış kodu 1)
