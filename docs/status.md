@@ -881,7 +881,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Öbür konak yollarının hükmü (TCB, DENETİM 422 N3):** `TR_all` ve `TR_argmax` sonucu konağa okuyor, okuma bekleme sayılır (15.41), uyar. Tohumlu `TR_randn` konakta üretilip kopyalanıyor ve iki cihazda aynı sayıyı veriyor; 20.17 ile 15.41'in birlikte okunması dil tanımı turunda (`pending.md`, olağan), uygulama o zamana kadar değişmez.
 - **Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları) ulp sınırı ölçülmedi; 15.11 GPU için "birkaç ulp" diyor.
 - **Yapılacaklar (C ve F, Ö2; sınıf uzak 14):** GPU sınırlarını ölçüp 15.10 ve 15.11'e yazmak; cihazlar arası sözün Go testi.
-- **Yapılacaklar (D, Ö3; sahip T1; DENETİM 726, TCB 15:47):** tools/gpu/COLAB.md hücre 21 `lib/layers.tr`'yi görünüm metniyle (kendi.norm1.ileri(x)) yamıyor; kitaplık kimlikle yazıldığı için assert ilk satırda düşer [kanıtlı: DENETİM 726 Ş4]; hücre kimlik metniyle yeniden yazılır ya da silinir.
+- **Yapılacaklar (D, Ö3; sahip T1; DENETİM 726, TCB 15:47):** tools/gpu/COLAB.md hücre 21 `lib/layers.tr`'yi görünüm metniyle (kendi.norm1.ileri(x)) yamıyor; kitaplık kimlikle yazıldığı için assert ilk satırda düşer [kanıtlı: tools/gpu/COLAB.md:786-790; lib/layers.tr:365]; hücre kimlik metniyle yeniden yazılır ya da silinir.
 
 ### 15.42
 
@@ -1236,6 +1236,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 - **Yapılacaklar (F, Ö3; sahip DIL UZMANI; Kodlama3 Dilim B birleşince; DENETİM 726, TCB 15:47):** `.TR_tolist`'in eski Türkçe görünümü (".değer") Go yorumlarında 12 yerde kaldı; yerine kimlik yazılır [ölçüldü: git grep, `27c7eb12`]: internal/stdlib/ml/ altında builtin_reduce.go:187, error.go:192, members.go:145, members_test.go:11, optimizer.go:247, optimizer_test.go:16, value_test.go:60 (hata iletisinin metni), vm_hooks.go:14, :20, :366; internal/compute/ altında gpu/memory.go:39, tensor/optimizer.go:251.
+- **Yapılacaklar (F, Ö3; sahip DIL UZMANI; DENETİM 727 N1, TCB 16:22):** kitaplık yorumlarının ve örneklerin kullanım satırları görünüm adlarıyla yazılı; dil tanımı 17.2'ye göre program metni kimlikle yazılır, satırlar kimliğe geçer. Üç kalıpla (değişken ya da sabit, ad ve =; aktar ve tırnak; yazdır ve parantez) en az 58 yorum satırı: lib altında 8 dosyada 28, examples altında 25 dosyada 30 [ölçüldü: git grep -c -P, yalnız yorum satırları, `14a27cef`]; kalıp düzyazıdaki görünüm adlarını saymaz. Örnekler: lib/training.tr:5-7, examples/tr/23_tensor.tr:3, docs/recipes.md:22. recipes.md:22 ayrıca örneği tr.json'un satırına koyuyor; dil dosyası example alanını reddediyor, örnek definitions.json'da kimlikle duruyor [kanıtlı: internal/lang/codes/json_parse.go:139; internal/lang/codes/definitions.json:253]; örnek tarifin İmza satırına definitions.json'daki metinle taşınır.
 
 ### Yazıyı konuşmaya çevirme (dil tanımı 27 yazılınca kendi bölümüne taşınır)
 
