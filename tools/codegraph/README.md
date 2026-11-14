@@ -476,7 +476,12 @@ go run ./tools/codegraph spec-refs --list # every reference with the heading it 
   variable or assignment, a return, a composite element, a conversion, a channel send, `append`; not `any`,
   not `error`, not `var _ I = T{}`) keeps all its exported methods: the other module calls them through that
   interface, or through a type assertion to a wider one (`math/rand` reaches `Uint64` of a `rand.Source`
-  through `Source64`; `audit_conversions.go`).
+  through `Source64`; `audit_conversions.go`). A method that satisfies a *marker* interface is not
+  `assertion-only` either: the program asks only whether the type has the interface and never calls the method
+  (`if _, copies := left.(AssignCopier); !copies`, or a type switch `case I:` whose bound variable that case does not
+  use), so deleting the method silently sends the program down the other branch (`ml.TensorValue.CopiesAssigned`).
+  An assertion that binds the value (`r, ok := x.(I)`) is no marker: if the bound value's method is never called the
+  method may really be dead (`cpuBackend.FillRaw`). Only non-test files count (`audit_markers.go`).
 - **`package-state`** lists package variables that are written after their declaration, per
   package: `mutable`, `test-hook` (written only by tests), `address-taken`, and `synchronized`
   (`sync.Mutex`/`Once`, `sync/atomic` types) separately. Tables that are only read after `init`

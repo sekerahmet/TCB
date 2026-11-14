@@ -284,3 +284,84 @@ func TestDeadMethodsShadowStaysInItsStatement(t *testing.T) {
 		t.Errorf("audit.T.Operator: %q, want shadowed (its only call is in the shadowed check)", got["audit.T.Operator"])
 	}
 }
+
+// markersSource işaret arayüzünün küçük modelidir (interp.AssignCopier, ml.TensorValue.CopiesAssigned): apply bazı
+// arayüzlerin metodunu çağırmadan yalnız tipin onları sağlayıp sağlamadığına bakar.
+const markersSource = `package p
+
+type Copier interface{ Copies() }    // değeri atılan iddia: işaret
+type Kind interface{ KindMark() }    // değişkensiz tip seçimi: işaret
+type Unbound interface{ FreeMark() } // değişkeni o kolda kullanılmayan tip seçimi: işaret
+type Filler interface{ Fill() }      // değeri bağlanan iddia: işaret değil
+type Bound interface{ BoundMark() }  // değişkeni kolda kullanılan tip seçimi: işaret değil
+type Tested interface{ TestMark() }  // yalnız testteki iddia: işaret değil
+
+type A struct{}
+type B struct{}
+type C struct{}
+type D struct{}
+type E struct{}
+type F struct{}
+
+func (A) Copies()    {}
+func (B) KindMark()  {}
+func (C) FreeMark()  {}
+func (D) Fill()      {}
+func (E) BoundMark() {}
+func (F) TestMark()  {}
+
+var (
+	_ Copier  = A{}
+	_ Kind    = B{}
+	_ Unbound = C{}
+	_ Filler  = D{}
+	_ Bound   = E{}
+	_ Tested  = F{}
+)
+
+func apply(v any) int {
+	if _, copies := v.(Copier); !copies {
+		return 1
+	}
+	if f, ok := v.(Filler); ok {
+		_ = f
+		return 2
+	}
+	switch v.(type) {
+	case Kind:
+		return 3
+	}
+	switch w := v.(type) {
+	case Unbound:
+		return 4
+	case Bound:
+		_ = w
+		return 5
+	}
+	return 0
+}
+
+// Run apply'ı çağırır.
+func Run() int { return apply(A{}) + apply(B{}) + apply(C{}) + apply(D{}) + apply(E{}) + apply(F{}) }
+`
+
+// Kural (dilim 5, Karar 3): değeri atılan tip iddiasında ya da bağladığı değişkeni o kolda kullanılmayan tip seçimi
+// kolunda geçen arayüz bir işarettir; onu sağlayan metot hiç çağrılmasa da assertion-only listelenmez. Değeri
+// bağlanan iddia ve testteki iddia işaret değildir: onların metodu aday kalır.
+func TestDeadMethodsKeepsMarkerInterfaceMethods(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"p.go":      markersSource,
+		"p_test.go": "package p\n\nimport \"testing\"\n\nfunc TestF(t *testing.T) {\n\tif _, ok := any(F{}).(Tested); !ok {\n\t\tt.Fatal()\n\t}\n}\n",
+	})
+	got := deadKinds(t, root)
+	for _, live := range []string{"audit.A.Copies", "audit.B.KindMark", "audit.C.FreeMark"} {
+		if k, bad := got[live]; bad {
+			t.Errorf("%s satisfies a marker interface and must not be listed (listed as %s)", live, k)
+		}
+	}
+	for _, dead := range []string{"audit.D.Fill", "audit.E.BoundMark", "audit.F.TestMark"} {
+		if got[dead] != "assertion-only" {
+			t.Errorf("%s: %q, want assertion-only (all: %v)", dead, got[dead], got)
+		}
+	}
+}

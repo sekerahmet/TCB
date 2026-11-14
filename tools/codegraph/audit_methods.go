@@ -26,7 +26,8 @@ import (
 //     birbirini gölgelemez;
 //   - tests-only: yalnızca test dosyalarından kullanılıyor.
 // Dış sözleşme adları (String, Error, Write ...) başka paketlerin çağırdığı metotlardır, listelenmez. Değeri modül
-// dışı bir arayüze verilen tipin dışa açık metotları da listelenmez (audit_conversions.go).
+// dışı bir arayüze verilen tipin dışa açık metotları da (audit_conversions.go), metodu çağrılmadan sağlanması sınanan
+// bir işaret arayüzünü karşılayan metotlar da listelenmez (audit_markers.go).
 // Reflect ve kod üretimiyle çağrılan metotlar görülmez: çıktı karardır değil, adaydır.
 
 // deadMethod bir adaydır.
@@ -84,6 +85,7 @@ type methodAudit struct {
 	prodSites map[string][]srcPos       // konum anahtarı -> üretim dosyalarındaki kullanım yerleri (gölge yalnız kendi denetiminde)
 	shadow    map[string][]shadowRegion // "tip.metot" -> o metodun çağrısının hiç çalışmadığı denetimler
 	external  map[string]bool           // tip anahtarı -> değeri modül dışı bir arayüze veriliyor (audit_conversions.go)
+	markers   map[string]bool           // tip anahtarı -> işaret arayüzü: metodu çağrılmadan sağlanması sınanıyor (audit_markers.go)
 }
 
 // srcPos bir kaynak konumudur: dosya ve bayt ofseti (iki tip denetimi aynı dosya kümesini paylaşır).
@@ -116,6 +118,7 @@ func findDeadMethods(m *goload.Module) []deadMethod {
 	a.collectUses()
 	a.collectShadows()
 	a.collectExternalConversions()
+	a.collectMarkers()
 	var out []deadMethod
 	for _, d := range a.decls {
 		if dm, ok := a.classify(d); ok {
@@ -245,7 +248,7 @@ func (a *methodAudit) classify(d methodDecl) (deadMethod, bool) {
 		return dm, false
 	case a.testUses[key] > 0:
 		dm.Kind = "tests-only"
-	case len(satisfied) > 0 && isSealedMarker(d.fn):
+	case len(satisfied) > 0 && (isSealedMarker(d.fn) || a.satisfiesMarker(key)):
 		return dm, false
 	case len(satisfied) > 0:
 		dm.Kind, dm.Detail = "assertion-only", "satisfies "+strings.Join(satisfied, ", ")+"; that interface method is never called"
