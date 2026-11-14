@@ -162,6 +162,8 @@ func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
 
 // Kural: kanca tests-for cevabının ilk satırlarını gösterir (tools/edithook, maxLines); koşu satırları ve boyut satırı
 // dosya satırının hemen altında, bildirim sayısından ve test gruplarından öncedir: liste ne kadar uzun olsa da görünür.
+// Baş en çok 8 satırdır: dosya, üç koşu satırı, altın dosya, iki "not run" satırı (kalan Go testleri ve codegraph'ın
+// kendi testleri, S3; codegraph dilim 6, D6-3), boyut.
 func TestTheRunAndSizeLinesComeFirst(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -173,7 +175,7 @@ func TestTheRunAndSizeLinesComeFirst(t *testing.T) {
 		decl := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "  declarations in this file: ") })
 		run := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "run: go test -short ./") })
 		size := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "  size (TestLayoutFileSize") })
-		if run != 1 || size < 0 || size > decl || decl > 7 {
+		if run != 1 || size < 0 || size > decl || decl > 8 {
 			t.Errorf("%s: run line at %d, size line at %d, declarations at %d:\n%s", file.File, run, size, decl, strings.Join(lines[:min(len(lines), 8)], "\n"))
 		}
 	}
