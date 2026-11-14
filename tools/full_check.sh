@@ -122,6 +122,7 @@ repo_scans=(
 	TestCodeListAndTRFileWalkersAreInTestsForAndChangedGoTests
 	TestDAPWireFieldsHaveExplicitNames
 	TestDocCodeBlocksShow
+	TestDocLinks
 	TestDottedMemberSpellingsGolden
 	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
 	TestEveryErrorTypeIsLocalized
