@@ -108,7 +108,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.3
 
-- **Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu; DENETİM 755 N2):** metne indeksle yazma denetlenmiyor: `TR_var s = "abc"` ve `s[0] = "x"` denetimden geçiyor, çalışırken H2403; metin değiştirilemez (3.3). Tipi bilinen ve indekslenemeyen değerde de aynı: `TR_var n = 5` ile `n[0] = 1` (H2403) ve `TR_print(n[0])` (H2465) denetimden geçiyor [ölçüldü: trlang'ın denetimi ve çalıştırma, `f73e7f04`].
+- **Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu; DENETİM 755 N2):** metne indeksle yazma denetlenmiyor: `TR_var s = "abc"` ve `s[0] = "x"` denetimden geçiyor, çalışırken H2403; metin değiştirilemez (3.3) [ölçüldü: trlang'ın denetimi ve çalıştırma, `f73e7f04`].
 - **Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu; DENETİM 755 N2):** H2465 ve H2403 `{type}` yuvasına tipin kimliğini değil görünüm adını yazıyor: "type Int cannot be indexed", "Tam tipi indekslenemez", "assignment by index is not possible on this type (String)", "(Metin)" [ölçüldü: İngilizce ve Türkçe iletiyle, `f73e7f04`; kanıtlı: `interp/expressions.go:143` ve `assign.go:169`, yuvaya değerin tipi iletinin dilindeki görünüm adıyla gidiyor]. `TR_none`'da bunu Motor'un 5.4 Dilim B'si düzeltti (H2742, H2744) [kanıtlı: `assign_test.go:180-187`: iletide `TR_NoneType` var, görünüm adı yok]. 13.8'in `TR_json_parse[Ayar]` satırı aynı yuvanın iç adı sızdırmasını anıyor.
 
 ### 3.3a
@@ -167,6 +167,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 - **Mevcut durum:** tipi çıkarılamayan ilk değerin değişkeni `TR_Any` kalıyor (1.2).
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** çıkarımın kalanı (1.2; bu dilimde isteğe bağlı tip, alan, `TR_if`/`TR_match`, indeks ve döngü değişkeni eklendi); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu. Tam sayının ondalık beklenen yerde ondalık olmasının kalanı tip haritasını ister: kabın öğesi (`l.TR_append(1)`, `l: TR_List[TR_Float]`, `[1]` ve `TR_Int` kalıyor; `d["a"] = 1` de) [ölçüldü: DENETİM istek 27 D-5], tam sayı değişkenli değişmez (`[a, 2.5]`; tipli yere girerken çalışırken H1001, 1.2) ve tipi ilk değerinden çıkan değişkene atama (`TR_var t = 0.0` sonra `t = 1`).
+- **Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu; DENETİM 755 N2, 758 N1):** tipi bilinen ve indekslenemeyen değere indeksle yazma ve okuma denetimden geçiyor: `TR_var n = 5` ile `n[0] = 1` çalışırken H2403, `TR_print(n[0])` çalışırken H2465 [ölçüldü: trlang'ın denetimi ve çalıştırma, `f73e7f04`]; 3.13 atama hedefinin ve her ifadenin tipini çalışmadan önce bilir.
 - **Geri alınabilir göç (T1 dilim 2, bulgu 2):** T1, 3.13 yokken `TR_Float` parametresine tam sayı veren yerleri ondalık yazıma çevirdi (`p(n)` → `p(n.0)`): `tests/tensor_test.tr` "15.33 parametreler" testi ve `internal/stdlib/ml/model_tools_test.go`'nun `TestParameters`'ı. 3.13 main'de olduğuna göre bu yerler tam sayı yazımına dönebilir.
 
 ### 3.14
