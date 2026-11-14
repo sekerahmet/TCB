@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -256,6 +257,28 @@ func TestLoopVariableTypes(t *testing.T) {
 	noErrors(t, "TR_for x TR_in "+unknownValue+" {\n    TR_var s: TR_Bool = x\n}")
 	noErrors(t, "TR_var l = [1, \"a\"]\nTR_for x TR_in l {\n    TR_var s: TR_Bool = x\n}")
 	singleError(t, "TR_func f(n: TR_Int) -> TR_Int {\n    TR_return n\n}\nTR_var l = [f(x) TR_for x TR_in [\"a\"]]", messages.H1004, 4, `"TR_String"`)
+}
+
+// Kural (5.7): iki adlı döngüde ikinci adın tipi öğenin tipidir (sözlükte değerin), tek adlı
+// biçimdekiyle aynı; ilk ad sözlükte anahtar, öbür kaynaklarda 0'dan sayan indekstir (TR_Int).
+// Aralıkta ve bayt dizisinde ikisi de tam sayıdır. Tipi bilinmeyen kaynakta (okuyucu gibi) iki ad da
+// TR_Any kalır, tek adlı biçimdeki gibi.
+func TestLoopTypesSecondNameIsTheElement(t *testing.T) {
+	declared := "TR_var b: TR_Bytes = TR_Bytes([1, 255])\n"
+	for _, c := range []struct{ source, want string }{
+		{"TR_for i, x TR_in 10..12 {\n    TR_var s: TR_Bool = x\n}", "TR_Int"},
+		{"TR_for i, x TR_in 10..12 {\n    TR_var s: TR_Bool = i\n}", "TR_Int"},
+		{declared + "TR_for i, x TR_in b {\n    TR_var s: TR_Bool = x\n}", "TR_Int"},
+		{declared + "TR_for i, x TR_in b {\n    TR_var s: TR_Bool = i\n}", "TR_Int"},
+		{declared + "TR_for x TR_in b {\n    TR_var s: TR_Bool = x\n}", "TR_Int"},
+		{"TR_func f(p: TR_Bytes) -> TR_Int {\n    TR_for i, x TR_in p {\n        TR_var s: TR_Bool = x\n    }\n    TR_return 0\n}", "TR_Int"},
+		{"TR_for k, v TR_in {\"a\": 1} {\n    TR_var s: TR_Bool = k\n}", "TR_String"},
+		{"TR_for i, x TR_in \"ab\" {\n    TR_var s: TR_Bool = i\n}", "TR_Int"},
+	} {
+		line := 1 + strings.Count(c.source[:strings.Index(c.source, "TR_var s:")], "\n")
+		singleError(t, c.source, messages.H1001, line, `"`+c.want+`"`)
+	}
+	noErrors(t, "TR_for i, x TR_in "+unknownValue+" {\n    TR_var s: TR_Bool = i\n    TR_var u: TR_Bool = x\n}")
 }
 
 // Kural (7.7, 15.5): durum kurucusunun ifadesi durumlu tipin kendisidir: alansız durum çağrısız

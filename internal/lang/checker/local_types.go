@@ -252,10 +252,12 @@ func indexType(left, index string) string {
 	return typeAny
 }
 
-// loopTypes dolaşılan kaynağın tipi iter olan döngünün değişkenlerinin tipleridir (5.7): tek
-// değişkenle (two false) value listede öğe, aralıkta tam sayı, metinde karakter (metin), sözlükte
-// anahtar; iki değişkenle (TR_for i, x) key indeks ya da anahtar, value öğe ya da değer. Başka kaynak
-// (bilinmeyen, isteğe bağlı, öğe tipsiz kap, okuyucu, TR_JSON) TR_Any.
+// loopTypes dolaşılan kaynağın tipi iter olan döngünün değişkenlerinin tipleridir (5.7). value
+// öğenin tipidir ve tek ya da iki değişkende aynıdır: listede öğe, aralıkta ve bayt dizisinde tam
+// sayı, metinde karakter (metin); yalnız sözlükte tek değişken anahtarı, iki değişken (TR_for k, v)
+// anahtarla değeri alır. key iki değişkenli biçimin ilk adıdır: sözlükte anahtar, öbür kaynaklarda
+// 0'dan sayan indeks (TR_Int). Başka kaynak (bilinmeyen, isteğe bağlı, öğe tipsiz kap, okuyucu,
+// TR_JSON) iki adda da TR_Any.
 func loopTypes(iter string, two bool) (key, value string) {
 	s := shapeOf(iter)
 	key, value = typeAny, typeAny
@@ -265,8 +267,8 @@ func loopTypes(iter string, two bool) (key, value string) {
 		key, value = typeInt, s.args[0]
 	case iter == typeString:
 		key, value = typeInt, typeString
-	case iter == typeRange && !two:
-		value = typeInt
+	case iter == typeRange, iter == typeBytes:
+		key, value = typeInt, typeInt
 	case s.base == typeDict && len(s.args) == 2 && two:
 		key, value = s.args[0], s.args[1]
 	case s.base == typeDict && len(s.args) == 2:

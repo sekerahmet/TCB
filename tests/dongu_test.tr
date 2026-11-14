@@ -1,0 +1,35 @@
+# TR 4
+# 5.7'nin iki adlı döngüsü: indeksle öğe; ikinci adın tipi öğenin tipidir ve denetlenir
+
+TR_test "5.7 iki adlı biçim aralıkta indeksle sayıyı verir" {
+    TR_var toplam = 0
+    TR_var tur = 0
+    TR_for i, x TR_in 10..13 {
+        TR_var n: TR_Int = x
+        toplam += i * 100 + n
+        tur += 1
+    }
+    TR_assert_equal(3, tur)
+    TR_assert_equal(10 + 111 + 212, toplam)
+}
+
+TR_test "5.7 bayt dizisinde iki ad da tam sayıdır" {
+    TR_var b: TR_Bytes = TR_Bytes([1, 255])
+    TR_var toplam = 0
+    TR_for i, x TR_in b {
+        TR_var n: TR_Int = x
+        toplam += i * 1000 + n
+    }
+    TR_assert_equal(1 + 1000 + 255, toplam)
+}
+
+TR_test "5.7 TR_JSON dizisinde iki adlı biçim indeksle öğeyi verir" {
+    TR_var indeksler = 0
+    TR_var tur = 0
+    TR_for i, x TR_in TR_json_parse("[5, 6]") {
+        indeksler += i
+        tur += 1
+    }
+    TR_assert_equal(2, tur)
+    TR_assert_equal(1, indeksler)
+}

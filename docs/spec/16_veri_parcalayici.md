@@ -92,7 +92,7 @@ TR_print(akış.TR_finish())
 
 **16.8** `küme.TR_sequential(TR_batch_size: b, TR_context: c)` pencereleri parça sırasıyla ve `c` adımla ardışık veren bir `TR_SequentialReader` kurar; ölçmek ve değerlendirmek içindir.
 - `.TR_next()` 16.7'deki gibi bir demet verir; son toplu iş daha az satırlı olabilir; veri bitince `TR_none`.
-- Döngüyle gezilir (5.7): `TR_for iş TR_in okuyucu { TR_var girdi, hedef = iş ... }` (5.3'ün açması). Döngünün iki adlı biçimi listede indeks ve öğedir, burada kullanılmaz. Döngü baştan almaz, kaldığı yerden tüketir.
+- Döngüyle gezilir (5.7): `TR_for iş TR_in okuyucu { TR_var girdi, hedef = iş ... }` (5.3'ün açması). Öğe bir demet olduğundan iki adlı `TR_for a, b TR_in okuyucu` denetim hatasıdır (5.7); indeks gerekiyorsa `TR_for i, (girdi, hedef) TR_in okuyucu` yazılır. Döngü baştan almaz, kaldığı yerden tüketir.
 - *Test:* TR testi.
 
 **16.9** Bu bölümün hataları (dosya yok, `.npy` değil, bağlam veri parçasından uzun, dağarcık dışı kimlik ...) çalışma hatasıdır, ileti koduyla verilir ve `TR_try`/`TR_catch` ile yakalanır (8).

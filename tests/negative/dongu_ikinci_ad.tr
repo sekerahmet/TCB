@@ -1,0 +1,16 @@
+# TR 4
+# TEST 5.7 iki adlı döngüde ikinci adın tipi öğenin tipidir ve denetlenir: aralıkta ve tipi bilinen bayt dizisinde (açıklamalı değişken, parametre) tam sayı
+TR_for i, x TR_in 10..12 {
+    TR_var g: TR_String = x # ERROR H1001
+}
+TR_var b: TR_Bytes = TR_Bytes([1, 255])
+TR_for i, x TR_in b {
+    TR_var h: TR_String = x # ERROR H1001
+}
+TR_func f(p: TR_Bytes) -> TR_Int {
+    TR_for i, x TR_in p {
+        TR_var k: TR_String = x # ERROR H1001
+    }
+    TR_return 0
+}
+TR_print(f(b))
