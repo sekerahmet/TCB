@@ -1,0 +1,9 @@
+# TR 4
+# TEST 5.7 döngü deseni bir demeti açar ve en az iki ad ister: parantezli tek ad sözdizimi hatasıdır, indekssiz ve indeksli biçimde; ileti parantezi silmeyi önerir
+TR_var l = [(1, 2)]
+TR_for (a) TR_in l { # ERROR H0040
+    TR_print(a)
+}
+TR_for i, (a) TR_in l { # ERROR H0040
+    TR_print(i, a)
+}

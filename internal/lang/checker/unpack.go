@@ -51,12 +51,12 @@ func (c *Checker) checkTupleIndex(e *ast.ElementExpression, objType string) {
 	c.addErrorAt(e, messages.New(messages.H2774, e.Index, len(s.elems), len(s.elems)-1))
 }
 
-// checkUnpackCount çoklu tanım ve atamanın (names ad) tek sağ yanının öğe sayısını denetler.
-func (c *Checker) checkUnpackCount(stmt ast.Node, values []ast.Expression, names int) {
-	if len(values) != 1 {
-		return
-	}
-	if n := c.tupleLen(values[0]); n > 0 && n != names {
+// checkUnpackCount n öğeli demeti names ada açan deyimin öğe sayısını denetler (H1026): çoklu tanım ve
+// atama (n tek sağ yanın tupleLen'i) ve döngü deseni (n öğenin demet tipinden, loops.go); n bilinmiyorsa
+// 0. İleti tek yerde kurulur; örnek düzeltilmiş deyimdir, desende düzeltilmiş döngü başlığı. Bilinmeyen
+// sayı çalışırken aynı örnekle denetlenir (H2709, interp.unpackCountError).
+func (c *Checker) checkUnpackCount(stmt ast.Node, n, names int) {
+	if n > 0 && n != names {
 		kind, example := ast.UnpackSuggestion(stmt, n)
 		c.addErrorAt(stmt, messages.New(messages.H1026, n, names, kind, example))
 	}

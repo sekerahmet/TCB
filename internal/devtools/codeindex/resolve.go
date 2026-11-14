@@ -109,7 +109,7 @@ func collectScope(root any) *scope {
 				sc.markWrite(t)
 			}
 		case *ast.ForInStatement:
-			bind(n.KeyVar, n.ValueVar)
+			bind(loopNames(n)...)
 		case *ast.TryCatchStatement:
 			bind(n.ErrorVar)
 		case *ast.ListComprehension:
@@ -532,4 +532,13 @@ func tokenPos(f *file, line, col int, name string) Pos {
 		p.EndLine, p.EndCol = line, col+utf8.RuneCountInString(written(name))
 	}
 	return p
+}
+
+// loopNames döngünün bağladığı bütün adlardır (ast.ForInStatement.Names; desenin adları dahil, 5.7).
+func loopNames(n *ast.ForInStatement) []string {
+	var out []string
+	for _, name := range n.Names() {
+		out = append(out, name.Name)
+	}
+	return out
 }

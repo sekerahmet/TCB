@@ -101,7 +101,9 @@ func (s *reachScan) addFile(key, path string, prog *ast.Program) *reachFile {
 				s.bound[id.Value] = true
 			}
 		case *ast.ForInStatement:
-			s.bound[x.KeyVar], s.bound[x.ValueVar] = true, true
+			for _, n := range x.Names() {
+				s.bound[n.Name] = true
+			}
 		case *ast.TryCatchStatement:
 			s.bound[x.ErrorVar] = true
 		case *ast.ListComprehension:

@@ -426,8 +426,7 @@ func multiValues(v *VM, env *Environment, stmt ast.Statement, values []exprCode,
 	if len(evalVals) == 1 {
 		if t, ok := evalVals[0].(*TupleVal); ok {
 			if len(t.Elements) != nameCount {
-				kind, example := ast.UnpackSuggestion(stmt, len(t.Elements))
-				return nil, messages.At(line, 0, messages.New(messages.H2709, len(t.Elements), nameCount, kind, example))
+				return nil, unpackCountError(stmt, len(t.Elements), nameCount)
 			}
 			return t.Elements, nil
 		}
@@ -444,6 +443,13 @@ func multiValues(v *VM, env *Environment, stmt ast.Statement, values []exprCode,
 		return nil, messages.At(line, 0, messages.New(messages.H2701, nameCount, len(evalVals)))
 	}
 	return evalVals, nil
+}
+
+// unpackCountError count öğeli demeti names ada açan deyimin çalışma hatasıdır (H2709); örnek düzeltilmiş
+// deyimdir, döngü deseninde düzeltilmiş döngü başlığı (5.7, compiler_loop_bind.go). İleti tek yerde kurulur.
+func unpackCountError(stmt ast.Node, count, names int) error {
+	kind, example := ast.UnpackSuggestion(stmt, count)
+	return messages.At(stmt.Line(), 0, messages.New(messages.H2709, count, names, kind, example))
 }
 
 // structDef 'yapı' deyimini derler: metotlar ve alan varsayılanları bir kez derlenir.
