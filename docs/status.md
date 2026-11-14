@@ -344,7 +344,7 @@ Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sın
 - **Mevcut durum:** yapının tipi StructType [ölçüldü: denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** yapının tipi `TR_Type` (3.11); denetleyicinin testi.
 - **Yapılacaklar (sınıfsız: test kapsamı, Ö3; sahip TCB, 7.6'nın `TR_same_object`'iyle; D1 15.5 devri, birleşik 65):** `lib/optimizers_test.tr`'nin 14 yeri parametrenin grupta olduğunu kimlikle değil değerle sınıyor (değerle arayan bir yardımcı fonksiyon ve her parametreye ayrı sabit ekleyen bir hazırlık); aynı değerde iki parametre testi düşürür, sessiz geçirmez; hazırlık her parametreye ayrı sabit eklediği için ikiz kalmaz. Sıradaki adım: `TR_same_object` gelince ona geçer.
-- **Yapılacaklar (E, Ö3; sahip Motor; tur 8, 2026-11-14; DENETİM 708):** 7.6'nın nesne kimliği yok: `TR_same_object` kod listesinde yok [ölçüldü: `grep -c -i '"TR_[a-z_]*same' internal/lang/codes/definitions.json`, 0]. Kimlik (görünüm `aynı_nesne`) aynı dilimle kod listesine girer; paylaşılmayan değerin ve `TR_none`'ın denetim iletilerinin kod bloğunu uygulayana TCB verir.
+- **Yapılacaklar (E, Ö3; sahip Motor; tur 8, 2026-11-14; DENETİM 708):** 7.6'nın nesne kimliği yok: `TR_same_object` kod listesinde yok [ölçüldü: `grep -c -i '"TR_[a-z_]*same' internal/lang/codes/definitions.json`, 0]. Kimlik (görünüm `aynı_nesne`) aynı dilimle kod listesine girer; öbür tiplerin ve `TR_none`'ın denetim iletilerinin kod bloğunu uygulayana TCB verir.
 
 ### 7.7
 
@@ -632,7 +632,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** kitaplıkta pencerenin sınırı konumların float32 kopyasıyla karşılaştırılır (GPU'da tam sayı çıkarması yok; konum < 2²⁴ kesin).
 - **Yapılacaklar:** cinsli işleç tablosu ve dönüşüm dışındaki bekleyen işlemler (2b; bayrağın altyapısı, `TR_replay`'deki yuvası ve dönüşüm T1 dilim 2a'da); TR testi.
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
-- **Yapılacaklar (C, Ö2; sahip T1; tur 8, 2026-11-14; DENETİM 708):** işlemcide `TR_Int` tensörünün `**`'ı tabanı -1 olan büyük üste asılır: `powInt` üssü tek tek çarpar, yalnız sonuç 0 ya da taban 1 iken erken çıkar (`internal/compute/tensor/cpu_typed_ops.go:333`); kart ve sayı yolu kare alarak hesaplar [hipotez: tur 8 araştırması, koddan okuma, koşulmadı]. İşlemci kare alarak hesaplamaya geçerken iki cihazın ilk hatalı öğesi aynı kalır (15.6).
+- **Yapılacaklar (C, Ö2; sahip T1; tur 8, 2026-11-14; DENETİM 708):** işlemcide `TR_Int` tensörünün `**`'ı tabanı -1 olan büyük üste asılır: `powInt` üssü tek tek çarpar, yalnız sonuç 0 ya da taban 1 iken erken çıkar, taban -1'de döngü üs kadar döner [kanıtlı: `internal/compute/tensor/cpu_typed_ops.go:333-345`, erken çıkış `:343`]; kart ve sayı yolu kare alarak hesaplar [hipotez: tur 8 araştırması, koddan okuma, koşulmadı]. İşlemci kare alarak hesaplamaya geçerken iki cihazın ilk hatalı öğesi aynı kalır (15.6).
 
 ### 15.6a
 
@@ -779,7 +779,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.24
 
 - **Mevcut durum:** `TR_mask:`'in cins hatası (H6985) çalışma anında: denetleyici tensörün cinsini bilmiyor (`TR_Tensor[TR_Float]` tipli değişken de `TR_Tensor`) [ölçüldü: T1 `claude/kolB-o0-3`, 9 yazım].
-- **Yapılacaklar (D, Ö3; tur 8, 2026-11-14: metin değişmez, kural hedeftir):** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
+- **Yapılacaklar (D, Ö3; sahip T1; tur 8, 2026-11-14: metin değişmez, kural hedeftir; DENETİM 713 N1):** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
 - **Mevcut durum (2026-11-11, D1):** dil tanımı `TR_attention`'ın imzasında `TR_bias:`'ı yazıyor (`15_tensorler.md:353`, `:359`); motorda yok, çağrı "'sapma' adında bir parametre almaz (geçerli adlar: nedensel, pencere, maske)" hatası veriyor [ölçüldü: D1, main `ae73b3b9`].
 - **Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_bias:` argümanı (aşağıdaki −∞ sapma maddesi de buna bağlı).
 - **Mevcut durum (2026-11-11, D1):** ölçek sabit `1/√dh`; Gemma 3n'nin ölçeği 1,0 [ölçüldü: D1, koşu 4, transformers 4.56.2], Gemma 4'ünki 1,0 [kanıtlı: D1, llama.cpp `gemma4.cpp`], Gemma 3 27B'ninki `1/√168` (`dh` 128) [ölçüldü: D1, koşu 4, config]. Kitaplık `q`'yu çarparak yazabiliyor: `q · 16` ile fark 7,15e-07 [ölçüldü: D1, koşu 4]. Dil tanımı değişmeden Gemma diliminin işi; 27B'de yuvarlama farkı.
