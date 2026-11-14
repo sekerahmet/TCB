@@ -13,48 +13,62 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
-// Bu dosya tests-for <Go dosyası>'nın koşu satırlarını kurar: düzenleme döngüsünde koşulacak kısa komut. Koşulan liste
-// (ön denetimin seçimi) eksiltilmez; komutun koşmadığı her test sayısıyla ve onu koşan komutla söylenir (DENETİM
-// 2026-10-29: 496 testlik listede düzenlenen paketin testi seçilemedi, boyut testi commit'ten sonra düştü).
+// Bu dosya tests-for'un dar koşu satırlarını kurar: yazarken koşulacak kısa komut (codegraph 7, Dilim A). Satır yalnız
+// yakın testleri koşar: dosyanın paketi (ağır pakette adla), dosyanın kendi testleri, onu konu edinenler, Go dışı dosyada
+// bütün listeyi gezenler ve başka paketlerdeki doğrudan testler (en çok narrowHubLimit). Taramalar, denetleyici
+// koşucuları, dolaylı zincirler, zayıf kanıt ve alt süreç testleri satıra girmez; ön denetimin seçiminden kalanların
+// sayısı tek satırla söylenir, onları commit öncesi denetim ve G4 koşar. Neden: satır ön denetimin payı olunca her G4
+// düşüşüyle büyüdü (`checker.go`'da 203 ad), ajan ya yüzlerce uzak testi bekledi ya da satırı atladı.
 
 // commandLineLimit tools/full_check.sh'in -run listesi için kullandığı sınırdır: Windows'ta komut satırı ~32 000
 // karakterdir, ön denetim 20 000'i aşan listede paketleri bütün olarak koşar; koşu satırı da öyle yapar.
 const commandLineLimit = 20000
 
+// narrowHubLimit başka paketlerdeki doğrudan testlerin dar satıra girebileceği en çok sayıdır (A2, K6): `vm.go`'nun 291,
+// `checker.go`'nun 175 doğrudan testi var; örnekte 11 ile 31 arasındaki her sınır aynı sonucu veriyor.
+const narrowHubLimit = 20
+
 // runPlan dosyanın koşu satırlarıdır. İki komut gerekir: -run bir `go test`'in bütün paketlerine uygulanır, tek komut
 // dosyanın kendi paketini de süzerdi.
 type runPlan struct {
 	pkg     string   // dosyanın paketi, bütün olarak (-run'sız): grafın göremediği aynı paket testleri de koşar
-	others  []string // dosyayı tarayan depo kurallarının ve konu edinen testlerin paketleri (pkg hariç)
+	others  []string // dar satırın başka paketlerdeki testlerinin paketleri (pkg hariç)
 	names   []string // onların adları (-run)
+	hub     int      // narrowHubLimit'i aştığı için satıra girmeyen, başka paketlerdeki doğrudan test sayısı
 	golden  []string // seçilen altın dosya testleri (-update ile yeniden yazılır)
 	whole   bool     // -run listesi commandLineLimit'i aşıyor: others'ın ağır olmayanları bütün olarak koşar
 	heavy   []string // whole iken others'ın ağır paketleri (heavyTestPackages): yalnız sığan adlarla koşar
 	fit     []string // onların satıra sığan adları
 	cut     int      // satıra sığmayan ad sayısı
-	pkgFit  []string // pkg ağırsa (heavyTestPackages) bütün yerine koşan adları: kendi testleri ve cevapta adı geçenler
+	pkgFit  []string // pkg ağırsa (heavyTestPackages) bütün yerine koşan adları: o paketteki yakın testler
 	pkgCut  int      // onlardan satıra sığmayanların sayısı
-	trFiles []string // .tr dosyasında cevapta adı geçen TR test dosyaları (`go run ./cmd/trlang test ...`)
+	trFiles []string // kendi ve konu edinen TR test dosyaları (`go run ./cmd/trlang test ...`)
 	rest    []goTest // ön denetimin seçiminden komutların koşmadıkları
 	// selfTests iki klasörün dışındaki dosyada komutlardan ve rest'ten çıkan codegraph testleridir (self_tests.go, S3).
 	selfTests []goTest
 }
 
-// runPlanFor koşu satırlarını ön denetimin seçiminden (goTestSelection, `changed --go-tests`) kurar: dosyanın paketi
-// bütün olarak; dosyayı tarayan bütün depo kuralları (scansCovering); dosyanın bir bildirimini konu edinen (about) ve
-// tip denetleyicisi dosyalarında denetleyiciden program geçiren (checkerRunnerTests) Go testleri. Seçimin geri kalanı rest'tir.
+// runPlanFor bir Go dosyasının dar koşu satırlarıdır: doğrudan testleri, fileTests'in 0 adımlı testleridir ("tests" grubu).
 func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
-	return ix.runPlanWith(file, ts, s, listedTests{})
+	var direct []*Node
+	for _, id := range s.others {
+		if s.all[id] == 0 {
+			direct = append(direct, ix.byID[id])
+		}
+	}
+	return ix.runPlanWith(file, ts, s, direct)
 }
 
-// runPlanWith runPlanFor'dur; cevapta adı geçen testler (listed) de adlandırılır (query_run_listed.go).
-func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed listedTests) runPlan {
+// runPlanWith dar koşu satırlarını s'nin kendi ve konu edinen testlerinden ve direct'ten (doğrudan testler: Go dosyasında
+// kullananlar, Go dışı dosyada okuyanlar) kurar. Kalan sayısı ön denetimin seçiminden (goTestSelection) gelir.
+func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, direct []*Node) runPlan {
 	var p runPlan
 	if file.Kind == kindFile && strings.HasSuffix(file.File, ".go") {
 		p.pkg = path.Dir(file.File)
 	}
-	p.trFiles = trRunFiles(listed, s)
-	extra, golden, own := ix.collectPlanTests(file, p.pkg, s, listed)
+	p.trFiles = trRunFiles(s, direct)
+	extra, golden, own, hub := ix.collectPlanTests(p.pkg, s, direct)
+	p.hub = hub
 	selfOut := !inSelfTestFolders(file.File)
 	if selfOut {
 		for t := range extra {
@@ -93,10 +107,9 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 	return p
 }
 
-// trRunFiles koşu satırının `trlang test` hedefleridir: önce varsayılan cevapta listelenen sıra (listed.trFiles),
-// ardından s.own ve s.about içindeki henüz eklenmemiş kindTRTest dosyaları.
-func trRunFiles(listed listedTests, s fileTestSet) []string {
-	out := slices.Clone(listed.trFiles)
+// trRunFiles koşu satırının `trlang test` hedefleridir: s.own, s.about ve direct içindeki kindTRTest dosyaları, o sırayla.
+func trRunFiles(s fileTestSet, direct []*Node) []string {
+	var out []string
 	add := func(n *Node) {
 		if n != nil && n.Kind == kindTRTest && n.File != "" && !slices.Contains(out, n.File) {
 			out = append(out, n.File)
@@ -108,54 +121,56 @@ func trRunFiles(listed listedTests, s fileTestSet) []string {
 	for _, a := range s.about {
 		add(a.test)
 	}
+	for _, n := range direct {
+		add(n)
+	}
 	return out
 }
 
-// collectPlanTests dosyanın paketi dışındaki Go testlerini (extra), altın dosya testlerini (golden) ve dosyanın
-// kendi paketindeki adlandırılan testlerini (own) toplar.
-func (ix *index) collectPlanTests(file *Node, pkg string, s fileTestSet, listed listedTests) (extra map[goTest]bool, golden, own map[string]bool) {
+// collectPlanTests dar satırın testlerini toplar: dosyanın paketi dışındakiler (extra), altın dosya testleri (golden),
+// dosyanın kendi paketindekiler (own; paket ağırsa adla koşar). Kendi ve konu edinen testler hep girer; başka paketlerdeki
+// doğrudan testler narrowHubLimit'i aşarsa girmez, sayıları hub'dır. Her testin fikstür koşucusu da girer.
+func (ix *index) collectPlanTests(pkg string, s fileTestSet, direct []*Node) (extra map[goTest]bool, golden, own map[string]bool, hub int) {
 	extra, golden, own = map[goTest]bool{}, map[string]bool{}, map[string]bool{}
 	add := func(n *Node) {
 		if n == nil {
 			return
 		}
-		if t, ok := goTestOf(n); ok && t.dir != pkg {
-			extra[t] = true
-			if strings.HasSuffix(t.name, "Golden") {
-				golden[t.name] = true
-			}
-		}
-		for _, r := range ix.fixtureRunners(n) {
-			if t, ok := goTestOf(r); ok && t.dir != pkg {
+		for _, r := range append([]*Node{n}, ix.fixtureRunners(n)...) {
+			t, ok := goTestOf(r)
+			switch {
+			case !ok:
+			case t.dir == pkg:
+				own[t.name] = true
+			default:
 				extra[t] = true
+				if strings.HasSuffix(t.name, "Golden") {
+					golden[t.name] = true
+				}
 			}
-		}
-	}
-	for _, h := range ix.scansCovering(file.File) {
-		for _, t := range h.tests {
-			add(t)
 		}
 	}
 	for _, t := range s.own {
 		add(t)
-		if gt, ok := goTestOf(t); ok && gt.dir == pkg {
-			own[gt.name] = true
-		}
 	}
 	for _, a := range s.about {
 		add(a.test)
 	}
-	for _, t := range ix.checkerRunnerTests(file, s.all) {
-		add(t)
-	}
-	for _, t := range listed.goTests {
-		if t.dir != pkg {
-			extra[t] = true
-		} else {
-			own[t.name] = true
+	far := map[goTest]bool{}
+	for _, n := range direct {
+		if t, ok := goTestOf(n); ok && t.dir != pkg && !extra[t] {
+			far[t] = true
 		}
 	}
-	return extra, golden, own
+	if hub = len(far); hub > narrowHubLimit {
+		direct = slices.DeleteFunc(slices.Clone(direct), func(n *Node) bool { t, ok := goTestOf(n); return !ok || t.dir != pkg })
+	} else {
+		hub = 0
+	}
+	for _, n := range direct {
+		add(n)
+	}
+	return extra, golden, own, hub
 }
 
 // unrunSelection ön denetimin seçiminden (goTestSelection) koşu planının çalıştırmadığı testleri sırasıyla verir.
@@ -190,22 +205,30 @@ func (p runPlan) runs(t goTest) bool {
 	return true
 }
 
-// nodeRunPlan Go dışı bir dosya ya da belge düğümünün (.tr, .md, veri, betik) koşu satırlarını kendi testlerinden,
-// bütün listeyi gezenlerden, doğrudan okuyanlardan, cevapta listelenenlerden ve taramalardan kurar.
-func (ix *index) nodeRunPlan(n *Node, t nodeTests, byName []*Edge, listed listedTests) runPlan {
+// nodeRunPlan Go dışı bir dosya ya da belge düğümünün (.tr, .md, veri, betik) dar koşu satırlarını kendi testlerinden,
+// bütün listeyi gezenlerden ve konu edinenlerden kurar; doğrudan okuyanlar (readers) narrowHubLimit'e kadar girer.
+func (ix *index) nodeRunPlan(n *Node, t nodeTests, readers []*Edge) runPlan {
 	own := slices.Clone(t.own)
 	for _, e := range t.walks {
 		own = append(own, ix.byID[e.From])
 	}
-	for _, e := range byName {
+	var direct []*Node
+	for _, e := range readers {
 		switch {
 		case n.Kind == kindDoc:
-			own = append(own, ix.byID[e.From])
+			direct = append(direct, ix.byID[e.From])
 		case n.Kind == kindFile && isTestCode(ix.byID[e.From]) && (isTestFile(e.File) || strings.HasSuffix(e.File, "_test.tr")):
-			own = append(own, ix.byID[e.From])
+			direct = append(direct, ix.byID[e.From])
 		}
 	}
-	return ix.runPlanWith(n, newTouchSet(), fileTestSet{own: own, about: t.about}, listed)
+	// Modülü yükleyen TR test dosyası (1 adım, zincir testin kendi dosyasından): modülün test dosyası gibidir
+	// (`lib/whisper.tr` → `tests/whisper_model_test.tr`); satıra tek `trlang test` hedefi olarak girer.
+	for _, it := range t.indirect {
+		if it.steps == 1 && it.test.Kind == kindTRTest && it.via != nil && it.via.File == it.test.File {
+			direct = append(direct, it.test)
+		}
+	}
+	return ix.runPlanWith(n, newTouchSet(), fileTestSet{own: own, about: t.about}, direct)
 }
 
 func sortedKeys(m map[string]bool) []string {
@@ -214,24 +237,6 @@ func sortedKeys(m map[string]bool) []string {
 		out = append(out, k)
 	}
 	sort.Strings(out)
-	return out
-}
-
-// checkerRunnerTests denetleyici paketindeki bir dosyanın seçiminde (all) yer alan ve TR programlarını
-// Checker.CheckProgram üzerinden geçiren Go testlerini verir.
-func (ix *index) checkerRunnerTests(file *Node, all map[string]int) []*Node {
-	if path.Dir(file.File) != checkerRelPkg {
-		return nil
-	}
-	checkID := memberID(ix.g.Module+"/"+checkerRelPkg, "Checker", "CheckProgram")
-	var out []*Node
-	for _, e := range ix.in[checkID] {
-		if e.Kind == edgeTests && e.Confidence == inferred {
-			if _, ok := all[e.From]; ok {
-				out = append(out, ix.byID[e.From])
-			}
-		}
-	}
 	return out
 }
 
@@ -288,19 +293,15 @@ func printRunPlanText(w io.Writer, p runPlan, short bool) {
 		inGroups, amongGroups = "--list names them", "(--list names them)"
 	}
 	cmds := p.commands()
-	if len(cmds) == 0 && !isHeavyPackage(p.pkg) {
-		printSelfTestsLine(w, p)
-		return
-	}
 	for _, c := range cmds {
 		fmt.Fprintln(w, "run: "+c)
 	}
-	if isHeavyPackage(p.pkg) {
+	if isHeavyPackage(p.pkg) && len(cmds) > 0 { // komut yoksa paketin neden bütün koşmadığını söylemeye gerek yok
 		fmt.Fprintf(w, "  ./%s/ is a heavy package: it does not run whole here, the run line names %s of it (the full check runs it whole)\n",
-			p.pkg, countOf(len(p.pkgFit), "listed test"))
+			p.pkg, countOf(len(p.pkgFit), "near test"))
 	}
 	if p.pkgCut > 0 {
-		fmt.Fprintf(w, "  %s of ./%s/ did not fit the command line; %s\n", countOf(p.pkgCut, "more listed test"), p.pkg, inGroups)
+		fmt.Fprintf(w, "  %s of ./%s/ did not fit the command line; %s\n", countOf(p.pkgCut, "more near test"), p.pkg, inGroups)
 	}
 	if len(p.golden) > 0 {
 		fmt.Fprintf(w, "  golden files (%s): if they change, rewrite with -update and read the diff\n", strings.Join(p.golden, ", "))
@@ -310,22 +311,18 @@ func printRunPlanText(w io.Writer, p runPlan, short bool) {
 	}
 	if p.cut > 0 {
 		fmt.Fprintf(w, "  %s of %s did not fit the command line (heavy packages do not run whole here); %s\n",
-			countOf(p.cut, "more listed test"), strings.Join(p.heavy, ", "), inGroups)
+			countOf(p.cut, "more near test"), strings.Join(p.heavy, ", "), inGroups)
 	}
-	defer printSelfTestsLine(w, p)
-	if len(p.rest) == 0 {
-		if len(p.selfTests) == 0 {
-			fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
-		}
-		return
+	if p.hub > 0 {
+		fmt.Fprintf(w, "  narrow: %d direct tests in other packages are left to the commit check (more than %d)\n", p.hub, narrowHubLimit)
 	}
-	pkgs := map[string]bool{}
-	for _, t := range p.rest {
-		pkgs[t.dir] = true
+	// Tek sayı satırı (A3, S2): kalanlar ayrı listelenmez, gruplardadırlar; codegraph'ın kendi testleri de sayıya girer.
+	switch left := len(p.rest) + len(p.selfTests); {
+	case left > 0:
+		fmt.Fprintf(w, "  narrow: these lines run the near tests; %d more are left to the commit check and G4 %s\n", left, amongGroups)
+	case len(cmds) > 0:
+		fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
 	}
-	// Koşulmayanlar ayrı listelenmez: aşağıdaki gruplardadırlar (DENETİM: "listed below" ayrı bir liste vaat ediyordu).
-	fmt.Fprintf(w, "  not run by these commands: %s in %s %s; the full check (`tools/full_check.sh`, on Colab) runs them all\n",
-		countOf(len(p.rest), "more Go test"), countOf(len(pkgs), "package"), amongGroups)
 }
 
 // countOf "1 package", "2 packages": sayıya göre tekil ya da çoğul İngilizce ad.

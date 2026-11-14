@@ -41,15 +41,9 @@ func (ix *index) isCodegraphSelfTest(t goTest) bool {
 	return true
 }
 
-// selfTestsLine S3'tür: koşu satırlarının ve commit kipinin dışında kalan codegraph testlerinin sayısı.
+// selfTestsLine S3'tür: commit kipinin dışında kalan codegraph testlerinin sayısı (`changed --go-tests
+// --without-codegraph-self-tests`'in stderr'i; commit kipinin betiği bu satırı okur). tests-for onları sayı satırında sayar.
 const selfTestsLine = "  not run by these commands: %d codegraph tests (the full check on Colab runs them)\n"
-
-// printSelfTestsLine koşu planının dışarıda tuttuğu codegraph testleri varsa S3'ü yazar.
-func printSelfTestsLine(w io.Writer, p runPlan) {
-	if len(p.selfTests) > 0 {
-		fmt.Fprintf(w, selfTestsLine, len(p.selfTests))
-	}
-}
 
 // printGoTestsWithoutSelfTests `changed --go-tests --without-codegraph-self-tests`'tir (commit kipi): seçim printGoTests'inkidir,
 // yalnız codegraph'ın kendi testleri iki klasörün içindeki bir değişiklik seçmediyse çıkar. Standart çıktının biçimi

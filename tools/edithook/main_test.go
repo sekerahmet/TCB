@@ -100,7 +100,9 @@ func TestFirstEditShowsTheRunLineAndTheSizeLine(t *testing.T) {
 	if len(lines) > maxLines+3 { // bayat uyarısı, "... more lines" satırı ve soru → komut tablosunun yeri
 		t.Fatalf("%d lines shown, at most %d:\n%s", len(lines), maxLines, got)
 	}
-	if !strings.Contains(got, "\nrun: go test -short ./internal/lang/interp/\n") || !strings.Contains(got, "TestLayoutFuncSize|") ||
+	// Dar satır taramaları (TestLayoutFuncSize) koşmaz, sayı satırı sayar (codegraph 7 A1, A3).
+	if !strings.Contains(got, "\nrun: go test -short ./internal/lang/interp/\n") || strings.Contains(got, "TestLayoutFuncSize|") ||
+		!strings.Contains(got, "\n  narrow: these lines run the near tests; ") ||
 		!strings.Contains(got, "\n  size (TestLayoutFileSize, TestLayoutFuncSize): file ") {
 		t.Fatalf("the first %d lines must hold the run lines and the size line:\n%s", maxLines, got)
 	}

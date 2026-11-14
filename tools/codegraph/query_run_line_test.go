@@ -24,16 +24,20 @@ func runPlanFiles(g *Graph) []*Node {
 	return out
 }
 
-// Kural: tests-for <Go dosyası>'nın koşu satırı ön denetimin seçimini eksiltmez. İlk komut dosyanın paketini bütün
-// olarak koşar; ikincisi dosyayı tarayan bütün depo kurallarını ve dosyanın bir bildirimini konu edinen Go testlerini
-// (DENETİM 2026-10-29: compiler_assign.go'nun TestLayoutFuncSize'ı commit'ten sonra düştü). Seçimin geri kalanı
-// `changed --go-tests`'in aynı fonksiyonundan (goTestSelection) sayılır: komutların koştuğu ile sayılan, seçimin tamamıdır.
-func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
+// Kural (codegraph 7, A1): tests-for'un dar koşu satırı yakın testleri koşar, uzakları koşmaz. İlk komut dosyanın paketini
+// bütün olarak koşar; öbürleri dosyanın kendi testlerini, onu konu edinenleri (fikstür koşucularıyla) ve başka paketlerdeki
+// doğrudan testleri (en çok narrowHubLimit). Dosyayı yalnız tarayan depo kuralları, denetleyici koşucuları ve dolaylı ya da
+// zayıf zincirle bulunan testler satırda yoktur. Satırın koştuğu ile kalan sayısı birlikte `changed --go-tests`'in seçimidir
+// (goTestSelection): kalanları commit öncesi denetim ve G4 koşar.
+func TestTheNarrowRunLineHasItsNearTestsAndNoFarOnes(t *testing.T) {
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	files := runPlanFiles(g)
 	if len(files) < 5 || files[0].File > "internal/lang/interp/compiler_assign.go" {
 		t.Fatalf("only %d files sampled", len(files))
+	}
+	for _, rel := range []string{"internal/lang/checker/checker.go", "internal/lang/checker/conditions.go", "internal/lang/interp/library.go"} {
+		files = append(files, ix.byID[fileID(rel)])
 	}
 	for _, file := range files {
 		ts := ix.fileDecls(file)
@@ -44,22 +48,55 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 			t.Errorf("%s: first command %q, want the package whole", file.File, cmds[0])
 		}
 		inRun := runCovers(cmds)
-		var want []*Node
-		for _, h := range ix.scansCovering(file.File) {
-			want = append(want, h.tests...)
+		near := map[goTest]bool{}
+		addNear := func(n *Node) {
+			for _, r := range append([]*Node{n}, ix.fixtureRunners(n)...) {
+				if gt, ok := goTestOf(r); ok {
+					near[gt] = true
+				}
+			}
+		}
+		for _, n := range s.own {
+			addNear(n)
 		}
 		for _, a := range s.about {
-			want = append(want, a.test)
-			want = append(want, ix.fixtureRunners(a.test)...)
+			addNear(a.test)
 		}
-		for _, t := range ix.checkerRunnerTests(file, s.all) {
-			want = append(want, t)
-			want = append(want, ix.fixtureRunners(t)...)
+		var direct []*Node
+		for _, id := range s.others {
+			if s.all[id] == 0 {
+				direct = append(direct, ix.byID[id])
+			}
 		}
-		// codegraph'ın kendi testleri iki klasörün dışında koşmaz, S3 sayar (codegraph dilim 6, D6-3).
-		for _, n := range want {
-			if gt, ok := goTestOf(n); ok && !inRun(gt) && !slices.Contains(p.selfTests, gt) {
-				t.Errorf("%s: the run line does not run %s (%s)", file.File, n.Name, gt.dir)
+		far := 0
+		for _, n := range direct {
+			if gt, ok := goTestOf(n); ok && gt.dir != path.Dir(file.File) && !near[gt] {
+				far++
+			}
+		}
+		if far <= narrowHubLimit {
+			for _, n := range direct {
+				addNear(n)
+			}
+		} else if p.hub != far {
+			t.Errorf("%s: %d direct tests in other packages, the plan counts %d", file.File, far, p.hub)
+		}
+		// codegraph'ın kendi testleri iki klasörün dışında koşmaz, sayı satırı sayar (codegraph dilim 6, D6-3).
+		for gt := range near {
+			if !inRun(gt) && !slices.Contains(p.selfTests, gt) {
+				t.Errorf("%s: the narrow run line does not run its near test %s (%s)", file.File, gt.name, gt.dir)
+			}
+		}
+		for _, h := range ix.scansCovering(file.File) {
+			for _, n := range h.tests {
+				if gt, ok := goTestOf(n); ok && gt.dir != path.Dir(file.File) && inRun(gt) && !near[gt] {
+					t.Errorf("%s: the narrow run line runs the scan %s (%s); scans are left to the commit check", file.File, gt.name, gt.dir)
+				}
+			}
+		}
+		for _, id := range s.others {
+			if gt, ok := goTestOf(ix.byID[id]); ok && s.all[id] > 0 && gt.dir != path.Dir(file.File) && inRun(gt) && !near[gt] {
+				t.Errorf("%s: the narrow run line runs %s (%s), %d steps away", file.File, gt.name, gt.dir, s.all[id])
 			}
 		}
 		var printed strings.Builder
@@ -137,20 +174,52 @@ func TestTheRunLineStaysWithinTheCommandLine(t *testing.T) {
 	}
 }
 
-// Kural: koşulmayanların satırı ayrı bir liste vaat etmez (onlar aşağıdaki gruplardadır) ve sayıya göre tekil ya da
-// çoğul yazar (DENETİM, birleşme denetimi: "in 1 packages", "(listed below)").
+// Kural (codegraph 7, A3): dar satırın altında tek sayı satırı vardır: kalanlar (codegraph'ın kendi testleri dahil) ayrı
+// listelenmez, gruplardadır; kısa cevapta --list'e gönderir. Kalan yoksa satır her testin koştuğunu söyler; ne komut ne kalan
+// varsa satır yazılmaz. Eski iki satır ("not run by these commands", "tests: N listed") tests-for'da yoktur.
 func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
+	two := []goTest{{"b", "TestX"}, {"c", "TestZ"}}
 	for _, c := range []struct {
-		rest []goTest
-		want string
+		p     runPlan
+		short bool
+		want  string
 	}{
-		{[]goTest{{"b", "TestX"}}, "1 more Go test in 1 package (among the groups below)"},
-		{[]goTest{{"b", "TestX"}, {"b", "TestY"}, {"c", "TestZ"}}, "3 more Go tests in 2 packages (among the groups below)"},
+		{runPlan{pkg: "a", rest: two}, false, "  narrow: these lines run the near tests; 2 more are left to the commit check and G4 (among the groups below)\n"},
+		{runPlan{pkg: "a", rest: two[:1], selfTests: two[1:]}, true, "  narrow: these lines run the near tests; 2 more are left to the commit check and G4 (--list names them)\n"},
+		{runPlan{pkg: "a"}, false, "  these commands run every Go test the pre-check selects for this file\n"},
+		{runPlan{}, true, ""},
+		{runPlan{rest: two}, true, "  narrow: these lines run the near tests; 2 more are left to the commit check and G4 (--list names them)\n"},
 	} {
 		var out strings.Builder
-		printRunPlan(&out, runPlan{pkg: "a", rest: c.rest})
-		if !strings.Contains(out.String(), "not run by these commands: "+c.want+"; the full check") {
-			t.Errorf("want %q:\n%s", c.want, out.String())
+		printRunPlanText(&out, c.p, c.short)
+		got := strings.Join(slices.DeleteFunc(strings.SplitAfter(out.String(), "\n"), func(l string) bool { return strings.HasPrefix(l, "run: ") }), "")
+		if got != c.want || strings.Contains(out.String(), "not run by these commands") || strings.Contains(out.String(), " listed (") {
+			t.Errorf("%+v: got %q, want %q", c.p, got, c.want)
+		}
+	}
+}
+
+// Kural (codegraph 7, A2): başka paketlerdeki doğrudan testler narrowHubLimit'i aşınca dar satıra girmez; satır sayılarını
+// söyler (S3) ve onları commit öncesi denetime bırakır. `vm.go`'nun başka paketlerde yüzlerce doğrudan testi var; `library.go`'nun
+// on tanesi satıra girer.
+func TestTheNarrowRunLineLeavesHubTestsToTheCommitCheck(t *testing.T) {
+	var out strings.Builder
+	printRunPlan(&out, runPlan{pkg: "a", hub: 21})
+	if !strings.Contains(out.String(), "  narrow: 21 direct tests in other packages are left to the commit check (more than 20)\n") {
+		t.Errorf("the hub line:\n%s", out.String())
+	}
+	_, _, g := repoGraph(t)
+	ix := newIndex(g)
+	for _, c := range []struct {
+		file    string
+		hub     bool
+		minHere int
+	}{{"internal/lang/interp/vm.go", true, 0}, {"internal/lang/interp/library.go", false, 5}} {
+		file := ix.byID[fileID(c.file)]
+		ts := ix.fileDecls(file)
+		p := ix.runPlanFor(file, ts, ix.fileTests(file, ts))
+		if (p.hub > narrowHubLimit) != c.hub || !c.hub && (p.hub != 0 || len(p.names) < c.minHere) || c.hub && len(p.names) > narrowHubLimit {
+			t.Errorf("%s: hub %d, %d names in other packages (%q)", c.file, p.hub, len(p.names), p.commands())
 		}
 	}
 }
@@ -214,9 +283,10 @@ func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
 	}
 }
 
-// Kural: belge dosyası (.md) için tests-for dosyayı adıyla okuyan ve tarayan testlerden bir `run:` satırı kurar
-// (TestReviewedSectionsWriteIdentities ve TestDottedMemberSpellingsGolden dahil) ve altın dosya testi seçildiğinde
-// `-update` notunu yazar; testsiz bir `.md` dosyasında `run:` satırı yoktur.
+// Kural: belge dosyası (.md) için tests-for dosyayı adıyla okuyan testlerden bir `run:` satırı kurar
+// (TestReviewedSectionsWriteIdentities); dosyayı yalnız tarayan altın dosya testi (TestDottedMemberSpellingsGolden) dar
+// satırda yoktur (codegraph 7 A1). Altın dosya testi satırdaysa (definitions.json'ı gezen) `-update` notu yazılır; testsiz
+// bir `.md` dosyasında `run:` satırı yoktur.
 func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -227,13 +297,14 @@ func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
 	var out strings.Builder
 	ix.printTestsFor(&out, doc, 12)
 	got := out.String()
-	if !strings.Contains(got, "\nrun: go test -short ") ||
-		!strings.Contains(got, "TestReviewedSectionsWriteIdentities") ||
-		!strings.Contains(got, "TestDottedMemberSpellingsGolden") {
-		t.Errorf("tests-for docs/status.md must print a run: line with TestReviewedSectionsWriteIdentities and TestDottedMemberSpellingsGolden:\n%s", got)
+	run := strings.Join(runLines(got), "\n")
+	if !strings.Contains(run, "TestReviewedSectionsWriteIdentities") || strings.Contains(run, "TestDottedMemberSpellingsGolden") {
+		t.Errorf("tests-for docs/status.md must run its reader TestReviewedSectionsWriteIdentities and leave the scan TestDottedMemberSpellingsGolden:\n%s", got)
 	}
-	if !strings.Contains(got, "golden files (TestDottedMemberSpellingsGolden): if they change, rewrite with -update and read the diff") {
-		t.Errorf("tests-for docs/status.md must explain -update for golden tests:\n%s", got)
+	out.Reset()
+	ix.printTestsFor(&out, ix.byID["file:internal/lang/codes/definitions.json"], 12)
+	if !strings.Contains(out.String(), "golden files (TestDottedMemberSpellingsGolden): if they change, rewrite with -update and read the diff") {
+		t.Errorf("tests-for definitions.json must explain -update for golden tests:\n%s", out.String())
 	}
 
 	root := auditModule(t, map[string]string{
@@ -256,9 +327,10 @@ func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
 	}
 }
 
-// Kural: Go dışı dosyalar (betik, veri dosyası) için tests-for doğrudan okuyanları, bütün listeyi gezenleri
-// (ilk sayfa dışındakiler dahil), cevapta listelenenleri ve depo taramalarını kapsayan `run:` satırı kurar;
-// ağır paketleri -run'sız koşmaz; hiçbir testi ve taraması olmayan yalıtılmış betikte boş `run:` basılmaz.
+// Kural: Go dışı dosyalar (betik, veri dosyası) için tests-for doğrudan okuyanları (en çok narrowHubLimit; fazlası sayılır)
+// ve bütün listeyi gezenleri (ilk sayfa dışındakiler dahil) kapsayan dar `run:` satırı kurar; taramalar satırda yoktur,
+// kalanlar sayılır (codegraph 7 A1–A3). Ağır paketleri -run'sız koşmaz; hiçbir testi ve taraması olmayan yalıtılmış
+// betikte boş `run:` basılmaz.
 func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -284,10 +356,20 @@ func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
 				t.Fatalf("tools/full_check.sh: expected >=10 direct tests, got %d", len(direct))
 			}
 			self := ix.selfTestsOf(n)
+			readers := map[goTest]bool{}
 			for _, e := range direct {
-				if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) && !slices.Contains(self, gt) {
+				if gt, ok := goTestOf(ix.byID[e.From]); ok && isTestFile(e.File) {
+					readers[gt] = true
+				}
+			}
+			hub := strings.Contains(out.String(), "direct tests in other packages are left to the commit check")
+			for gt := range readers {
+				if !hub && !inRun(gt) && !slices.Contains(self, gt) {
 					t.Errorf("tools/full_check.sh: direct test %s (%s) not covered by run: line", gt.name, gt.dir)
 				}
+			}
+			if hub != (len(readers) > narrowHubLimit) {
+				t.Errorf("tools/full_check.sh: %d readers, the hub line is %v:\n%s", len(readers), hub, out.String())
 			}
 		}
 	}
@@ -323,8 +405,17 @@ func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(defsOut, "not run by these commands:") {
+	if !strings.Contains(defsOut, "  narrow: these lines run the near tests; ") {
 		t.Errorf("definitions.json: remaining embed users must be counted:\n%s", defsOut)
+	}
+	for _, h := range ix.scansCovering(defs.File) {
+		for _, sc := range h.tests {
+			isFrom := func(e *Edge) bool { return e.From == sc.ID }
+			if gt, ok := goTestOf(sc); ok && inRun(gt) && !slices.ContainsFunc(nt.walks, isFrom) && !slices.ContainsFunc(nt.tests, isFrom) &&
+				!slices.ContainsFunc(nt.own, func(o *Node) bool { return o.ID == sc.ID }) {
+				t.Errorf("definitions.json: the scan %s (%s) is in the narrow run line", gt.name, gt.dir)
+			}
+		}
 	}
 
 	// 3. Olumsuz: hiçbir testi ve taraması olmayan yalıtılmış betik dosyasında boş `run:` basılmaz.
