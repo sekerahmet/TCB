@@ -333,7 +333,7 @@ func (c *Checker) unopenedHint(stmt ast.Statement, u unopenedUse) any {
 	case *ast.VarStatement, *ast.MultiVarStatement: // erken çıkış: tanımlanan ad sonraki satırlarda görünür
 		return messages.New(messages.H1182, name, value, trStringLiteral(value), "guard", "; "+s)
 	}
-	return messages.New(messages.H1182, name, value, s, "test", "")
+	return messages.New(messages.H1182, name, value, s, "wrap", "") // deyim sınamanın içinde
 }
 
 // trStringLiteral metni TR'nin dizgi yazımıyla verir (2.6: ters bölü ve tırnak kaçar, 2.7'nin

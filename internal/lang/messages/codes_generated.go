@@ -221,7 +221,7 @@ const (
 	H1171 Code = 1171 // ; uymayan ilk anahtar `{path}` sözlüğündeki {key|q}, tipi {given|q}
 	H1180 Code = 1180 // `{value}` isteğe bağlıdır ({given}) ve açılmadan {op, select, field {alanı kullanılıyor} member {üyesi kullanılıyor} other {indeksleniyor}} (3.5): değer `{#none}` olunca çalışırken hata verirdi{hint}
 	H1181 Code = 1181 // ; öğe her zaman varsa kabı doğrudan indeksleyin: `{direct}` (öğe yoksa çalışma hatası eksik öğeyi söyler)
-	H1182 Code = 1182 // ; alan ve indeks daraltılmaz: değeri yerel bir ada alıp {form, select, test {`{#none}`'la sınayın} other {`{#none}` iken çıkın (ad sonraki satırlarda da görünür)}}: `{#var} {copy} = {value}; {#if} {copy} {form, select, test {!=} other {==}} {#none} {{ {form, select, test {} other {{#throw} }}{inner} }}{after}`
+	H1182 Code = 1182 // ; alan ve indeks daraltılmaz: değeri yerel bir ada alıp {form, select, wrap {`{#none}`'la sınayın} other {`{#none}` iken çıkın (ad sonraki satırlarda da görünür)}}: `{#var} {copy} = {value}; {#if} {copy} {form, select, wrap {!=} other {==}} {#none} {{ {form, select, wrap {} other {{#throw} }}{inner} }}{after}`
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

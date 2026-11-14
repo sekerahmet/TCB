@@ -216,7 +216,7 @@
 "H1171": "; the first key that does not fit is {key|q} in the dict `{path}`, of type {given|q}",
 "H1180": "`{value}` is optional ({given}) and {op, select, field {its field is used} member {its member is used} other {it is indexed}} without being opened (3.5): when the value is `{#none}` this would fail at run time{hint}",
 "H1181": "; if the item is always there, index the container directly: `{direct}` (if it is missing, the run-time error names the missing item)",
-"H1182": "; fields and indexes are not narrowed: put the value in a local name and {form, select, test {test it against `{#none}`} other {leave when it is `{#none}` (the name stays visible on the next lines)}}: `{#var} {copy} = {value}; {#if} {copy} {form, select, test {!=} other {==}} {#none} {{ {form, select, test {} other {{#throw} }}{inner} }}{after}`",
+"H1182": "; fields and indexes are not narrowed: put the value in a local name and {form, select, wrap {test it against `{#none}`} other {leave when it is `{#none}` (the name stays visible on the next lines)}}: `{#var} {copy} = {value}; {#if} {copy} {form, select, wrap {!=} other {==}} {#none} {{ {form, select, wrap {} other {{#throw} }}{inner} }}{after}`",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",
