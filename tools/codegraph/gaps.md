@@ -15,12 +15,12 @@ answer").
 yanlış "yok", yanlış kenar, ortama bağlı düşen depo testi) **kritik**tir; sıralama, etiket ve
 gösterim **ince ayar**dır. "Kritik" aracın cevabının yanlış olduğunu söyler, projede hata olduğunu değil: DENETİM 691'in okuduğu maddelerde hiçbiri main'e yanlış taşımamış, çünkü her iş main'den önce G4'ten geçiyor; bedel çoğunlukla bir G4 turu gecikme (geneli için [hipotez]). İstisna: denetim komutunun adayını okumadan silmek sessiz yanlıştır (`dead-methods`, aşağıda; yan dal kuralları, codegraph) (DENETİM 691, 694; 2026-11-14). Yeniden üretilmemiş madde başlığında bunu söyler; sıradaki K5 raporu onu yeniden üretir ya da siler.
 
-**Akış (Ahmet, 2026-10-26; baş geliştirici aksini onaylamadıkça):** maddeler bu dosyada birikir; ana oturum listeyi
-baştan sona gözden geçirir; DENETİM bütününü denetler (yeniden üretim, sınıf, istenen çözümün genelliği); onaylananlar
-tek yönergeyle sahibine gider (tek tek gönderilmez): açık tanımlı ve çözümü dar olan Gemini'ye, tasarım isteyen CODEGRAPH'a
-(2026-10-29'dan beri; sahip maddenin yanına yazılır); gönderilen madde "<sahip>'te (tarih)" diye işaretlenir; birleşmeden
-önce DENETİM kodu okur. Düzeltme ana dala birleştirilince ana oturum
-düzeltmeyi aynı komutla doğrular ve maddeyi siler (geçmişi git'tedir). İstenen her zaman örneği yamalayan değil aynı sınıftaki
+**Akış (Ahmet, 2026-10-26; 2026-11-14'ten beri dosyayı CODEGRAPH UZMANI yazar, "Kim yazar"):** maddeler bu dosyada
+birikir; CODEGRAPH UZMANI listeyi baştan sona gözden geçirir; DENETİM bütününü denetler (yeniden üretim, sınıf, istenen
+çözümün genelliği); onaylananlar ana oturumun tek yönergesiyle sahibine gider (tek tek gönderilmez): açık tanımlı ve
+çözümü dar olan Gemini'ye, tasarım isteyen CODEGRAPH'a (2026-10-29'dan beri; sahip maddenin yanına yazılır); gönderilen
+madde "<sahip>'te (tarih)" diye işaretlenir; birleşmeden önce DENETİM kodu okur. Düzeltme ana dala birleştirilince
+CODEGRAPH UZMANI düzeltmeyi aynı komutla doğrular ve maddeyi siler (geçmişi git'tedir). İstenen her zaman örneği yamalayan değil aynı sınıftaki
 her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
@@ -53,7 +53,7 @@ Son kapananlar (codegraph 3, Gemini Kodlama3 `4b874104`..`f118706b`, birleşme `
 
 Daha önce kapananlar (codegraph 2, origin/main `4d83182f`, push 2026-11-02 23:44; DENETİM istek 41, 48, 55, 57, 58): Derleme kırıkken `tests-for` bayat fonksiyon boyu veriyor; `dups --changed`'in "ortak ata yok" iletisi yanlış çare öneriyor; `tests-for internal/lang/checker/unpack.go` H1026'yı sınayan negatif `.tr` testini (`tests/negative/demet_acma.tr`) göstermiyor; 1. bölüm numaralanınca specref'in iki yan etkisi; İzlenmeyen dosya için uyarı (istek, 2026-11-01, bulut 4a2 ikinci dilim). Üye yazımı maddesinin kapananları (düzeltme 4, `82acfae0`); kalan küçükleri codegraph 3'te kapandı (yukarıda). Ayrıntı: Kodlama2 `eski/codegraph_2/` raporları.
 
-Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliyor; geliştirici aracının iç tasarımı olduğu için seçimi ana oturum yapar; hiçbiri CODEGRAPH'a yeniden gitmedi):
+Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliyor; geliştirici aracının iç tasarımı olduğu için seçimi CODEGRAPH UZMANI ile Ahmet yapar, 2026-11-14; önce ana oturum yapıyordu; hiçbiri CODEGRAPH'a yeniden gitmedi):
 
 - **Metinle sürülen dağıtım: DAP istek adı ve JS'in `customRequest`'i işleyicisine bağlanmıyor.** TR üye adı yarısı kapandı (63dab86b: kök 34 takma ad sabitiydi, `memberSkip = codes.MemSkip`). Açık yarı:
   - `TestDAPSecretMasked` `c.request("trTable", ...)` ile sürülüyor; metin protokolle (io.Pipe) gidiyor, dağıtıcı `handlePaused`'a 11 adımda ve arayüz üzerinden ulaşılıyor (zincir sınırı 8).
@@ -80,7 +80,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
-- **Kısa cevabın iki `narrow:` satırı toplanarak okunabilir (2026-11-14, DENETİM 750 N1; uzman koddan doğruladı).** `tests-for lib/layers.tr`: "narrow: 22 direct tests in other packages are left to the commit check (more than 20)" ve "narrow: these lines run the near tests; 119 more are left to the commit check and G4" [ölçüldü: `e6f5f5ea`]. 22 test 119'un içinde: hub testleri dar satırda değil, kalan seçimde sayılıyor [kanıtlı: `query_run_line.go:97`, `:165-166`]. Ajan 141 test kaldı sanabilir. İstenen: hub satırı kalanın içinde olduğunu söyler ("(counted below)") ya da sayı satırının altına iner; söz değişir, codegraph 7 Dilim B'de. Sahip: CODEGRAPH.
+- **Kısa cevabın iki `narrow:` satırı toplanarak okunabilir (2026-11-14, DENETİM 750 N1; uzman koddan doğruladı).** `tests-for lib/layers.tr`: "narrow: 22 direct tests in other packages are left to the commit check (more than 20)" ve "narrow: these lines run the near tests; 119 more are left to the commit check and G4" [ölçüldü: `e6f5f5ea`]. 22 test 119'un içinde: hub testleri dar satırda değil, kalan seçimde sayılıyor [kanıtlı: `query_run_line.go:97`, `:165-166`]. Ajan 141 test kaldı sanabilir. İstenen: hub satırı kalanın içinde olduğunu söyler ("(counted below)") ya da sayı satırının altına iner; söz değişir, codegraph 7 Dilim B'de. Sahip: CODEGRAPH. CODEGRAPH'ta (2026-11-14): `claude/codegraph-7b` `b4bee15d`'de hub satırı sayı satırının altında, "narrow: 22 of them are direct tests in other packages (more than 20 stay off the run line)"; birleşince aynı komutla doğrulanır ve madde silinir.
 - **`tests-for --all` aynı tarama testini iki satırda yazıyor (2026-11-14, D1 codegraph dilim 6 devri; TCB yeniden üretti).** `tests-for --all tools/codegraph/audit_markers.go`'nun "repository-wide checks that scan it" grubunda `TestExtractorRevisionFollowsExtractorCode` iki kez, aynı kalıpla (`*.go under tools/codegraph, not *_test.go`, `extractor_digest_test.go:34`) [ölçüldü: TCB, birleşme ağacında, çıktının 126. ve 127. satırı]. Neden: listeyi dönen `extractorFiles`'ın iki çağıranı (`extractorDigest` ve test) iki tarama düğümü veriyor, ikisi aynı teste varıyor [kanıtlı: D1'in devri]. Beklenen: aynı kalıp ve aynı test tek satır (kalıp ve test ikilisine göre tekilleştirme, `query_scans.go`). Sahip: D1.
 - **`TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxError` gerçek bir dosyanın boyunu sabit yazıyor (2026-11-14, Motor 5.7 dilim B devri; G4 `201e3ce1`).** Test "file 135/600" bekliyor (`tools/codegraph/query_sizes_test.go:229`); fikstür gerçek `internal/lang/checker/unpack.go`'ya 72 satır ekliyor (`:192-193`). `unpack.go` 63 satırdan saparsa başka kolun işi düşer. Beklenen: beklenen boy dosyadan hesaplanır. Sahip: D1.
 - **`run:` satırı dosyayı aktaranı üzerinden yükleyen testleri almıyor (2026-11-12, D1 Gemma 3 Teslim A; DENETİM 554 N5; TCB yeniden üretti).** `tests-for lib/model_family.tr`'in `run:` satırı `behavior_chat_family_test.go`'nun 9 testinden yalnız `TestChatTableIsUnique`'i koşuyor; öbür 8'i yalnız `--all`'da "2 steps via lib/pretrained.tr" diye görünüyor [ölçüldü: TCB, main `e92a215e`]. `lib/model_family.tr`'yi kitaplığın kaynak dosyalarından yalnız `lib/pretrained.tr` aktarıyor (öbürü kendi testi `lib/model_family_test.tr:6`); o testler bu dosyanın davranışını sınıyor. Soru: tek aktaranı olan kitaplık dosyasında aktaranın doğrudan testleri `run:`'a girsin mi.
