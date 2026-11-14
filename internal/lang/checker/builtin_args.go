@@ -136,6 +136,8 @@ func (c *Checker) checkBuiltinArgs(e *ast.CallExpression, argTypes []string) {
 	k, recv := c.calledBuiltin(e)
 	if recv == nil {
 		c.noteListElem(e, k, argTypes)
+		c.checkWhereCondition(e, k, argTypes)
+		c.checkNoArguments(e, k)
 	}
 	if _, checked := FunctionArgCodes[k]; recv != nil || !checked {
 		return
@@ -184,6 +186,35 @@ func (c *Checker) outsideOptions(opts []codes.Code, given string, arg ast.Expres
 		}
 	}
 	return typ, true
+}
+
+// NoArgumentFunctions tanımda konumlu parametresi olmayan ("params": []) yerleşik fonksiyonlardır: konumlu
+// argüman denetimde çalışma anının hatasıdır (H2012; stdlib.TestNoArgumentFunctionsMatchEngine).
+var NoArgumentFunctions = map[codes.Code]bool{
+	codes.FnComputeDtype: true, codes.FnMachine: true, codes.FnMelFilterbank: true, codes.FnMonotonicNs: true,
+	codes.FnQuantizedActivationsOn: true, codes.FnTimeMs: true, codes.FnVendorMatmulOn: true,
+}
+
+// checkNoArguments argüman almayan yerleşiğe verilen konumlu argümanı bildirir (13.1, 13.11).
+func (c *Checker) checkNoArguments(e *ast.CallExpression, k codes.Code) {
+	if NoArgumentFunctions[k] && len(e.Arguments) > 0 {
+		c.addErrorAt(e, messages.New(messages.H2012, codes.CallNameRef(k), 0, len(e.Arguments)))
+	}
+}
+
+// checkWhereCondition TR_where'in koşulunu denetler (15.15): koşul TR_Tensor[TR_Bool]'dur; sayı ya da
+// mantık değeri denetim hatasıdır, çalışma anının koduyla (H6207, ileti TR_if'i önerir). Mantık
+// değeri yalnız değişmezde (TR_true) bildirilir: denetleyici tipi bilinmeyen işlenenin karşılaştırmasını
+// (TR_sum(t) > 0) da TR_Bool sayar, o bir mantık tensörü olabilir. Tensörün cinsi denetimde bilinmez:
+// sayı tensörü koşul çalışma anına kalır.
+func (c *Checker) checkWhereCondition(e *ast.CallExpression, k codes.Code, argTypes []string) {
+	if k != codes.FnWhere || len(argTypes) == 0 {
+		return
+	}
+	_, literal := e.Arguments[0].(*ast.BooleanLiteral)
+	if argTypes[0] == typeInt || argTypes[0] == typeFloat || argTypes[0] == typeBool && literal {
+		c.addErrorAt(e.Arguments[0], messages.New(messages.H6207, codes.CallNameRef(k), c.typeArg(argTypes[0]), "other"))
+	}
 }
 
 // argTypeError k'nın order. argümanının seçenek dışı tipte olduğu hatadır, çalışma anının koduyla:

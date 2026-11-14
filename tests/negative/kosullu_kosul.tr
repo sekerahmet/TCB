@@ -1,0 +1,8 @@
+# TR 4
+# TEST 15.15 koşul mantık tensörüdür: mantık değişmezi ya da sayı koşul denetim hatasıdır, ileti seçimi TR_if ile yazmayı önerir
+TR_var t = TR_Tensor([1.0, 2.0])
+TR_print(TR_where(TR_true, 2, 3)) # ERROR H6207
+TR_print(TR_where(TR_false, t, 7)) # ERROR H6207
+TR_print(TR_where(1, t, 0.0)) # ERROR H6207
+TR_print(TR_where(0.5, t, 0.0)) # ERROR H6207
+TR_print(TR_where(t > 1.0, t, 0.0))

@@ -114,6 +114,10 @@ type Parser struct {
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
 	noBlock bool
 
+	// methodParams bir metodun parametre listesi okunacakken açıktır: ilk parametre Python'un
+	// self'i olamaz (7.3). parseFunctionParameters girişte kapatır; iç fonksiyonları etkilemez.
+	methodParams bool
+
 	// brackets açık '(' '[' ya da sözlük '{' sayısıdır: içlerinde satır sonu ifadeyi bitirmez
 	// (2.8; Python, Go gibi). Bir blok gövdesi sayımı sıfırlar: gövdede satır sonu yine deyim
 	// ayırır.
@@ -381,13 +385,14 @@ func (p *Parser) removedSpellingHints() {
 			badLine[line] = true // H0258 'def'in TR yazımını kendisi söyler
 		}
 	}
+	declared := p.declaredNames()
 	forLine := 0 // son döngü sözcüğünün satırı: orada 'x in l' karşılaştırma değil, döngü başlığıdır
 	for i := 0; i < len(p.tokens); i++ {
 		t := p.tokens[i]
 		if t.Type == lexer.TokFor || t.Type == lexer.TokIdent && t.Literal == hint.ForeignFor {
 			forLine = t.Line
 		}
-		if t.Type != lexer.TokIdent || !badLine[t.Line] {
+		if t.Type != lexer.TokIdent || !badLine[t.Line] || declared[t.Literal] {
 			continue
 		}
 		h, words := p.spellingHint(i, forLine == t.Line)
@@ -396,6 +401,32 @@ func (p *Parser) removedSpellingHints() {
 		}
 		i += words - 1
 	}
+}
+
+// declaredNames dosyada kullanıcının tanımladığı adlardır: tanım sözcüğünden (değişken, sabit,
+// fonksiyon, yapı, durumlu tip, arayüz, döngü değişkeni, yakala'nın adı) sonra gelen adlar ve ':'
+// ile tipi yazılan adlar (parametre, alan). Böyle bir ad hatalı satırda ipucu almaz: kullanıcının
+// kendi adıdır, anahtar kelimenin ASCII yazımı değildir. Adlı argüman da sayılır; ipucu yalnız susar.
+func (p *Parser) declaredNames() map[string]bool {
+	declared := map[string]bool{}
+	for i, t := range p.tokens {
+		switch t.Type {
+		case lexer.TokVar, lexer.TokConst, lexer.TokFunction, lexer.TokStruct, lexer.TokEnum,
+			lexer.TokInterface, lexer.TokFor, lexer.TokCatch:
+			// TR_var a, b = ...: virgülle ayrılmış adların hepsi
+			for j := i + 1; j < len(p.tokens) && p.tokens[j].Type == lexer.TokIdent; j += 2 {
+				declared[p.tokens[j].Literal] = true
+				if j+1 >= len(p.tokens) || p.tokens[j+1].Type != lexer.TokComma {
+					break
+				}
+			}
+		case lexer.TokColon:
+			if i > 0 && p.tokens[i-1].Type == lexer.TokIdent {
+				declared[p.tokens[i-1].Literal] = true
+			}
+		}
+	}
+	return declared
 }
 
 // spellingHint i'deki adın ipucu ve ipucunun kapsadığı sözcük sayısıdır: 'not in' ve 'is not' iki

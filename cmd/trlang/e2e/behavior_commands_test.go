@@ -165,7 +165,13 @@ func TestFormat(t *testing.T) {
 	writeTR(t, dir, "a.tr", "TR_var   x=1\nTR_print( x )\n")
 
 	s := tr(t, dir, "format", "--check", "a.tr")
-	testkit.Wait(t, s, 1, []string{"biçimlenmeli: a.tr"}, nil)
+	testkit.Wait(t, s, 1, []string{"biçimlenmeli: a.tr:", "(biçimin ilk farklı satırı)"}, nil)
+	// Neden ve satır iletidedir (ajan sebebi tahmin etmez): CRLF ve dosya sonunda eksik satır sonu.
+	ayrı := t.TempDir()
+	writeTR(t, ayrı, "crlf.tr", "TR_var x = 1\r\nTR_print(x)\r\n")
+	testkit.Wait(t, tr(t, ayrı, "format", "--check", "crlf.tr"), 1, []string{"(satır sonu CRLF, LF olmalı)"}, nil)
+	writeTR(t, ayrı, "son.tr", "TR_var x = 1\nTR_print(x)")
+	testkit.Wait(t, tr(t, ayrı, "format", "--check", "son.tr"), 1, []string{"(son satırın sonunda satır sonu yok)"}, nil)
 
 	testkit.Wait(t, tr(t, dir, "format", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
 	testkit.Wait(t, tr(t, dir, "format", "--check", "."), 0, []string{"hepsi standart biçimde"}, nil)

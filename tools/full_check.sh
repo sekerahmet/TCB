@@ -122,6 +122,7 @@ repo_scans=(
 	TestCodeListAndTRFileWalkersAreInTestsForAndChangedGoTests
 	TestDAPWireFieldsHaveExplicitNames
 	TestDocCodeBlocksShow
+	TestDocLinks
 	TestDottedMemberSpellingsGolden
 	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
 	TestEveryErrorTypeIsLocalized
@@ -141,6 +142,7 @@ repo_scans=(
 	TestHostBlockReadersKeepTheirTensors
 	TestHostBlockSlicesStayWithTheirBlock
 	TestJSONFieldsHaveExplicitNames
+	TestKernelBodiesCallNoGate
 	TestLibraryModulesDoNotReadTheCommandLine
 	TestMessageArgsAreNotMessageFragments
 	TestRepoTRFilesPassCheck

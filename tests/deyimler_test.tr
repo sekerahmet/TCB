@@ -234,55 +234,6 @@ TR_test "5.4 düz ='de de önce hedefin yeri, sonra sağ yan: l[f()] = g()'de ö
     TR_assert_equal([5, 100], [eski.x, p.x])
 }
 
-TR_test "5.4 hedefin zinciri: yazma adlardan, alanlardan ve kap öğelerinden geçer, önerilen yazımlar çalışır" {
-    # Kararın dokuz örneğinin hatası denetimdedir (tests/negative/yazma_zinciri.tr); burada iletilerin
-    # önerdiği yazımlar koşar. Ad verme yazımın anlamını korur: kopyada kaynak değişmez, paylaşılan
-    # değerde değişir. Kabın indeksi (H2741) ve kaynağın indeksi (H2743) asıl kaba yazar.
-    TR_struct Nokta {
-        x: TR_Int = 0
-        y: TR_Int = 0
-        TR_func liste() -> TR_List[TR_Int] { TR_return [7, 8] }
-    }
-    TR_var t = TR_Tensor([1, 2])
-    TR_var l = [1, 2, 3, 4]
-    TR_var m = [5]
-    TR_var j = TR_json_parse("[1, 2]")
-    TR_var p = Nokta()
-    TR_var d = {"a": [1]}
-    TR_var i = 1
-    TR_func f() -> TR_List[TR_Int] { TR_return l }
-    TR_var c1 = t.TR_tolist; c1[0] = 5
-    TR_var c2 = [1, 2]; c2[0] = 5
-    TR_var c3 = l + m; c3[0] = 1
-    TR_var c4 = TR_List(j); c4[0] = j[1]
-    TR_var c5 = Nokta(1, 2); c5.x = 3
-    TR_var c6 = l[0..2]; c6[0] = 5
-    TR_var c7 = p.liste(); c7[0] = 5
-    TR_assert_equal([[5, 2], [5, 2], [1, 2, 3, 4, 5], 3, [5, 2], [5, 8]], [c1, c2, c3, c5.x, c6, c7])
-    TR_assert_equal([1, 2], t.TR_tolist)
-    TR_assert_equal([1, 2, 3, 4], l)
-    TR_assert_equal(j[1], c4[0])
-    # paylaşılan değer: ad verilen değer kaynağın kendisidir
-    TR_var c8 = f(); c8[0] = 5
-    TR_assert_equal([5, 2, 3, 4], l)
-    # kabın indeksi ve kaynağın indeksi asıl kaba yazar
-    d["a"][0] = 5
-    l[0 + i] = 9
-    l[1] += 5
-    TR_assert_equal([[5], [5, 14, 3, 4]], [d["a"], l])
-    # yerinde değiştirici metot: ad verilen alıcı, kabın indeksi; başka alıcıda metot yazma değildir
-    TR_var c9 = f(); c9.TR_append(3)
-    d["a"].TR_append(6)
-    TR_assert_equal([[5, 14, 3, 4, 3], [5, 6]], [l, d["a"]])
-    TR_var yol = "\(TR_temp_dir())/yazma_zinciri.jsonl"
-    TR_Logger(yol).TR_append({"adım": 1})
-    TR_assert(TR_read_file(yol).TR_contains("adım"))
-    TR_assert_equal(3, f().TR_pop())
-    # .TR_tolist sayı da verebilir: tipi denetimde bilinmez, kural çalışırken aynı kodla uygulanır (1.2)
-    TR_assert_equal("H2740", TR_error_code { t.TR_tolist[0] = 5 })
-    TR_assert_equal([1, 2], t.TR_tolist)
-}
-
 TR_test "5.3 çoklu atamada önce bütün yerler, sonra bütün sağ yanlar, sonra yazmalar soldan sağa" {
     TR_var iz: TR_List[TR_String] = []
     TR_func f(ad: TR_String, n: TR_Int) -> TR_Int {

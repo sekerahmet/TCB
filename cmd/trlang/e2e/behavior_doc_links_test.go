@@ -1,8 +1,10 @@
 package e2e
 
 import (
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -79,6 +81,26 @@ func anchors(text string) map[string]bool {
 	return result
 }
 
+// trackedPaths deponun izlenen dosyaları ve onları taşıyan klasörlerdir, tam harfle ("/" ile).
+func trackedPaths(t *testing.T) map[string]bool {
+	t.Helper()
+	root := reporoot.Root()
+	out := map[string]bool{".": true}
+	err := reporoot.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if rel, err := filepath.Rel(root, p); err == nil {
+			out[filepath.ToSlash(rel)] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestDocLinks(t *testing.T) {
 	readValue := map[string]string{}
 	read := func(filePath string) (string, bool) {
@@ -92,6 +114,7 @@ func TestDocLinks(t *testing.T) {
 		readValue[filePath] = string(data)
 		return readValue[filePath], true
 	}
+	exact := trackedPaths(t)
 	total := 0
 	for _, belge := range belgeListesi(t) {
 		text, ok := read(belge)
@@ -117,6 +140,11 @@ func TestDocLinks(t *testing.T) {
 				info, err := os.Stat(reporoot.Path(targetFile))
 				if err != nil {
 					t.Errorf("%s:%d: %q bağlantısının hedefi yok: %s", belge, i+1, target, targetFile)
+					continue
+				}
+				if !exact[targetFile] {
+					// Windows'ta os.Stat harf büyüklüğüne bakmaz; Linux'ta (G4, CI) ve depoda yol tam harfle aranır.
+					t.Errorf("%s:%d: %q bağlantısının hedefi izlenen yollarda bu harflerle yok: %s", belge, i+1, target, targetFile)
 					continue
 				}
 				if anchor == "" {

@@ -1,0 +1,7 @@
+# TR 4
+# TEST 13.1 argüman almayan yerleşiğe verilen konumlu argüman denetim hatasıdır, çalışma anındaki kodla: TR_time_ms, TR_monotonic_ns, TR_machine ve öbürleri
+TR_print(TR_monotonic_ns(1)) # ERROR H2012
+TR_print(TR_time_ms(1)) # ERROR H2012
+TR_print(TR_machine(1)) # ERROR H2012
+TR_print(TR_compute_dtype(1)) # ERROR H2012
+TR_print(TR_time_ms(), TR_monotonic_ns())

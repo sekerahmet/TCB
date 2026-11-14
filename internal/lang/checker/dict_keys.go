@@ -32,6 +32,27 @@ func (c *Checker) checkDictKey(at ast.Node, container, key string) {
 	}
 }
 
+// keyTypeError TR_Dict[K, V] yazımında K'nin anahtar olamamasının hatasıdır, çalışma anının koduyla
+// (3.7, DictKeyError): ondalık H2646, içeriği yerinde değişen kap (liste, sözlük, tensör) H2495,
+// anahtar olamayan öğeli demet H2773. Öbür tipler (kullanıcının tipleri dahil) çalışma anına kalır.
+func (c *Checker) keyTypeError(key string) error {
+	s := shapeOf(key)
+	switch {
+	case s.optional:
+		return nil
+	case key == typeFloat:
+		return messages.New(messages.H2646, c.typeArg(key))
+	case s.base == typeList || s.base == typeDict || s.base == typeTensor:
+		return messages.New(messages.H2495, c.typeArg(key))
+	}
+	for i, el := range s.elems {
+		if err := c.keyTypeError(el); err != nil {
+			return messages.New(messages.H2773, i, err)
+		}
+	}
+	return nil
+}
+
 // checkDictKeyArg sözlüğün .TR_get(k), .TR_contains(k) ve .TR_remove(k) argümanını anahtar olarak denetler.
 func (c *Checker) checkDictKeyArg(e *ast.CallExpression, objType string, argTypes []string) {
 	if len(argTypes) != 1 {

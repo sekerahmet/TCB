@@ -107,7 +107,7 @@ func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
 		{"kart", []string{"--kip", "dosya", "--cihaz", "kart"}, `bilinmeyen cihaz "kart"`, "DENEME", true},
 		{"boş ad", []string{"--kip", "dosya", "--cihaz", ""}, `bilinmeyen cihaz ""`, "DENEME", true},
 		{"gpu:7", []string{"--kip", "dosya", "--cihaz", "gpu:7"}, "gpu:7 cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: cpu, gpu:0", "DENEME", true},
-		{"ekranlı, gpu", []string{"--kip", "canlı", "--ekran", "0", "--cihaz", "gpu"}, "--cihaz gpu:0 ekranlı kipte verilmez", "EKRAN", true},
+		{"ekranlı, gpu", []string{"--kip", "canlı", "--ekran", "0", "--cihaz", "gpu"}, "--cihaz gpu ekranlı kipte verilmez", "EKRAN", true}, // kullanıcının yazdığı ad, motorun uzun adı değil
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()

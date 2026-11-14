@@ -90,7 +90,9 @@ func (b *structBody) method() bool {
 	fnTok := p.curToken()
 	p.role(p.peekToken(), RoleStructMethod)
 	// Hatalı metod tanımında parseFunctionLiteral nil döner; tip dönüşümü panik yapmamalı
+	p.methodParams = true
 	fn, _ := p.parseFunctionLiteral().(*ast.FunctionLiteral)
+	p.methodParams = false
 	if fn == nil {
 		// Hata zaten kaydedildi; yapının kapanışına kadar atla
 		p.skipToBlockEnd()
@@ -252,7 +254,20 @@ func (p *Parser) checkConstructor(fn *ast.FunctionLiteral) {
 // onu ardındaki virgülle siler. Ardından başka parametre geliyorsa ona geçer ve true döner; 'kendi'
 // listenin sonundaysa yerinde kalır ve false döner.
 func (p *Parser) selfParameterError() bool {
+	return p.cutSelfParameter(p.curToken())
+}
+
+// pythonSelfError metodun ilk parametresi Python'un self'iyse (adıyla, tipli ya da tipsiz) sözdizimi
+// hatasıdır (7.3): ileti yazılan adı ve 'kendi'yi söyler, düzeltme parametreyi tipiyle siler.
+func (p *Parser) pythonSelfError() bool {
 	self := p.curToken()
+	p.parseTypeAndDefault()
+	return p.cutSelfParameter(self)
+}
+
+// cutSelfParameter self'ten bu parametrenin sonuna kadarını (ardında virgül varsa onunla) silen
+// düzeltmeyle H0284'ü bildirir.
+func (p *Parser) cutSelfParameter(self lexer.Token) bool {
 	end := p.peekToken()
 	more := p.peekTokenIs(lexer.TokComma)
 	if more {
@@ -260,7 +275,7 @@ func (p *Parser) selfParameterError() bool {
 		end = p.peekToken()
 	}
 	cut := messages.Range{Line: self.Line, Col: self.Column, EndLine: end.Line, EndCol: end.Column}
-	p.syntaxErrorFix(self, []messages.Fix{{Range: cut, Applicable: true}}, messages.H0284, p.tokenName(self))
+	p.syntaxErrorFix(self, []messages.Fix{{Range: cut, Applicable: true}}, messages.H0284, p.tokenName(self), p.word(codes.KwSelf))
 	if more {
 		p.nextToken()
 	}

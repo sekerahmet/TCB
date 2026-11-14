@@ -270,7 +270,9 @@ TR_test "25.12 süre sıfır, eksi ya da sonlu değilse hata" {
         TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_silence: v) })
         TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_max_speech: v) })
     }
-    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_silence: 1.0e300) } != TR_none)
+    # Çok büyük sessizlik tam sayı taşması (H2484) değil, üst sınırın iletisidir (25.12).
+    TR_assert_equal("H7539", TR_error_code { TR_SpeechSplitter(d, TR_silence: 1.0e300) })
+    TR_assert_equal("H7539", TR_error_code { TR_SpeechSplitter(d, TR_pre_roll: 1.0e300) })
 }
 
 TR_test "25.12 üst sınır baş tamponu artı sessizlikten küçükse hata; öneri çalışır" {

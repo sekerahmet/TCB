@@ -1,6 +1,7 @@
 package stdlib
 
 import (
+	"encoding/json"
 	"sort"
 	"strings"
 	"testing"
@@ -48,6 +49,31 @@ func TestFunctionParamOptionsMatchEngine(t *testing.T) {
 		}
 		if bad := probeOptions(t, k, def.Signature); bad != "" {
 			t.Errorf("%s: %s (tip@argüman:motorun kodu)", k, bad)
+		}
+	}
+}
+
+// Kural (13.1, 13.11): tanımında konumlu parametresi olmayan ("params": []) her yerleşik fonksiyon
+// checker.NoArgumentFunctions'tadır ve motor ona verilen konumlu argümana denetimin kodunu (H2012) verir.
+func TestNoArgumentFunctionsMatchEngine(t *testing.T) {
+	chdirTemp(t)
+	var raw map[string]map[string]any
+	if err := json.Unmarshal(codes.DefinitionData(), &raw); err != nil {
+		t.Fatal(err)
+	}
+	for name, def := range raw {
+		params, given := def["params"].([]any)
+		k, err := codes.Parse(name)
+		if err != nil || def["kind"] != "function" || !given || len(params) != 0 {
+			continue
+		}
+		if !checker.NoArgumentFunctions[k] {
+			t.Errorf("%s: konumlu parametresi yok, checker.NoArgumentFunctions'ta da olmalı", name)
+		}
+	}
+	for k := range checker.NoArgumentFunctions {
+		if code := probeCall(t, k, []string{"1"}, -1, ""); code != "H2012" {
+			t.Errorf("%s(1): motorun kodu %s, denetimin H2012", k, code)
 		}
 	}
 }

@@ -123,6 +123,10 @@ func TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase(t *testing.T) 
 			map[string]string{"ana.tr": "TR_import \"ortak\" TR_as a\nTR_import \"ortak\" TR_as b\nTR_print(a.artır(), b.artır())\n"}, "1 2\n"},
 		{map[string]string{"ortak.tr": counter, "ana.tr": "TR_import \"ORTAK.tr\" TR_as a\nTR_print(a.artır())\n"},
 			messages.H2721, "TR_import \"ortak.tr\"", nil, ""},
+		// Uzantının harf büyüklüğü de (11.1): "ortak.TR" "ortak.TR.tr"yi değil diskteki ortak.tr'yi önerir.
+		{map[string]string{"ortak.tr": counter, "ana.tr": "TR_import \"ortak.TR\" TR_as a\nTR_print(a.artır())\n"},
+			messages.H2721, "TR_import \"ortak\"",
+			map[string]string{"ana.tr": "TR_import \"ortak\" TR_as a\nTR_print(a.artır())\n"}, "1\n"},
 		{map[string]string{"ortak.tr": counter, "alt/m.tr": "TR_import \"ortak\" TR_as o\nTR_func x() -> TR_Int {\n    TR_return o.artır()\n}\n",
 			"ana.tr": "TR_import \"alt/m\" TR_as m\nTR_print(m.x())\n"},
 			messages.H2722, "TR_import \"../ortak\"",
@@ -159,6 +163,40 @@ func TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase(t *testing.T) 
 		out, err := runWithModules(t, root, map[string]string{"ana.tr": "TR_import \"Ortak\" TR_as a\nTR_import \"ortak\" TR_as b\nTR_print(a.kim, b.kim)\n"})
 		if err != nil || out != "büyük küçük\n" {
 			t.Errorf("iki ayrı dosya kendi yazımıyla yüklenmeli: %v\n%q", err, out)
+		}
+	}
+}
+
+// Kural (11.1): mutlak aktarma yolunda da harf büyüklüğü diskteki adla aynı olmalıdır, her
+// sistemde: Windows'ta aynı modül iki yazımla iki kez yüklenmez. İleti diskteki adı verir (H2721),
+// öneri kopyalanınca yüklenir; sürücü harfinin büyüklüğü fark etmez.
+func TestAnAbsoluteImportUsesTheDisksCase(t *testing.T) {
+	// Kısa (8.3) adlı geçici klasör diskte listelenmez; uzun adıyla kurulur (CI'ın Windows'u).
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	runInDir(t, root)
+	counter := "TR_var sayaç = 0\nTR_func artır() -> TR_Int {\n    sayaç += 1\n    TR_return sayaç\n}\n"
+	disk := filepath.ToSlash(filepath.Join(root, "Ortak", "mb"))
+	wrong := filepath.ToSlash(filepath.Join(root, "ortak", "mb"))
+	files := map[string]string{"Ortak/mb.tr": counter, "ana.tr": "TR_import \"" + wrong + "\" TR_as a\nTR_print(a.artır())\n"}
+	out, err := runWithModules(t, root, files)
+	if !messages.Has(err, messages.H2721) || !strings.Contains(err.Error(), "TR_import \""+disk+"\"") || out != "" {
+		t.Fatalf("H2721 ve diskteki ad bekleniyordu: %v\n%s", err, out)
+	}
+	files["ana.tr"] = "TR_import \"" + disk + "\" TR_as a\nTR_import \"" + disk + "\" TR_as b\nTR_print(a.artır(), b.artır())\n"
+	if out, err := runWithModules(t, root, files); err != nil || out != "1 2\n" {
+		t.Fatalf("diskteki yazım tek modül olarak yüklenmeli: %v\n%q", err, out)
+	}
+	if vol := filepath.VolumeName(root); len(vol) == 2 && vol[1] == ':' {
+		other := strings.ToLower(vol) + disk[2:]
+		if other == disk {
+			other = strings.ToUpper(vol) + disk[2:]
+		}
+		files["ana.tr"] = "TR_import \"" + other + "\" TR_as a\nTR_print(a.artır())\n"
+		if out, err := runWithModules(t, root, files); err != nil || out != "1\n" {
+			t.Fatalf("sürücü harfinin büyüklüğü fark etmemeli (%s): %v\n%q", other, err, out)
 		}
 	}
 }

@@ -22,7 +22,8 @@ func TestNormEpsilonMustBeFinite(t *testing.T) {
 			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
 		}
 	}
-	mustRun(t, "TR_layer_norm(TR_Tensor([[1.0, 2.0]]), TR_eps: 0.001)")
+	// Değer veren çağrı tek başına deyim olamaz (13.10, H1115): değeri atanır.
+	mustRun(t, "TR_var y = TR_layer_norm(TR_Tensor([[1.0, 2.0]]), TR_eps: 0.001)")
 }
 
 // türev_izle Mantık olmalıdır: dolu bir metin ("yanlış") doğru sayılıp türevi açmaz.

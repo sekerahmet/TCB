@@ -85,13 +85,14 @@ func LibraryModules() []string {
 // directory (dirs[1:], FileDirs) are not searched. Without directories (REPL, a program with no
 // file) it is relative to the working directory. The path's letter case must be the name on disk,
 // on every system: a path that differs only in case is not found (one file must not load as two
-// modules). Absolute paths are tried as is. The interpreter, 'trlang build' and 'trlang check' use
+// modules). An absolute path's case is checked the same way after its volume (the drive letter's
+// case does not matter, 11.1). The interpreter, 'trlang build' and 'trlang check' use
 // this function; ModulePathError says why a path was not found. searched are the places tried,
 // for the error message.
 func ResolveModulePath(filePath string, dirs []string) (resolved string, searched []string, ok bool) {
 	if filepath.IsAbs(filePath) {
 		_, err := os.Stat(filePath)
-		return filePath, []string{filePath}, err == nil
+		return filePath, []string{filePath}, err == nil && !caseDiffers(filePath)
 	}
 	dir := "."
 	if len(dirs) > 0 {
@@ -104,15 +105,21 @@ func ResolveModulePath(filePath string, dirs []string) (resolved string, searche
 
 // ModulePathError is why ResolveModulePath did not find the relative 'aktar' path written (as
 // written, with or without .tr) among dirs (11.1): when only the letter case differs from the
-// name on disk the message gives the name on disk (H2721); when the file is not next to the
+// name on disk, the extension's too ("ortak.TR"), the message gives the name on disk (H2721); when the file is not next to the
 // importing file but the program's directory has it, the message gives the explicit path there
 // (H2722, "../ad"); otherwise fs.ErrNotExist. Both suggestions are 'aktar' paths that load.
 func ModulePathError(written string, dirs []string) error {
 	filePath := written
-	if !strings.HasSuffix(filePath, ".tr") {
+	if ext := filepath.Ext(written); ext != ".tr" && strings.EqualFold(ext, ".tr") {
+		filePath = strings.TrimSuffix(written, ext) + ".tr" // "ortak.TR": uzantının harf büyüklüğü de diskteki adla
+	} else if !strings.HasSuffix(filePath, ".tr") {
 		filePath += ".tr"
 	}
 	if filepath.IsAbs(filePath) {
+		root, rest := splitVolume(filePath)
+		if disk, found := diskSpelling(root, rest); found {
+			return messages.New(messages.H2721, writtenLike(written, filepath.ToSlash(root)+disk))
+		}
 		return fs.ErrNotExist
 	}
 	dir := "."
@@ -130,6 +137,28 @@ func ModulePathError(written string, dirs []string) error {
 		}
 	}
 	return fs.ErrNotExist
+}
+
+// caseDiffers mutlak yolun sürücüden sonraki bileşenlerinden birinin diskte başka harf büyüklüğüyle
+// yazıldığını söyler (11.1). filepath.EvalSymlinks Windows'ta her bileşenin diskteki yazımını verir
+// (klasörü listelemeden); harf büyüklüğüne duyarlı sistemde yol aynı kalır. Yalnız harf büyüklüğüyle
+// ayrılan sonuç farktır: bağlantının gösterdiği başka yer ve kısa (8.3) adın açılımı denetlenmez.
+func caseDiffers(path string) bool {
+	real, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false
+	}
+	_, a := splitVolume(filepath.Clean(path))
+	_, b := splitVolume(real)
+	return a != b && strings.EqualFold(a, b)
+}
+
+// splitVolume mutlak yolu kök (`C:\`, "/") ve ondan sonraki göreli yola ayırır: kökün (sürücü harfi)
+// harf büyüklüğü diskSpelling'e girmez (11.1).
+func splitVolume(path string) (root, rest string) {
+	vol := filepath.VolumeName(path)
+	rest = strings.TrimLeft(path[len(vol):], `/\`)
+	return path[:len(path)-len(rest)], rest
 }
 
 // writtenLike path'i yazılan yol gibi yazar: yazılan yolda .tr yoksa öneride de olmaz.

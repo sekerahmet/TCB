@@ -178,5 +178,5 @@ TR_test "24.8 kimliğiyle <start_of_turn> geçen cevap metin kalır, etiket içe
     TR_var sıra = önce.TR_length + 1
     TR_assert_equal("H7186", TR_error_code { TR_throw h[0] })
     TR_assert_equal("gemma3_cevabı: cevabın \(sıra). kimliği `<start_of_turn>`: model yeni bir sıra başlattı; cevap metin olarak kaldı, etiket `ileti.TR_content`'te görünür ve sıra kurulmadı; üretimi ailenin durma parçalarında durdurun: `TR_eos: model.TR_eos_tokens()` (24.8)", h[0].TR_text("tr"))
-    TR_assert_equal("gemma3_reply: token \(sıra) of the reply is `<start_of_turn>`: the model started a new turn; the reply was kept as text, the tag shows in `ileti.TR_content` and no turn was built; stop generation at the family's stop tokens: `TR_eos: model.TR_eos_tokens()` (24.8)", h[0].TR_text("en"))
+    TR_assert_equal("gemma3_reply: token \(sıra) of the reply is `<start_of_turn>`: the model started a new turn; the reply was kept as text, the tag shows in the message's `.TR_content` and no turn was built; stop generation at the family's stop tokens: `TR_eos: model.TR_eos_tokens()` (24.8)", h[0].TR_text("en"))
 }

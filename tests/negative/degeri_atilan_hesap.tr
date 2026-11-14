@@ -1,0 +1,13 @@
+# TR 4
+# TEST 13.10 13.1'in hesapları ve değer veren tensör işlemleri de yalnız yeni değer verir: tek başına çağrı deyim olamaz, değeri atılır
+TR_var t = TR_Tensor([1.0, 2.0, 3.0])
+TR_sqrt(4.0) # ERROR H1115
+TR_sum([1, 2]) # ERROR H1115
+TR_max(1, 2) # ERROR H1115
+TR_round(2.5) # ERROR H1115
+TR_softmax(t) # ERROR H1115
+TR_log_softmax(t) # ERROR H1115
+TR_mean(t) # ERROR H1115
+TR_where(t > 1.0, t, 0.0) # ERROR H1115
+TR_zeros([2]) # ERROR H1115
+TR_print(TR_sqrt(4.0), TR_softmax(t))

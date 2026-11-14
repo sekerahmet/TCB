@@ -344,6 +344,10 @@ TR_test "23.6 şekil: [m, örnek // 160 + 3000]; alt sınır 8 birimi aşmaz" {
 TR_test "23.6 denetim sırası: şekil, hız, kanal, boş ses" {
     TR_var yanlış = TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 8000)
     TR_assert_equal("H7079", TR_error_code { TR_whisper_log_mel(yanlış, TR_n_mels: 80) })
+    # İleti yeniden örneklemeyi kabuk komutuyla değil TR_run_process yazımıyla önerir (23.6, 21.1).
+    TR_var ileti = ""
+    TR_try { TR_whisper_log_mel(yanlış, TR_n_mels: 80) } TR_catch h { ileti = TR_String(h) }
+    TR_assert(ileti.TR_contains("`TR_run_process(") TR_and ileti.TR_contains("16000") TR_and TR_not ileti.TR_contains("`ffmpeg "), ileti)
     TR_var iki = TR_Sound(TR_samples: TR_zeros([2, 16]), TR_sample_rate: 16000)
     TR_assert_equal("H7079", TR_error_code { TR_whisper_log_mel(iki, TR_n_mels: 80) })
     TR_var boş = TR_Sound(TR_samples: TR_zeros([1, 0]), TR_sample_rate: 16000)

@@ -93,6 +93,9 @@ var suggestionCases = []suggestionCase{
 	{messages.H1115, "TR_var l = [3, 1, 2]\nl.TR_sort()\nTR_print(l)", "l.TR_sort()", "l = l.TR_sort()"},
 	{messages.H2474, "TR_var l = [\"a\", \"b\"]\nTR_print(\" \".TR_join(l))", "\" \".TR_join(l)", "l.TR_join(\" \")"},
 	{messages.H2474, "TR_var l = [1, 2]\nTR_print(l.pop())", "pop", "TR_pop"}, // tanıdık ad, dosyada kimlikle (DENETİM istek 125 N2)
+	// 13.6: TR_reduce'un başlangıcı önce, fonksiyonu sonra gelir; fonksiyon birikimi ve öğeyi alır.
+	{messages.H2475, "TR_var l = [1, 2]\nTR_print(l.TR_reduce((acc, x) => acc + x, 0))", "((acc, x) => acc + x, 0)", "(0, (acc, x) => acc + x)"},
+	{messages.H2476, "TR_print([1, 2].TR_reduce(0, (x) => x))", "(x) => x", "(acc, x) => acc + x"},
 	{messages.H0299, "TR_var x = 1\nTR_func f() -> TR_Int {\n    TR_defer { TR_return 5 }\n    TR_return 1\n}\nTR_print(f())", "TR_defer { TR_return 5 }", "TR_defer { TR_if x > 0 { TR_print(x) } }"},
 	{messages.H0300, "TR_func f() {\n    TR_defer TR_print(1)\n}\nf()", "TR_defer TR_print(1)", "TR_defer { TR_print(1) }"},
 	{messages.H2910, "TR_try { TR_throw \"x\" } TR_catch { TR_print(1) }", "TR_catch", "TR_catch e"},

@@ -22,7 +22,7 @@ TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 - *Test:* TR testi.
 
 **6.4** Varsayılan değer `p: T = ifade` diye yazılır; varsayılanlı bir parametreden sonraki parametrelerin de varsayılanı vardır. Varsayılan, argümanı verilmediğinde her çağrıda yeniden, soldan sağa hesaplanır: önceki parametreleri ve fonksiyonun tanımlandığı kapsamı görür (`TR_func f(a: TR_Int, b: TR_Int = a * 2)` ile `f(1)` → `b` 2). Parametrenin kendisi ve sonraki parametreler varsayılanda kullanılamaz (denetim hatası). Varsayılanı `[]` olan parametre her çağrıda yeni bir liste alır.
-- *Test:* TR testi.
+- *Test:* TR testi; parametrenin kendisi ve sonrakiler: `TestDefaultSeesOnlyEarlierParameters`, olumsuz fikstür `tests/negative/varsayilan_ileri.tr`.
 
 **6.5** Argümanlar önce sırayla, sonra adla verilir: `f(10, k: 2)`; adlı argümanların kendi arasındaki sırası serbesttir.
 - Python'un `k=2` yazımı sözdizimi hatasıdır; ileti `k: 2`'yi önerir.

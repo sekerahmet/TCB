@@ -26,9 +26,9 @@ var repoTypeQueryRules = []typeQueryRule{
 	},
 	{
 		pkg:    "internal/compute/tensor",
-		tests:  []string{"TestBackendDataCallsGoThroughTheGate", "TestHostBlockReadersKeepTheirTensors", "TestHostBlockSlicesStayWithTheirBlock"},
+		tests:  []string{"TestBackendDataCallsGoThroughTheGate", "TestHostBlockReadersKeepTheirTensors", "TestHostBlockSlicesStayWithTheirBlock", "TestKernelBodiesCallNoGate"},
 		scope:  scanScope{bases: []string{"internal/compute/tensor"}, inc: []string{".go"}, exc: []string{"_test.go"}},
-		reason: "type-checks non-test .go files of internal/compute/tensor via (*types.Config).Check to enforce backend data gate calls and host block lifetimes",
+		reason: "type-checks non-test .go files of internal/compute/tensor via (*types.Config).Check to enforce backend data gate calls, kernel bodies that call no gate, and host block lifetimes",
 	},
 }
 

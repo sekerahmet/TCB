@@ -10,7 +10,7 @@
 
 ```text
 > trlang format --check .
-biçimlenmeli: hesap.tr
+biçimlenmeli: hesap.tr:4 (biçimin ilk farklı satırı)
 3 dosyadan 1 tanesi biçimlenmeli. Düzeltmek için: trlang format <dosya|klasör>
 > trlang format .
 biçimlendi: hesap.tr

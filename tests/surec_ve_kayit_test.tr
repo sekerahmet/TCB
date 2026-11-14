@@ -233,7 +233,7 @@ TR_test "19.12 makine() anlık görüntüyü Makine olarak verir; üyeler tipli 
     TR_var bellek = TR_min(m.TR_memory_total_bytes, m.TR_memory_limit_bytes ?? m.TR_memory_total_bytes)
     TR_assert(bellek > 0 TR_and bellek <= m.TR_memory_total_bytes)
     TR_assert(m.TR_usable_cpus >= 1)
-    TR_assert_equal("H2012", TR_error_code { TR_machine(1) })
+    # Argüman verilmesi denetim hatasıdır (H2012): tests/negative/arguman_almayan.tr
 }
 
 TR_test "19.12 işletim sistemi ve mimari kapalı tablodan ya da Go adı" {

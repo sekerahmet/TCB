@@ -138,3 +138,31 @@ func TestPhase3TRProgramRunsOnCPU(t *testing.T) {
 		t.Fatalf("phase3_tr.tr CPU'da koşmadı: %v\n%s", err, out)
 	}
 }
+
+// Kural (kitaplık kimlikle yazılır, 17): hücre 21'in kitaplık yaması aradığı her metni
+// lib/layers.tr'de tam bir kez bulur; görünüm metniyle yazılmış ya da kitaplık değiştikçe eskiyen
+// yama Colab'a gitmeden düşer.
+func TestColabLibraryPatchFindsItsText(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("tools/gpu/COLAB.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := strings.ReplaceAll(string(data), "\r\n", "\n")
+	start, end := strings.Index(doc, "### Hücre 21 "), strings.Index(doc, "### Hücre 22 ")
+	if start < 0 || end < start {
+		t.Fatal("COLAB.md'de hücre 21 ya da 22 bulunamadı")
+	}
+	lib, err := os.ReadFile(reporoot.Path("lib/layers.tr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pairs := regexp.MustCompile(`\("([^"]+)", "([^"]*)"\)`).FindAllStringSubmatch(doc[start:end], -1)
+	if len(pairs) == 0 {
+		t.Fatal("hücre 21'de yama çifti bulunamadı")
+	}
+	for _, p := range pairs {
+		if n := strings.Count(string(lib), p[1]); n != 1 {
+			t.Errorf("hücre 21'in yaması %q metnini lib/layers.tr'de %d kez buluyor, bir kez olmalı", p[1], n)
+		}
+	}
+}

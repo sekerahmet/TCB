@@ -4,6 +4,8 @@ import (
 	"math"
 	"slices"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Kural (15.1): TR_Int, TR_Bool ve float64 tensörlerinin depolaması kayıpsızdır; 2²⁴'ün
@@ -101,6 +103,13 @@ func TestTypedIntArith(t *testing.T) {
 
 // Kural (15.3): cins dönüşümü ondalığı sıfıra doğru keser, NaN ve sığmayan değer hata; tam
 // sayıdan ondalığa en yakına (eşitlikte çifte) yuvarlar, çift yuvarlama yapmaz.
+// ConvertSortIndex'in sözleşmesi bozulursa (tam sayı olmayan indeks) iç hata kodlu paniktir
+// (messages.Internalf, H9000), paketin öbür iç hataları gibi; düz metinli panik değil.
+func TestConvertSortIndexBrokenContractIsInternal(t *testing.T) {
+	n := New([]float32{1, float32(math.NaN())}, 2)
+	panicCode(t, "NaN'lı sıralama indeksi", messages.H9000, func() { ConvertSortIndex(n, Int64) })
+}
+
 func TestTypedConvert(t *testing.T) {
 	f := New([]float32{2.7, -2.7}, 2)
 	if r, e := Convert(f, Int64); e != nil || !slices.Equal(r.Int64s(), []int64{2, -2}) {

@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -155,6 +156,83 @@ TR_var s = TR_serve_http(f)`, map[string]interp.Value{"say": say})
 		if time.Now().After(deadline) {
 			t.Fatalf("istemci gidince blok durmalı: sayaç %d", n.Load())
 		}
+	}
+	// Yazarken kopan istemci hata değildir: standart hataya satır yazılmaz (28.9).
+	if out := ts.errOut.String(); out != "" {
+		t.Errorf("kopan istemci standart hataya satır yazdırmamalı: %q", out)
+	}
+}
+
+// TestRequestStreamSlowWriteCloses: okumayan istemcide bir yazma slowWrite'ı aşınca istek akışının
+// bağlantısı kapanır ve blok iptal edilir; standart hataya satır yazılmaz (28.7, 28.9).
+func TestRequestStreamSlowWriteCloses(t *testing.T) {
+	old := slowWrite
+	slowWrite = 200 * time.Millisecond
+	t.Cleanup(func() { slowWrite = old })
+	say, n := counter()
+	ts := serveTR(t, `TR_var parça = "a" * 262144
+TR_func f(i: TR_Request) -> TR_Response {
+    TR_return TR_stream_response((a) => {
+        a.TR_send_event(0)
+        TR_for k TR_in 1..100000 {
+            say()
+            a.TR_send_event(parça)
+        }
+    })
+}
+TR_var s = TR_serve_http(f)`, map[string]interp.Value{"say": say})
+	res, c := streamGet(t, ts, "GET", "/")
+	if line, err := bufio.NewReader(res.Body).ReadString('\n'); err != nil || line != "data: 0\n" {
+		t.Fatalf("ilk olay: %q %v", line, err)
+	}
+	// İstemci okumayı bırakır: yazma takılır, süre aşılır, blok durur.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		before := n.Load()
+		time.Sleep(3 * slowWrite)
+		if n.Load() == before {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("yazma süresi aşılınca blok durmalı: sayaç %d", n.Load())
+		}
+	}
+	// Blok yalnız takılmış değil, iptal edilmiş ve bağlantı kapanmıştır: istemci kalanı okuyunca akış
+	// süre dolmadan biter ve blok yeniden yazmaya başlamaz (takılmış olsaydı okuma onu sürdürürdü).
+	stopped := n.Load()
+	_ = c.SetReadDeadline(time.Now().Add(10 * time.Second))
+	_, err := io.Copy(io.Discard, res.Body)
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() || n.Load() != stopped {
+		t.Fatalf("yazma süresi aşılınca bağlantı kapanmalıydı: %v, sayaç %d → %d", err, stopped, n.Load())
+	}
+	if out := ts.errOut.String(); out != "" {
+		t.Errorf("takılan istemci standart hataya satır yazdırmamalı: %q", out)
+	}
+}
+
+// TestPlainResponseClientGoneWritesNoLine: düz cevabın gövdesini yazarken kopan istemci de hata
+// değildir: standart hataya satır yazılmaz, sunucu öbür istekleri cevaplamayı sürdürür (28.9).
+func TestPlainResponseClientGoneWritesNoLine(t *testing.T) {
+	ts := serveTR(t, `TR_var büyük = "a" * 16000000
+TR_func f(i: TR_Request) -> TR_Response {
+    TR_if i.TR_path == "/büyük" { TR_return TR_Response(TR_body: büyük) }
+    TR_return TR_Response(TR_body: "tamam")
+}
+TR_var s = TR_serve_http(f)`, nil)
+	res, c := streamGet(t, ts, "GET", "/büyük")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("durum %d", res.StatusCode)
+	}
+	c.Close() // gövdenin çoğu yazılmadan
+	time.Sleep(300 * time.Millisecond)
+	res2, _ := streamGet(t, ts, "GET", "/")
+	body, err := io.ReadAll(res2.Body)
+	if err != nil || string(body) != "tamam" {
+		t.Fatalf("sunucu sürmeli: %q %v", body, err)
+	}
+	if out := ts.errOut.String(); out != "" {
+		t.Errorf("kopan istemci standart hataya satır yazdırmamalı: %q", out)
 	}
 }
 

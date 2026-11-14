@@ -216,6 +216,9 @@ func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 		if valueThrough[f.Token.Code] && len(e.Arguments) > 0 {
 			return c.functionArgNoValue(e.Arguments[len(e.Arguments)-1])
 		}
+		if f.Token.Code == codes.FnWaitAll && c.waitAllType(e, codes.FnWaitAll) == listType(typeNull) {
+			return true // 10.5: değer vermeyen görevlerin TR_wait_all'u da değer vermez (3.5)
+		}
 		if none, decided := ArityNoValue(f.Token.Code, len(e.Arguments)); decided {
 			return none
 		}

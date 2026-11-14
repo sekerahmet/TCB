@@ -81,10 +81,7 @@ TR_test "6.4 varsayılan değer önceki parametreleri görür" {
     TR_assert_equal([1, 2, 3], g(1))
     TR_assert_equal([1, 5, 6], g(1, 5))
     TR_assert_equal([1, 2, 9], g(1, z: 9))
-    # Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
-    TR_var b = 7
-    TR_func h(a: TR_Int = b, b: TR_Int = 1) -> TR_Int { TR_return a }
-    TR_assert_equal("H2440", TR_error_code { h() })
+    # Sonraki parametre (ve parametrenin kendisi) varsayılanda denetim hatasıdır: tests/negative/varsayilan_ileri.tr
     # Varsayılan her çağrıda yeniden hesaplanır
     TR_func liste_al(l: TR_List[TR_Int] = []) -> TR_List[TR_Int] { l.TR_append(1); TR_return l }
     TR_assert_equal([1], liste_al())

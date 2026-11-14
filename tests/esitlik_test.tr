@@ -120,6 +120,9 @@ TR_test "4.5 aynı alt nesneyi birçok yerde tutan değer" {
     # 30 katta 2^30 yol: karşılaştırma yolları değil düğümleri gezer
     TR_assert(paylaşılan(30) == paylaşılan(30))
     TR_assert(paylaşılan(30) != paylaşılan(31))
+    # 60 katta 2^60 yol: yolları gezen karşılaştırma bitmezdi, düğümleri gezen doğrusal biter
+    TR_assert(paylaşılan(60) == paylaşılan(60))
+    TR_assert(paylaşılan(60) != paylaşılan(61))
 }
 
 TR_test "4.5 karşılaştırılamayan öğe ilk farktan önce de aranır" {

@@ -33,3 +33,23 @@ func TestDictKeyType(t *testing.T) {
 	noErrors(t, d+"TR_print(d[\"a\"], d.TR_get(\"b\"), d.TR_contains(\"a\"))\nd[\"b\"] = 2\nTR_var e = {(1, 2): \"a\"}\nTR_print(e[(3, 4)])")
 	noErrors(t, "TR_var d = {}\nd[1] = \"a\"\nd[\"b\"] = 2\nTR_var k = [1, \"a\"][0]\nTR_var e = {\"a\": 1}\nTR_print(e[k])")
 }
+
+// Kural (3.7): TR_Dict[K, V] yazımında anahtar olamayan K denetim hatasıdır, çalışma anının koduyla
+// (DictKeyError): içeriği yerinde değişen kap (liste, sözlük, tensör) H2495, anahtar olamayan öğeli
+// demet H2773. Anahtar olabilen tipler ve demetleri hatasızdır.
+func TestWrittenDictKeyType(t *testing.T) {
+	for _, tc := range []struct {
+		key  string
+		code messages.Code
+	}{
+		{"TR_List[TR_Int]", messages.H2495},
+		{"TR_Dict[TR_String, TR_Int]", messages.H2495},
+		{"TR_Tensor", messages.H2495},
+		{"(TR_Int, TR_List[TR_Int])", messages.H2773},
+		{"(TR_Int, (TR_String, TR_Float))", messages.H2773},
+	} {
+		singleError(t, "TR_var e: TR_Dict["+tc.key+", TR_Int] = {}", tc.code, 1)
+	}
+	noErrors(t, "TR_var a: TR_Dict[TR_Int, TR_Int] = {}\nTR_var b: TR_Dict[(TR_Int, TR_String), TR_Int] = {}\n"+
+		"TR_var c: TR_Dict[TR_Bytes, TR_List[TR_Int]] = {}\nTR_var d: TR_Dict[TR_Bool, TR_Int] = {}")
+}

@@ -16,7 +16,8 @@ import (
 // tipten yazılır.
 
 // expect t bir fonksiyon tipiyse value'daki fonksiyon ifadesinin dönüş tipi bilinir; liste ve demet
-// değişmezinin öğeleri öğe tipiyle; TR_if ve TR_match'in tipi t'dir (hepsi TR_none dallar).
+// değişmezinin öğeleri öğe tipiyle, sözlük değişmezinin değerleri değer tipiyle; TR_if ve TR_match'in
+// tipi t'dir (hepsi TR_none dallar).
 func (c *Checker) expect(t *ast.TypeRef, value ast.Expression) {
 	if t == nil {
 		return
@@ -34,6 +35,12 @@ func (c *Checker) expect(t *ast.TypeRef, value ast.Expression) {
 		if len(t.Args) == 1 {
 			for _, el := range v.Elements {
 				c.expect(&t.Args[0], el)
+			}
+		}
+	case *ast.DictLiteral:
+		if len(t.Args) == 2 {
+			for _, p := range v.Pairs {
+				c.expect(&t.Args[1], p.Value)
 			}
 		}
 	case *ast.TupleExpression:

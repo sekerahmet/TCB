@@ -30,7 +30,7 @@ const containerPre = "TR_struct Nokta {\n    x: TR_Int = 0\n    TR_func liste() 
 // kopya adımı çalışma hatasıdır, denetimle aynı kodla; indeks, alan ve yerinde değiştirici metot
 // hedefinde. Hedefin yeri sağ yandan ve argümanlardan önce hesaplanır: hata sağ yan değerlendirilmeden
 // çıkar. Ad, alan ve kap öğesinden geçen yazma hatasızdır. TR_List(j) ve TR_Logger'ın .TR_append'i
-// kitaplık yerleşiğidir; onlar TR testindedir (tests/deyimler_test.tr, "5.4 hedefin zinciri").
+// kitaplık yerleşiğidir; onlar TR testindedir (tests/yazma_zinciri_test.tr, "5.4 hedefin zinciri").
 func TestContainerWriteChainAtRunTime(t *testing.T) {
 	for _, c := range []struct {
 		code string

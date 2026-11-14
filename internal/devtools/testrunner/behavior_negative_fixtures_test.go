@@ -26,7 +26,9 @@ import (
 // o satırda verdiği hata; bir satırda birden çok kod boşlukla yazılır (codeindex.FixtureLabels). Her
 // fikstürde en az bir `# TEST 2.6 açıklama` satırı sınadığı kuralı söyler (TestEveryRuleHasATest onu
 // tests/ altındaki bir TR testi sayar). Aktarmalar dosyanın başında olduğundan (2.1) bir TR testi
-// hatalı bir modülü içeride aktarıp kodunu yakalayamaz.
+// hatalı bir modülü içeride aktarıp kodunu yakalayamaz. Sözdizimi hatası olan dosyada tip denetimi
+// hiç koşmaz: aynı fikstürdeki tip hatası etiketi gelmez ve test düşer; tip hatalarını sınayan
+// satırlar ayrı bir fikstüre yazılır.
 var fixtureTestRe = regexp.MustCompile(`(?m)^# TEST (\d+\.\d+[a-z]?)\s`)
 
 // fixtureDiags tanıları fikstürün etiketleriyle karşılaştırılacak biçime çevirir: kod en içteki

@@ -88,7 +88,9 @@ func TestWavMessagesGiveTheFix(t *testing.T) {
 	cases := []struct {
 		text, want string
 	}{
-		{messages.TextIn("tr", messages.H7061, "a.wav", "pcm", "24 bit"), "`ffmpeg -nostdin -i girdi -c:a pcm_s16le çıktı.wav`"},
+		// 22.4: dil tanımının yazımı (21.1), kabuk komutu değil
+		{messages.TextIn("tr", messages.H7061, "a.wav", "pcm", "24 bit"), "`TR_run_process(\"ffmpeg\", [\"-nostdin\", \"-y\", \"-i\", \"girdi.wav\", \"-c:a\", \"pcm_s16le\", \"çıktı.wav\"])`"},
+		{messages.TextIn("en", messages.H7061, "a.wav", "pcm", "24 bit"), "`TR_run_process(\"ffmpeg\", [\"-nostdin\", \"-y\", \"-i\", \"input.wav\", \"-c:a\", \"pcm_s16le\", \"output.wav\"])`"},
 		{messages.TextIn("tr", messages.H7067, "a.wav", "data", 8, 2), "sesi dosyaya yazın"},
 		{messages.TextIn("tr", messages.H7080, "a.wav", "ab"), "sesi dosyaya yazın"},
 		{messages.TextIn("tr", messages.H7074, 0, 3, 1.5), "`TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`"},

@@ -38,6 +38,9 @@ type nameScope struct {
 	// coded, kapsamda kodla tanımlanan adlardır: kitaplığın bildirimleri ve kitaplık
 	// fonksiyonlarının parametreleri (ad bağları, bindings.go).
 	coded map[string]codes.Code
+	// later, varsayılanların kapsamında henüz tanımlanmamış parametrelerdir (6.4): adı dış
+	// kapsamdaki aynı adı gölgeler ama okunamaz.
+	later map[string]bool
 }
 
 func newNameScope(parent *nameScope) *nameScope {
@@ -68,6 +71,19 @@ func (k *nameScope) isKnown(name string) bool {
 		}
 	}
 	return builtinNames()[name]
+}
+
+// notYet ad, bu kapsamdan görünen ilk tanımından önce henüz tanımlanmamış bir parametre mi (6.4)?
+func (k *nameScope) notYet(name string) bool {
+	for c := k; c != nil; c = c.parent {
+		if c.names[name] {
+			return false
+		}
+		if c.later[name] {
+			return true
+		}
+	}
+	return false
 }
 
 // visible öneri için bu kapsamdan görünen adlardır (yerleşikler dahil).
@@ -265,11 +281,32 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 	}
 	if d.bindings != nil {
 		d.codeParameters(f, pk)
-	}
-	for _, p := range f.Parameters {
-		d.expression(p.DefaultValue, pk)
+		for _, p := range f.Parameters {
+			d.expression(p.DefaultValue, pk)
+		}
+	} else {
+		d.defaults(f, k, extra)
 	}
 	d.block(f.Body, pk)
+}
+
+// defaults varsayılanları soldan sağa denetler (6.4): varsayılan önceki parametreleri ve dış kapsamı
+// görür; parametrenin kendisi ve sonrakiler henüz tanımlı değildir, dıştaki aynı adlı değişken de
+// kullanılmaz (çalışma anının H2440'ı).
+func (d *nameChecker) defaults(f *ast.FunctionLiteral, k *nameScope, extra []string) {
+	dk := newNameScope(k)
+	for _, a := range extra {
+		dk.define(a)
+	}
+	dk.later = map[string]bool{}
+	for _, p := range f.Parameters {
+		dk.later[p.Name] = true
+	}
+	for _, p := range f.Parameters {
+		d.expression(p.DefaultValue, dk)
+		delete(dk.later, p.Name)
+		dk.define(p.Name)
+	}
 }
 
 // target atamanın sol tarafını denetler: ad tanımlı olmalı (çalışma anında tanımsız ada
@@ -366,7 +403,15 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 
 // name, okunan ya da atanan bir adın görünür olduğunu denetler.
 func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
-	if d.memberName(id, k) || k.isKnown(id.Value) {
+	if d.memberName(id, k) {
+		return
+	}
+	if k.notYet(id.Value) {
+		d.c.nameErrors = append(d.c.nameErrors, messages.AtRange(id.Token.Range(),
+			messages.New(messages.H1010, messages.New(messages.H2440, id.Value))))
+		return
+	}
+	if k.isKnown(id.Value) {
 		return
 	}
 	d.undefined[id] = true

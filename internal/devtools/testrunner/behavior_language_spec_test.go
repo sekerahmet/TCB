@@ -15,6 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/lib"
 )
 
@@ -493,10 +494,17 @@ func TestLanguageSpecTestsPass(t *testing.T) {
 	defer interp.SetLibrary(nil)
 	var out bytes.Buffer
 	summary, err := Run([]string{reporoot.Path("tests")}, &out)
+	// Komut satırındaki gibi (trlang test) açık kaynaklar kapanır ve geçici klasörler silinir:
+	// testler geçici_klasör()'ü sık kullanır, kapanmasa her koşu yüzlercesini bırakırdı.
+	stdlib.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !summary.OK() {
 		t.Fatalf("dil tanımı testleri kaldı: %s\n%s", summary, out.String())
+	}
+	left, _ := reporoot.GlobAll(filepath.Join(os.TempDir(), fmt.Sprintf("tr_%d_*", os.Getpid())))
+	if len(left) > 0 {
+		t.Errorf("testler bitince %d geçici klasör kaldı, ilki %s", len(left), left[0])
 	}
 }
