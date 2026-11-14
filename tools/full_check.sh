@@ -141,6 +141,7 @@ repo_scans=(
 	TestHostBlockReadersKeepTheirTensors
 	TestHostBlockSlicesStayWithTheirBlock
 	TestJSONFieldsHaveExplicitNames
+	TestKernelBodiesCallNoGate
 	TestLibraryModulesDoNotReadTheCommandLine
 	TestMessageArgsAreNotMessageFragments
 	TestRepoTRFilesPassCheck

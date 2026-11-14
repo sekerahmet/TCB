@@ -26,7 +26,8 @@ const schemaVersion = 1
 // 102: strings.Replace, ReplaceAll ve (*Replacer).Replace TR metnini geçirir; .tr dosyasına yazılan metnin ad kodu
 // kenarı Via "trlang" taşır (codegraph dilim 6, D6-4 (a)). 103: kol kenarı (linkCaseTests) Via "case" taşır (D6-4 (b)).
 // 104: paket klasörünü ReadDir(".") ile listeleyen test bir taramadır (scan düğümü; D6-4 (c)).
-const extractorRevision = 104
+// 105: tensör paketinin tip sorgusu kuralı çekirdek gövdesi taramasını (TestKernelBodiesCallNoGate) da sayar (DIL UZMANI iş 7).
+const extractorRevision = 105
 
 // Düğüm türleri.
 const (
