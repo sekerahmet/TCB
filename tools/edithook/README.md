@@ -7,8 +7,10 @@ ve kurallar (`go run ./tools/codegraph tests-for <dosya>`).
 Bir oturum depoda izlenen bir dosyayı ilk kez düzenleyince kanca `tests-for --no-rebuild` cevabının dar
 kısmını ajana bağlam olarak verir (Claude Code'un `additionalContext` cevabı; çıkış kodu
 kullanılmaz, çünkü `go run` programın 2 kodunu 1'e çevirir; codegraph 7, Dilim A): tek cümlelik not, dar `run:` satırları
-ve sayı satırı ("narrow: these lines run the near tests; N more are left to the commit check and G4"); boyut satırı
-(`size (...)`) yalnız dosya ya da bir fonksiyon sınırının %90'ında ya da üstündeyse. Gruplar `tests-for <dosya> --list`
+ve sayı satırı ("narrow: these lines run the near tests; N more are left to the commit check and G4"). Boyut satırı
+(`size (...)`) gösterilmez: boy sınırı olan her dosya damgaya girer, düzenleyince graf bayattır ve kanca yalnız komutu
+verir (aşağıda); sınıra uzaklığı ajanın kendi `tests-for`'unun `size:` satırı verir (codegraph 7 B7, DENETİM 752 N3:
+%90'daki boy satırı gerçek yolda hiç görünmüyordu). Gruplar `tests-for <dosya> --list`
 ile sorulur; 30 satır güvenlik sınırı olarak kalır. **Kanca grafı kurmaz:** graf ağaçtan eskiyse (codegraph
 `--no-rebuild`'de bunu stderr'e yazar) ya da hiç yoksa liste vermez, yalnız "codegraph: the graph is older than the tree;
 run go run ./tools/codegraph tests-for <dosya> for the run: lines (it rebuilds the graph)" yazar. Neden: eski grafla
@@ -17,7 +19,7 @@ kez grafı kurup 6 975 sn bekletmişti. **Kod dosyasında kanca yalnız bu komut
 koşar ve içeriği grafın damgasına giren dosyanın (`.go .json .md .tr .js .mjs .cjs .sh .py`, `go.mod`,
 `tools/codegraph/testdata/planning_questions.txt`) düzenlenmesi grafı bayatlatır (içeriği grafın kurulduğu hâle döndürmedikçe); dar satırları ajanın kendi `tests-for`'u verir (codegraph 7, DENETİM 750 Ş1: taze grafla `fresh.go`'nun
 düzenlenmesinden sonra yalnız bu satır, `ci.yml`'de not ve dar kısım geldi). Denetim: `TestTheHookSaysTheGraphIsStaleAndShowsNoList`,
-`TestTheHookLooksForCodegraphsOwnStaleLine` (aranan baş codegraph'ın kendi satırıdır), `TestTheHookShowsTheSizeLineOnlyNearTheLimit`,
+`TestTheHookLooksForCodegraphsOwnStaleLine` (aranan baş codegraph'ın kendi satırıdır), `TestTheHookLeavesOutTheSizeLine`,
 `TestFirstEditShowsTheNarrowRunLines`. Düzenleme durmaz: 2026-10-28'e kadar
 kanca ilk düzenlemeyi durdurup yinelenmesini istiyordu; bu her dosyada bir tur alıyor, kararı
 değiştirmiyordu. Aynı oturumda aynı dosya için bir daha söylenmez (işaret geçici klasörde,
@@ -73,7 +75,7 @@ birkaç saniye ve bir tekrar.
 ## Testler
 
 `main_test.go`: ilk düzenlemeden sonra cevap bir kez bağlam olarak ajana gider (düzenleme durmaz), sonraki sessizce geçer, başka dosya ve
-başka oturum yeniden görür; gösterilen ilk 30 satır gerçek codegraph cevabında koşu ve boyut satırlarını içerir (kısa
+başka oturum yeniden görür; gösterilen ilk 30 satır gerçek codegraph cevabında dar koşu satırlarını içerir, boyut satırını içermez (kısa
 kipte atlanır); izlenmeyen dosya, yolsuz girdi geçer, bozuk girdi çıkış 1; `locate`
 yalnızca izlenen dosyayı verir (gerçek bir git deposunda; Windows'un kısa yol adlarında da, git
 yolu kendisi verir); kabuk araçlarında ön plandaki uzun komut durur, arka plandaki, hedefli test ve

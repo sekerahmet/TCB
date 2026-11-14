@@ -21,8 +21,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -136,8 +134,9 @@ const (
 )
 
 // testsFor codegraph'a dosyanın dar koşu satırlarını sorar (`tests-for --no-rebuild`, grafı kurmaz): cevabın ilk maxLines
-// satırı, dosya satırı hariç; boyut satırı yalnız dosya ya da bir fonksiyon sınırının %90'ında ya da üstündeyse (A5). Graf bayatsa ya da yoksa
-// cevap yerine staleLine. Araç bu ağaçla derlenmiyorsa cevap son derlenen sürümündür ve başında bunu söyler.
+// satırı, dosya satırı ve boyut satırı hariç. Graf bayatsa ya da yoksa cevap yerine staleLine. Boyut satırı hiç gösterilmez
+// (codegraph 7 B7, DENETİM 752 N3): boy sınırı olan her dosya damgaya girer, onu düzenleyince graf bayattır ve kanca
+// staleLine yazar; sınıra uzaklığı ajanın kendi tests-for'unun size: satırı verir. Araç bu ağaçla derlenmiyorsa cevap son derlenen sürümündür ve başında bunu söyler.
 func testsFor(t target) string {
 	cmd, stale, err := codegraph(t.root, "tests-for", "--no-rebuild", t.rel)
 	var stdout, stderr bytes.Buffer
@@ -152,7 +151,7 @@ func testsFor(t target) string {
 	for _, l := range strings.Split(strings.TrimRight(stderr.String()+stdout.String(), "\n"), "\n") {
 		switch {
 		case strings.HasPrefix(l, t.rel+" ["): // codegraph'ın dosya satırı: not dosyayı zaten adlandırır
-		case strings.HasPrefix(l, "  size (") && !nearLimit(l):
+		case strings.HasPrefix(l, "  size ("):
 		default:
 			lines = append(lines, l)
 		}
@@ -169,24 +168,6 @@ func testsFor(t target) string {
 			"tools/codegraph/README.md, Reading an answer)", err)
 	}
 	return text
-}
-
-// sizeFile boyut satırının dosya kısmıdır: `file 387/600`.
-var sizeFile = regexp.MustCompile(`: file (\d+)/(\d+)`)
-
-// nearLimit codegraph'ın boyut satırı sınıra yakın bir şey söylüyor mu: dosya sınırının %90'ı ya da üstü, %90'daki ya da
-// sınırı aşan bir fonksiyon (codegraph "functions at >=90%" yazar) ya da ayrıştırılamayan dosya.
-func nearLimit(sizeLine string) bool {
-	if strings.Contains(sizeLine, "functions at >=") || strings.Contains(sizeLine, "functions: stale") {
-		return true
-	}
-	m := sizeFile.FindStringSubmatch(sizeLine)
-	if m == nil {
-		return false
-	}
-	n, _ := strconv.Atoi(m[1])
-	limit, _ := strconv.Atoi(m[2])
-	return n*10 >= limit*9
 }
 
 // runCodegraph ön denetimin codegraph çağrısıdır (`go run ./tools/edithook codegraph <args>`):

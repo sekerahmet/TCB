@@ -19,6 +19,8 @@ type changeOpts struct {
 	goTests bool
 	// withoutSelfTests: goTests'ten codegraph'ın kendi testlerini çıkarır (commit kipi; self_tests.go, D6-3).
 	withoutSelfTests bool
+	// byDistance: goTests'in her satırının sonunda near ya da far, önce yakınlar (changed_distance.go; codegraph 7 B1).
+	byDistance bool
 }
 
 // runChanged ref'in (dal ya da a..b / a...b aralığı) değişikliklerini grafiğin düğümlerine eşler:
@@ -56,9 +58,9 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 			fmt.Fprintf(stdout, "%s is an ancestor of %s (git diff %s is empty); for a single commit's change, use `%s~1..%s`\n", ref, o.base, rng, ref, ref)
 		}
 		if o.withoutSelfTests {
-			ix.printGoTestsWithoutSelfTests(stdout, stderr, main)
+			ix.printGoTestsWithoutSelfTests(stdout, stderr, main, o.byDistance)
 		} else {
-			ix.printGoTests(stdout, main)
+			ix.printGoTests(stdout, main, o.byDistance)
 		}
 		return exitOK
 	}
@@ -267,9 +269,11 @@ func (ix *index) testsToRunEach(ts *touchSet) (best map[string]int, subprocess m
 // testler, değişen kodu sınayanlar, alt süreç testleri ve değişen her dosyayı okuyan testler (grafiğin ayrıştırmadığı
 // bir veri dosyası, planning_questions.txt gibi, hiçbir düğüme eşlenmez; onu okuyan test yine de seçilir). TR testleri
 // (trlang test) ve ölçümler (Benchmark) girmez. Ön denetim (tools/full_check.sh --kip=on) bu listeyi koşar.
-func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
-	for _, t := range ix.goTestSelection(ts) {
-		fmt.Fprintln(w, t.dir+" "+t.name)
+// byDistance: satırın sonunda bant, önce yakınlar (goTestsInOrder).
+func (ix *index) printGoTests(w io.Writer, ts *touchSet, byDistance bool) {
+	list, band := ix.goTestsInOrder(ts, byDistance)
+	for _, t := range list {
+		fmt.Fprintln(w, t.dir+" "+t.name+band(t))
 	}
 }
 

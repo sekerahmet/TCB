@@ -232,39 +232,19 @@ func TestTheHookLooksForCodegraphsOwnStaleLine(t *testing.T) {
 	}
 }
 
-// Kural (codegraph 7, A5): kanca boyut satırını yalnız dosya ya da bir fonksiyon sınırının %90'ında ya da üstündeyse
-// gösterir; öbür satırlar (run:, sayı satırı) olduğu gibi kalır.
-func TestTheHookShowsTheSizeLineOnlyNearTheLimit(t *testing.T) {
-	for _, c := range []struct {
-		line string
-		near bool
-	}{
-		{"  size (TestLayoutFileSize, TestLayoutFuncSize): file 387/600; functions: none at >=90% (closest f 45/80)", false},
-		{"  size (TestLayoutFileSize, TestLayoutFuncSize): file 540/600; functions: none at >=90% (closest f 45/80)", true},
-		{"  size (TestLayoutFileSize, TestLayoutFuncSize): file 539/600; functions: none at >=90% (closest f 71/80)", false},
-		{"  size (TestLayoutFileSize, TestLayoutFuncSize): file 346/600; functions at >=90% of their limit: commands 77/80 (split before adding)", true},
-		{"  size (TestLayoutFileSize, TestLayoutFuncSize): file 100/600; functions: stale (syntax error: cannot parse file)", true},
-		{"  size (TestLayoutFileSize): file 74/600", false},
-		{"  size (TestLayoutFileSize): file 0/0", true},
-	} {
-		if got := nearLimit(c.line); got != c.near {
-			t.Errorf("nearLimit(%q) = %v, want %v", c.line, got, c.near)
-		}
-	}
+// Kural (codegraph 7 B7, DENETİM 752 N3): kanca codegraph'ın boyut satırını hiç göstermez, sınıra yakınken de; öbür
+// satırlar (run:, sayı satırı) olduğu gibi kalır. Neden: boy sınırı olan her dosya damgaya girer, düzenleyince graf
+// bayattır ve kanca yalnız S8'i yazar; %90'daki boy satırı gerçek yolda hiç görünmüyordu. Sınıra uzaklığı ajanın kendi
+// tests-for'unun size: satırı verir.
+func TestTheHookLeavesOutTheSizeLine(t *testing.T) {
 	root := fakeCodegraph(t)
-	far := "run: go test -short ./a/\n  narrow: these lines run the near tests; 3 more are left to the commit check and G4 (--list names them)\n" +
-		"  size (TestLayoutFileSize): file 74/600\n"
-	if err := os.WriteFile(filepath.Join(root, "size"), []byte(far), 0o644); err != nil {
+	answer := "run: go test -short ./a/\n  narrow: these lines run the near tests; 3 more are left to the commit check and G4 (--list names them)\n" +
+		"  size (TestLayoutFileSize, TestLayoutFuncSize): file 590/600; functions at >=90% of their limit: f 78/80 (split before adding)\n"
+	if err := os.WriteFile(filepath.Join(root, "size"), []byte(answer), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got := testsFor(target{root, "a.go"})
 	if strings.Contains(got, "size (") || !strings.Contains(got, "\nrun: go test -short ./a/\n  narrow: these lines run the near tests; 3 more") {
-		t.Errorf("far from the limit the size line is left out, the rest stays:\n%s", got)
-	}
-	if err := os.WriteFile(filepath.Join(root, "size"), []byte("  size (TestLayoutFileSize): file 590/600\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if got := testsFor(target{root, "a.go"}); !strings.Contains(got, "\n  size (TestLayoutFileSize): file 590/600") {
-		t.Errorf("near the limit the size line is shown:\n%s", got)
+		t.Errorf("the size line is left out, the rest stays:\n%s", got)
 	}
 }

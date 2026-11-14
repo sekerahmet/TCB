@@ -58,7 +58,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   time-ceilings [--in DIR] [--json]  tests that compare an elapsed duration with a constant ceiling (file:line, constant, test name)
   spec-refs [--list] [--in DIR] [--json]   references to language-definition items (**N.M**, §N.M, the "dil tan…" form): a missing item is an error (exit 1), suffix vowel harmony after N.M is checked; --list prints each reference with the heading it points to
 
-query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --list, --by-package, --min N, --in X, --tests, --base B, --root DIR (default: the repository root above the current directory), --no-rebuild
+query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --list, --by-package, --min N, --in X, --tests, --base B, --by-distance, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
 exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found
 `

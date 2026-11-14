@@ -28,6 +28,7 @@ type queryOpts struct {
 	undirected       bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
 	throughHubs      bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
 	goTests          bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
+	byDistance       bool   // changed --go-tests: satırın sonunda near ya da far, önce yakınlar
 	asJSON           bool   // untested: JSON çıktı
 }
 
@@ -60,6 +61,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
 	fs.BoolVar(&o.goTests, "go-tests", false, "changed: print only the Go tests to run, one \"folder TestName\" per line (the pre-check runs them)")
 	fs.BoolVar(&o.withoutSelfTests, "without-codegraph-self-tests", false, "changed --go-tests: leave out codegraph's own tests unless a change in tools/codegraph or internal/devtools/codeindex selects them (the commit mode; their count goes to stderr)")
+	fs.BoolVar(&o.byDistance, "by-distance", false, "changed --go-tests: end each line with near or far, the near tests first (the commit mode runs them first)")
 	fs.BoolVar(&o.asJSON, "json", false, "untested: machine-readable output")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
@@ -146,7 +148,8 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 		return ix.runUntested(o)
 	}
 	if cmd == "changed" { // adı değil, git revizyonu alır
-		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests, withoutSelfTests: o.withoutSelfTests},
+		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests, withoutSelfTests: o.withoutSelfTests,
+			byDistance: o.byDistance},
 			names[0], o.stdout, o.stderr)
 	}
 	if cmd == "query" && len(names) == 1 && names[0] == "-" { // grep çıktısı: her satıra içeren düğüm

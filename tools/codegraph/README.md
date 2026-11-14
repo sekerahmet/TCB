@@ -6,7 +6,7 @@ files. No network, no model, no new dependency: Go's standard library only. Deve
 shipped to users.
 
 What it is for: for a changed file it gives two lists. The **narrow** list (`tests-for`'s `run:` lines) is run while
-writing; the **wide** list (`changed --go-tests`) is run by the commit mode as its time allows and by G4 in full. The
+writing; the **wide** list (`changed --go-tests`) is run by the commit mode near tests first as its time allows (`--by-distance`) and by G4 in full. The
 edit hook shows the agent at most the narrow lines; after an edit of a code file the graph is stale and it shows only the
 command that gives them. A question this does not answer goes to `grep` or to the command table
 below; a new command needs a measured use.
@@ -141,16 +141,17 @@ graph cannot see), then one `go test -short` with `-run '^(...)$'` over the file
 the Go runner, `testrunner.TestNegativeFixtures`, of any negative `.tr` fixture about it) and its direct tests in other
 packages (the "tests" group: for a Go file the tests that use it, for a non-Go file the tests that read it by name)
 when there are at most 20 of them (`narrowHubLimit`; `vm.go` has 291, `checker.go` 175); more are counted on a line
-of their own, "narrow: N direct tests in other packages are left to the commit check (more than 20)". For a non-Go file
+of their own after the count line, as part of it: "narrow: N of them are direct tests in other packages (more than 20
+stay off the run line)" (before it, as a count of its own, the two lines were added up: DENETİM 750 N1). For a non-Go file
 the tests that walk its whole list are near too. Repository-wide checks that scan the file, the Go tests that run
 programs through the type checker, chains through calls, weak evidence and subprocess tests are far: they stay in
 the groups and are not on the narrow lines (two commands: `-run` applies to every package of one `go test`). One line
 below them counts the far ones, from the pre-check's own selection (`goTestSelection`, the function of
 `changed --go-tests`): "narrow: these lines run the near tests; N more are left to the commit check and G4 (among
-the groups below)" (`--list names them` in the short answer). The commit mode runs that **wide** list as its time
-allows and G4 runs it all; no test is skipped. Codegraph's own tests outside its folders (codegraph slice 6, D6-3,
+the groups below)" (`--list names them` in the short answer). The commit mode runs that **wide** list near tests first as
+its time allows and G4 runs it all; no test is skipped. Codegraph's own tests outside its folders (codegraph slice 6, D6-3,
 `self_tests.go`) are in that count: for a file outside `tools/codegraph/` and `internal/devtools/codeindex/`, a
-`tools/codegraph` test enters the commit mode's selection (`changed --go-tests --without-codegraph-self-tests`, which
+`tools/codegraph` test enters the commit mode's selection (`changed --go-tests --by-distance --without-codegraph-self-tests`, which
 counts the others on stderr: "not run by these commands: N codegraph tests (the full check on Colab runs them)") only
 when it starts with `repoRule(t)`, the mark of a repository rule: a test that checks the repository's own files (the
 fix is in that file) or a golden test that reads them (`TestDottedMemberSpellingsGolden`). A new repository rule
@@ -367,7 +368,12 @@ line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows t
   line: the changed tests, the tests of the changed code, the subprocess tests, and the tests that read, walk or scan any changed file (a data
   file the graph does not parse, such as `planning_questions.txt`, maps to no node, its readers are still listed); the pre-check and the full check
   (`tools/full_check.sh`) run them (`TestChangedGoTestsSelectsTheTestsOfAChangedDataFile`); an untracked file is in neither (DENETİM 2026-10-26:
-  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
+  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). `--by-distance` keeps the same
+  tests and ends each line with `near` or `far`, all near tests first (`changed_distance.go`): near are the changed
+  tests, the tests in a changed Go file's own `_test.go`, the tests about a changed declaration, direct tests, chains of
+  at most 2 steps, the tests that read, walk or scan a changed file, and the fixture runners of these; far are chains of
+  3 steps or more, subprocess tests and the exam. The commit mode asks for it and runs the near tests first, so its time
+  limit leaves the far tests to G4, not the changed file's own (codegraph 7 B1; `TestChangedGoTestsByDistanceMarksNearAndFar`). Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
   for Go files, named from the branch's own copy of the file ("declarations on the branch that the
   graph does not have": new functions, new tests, new test files). A graph written by an older
   codegraph (`extractor` below the tool's) is rebuilt by the next query even when its stamp matches.
@@ -801,6 +807,7 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
 - `fresh_test.go`, `root_test.go`, `changed_test.go`, `deleted_test.go`, `codehist_test.go`: the
   stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
   scan `deleted` reads.
+- `changed_distance_test.go`: `changed --go-tests --by-distance` gives the plain form's tests, near before far.
 - `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
 - `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
   spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),

@@ -48,7 +48,8 @@ const selfTestsLine = "  not run by these commands: %d codegraph tests (the full
 // printGoTestsWithoutSelfTests `changed --go-tests --without-codegraph-self-tests`'tir (commit kipi): seçim printGoTests'inkidir,
 // yalnız codegraph'ın kendi testleri iki klasörün içindeki bir değişiklik seçmediyse çıkar. Standart çıktının biçimi
 // aynıdır; çıkanların sayısı S3 ile standart hataya yazılır (kip "G4'e kaldı" satırına ekler, S7).
-func (ix *index) printGoTestsWithoutSelfTests(w, errw io.Writer, ts *touchSet) {
+// byDistance ile satırlar bantlıdır (goTestsInOrder).
+func (ix *index) printGoTestsWithoutSelfTests(w, errw io.Writer, ts *touchSet, byDistance bool) {
 	inside := newTouchSet()
 	for id, n := range ts.nodes {
 		if inSelfTestFolders(n.File) {
@@ -67,12 +68,13 @@ func (ix *index) printGoTestsWithoutSelfTests(w, errw io.Writer, ts *touchSet) {
 		}
 	}
 	out := 0
-	for _, t := range ix.goTestSelection(ts) {
+	list, band := ix.goTestsInOrder(ts, byDistance)
+	for _, t := range list {
 		if !keep[t] && ix.isCodegraphSelfTest(t) {
 			out++
 			continue
 		}
-		fmt.Fprintln(w, t.dir+" "+t.name)
+		fmt.Fprintln(w, t.dir+" "+t.name+band(t))
 	}
 	if out > 0 {
 		fmt.Fprintf(errw, selfTestsLine, out)
