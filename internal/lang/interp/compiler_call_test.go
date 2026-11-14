@@ -195,4 +195,9 @@ TR_print(dolu, sayaç.TR_length)
 	if want := "none none none none\n0\n5 3 2\n[5, 0] 5\n"; err != nil || out != want {
 		t.Errorf("güvenli çağrı: %q %v, beklenen %q", out, err, want)
 	}
+	// Kısa devre yalnız alıcı TR_none iken: alıcı değer, çağrılan alan TR_none ise H2421 kalır
+	// (çağrılanın yokluğu yutulmaz; DENETİM 766 N1).
+	if _, err := runSourced(t, "TR_struct F {\n    f: (() -> TR_Int)? = TR_none\n}\nTR_print(F()?.f())"); !messages.Has(err, messages.H2421) {
+		t.Errorf("F()?.f(), f TR_none: H2421 bekleniyordu, gelen %v", err)
+	}
 }

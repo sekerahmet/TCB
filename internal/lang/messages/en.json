@@ -406,7 +406,7 @@
 "H2512": "'{line}' is a header that cannot be read: the first line of a TR file must be exactly '{header}' (its second line if the first starts with '#!')",
 "H2513": "… and {count} more {count, plural, one {error} other {errors}} (first {max} shown)",
 "H2514": "no view is written for source with a syntax error: {error}",
-"H2515": "{container} index out of range: {index} (length {length}); if the item may be missing write `.{#get}({index}) ?? default`",
+"H2515": "{container} index out of range: {index} (length {length}); if the item may be missing write `.{#get}({index})` and give a default with `??` when it is missing",
 "H2516": "async task error (started at line {line|loc}): {error}",
 "H2517": "equality failed: {message} — expected {expected}, actual {actual}",
 "H2519": "{error}; error in {defer} as well: {deferred}",

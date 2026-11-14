@@ -411,7 +411,7 @@ const (
 	H2512 Code = 2512 // '{line}' okunamayan bir başlık: TR dosyasının ilk satırı tam olarak '{header}' olmalıdır (ilk satır '#!' ile başlıyorsa ikinci satırı)
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
 	H2514 Code = 2514 // sözdizimi hatası olan kaynağın görünümü yazılmaz: {error}
-	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse `.{#get}({index}) ?? varsayılan` yazın
+	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse `.{#get}({index})` yazın, yok gelince `??` ile bir varsayılan verin
 	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}

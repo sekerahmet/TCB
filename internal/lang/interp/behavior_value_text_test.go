@@ -245,12 +245,13 @@ TR_input(TR_true)
 }
 
 // Kural (3.6, H2515): sınır dışı indeksin ipucu öğeyi okuyan metodu çağrı olarak yazar: nokta, metodun
-// kimliği ve indeks, her dilde aynı (`.TR_get(5) ?? varsayılan`); görünüm adı (varsa_al) kopyalanınca
+// kimliği ve indeks, her dilde aynı (`.TR_get(5)`; ters tırnakta yalnız koşan kod, varsayılan dışarıda,
+// DENETİM 766 N2); görünüm adı (varsa_al) kopyalanınca
 // koşmaz (H2541; TCB 2026-11-15, eskiden ad iletinin dilindeydi, 4D denetimi, bulgu 5). Öneri koşar.
 func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
 	_, err := New().Run(mustParseProgram(t, "[1][5]\n"))
 	tr, en := messages.ErrorIn(err, "tr"), messages.ErrorIn(err, "en")
-	if !strings.Contains(tr, "`.TR_get(5) ?? varsayılan`") || !strings.Contains(en, "`.TR_get(5) ?? default`") || strings.Contains(tr, "varsa_al") {
+	if !strings.Contains(tr, "`.TR_get(5)` yazın") || !strings.Contains(en, "write `.TR_get(5)`") || strings.Contains(tr, "varsa_al") {
 		t.Errorf("tr %q, en %q", tr, en)
 	}
 	if out, err := runSourced(t, "TR_var l = [10, 20, 30]\nTR_print(l.TR_get(5) ?? 0)"); err != nil || out != "0\n" {

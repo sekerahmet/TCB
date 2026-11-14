@@ -146,7 +146,7 @@ func TestUnopenedIndexSuggestionsRun(t *testing.T) {
 			t.Errorf("%s: öneri %q: %q %v, beklenen %q", c.wrong, sug, out, err, want)
 		}
 	}
-	// Tanımın erken çıkışı TR_none'da ifadenin metnini fırlatır: hata bugünkü gibi kalır, açık olur.
+	// Tanımın erken çıkışı `TR_none`'da yine hata verir (değeri ifadenin metni).
 	errs := checkedErrs(t, unopenedPre+"TR_var y = k.l[0]")
 	if len(errs) == 1 {
 		parts := strings.Split(messages.ErrorIn(errs[0], "en"), "`")
