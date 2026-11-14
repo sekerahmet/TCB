@@ -157,7 +157,7 @@ var flowValues = map[string]bool{"gate": true, "hook": true, "agent rules": true
 // <komut>` ya da derlenmiş ikiliyle `"$bin" <komut>` biçiminde çağırır, çağırıyorsa satır gate der (yorum satırı
 // sayılmaz; build bu biçimlerle çağrılmaz, tabloda satırı da yok); hook için tools/edithook'un test dışı Go
 // dosyalarındaki `codegraph(<kök>, "<komut>", ...)` çağrısı. agent rules depo dışındaki belgelere dayanır: onda yalnız
-// kümeye bakılır. merge audit (birleşme başına K5 raporu) 2026-11-15'te durdu, değer kümeden çıktı (gaps.md, Öncelik).
+// kümeye bakılır. merge audit (birleşme başına K5 raporu) 2026-11-15'te durdu, değer kümeden çıktı (codegraph eksiklerinin Öncelik kuralı).
 func TestCommandTableFlowsMatchTheGateAndHook(t *testing.T) {
 	repoRule(t)
 	data, err := os.ReadFile("README.md")
