@@ -4,7 +4,7 @@
 - **Çoklu Atama & Takas:** `TR_var a, b = 10, 20`, `a, b = b, a`, `ad, soyad = ["Mustafa", "Kemal"]`
 - **Fonksiyon & Dönüş:** `TR_func`, `TR_return`, `(x) => x * 2`
 - **Koşul & Eşleştirme:** `TR_if`, `TR_else TR_if`, `TR_else`, `TR_match` (varsayılan kol `_ =>`)
-- **Döngüler & Liste Üreteci:** `TR_for x TR_in liste`, `1..10`, `1..=10`, `TR_break`, `TR_continue`, `[x * x TR_for x TR_in 1..=10 TR_if x % 2 == 0]`
+- **Döngüler & Liste Üreteci:** `TR_for x TR_in liste`, `1..10`, `1..=10`, `TR_break`, `TR_continue`, `[x * x TR_for x TR_in 1..=10 TR_if x % 2 == 0]`; `TR_for i, x TR_in liste` indeksle öğeyi verir; öğe demetse `TR_for (a, b) TR_in çiftler` ya da `TR_for i, (a, b) TR_in çiftler` açar, iki adlı `TR_for a, b` demette hatadır; iç listeyi açmak `TR_for i, satır TR_in tablo` ve `TR_var a, b = satır[0], satır[1]` ile
 - **Mantıksal & Boş:** `TR_true`, `TR_false`, `TR_none`, `TR_and`, `TR_or`, `TR_not` (`&&`, `||` ve tekli `!` sözdizimi hatasıdır, 4.9), `??`, `?.`
 - **Tipler:** `TR_Int`, `TR_Float`, `TR_String`, `TR_Bytes`, `TR_Bool`, `TR_NoneType`, `TR_JSON`, `TR_Range`, `TR_List[T]`, `TR_Dict[K, V]`, `TR_Tensor[T]`, `T?`, demet `(A, B)`, fonksiyon `(A) -> B` (matrisler 2 boyutlu tensördür). Tip açıklamasında tip adı yalnızca kimlik yazımıyla geçerlidir: `tam` ya da `MANTIK` yazılırsa denetleyici `'TR_Int' yazın` (`'TR_Bool' yazın`) der (2.3a). Eş, gösterim ya da yabancı adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'TR_Int' yazmak mı istediniz?`
 - **Yapı:** `TR_struct`, `TR_self` (kalıtım yoktur)

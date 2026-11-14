@@ -230,7 +230,6 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 - **Mevcut durum:** yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor [ölçüldü: main `85a19c36`]. Akışlı okuyucunun iki kez dolaşılması yeniden ölçülmedi.
 - **Yapılacaklar (E, Ö3; sahip D1; DENETİM istek 163):** `TR_next() -> T?` taşıyan yapının dolaşılması: denetimden geçiyor, çalışırken açık hata [ölçüldü: DENETİM 163], tek seferlik dolaşıcı, `T` isteğe bağlıysa denetim hatası (ileti öğeyi sarmayı önerir); TR testi.
-- **Yapılacaklar (A, Ö0; sahip dil çekirdeği kolu (Motor); tur 7, 2026-11-13; DENETİM 638, 639, 644):** döngüde demet deseni (`TR_for (a, b) TR_in l`, `TR_for i, (a, b) TR_in l`) ve öğesi demet olan kaynakta (liste, kuyruk, dolaşıcı, akışlı kaynak; motor iki değişkenli biçimde bunlarda da indeks veriyor, DENETİM 646 Ş1) iki değişkenli `TR_for a, b`'nin denetim hatası yok; `TR_for a, b TR_in [(1, "p"), (2, "q")]` hatasız `0 (1, "p")` veriyor [ölçüldü: TCB'nin koşusu; DENETİM 489 N6]. Metin 5.7'de. Göç: depoda iki değişkenli döngü 71 satır [ölçüldü: tur 7 araştırması]; öğesi demet olanlar denetleyicinin geçici sayacıyla. Kılavuzun liste listesi örneği (`TR_for i, satır` ve `TR_var a, b = satır[0], satır[1]`) aynı dilimde. Veri okuyucunun öğesi iki öğeli bir listedir (girdi ve hedef): `TR_for x, y TR_in okuyucu` indeksi ve listeyi verir; dilim bu döngüyü bir TR testinde sınar, kılavuzun veri okuyucu örneği `TR_for toplu TR_in okuyucu` ve `TR_var x, y = toplu[0], toplu[1]`'i gösterir (DENETİM 646 N1).
 
 ### 5.11
 

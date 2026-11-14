@@ -210,6 +210,14 @@ func (c *Checker) check(prog *ast.Program) {
 	sortByLine(c.errors[start:])
 }
 
+// soleValue çoklu tanım ve atamanın tek sağ yanıdır (5.3); birden çok değer varsa nil (açma yok).
+func soleValue(values []ast.Expression) ast.Expression {
+	if len(values) != 1 {
+		return nil
+	}
+	return values[0]
+}
+
 func (c *Checker) checkStatement(stmt ast.Statement) {
 	if stmt == nil {
 		return
@@ -256,15 +264,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope = prev
 
 	case *ast.ForInStatement:
-		key, value := loopTypes(c.inferExpression(s.Iterable), s.KeyVar != "")
-		prev := c.scope
-		c.scope = NewScope(prev)
-		if s.KeyVar != "" {
-			c.defineName(s.KeyVar, kindVariable, siteOf(s.KeyToken, s.Line()), TypeInfo{TypeName: key})
-		}
-		c.defineName(s.ValueVar, kindVariable, siteOf(s.ValueToken, s.Line()), TypeInfo{TypeName: value})
-		c.checkStatements(s.Body.Statements)
-		c.scope = prev
+		c.checkForIn(s) // 5.7 (loops.go)
 
 	case *ast.WhileStatement:
 		c.condition(s.Condition)
@@ -301,7 +301,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		for _, v := range s.Values {
 			c.recordValueType(v, c.itemType(v))
 		}
-		c.checkUnpackCount(s, s.Values, len(s.Names))
+		c.checkUnpackCount(s, c.tupleLen(soleValue(s.Values)), len(s.Names))
 		for _, name := range s.Names {
 			c.defineName(name.Value, c.varKind(s.IsConst), siteOf(name.Token, s.Line()), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
@@ -310,7 +310,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		for _, v := range s.Values {
 			c.itemType(v)
 		}
-		c.checkUnpackCount(s, s.Values, len(s.Targets))
+		c.checkUnpackCount(s, c.tupleLen(soleValue(s.Values)), len(s.Targets))
 		c.checkTargetOrder(s) // 5.3 (assign_order.go)
 		for _, t := range s.Targets {
 			ident, ok := t.(*ast.Identifier)

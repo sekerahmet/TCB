@@ -24,6 +24,20 @@ func formatT(t *testing.T, body string) string {
 	return strings.TrimPrefix(output, source.Header+"\n")
 }
 
+// Döngü deseni (5.7) biçimde kalır: parantez döngü sözcüğünden bir boşlukla ayrılır, adlar virgül
+// ve boşlukla dizilir; biçimlemek desenin anlamını (ast.Dump'taki adlar) değiştirmez.
+func TestFormatKeepsLoopPattern(t *testing.T) {
+	for input, want := range map[string]string{
+		"TR_for (a,b) TR_in l {\n    TR_print(a)\n}\n":        "TR_for (a, b) TR_in l {\n    TR_print(a)\n}\n",
+		"TR_for i ,( a,_ ) TR_in l {\n    TR_print(i)\n}\n":   "TR_for i, (a, _) TR_in l {\n    TR_print(i)\n}\n",
+		"TR_for i, (a, b) TR_in l {\n    TR_print(a, b)\n}\n": "TR_for i, (a, b) TR_in l {\n    TR_print(a, b)\n}\n",
+	} {
+		if got := formatT(t, input); got != want {
+			t.Errorf("%q: %q, beklenen %q", input, got, want)
+		}
+	}
+}
+
 // Gidiş-dönüş: beklenen standart biçim üretilmeli ve ikinci kez biçimlemek bir şey değiştirmemeli.
 func TestStandardFormat(t *testing.T) {
 	cases := []struct{ ad, input, expected string }{

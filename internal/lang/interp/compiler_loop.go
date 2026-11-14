@@ -67,13 +67,7 @@ func (d *loopScope) close(iter Value) {
 func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode {
 	source := c.expression(k, s.Iterable)
 	sub := subScope(k)
-	keySlot := -1
-	if s.KeyVar != "" {
-		keySlot = sub.info.slot(s.KeyVar)
-		sub.recordShadow(s.KeyVar, s.Line(), messages.H2452)
-	}
-	valueSlot := sub.info.slot(s.ValueVar)
-	sub.recordShadow(s.ValueVar, s.Line(), messages.H2452)
+	keySlot, valueSlot, unpack, pairs := c.loopSlots(sub, s) // desen öğeyi açar (compiler_loop_bind.go)
 	var bodyStatements []ast.Statement
 	again := true
 	if s.Body != nil {
@@ -82,6 +76,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 	}
 	sub.predefine(bodyStatements)
 	bodyBlock := c.scopedStatements(sub, bodyStatements)
+	bodyBlock.prepend(unpack)
 	info := sub.info
 	info.local = again
 	line := s.Line()
@@ -136,6 +131,9 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			mark := markOf(it)
 			for idx, item := range it.Elements {
 				v.loopTurn()
+				if err := pairs.check(item); err != nil {
+					return nil, signalNone, err
+				}
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, NewInt(int64(idx)))
@@ -221,6 +219,9 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if err != nil {
 					return nil, signalNone, lineSuffix(line, err)
 				}
+				if err := pairs.check(item); err != nil {
+					return nil, signalNone, err
+				}
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, NewInt(int64(idx)))
@@ -240,7 +241,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			}
 
 		case Stream:
-			return streamLoop(v, it, &kind, keySlot, valueSlot, bodyBlock, line)
+			return streamLoop(v, it, &kind, keySlot, valueSlot, bodyBlock, line, pairs)
 
 		default:
 			return nil, signalNone, messages.At(line, 0, messages.New(messages.H2443, iterVal.Type()))
@@ -251,7 +252,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 
 // streamLoop tembel bir kaynağı (Akis) biter, 'çık' ya da 'sonuç' gelene kadar gezer.
 // Öğe sayısı önceden bilinmediğinden her tur Sonraki ile istenir.
-func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyBlock *blockCode, line int) (Value, flowSignal, error) {
+func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyBlock *blockCode, line int, pairs *tupleGuard) (Value, flowSignal, error) {
 	var lastVal Value = Null
 	for idx := int64(0); ; idx++ {
 		v.loopTurn()
@@ -261,6 +262,9 @@ func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyB
 		}
 		if !cont {
 			return lastVal, signalNone, nil
+		}
+		if err := pairs.check(item); err != nil {
+			return nil, signalNone, err
 		}
 		loopEnv := kind.turn(v)
 		if keySlot >= 0 {

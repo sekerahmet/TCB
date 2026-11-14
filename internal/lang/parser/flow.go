@@ -20,45 +20,14 @@ func (p *Parser) parseForStatement() ast.Statement {
 		}
 	}
 
-	// döngü i içinde liste { ... } veya döngü i, x içinde liste { ... }
-	if p.peekTokenIs(lexer.TokIdent) && (p.peekTokenN(2).Type == lexer.TokIn || p.peekTokenN(2).Type == lexer.TokComma) {
-		p.nextToken()
-		firstVar := p.curToken().Literal
-		keyVar := ""
-		valVar := firstVar
-		var keyTok lexer.Token
-		valTok := p.curToken()
-
-		if p.peekTokenIs(lexer.TokComma) {
-			p.nextToken() // ','
-			if !p.expectPeek(lexer.TokIdent) {
-				return nil
-			}
-			keyVar = firstVar
-			keyTok = valTok
-			valVar = p.curToken().Literal
-			valTok = p.curToken()
+	// döngü x içinde l { ... }, döngü i, x içinde l { ... } ya da desenle döngü (a, b) içinde l,
+	// döngü i, (a, b) içinde l (5.7)
+	if p.peekTokenIs(lexer.TokIdent) && (p.peekTokenN(2).Type == lexer.TokIn || p.peekTokenN(2).Type == lexer.TokComma) ||
+		p.patternAhead(1) > 0 {
+		if s := p.parseForIn(tok); s != nil {
+			return s
 		}
-
-		if !p.expectPeek(lexer.TokIn) {
-			return nil
-		}
-		p.nextToken() // iterable başına gel
-		iterable := p.parseHeaderExpression()
-
-		if !p.expectPeek(lexer.TokLBrace) {
-			return nil
-		}
-		body := p.loopBody()
-
-		return &ast.ForInStatement{
-			Token:    tok,
-			KeyVar:   keyVar,
-			ValueVar: valVar,
-			KeyToken: keyTok, ValueToken: valTok,
-			Iterable: iterable,
-			Body:     body,
-		}
+		return nil
 	}
 
 	// Koşullu döngü: döngü x < 10 { ... }; imleç hâlâ 'döngü'dedir, 'iken' ile aynı gövde.
@@ -68,6 +37,94 @@ func (p *Parser) parseForStatement() ast.Statement {
 	}
 	return nil
 }
+
+// parseForIn döngünün 'döngü <adlar> içinde <kaynak> { ... }' biçimini okur; imleç 'döngü'dedir. Adlar
+// tek ad (x), indeksli iki ad (i, x) ya da öğenin yerinde bir demet desenidir ((a, b), i, (a, b); 5.7).
+// Parantezli tek ad (a) desen değildir: H0040, döngü yine o adla okunur. Ayrıştırıcı öğenin tipini
+// bilmez; ileti iki yolu da önerir: demet olmayan öğede parantezsiz ad, demette (a, _) deseni.
+func (p *Parser) parseForIn(tok lexer.Token) *ast.ForInStatement {
+	s := &ast.ForInStatement{Token: tok}
+	if p.peekTokenIs(lexer.TokIdent) {
+		p.nextToken()
+		s.ValueVar, s.ValueToken = p.curToken().Literal, p.curToken()
+		if p.peekTokenIs(lexer.TokComma) {
+			p.nextToken() // ','
+			s.KeyVar, s.KeyToken = s.ValueVar, s.ValueToken
+			s.ValueVar, s.ValueToken = "", lexer.Token{}
+			if p.patternAhead(1) == 0 {
+				if !p.expectPeek(lexer.TokIdent) {
+					return nil
+				}
+				s.ValueVar, s.ValueToken = p.curToken().Literal, p.curToken()
+			}
+		}
+	}
+	paren := p.peekToken()
+	if p.patternAhead(1) > 0 {
+		s.ValueVar, s.ValueToken = "", lexer.Token{}
+		s.Pattern = p.parseLoopPattern()
+	}
+	if !p.expectPeek(lexer.TokIn) {
+		return nil
+	}
+	p.nextToken() // iterable başına gel
+	start := p.curToken()
+	s.Iterable = p.parseHeaderExpression()
+	s.IterableToken = p.spanToken(start, p.curToken())
+	if len(s.Pattern) == 1 {
+		head, pattern := s.Pattern[0].Name, ast.PatternText([]string{s.Pattern[0].Name, "_"})
+		if s.KeyVar != "" {
+			head, pattern = s.KeyVar+", "+head, s.KeyVar+", "+pattern
+		}
+		p.syntaxError(paren, messages.H0040, head, pattern, s.IterableToken.Literal)
+		s.ValueVar, s.ValueToken, s.Pattern = s.Pattern[0].Name, s.Pattern[0].Token, nil
+	}
+	if !p.expectPeek(lexer.TokLBrace) {
+		return nil
+	}
+	s.Body = p.loopBody()
+	return s
+}
+
+// patternAhead imlecin off sözcük birimi ilerisinde 'içinde'yle biten bir döngü deseni
+// ('(' ad (',' ad)* ')' 'içinde') varsa ad sayısını, yoksa 0 verir. Koşullu döngünün parantezli
+// koşulu ('döngü (x < 3) { ... }') desen değildir.
+func (p *Parser) patternAhead(off int) int {
+	if p.peekTokenN(off).Type != lexer.TokLParen {
+		return 0
+	}
+	n := 0
+	for i := off + 1; ; i += 2 {
+		if p.peekTokenN(i).Type != lexer.TokIdent {
+			return 0
+		}
+		n++
+		switch p.peekTokenN(i + 1).Type {
+		case lexer.TokComma:
+			continue
+		case lexer.TokRParen:
+			if p.peekTokenN(i+2).Type == lexer.TokIn {
+				return n
+			}
+		}
+		return 0
+	}
+}
+
+// parseLoopPattern patternAhead'in gördüğü deseni okur; imleç desenin ')'sinde kalır.
+func (p *Parser) parseLoopPattern() []ast.LoopName {
+	p.nextToken() // '('
+	var names []ast.LoopName
+	for {
+		p.nextToken() // ad
+		names = append(names, ast.LoopName{Name: p.curToken().Literal, Token: p.curToken()})
+		p.nextToken() // ',' ya da ')'
+		if p.curTokenIs(lexer.TokRParen) {
+			return names
+		}
+	}
+}
+
 func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 	tok := p.curToken() // iken ya da döngü (koşullu döngü)
 	p.nextToken()

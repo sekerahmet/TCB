@@ -220,10 +220,10 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 	case *ast.ForInStatement:
 		d.expression(s.Iterable, k)
 		var preset []string
-		if s.KeyVar != "" {
-			preset = append(preset, s.KeyVar)
+		for _, n := range s.Names() {
+			preset = append(preset, n.Name)
 		}
-		d.block(s.Body, k, append(preset, s.ValueVar)...)
+		d.block(s.Body, k, preset...)
 	case *ast.WhileStatement:
 		d.expression(s.Condition, k)
 		d.block(s.Body, k)

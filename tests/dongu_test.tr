@@ -23,6 +23,80 @@ TR_test "5.7 bayt dizisinde iki ad da tam sayıdır" {
     TR_assert_equal(1 + 1000 + 255, toplam)
 }
 
+TR_test "5.7 desen demeti açar" {
+    TR_var çiftler = [(1, "p"), (2, "q")]
+    TR_var metin = ""
+    TR_var toplam = 0
+    TR_for (sayı, harf) TR_in çiftler {
+        toplam += sayı
+        metin += harf
+    }
+    TR_assert_equal(3, toplam)
+    TR_assert_equal("pq", metin)
+    TR_var indeksler = 0
+    TR_for i, (_, harf) TR_in çiftler {
+        indeksler += i
+        metin += harf
+    }
+    TR_assert_equal(1, indeksler)
+    TR_assert_equal("pqpq", metin)
+    TR_var d = {(1, 2): (3, 4)}
+    TR_for (a, b) TR_in d {
+        TR_assert_equal(3, a + b)
+    }
+    TR_for k, (a, b) TR_in d {
+        TR_assert_equal((1, 2), k)
+        TR_assert_equal(7, a + b)
+    }
+}
+
+TR_test "5.7 tipi bilinmeyen demette desenin sayısı çalışırken denetlenir" {
+    TR_var üçlüler = (n: TR_Int) => [(n, n, n)]
+    TR_assert_equal("H2709", TR_error_code {
+        TR_for (a, b) TR_in üçlüler(1) {
+            TR_print(a)
+        }
+    })
+    TR_var toplam = 0
+    TR_for (a, b, _) TR_in üçlüler(2) {
+        toplam += a + b
+    }
+    TR_assert_equal(4, toplam)
+}
+
+TR_test "5.7 demet olmayan öğede desen çalışma hatasıdır" {
+    TR_var listeler = (n: TR_Int) => [[n, n]]
+    TR_assert_equal("H2731", TR_error_code {
+        TR_for (a, b) TR_in listeler(1) {
+            TR_print(a)
+        }
+    })
+    TR_var toplam = 0
+    TR_for satır TR_in listeler(2) {
+        TR_var a, b = satır[0], satır[1]
+        toplam += a + b
+    }
+    TR_assert_equal(4, toplam)
+}
+
+TR_test "5.7 tipi bilinmeyen kaynakta demet öğesi iki adlı döngüde çalışma hatasıdır" {
+    TR_var çiftler = (n: TR_Int) => [(n, n * 10)]
+    TR_assert_equal("H2730", TR_error_code {
+        TR_for a, b TR_in çiftler(1) {
+            TR_print(a, b)
+        }
+    })
+    TR_var toplam = 0
+    TR_for i, (a, b) TR_in çiftler(2) {
+        toplam += i + a + b
+    }
+    TR_assert_equal(22, toplam)
+    TR_var değerler = (n: TR_Int) => ({"a": (n, n)})
+    TR_for k, v TR_in değerler(3) {
+        TR_assert_equal((3, 3), v)
+    }
+}
+
 TR_test "5.7 TR_JSON dizisinde iki adlı biçim indeksle öğeyi verir" {
     TR_var indeksler = 0
     TR_var tur = 0

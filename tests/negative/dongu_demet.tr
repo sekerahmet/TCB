@@ -1,0 +1,22 @@
+# TR 4
+# TEST 5.7 döngü deseni yalnız demeti açar: tipi bilinen öğe demet değilse (liste, aralığın sayısı, isteğe bağlı demet) H2731, demetin öğe sayısı desenin ad sayısını tutmazsa H1026; öğesi demet olan kaynakta iki adlı biçim H2730 (sözlükte ikinci ad değerdir, hata değil)
+TR_var l = [(1, "p"), (2, "q")]
+TR_for (a, b, c) TR_in l { # ERROR H1026
+    TR_print(a)
+}
+TR_for i, (a, b) TR_in [[1, 2]] { # ERROR H2731
+    TR_print(a)
+}
+TR_for (a, b) TR_in 0..3 { # ERROR H2731
+    TR_print(a)
+}
+TR_var o: (TR_Int, TR_Int)? = (1, 2)
+TR_for (a, b) TR_in [o] { # ERROR H2731
+    TR_print(a)
+}
+TR_for a, b TR_in l { # ERROR H2730
+    TR_print(a, b)
+}
+TR_for k, v TR_in {"a": (1, 2)} {
+    TR_print(k, v)
+}
