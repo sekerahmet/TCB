@@ -17,6 +17,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
+	"github.com/sekerahmet/TCB/internal/stdlib/download"
 	"github.com/sekerahmet/TCB/internal/stdlib/files"
 	"github.com/sekerahmet/TCB/internal/stdlib/formats"
 	"github.com/sekerahmet/TCB/internal/stdlib/httpserver"
@@ -47,6 +48,8 @@ func init() {
 	interp.AddEngine(httpserver.Register)
 	// Makinenin anlık görüntüsü (19.12).
 	interp.AddEngine(machine.Register)
+	// İndirme ve istemcinin güvenlik kuralları (28.10, 28.11).
+	interp.AddEngine(download.Register)
 }
 
 // Close motorların program boyunca açık kalmış kaynaklarını (HTTP sunucuları, veri kümesi okuyucuları,

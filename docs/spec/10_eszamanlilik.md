@@ -55,7 +55,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 - *Test:* gerekmez: sıranın tanımsızlığı sınanmaz; doğru yazım (sırayla toplama) 10.5'in testidir.
 
 **10.9** `g.TR_cancel()` görevi iptal eder. İptal, 1.5'in durdurmasının tek bir göreve uygulanmasıdır: görev 1.5'in güvenli noktalarında durur (kullanıcı fonksiyonu çağrısı, döngünün ve üretecin her turu, süren bir yerleşiğin içi).
-- Programın durumunu değiştirmeyen yerleşik (hesap, okuma, bekleme) bırakılır, sonucu atılır; durum değiştiren yerleşik (indeksle atama, `TR_backward`, iyileştiricinin adımı, dosyaya yazma) biter. 1.5'in listesi geçerlidir; bölünmezlik (10.2) bozulmaz.
+- Programın durumunu değiştirmeyen yerleşik (hesap, okuma, bekleme) bırakılır, sonucu atılır; durum değiştiren yerleşik (indeksle atama, `TR_backward`, iyileştiricinin adımı, dosyaya yazma) biter. 1.5'in listesi geçerlidir; bölünmezlik (10.2) bozulmaz. İndirme (`TR_download`) bu kuralın dışındadır: bir okuma sınırında durur, `.part` kalır, son ad değişmez (28.10).
 - Görev program gibi biter (1.9): gövdesi bitince önce başlattığı ve henüz bitmemiş görevleri bekler, sonra kendi ertelenen işleri (`TR_defer`, 9.1) çalışır. Yakalanmayan bir hatayla ya da iptalle bittiyse bu alt görevler önce iptal edilir, durmaları beklenir, sonra ertelenenler çalışır. İptal görevin içinde `TR_catch` ile yakalanmaz, görev her zaman durur.
 - İptal, görevin başlattığı ve henüz bitmemiş görevlere de geçer: iptal edilen görevden kimsenin beklemediği bir görev kalmaz. O alt görevin görev değerini başka bir görev bekliyorsa o da iptal hatası alır.
 - Görevin içinde açılan HTTP sunucusu da görevin alt işidir (28.8): görev iptal edilince sunucu kapanır, gövdesi biten görev sunucu kapanana kadar bekler.

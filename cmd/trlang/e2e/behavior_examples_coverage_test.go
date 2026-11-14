@@ -67,6 +67,12 @@ var uncoveredNames = map[string]string{
 	// sha256 (22.5): aynı neden (dost-indirme C dilimi, 2026-11-14). Dil tanımının örneği ve TR testi var.
 	"TR_fn_sha256":      "örneği söz bölümünde yok (dost-indirme C)",
 	"TR_fn_sha256_file": "örneği söz bölümünde yok (dost-indirme C)",
+	// İndirme (28.10): aynı neden; örnek ağa çıkmaz, dil tanımının örneği TR'nin kendi sunucusuyla koşar.
+	"TR_fn_download":     "örneği söz bölümünde yok (dost-indirme C)",
+	"TR_arg_sha256":      "örneği söz bölümünde yok (dost-indirme C)",
+	"TR_arg_size":        "örneği söz bölümünde yok (dost-indirme C)",
+	"TR_arg_on_progress": "örneği söz bölümünde yok (dost-indirme C)",
+	"TR_arg_proxy":       "örneği söz bölümünde yok (dost-indirme C)",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

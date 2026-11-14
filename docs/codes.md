@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 790 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 183 fonksiyon, 13 sabit, 95 metot, 147 özellik, 195 adlı argüman.
+Toplam 795 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 184 fonksiyon, 13 sabit, 95 metot, 147 özellik, 199 adlı argüman.
 
 ## İçindekiler
 
@@ -2046,6 +2046,25 @@ tr: yazdır(cihazlar()[0], cihazlar().içerir("gpu:0"))
 ```
 
 İlişkili: `TR_default_device(...)`, `.TR_to_device(...)`
+
+#### `TR_download(...)` (`TR_fn_download`, `indir`)
+
+    indir(Metin, Metin | Yol, sha256: Metin | YokTipi, bayt: Tam | YokTipi, ilerledikçe: Fonksiyon | YerleşikFonksiyon | YokTipi = yok, vekil: Metin | YokTipi = yok, üzerine_yaz: Mantık = yanlış) → Metin
+
+Adresteki dosyayı hedefe indirir ve sha256'sını verir; sha256 ve bayt zorunludur (bilinmiyorsa yok). Baytlar kilitli hedef.part'a yazılır, karmalı çağrı kesilen indirmeyi sürdürür ve hedef ancak boy ve karma tutunca yerine konur. Yalnız https; yerel adres yalnız 127.0.0.1.
+
+```tr
+TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla); TR_var k = TR_download("http://127.0.0.1:" + TR_String(s.TR_port) + "/not.txt", "not.txt", TR_sha256: TR_sha256(TR_Bytes("merhaba")), TR_size: 7); TR_print(k == TR_sha256_file("not.txt")); s.TR_close()
+```
+
+Görünümü:
+
+```text
+en: func cevapla(istek: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(cevapla); var k = download("http://127.0.0.1:" + String(s.port) + "/not.txt", "not.txt", sha256: sha256(Bytes("merhaba")), size: 7); print(k == sha256_file("not.txt")); s.close()
+tr: fonksiyon cevapla(istek: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla); değişken k = indir("http://127.0.0.1:" + Metin(s.kapı_numarası) + "/not.txt", "not.txt", sha256: sha256(Baytlar("merhaba")), bayt: 7); yazdır(k == dosya_sha256("not.txt")); s.kapat()
+```
+
+İlişkili: `TR_sha256_file(...)`, `TR_sha256:`, `TR_size:`, `TR_serve_http(...)`
 
 #### `TR_embedding_lookup(...)` (`TR_fn_embedding_lookup`, `gömme_seç`)
 
@@ -5467,6 +5486,23 @@ Kullananlar: `TR_conv1d(...)` · İlişkili: `TR_conv1d(...)`
 
 
 
+#### `TR_on_progress:` (`TR_arg_on_progress`, `ilerledikçe`)
+
+indir(ilerledikçe: f): f(alınan, toplam) en çok 0,25 saniyede bir ve sonda bir kez çağrılır; f'nin hatası indirmeyi durdurur.
+
+```tr
+TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla); TR_var k = TR_download("http://127.0.0.1:" + TR_String(s.TR_port) + "/not.txt", "ilerleme.txt", TR_sha256: TR_sha256(TR_Bytes("merhaba")), TR_size: 7, TR_on_progress: (alinan, toplam) => TR_print(alinan)); TR_print(k == TR_sha256_file("ilerleme.txt")); s.TR_close()
+```
+
+Görünümü:
+
+```text
+en: func cevapla(istek: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(cevapla); var k = download("http://127.0.0.1:" + String(s.port) + "/not.txt", "ilerleme.txt", sha256: sha256(Bytes("merhaba")), size: 7, on_progress: (alinan, toplam) => print(alinan)); print(k == sha256_file("ilerleme.txt")); s.close()
+tr: fonksiyon cevapla(istek: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla); değişken k = indir("http://127.0.0.1:" + Metin(s.kapı_numarası) + "/not.txt", "ilerleme.txt", sha256: sha256(Baytlar("merhaba")), bayt: 7, ilerledikçe: (alinan, toplam) => yazdır(alinan)); yazdır(k == dosya_sha256("ilerleme.txt")); s.kapat()
+```
+
+Kullananlar: `TR_download(...)` · İlişkili: `TR_download(...)`
+
 #### `TR_out_features:` (`TR_arg_out_features`, `çıkış_boyutu`)
 
 
@@ -5494,7 +5530,7 @@ en: write_file("kaynak.txt", "yeni"); write_file("hedef.txt", "eski"); copy("kay
 tr: dosya_yaz("kaynak.txt", "yeni"); dosya_yaz("hedef.txt", "eski"); kopyala("kaynak.txt", "hedef.txt", üzerine_yaz: doğru); yazdır(dosya_oku("hedef.txt"))
 ```
 
-Kullananlar: `TR_copy(...)`, `TR_move(...)` · İlişkili: `TR_copy(...)`, `TR_move(...)`
+Kullananlar: `TR_copy(...)`, `TR_download(...)`, `TR_move(...)` · İlişkili: `TR_copy(...)`, `TR_move(...)`
 
 #### `TR_owner_only:` (`TR_arg_owner_only`, `yalnız_sahibe`)
 
@@ -5650,6 +5686,23 @@ Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `.TR_port
 #### `TR_prompt:` (`TR_arg_prompt`, `istem`)
 
 
+
+#### `TR_proxy:` (`TR_arg_proxy`, `vekil`)
+
+indir(vekil: adres): istek bu vekilden geçer; ortam kendiliğinden okunmaz: vekil: ortam("HTTPS_PROXY"). 127.0.0.1'e giden istek vekilden geçmez.
+
+```tr
+TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla); TR_var k = TR_download("http://127.0.0.1:" + TR_String(s.TR_port) + "/not.txt", "vekil.txt", TR_sha256: TR_sha256(TR_Bytes("merhaba")), TR_size: 7, TR_proxy: TR_none); TR_print(k == TR_sha256_file("vekil.txt")); s.TR_close()
+```
+
+Görünümü:
+
+```text
+en: func cevapla(istek: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(cevapla); var k = download("http://127.0.0.1:" + String(s.port) + "/not.txt", "vekil.txt", sha256: sha256(Bytes("merhaba")), size: 7, proxy: none); print(k == sha256_file("vekil.txt")); s.close()
+tr: fonksiyon cevapla(istek: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla); değişken k = indir("http://127.0.0.1:" + Metin(s.kapı_numarası) + "/not.txt", "vekil.txt", sha256: sha256(Baytlar("merhaba")), bayt: 7, vekil: yok); yazdır(k == dosya_sha256("vekil.txt")); s.kapat()
+```
+
+Kullananlar: `TR_download(...)` · İlişkili: `TR_download(...)`, `TR_env(...)`
 
 #### `TR_qk_norm:` (`TR_arg_qk_norm`, `qk_normu`)
 
@@ -5808,6 +5861,23 @@ Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
 
 
 
+#### `TR_sha256:` (`TR_arg_sha256`, `sha256`)
+
+indir(sha256: k): dosyanın beklenen sha256'sı, 64 küçük onaltılık karakter. Bilinmiyorsa yok yazılır; o zaman indirme hep baştan başlar.
+
+```tr
+TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla); TR_var k = TR_download("http://127.0.0.1:" + TR_String(s.TR_port) + "/not.txt", "sha256.txt", TR_sha256: TR_sha256(TR_Bytes("merhaba")), TR_size: 7); TR_print(k == TR_sha256_file("sha256.txt")); s.TR_close()
+```
+
+Görünümü:
+
+```text
+en: func cevapla(istek: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(cevapla); var k = download("http://127.0.0.1:" + String(s.port) + "/not.txt", "sha256.txt", sha256: sha256(Bytes("merhaba")), size: 7); print(k == sha256_file("sha256.txt")); s.close()
+tr: fonksiyon cevapla(istek: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla); değişken k = indir("http://127.0.0.1:" + Metin(s.kapı_numarası) + "/not.txt", "sha256.txt", sha256: sha256(Baytlar("merhaba")), bayt: 7); yazdır(k == dosya_sha256("sha256.txt")); s.kapat()
+```
+
+Kullananlar: `TR_download(...)` · İlişkili: `TR_download(...)`, `TR_sha256(...)`
+
 #### `TR_shape:` (`TR_arg_shape`, `şekil`)
 
 
@@ -5819,6 +5889,23 @@ Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
 #### `TR_sin_table:` (`TR_arg_sin_table`, `sin_tablosu`)
 
 
+
+#### `TR_size:` (`TR_arg_size`, `bayt`)
+
+indir(bayt: n): dosyanın beklenen bayt boyu; aşılınca indirme durur. Bilinmiyorsa yok.
+
+```tr
+TR_func cevapla(istek: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla); TR_var k = TR_download("http://127.0.0.1:" + TR_String(s.TR_port) + "/not.txt", "bayt.txt", TR_sha256: TR_sha256(TR_Bytes("merhaba")), TR_size: 7); TR_print(k == TR_sha256_file("bayt.txt")); s.TR_close()
+```
+
+Görünümü:
+
+```text
+en: func cevapla(istek: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(cevapla); var k = download("http://127.0.0.1:" + String(s.port) + "/not.txt", "bayt.txt", sha256: sha256(Bytes("merhaba")), size: 7); print(k == sha256_file("bayt.txt")); s.close()
+tr: fonksiyon cevapla(istek: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla); değişken k = indir("http://127.0.0.1:" + Metin(s.kapı_numarası) + "/not.txt", "bayt.txt", sha256: sha256(Baytlar("merhaba")), bayt: 7); yazdır(k == dosya_sha256("bayt.txt")); s.kapat()
+```
+
+Kullananlar: `TR_download(...)` · İlişkili: `TR_download(...)`, `.TR_size`
 
 #### `TR_snapshot:` (`TR_arg_snapshot`, `anlık_görüntü`)
 

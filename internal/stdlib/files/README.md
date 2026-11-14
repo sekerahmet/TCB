@@ -31,8 +31,7 @@ bitince kapanır; çok uzun satırlar belleği tüketmeden hatayla durur.
 Denetim: `TestLineReaderClose`, `TestLineReaderClosesAtEOFWithoutNewline`, `TestLineReaderClosedWhenUnreachable`, `TestTempDirDeletedByProgram`, `TestFileLinesGzipAndLongLine`.
 
 **Karma diskteki baytındır ve tek biçimdedir.** `TR_sha256_file` dosyayı akışla okur, `.gz`'yi
-açmaz; sonuç 64 küçük onaltılık karakterdir. Biçim tek yerdedir (`Sha256Hex`): indirme (28.10)
-sonucunu da onunla yazar.
+açmaz; sonuç 64 küçük onaltılık karakterdir (`Sha256Hex`).
 Denetim: `TestSha256KnownValues`, `TestSha256FileStreams`.
 
 ## Testler

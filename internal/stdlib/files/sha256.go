@@ -12,8 +12,7 @@ import (
 )
 
 // Sha256Hex r'nin sonuna kadar okunan baytlarının sha256'sını 64 küçük onaltılık karakterle verir
-// (22.5'in biçimi; 20.5'in digest.json'u ve Hugging Face'in lfs.oid'i de böyledir). İndirme (28.10)
-// sonucunu da bu işlevle yazar: karmanın biçimi tek yerdedir.
+// (22.5'in biçimi; 20.5'in digest.json'u ve Hugging Face'in lfs.oid'i de böyledir).
 func Sha256Hex(r io.Reader) (string, error) {
 	h := sha256.New()
 	if _, err := io.Copy(h, r); err != nil {
