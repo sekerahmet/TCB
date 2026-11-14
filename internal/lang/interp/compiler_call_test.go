@@ -164,7 +164,8 @@ TR_var y = TR_Int("b")
 
 // Kural (4.8): `a?.m(x)`'te `a` `TR_none` ise sonuç `TR_none`'dır ve argümanlar hesaplanmaz (kısa devre);
 // `a` bir değerse çağrı yapılır, argümanlar hesaplanır. Konumlu argümanlı yerleşik ve yapı metodu,
-// adlı argümanlı yapı metodu. Program denetimden de geçer.
+// adlı argümanlı yapı metodu, yerinde değiştirici (.TR_append, alıcıya yazar). Program denetimden de
+// geçer. Güvenli çağrı ayrı bir kapanıştır (safeMemberCall); düz çağrının kapanışı sınama taşımaz.
 func TestSafeCallOnNoneSkipsTheCall(t *testing.T) {
 	const src = `TR_var sayaç: TR_List[TR_Int] = []
 TR_func f() -> TR_Int {
@@ -181,15 +182,17 @@ TR_var s: TR_String? = TR_none
 TR_var p: P? = TR_none
 TR_var q: P? = P()
 TR_print(yok?.TR_get(f()), s?.TR_upper(), p?.m(f()), p?.m(f(), b: f()))
+yok?.TR_append(f())
 TR_print(sayaç.TR_length)
 TR_print(dolu?.TR_get(f()), q?.m(f()), q?.m(f(), b: f()))
-TR_print(sayaç.TR_length)
+dolu?.TR_append(f())
+TR_print(dolu, sayaç.TR_length)
 `
 	if errs := checkedErrs(t, src); len(errs) != 0 {
 		t.Fatalf("program denetimden geçmeli: %v", errs)
 	}
 	out, err := runSourced(t, src)
-	if want := "none none none none\n0\n5 3 2\n4\n"; err != nil || out != want {
+	if want := "none none none none\n0\n5 3 2\n[5, 0] 5\n"; err != nil || out != want {
 		t.Errorf("güvenli çağrı: %q %v, beklenen %q", out, err, want)
 	}
 }

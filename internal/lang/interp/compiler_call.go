@@ -57,9 +57,12 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 
 // memberCall x.metot(...) çağrısının kodudur (adlı argümansız): yapı metotları ile Metin/Liste/Sözlük
 // yerleşik metotları, bağlı fonksiyon/yerleşik değeri ayrılmadan doğrudan çağrılır (.TR_append(x) argüman
-// dilimi de ayırmaz). `x?.metot(...)`'ta
-// x `TR_none` ise argümanlar hesaplanmaz, sonuç `TR_none`'dır (4.8).
+// dilimi de ayırmaz). `x?.metot(...)` safeMemberCall'dadır: ?. derleme anında bilinir, düz çağrının
+// kapanışı onun sınamasını taşımaz.
 func (c *compiler) memberCall(k *compilerScope, e *ast.CallExpression, mem *ast.MemberExpression, argCode []exprCode) exprCode {
+	if mem.Safe {
+		return c.safeMemberCall(k, e, mem, argCode)
+	}
 	nargs := len(argCode)
 	line := e.Line()
 	object := c.inPlaceReceiver(k, e, mem)
@@ -70,9 +73,6 @@ func (c *compiler) memberCall(k *compilerScope, e *ast.CallExpression, mem *ast.
 		obj, err := object(v, env)
 		if err != nil {
 			return nil, err
-		}
-		if mem.Safe && obj.Type() == ValNull {
-			return Null, nil // kısa devre: argümanlar hesaplanmaz (4.8)
 		}
 		if inst, ok := obj.(*StructInstanceVal); ok {
 			if _, field := inst.Fields[mem.Property]; !field {
@@ -198,6 +198,28 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 			return v.variantCallee(def, mem), nil
 		}
 		return v.calledMember(obj, mem, u)
+	}
+}
+
+// safeMemberCall x?.metot(...)'ün kodudur (adlı argümansız, 4.8): x TR_none ise argümanlar hesaplanmaz,
+// sonuç TR_none'dır; değilse çağrı adlı argümanlı çağrıdaki gibi yapılır: üye değeri okunur
+// (namedCallee: alıcı kaçar, enum durumu kurulur) ve çağrılır (callAt). Yeni bir yoldur; düz
+// çağrının hızlı yollarını (memberCall) taşımaz.
+func (c *compiler) safeMemberCall(k *compilerScope, e *ast.CallExpression, mem *ast.MemberExpression, argCode []exprCode) exprCode {
+	callee := c.namedCallee(k, e, nil)
+	nargs, line := len(argCode), e.Line()
+	return func(v *VM, env *Environment) (Value, error) {
+		fnVal, err := callee(v, env)
+		if fnVal == nil && err == nil {
+			return Null, nil // x TR_none: çağrılan yok
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err := valueCall(fnVal, mem.Property, nargs, false, line); err != nil {
+			return nil, err
+		}
+		return v.callAt(fnVal, argCode, env, line)
 	}
 }
 
