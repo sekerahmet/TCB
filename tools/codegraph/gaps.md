@@ -13,7 +13,7 @@ answer").
 
 **Sınıf (Ahmet, 2026-10-25):** yanlış bir değişikliğe götüren cevap (kesin grupta yanlış yer,
 yanlış "yok", yanlış kenar, ortama bağlı düşen depo testi) **kritik**tir; sıralama, etiket ve
-gösterim **ince ayar**dır. "Kritik" aracın cevabının yanlış olduğunu söyler, projede hata olduğunu değil: DENETİM 691'in okuduğu maddelerde hiçbiri main'e yanlış taşımamış, çünkü her iş main'den önce G4'ten geçiyor; bedel çoğunlukla bir G4 turu gecikme (geneli için [hipotez]). İstisna: denetim komutunun adayını okumadan silmek sessiz yanlıştır (`dead-methods`, aşağıda; yan dal kuralları, codegraph) (DENETİM 691, 694; 2026-11-14). Yeniden üretilmemiş madde başlığında bunu söyler; sıradaki K5 raporu onu yeniden üretir ya da siler.
+gösterim **ince ayar**dır. "Kritik" aracın cevabının yanlış olduğunu söyler, projede hata olduğunu değil: DENETİM 691'in okuduğu maddelerde hiçbiri main'e yanlış taşımamış, çünkü her iş main'den önce G4'ten geçiyor; bedel çoğunlukla bir G4 turu gecikme (geneli için [hipotez]). İstisna: denetim komutunun adayını okumadan silmek sessiz yanlıştır (`dead-methods`, aşağıda; yan dal kuralları, codegraph) (DENETİM 691, 694; 2026-11-14). Yeniden üretilmemiş madde başlığında bunu söyler; uzman onu, G4 düşüşüne bağlanınca yeniden üretir ya da siler.
 
 **Akış (Ahmet, 2026-10-26; 2026-11-14'ten beri dosyayı CODEGRAPH UZMANI yazar, "Kim yazar"):** maddeler bu dosyada
 birikir; CODEGRAPH UZMANI listeyi baştan sona gözden geçirir; DENETİM bütününü denetler (yeniden üretim, sınıf, istenen
@@ -35,7 +35,7 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 | Planlama sınavı | `TestPlanningQuestionsAreAnswered` 13 (4'ü 2026-11-14'te) | Kritik: "sınav grubu dosyanın bildirimlerini … almıyor"; "Kod listesine giren ad …"; "İleti ikinci bir üretici kazanınca …" | Sınav dizüstünde 2 dakikayı aşıyor. Aday: `tests-for`'un sınav grubu bildirimlerin sorularını da verir, ajan o soruların komutunu elle koşar. Sıradaki codegraph dilimi. |
 | Yeni kod ya da ad | `TestExamplesCoverLibraryNames` 6, `TestExamplesCoverNames` 5, `TestEveryBuiltinNameHasADirectTestOrAReason` 5, `TestEveryRuleHasATest` 3, `TestReviewedSectionsWriteIdentities` 3 | İnce ayar: "Yeni yerleşik kodu ekleyince dokunulacak yerler", "D1, 2026-11-06" | Örnek testleri e2e'de; codegraph 7 B'den sonra yakınsa önce koşar [hipotez]. Önce bir günlük ölçü. |
 
-Ölçünün yinelenmesi: 2026-11-16'da aynı sayım ve kip kayıtları (`codegraph-7-deneme/cg_kip.py`); karar o sayımla.
+Ölçünün yinelenmesi: uzman haftada bir ve büyük birleşmeden sonra aynı sayımı (not klasörü `codegraph-7-deneme/cg_g4_dusus.py`) ve kip kayıtlarını (`cg_kip.py`) koşar; ilki 2026-11-16, karar o sayımla. Birleşme başına K5 raporu (D1'in `codegraph-kullanici/<commit>.md`'si: `dead-methods`, `package-state`, `time-ceilings`, `untested`, `deleted`) durdu (2026-11-15): beş raporun beşi "Yeni aday: 0", işe dönen aday 0; tek yararlı bulgu (`4dbf6515` §7) birleşmenin G4 düşüşünden geldi, bu sayım onu kapsar. Komutlar elle kalır; arşivi Dilim C'nin kararı.
 
 ## Kritik
 
