@@ -22,7 +22,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		// fonksiyon/yerleşik değeri ayrılmadan doğrudan çağrılır (liste.ekle(x) argüman
 		// dilimi de ayırmaz). Diğer durumlarda üye değeri okunup çağrılır.
 		if mem, ok := e.Function.(*ast.MemberExpression); ok {
-			object := c.expression(k, mem.Object)
+			object := c.inPlaceReceiver(k, e, mem)
 			u := c.member(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
 			add := u.core != nil && u.codeVal == addMember
 			memberLine := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)

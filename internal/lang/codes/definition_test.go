@@ -181,6 +181,37 @@ func TestPureMarksOnlyValueBuiltins(t *testing.T) {
 	}
 }
 
+// Kural (5.4): "in_place" listeyi ya da sözlüğü yerinde değiştiren, değer vermeyen metodu işaretler;
+// alıcısı yazmanın hedefidir. İşaretli küme, liste ya da sözlükte değer vermeyen (TR_NoneType) ve
+// pure olmayan yerleşik metotların kümesine eşittir; alan yalnız yerleşik metotta yazılır
+// (CheckDefinitions, TestDefinitionsConsistent).
+func TestInPlaceMethodsAreMarked(t *testing.T) {
+	defs, _, err := ParseDefinitions([]byte(`{"TR_mem_append": {"kind": "method", "in_place": true, "types": ["TR_List"]}}`))
+	if err != nil || !defs[MemAppend].InPlace {
+		t.Fatalf("in_place okunmalı: %+v %v", defs[MemAppend], err)
+	}
+	var marked, derived []Code
+	for _, k := range DefinitionCodes() {
+		d, _ := DefinitionOf(k)
+		if d.InPlace {
+			marked = append(marked, k)
+		}
+		if d.Kind != KindMethod || d.Pure {
+			continue
+		}
+		for _, m := range d.Members {
+			r := m.Signature.Return
+			if (m.Type == TypeList || m.Type == TypeDict) && len(r.Types) == 1 && r.Types[0] == TypeNoneType {
+				derived = append(derived, k)
+				break
+			}
+		}
+	}
+	if !slices.Equal(marked, derived) || len(marked) == 0 {
+		t.Errorf("in_place işaretliler %v, liste ya da sözlükte değer vermeyen metotlar %v", marked, derived)
+	}
+}
+
 // Kural (17, kitaplık kodu): definitions.json'da "module" alanı olan kod standart kitaplığın
 // (tr/…) kodudur; yerleşik değildir. Alan yalnız kitaplığın dışa açık adlarının sınıflarında
 // (tip, fonksiyon, sabit, üye, adlı argüman) yazılır.

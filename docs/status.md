@@ -211,7 +211,6 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 ### 5.4
 
-- **Yapılacaklar (A, Ö1; sahip dil çekirdeği kolu (Motor); DENETİM 693 N1, 2026-11-14):** yeni kurulan değere yazma kayboluyor: `t.TR_tolist[0] = 5` hatasız geçiyor, `t` değişmiyor [hesap: T1'in 15.6d tasarımının Bulgular cümlesi; koşulmadı, ilk adımda ölçülür]; `[1, 2][0] = 5` hatasız geçiyor, `l[0..2][1] = 7` sessiz kayboluyor [ölçüldü: TCB, trlang ile çalıştırma, `16dd9cb6`; not klasörü `tcb-698-olcu/`]. 15.6d'nin tensördeki kuralının listedeki eşi; ilk adımın denemesine değişmez, işlem, kurucu, dilim ve programın fonksiyonu da girer (DENETİM 698 N1). Sıra: T1'in 15.6d dalı (`ast/write_chain.go`) birleştikten sonra (698 N2). Karar `pending.md`'nin 5.4 satırında.
 - **Mevcut durum (T1, Tur 6A):** düz `=`'de de önce hedefin yeri (indeks, alanın sahibi), sonra sağ yan: `l[f()] = g()` önce `f`'yi çağırıyor [test: `tests/deyimler_test.tr`, "5.4 düz ='de de önce hedefin yeri"].
 - **Yapılacaklar:** `/=` iletisi `//=`'yi önerir.
 

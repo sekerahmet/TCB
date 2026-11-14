@@ -110,6 +110,52 @@ func LiteralIndex(e Expression) bool {
 	return false
 }
 
+// SliceIndex says the step indexes with a range written in the code (l[0..2]): on a list or a string
+// base it is a slice, a new value (3.6); on a tensor a view.
+func SliceIndex(s WriteStep) (*RangeExpression, bool) {
+	r, ok := s.Index.(*RangeExpression)
+	return r, ok && s.Kind == StepIndex
+}
+
+// NegativeLiteral says e is a negative integer written in the code (-1): on a slice it counts from
+// the slice's end, so the source's index is not start + e (H2743).
+func NegativeLiteral(e Expression) bool {
+	p, ok := e.(*PrefixExpression)
+	if !ok || p.Operator != "-" {
+		return false
+	}
+	_, ok = p.Right.(*IntegerLiteral)
+	return ok
+}
+
+// MaybeInteger says e can be an integer index whatever the types are: not a string, a range or
+// another literal that is never an integer. The run time uses it where the checker knows the type.
+func MaybeInteger(e Expression) bool {
+	switch e.(type) {
+	case *StringLiteral, *RangeExpression, *FloatLiteral, *BooleanLiteral, *ListLiteral, *DictLiteral, *NullLiteral:
+		return false
+	}
+	return !NegativeLiteral(e)
+}
+
+// ElementAccessor kabın öğesini isteğe bağlı değer olarak veren adımdır (5.4, H2741): recv.TR_get(key)
+// (tek argümanla), recv.TR_first ve recv.TR_last (key nil). Kabın tipini çağıran bilir; adım öbürüyse
+// codes.None.
+func ElementAccessor(s WriteStep) (recv, key Expression, k codes.Code) {
+	switch x := s.Expr.(type) {
+	case *CallExpression:
+		f, ok := x.Function.(*MemberExpression)
+		if ok && !f.Safe && f.NameToken.Code == codes.MemGet && len(x.Arguments) == 1 && len(x.NamedArgs) == 0 {
+			return f.Object, x.Arguments[0], codes.MemGet
+		}
+	case *MemberExpression:
+		if k := x.NameToken.Code; !x.Safe && (k == codes.MemFirst || k == codes.MemLast) {
+			return x.Object, nil, k
+		}
+	}
+	return nil, nil, codes.None
+}
+
 // NearestCopy zincirde yazmaya en yakın kopya adımının sırasıdır; copies StepIndex adımının
 // tensörle indeks olduğunu söyler. clean, o adımın altında başka kopya adımı olmadığıdır. Kopya
 // adımı yoksa -1.

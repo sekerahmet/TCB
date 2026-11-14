@@ -122,7 +122,7 @@ type writeFunc func(v *VM, owner, key, rhs Value) error
 func (c *compiler) assignPlace(k *compilerScope, target ast.Expression, codeVal uint8, line int, stmt writeStmt) (placeFunc, writeFunc) {
 	switch t := target.(type) {
 	case *ast.IndexExpression:
-		w := c.beginCopyWrite(k, t.Left, stmt, false) // yerinde yazma kopyadan geçmez (15.6d, copy_writes.go)
+		w := c.beginCopyWrite(k, t.Left, stmt, false).withAbove(t) // yerinde yazma kopyadan geçmez (15.6d, 5.4; copy_writes.go)
 		leftFn := w.end(c, c.expression(k, t.Left))
 		index := c.expression(k, t.Index)
 		place := func(v *VM, env *Environment) (Value, Value, error) {
@@ -142,7 +142,8 @@ func (c *compiler) assignPlace(k *compilerScope, target ast.Expression, codeVal 
 			return v.setIndex(left, idx, codeVal, rhs, line)
 		}
 	case *ast.MemberExpression:
-		object := c.expression(k, t.Object)
+		w := c.beginCopyWrite(k, t.Object, stmt, false).fieldWrite(structValue) // alanın zinciri (5.4, copy_writes.go)
+		object := w.end(c, c.expression(k, t.Object))
 		prop := t.Property
 		u := c.member(prop)
 		place := func(v *VM, env *Environment) (Value, Value, error) {

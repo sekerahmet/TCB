@@ -174,6 +174,10 @@ type Definition struct {
 	// output, file, clock or randomness, changes neither its receiver nor its arguments and does
 	// not wait. Such a call written as a statement on its own is a check error (H1115).
 	Pure bool
+	// InPlace ("in_place") marks a method that changes its list or dict receiver and gives no value
+	// (5.4): its receiver is a write target, so the receiver's chain is checked like an assignment's
+	// target (.TR_append).
+	InPlace bool
 }
 
 // Types returns the types the member applies to.
@@ -191,6 +195,16 @@ var (
 	defErr   error
 	defOrder []Code
 )
+
+// IsInPlace reports whether k is a member marked "in_place" (5.4): the checker and the interpreter
+// treat its receiver as a write target.
+func IsInPlace(k Code) bool {
+	if k.Namespace() != NamespaceMember {
+		return false
+	}
+	d, ok := DefinitionOf(k)
+	return ok && d.InPlace
+}
 
 // DefinitionOf returns the code's definition. The definitions file is read on the first call
 // (the interpreter does not need it while running; tools, tests and error paths use it).
@@ -295,6 +309,7 @@ type rawDefinition struct {
 	Familiar   []string                `json:"familiar"`
 	Example    string                  `json:"example"`
 	Pure       bool                    `json:"pure"`
+	InPlace    bool                    `json:"in_place"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -383,7 +398,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
 		t.Related = codeList("related", h.Related)
-		t.Common, t.Familiar, t.Example, t.Pure = h.Common, h.Familiar, h.Example, h.Pure
+		t.Common, t.Familiar, t.Example, t.Pure, t.InPlace = h.Common, h.Familiar, h.Example, h.Pure, h.InPlace
 		if t.Module = h.Module; t.Module != "" {
 			switch c := k.Class(); {
 			case c != ClassType && c != ClassFunction && c != ClassConstant && c != ClassMember && c != ClassNamedArg:

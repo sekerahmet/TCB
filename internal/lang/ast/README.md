@@ -24,4 +24,7 @@ ve yorumlayıcı aynı yardımcılardan alır: `SubExpressions`, `ExprDefinedNam
 **Yerinde yazmanın zinciri tektir.** Yazma hedefinin hangi adımının görünüm, hangisinin kopya olduğunu
 (15.6d) denetleyici ve yorumlayıcı aynı yerden alır: `WriteChain`, `NearestCopy` (`write_chain.go`);
 iletinin önerisindeki deyimi `NewCopyWriteText`, ifadenin dosyadaki yazımını `SourceText` kurar
-(`source_text.go`). Denetim: `TestWriteChainSteps`, `TestNearestCopy`, `TestNewCopyWriteText`, `TestSourceText`.
+(`source_text.go`). Liste, sözlük ve yapı hedefi (5.4) aynı zinciri kullanır: yazımdaki aralık
+`SliceIndex`, kabın öğesini veren üye `ElementAccessor`'dır; önerilerin deyimini `StatementWith`, dilimin
+üstündeki indeksin kaynaktaki karşılığını `SliceSourceIndex` kurar. Denetim: `TestWriteChainSteps`,
+`TestNearestCopy`, `TestContainerChainCopies`, `TestNewCopyWriteText`, `TestSourceText`.
