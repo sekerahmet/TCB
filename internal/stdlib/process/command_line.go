@@ -106,17 +106,22 @@ func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error)
 		if !ok {
 			continue
 		}
+		// Seçeneğin adı anahtarın metnidir, iç kodlaması değil: NUL ile başlayan metin iç
+		// anahtarda kodlanır, sonuç sözlüğü adı yeniden kodlar (Set).
+		name := k
 		if key := dict.KeyValue(k); key != nil {
-			if _, text := key.(*interp.StringVal); !text {
+			text, ok := key.(*interp.StringVal)
+			if !ok {
 				return nil, messages.New(messages.H7219, fn, codes.NameRef(codes.TypeString), interp.TypeAndSummary(key))
 			}
+			name = text.Val
 		}
-		if err := checkOptionName(fn, k); err != nil {
+		if err := checkOptionName(fn, name); err != nil {
 			return nil, err
 		}
-		s := &option{name: k, defaultVal: value, secret: IsSecretName(k)}
+		s := &option{name: name, defaultVal: value, secret: IsSecretName(name)}
 		var err error
-		if s.optKind, s.itemKind, err = defaultKind(fn, k, value); err != nil {
+		if s.optKind, s.itemKind, err = defaultKind(fn, name, value); err != nil {
 			return nil, err
 		}
 		if s.secret && m != nil {

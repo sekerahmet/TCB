@@ -363,7 +363,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 
 func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(memberSlice)
-	if len(args) != 3 {
+	if len(args) != 2 && len(args) != 3 {
 		return nil, messages.New(messages.H6717, fn, len(args))
 	}
 	var n [3]int
@@ -379,8 +379,11 @@ func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	head, last := n[1], n[2]
 	uz := sh[e]
+	if len(args) == 2 {
+		n[2] = uz // son verilmezse eksenin sonudur (15.3)
+	}
+	head, last := n[1], n[2]
 	if head < 0 {
 		head += uz
 	}

@@ -599,7 +599,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** sürüm iletisi (H3012) `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM]. Hesap ondalığından float64'e `.TR_to_dtype` türev izlemiyor [ölçüldü].
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM 231 N2):** `.TR_fill` kuralda var, kimliği yok [ölçüldü: DENETİM 231]. 15.34'ün iki örneği (`g.TR_fill(0.0)` ve 16 bitlik parametrenin iletisindeki `p.TR_fill(ana)`) onunla çalışır; tur 8'de metin değişmedi (2026-11-14, DENETİM 708 N3).
-- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 280):** iki argümanlı `.TR_slice(eksen, baş)` H6717 veriyor; 15.3'ün örneği (`x.TR_slice(1, 1)`) kopyalanınca çalışmıyor [ölçüldü: S1].
 - **Yapılacaklar:**
   - **(E ve F, Ö3; sınıf uzak 14):** `TR_wrapping_add`, `TR_wrapping_sub` ve `TR_wrapping_mul`'ın tensör imzası; PyTorch'un `.float()`/`.long()`/`.bool()`/`.to(...)` alışkanlığına doğru yazımı öneren ileti (bugün genel "özellik ya da metot bulunamadı");
   - **(E, Ö3; sınıf uzak 14):** GPU'nun hata yuvası (`fault_slot.go`) `int64` işlemleri, dönüşümler, `TR_embedding_lookup` ve `TR_write_slice` için var; dar tam sayıların GPU çekirdekleri kalıyor (15.6'nın bekleme listesi);
@@ -621,7 +620,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.6
 
 - **Mevcut durum:** kitaplıkta pencerenin sınırı konumların float32 kopyasıyla karşılaştırılır (`lib/layers.tr:443`; konum < 2²⁴ kesin): kartta "int64" çıkarma var, ama `TR_replay` kaydında tam sayı tensörünün sayıyla işlemi H4066 [ölçüldü: benzetici, `d6adf7e3`].
-- **Yapılacaklar (F, Ö3; sahip T1; Gemini uzak 14, TCB 14:39):** `lib/layers.tr:443`'ün yorumu "GPU'da tam sayı çıkarması yok" diyor; kartta "int64" çıkarma var (üstteki satır).
 - **Yapılacaklar (D ve E, Ö3; sınıf uzak 14):** cinsli işleç tablosunun kalanı: hesap ondalığında `//` ve `%` (H6703), işaretsiz sağa kaydırma (kimliği yok), kartta dar tam sayılar (H6969) [ölçüldü: `d6adf7e3`, benzetici]; cins farkının denetim hatası (4c; `d6adf7e3`'te çalışmada H6966); 15.6'nın bekleme listesindeki öbür işlemler (bayrağın altyapısı, `TR_replay`'deki yuvası ve dönüşüm T1 dilim 2a'da, "int64" T1 dilim 2b'de); TR testi.
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
 - **Yapılacaklar (C, Ö2; sahip T1; tur 8, 2026-11-14; DENETİM 708):** işlemcide `TR_Int` tensörünün `**`'ı tabanı -1 olan büyük üste asılır: `powInt` üssü tek tek çarpar, yalnız sonuç 0 ya da taban 1 iken erken çıkar, taban -1'de döngü üs kadar döner [kanıtlı: `internal/compute/tensor/cpu_typed_ops.go:333-345`, erken çıkış `:343`]; kart ve sayı yolu kare alarak hesaplar [hipotez: tur 8 araştırması, koddan okuma, koşulmadı]. İşlemci kare alarak hesaplamaya geçerken iki cihazın ilk hatalı öğesi aynı kalır (15.6).
@@ -630,10 +628,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** liste işlenen hata vermeden çalışıyor: `TR_Tensor([1.0, 2.0]) + [10, 20]` → `[11.0, 22.0]` [ölçüldü].
 - **Yapılacaklar (D, Ö3; sınıf uzak 14):** liste işlenenin denetim hatası; `TR_Tensor[TR_Int]` ile `2.5`'in denetim hatası (4c; `d6adf7e3`'te çalışmada H6968; "uint8" ile `300` çalışmada H6964, kurala uygun) [ölçüldü: `d6adf7e3`]; TR testi. Göç [ölçüldü: grep, `d6adf7e3`]: liste işlenen 3 yer (`tests/matematik_test.tr:38`, `tests/tensor_test.tr:189`, `:1824`), Go dizelerinde 2.
-
-### 15.6b
-
-- **Yapılacaklar (F, Ö3; sınıf uzak 14):** eksen sayıları eşitken iki yanlı genişleme uyarı vermez: `TR_zeros([3, 1]) >= TR_zeros([1, 3])` H6128 yazıyor [ölçüldü: `d6adf7e3`]: `bothWiden` eksen sayılarına bakmıyor (`internal/stdlib/ml/operators.go:71`); TR testi.
 
 ### 15.6c
 
@@ -672,10 +666,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** ondalık ya da tam sayı koşul ve sayı imzası (`TR_where(TR_true, 2, 3)`) denetimde değil, çalışmada H6207 veriyor [ölçüldü].
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** iki sayılı biçimin cinsi ve hassasiyeti.
-
-### 15.16
-
-- **Yapılacaklar (D, Ö3; sahip T1; Tur 6B, 2026-11-10):** `TR_relu`'nun türevi `x ≤ 0`'da tam 0 olur (15.15'in seçimi); bugün `g * 0` ile yukarıdan gelen NaN geçiyor: `x = -1`'de `TR_sqrt(TR_relu(x))`'in türevi NaN, `TR_clamp`'inki 0.0 [ölçüldü: DENETİM 388]. Var olan NaN testi değişmez; yeni TR testi bu durumu sınar.
 
 ### 15.16a
 
@@ -795,7 +785,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** eski metne göre `geri` liste döndürüyor [ölçüldü: DENETİM].
 - **Yapılacaklar (D ve E, Ö3; sınıf uzak 14):** tek girdide kendisi, birden çokta demet; fonksiyon ifadesinde öğe sayısının denetim hatası.
-- **Yapılacaklar (A, Ö1; sahip T1, tensör kolu; Gemini uzak 14, 2026-11-13):** `f_geri` `f_ileri`'nin çağrıldığı andaki karışık hassasiyet türünü korumuyor: ileri adım `TR_mixed_precision("bf16")` içinde, `TR_backward` dışarıda iken `f_geri` içinde `TR_compute_dtype()` float32 [ölçüldü: TCB, trlang ile, main `1c473082`]; geri yöndeki çarpımlar yanlış hassasiyette koşar.
 
 ### 15.32
 
@@ -814,7 +803,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** kitaplığın `TR_Muon` ve `TR_NorMuon`'u 16 bitlik parametrede ana kopya tutmuyor; güncelleme yutuluyor ve artık uyarı veriyor (`lib/optimizers.tr:96-97`) [kanıtlı: T1 devri]. İş: iki iyileştiriciye ana kopya.
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** H6994'ün önerisi `.TR_fill` yokken `p[0..p.TR_shape[0]] = ana`; `.TR_fill` gelince `p.TR_fill(ana)` olur (15.6d).
 - **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş4):** H6994'ün önerisi (`p[0..p.TR_shape[0]] = ana`) 0 boyutlu parametrede "Liste indeksi sınır dışı" veriyor; öneri boyuttan bağımsız yazılmalı. Kitaplığın `TR_Muon`'unda uyarı `tr/optimizers.tr` satır 97'yi gösterip kullanıcıya ana kopya tutmasını söylüyor; kullanıcı orayı değiştiremez, ileti "parametreyi float32 kurun" demeli.
-- **Yapılacaklar (F, Ö3; T1 Kol B teslim 2c):** iyileştiricinin iki iletisi parametrenin sırasını farklı sayıyor: H6920 0'dan, H6995 1'den. İkisi de 1'den saymalı.
 - **Yapılacaklar (F, Ö3; DENETİM istek 85 N1):** kitaplığın iyileştiricisinde (`TR_Muon` vb.) H6995 kullanıcının satırını değil `tr/optimizers.tr`'nin 118. satırını gösteriyor.
 - **Yapılacaklar (F1, Ö3; DENETİM istek 85 N2):** ara sonuç (yaprak olmayan tensör) kitaplığın `TR_Muon`'unda H6995, Go'daki `TR_SGD`'de H6514 veriyor; iki yol aynı durumu farklı kodla anlatıyor.
 - **Yapılacaklar (F, Ö3; DENETİM istek 85 N3):** teslim 2c'de `typed_code_known.txt` kaymasın diye ilgisiz bir yorum tek satıra birleştirildi; liste anahtarı düzelince ("Denetim katmanlarının gözden geçirmesi") geri açılır.
@@ -857,7 +845,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (E, Ö3; sahip T1, sonraki dilim; DENETİM 528 N1):** `TR_logsumexp`'in türevi kartta 2²⁴ öğeden uzun satırda kullanıcıya TR'nin iç hatasını veriyor ("lütfen bildirin"), ileri yönde değil `TR_backward`'da; işlemcide sınır yok [kanıtlı: DENETİM 528, `RowLogSumExpGrad`]. Neden: ilk +∞'ın konumu float32'de tutuluyor. Dost'ta ulaşılmaz (Whisper'ın satırı ~5·10⁴). Düzeltme: konum tam sayıyla indirgenir, 2²⁴ + 1 öğelik test; olmazsa kodlu ileti ve 15.41'de istisna.
 - **Yapılacaklar (D, Ö3; sahip T1; T1 dilim 5'in B6'sı):** kayıtta kartın `TR_stft`'i her seferinde H4066 veriyor: çerçevelerin konum tablosu her çağrıda konaktan yükleniyor (`internal/compute/tensor/fourier_card.go:135`). Kayıtta `TR_rfft` doğrudan çağrıyla aynı [test: `TestReplayFourierOnTheCard`]. Çaresi ayrı dilim, 5'ten sonra (TCB).
 - **Yapılacaklar (C, Ö2; sahip T1; T1 dilim 5'in B7'si; sınıf DENETİM 642 N1):** kayıtta `TR_rfft`'in sonucu taban önbelleğinin geçmişine bağlı (128 MiB'i aşan iki taban): aynı adım önbellek doluyken H4066 verir [ölçüldü: T1 dilim 5, benzetici, n = 4096 ve 4095, üç turda none, H4066, none].
-- **Yapılacaklar (D ile F1, Ö3; sahip T1; DENETİM 512 N1):** kayıtta tekli eksi H4065 veriyor: ileti "cihazdan konağa okunamaz … değeri kayıttan sonra okuyun" diyor, oysa program bir şey okumuyor; çalışan yazım `0 - x` [kanıtlı: DENETİM 512, `internal/stdlib/ml/replay_faults.go:42-43`, `tr.json:731`]. Aynı yolun H4066'sının gerekçesi ("yüklenen veri her oynatmada aynı kalırdı") sabit sayı işleneninde yanlış: sabit için istenen zaten budur (D, Ö3; `tr.json:732`).
+- **Yapılacaklar (D, Ö3; sahip T1; DENETİM 512 N1):** kayıtta H4066'nın gerekçesi ("yüklenen veri her oynatmada aynı kalırdı") sabit sayı işleneninde yanlış: sabit için istenen zaten budur (`tr.json:750`). Tekli eksi kayıtta çalışıyor, taşması kaydedilen satırı söylüyor (DIL UZMANI iş 8) [test: TestReplayInt64ArithFaultNamesRecordedLine].
 - **Yapılacaklar (F, Ö3; sahip T1; T1 dilim 5'in B6'sı):** H4066'nın önerisi kayıtta kartın `TR_stft`'inde uygulanamaz: yüklenen konum tablosu kullanıcının verisi değil, kitaplığın sabitidir.
 - **Yapılacaklar (F, Ö3; sahip T1; DENETİM 512 N1):** tam sayı toplamının ve birikimli toplamının taşma iletisi H6961 konumu boş geçebiliyor (`tr.json:1446`, konum yuvasının boş seçeneği); ileti doğru ama eksik.
 - **Yapılacaklar (sınıfsız: hız; sahip T1, dilim 5'ten önce TCB'nin kararı; DENETİM 512 N7):** kartın int64 toplamında eksensiz toplam tek iş parçacığıyla sırayla toplanıyor (`internal/compute/gpu/typed_reduce.go:35`, `plain(m, sameBlock)`, m = 1); 2²⁴ öğede ~1 sn [hesap, kaba] ve Windows'ta ekranı süren kartta sürücünün süre aşımı [hipotez]. Dost'un ekseni kısa; bedel dilim 5'in ölçüsünde görünür. Öneri: büyük n, küçük m için ağaç yolu ya da sınır.
@@ -880,7 +868,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Yapılacaklar (C, Ö2; sınıf TCB 15:09):** GPU'da aynı hata (denetim cihazdan önce, stdlib'de): L4'te koşulacak.
 - **Yapılacaklar (F, Ö3; DENETİM istek 83 Ş3):** modül adı ve metot yolu `VM.EvalExpression` ile okunuyor; `debug_support.go`'nun yorumu bu yöntemleri yalnız hata ayıklayıcı için tanımlıyor. Yorum ikinci kullanıcıyı söyler ya da dar bir üye okuma fonksiyonu açılır.
-- **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** liste kavrayışının değişkeni `TR_fuse`'un toplayıcısında yerel sayılmıyor; dışta aynı adlı değişken varsa doğru program gereksiz H6986 ile duruyor (sessiz değil) [kanıtlı: T1 devri, okuma].
 - **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş3):** H6986 fonksiyon değerinde yanlış yönlendiriyor: öneri "değişen sayıyı argüman verin" diyor, oysa fonksiyon `TR_fuse`'a argüman olamaz; doğrusu `TR_fuse(...)`'i yeniden kurmak (öneri okunan değerin türüne göre ayrılır). Fabrika kapanışında eski ve yeni fonksiyon aynı görünüyor (`<ok fonksiyonu>`). Takma adla okunan bağlı metodun yolu iletide sınıflı iç kimlikle (self anahtar sözcüğünün iç kodu) yazılıyor; nesnenin yolu olmalı.
 - **Yapılacaklar (C, Ö3; DENETİM istek 84 N1) [hipotez]:** fonksiyon kimliği `%p` ile metin olarak tutuluyor; eski kapanış toplanıp yenisinin ortamı aynı adrese düşerse değişim görünmez. Yeniden üretilemedi (400 denemede 400 H6986). Koruma: kaydedilen gövde ve ortam işaretçilerini `fuseCapture`'da tutmak.
 - **Uygulama sınırı:** `TR_clamp`, `TR_atan2` ve `TR_where` bugün kaynaştırılmıyor; `f`'de kullanılınca hata veriyor. Kural onları da kapsar.
@@ -907,8 +894,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.49
 
-- **Mevcut durum:** tensörün `==`'si ve `!=`'si eşitlik kancasından gidiyor: iki yan birden genişlediğinde yayın uyarısı `<` için yazılıyor, `==` için yazılmıyor (T1 bulgu 7) [ölçüldü: DENETİM istek 57, `[2,1] < [1,3]` ve `==`].
-- **Yapılacaklar (F, Ö3; sınıf uzak 14):** `==`/`!=`'de yayın uyarısı; satırların kalanı kendi maddeleriyle; TR testi.
+- **Mevcut durum:** tensörün `==`'si ve `!=`'si de iki yan birden genişlediğinde yayın uyarısı yazıyor, `<` gibi (DIL UZMANI iş 8) [test: TestBroadcastWarningOnEquality].
 
 ### 15.50
 
@@ -1093,7 +1079,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 ### 19.4
 
 - **Yapılacaklar (F, Ö3; sınıf uzak 14):** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
-- **Yapılacaklar (B, Ö1; sahip Motor, 19.4'ün bir sonraki dilimi; DENETİM 660 N1):** bilinmeyen seçenek iletisi `=…` kesimini maskeden önce yapıyor; `=` adresin kimlik kısmındaysa (`--postgres://u:abcdef=gh@h/x`) parolanın başı iletide açık kalır [kanıtlı: process paketinin `unknownOption`'ı, kesim maskeden önceki satırda; hesap, koşulmadı]. Önce maske, sonra kesim.
 
 ### 19.4a
 
@@ -1204,7 +1189,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 - **Yapılacaklar (F, Ö3; sahip TCB, toplu karar):** görünüm adı iletiye sızıyor, `TR_std(1)`'in iletisi de öyle; `CallName`, `CallNameRef`, `CallPrefix` çağrısı 143 satır [ölçüldü: `git grep -n -E`, `*.go`, tanım satırları hariç, `d6adf7e3`].
 
-- **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 - **Yapılacaklar (F, Ö3; sahip DIL UZMANI; Kodlama3 Dilim B birleşince; DENETİM 726, TCB 15:47):** `.TR_tolist`'in eski Türkçe görünümü (".değer") Go yorumlarında 12 yerde kaldı; yerine kimlik yazılır [ölçüldü: git grep, `27c7eb12`]: internal/stdlib/ml/ altında builtin_reduce.go:187, error.go:192, members.go:145, members_test.go:11, optimizer.go:247, optimizer_test.go:16, value_test.go:60 (hata iletisinin metni), vm_hooks.go:14, :20, :366; internal/compute/ altında gpu/memory.go:39, tensor/optimizer.go:251.
 - **Yapılacaklar (F, Ö3; sahip DIL UZMANI; DENETİM 727 N1, TCB 16:22):** kitaplık yorumlarının ve örneklerin kullanım satırları görünüm adlarıyla yazılı; dil tanımı 17.2'ye göre program metni kimlikle yazılır, satırlar kimliğe geçer. Üç kalıpla (değişken ya da sabit, ad ve =; aktar ve tırnak; yazdır ve parantez) en az 58 yorum satırı: lib altında 8 dosyada 28, examples altında 25 dosyada 30 [ölçüldü: git grep -c -P, yalnız yorum satırları, `14a27cef`]; kalıp düzyazıdaki görünüm adlarını saymaz. Örnekler: lib/training.tr:5-7, examples/tr/23_tensor.tr:3, docs/recipes.md:22. recipes.md:22 ayrıca örneği tr.json'un satırına koyuyor; dil dosyası example alanını reddediyor, örnek definitions.json'da kimlikle duruyor [kanıtlı: internal/lang/codes/json_parse.go:139; internal/lang/codes/definitions.json:253]; örnek tarifin İmza satırına definitions.json'daki metinle taşınır.
 

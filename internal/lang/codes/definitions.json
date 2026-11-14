@@ -684,7 +684,7 @@
   "TR_mem_single_step": { "kind": "method", "module": "tr/layers" },
   "TR_mem_size": { "kind": "property", "types": ["TR_Path"], "returns": "TR_Int", "familiar": ["size", "getsize"], "example": "TR_write_file(\"boyut.txt\", \"merhaba\"); TR_print(TR_Path(\"boyut.txt\").TR_size)" },
   "TR_mem_skip": { "kind": "method", "types": ["TR_Sampler", "TR_SequentialReader"], "params": ["TR_Int"], "returns": "TR_Int", "related": ["TR_mem_next", "TR_mem_state", "TR_mem_rollback"], "familiar": ["skip"], "example": "TR_var ö = TR_Dataset(\"tests/data/text\").TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1); TR_print(ö.TR_skip(3), ö.TR_state[\"counter\"])" },
-  "TR_mem_slice": { "kind": "method", "types": ["TR_Tensor"], "params": ["TR_Int", "TR_Int", "TR_Int"], "returns": "TR_Tensor", "example": "TR_print(TR_Tensor([[1, 2, 3], [4, 5, 6]]).TR_slice(1, 0, 2).TR_tolist)" },
+  "TR_mem_slice": { "kind": "method", "types": ["TR_Tensor"], "params": ["TR_Int", "TR_Int", "TR_Int?"], "returns": "TR_Tensor", "example": "TR_print(TR_Tensor([[1, 2, 3], [4, 5, 6]]).TR_slice(1, 0, 2).TR_tolist)" },
   "TR_mem_sort": { "kind": "method", "pure": true, "types": ["TR_List"], "params": ["TR_Function?"], "returns": "TR_List[T]", "related": ["TR_mem_reverse"], "example": "TR_print([3, 1, 2].TR_sort(), [\"bb\", \"a\"].TR_sort((m) => m.TR_length))" },
   "TR_mem_sparse_lr": { "kind": "property", "module": "tr/optimizers" },
   "TR_mem_spike_count": { "kind": "property", "module": "tr/training" },

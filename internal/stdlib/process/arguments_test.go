@@ -62,3 +62,41 @@ func TestUnknownOptionIsCutAfterMask(t *testing.T) {
 		t.Errorf("verilen argüman kesimden önce maskelenmeli: %q", got)
 	}
 }
+
+// NUL ile başlayan metin anahtarı seçeneğin adı olarak bir kez kodlanır: sonuç sözlüğünde anahtar
+// yazıldığı metindir (iki karakter). Önceden seçenek sözlüğün iç kodlu anahtarını ad alıyordu,
+// sonuç sözlüğü onu yeniden kodluyordu: anahtar 18 karakterdi (D1'in ölçümü).
+func TestOptionNameStartingWithNULIsEncodedOnce(t *testing.T) {
+	dict := interp.NewDictVal()
+	dict.Set("\x00a", &interp.IntVal{Val: 1})
+	options, err := buildOptions(nil, "TR_command_line", dict)
+	if err != nil || len(options) != 1 || options[0].name != "\x00a" {
+		t.Fatalf("seçeneğin adı yazılan metin olmalı: %v %v", options, err)
+	}
+	result, err := applyArguments(nil, options, "")
+	if err != nil || len(result.Order) != 1 {
+		t.Fatalf("tek anahtar bekleniyordu: %v", err)
+	}
+	key, ok := result.KeyValue(result.Order[0]).(*interp.StringVal)
+	if !ok || key.Val != "\x00a" {
+		t.Errorf("sonuç sözlüğünün anahtarı %q olmalı, gelen %v", "\x00a", result.KeyValue(result.Order[0]))
+	}
+}
+
+// Parolasında `=` olan adres bilinmeyen seçenek olarak yazılınca ileti parolanın başını göstermez
+// (19.4, DENETİM 660 N1). Önceden `=`'deki kesim maskeden önceydi: kalan `postgres://u:abcdef`'te `@`
+// olmadığından maske adresi tanımıyor, parolanın başı iletide açık kalıyordu. Sayı ayrılan yolun
+// ikisini sınar: `--` ile (seçenek adı `=`'de bölünür) ve tek tire ile.
+func TestUnknownOptionWithEqualsInPasswordIsMasked(t *testing.T) {
+	options := []*option{{name: "adım", optKind: kindInt}}
+	for _, arg := range []string{"--postgres://u:abcdef=gh@h/x", "-postgres://u:abcdef=gh@h/x"} {
+		_, err := parse(interp.New(), []string{arg}, options)
+		if err == nil {
+			t.Fatalf("%s: hata bekleniyordu", arg)
+		}
+		got := err.Error()
+		if strings.Contains(got, "abcdef") || strings.Contains(got, "gh@") || !strings.Contains(got, "***") {
+			t.Errorf("%s: parola iletide görünmemeli, maske görünmeli: %q", arg, got)
+		}
+	}
+}

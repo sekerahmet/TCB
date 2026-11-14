@@ -67,8 +67,13 @@ func checkDevice(operation any, a, b *tensor.Tensor) error {
 }
 
 // bothWiden yayınlamada iki işlenenin de genişletilip genişletilmediğini söyler
-// (ör. [4, 1] ile [4] → [4, 4]). Bu çoğunlukla bir şekil hatasıdır. Ayırma yapmaz.
+// (ör. [4, 1] ile [4] → [4, 4]). Bu çoğunlukla bir şekil hatasıdır. Ayırma yapmaz. Eksen sayıları
+// eşitken iki yanlı genişleme bilerek yazılır (nedensel maske [T, 1] >= [1, T], `.TR_unsqueeze`);
+// uyarı yalnız eksen sayıları farklıyken verilir (15.6b).
 func bothWiden(a, b *tensor.Tensor) bool {
+	if a.Dim() == b.Dim() {
+		return false
+	}
 	nd := max(a.Dim(), b.Dim())
 	var aWide, bWide bool
 	for i := 1; i <= nd; i++ {

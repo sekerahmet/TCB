@@ -325,6 +325,10 @@ func TestSpecialValuesTable(t *testing.T) {
 		// Türevler: relu'nun türevi 0'da 0 ve NaN'da NaN, mutlak'ınki ±0'da 0 ve NaN'da NaN, tanh'ınki
 		// ±∞'da 0.
 		{ad: "relu", in: []float32{0, n0, nan, 2}, want: []float32{0, 0, nan, 1}, f: (*tensor.Tensor).Relu, grad: true},
+		// x ≤ 0'da relu'nun türevi tam 0'dır: yukarıdan gelen sonsuz (karekökün 0'daki türevi) bu dala
+		// geçmez (15.15, 15 özel değerler tablosu); önceden g·0 NaN veriyordu.
+		{ad: "relu sonra karekök", in: []float32{-1, 0, n0, 4}, want: []float32{0, 0, 0, 0.25}, grad: true,
+			f: func(x *tensor.Tensor) *tensor.Tensor { return x.Relu().Sqrt() }},
 		{ad: "mutlak", in: []float32{0, n0, nan, -2}, want: []float32{0, 0, nan, -1}, f: (*tensor.Tensor).Abs, grad: true},
 		{ad: "tanh", in: []float32{inf, -inf}, want: []float32{0, 0}, f: (*tensor.Tensor).Tanh, grad: true},
 		// Toplam: yalnızca −0'lardan oluşan toplam +0'dır; +∞ ile −∞ NaN.

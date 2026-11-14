@@ -27,6 +27,21 @@ TR_print(kf(t).TR_tolist)`)
 	}
 }
 
+// Liste kavrayışının değişkeni kavrayışın yereldir: dışta aynı adlı değişken değişse de
+// kaynaştırılan fonksiyon onu kapanıştan okumaz, H6986 vermez (15.44). Önceden değişken
+// toplayıcıda yerel sayılmıyordu, doğru program H6986 ile duruyordu (T1 Kol B teslim 2b).
+func TestFuseComprehensionVariableIsLocal(t *testing.T) {
+	out, err := run(t, `TR_var k = 5.0
+TR_var f = TR_fuse((x) => TR_concat([x * k TR_for k TR_in [1.0, 2.0]]))
+TR_var t = TR_Tensor([1.0])
+TR_print(f(t).TR_tolist)
+k = 7.0
+TR_print(f(t).TR_tolist)`)
+	if err != nil || out != "[1.0, 2.0]\n[1.0, 2.0]\n" {
+		t.Fatalf("kavrayışın değişkeni yerel olmalı: %q, %v", out, err)
+	}
+}
+
 // Dil tanımı 15.44 karşılaştırmaları kaynaştırılabilir işlemler arasında sayar (türevleri 0):
 // kaynaştırılan fonksiyonda '<', '>' hata vermez.
 func TestFuseComparisons(t *testing.T) {

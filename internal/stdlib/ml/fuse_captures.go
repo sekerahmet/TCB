@@ -212,6 +212,17 @@ func (w *captureWalk) visit(s scope, n any) bool {
 		}
 		w.block(in, x.Body)
 		return false
+	case *ast.ListComprehension:
+		// Kavrayışın değişkeni kavrayışın yereldir (dıştaki aynı adlı değişken değil); kaynağı
+		// dışta gezilir.
+		w.walk(s, x.Iterable)
+		in := s.child()
+		in.local[x.VarName] = true
+		w.walk(in, x.Output)
+		if x.Condition != nil {
+			w.walk(in, x.Condition)
+		}
+		return false
 	case *ast.FunctionLiteral:
 		if x.Body != nil {
 			in := s.child()

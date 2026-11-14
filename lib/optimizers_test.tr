@@ -50,6 +50,12 @@ TR_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çık
 TR_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
     TR_assert_equal("H6920", TR_error_code { TR_Muon([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)]) })
     TR_assert_equal("H6920", TR_error_code { TR_NorMuon([TR_Tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)]) })
+    # İleti ağırlığın sırasını H6995 gibi 1'den sayar: ikinci ağırlık "2.".
+    TR_var iki_boyutlu = TR_Tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
+    TR_var tek_boyutlu = TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)
+    TR_var ileti = ""
+    TR_try { TR_only_2d(TR_Muon, [iki_boyutlu, tek_boyutlu]) } TR_catch h { ileti = h.TR_text("tr") }
+    TR_assert(ileti.TR_contains("2. ağırlığın"), ileti)
 }
 
 TR_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {

@@ -110,7 +110,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 		}
 		s := find(options, name)
 		if s == nil {
-			return nil, unknownOption(m, "--"+name, options)
+			return nil, unknownOption(m, a, options)
 		}
 		if _, before := given[s.name]; before {
 			return nil, messages.New(messages.H7202, s.display())
@@ -183,11 +183,13 @@ func unknownOption(m *interp.VM, given string, options []*option) error {
 		name = name[:i]
 	}
 	// Değer iletide gösterilmez: yanlış yazılmış bir gizli seçeneğin (-api_key=...) değeri
-	// gizli değer süzgecine henüz verilmemiştir.
-	if i := strings.IndexByte(given, '='); i >= 0 {
-		given = given[:i] + "=…"
+	// gizli değer süzgecine henüz verilmemiştir. `=`'deki kesim de maskeden sonradır: parolasında
+	// `=` olan adres (--postgres://u:ab=cd@h) önce kesilseydi `@`'si gider, maske onu tanımazdı.
+	shown := masked(m, given)
+	if i := strings.IndexByte(shown, '='); i >= 0 {
+		shown = shown[:i] + "=…"
 	}
-	shown := shorten(masked(m, given))
+	shown = shorten(shown)
 	// Yardım seçeneği her yazım dilinin adıyla kabul edilir (--help, --help): hepsi adaydır.
 	helps := map[string]bool{}
 	var candidates []string

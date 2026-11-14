@@ -17,14 +17,30 @@ TR_var b = TR_zeros([4])
 TR_for i TR_in 0..3 { TR_var c = a + b }
 TR_print((a - b).TR_shape)
 TR_var d = TR_zeros([2, 3]) + TR_zeros([3])
-TR_var e = TR_zeros([5, 3]) * TR_zeros([1, 3])`)
+TR_var e = TR_zeros([5, 3]) * TR_zeros([1, 3])
+TR_var f = TR_zeros([3, 1]) >= TR_zeros([1, 3])`)
 	if o.Out != "[4, 4]\n" {
 		t.Fatalf("çıktı: %q", o.Out)
 	}
 	want := "Uyarı: [4, 1] ile [4] yayınlanarak [4, 4] üretildi (iki taraf da genişletildi); bilerek yapmadıysanız şekilleri kontrol edin.\n"
-	// Toplama için döngüde bir kez, çıkarma için bir kez; tek taraflı yayınlamada uyarı yok.
+	// Toplama için döngüde bir kez, çıkarma için bir kez; tek taraflı yayınlamada ve eksen sayıları
+	// eşitken iki yanlı genişlemede (nedensel maske, 15.6b) uyarı yok.
 	if strings.Count(o.ErrOut, want) != 2 || strings.Count(o.ErrOut, "Uyarı") != 2 {
 		t.Fatalf("uyarılar:\n%s", o.ErrOut)
+	}
+}
+
+// `==` ve `!=` de iki yanlı yayında uyarı yazar, `<` gibi (15.6b; DENETİM istek 57). Önceden eşitlik
+// kancası görevi almıyordu, uyarı yalnız `<`'de çıkıyordu.
+func TestBroadcastWarningOnEquality(t *testing.T) {
+	o := trrun.MustExecChecked(t, `TR_var a = TR_zeros([2, 1])
+TR_var b = TR_zeros([3])
+TR_var e = a == b
+TR_var n = a != b
+TR_var k = a < b`)
+	want := "Uyarı: [2, 1] ile [3] yayınlanarak [2, 3] üretildi"
+	if strings.Count(o.ErrOut, want) != 3 {
+		t.Fatalf("==, != ve < için birer uyarı bekleniyordu:\n%s", o.ErrOut)
 	}
 }
 
@@ -46,7 +62,11 @@ func TestBothSidesWiden(t *testing.T) {
 		want bool
 	}{
 		{[]int{4, 1}, []int{4}, true},
-		{[]int{2, 1}, []int{1, 3}, true},
+		// Eksen sayıları eşitken iki yanlı genişleme uyarı vermez (15.6b; nedensel maske [T, 1] >= [1, T]).
+		{[]int{2, 1}, []int{1, 3}, false},
+		{[]int{3, 1}, []int{1, 3}, false},
+		{[]int{1, 4, 1}, []int{2, 1, 3}, false},
+		{[]int{2, 1}, []int{3}, true},
 		{[]int{2, 3}, []int{3}, false},
 		{[]int{2, 3}, []int{2, 3}, false},
 		{[]int{2, 3}, []int{}, false},

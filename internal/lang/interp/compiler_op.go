@@ -40,6 +40,15 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 				return NewInt(-rv.Val), nil
 			case *FloatVal:
 				return &FloatVal{Val: -rv.Val}, nil
+			case TaskNegatable:
+				newOp()
+				v.builtinLine = line // kaydın hata yuvası işlecin satırını söyler (hookOperator gibi)
+				val, err := rv.TaskNegate(v)
+				if err == nil {
+					v.adopt(val)
+					v.releaseTemp(right, val)
+				}
+				return val, lineSuffix(line, err)
 			case Negatable:
 				newOp()
 				val, err := rv.Negate()

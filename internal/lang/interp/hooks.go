@@ -43,9 +43,23 @@ type TaskOperatorHook interface {
 	TaskOperator(v *VM, op string, other Value, onRight bool) (outcome Value, ok bool, err error)
 }
 
+// TaskValueEqualer is the form of ValueEqualer that also receives the task doing the comparison;
+// for such values it is called instead of ValueEqual (a tensor's '==' writes its broadcast warning
+// to the task's program, 15.6b).
+type TaskValueEqualer interface {
+	TaskValueEqual(v *VM, op string, other Value) (outcome Value, ok bool, err error)
+}
+
 // Negatable provides unary minus ('-x').
 type Negatable interface {
 	Negate() (Value, error)
+}
+
+// TaskNegatable is the form of Negatable that also receives the task; for such values it is
+// called instead of Negate (a tensor's '-x' inside a GPU recording writes its fault slot to the
+// task's recording).
+type TaskNegatable interface {
+	TaskNegate(v *VM) (Value, error)
 }
 
 // Invertible provides unary complement ('~x').
@@ -188,17 +202,25 @@ func (v *VM) tryOperandHook(op string, target, other Value, onRight bool) (Value
 	return nil, false, nil
 }
 
-// hookValueEqual '==' ve '!=' işleçlerini (varsa) değerlerin ValueEqualer kancalarıyla yapar.
-func hookValueEqual(op string, left, right Value, line int) (Value, bool, error) {
-	if eq, ok := left.(ValueEqualer); ok {
-		if val, ok, err := eq.ValueEqual(op, right); ok {
-			return val, true, lineSuffix(line, err)
-		}
+// hookValueEqual '==' ve '!=' işleçlerini (varsa) değerlerin ValueEqualer kancalarıyla yapar
+// (görev kancası önce).
+func (v *VM) hookValueEqual(op string, left, right Value, line int) (Value, bool, error) {
+	if val, ok, err := v.tryValueEqual(op, left, right); ok {
+		return val, true, lineSuffix(line, err)
 	}
-	if eq, ok := right.(ValueEqualer); ok {
-		if val, ok, err := eq.ValueEqual(op, left); ok {
-			return val, true, lineSuffix(line, err)
-		}
+	if val, ok, err := v.tryValueEqual(op, right, left); ok {
+		return val, true, lineSuffix(line, err)
+	}
+	return nil, false, nil
+}
+
+// tryValueEqual hedefin eşitlik kancasını dener; other öbür işlenendir.
+func (v *VM) tryValueEqual(op string, target, other Value) (Value, bool, error) {
+	if eq, ok := target.(TaskValueEqualer); ok {
+		return eq.TaskValueEqual(v, op, other)
+	}
+	if eq, ok := target.(ValueEqualer); ok {
+		return eq.ValueEqual(op, other)
 	}
 	return nil, false, nil
 }

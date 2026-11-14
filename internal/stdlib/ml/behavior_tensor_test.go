@@ -38,6 +38,9 @@ TR_var b = TR_Tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
 		{"a.TR_reshape([-1])", []float32{1, 2, 3, 4, 5, 6}, []int{6}},
 		{"a.TR_slice(1, 1, 3)", []float32{2, 3, 5, 6}, []int{2, 2}},
 		{"a.TR_slice(0, -1, 2)", []float32{4, 5, 6}, []int{1, 3}},
+		// son verilmezse eksenin sonudur (15.3, `x[:, 1:]` → `x.TR_slice(1, 1)`).
+		{"a.TR_slice(1, 1)", []float32{2, 3, 5, 6}, []int{2, 2}},
+		{"a.TR_slice(1, -1)", []float32{3, 6}, []int{2, 1}},
 		{"TR_Tensor([[[1.0, 2.0], [3.0, 4.0]]]).TR_permute([0, 2, 1])", []float32{1, 3, 2, 4}, []int{1, 2, 2}},
 		{"TR_Tensor([1.0, 2.0, 3.0]) @ TR_Tensor([1.0, 1.0, 1.0])", []float32{6}, []int{}},
 		{"TR_zeros([2, 3])", []float32{0, 0, 0, 0, 0, 0}, []int{2, 3}},
@@ -188,6 +191,7 @@ func TestErrors(t *testing.T) {
 		{"TR_zeros([2, 3]) * TR_zeros([3, 2])", messages.H6100},
 		{"TR_print(TR_zeros([2, 3]).TR_to_device(\"tpu\"))", messages.H6800},
 		{"TR_print(TR_zeros([2, 3]).TR_slice(1, 2, 5))", messages.H6720},
+		{"TR_print(TR_zeros([2, 3]).TR_slice(1))", messages.H6717},
 		{"TR_print(TR_zeros([2, 3]).TR_permute([0, 0]))", messages.H6715},
 		{"TR_print(TR_Tensor([[1.0, 2.0], [3.0]]))", messages.H6027},
 		{"TR_print(TR_Tensor([1, \"a\"]))", messages.H6007},
