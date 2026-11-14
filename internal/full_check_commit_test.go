@@ -270,9 +270,10 @@ func TestCommitModeCutsAtTheLimitByPackage(t *testing.T) {
 }
 
 // Kural (tools/full_check.sh, --kip=commit): süreyi timeout belirler, duvar saati değil. timeout parçayı durdurunca
-// sonraki parça başlamaz ve durdurmadan sonra gelen FAIL kesilmiş sayılır, `date` süreden geri kalsa da. CI'da üç kez
-// (status, TestCommitModeCutsAtTheLimitByPackage) `date` timeout'tan geri kaldı: ikinci parça başladı, durdurulan d'nin
-// FAIL'i düşüş sayıldı. Burada saat hiç ilerlemez: eski betik aynı biçimde düşüyordu.
+// sonraki parça başlamaz ve durdurmadan sonra gelen FAIL kesilmiş sayılır, `date` süreden geri kalsa da. CI'da
+// TestCommitModeCutsAtTheLimitByPackage'ta timeout ile `date` birbirini tutmadı: ikinci parça başladı, durdurulan d'nin
+// FAIL'i düşüş sayıldı (CI koşuları 43581840682, 43589647100, 43625941738; hangi saatin kaydığı ölçülmedi, [hipotez]). Burada saat hiç ilerlemez: eski
+// betik aynı biçimde düşüyordu.
 func TestCommitModeTrustsTheTimeoutOverTheClock(t *testing.T) {
 	dir, env := fakeGo(t, map[string]string{
 		"a.out":   "ok  \texample.com/fix/a\t0.1s\n",

@@ -636,15 +636,18 @@ commit_run_chunks() {
 		fi
 		commit_settle "$chunk" "$plan" "$log" "$code" "$module"
 		rm -f "$log"
-		# Süre timeout'a göre doldu: duvar saati geride kalsa da sonraki parça başlamaz (CI'da üç kez, `date` timeout'un
-		# süresinden geri kaldı; ikinci parça başladı, durdurulan paketin FAIL'i düşüş sayıldı).
+		# Süre timeout'a göre doldu: duvar saati geride kalsa da sonraki parça başlamaz. CI'da timeout ile `date` birbirini
+		# tutmadı: timeout durdurduğunda `date` süreyi doldurmamıştı, ikinci parça başladı, durdurulan paketin FAIL'i düşüş
+		# sayıldı (CI koşuları 43581840682, 43589647100, 43625941738). Hangisinin kaydığı ölçülmedi [hipotez]; kural ikisine de bakmadan timeout'a uyar.
 		if [ "$code" -eq 124 ] && [ "$(commit_now_ms)" -lt "$commit_deadline_ms" ]; then
 			commit_deadline_ms=$(commit_now_ms)
 		fi
 	done
 }
 
-# commit_settle bir parçanın paketlerini sonuçlandırır. Zamanlayıcı dolmadan "ok" basan paketin testleri koşuldu;
+# commit_settle bir parçanın paketlerini sonuçlandırır. Günlükteki KESİLDİ satırı timeout'un durdurma anıdır
+# (commit_run_chunks): ondan sonra gelen sonuç satırları, saatleri ne olursa olsun, süre dolduktan sonra gelmiş sayılır.
+# "ok" basan paketin testleri koşuldu;
 # "FAIL" basan paket düştü (süre dolmadan geldiyse --- FAIL satırı olmasa da: TestMain, os.Exit). Zamanlayıcı dolduysa
 # (çıkış 124) sonucu hiç gelmeyen ya da FAIL'i süre dolduktan sonra, süre dolmadan gelmiş bir --- FAIL'i olmadan gelen
 # paket kesildi: bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz. Süre dolduktan sonra gelen --- FAIL sayılmaz:
