@@ -2,10 +2,11 @@
 // ayrıştırıp sözdizimi hatasında testi düşürme, yeni bir VM'de çalıştırıp çıktısını toplama,
 // hatasız çalıştırma ve tip denetimi isteyen hatasız çalıştırma. Motorlar (ml, dataset ...) VM'e
 // testin kendi içe aktarmalarıyla (init ve `_ ".../internal/stdlib"`) kayıtlanır; bu paket
-// yalnızca dil çekirdeğini bilir. Yalnızca motor, araç ve komut testleri kullanır (dil
-// çekirdeğinin kendi testleri kullanamaz: içe aktarma döngüsü olurdu).
+// dil çekirdeğini ve geçici klasörlerin temizliği için files motorunu bilir. Yalnızca motor, araç
+// ve komut testleri kullanır (dil çekirdeğinin kendi testleri kullanamaz: içe aktarma döngüsü olurdu).
 //
-// Layer: test helper (internal/testkit); dil çekirdeğini içe aktarır, yalnızca testler kullanır.
+// Layer: test helper (internal/testkit); dil çekirdeğini ve internal/stdlib/files'ı içe aktarır,
+// yalnızca testler kullanır.
 package trrun
 
 import (
@@ -16,6 +17,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/stdlib/files"
 )
 
 // Parse başlıksız bir program gövdesini (source.Options.Body) ayrıştırır; sözdizimi hatasında
@@ -43,6 +45,10 @@ type Outcome struct {
 func Exec(t testing.TB, code string) Outcome {
 	t.Helper()
 	prog := Parse(t, code)
+	// Programın geçici_klasör() ile açtığı klasörler test bitince silinir, açık satır okuyucuları
+	// kapanır (trlang'ın program sonundaki temizliği, 18.14). Temizlik bütün süreç içindir; trrun'u
+	// kullanan testler paralel koşmaz.
+	t.Cleanup(files.CloseAll)
 	m := interp.New()
 	var out, errOut bytes.Buffer
 	m.Out, m.Err = &out, &errOut

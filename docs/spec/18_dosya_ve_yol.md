@@ -94,7 +94,7 @@ Karşılaştırma yolun üst klasörlerinde bağlantıları çözülmüş mutlak
 - *Test:* TR testi; `TR_owner_only:` Go: `TestWriteFileOwnerOnly`, `TestWriteFileSecretNeedsOwnerOnly`.
 
 **18.14** `TR_temp_dir()` işletim sisteminin geçici klasörünün altında (Windows'ta `%TEMP%`, öteki sistemlerde `$TMPDIR` ya da `/tmp`) bu program için **yeni, boş** ve yalnız kullanıcıya açık (`0700`) bir klasör oluşturur ve mutlak yolunu döndürür; her çağrı ayrı bir klasör verir.
-- Program bitince (başarıyla, hatayla, durdurmayla; `TR_cmd_test`, hata ayıklayıcı ve etkileşimli kabuk dahil) klasör içindekilerle silinir: önce programın açık dosyaları kapatılır, sonra silme `TR_remove(..., TR_recursive: TR_true)`'nun kurallarıyla yapılır (18.7, 18.8).
+- Program bitince (başarıyla, hatayla, durdurmayla; `TR_cmd_test`, hata ayıklayıcı ve etkileşimli kabuk dahil) klasör içindekilerle silinir: önce programın açık dosyaları kapatılır, sonra silme `TR_remove(..., TR_recursive: TR_true)`'nun kurallarıyla yapılır (18.7, 18.8). Zorla öldürülen süreç (Unix'te SIGKILL, Windows'ta taskkill /F) bitmeden kesilir ve klasörünü bırakır; TR onu silmez, işletim sisteminin geçici klasör temizliğine kalır.
 - Silinemeyen bir klasör standart hataya bir uyarı yazar; program klasörü kendisi silmiş ya da taşımışsa sorun değildir.
 - Testler ve deneme programları dosyalarını buraya koyar; depo ve geçici klasör kirlenmez.
 - *Test:* TR testi.

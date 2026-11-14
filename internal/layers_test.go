@@ -2,9 +2,13 @@ package internal_test
 
 import (
 	"errors"
+	"go/ast"
 	"go/build"
+	"go/parser"
+	"go/token"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -32,8 +36,8 @@ var layers = []struct {
 	{"internal/lang/", []string{"internal/lang/", "internal/sysmem", "internal/detmath"}},
 	{"internal/stdlib/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/detmath", "internal/sysmem"}},
 	{"internal/devtools/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/"}},
-	{"internal/testkit/trrun", []string{"internal/lang/"}}, // TR programı çalıştıran test yardımcıları; yalnızca testler kullanır
-	{"internal/testkit", []string{"internal/reporoot"}},    // ortak test yardımcıları (yalnızca reporoot); yalnızca testler kullanır
+	{"internal/testkit/trrun", []string{"internal/lang/", "internal/stdlib/files"}}, // TR programı çalıştıran test yardımcıları (programın geçici klasörleri files'la silinir); yalnızca testler kullanır
+	{"internal/testkit", []string{"internal/reporoot"}},                             // ortak test yardımcıları (yalnızca reporoot); yalnızca testler kullanır
 	{"internal/reporoot", nil},    // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
 	{"internal/sysmem", nil},      // makinenin fiziksel belleği sorgusu; yalnızca standart kitaplığı içe aktarır
 	{"internal/detmath", nil},     // her makinede aynı biti veren matematik; yalnızca standart kitaplığı içe aktarır
@@ -169,6 +173,56 @@ func TestLayerRule(t *testing.T) {
 	}
 	if pkgCount < 20 {
 		t.Fatalf("yalnızca %d paket bulundu; depo yapısı değişmiş olabilir", pkgCount)
+	}
+}
+
+// trrun'un temizliği (t.Cleanup(files.CloseAll)) bütün süreç içindir (18.14): trrun'u testlerinde
+// içe aktaran bir pakette testler paralel koşarsa, bir testin sonu öbürünün geçici klasörünü siler.
+// Bu yüzden o paketlerin test dosyalarında Parallel çağrısı yoktur (çağrı ayrıştırıcıyla aranır,
+// yorum ve metin sayılmaz).
+func TestTrrunPackagesHaveNoParallelTests(t *testing.T) {
+	root := reporoot.Root()
+	users := 0
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || !d.IsDir() {
+			return err
+		}
+		if path != root && (skipped[d.Name()] || strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "_")) {
+			return filepath.SkipDir
+		}
+		p, err := build.ImportDir(path, 0)
+		if err != nil { // paketsiz klasör; bozuk paketi TestLayerRule bildirir
+			return nil
+		}
+		trrun := module + "/internal/testkit/trrun"
+		if !slices.Contains(p.TestImports, trrun) && !slices.Contains(p.XTestImports, trrun) {
+			return nil
+		}
+		users++
+		for _, name := range append(slices.Clone(p.TestGoFiles), p.XTestGoFiles...) {
+			file := filepath.Join(path, name)
+			f, err := parser.ParseFile(token.NewFileSet(), file, nil, 0)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			ast.Inspect(f, func(n ast.Node) bool {
+				if c, ok := n.(*ast.CallExpr); ok {
+					if s, ok := c.Fun.(*ast.SelectorExpr); ok && s.Sel.Name == "Parallel" && len(c.Args) == 0 {
+						rel, _ := filepath.Rel(root, file)
+						t.Errorf("%s: paralel test var; paket trrun'u kullanıyor ve trrun'un temizliği bütün süreç için (18.14): bir testin sonu öbürünün geçici klasörünü siler", filepath.ToSlash(rel))
+					}
+				}
+				return true
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if users < 5 {
+		t.Fatalf("trrun'u kullanan yalnızca %d paket bulundu (2026-11-14'te 10); arama bozulmuş olabilir", users)
 	}
 }
 
