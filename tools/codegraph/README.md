@@ -38,27 +38,29 @@ group, default 12) and `--all`, before or after the names. Output is short plain
 
 Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the sections below give the details. Before asking for a new capability, try the closest command here and keep the line of its answer that shows what is missing.
 
-| question | command |
-| :-- | :-- |
-| which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) |
-| which nodes and Go tests my branch or uncommitted change touches | `changed HEAD [--go-tests]` (with `HEAD` as the tip the working tree is included); another branch: `changed <branch>` (exact only with that branch checked out: otherwise a new file's tests are missed, see gaps) |
-| a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` |
-| who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) |
-| which fields a type has and how often each is read and written | `fields <Type>` |
-| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) |
-| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) |
-| what this function calls | `callees <function>` |
-| which functions call into this package the most | `calls-into <pkg> --min N --in DIR` |
-| who uses this | `who-uses <name>` |
-| is there a path from A to B | `path <A> <B>` (`--undirected`) |
-| when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` |
-| which message or name codes existed once and are gone | `deleted` |
-| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
-| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) |
-| is there a function like this one | `similar <function>` |
-| which code in a folder is repeated | `dups --in <folder>` |
-| tests with a wall-clock ceiling | `time-ceilings --in DIR` |
-| broken references to language-definition items | `spec-refs` |
+| question | command | flow |
+| :-- | :-- | :-- |
+| which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) | hook, agent rules |
+| which nodes and Go tests my branch or uncommitted change touches | `changed HEAD [--go-tests]` (with `HEAD` as the tip the working tree is included); another branch: `changed <branch>` (exact only with that branch checked out: otherwise a new file's tests are missed, see gaps) | gate |
+| a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` | agent rules |
+| who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) | agent rules |
+| which fields a type has and how often each is read and written | `fields <Type>` | none |
+| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) | merge audit |
+| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) | none |
+| what this function calls | `callees <function>` | agent rules |
+| which functions call into this package the most | `calls-into <pkg> --min N --in DIR` | none |
+| who uses this | `who-uses <name>` | agent rules |
+| is there a path from A to B | `path <A> <B>` (`--undirected`) | none |
+| when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` | agent rules |
+| which message or name codes existed once and are gone | `deleted` | merge audit |
+| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers | merge audit |
+| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) | merge audit |
+| is there a function like this one | `similar <function>` | agent rules |
+| which code in a folder is repeated | `dups --in <folder>` | gate, merge audit, agent rules |
+| tests with a wall-clock ceiling | `time-ceilings --in DIR` | merge audit |
+| broken references to language-definition items | `spec-refs` | gate, merge audit |
+
+The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `merge audit` (the audit read after each large merge), `agent rules` (the agents' rules name it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
 
 ## Staying fresh
 
@@ -339,7 +341,10 @@ line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows t
   dictionary files in the past and are gone today, with the commit that removed them and the one
   that added them, and codes that were defined again after a deletion (a bug: numbers are never
   reused). `--retired-json` prints the `retired.json` content (`internal/lang/messages/retired.json`
-  was produced by it). Since 2026-10-21 (the language is a draft) removed name codes are deleted from the
+  was produced by it). `TestEveryDeletedMessageCodeIsRetired` keeps that file complete with the repository's own
+  history: every deleted message code that is not live today is in it, no code is defined again after a deletion
+  but the four reused before the rule (H2487, H3088, H5291, H8604), and a deletion not yet committed (in `HEAD`, not
+  in the working tree) is in it too. Since 2026-10-21 (the language is a draft) removed name codes are deleted from the
   dictionary, so the `names` list shows them too. History
   before a file was renamed is not visible to it.
 - Renames: every row of a mapping document (`identityMaps`: `docs/code_identities.md`) whose first two cells are
@@ -473,7 +478,12 @@ go run ./tools/codegraph spec-refs --list # every reference with the heading it 
   variable or assignment, a return, a composite element, a conversion, a channel send, `append`; not `any`,
   not `error`, not `var _ I = T{}`) keeps all its exported methods: the other module calls them through that
   interface, or through a type assertion to a wider one (`math/rand` reaches `Uint64` of a `rand.Source`
-  through `Source64`; `audit_conversions.go`).
+  through `Source64`; `audit_conversions.go`). A method that satisfies a *marker* interface is not
+  `assertion-only` either: the program asks only whether the type has the interface and never calls the method
+  (`if _, copies := left.(AssignCopier); !copies`, or a type switch `case I:` whose bound variable that case does not
+  use), so deleting the method silently sends the program down the other branch (`ml.TensorValue.CopiesAssigned`).
+  An assertion that binds the value (`r, ok := x.(I)`) is no marker: if the bound value's method is never called the
+  method may really be dead (`cpuBackend.FillRaw`). Only non-test files count (`audit_markers.go`).
 - **`package-state`** lists package variables that are written after their declaration, per
   package: `mutable`, `test-hook` (written only by tests), `address-taken`, and `synchronized`
   (`sync.Mutex`/`Once`, `sync/atomic` types) separately. Tables that are only read after `init`
