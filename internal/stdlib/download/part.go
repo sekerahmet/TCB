@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync/atomic"
 )
 
 // errBusy kilidi başka bir indirmenin (bu süreçte ya da başka süreçte) tuttuğunu söyler.
@@ -56,14 +57,33 @@ func (p *part) reset() error {
 	return err
 }
 
-// readFrom0 içeriği baştan okur. Windows'ta aynı tutamaktan okunur: DELETE erişimli tutamak
-// FILE_SHARE_DELETE vermeyen ikinci açışı reddeder (K7, defter 8).
-func (p *part) readFrom0(w io.Writer) error {
+// errStopped .part'ın okunması bir okuma sınırında durdurulunca döner.
+var errStopped = errors.New("part read stopped")
+
+// readFrom0 içeriği baştan, en çok chunk baytlık turlarla okur ve her turdan önce stopped'a bakar:
+// iptal bütün .part'ın okunmasını beklemez (28.10, "bir okuma sınırında"; DENETİM 759 N1). Windows'ta
+// aynı tutamaktan okunur: DELETE erişimli tutamak FILE_SHARE_DELETE vermeyen ikinci açışı reddeder
+// (K7, defter 8).
+func (p *part) readFrom0(w io.Writer, stopped *atomic.Bool) error {
 	if _, err := p.f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
-	_, err := io.Copy(w, p.f)
-	return err
+	buf := make([]byte, chunk)
+	for !stopped.Load() {
+		n, err := p.f.Read(buf)
+		if n > 0 {
+			if _, werr := w.Write(buf[:n]); werr != nil {
+				return werr
+			}
+		}
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return errStopped
 }
 
 // close kilidi bırakır ve dosyayı kapatır.

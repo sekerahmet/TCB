@@ -1,8 +1,11 @@
 package download
 
 import (
+	"crypto/sha256"
+	"hash"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -118,6 +121,37 @@ func TestDownloadCancelKeepsPart(t *testing.T) {
 	mustRun(t, call)
 	if r := s.ranges(); r[len(r)-1] != "bytes=400-" {
 		t.Errorf("ikinci çağrı sürmeli: %v", r)
+	}
+}
+
+// slowHash her MiB'ında 200 ms bekleyen sha256'dır.
+type slowHash struct{ hash.Hash }
+
+func (s slowHash) Write(b []byte) (int, error) {
+	time.Sleep(time.Duration(len(b)) * 200 * time.Millisecond / chunk)
+	return s.Hash.Write(b)
+}
+
+// TestDownloadCancelStopsPartHash: var olan .part'ın karması da bir okuma sınırında (en çok 1 MiB)
+// durur: süre sınırı (10.7) bütün .part'ın karmasını beklemez; .part kalır, hedef yok (28.10; DENETİM
+// 759 N1). .part tam boyda olduğu için istek yapılmaz.
+func TestDownloadCancelStopsPartHash(t *testing.T) {
+	old := newHash
+	newHash = func() hash.Hash { return slowHash{sha256.New()} }
+	t.Cleanup(func() { newHash = old })
+	body := []byte(strings.Repeat("z", 16*chunk))
+	dir := slash(t.TempDir())
+	if err := os.WriteFile(dir+"/a.part", body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	call := dl("https://huggingface.co/a", dir+"/a", q(sum(body)), strconv.Itoa(len(body)))
+	start := time.Now()
+	wantCode(t, "TR_var g = TR_async { "+call+" }\ng.TR_wait(TR_timeout: 0.1)", messages.H2921)
+	if d := time.Since(start); d > 1500*time.Millisecond {
+		t.Errorf("iptal .part'ın bütün karmasını bekledi: %v (bütün karma 3,2 sn)", d)
+	}
+	if partSize(dir+"/a") != int64(len(body)) || exists(dir+"/a") {
+		t.Errorf(".part %d bayt kalmalı (%d), hedef olmamalı", len(body), partSize(dir+"/a"))
 	}
 }
 

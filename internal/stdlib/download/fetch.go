@@ -23,6 +23,10 @@ const chunk = 1 << 20
 // progressEvery ilerleme geri çağrısının en sık aralığıdır (28.10: en çok 0,25 saniyede bir).
 var progressEvery = 250 * time.Millisecond
 
+// newHash indirmenin karmasını kurar; testler yavaş bir karmayla iptalin bir okuma sınırında
+// durduğunu sınar.
+var newHash = sha256.New
+
 // errRestart, sürdürme isteğine uymayan cevapta (Range'e 200 dışı ya da yanlış konum, 416) .part
 // sıfırlandığını ve aynı çağrının baştan indiğini söyler.
 var errRestart = errors.New("restart")
@@ -36,6 +40,14 @@ func await(m *interp.VM, stop func(), work func()) error {
 		work()
 	}()
 	return m.AwaitExternal(ready, stop)
+}
+
+// hashPart .part'ın içeriğini baştan h'ye yazar. İptal, süre sınırı ve durdurma bir okuma sınırında
+// durdurur (en çok bir chunk sonra) ve await'in hatası döner; readErr diskin hatasıdır (28.10, 10.9).
+func hashPart(m *interp.VM, p *part, h hash.Hash) (readErr, err error) {
+	var stopped atomic.Bool
+	err = await(m, func() { stopped.Store(true) }, func() { readErr = p.readFrom0(h, &stopped) })
+	return readErr, err
 }
 
 // run indirmeyi .part'ın kilidi tutulurken yapar ve indirilen dosyanın sha256'sını verir.
@@ -53,9 +65,9 @@ func (c *call) run(m *interp.VM, p *part) (string, error) {
 	}
 	if have > 0 && c.hasSize && have == c.size {
 		// Çökmeden kalan tam .part: istek yapılmaz, karma tutarsa yerine konur.
-		h := sha256.New()
-		var readErr error
-		if err := await(m, func() {}, func() { readErr = p.readFrom0(h) }); err != nil {
+		h := newHash()
+		readErr, err := hashPart(m, p, h)
+		if err != nil {
 			return "", err
 		}
 		if readErr == nil && hex.EncodeToString(h.Sum(nil)) == c.hash {
@@ -102,10 +114,10 @@ func (c *call) fetch(m *interp.VM, p *part, have int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	h := sha256.New()
+	h := newHash()
 	if have > 0 && resp.StatusCode == http.StatusPartialContent {
-		var readErr error
-		if err := await(m, func() {}, func() { readErr = p.readFrom0(h) }); err != nil {
+		readErr, err := hashPart(m, p, h)
+		if err != nil {
 			return "", err
 		}
 		if readErr != nil {

@@ -63,16 +63,26 @@ func downloadBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.
 	if err := c.checkTarget(); err != nil {
 		return nil, err
 	}
-	p, err := openPart(c.partPath())
-	if err != nil {
-		return nil, c.partError(err)
-	}
-	defer p.close()
-	sum, err := c.run(m, p)
+	sum, err := c.locked(m)
 	if err != nil {
 		return nil, err
 	}
 	return &interp.StringVal{Val: sum}, nil
+}
+
+// locked .part'ı kilitler, hedefin denetimini kilit tutulurken yineler ve indirmeyi yapar. Neden:
+// aynı hedefe başka bir indirme ilk denetimle kilit arasında hedefi yerine koymuş olabilir;
+// yerine koyma hep ezer (DENETİM 759 N2).
+func (c *call) locked(m *interp.VM) (string, error) {
+	p, err := openPart(c.partPath())
+	if err != nil {
+		return "", c.partError(err)
+	}
+	defer p.close()
+	if err := c.checkTarget(); err != nil {
+		return "", err
+	}
+	return c.run(m, p)
 }
 
 // readCall argümanları okur ve denetler; istekten önce biter.
@@ -194,8 +204,9 @@ func (c *call) readOptional(named map[string]interp.Value) error {
 	return err
 }
 
-// checkTarget hedefin kurallarını istekten önce denetler: klasörü yoksa H7724, klasörse H7725,
-// varsa ve TR_overwrite: yoksa H7726; hedef ya da .part bağlantıysa H7723 (izlenmez).
+// checkTarget hedefin kurallarını istekten önce, .part'ı açmadan ve kilit alınınca bir daha denetler
+// (locked): klasörü yoksa H7724, klasörse H7725, varsa ve TR_overwrite: yoksa H7726; hedef ya da
+// .part bağlantıysa H7723 (izlenmez).
 func (c *call) checkTarget() error {
 	dir := filepath.Dir(c.target)
 	if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {

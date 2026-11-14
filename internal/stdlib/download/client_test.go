@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// fakeResolver evil.test gibi adları verilen IP'lere çözer.
+// fakeResolver evil.test gibi adları verilen IP'lere çözer; "fe80::1%eth0" bölgeli adres verir.
 type fakeResolver map[string]string
 
 func (f fakeResolver) LookupIPAddr(_ context.Context, host string) ([]net.IPAddr, error) {
@@ -20,7 +20,8 @@ func (f fakeResolver) LookupIPAddr(_ context.Context, host string) ([]net.IPAddr
 	if !ok {
 		return nil, &net.DNSError{Err: "not found", Name: host, IsNotFound: true}
 	}
-	return []net.IPAddr{{IP: net.ParseIP(ip)}}, nil
+	addr, zone, _ := strings.Cut(ip, "%")
+	return []net.IPAddr{{IP: net.ParseIP(addr), Zone: zone}}, nil
 }
 
 func useResolver(t *testing.T, r fakeResolver) {
@@ -30,10 +31,11 @@ func useResolver(t *testing.T, r fakeResolver) {
 }
 
 // TestClientRefusesLocalAddresses: yerel bir adrese çözülen ad her adımda reddedilir (H7712);
-// yönlendirme yerel IP'ye gidemez (H7738), 127.0.0.1'den 127.0.0.1'e giden dışında (28.11).
+// yönlendirme yerel IP'ye gidemez (H7738), 127.0.0.1'den 127.0.0.1'e giden dışında (28.11). Bölgeli
+// (zone) IPv6 adresi bölgesiz adresiyle denetlenir (DENETİM 759 Ş1).
 func TestClientRefusesLocalAddresses(t *testing.T) {
-	useResolver(t, fakeResolver{"evil.test": "127.0.0.1", "ten.test": "10.0.0.1", "mapped.test": "::ffff:127.0.0.1", "cgnat.test": "100.64.0.1", "v6.test": "::1"})
-	for _, host := range []string{"evil.test", "ten.test", "mapped.test", "cgnat.test", "v6.test"} {
+	useResolver(t, fakeResolver{"evil.test": "127.0.0.1", "ten.test": "10.0.0.1", "mapped.test": "::ffff:127.0.0.1", "cgnat.test": "100.64.0.1", "v6.test": "::1", "zone.test": "fe80::1%eth0"})
+	for _, host := range []string{"evil.test", "ten.test", "mapped.test", "cgnat.test", "v6.test", "zone.test"} {
 		c := newClient("indir()", nil)
 		_, err := c.Get("https://" + host + "/model.bin")
 		if !messages.Has(requestError("indir()", &url.URL{Host: host}, err), messages.H7712) {
@@ -41,7 +43,7 @@ func TestClientRefusesLocalAddresses(t *testing.T) {
 		}
 	}
 	from, _ := url.Parse("https://huggingface.co/a")
-	for _, target := range []string{"https://10.0.0.5/a", "https://[::1]/a", "https://100.64.0.1/a", "https://[::ffff:127.0.0.1]/a"} {
+	for _, target := range []string{"https://10.0.0.5/a", "https://[::1]/a", "https://100.64.0.1/a", "https://[::ffff:127.0.0.1]/a", "https://[fe80::1%25eth0]/a", "https://[::1%25lo]/a"} {
 		to, _ := url.Parse(target)
 		err := checkRedirect("indir()", &http.Request{URL: to, Header: http.Header{}}, []*http.Request{{URL: from}})
 		if !messages.Has(err, messages.H7738) {

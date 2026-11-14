@@ -13,7 +13,8 @@ import (
 const loopback = "127.0.0.1"
 
 // localPrefixes 28.11'in yerel adres listesidir: döngü, özel, bağlantı-yerel, paylaşılan adres alanı
-// (RFC 6598) ve belirsiz adres. IPv4'ü taşıyan IPv6 adresi denetimden önce açılır (isLocal).
+// (RFC 6598) ve belirsiz adres. IPv4'ü taşıyan IPv6 adresi denetimden önce açılır, bölge atılır
+// (isLocal).
 var localPrefixes = []netip.Prefix{
 	netip.MustParsePrefix("127.0.0.0/8"),
 	netip.MustParsePrefix("::1/128"),
@@ -28,9 +29,11 @@ var localPrefixes = []netip.Prefix{
 	netip.MustParsePrefix("::/128"),
 }
 
-// isLocal ip'nin 28.11'in yerel adreslerinden biri olup olmadığını söyler.
+// isLocal ip'nin 28.11'in yerel adreslerinden biri olup olmadığını söyler. Bölgeli (zone) IPv6
+// adresi bölgesiz adresiyle denetlenir: netip.Prefix.Contains bölgeli adreste hep false verir, ve
+// https://[fe80::1%25eth0]/ yönlendirmesi yerel bir IP'dir (DENETİM 759 Ş1).
 func isLocal(ip netip.Addr) bool {
-	ip = ip.Unmap()
+	ip = ip.WithZone("").Unmap()
 	for _, p := range localPrefixes {
 		if p.Contains(ip) {
 			return true
