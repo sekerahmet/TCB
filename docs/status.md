@@ -1135,6 +1135,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ## Bölümü olmayan işler
 
+- **Yapılacaklar (C, Ö2; sahip profilcinin kolu, TCB atar; 2026-11-14):** `TestCaptureKeepsDrainingAfterFileError` (`internal/devtools/profiler/capture_test.go`) main `3554cf82`'nin CI'ında Windows'un dagitim kipinde 10 sn'lik sınırına takıldı ("yazma dondu"); aynı commit'te yalnız düşen işin yeniden koşusu geçti, yerelde 5 koşu 0,01 sn [ölçüldü: TCB, CI koşusu 43532191449 deneme 1 ve 2]. Donma ürünün yakalama yolunda mı testte mi bilinmiyor [hipotez: Windows borusunda okuyan goroutine dosya hatasından sonra duruyor olabilir; `-count` ile CI'da ölçülür].
 - **Yapılacaklar (F, Ö3; sahip D1; DENETİM 686 N2–N4):** commit kipinin kaydı: kesilen koşuda geçici index git klasöründe kalıyor; `git add -A` yoksayılmayan büyük izlenmeyen dosyayı her koşuda nesne deposuna yazıyor; `docs/development.md:52` kipin adımlarını sayarken dil tanımı atıflarını anmıyor. Gerçek index'in korunması `fb9fb51f`'te (686 N5); onu sınayan Go testi yok, kesilen koşuda yedeği de kalır (DENETİM 688 N4).
 - **Yapılacaklar (F, Ö3; sahip TCB, sonraki kod gönderimiyle; D1 codegraph dilim 3 devri):** `tools/edithook/main.go:136` ve `tools/edithook/README.md:52` commit kipini "~35 sn" diye anıyor; 2026-11-14'ten beri en çok 120 sn.
 - **Yapılacaklar (F, Ö3; sahip Dost Interface; DENETİM 684 N3):** ekranlı kipin cihaz iletisi kullanıcının yazdığı adı değil uzun adı yazıyor (seçeneğe gpu yazılınca ileti gpu:0 diyor); seçeneğin değeri yazılsın.
