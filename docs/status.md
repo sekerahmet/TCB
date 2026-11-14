@@ -881,6 +881,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Öbür konak yollarının hükmü (TCB, DENETİM 422 N3):** `TR_all` ve `TR_argmax` sonucu konağa okuyor, okuma bekleme sayılır (15.41), uyar. Tohumlu `TR_randn` konakta üretilip kopyalanıyor ve iki cihazda aynı sayıyı veriyor; 20.17 ile 15.41'in birlikte okunması dil tanımı turunda (`pending.md`, olağan), uygulama o zamana kadar değişmez.
 - **Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları) ulp sınırı ölçülmedi; 15.11 GPU için "birkaç ulp" diyor.
 - **Yapılacaklar (C ve F, Ö2; sınıf uzak 14):** GPU sınırlarını ölçüp 15.10 ve 15.11'e yazmak; cihazlar arası sözün Go testi.
+- **Yapılacaklar (D, Ö3; sahip T1; DENETİM 726, TCB 15:47):** tools/gpu/COLAB.md hücre 21 `lib/layers.tr`'yi görünüm metniyle (kendi.norm1.ileri(x)) yamıyor; kitaplık kimlikle yazıldığı için assert ilk satırda düşer [kanıtlı: DENETİM 726 Ş4]; hücre kimlik metniyle yeniden yazılır ya da silinir.
 
 ### 15.42
 
@@ -1234,6 +1235,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **Yapılacaklar (F, Ö3; sahip TCB, toplu karar):** görünüm adı iletiye sızıyor, `TR_std(1)`'in iletisi de öyle; `CallName`, `CallNameRef`, `CallPrefix` çağrısı 143 satır [ölçüldü: `git grep -n -E`, `*.go`, tanım satırları hariç, `d6adf7e3`].
 
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
+- **Yapılacaklar (F, Ö3; sahip DIL UZMANI; Kodlama3 Dilim B birleşince; DENETİM 726, TCB 15:47):** `.TR_tolist`'in eski Türkçe görünümü (".değer") Go yorumlarında 12 yerde kaldı; yerine kimlik yazılır [ölçüldü: git grep, `27c7eb12`]: internal/stdlib/ml/ altında builtin_reduce.go:187, error.go:192, members.go:145, members_test.go:11, optimizer.go:247, optimizer_test.go:16, value_test.go:60 (hata iletisinin metni), vm_hooks.go:14, :20, :366; internal/compute/ altında gpu/memory.go:39, tensor/optimizer.go:251.
 
 ### Yazıyı konuşmaya çevirme (dil tanımı 27 yazılınca kendi bölümüne taşınır)
 

@@ -4,7 +4,7 @@
 #
 # Kullanım:   aktar "tr/training"
 #             değişken bekçi = SıçramaBekçisi(pencere: 128, eşik: 6.0)
-#             değişken karar = bekçi.gözle(kayıp.değer, norm.değer)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
+#             değişken karar = bekçi.gözle(kayıp.TR_tolist, norm.TR_tolist)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
 #
 # Bekçi yalnızca karar verir; ne yapılacağını (adımı atlamak, son kontrol noktasına dönüp toplu
 # işleri atlamak, durmak) eğitim döngüsü seçer (dil tanımı 15.36, 20.14, 20.15). Örnek:

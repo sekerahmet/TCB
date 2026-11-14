@@ -585,7 +585,7 @@ const (
 	MemHistoryLength            Code = 576 // TR_mem_history_length: history_length · geçmiş_uzunluğu
 	MemHistoryLimit             Code = 577 // TR_mem_history_limit: history_limit · geçmiş_sınırı
 	MemIndexOf                  Code = 578 // TR_mem_index_of: index_of · konumu
-	MemInputNorm                Code = 579 // TR_mem_input_norm: input_norm · norm1
+	MemInputNorm                Code = 579 // TR_mem_input_norm: input_norm · dikkat_öncesi_normu
 	MemIsAlpha                  Code = 580 // TR_mem_is_alpha: is_alpha · harf_mı
 	MemIsDigit                  Code = 581 // TR_mem_is_digit: is_digit · rakam_mı
 	MemIsDir                    Code = 582 // TR_mem_is_dir: is_dir · klasör_mü
@@ -594,7 +594,7 @@ const (
 	MemItem                     Code = 585 // TR_mem_item: item · tek_değer
 	MemJoin                     Code = 586 // TR_mem_join: join · birleştir
 	MemKBuffers                 Code = 587 // TR_mem_k_buffers: k_buffers · k_tamponları
-	MemKNorm                    Code = 588 // TR_mem_k_norm: k_norm
+	MemKNorm                    Code = 588 // TR_mem_k_norm: k_norm · k_normu
 	MemKProj                    Code = 589 // TR_mem_k_proj: k_proj · anahtar_katmanı
 	MemKeys                     Code = 590 // TR_mem_keys: keys · anahtarlar
 	MemKind                     Code = 591 // TR_mem_kind: kind · çeşit
@@ -653,12 +653,12 @@ const (
 	MemPort                     Code = 644 // TR_mem_port: port · kapı_numarası
 	MemPosition                 Code = 645 // TR_mem_position: position · konum
 	MemPositions                Code = 646 // TR_mem_positions: positions · konumlar
-	MemPostAttentionNorm        Code = 647 // TR_mem_post_attention_norm: post_attention_norm · norm2
+	MemPostAttentionNorm        Code = 647 // TR_mem_post_attention_norm: post_attention_norm · ileri_öncesi_normu
 	MemPretokenizerTag          Code = 648 // TR_mem_pretokenizer_tag: pretokenizer_tag · ön_bölme_etiketi
 	MemProbability              Code = 649 // TR_mem_probability: probability · olasılık
 	MemProj                     Code = 650 // TR_mem_proj: proj · izdüşüm_katmanı
 	MemPush                     Code = 651 // TR_mem_push: push · besle
-	MemQNorm                    Code = 652 // TR_mem_q_norm: q_norm
+	MemQNorm                    Code = 652 // TR_mem_q_norm: q_norm · q_normu
 	MemQProj                    Code = 653 // TR_mem_q_proj: q_proj · sorgu_katmanı
 	MemQuery                    Code = 654 // TR_mem_query: query · sorgu
 	MemRead                     Code = 655 // TR_mem_read: read · oku
@@ -719,7 +719,7 @@ const (
 	MemToDtype                  Code = 710 // TR_mem_to_dtype: to_dtype · türe
 	MemTokenId                  Code = 711 // TR_mem_token_id: token_id · parça_kimliği
 	MemTokenizer                Code = 712 // TR_mem_tokenizer: tokenizer · parçalayıcı
-	MemTolist                   Code = 713 // TR_mem_tolist: tolist · değer
+	MemTolist                   Code = 713 // TR_mem_tolist: tolist · listeye
 	MemToolCalls                Code = 714 // TR_mem_tool_calls: tool_calls · araç_çağrıları
 	MemTranscribe               Code = 715 // TR_mem_transcribe: transcribe · yazıya_çevir
 	MemTranspose                Code = 716 // TR_mem_transpose: transpose · devrik

@@ -10,7 +10,7 @@
 #
 # Desteklenen mimariler (model_type): llama (Llama, SmolLM2, TinyLlama ...) ve qwen3. İkisi de TR'nin
 # GPT'siyle aynı iskelettir (transformers modeling_llama.py, modeling_qwen3.py): ön-norm blok
-# x + dikkat(norm1(x)), + mlp(norm2(x)); RMSNorm; dikkat GQA ve RoPE (yarı döndürme, rotate_half);
+# x + dikkat(TR_mem_input_norm(x)), + mlp(TR_mem_post_attention_norm(x)); RMSNorm; dikkat GQA ve RoPE (yarı döndürme, rotate_half);
 # MLP aşağı(silu(kapı(x)) · yukarı(x)); qwen3'te q ve k bakış boyutunda RMS normundan RoPE'dan önce
 # geçer (qk_normu). Desteklenmeyen bir ayar (sapmalı katmanlar, RoPE ölçekleme, başka etkinleştirme)
 # açık hatadır; sessizce yanlış model kurulmaz. GGUF'ta `rope_freqs.weight` bölenleri uygulanır.

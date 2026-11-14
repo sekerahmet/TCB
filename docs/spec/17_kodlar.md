@@ -61,9 +61,9 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 **17.5** Ad: her kodun her dilde tek bir adı vardır (2.9: bir iş, bir yazım).
 - **Ortak ad:** uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır: `sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `GPT`, `Muon`. Tanım dosyasında bir kez yazılır, hiçbir dil dosyasında yazılmaz.
 - **Kısa ve düz:** ad işi söyler ve kısa tutulur; tek sözcük yeterse tek sözcüktür. Örnekler: Türkçede `yazdır`, `sınırla`, `dilim`; soru soran ad soru ekiyle (`sonlu_mu`).
-- **Ad alanında çakışmaz:** aynı ad alanında iki kod aynı adı taşıyamaz; dil dosyası yüklenirken reddedilir. Ayrı alanda aynı ad ancak aynı anlamda ya da gerekçesiyle verilir; her eş ad grubu [`docs/terimler.md`](../terimler.md)'dedir. Adlı argüman ve kurduğu özellik (`TR_requires_grad:` ve `.TR_requires_grad`) aynı anlamdadır ve tablodan muaftır: yalnız özellik türündeki üyelerle adlı argümanlardan oluşan ve İngilizce adları da aynı olan grup tabloya yazılmaz.
+- **Ad alanında çakışmaz:** aynı ad alanında iki kod aynı adı taşıyamaz; dil dosyası yüklenirken reddedilir. Ayrı alanda aynı ad ancak aynı anlamda ya da gerekçesiyle verilir; her eş ad grubu [`docs/terimler.md`](../terimler.md)'dedir. Adlı argüman kurduğu özellikle (`TR_requires_grad:` ve `.TR_requires_grad`) aynı anlamdadır ve tablodan muaftır; aynı adı taşıyıp o özelliği kurmayan argüman tabloya gerekçesiyle yazılır.
 - Harfleri o dilin harfleridir.
-- *Test:* Go: `TestSingleSpelling`, `TestCommonNamesAreNotInLanguageFiles`, `TestClashesCaught`, `TestNamespacesUnique`, `TestSharedNamesListed` (eş ad tablosu ve muafiyet).
+- *Test:* Go: `TestSingleSpelling`, `TestCommonNamesAreNotInLanguageFiles`, `TestClashesCaught`, `TestNamespacesUnique`, `TestSharedNamesListed` (eş ad tablosu ve muafiyet), `TestSharedNamesRuleNeedsAPropertyAndTheSameEnglishName` (muafiyetin ölçütü ve istisnası).
 
 **17.6** Başka dillerin alışkanlık adları (`str`, `range`, `lambda`, PyTorch'un `long`'u) kod değildir; tanım dosyasının `familiar` alanında durur ve yazıldığında ileti doğru kimliği önerir (2.3a). Kaldırılmış bir kodun eski adı `familiar` değildir (17.10).
 - *Test:* Go: `TestFindForeign`.

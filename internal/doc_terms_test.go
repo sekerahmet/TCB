@@ -174,9 +174,22 @@ func TestSharedNamesRuleNeedsAPropertyAndTheSameEnglishName(t *testing.T) {
 		{[]codes.Code{codes.ArgLr, codes.MemDtype}, false},  // İngilizce adları farklı
 		{[]codes.Code{codes.ArgStep, codes.MemStep}, false}, // metot
 		{[]codes.Code{codes.ArgLr, codes.ArgDtype}, false},  // özellik yok
+		{[]codes.Code{codes.ArgNorm, codes.MemNorm}, false}, // istisna: argüman özelliği kurmaz
 	} {
 		if got := sameMeaningByRule(c.ks, en); got != c.want {
 			t.Errorf("%v: kural %v vermeli, verdi %v", c.ks, c.want, got)
+		}
+	}
+	// İstisna listesi eskimesin: her ad, istisna olmasa kurala girecek bir grubu adlandırır.
+	for name := range notSameMeaningByRule {
+		var ks []codes.Code
+		for _, k := range codes.Codes() {
+			if en.Name(k) == name {
+				ks = append(ks, k)
+			}
+		}
+		if len(ks) < 2 || !propertyAndArgGroup(ks, en) {
+			t.Errorf("istisna %q artık özellik ile adlı argümanın kuralına giren bir grup değil (%v); listeden silinmeli", name, ks)
 		}
 	}
 }
@@ -227,8 +240,24 @@ func codeList(ks []codes.Code) string {
 // sameMeaningByRule grubun tabloya yazılmadan "aynı anlam" sayılıp sayılmadığını söyler: grup
 // yalnız özellik türünde üye kodlarıyla adlı argüman kodlarındandır, ikisinden de vardır ve
 // İngilizce adları da aynıdır. Alan ile aynı adlı kurucu parametresi tek kavramdır (Python
-// dataclass); metot içeren grup bu kurala girmez, elle yazılır.
+// dataclass); metot içeren grup bu kurala girmez, elle yazılır. Adlı argümanı o özelliği
+// kurmayan grup notSameMeaningByRule'da adıyla durur ve tabloya yazılır (17.5).
 func sameMeaningByRule(ks []codes.Code, en *codes.Language) bool {
+	if _, ok := notSameMeaningByRule[en.Name(ks[0])]; ok {
+		return false
+	}
+	return propertyAndArgGroup(ks, en)
+}
+
+// notSameMeaningByRule biçimce kurala giren ama adlı argümanı aynı adlı özelliği kurmayan
+// grupların İngilizce adıdır; her biri docs/terimler.md'de gerekçesiyle yazılır.
+var notSameMeaningByRule = map[string]string{
+	"norm": "TR_arg_norm mel süzgeçlerinin ve eğitimin argümanıdır, .TR_norm norm katmanıdır (DENETİM 708 Ş1 (b))",
+}
+
+// propertyAndArgGroup grubun yalnız özellik türünde üye kodlarıyla adlı argüman kodlarından
+// oluşup oluşmadığını, ikisinden de bulunup bulunmadığını ve İngilizce adların aynılığını söyler.
+func propertyAndArgGroup(ks []codes.Code, en *codes.Language) bool {
 	var property, arg bool
 	for _, k := range ks {
 		d, _ := codes.DefinitionOf(k)

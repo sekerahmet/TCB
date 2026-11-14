@@ -27,7 +27,7 @@ TR_const TR_BLOCK_NAMES = {
 }
 
 # Gemma 3'ün blok adları (gemma3_text ve çok kiplinin metin yarısı). Ajanın yanıldığı yer: Hugging Face'in
-# post_attention_layernorm'u dikkatin çıkışındaki normdur (dikkat_çıkış_normu), pre_feedforward_layernorm'u norm2'dir.
+# post_attention_layernorm'u dikkatin çıkışındaki normdur (dikkat_çıkış_normu), pre_feedforward_layernorm'u TR_mem_post_attention_norm'dur.
 TR_const TR_GEMMA3_BLOCK_NAMES = {
     "self_attn.q_proj.weight": ["TR_mem_attention.TR_mem_q_proj.TR_mem_weight", TR_true, -1],
     "self_attn.k_proj.weight": ["TR_mem_attention.TR_mem_kv_proj.TR_mem_weight", TR_true, 0],

@@ -1398,7 +1398,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true); var opt = AdamW([w], lr: 0.1); backward(sum(w * w)); opt.step(); print(w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = AdamW([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = AdamW([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.listeye)
 ```
 
 İlişkili: `TR_SGD(...)`, `TR_clip_grad(...)`, `.TR_step(...)`, `.TR_zero_grad(...)`, `TR_Optimizer`
@@ -1417,7 +1417,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true); var opt = SGD([w], lr: 0.1, momentum: 0.9); backward(sum(w * w)); opt.step(); print(w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.listeye)
 ```
 
 İlişkili: `TR_AdamW(...)`, `.TR_step(...)`, `.TR_zero_grad(...)`, `TR_Optimizer`
@@ -1436,7 +1436,7 @@ Görünümü:
 
 ```text
 en: print(abs(-5), abs(-2.5), abs(Tensor([-2.0, 0.0, 3.0])).tolist)
-tr: yazdır(mutlak(-5), mutlak(-2.5), mutlak(Tensör([-2.0, 0.0, 3.0])).değer)
+tr: yazdır(mutlak(-5), mutlak(-2.5), mutlak(Tensör([-2.0, 0.0, 3.0])).listeye)
 ```
 
 İlişkili: `TR_round(...)`, `TR_sign(...)`
@@ -1455,7 +1455,7 @@ Görünümü:
 
 ```text
 en: print(acos(0.0), acos(Tensor([1.0, -1.0])).tolist)
-tr: yazdır(acos(0.0), acos(Tensör([1.0, -1.0])).değer)
+tr: yazdır(acos(0.0), acos(Tensör([1.0, -1.0])).listeye)
 ```
 
 İlişkili: `TR_asin(...)`, `TR_cos(...)`
@@ -1536,7 +1536,7 @@ Görünümü:
 
 ```text
 en: print(argmax(Tensor([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), dim: -1).tolist)
-tr: yazdır(argmax(Tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).değer)
+tr: yazdır(argmax(Tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).listeye)
 ```
 
 İlişkili: `TR_sample(...)`
@@ -1555,7 +1555,7 @@ Görünümü:
 
 ```text
 en: print(argsort(Tensor([3.0, 1.0, 2.0])).tolist)
-tr: yazdır(sıralama_indeksi(Tensör([3.0, 1.0, 2.0])).değer)
+tr: yazdır(sıralama_indeksi(Tensör([3.0, 1.0, 2.0])).listeye)
 ```
 
 İlişkili: `TR_topk(...)`, `.TR_sort(...)`
@@ -1574,7 +1574,7 @@ Görünümü:
 
 ```text
 en: print(asin(1.0), asin(Tensor([0.0, 0.5])).tolist)
-tr: yazdır(asin(1.0), asin(Tensör([0.0, 0.5])).değer)
+tr: yazdır(asin(1.0), asin(Tensör([0.0, 0.5])).listeye)
 ```
 
 İlişkili: `TR_acos(...)`, `TR_sin(...)`
@@ -1650,7 +1650,7 @@ Görünümü:
 
 ```text
 en: print(atan(1.0), atan(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(atan(1.0), atan(Tensör([0.0, 1.0])).değer)
+tr: yazdır(atan(1.0), atan(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_atan2(...)`, `TR_tan(...)`
@@ -1669,7 +1669,7 @@ Görünümü:
 
 ```text
 en: print(atan2(1.0, -1.0), atan2(Tensor([1.0, -1.0]), Tensor([0.0])).tolist)
-tr: yazdır(atan2(1.0, -1.0), atan2(Tensör([1.0, -1.0]), Tensör([0.0])).değer)
+tr: yazdır(atan2(1.0, -1.0), atan2(Tensör([1.0, -1.0]), Tensör([0.0])).listeye)
 ```
 
 İlişkili: `TR_atan(...)`
@@ -1707,7 +1707,7 @@ Görünümü:
 
 ```text
 en: var x = Tensor(3.0, requires_grad: true); backward(x * x); print(x.grad.tolist)
-tr: değişken x = Tensör(3.0, türev_izle: doğru); geri_yayılım(x * x); yazdır(x.gradyan.değer)
+tr: değişken x = Tensör(3.0, türev_izle: doğru); geri_yayılım(x * x); yazdır(x.gradyan.listeye)
 ```
 
 İlişkili: `TR_no_grad(...)`, `.TR_grad`
@@ -1732,7 +1732,7 @@ Görünümü:
 
 ```text
 en: print(ceil(3.2), ceil(7), ceil(Tensor([-1.5, 2.5])).tolist)
-tr: yazdır(tavan(3.2), tavan(7), tavan(Tensör([-1.5, 2.5])).değer)
+tr: yazdır(tavan(3.2), tavan(7), tavan(Tensör([-1.5, 2.5])).listeye)
 ```
 
 İlişkili: `TR_floor(...)`, `TR_round(...)`
@@ -1770,7 +1770,7 @@ Görünümü:
 
 ```text
 en: print(clamp(15, max: 10), clamp(Tensor([-2.0, 0.5, 3.0]), min: 0, max: 1).tolist)
-tr: yazdır(sınırla(15, en_fazla: 10), sınırla(Tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
+tr: yazdır(sınırla(15, en_fazla: 10), sınırla(Tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).listeye)
 ```
 
 İlişkili: `TR_min(...)`, `TR_max(...)`
@@ -1779,7 +1779,7 @@ tr: yazdır(sınırla(15, en_fazla: 10), sınırla(Tensör([-2.0, 0.5, 3.0]), en
 
     gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1, sonlu_değilse_hata: Mantık = yanlış) → Tensör
 
-Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) aşıyorsa hepsini aynı oranda küçültür. Kırpma öncesi normu 0 boyutlu tensör olarak döndürür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program norm okununca (.değer, yazdırma) bekler.
+Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) aşıyorsa hepsini aynı oranda küçültür. Kırpma öncesi normu 0 boyutlu tensör olarak döndürür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program norm okununca (.listeye, yazdırma) bekler.
 
 ```tr
 TR_var w = TR_Tensor([3.0, 4.0], TR_requires_grad: TR_true); TR_backward(TR_sum(w * w)); TR_print(TR_clip_grad([w], TR_max: 1.0))
@@ -1909,7 +1909,7 @@ Görünümü:
 
 ```text
 en: print(cos(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(cos(Tensör([0.0, 1.0])).değer)
+tr: yazdır(cos(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_sin(...)`
@@ -1928,7 +1928,7 @@ Görünümü:
 
 ```text
 en: print(cosh(0.0), cosh(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(cosh(0.0), cosh(Tensör([0.0, 1.0])).değer)
+tr: yazdır(cosh(0.0), cosh(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_sinh(...)`, `TR_tanh(...)`
@@ -1947,7 +1947,7 @@ Görünümü:
 
 ```text
 en: print(cross_entropy(Tensor([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), Tensor([0, 1])).tolist)
-tr: yazdır(çapraz_entropi(Tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), Tensör([0, 1])).değer)
+tr: yazdır(çapraz_entropi(Tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), Tensör([0, 1])).listeye)
 ```
 
 İlişkili: `TR_log_softmax(...)`
@@ -1966,7 +1966,7 @@ Görünümü:
 
 ```text
 en: print(cumsum(Tensor([1, 2, 3, 4])).tolist, cumsum(Tensor([[1, 2], [3, 4]]), dim: 0).tolist)
-tr: yazdır(birikimli_toplam(Tensör([1, 2, 3, 4])).değer, birikimli_toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+tr: yazdır(birikimli_toplam(Tensör([1, 2, 3, 4])).listeye, birikimli_toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).listeye)
 ```
 
 İlişkili: `TR_sum(...)`
@@ -1985,7 +1985,7 @@ Görünümü:
 
 ```text
 en: var kare = custom_grad(forward: (x) => [x * x, [x]], backward: (s, g) => [g * 2 * s[0]]); var x = Tensor([3.0], requires_grad: true); backward(sum(kare(x))); print(x.grad.tolist)
-tr: değişken kare = özel_türev(ileri: (x) => [x * x, [x]], geri: (s, g) => [g * 2 * s[0]]); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
+tr: değişken kare = özel_türev(ileri: (x) => [x * x, [x]], geri: (s, g) => [g * 2 * s[0]]); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.listeye)
 ```
 
 İlişkili: `TR_grad_check(...)`, `TR_backward(...)`
@@ -2061,7 +2061,7 @@ Görünümü:
 
 ```text
 en: var tablo = Tensor([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]); print(embedding_lookup(tablo, [2, 0]).tolist)
-tr: değişken tablo = Tensör([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]); yazdır(gömme_seç(tablo, [2, 0]).değer)
+tr: değişken tablo = Tensör([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]); yazdır(gömme_seç(tablo, [2, 0]).listeye)
 ```
 
 İlişkili: `TR_cross_entropy(...)`
@@ -2156,7 +2156,7 @@ Görünümü:
 
 ```text
 en: print(exp(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(exp(Tensör([0.0, 1.0])).değer)
+tr: yazdır(exp(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_log(...)`
@@ -2175,7 +2175,7 @@ Görünümü:
 
 ```text
 en: print(expm1(0.000001), expm1(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(expm1(0.000001), expm1(Tensör([0.0, 1.0])).değer)
+tr: yazdır(expm1(0.000001), expm1(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_exp(...)`, `TR_log1p(...)`
@@ -2194,7 +2194,7 @@ Görünümü:
 
 ```text
 en: print(eye(3).tolist)
-tr: yazdır(birim_matris(3).değer)
+tr: yazdır(birim_matris(3).listeye)
 ```
 
 İlişkili: `TR_Tensor`
@@ -2251,7 +2251,7 @@ Görünümü:
 
 ```text
 en: print(floor(3.7), floor(-2), floor(Tensor([-1.5, 2.5])).tolist)
-tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).değer)
+tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).listeye)
 ```
 
 İlişkili: `TR_ceil(...)`, `TR_round(...)`
@@ -2276,7 +2276,7 @@ Görünümü:
 
 ```text
 en: var b = Bytes([1, 0, 255, 255]); print(from_bytes[Int](b, dtype: "int16", byte_order: "little").tolist)
-tr: değişken b = Baytlar([1, 0, 255, 255]); yazdır(baytlardan[Tam](b, tür: "int16", bayt_sırası: "little").değer)
+tr: değişken b = Baytlar([1, 0, 255, 255]); yazdır(baytlardan[Tam](b, tür: "int16", bayt_sırası: "little").listeye)
 ```
 
 İlişkili: `.TR_to_bytes(...)`, `.TR_read_int(...)`, `TR_Bytes`
@@ -2295,7 +2295,7 @@ Görünümü:
 
 ```text
 en: var f = fuse((a, b) => a * b + a); print(f(Tensor([1.0, 2.0]), Tensor([3.0, 4.0])).tolist)
-tr: değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(Tensör([1.0, 2.0]), Tensör([3.0, 4.0])).değer)
+tr: değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(Tensör([1.0, 2.0]), Tensör([3.0, 4.0])).listeye)
 ```
 
 İlişkili: `TR_custom_grad(...)`
@@ -2314,7 +2314,7 @@ Görünümü:
 
 ```text
 en: print(gelu(Tensor([-1.0, 0.0, 1.0])).tolist, gelu(1.0, approximate: false))
-tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlış))
+tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).listeye, gelu(1.0, yaklaşık: yanlış))
 ```
 
 İlişkili: `TR_relu(...)`
@@ -2413,7 +2413,7 @@ Görünümü:
 
 ```text
 en: print(hann_window(4, periodic: true).tolist)
-tr: yazdır(hann_penceresi(4, periyodik: doğru).değer)
+tr: yazdır(hann_penceresi(4, periyodik: doğru).listeye)
 ```
 
 İlişkili: `TR_stft(...)`
@@ -2472,7 +2472,7 @@ tr: yazdır(tam_sayı_baytları(258, tür: "uint16", bayt_sırası: "big"))
 
     sonlu_mu(Tam | Ondalık | Tensör) → Mantık | Tensör
 
-Sayının sonlu olup olmadığını verir: NaN, sonsuz ve eksi sonsuzda yanlış, öbür her sayıda (her Tam dahil) doğru. Tensörde eleman bazlı çalışır: sonlu elemanda 1, öbürlerinde 0 olan float32 bir tensör verir (karşılaştırmalar gibi), türev izlemez; listede çalışmaz (Tensör(...) ile çevrilir). Eğitimde gradyan normunu denetlemek için kullanılır: eğer değil sonlu_mu(norm.değer) { ... }.
+Sayının sonlu olup olmadığını verir: NaN, sonsuz ve eksi sonsuzda yanlış, öbür her sayıda (her Tam dahil) doğru. Tensörde eleman bazlı çalışır: sonlu elemanda 1, öbürlerinde 0 olan float32 bir tensör verir (karşılaştırmalar gibi), türev izlemez; listede çalışmaz (Tensör(...) ile çevrilir). Eğitimde gradyan normunu denetlemek için kullanılır: eğer değil sonlu_mu(norm.listeye) { ... }.
 
 ```tr
 TR_print(TR_is_finite(1.5), TR_is_finite(TR_Float("nan")), TR_is_finite(TR_Tensor([1.0, TR_Float("inf")])).TR_tolist)
@@ -2482,7 +2482,7 @@ Görünümü:
 
 ```text
 en: print(is_finite(1.5), is_finite(Float("nan")), is_finite(Tensor([1.0, Float("inf")])).tolist)
-tr: yazdır(sonlu_mu(1.5), sonlu_mu(Ondalık("nan")), sonlu_mu(Tensör([1.0, Ondalık("inf")])).değer)
+tr: yazdır(sonlu_mu(1.5), sonlu_mu(Ondalık("nan")), sonlu_mu(Tensör([1.0, Ondalık("inf")])).listeye)
 ```
 
 İlişkili: `TR_sign(...)`, `TR_clip_grad(...)`
@@ -2539,7 +2539,7 @@ Görünümü:
 
 ```text
 en: print(layer_norm(Tensor([[1.0, 2.0, 3.0]]), weight: ones([3]), bias: zeros([3])).tolist)
-tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sapma: sıfırlar([3])).değer)
+tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sapma: sıfırlar([3])).listeye)
 ```
 
 İlişkili: `TR_rms_norm(...)`
@@ -2570,7 +2570,7 @@ Görünümü:
 
 ```text
 en: print(linear_cross_entropy(Tensor([[1.0, 2.0]]), Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), Tensor([2])).tolist)
-tr: yazdır(doğrusal_çapraz_entropi(Tensör([[1.0, 2.0]]), Tensör([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), Tensör([2])).değer)
+tr: yazdır(doğrusal_çapraz_entropi(Tensör([[1.0, 2.0]]), Tensör([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), Tensör([2])).listeye)
 ```
 
 İlişkili: `TR_cross_entropy(...)`
@@ -2639,7 +2639,7 @@ Görünümü:
 
 ```text
 en: var m = {"w": Tensor([1.0, 2.0], requires_grad: true)}; save_tensors("m.trt", {"w": Tensor([5.0, 6.0])}); print(load_parameters(m, load_tensors("m.trt")), m["w"].tolist)
-tr: değişken m = {"w": Tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.trt", {"w": Tensör([5.0, 6.0])}); yazdır(parametreleri_yükle(m, tensör_yükle("m.trt")), m["w"].değer)
+tr: değişken m = {"w": Tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.trt", {"w": Tensör([5.0, 6.0])}); yazdır(parametreleri_yükle(m, tensör_yükle("m.trt")), m["w"].listeye)
 ```
 
 İlişkili: `TR_parameters(...)`, `TR_load_tensors(...)`, `TR_Checkpoint`
@@ -2696,7 +2696,7 @@ Görünümü:
 
 ```text
 en: print(log(Tensor([1.0, 10.0])).tolist)
-tr: yazdır(log(Tensör([1.0, 10.0])).değer)
+tr: yazdır(log(Tensör([1.0, 10.0])).listeye)
 ```
 
 İlişkili: `TR_exp(...)`
@@ -2715,7 +2715,7 @@ Görünümü:
 
 ```text
 en: print(log10(1000), log10(Tensor([1.0, 100.0])).tolist)
-tr: yazdır(log10(1000), log10(Tensör([1.0, 100.0])).değer)
+tr: yazdır(log10(1000), log10(Tensör([1.0, 100.0])).listeye)
 ```
 
 İlişkili: `TR_log(...)`, `TR_log2(...)`
@@ -2734,7 +2734,7 @@ Görünümü:
 
 ```text
 en: print(log1p(0.000001), log1p(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(log1p(0.000001), log1p(Tensör([0.0, 1.0])).değer)
+tr: yazdır(log1p(0.000001), log1p(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_log(...)`, `TR_expm1(...)`
@@ -2753,7 +2753,7 @@ Görünümü:
 
 ```text
 en: print(log2(8), log2(Tensor([1.0, 1024.0])).tolist)
-tr: yazdır(log2(8), log2(Tensör([1.0, 1024.0])).değer)
+tr: yazdır(log2(8), log2(Tensör([1.0, 1024.0])).listeye)
 ```
 
 İlişkili: `TR_log(...)`, `TR_log10(...)`
@@ -2772,7 +2772,7 @@ Görünümü:
 
 ```text
 en: print(log_softmax(Tensor([1.0, 2.0, 3.0])).tolist)
-tr: yazdır(log_softmax(Tensör([1.0, 2.0, 3.0])).değer)
+tr: yazdır(log_softmax(Tensör([1.0, 2.0, 3.0])).listeye)
 ```
 
 İlişkili: `TR_softmax(...)`, `TR_cross_entropy(...)`
@@ -2791,7 +2791,7 @@ Görünümü:
 
 ```text
 en: print(logsumexp(Tensor([[0.0, 0.0], [1.0, 2.0]]), dim: 1).tolist)
-tr: yazdır(log_toplam_üs(Tensör([[0.0, 0.0], [1.0, 2.0]]), eksen: 1).değer)
+tr: yazdır(log_toplam_üs(Tensör([[0.0, 0.0], [1.0, 2.0]]), eksen: 1).listeye)
 ```
 
 İlişkili: `TR_log_softmax(...)`, `TR_sum(...)`
@@ -2879,7 +2879,7 @@ Görünümü:
 
 ```text
 en: print(max([2.0, 1.5]), max(3, 7, 5), max(Tensor([[1, 5], [3, 2]]), dim: 0).tolist)
-tr: yazdır(max([2.0, 1.5]), max(3, 7, 5), max(Tensör([[1, 5], [3, 2]]), eksen: 0).değer)
+tr: yazdır(max([2.0, 1.5]), max(3, 7, 5), max(Tensör([[1, 5], [3, 2]]), eksen: 0).listeye)
 ```
 
 İlişkili: `TR_min(...)`, `TR_argmax(...)`
@@ -2898,7 +2898,7 @@ Görünümü:
 
 ```text
 en: print(maximum(Tensor([1.0, 5.0]), Tensor([3.0, 2.0])).tolist, maximum(-0.0, 0.0))
-tr: yazdır(öğe_öğe_en_büyük(Tensör([1.0, 5.0]), Tensör([3.0, 2.0])).değer, öğe_öğe_en_büyük(-0.0, 0.0))
+tr: yazdır(öğe_öğe_en_büyük(Tensör([1.0, 5.0]), Tensör([3.0, 2.0])).listeye, öğe_öğe_en_büyük(-0.0, 0.0))
 ```
 
 İlişkili: `TR_minimum(...)`, `TR_max(...)`, `TR_clamp(...)`
@@ -2917,7 +2917,7 @@ Görünümü:
 
 ```text
 en: print(mean([1, 2, 3, 4]), mean(Tensor([[1, 2], [3, 4]]), dim: 1).tolist)
-tr: yazdır(ortalama([1, 2, 3, 4]), ortalama(Tensör([[1, 2], [3, 4]]), eksen: 1).değer)
+tr: yazdır(ortalama([1, 2, 3, 4]), ortalama(Tensör([[1, 2], [3, 4]]), eksen: 1).listeye)
 ```
 
 İlişkili: `TR_sum(...)`, `TR_median(...)`
@@ -2993,7 +2993,7 @@ Görünümü:
 
 ```text
 en: print(minimum(Tensor([1.0, 5.0]), 2.0).tolist, minimum(0.0, -0.0))
-tr: yazdır(öğe_öğe_en_küçük(Tensör([1.0, 5.0]), 2.0).değer, öğe_öğe_en_küçük(0.0, -0.0))
+tr: yazdır(öğe_öğe_en_küçük(Tensör([1.0, 5.0]), 2.0).listeye, öğe_öğe_en_küçük(0.0, -0.0))
 ```
 
 İlişkili: `TR_maximum(...)`, `TR_min(...)`, `TR_clamp(...)`
@@ -3012,7 +3012,7 @@ Görünümü:
 
 ```text
 en: var y = mixed_precision("bf16") { Tensor([[1.0, 2.0]]) @ Tensor([[3.0], [4.0]]) }; print(y.tolist, y.dtype)
-tr: değişken y = karışık_hassasiyet("bf16") { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.değer, y.tür)
+tr: değişken y = karışık_hassasiyet("bf16") { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.listeye, y.tür)
 ```
 
 İlişkili: `TR_dtype:`, `TR_compute_dtype(...)`
@@ -3075,7 +3075,7 @@ Görünümü:
 
 ```text
 en: var x = Tensor([1.0], requires_grad: true); var y = no_grad { x * 2 }; print(y.tolist)
-tr: değişken x = Tensör([1.0], türev_izle: doğru); değişken y = türevsiz { x * 2 }; yazdır(y.değer)
+tr: değişken x = Tensör([1.0], türev_izle: doğru); değişken y = türevsiz { x * 2 }; yazdır(y.listeye)
 ```
 
 İlişkili: `TR_backward(...)`
@@ -3094,7 +3094,7 @@ Görünümü:
 
 ```text
 en: print(ones([2, 2], dtype: "bf16").tolist)
-tr: yazdır(birler([2, 2], tür: "bf16").değer)
+tr: yazdır(birler([2, 2], tür: "bf16").listeye)
 ```
 
 İlişkili: `TR_zeros(...)`, `TR_Tensor`
@@ -3261,7 +3261,7 @@ Görünümü:
 
 ```text
 en: var y = quantized_activations { Tensor([[1.0, 2.0]]) @ Tensor([[3.0], [4.0]]) }; print(y.tolist)
-tr: değişken y = nicemli_etkinleştirme { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.değer)
+tr: değişken y = nicemli_etkinleştirme { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.listeye)
 ```
 
 İlişkili: `TR_quantized_activations_on(...)`, `TR_mixed_precision(...)`, `TR_no_grad(...)`
@@ -3412,7 +3412,7 @@ Görünümü:
 
 ```text
 en: print(relu(Tensor([-1.0, 0.5, 2.0])).tolist)
-tr: yazdır(relu(Tensör([-1.0, 0.5, 2.0])).değer)
+tr: yazdır(relu(Tensör([-1.0, 0.5, 2.0])).listeye)
 ```
 
 İlişkili: `TR_gelu(...)`, `TR_sigmoid(...)`
@@ -3450,7 +3450,7 @@ Görünümü:
 
 ```text
 en: var f = replay((x) => x * 2); no_grad { print(f(Tensor([1.0, 2.0])).tolist) }
-tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.0, 2.0])).değer) }
+tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.0, 2.0])).listeye) }
 ```
 
 İlişkili: `TR_fuse(...)`
@@ -3469,7 +3469,7 @@ Görünümü:
 
 ```text
 en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(g.tolist, s.tolist)
-tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(g.değer, s.değer)
+tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(g.listeye, s.listeye)
 ```
 
 İlişkili: `TR_stft(...)`
@@ -3488,7 +3488,7 @@ Görünümü:
 
 ```text
 en: print(rms_norm(Tensor([[3.0, 4.0]]), weight: ones([2])).tolist)
-tr: yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: birler([2])).değer)
+tr: yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: birler([2])).listeye)
 ```
 
 İlişkili: `TR_layer_norm(...)`, `TR_compute_dtype(...)`
@@ -3557,7 +3557,7 @@ Görünümü:
 
 ```text
 en: print(sample(Tensor([1.0, 3.0, 0.5]), temperature: 0.8, top_k: 2, seed: 7).tolist)
-tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).değer)
+tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).listeye)
 ```
 
 İlişkili: `TR_argmax(...)`, `TR_softmax(...)`
@@ -3639,7 +3639,7 @@ Görünümü:
 
 ```text
 en: print(sigmoid(Tensor([-2.0, 0.0, 2.0])).tolist)
-tr: yazdır(sigmoid(Tensör([-2.0, 0.0, 2.0])).değer)
+tr: yazdır(sigmoid(Tensör([-2.0, 0.0, 2.0])).listeye)
 ```
 
 İlişkili: `TR_tanh(...)`, `TR_relu(...)`
@@ -3658,7 +3658,7 @@ Görünümü:
 
 ```text
 en: print(sign(-4), sign(0.0), sign(Tensor([-2.0, 0.0, 3.0])).tolist)
-tr: yazdır(işaret(-4), işaret(0.0), işaret(Tensör([-2.0, 0.0, 3.0])).değer)
+tr: yazdır(işaret(-4), işaret(0.0), işaret(Tensör([-2.0, 0.0, 3.0])).listeye)
 ```
 
 İlişkili: `TR_abs(...)`
@@ -3677,7 +3677,7 @@ Görünümü:
 
 ```text
 en: print(silu(Tensor([-1.0, 0.0, 2.0])).tolist)
-tr: yazdır(silu(Tensör([-1.0, 0.0, 2.0])).değer)
+tr: yazdır(silu(Tensör([-1.0, 0.0, 2.0])).listeye)
 ```
 
 İlişkili: `TR_sigmoid(...)`, `TR_gelu(...)`
@@ -3696,7 +3696,7 @@ Görünümü:
 
 ```text
 en: print(sin(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(sin(Tensör([0.0, 1.0])).değer)
+tr: yazdır(sin(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_cos(...)`
@@ -3715,7 +3715,7 @@ Görünümü:
 
 ```text
 en: print(sinh(1.0), sinh(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(sinh(1.0), sinh(Tensör([0.0, 1.0])).değer)
+tr: yazdır(sinh(1.0), sinh(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_cosh(...)`, `TR_tanh(...)`
@@ -3753,7 +3753,7 @@ Görünümü:
 
 ```text
 en: print(softmax(Tensor([[1.0, 2.0, 3.0]]), dim: -1).tolist)
-tr: yazdır(softmax(Tensör([[1.0, 2.0, 3.0]]), eksen: -1).değer)
+tr: yazdır(softmax(Tensör([[1.0, 2.0, 3.0]]), eksen: -1).listeye)
 ```
 
 İlişkili: `TR_log_softmax(...)`, `TR_sample(...)`
@@ -3892,7 +3892,7 @@ Görünümü:
 
 ```text
 en: print(sum([1, 2, 3]), sum([1, 2.5]), sum(Tensor([[1, 2], [3, 4]]), dim: 0).tolist)
-tr: yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+tr: yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).listeye)
 ```
 
 İlişkili: `TR_mean(...)`
@@ -3941,7 +3941,7 @@ Görünümü:
 
 ```text
 en: print(tan(0.5), tan(Tensor([0.0, 1.0])).tolist)
-tr: yazdır(tan(0.5), tan(Tensör([0.0, 1.0])).değer)
+tr: yazdır(tan(0.5), tan(Tensör([0.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_sin(...)`, `TR_cos(...)`, `TR_atan(...)`
@@ -3960,7 +3960,7 @@ Görünümü:
 
 ```text
 en: print(tanh(0.5), tanh(Tensor([-1.0, 1.0])).tolist)
-tr: yazdır(tanh(0.5), tanh(Tensör([-1.0, 1.0])).değer)
+tr: yazdır(tanh(0.5), tanh(Tensör([-1.0, 1.0])).listeye)
 ```
 
 İlişkili: `TR_sigmoid(...)`
@@ -4017,7 +4017,7 @@ Görünümü:
 
 ```text
 en: var s = topk(Tensor([3.0, 1.0, 4.0, 1.5]), 2); print(s[0].tolist, s[1].tolist)
-tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].değer, s[1].değer)
+tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].listeye, s[1].listeye)
 ```
 
 İlişkili: `TR_argsort(...)`, `TR_argmax(...)`
@@ -4093,7 +4093,7 @@ Görünümü:
 
 ```text
 en: var x = Tensor([-1.0, 2.0, -3.0]); print(where(x > 0, x, 0).tolist)
-tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).değer)
+tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).listeye)
 ```
 
 İlişkili: `TR_if`
@@ -4137,7 +4137,7 @@ Görünümü:
 
 ```text
 en: var t = zeros([2, 4]); write_slice(t, ones([2, 2]), dim: 1, start: 1); print(t.tolist)
-tr: değişken t = sıfırlar([2, 4]); yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1); yazdır(t.değer)
+tr: değişken t = sıfırlar([2, 4]); yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1); yazdır(t.listeye)
 ```
 
 İlişkili: `TR_concat(...)`
@@ -4300,7 +4300,7 @@ Görünümü:
 
 ```text
 en: print(gelu(Tensor([-1.0, 0.0, 1.0]), approximate: false).tolist)
-tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).değer)
+tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).listeye)
 ```
 
 Kullananlar: `TR_gelu(...)` · İlişkili: `TR_gelu(...)`
@@ -4338,7 +4338,7 @@ Görünümü:
 
 ```text
 en: var f = custom_grad(forward: (x) => [x * 3, []], backward: (s, g) => [g * 3]); var x = Tensor([2.0], requires_grad: true); backward(sum(f(x))); print(x.grad.tolist)
-tr: değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
+tr: değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.listeye)
 ```
 
 Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_forward:`
@@ -4406,7 +4406,7 @@ Görünümü:
 
 ```text
 en: print(layer_norm(Tensor([[1.0, 3.0]]), bias: Tensor([0.5, 0.5])).tolist)
-tr: yazdır(katman_normu(Tensör([[1.0, 3.0]]), sapma: Tensör([0.5, 0.5])).değer)
+tr: yazdır(katman_normu(Tensör([[1.0, 3.0]]), sapma: Tensör([0.5, 0.5])).listeye)
 ```
 
 Kullananlar: `TR_layer_norm(...)` · İlişkili: `TR_weight:`
@@ -4663,7 +4663,7 @@ Görünümü:
 
 ```text
 en: print(sum(Tensor([[1, 2], [3, 4]]), dim: 0).tolist)
-tr: yazdır(toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+tr: yazdır(toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).listeye)
 ```
 
 Kullananlar: `TR_argmax(...)`, `TR_argsort(...)`, `TR_concat(...)`, `TR_cumsum(...)`, `TR_log_softmax(...)`, `TR_logsumexp(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_softmax(...)`, `TR_sum(...)`, `TR_topk(...)`, `TR_write_slice(...)`, `.TR_split(...)` · İlişkili: `TR_keepdim:`
@@ -4738,14 +4738,14 @@ Görünümü:
 
 ```text
 en: print(layer_norm(Tensor([[1.0, 2.0, 3.0]]), eps: 0.001).tolist)
-tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), epsilon: 0.001).değer)
+tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), epsilon: 0.001).listeye)
 ```
 
 Kullananlar: `TR_AdamW(...)`, `TR_layer_norm(...)`, `TR_rms_norm(...)`
 
 #### `TR_error_if_nonfinite:` (`TR_arg_error_if_nonfinite`, `sonlu_değilse_hata`)
 
-gradyan_kırp'ın seçeneğidir (Mantık, varsayılan yanlış): doğruysa gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch clip_grad_norm_(error_if_nonfinite=True)). Normu okumak için GPU'yu bekler; varsayılanda bekleme yoktur. Adımı atlamak isteyen eğitim bunun yerine sonlu_mu(norm.değer) ile denetler.
+gradyan_kırp'ın seçeneğidir (Mantık, varsayılan yanlış): doğruysa gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch clip_grad_norm_(error_if_nonfinite=True)). Normu okumak için GPU'yu bekler; varsayılanda bekleme yoktur. Adımı atlamak isteyen eğitim bunun yerine sonlu_mu(norm.listeye) ile denetler.
 
 ```tr
 TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true); TR_backward(TR_sum(w * TR_Float("inf"))); TR_try { TR_clip_grad([w], TR_error_if_nonfinite: TR_true) } TR_catch h { TR_print("sonlu değil") }
@@ -4869,7 +4869,7 @@ Görünümü:
 
 ```text
 en: var f = custom_grad(forward: (x) => [x * 3, []], backward: (s, g) => [g * 3]); print(f(Tensor([2.0])).tolist)
-tr: değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); yazdır(f(Tensör([2.0])).değer)
+tr: değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); yazdır(f(Tensör([2.0])).listeye)
 ```
 
 Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_backward:`
@@ -5107,7 +5107,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true); var opt = SGD([w], lr: 0.5); backward(sum(w * w)); opt.step(); print(w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.listeye)
 ```
 
 Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_weight_decay:`, `.TR_lr`
@@ -5141,7 +5141,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true, dtype: "bf16"); var opt = AdamW([w], master_weights: true); backward(sum(w * w)); opt.step(); print(w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru, tür: "bf16"); değişken opt = AdamW([w], ana_kopya: doğru); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+tr: değişken w = Tensör([1.0], türev_izle: doğru, tür: "bf16"); değişken opt = AdamW([w], ana_kopya: doğru); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.listeye)
 ```
 
 Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)`
@@ -5267,7 +5267,7 @@ Görünümü:
 
 ```text
 en: print(clamp(-3.5, min: 0.0), clamp(Tensor([-1.0, 2.0]), min: 0).tolist)
-tr: yazdır(sınırla(-3.5, en_az: 0.0), sınırla(Tensör([-1.0, 2.0]), en_az: 0).değer)
+tr: yazdır(sınırla(-3.5, en_az: 0.0), sınırla(Tensör([-1.0, 2.0]), en_az: 0).listeye)
 ```
 
 Kullananlar: `TR_clamp(...)` · İlişkili: `TR_max:`
@@ -5567,7 +5567,7 @@ Görünümü:
 
 ```text
 en: print(hann_window(3, periodic: false).tolist)
-tr: yazdır(hann_penceresi(3, periyodik: yanlış).değer)
+tr: yazdır(hann_penceresi(3, periyodik: yanlış).listeye)
 ```
 
 Kullananlar: `TR_hann_window(...)` · İlişkili: `TR_hann_window(...)`
@@ -5701,7 +5701,7 @@ Görünümü:
 
 ```text
 en: var x = Tensor([2.0], requires_grad: true); backward(sum(x * x)); print(x.grad.tolist)
-tr: değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(x * x)); yazdır(x.gradyan.değer)
+tr: değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(x * x)); yazdır(x.gradyan.listeye)
 ```
 
 Kullananlar: `TR_Tensor`, `TR_load_tensors(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_zeros(...)`
@@ -5761,7 +5761,7 @@ Görünümü:
 
 ```text
 en: print(randn([3], seed: 7).tolist)
-tr: yazdır(rastgele_normal([3], tohum: 7).değer)
+tr: yazdır(rastgele_normal([3], tohum: 7).listeye)
 ```
 
 Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
@@ -5836,7 +5836,7 @@ Görünümü:
 
 ```text
 en: var t = zeros([3]); write_slice(t, ones([1]), dim: 0, start: 2); print(t.tolist)
-tr: değişken t = sıfırlar([3]); yerine_yaz(t, birler([1]), eksen: 0, başlangıç: 2); yazdır(t.değer)
+tr: değişken t = sıfırlar([3]); yerine_yaz(t, birler([1]), eksen: 0, başlangıç: 2); yazdır(t.listeye)
 ```
 
 Kullananlar: `TR_write_slice(...)` · İlişkili: `TR_write_slice(...)`
@@ -5912,7 +5912,7 @@ Görünümü:
 
 ```text
 en: print(sample(Tensor([1.0, 3.0, 0.5]), temperature: 0).tolist)
-tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0).değer)
+tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0).listeye)
 ```
 
 Kullananlar: `TR_sample(...)` · İlişkili: `TR_top_k:`
@@ -6025,7 +6025,7 @@ Görünümü:
 
 ```text
 en: print(sample(Tensor([1.0, 3.0, 0.5]), top_k: 1).tolist)
-tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), en_iyi_k: 1).değer)
+tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), en_iyi_k: 1).listeye)
 ```
 
 Kullananlar: `TR_sample(...)` · İlişkili: `TR_temperature:`
@@ -6070,7 +6070,7 @@ Görünümü:
 
 ```text
 en: print(rms_norm(Tensor([[3.0, 4.0]]), weight: Tensor([2.0, 1.0])).tolist)
-tr: yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: Tensör([2.0, 1.0])).değer)
+tr: yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: Tensör([2.0, 1.0])).listeye)
 ```
 
 Kullananlar: `TR_layer_norm(...)`, `TR_rms_norm(...)` · İlişkili: `TR_bias:`
@@ -6877,7 +6877,7 @@ Görünümü:
 
 ```text
 en: var x = Tensor([1.0, 2.0], requires_grad: true); backward(sum(x * 3)); print(x.grad.tolist)
-tr: değişken x = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(x * 3)); yazdır(x.gradyan.değer)
+tr: değişken x = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(x * 3)); yazdır(x.gradyan.listeye)
 ```
 
 İlişkili: `TR_backward(...)`, `TR_requires_grad:`
@@ -6942,7 +6942,7 @@ tr: yazdır("merhaba".konumu("ha"), [10, 20].konumu(20), [10].konumu(30) ?? -1)
 
 İlişkili: `.TR_contains(...)`, `.TR_get(...)`
 
-#### `.TR_input_norm` (`TR_mem_input_norm`, `norm1`)
+#### `.TR_input_norm` (`TR_mem_input_norm`, `dikkat_öncesi_normu`)
 
 
 
@@ -7083,7 +7083,7 @@ tr: yazdır(["a", "b", "c"].birleştir(", "))
 
 
 
-#### `.TR_k_norm` (`TR_mem_k_norm`, `k_norm`)
+#### `.TR_k_norm` (`TR_mem_k_norm`, `k_normu`)
 
 
 
@@ -7273,7 +7273,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true); var op = SGD([w], lr: 0.5); op.lr = 0.25; backward(sum(w * w)); op.step(); print(op.lr, w.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.5); op.öğrenme_oranı = 0.25; geri_yayılım(toplam(w * w)); op.adım(); yazdır(op.öğrenme_oranı, w.değer)
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.5); op.öğrenme_oranı = 0.25; geri_yayılım(toplam(w * w)); op.adım(); yazdır(op.öğrenme_oranı, w.listeye)
 ```
 
 İlişkili: `TR_lr:`, `.TR_step(...)`
@@ -7457,7 +7457,7 @@ Görünümü:
 
 ```text
 en: var girdi, hedef = Dataset("tests/data/numbers").sequential(batch_size: 2, context: 4).next(); print(girdi.tolist, hedef.tolist)
-tr: değişken girdi, hedef = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.değer, hedef.değer)
+tr: değişken girdi, hedef = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.listeye, hedef.listeye)
 ```
 
 İlişkili: `.TR_sampler(...)`, `.TR_sequential(...)`, `TR_read_lines(...)`
@@ -7640,7 +7640,7 @@ tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; deği�
 
 
 
-#### `.TR_post_attention_norm` (`TR_mem_post_attention_norm`, `norm2`)
+#### `.TR_post_attention_norm` (`TR_mem_post_attention_norm`, `ileri_öncesi_normu`)
 
 
 
@@ -7675,7 +7675,7 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").ön_bölme_etiket
 
 
 
-#### `.TR_q_norm` (`TR_mem_q_norm`, `q_norm`)
+#### `.TR_q_norm` (`TR_mem_q_norm`, `q_normu`)
 
 
 
@@ -8125,7 +8125,7 @@ Görünümü:
 
 ```text
 en: print(Tensor([[1, 2, 3], [4, 5, 6]]).slice(1, 0, 2).tolist)
-tr: yazdır(Tensör([[1, 2, 3], [4, 5, 6]]).dilim(1, 0, 2).değer)
+tr: yazdır(Tensör([[1, 2, 3], [4, 5, 6]]).dilim(1, 0, 2).listeye)
 ```
 
 #### `.TR_sort(...)` (`TR_mem_sort`, `sırala`)
@@ -8170,7 +8170,7 @@ Görünümü:
 
 ```text
 en: print("a,b,c".split(","), Tensor([1, 2, 3, 4]).split(2)[0].tolist)
-tr: yazdır("a,b,c".böl(","), Tensör([1, 2, 3, 4]).böl(2)[0].değer)
+tr: yazdır("a,b,c".böl(","), Tensör([1, 2, 3, 4]).böl(2)[0].listeye)
 ```
 
 İlişkili: `.TR_join(...)`, `TR_concat(...)`
@@ -8272,7 +8272,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true); var op = SGD([w], lr: 0.1); backward(sum(w * 2)); op.step(); print(w.tolist, mask_stream().step("metin"))
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer, maskeli_akış().adım("metin"))
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.listeye, maskeli_akış().adım("metin"))
 ```
 
 İlişkili: `.TR_zero_grad(...)`, `TR_backward(...)`, `.TR_finish(...)`
@@ -8477,9 +8477,9 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").parça_kimliği("
 
 
 
-#### `.TR_tolist` (`TR_mem_tolist`, `değer`)
+#### `.TR_tolist` (`TR_mem_tolist`, `listeye`)
 
-    Tensör.değer → Liste | Ondalık | Tam
+    Tensör.listeye → Liste | Ondalık | Tam
 
 Tensörün değerlerini iç içe liste olarak verir; 0 boyutlu tensörde tek bir sayı döner. Sonuç kopyadır, değiştirilmesi tensörü etkilemez.
 
@@ -8491,7 +8491,7 @@ Görünümü:
 
 ```text
 en: print(Tensor([[1, 2], [3, 4]]).tolist)
-tr: yazdır(Tensör([[1, 2], [3, 4]]).değer)
+tr: yazdır(Tensör([[1, 2], [3, 4]]).listeye)
 ```
 
 #### `.TR_tool_calls` (`TR_mem_tool_calls`, `araç_çağrıları`)
@@ -8516,7 +8516,7 @@ Görünümü:
 
 ```text
 en: print(Tensor([[1, 2], [3, 4]]).transpose().tolist)
-tr: yazdır(Tensör([[1, 2], [3, 4]]).devrik().değer)
+tr: yazdır(Tensör([[1, 2], [3, 4]]).devrik().listeye)
 ```
 
 İlişkili: `.TR_permute(...)`
@@ -8739,7 +8739,7 @@ Görünümü:
 
 ```text
 en: var w = Tensor([1.0], requires_grad: true); backward(sum(w * 2)); AdamW([w]).zero_grad(); print(w.grad.tolist)
-tr: değişken w = Tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w * 2)); AdamW([w]).sıfırla(); yazdır(w.gradyan.değer)
+tr: değişken w = Tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w * 2)); AdamW([w]).sıfırla(); yazdır(w.gradyan.listeye)
 ```
 
 İlişkili: `.TR_step(...)`

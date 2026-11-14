@@ -7,7 +7,7 @@
 # Ayrıntılar: docs/spec/15_tensorler.md §15.
 
 # 13'te sayılara uyguladığımız fonksiyonlar tensörde her elemana ayrı ayrı uygulanır.
-# Sonuç yeni bir tensördür; .değer onu TR listesine çevirir.
+# Sonuç yeni bir tensördür; .TR_tolist onu TR listesine çevirir.
 TR_var x = TR_Tensor([0.0, 1.0, 2.0])
 TR_print("exp:", TR_exp(x).TR_tolist)
 TR_print("log:", TR_log(x + 1).TR_tolist)

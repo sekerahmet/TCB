@@ -47,7 +47,6 @@ TR_Role.TR_Assistant	ok	0	tr:field:lib/chat.tr:TR_type_Role.TR_mem_Assistant
 TR_Role.TR_System	ok	0	tr:field:lib/chat.tr:TR_type_Role.TR_mem_System
 TR_Role.TR_Tool	ok	0	tr:field:lib/chat.tr:TR_type_Role.TR_mem_Tool
 TR_Role.TR_User	ok	0	tr:field:lib/chat.tr:TR_type_Role.TR_mem_User
-TR_SpikeGuard.TR_exceeds	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_exceeds
 TR_SpikeGuard.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
 TR_String.TR_split	ok	0	name:TR_mem_split
 TR_Tensor.TR_zeros	not_found	4	-

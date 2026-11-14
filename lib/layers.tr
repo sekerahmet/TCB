@@ -113,7 +113,7 @@ TR_var TR_apply_rotary_fused = TR_fuse(TR_apply_rotary)
 #   pencere: w > 0 ise yerel dikkat; her konum yalnızca son w konuma (kendisi dahil) bakar
 #            (`dikkat(..., pencere: w)`); 0 tam nedensel. Pencere katmanın özelliğidir:
 #            yerel/genel katman düzeni, her bloğa kendi penceresi verilerek kurulur.
-#   qk_normu: q ve k'ya bakış boyutunda RMS normu (q_norm, k_norm; döner konumdan ÖNCE).
+#   qk_normu: q ve k'ya bakış boyutunda RMS normu (TR_mem_q_norm, TR_mem_k_norm; döner konumdan ÖNCE).
 #   birleşik_kv: anahtar ve değer tek `kv_katmanı` ([boyut, 2·kv_boyut], [K | V]) olur ve
 #            `.böl(2)` ile ayrılır; Muon K ve V'yi birlikte dikleştirir. Aksi hâlde
 #            anahtar_katmanı ve değer_katmanı ayrıdır (kv_katmanı yok'tur; birleşikte tersi).
@@ -330,7 +330,7 @@ TR_struct TR_PLEBlock {
 # TransformerBloğu (ön-norm): x + dikkat(norm(x)), ardından x + ileri_besleme(norm(x)); ple_boyutu
 # verilirse blok sonunda PLEBloğu'nun katkısı eklenir.
 # Seçenekler (varsayılanlar eski davranıştır):
-#   epsilon: blok içindeki bütün RMS normlarının (norm1, norm2, qk normları, PLE normu) epsilon'u.
+#   epsilon: blok içindeki bütün RMS normlarının (TR_mem_input_norm, TR_mem_post_attention_norm, qk normları, PLE normu) epsilon'u.
 #   pencere, qk_normu, birleşik_kv: NedenselDikkat'e iletilir (katman başına farklı pencere).
 #   sapmalı: dikkat katmanlarının sapması; ileri_sapmalı: SwiGLU'nun sapması.
 #   birleşik_kapı: SwiGLU'da [G | U] tek matris.
