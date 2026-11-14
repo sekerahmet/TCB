@@ -18,6 +18,12 @@ func consoleAttached() bool {
 	return n != 0
 }
 
+// consoleWindow sürecin bir konsol penceresi olduğunu söyler (TestNoConsoleOpensNoWindow).
+func consoleWindow() bool {
+	w, _, _ := syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow").Call()
+	return w != 0
+}
+
 // withoutConsole süreci konsolsuz başlatır.
 func withoutConsole(c *exec.Cmd) {
 	c.SysProcAttr = &syscall.SysProcAttr{CreationFlags: detachedProcess}

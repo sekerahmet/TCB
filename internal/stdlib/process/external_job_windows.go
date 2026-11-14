@@ -16,6 +16,7 @@ import (
 
 const (
 	createSuspended = 0x00000004
+	createNoWindow  = 0x08000000
 
 	processTerminate     = 0x0001
 	processSetQuota      = 0x0100
@@ -35,6 +36,7 @@ var (
 	procAssignProcessToJobObject = kernel32.NewProc("AssignProcessToJobObject")
 	procTerminateJobObject       = kernel32.NewProc("TerminateJobObject")
 	procGenerateConsoleCtrlEvent = kernel32.NewProc("GenerateConsoleCtrlEvent")
+	procGetConsoleProcessList    = kernel32.NewProc("GetConsoleProcessList")
 	procNtResumeProcess          = ntdll.NewProc("NtResumeProcess")
 )
 
@@ -62,8 +64,23 @@ type processGroup struct {
 	pid uint32
 }
 
+// prepare programı kendi konsol grubunda ve askıda başlatır. TR'nin konsolu yoksa Windows konsol
+// programına yeni bir konsol açar ve kullanıcının ekranında pencere belirir; program o zaman
+// pencere açmadan başlar. Konsolu olan TR'de program onun konsolunu paylaşır: Ctrl+Break ancak
+// böyle gider (request).
 func (g *processGroup) prepare(c *exec.Cmd) {
-	c.SysProcAttr = &syscall.SysProcAttr{CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP | createSuspended}
+	flags := uint32(syscall.CREATE_NEW_PROCESS_GROUP | createSuspended)
+	if !hasConsole() {
+		flags |= createNoWindow
+	}
+	c.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags}
+}
+
+// hasConsole TR'nin bir konsola bağlı olduğunu söyler.
+func hasConsole() bool {
+	var list [1]uint32
+	n, _, _ := procGetConsoleProcessList.Call(uintptr(unsafe.Pointer(&list[0])), 1)
+	return n != 0
 }
 
 // started askıdaki programı iş nesnesine alır ve sürdürür.

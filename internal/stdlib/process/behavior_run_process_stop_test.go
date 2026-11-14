@@ -64,6 +64,12 @@ func helperStop(args []string) {
 		leaveGroup(c)
 		_ = c.Start()
 		time.Sleep(30 * time.Second)
+	case "window": // konsol penceresi olup olmadığını dosyaya yazar: "var" ya da "yok"
+		state := "yok"
+		if consoleWindow() {
+			state = "var"
+		}
+		_ = os.WriteFile(args[1], []byte(state), 0o644)
 	case "touch-after": // uyur, sonra dosya yazar: dosya, saniye
 		n, _ := strconv.ParseFloat(args[2], 64)
 		time.Sleep(time.Duration(n * float64(time.Second)))
@@ -259,6 +265,36 @@ func TestNoConsoleUsesTheKillPath(t *testing.T) {
 	t.Logf("%s", out)
 	if err != nil {
 		t.Errorf("konsolsuz koşu: %v", err)
+	}
+}
+
+// Konsolsuz TR'nin başlattığı program konsol penceresi açmaz: Windows konsolsuz ebeveynin konsol
+// programına yeni bir konsol açar, kullanıcının ekranında pencere belirir (21.1). Test kendini konsolu
+// olmayan bir süreçte yeniden koşar.
+func TestNoConsoleOpensNoWindow(t *testing.T) {
+	if !windows {
+		t.Skip("konsol penceresi Windows'ta")
+	}
+	if consoleAttached() {
+		exe, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := exec.Command(exe, "-test.run=^TestNoConsoleOpensNoWindow$", "-test.v")
+		withoutConsole(c)
+		out, err := c.CombinedOutput()
+		t.Logf("%s", out)
+		if err != nil {
+			t.Errorf("konsolsuz koşu: %v", err)
+		}
+		return
+	}
+	mark := filepath.Join(t.TempDir(), "pencere")
+	if _, _, err := commandLine(t, `TR_run_process(`+helperProgram(t)+`, ["window", `+tr(mark)+`])`); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(mark); err != nil || string(got) != "yok" {
+		t.Errorf("program konsol penceresi açtı: %q (%v)", got, err)
 	}
 }
 

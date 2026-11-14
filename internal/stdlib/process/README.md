@@ -52,6 +52,9 @@ Denetim: `TestSecretNamedVariablesAreNotPassed`, `TestExplicitSecretReachesThePr
 **Durdurma tek yoldur, kilit tutmaz.** Süre sınırı, iptal ve durdurma programı aynı yolla durdurur (`job.stop`): nazik istek, 2 saniye, öldürme; istek ve öldürme başlattığı süreçlere de gider (Unix'te süreç grubu, Windows'ta `KILL_ON_JOB_CLOSE` iş nesnesi ve Ctrl+Break). Durdurma `interp.AwaitExternal`'ın kilit bırakılmış bölümündedir: yığın ancak program durunca çözülür.
 Denetim: `TestStopUnwindsAfterTheProgramStopped`, `TestGrandchildStopsWithTheProgram`, `TestStoppingDoesNotHoldTheLock`, `TestHandledStopLetsTheCallFinish`, `TestNoConsoleUsesTheKillPath`.
 
+**Konsolsuz TR pencere açmaz.** Windows'ta konsolu olmayan bir süreç (örneğin bir masaüstü uygulaması) konsol programı başlatınca Windows o programa yeni bir konsol açar ve kullanıcının ekranında pencere belirir. TR'nin konsolu yoksa program `CREATE_NO_WINDOW` ile başlar; konsolu varsa program onu paylaşır, çünkü Ctrl+Break ancak paylaşılan konsoldan gider (`processGroup.prepare`).
+Denetim: `TestNoConsoleOpensNoWindow`.
+
 **Geride yetim süreç kalmaz.** Normal bitişte görevdeki çağrı beklenir; hata, `TR_exit` ve durdurma görevleri durdurur, çağrı programı durdurur. Hemen bitişte (1.7) `State`'in kaydındaki gruplar öldürülür (`interp.VM.HardStop`); kayıt VM başınadır.
 Denetim: `TestHardStopReachesOnlyItsOwnProgram`; ayrı süreçte `cmd/trlang/e2e` `TestSecondRequestKillsTheExternalProgram`, `TestUncaughtErrorStopsTheExternalProgram`, `TestExitStopsTheExternalProgram`, `TestProgramEndWaitsForTheExternalProgram`, `TestExitInATestLeavesTheExternalProgram`.
 

@@ -15,6 +15,9 @@ func leaveGroup(c *exec.Cmd) { c.SysProcAttr = &syscall.SysProcAttr{Setsid: true
 // consoleAttached Unix'te nazik istek konsola bağlı değildir.
 func consoleAttached() bool { return true }
 
+// consoleWindow Unix'te yoktur (TestNoConsoleOpensNoWindow Windows'ta koşar).
+func consoleWindow() bool { return false }
+
 // withoutConsole yalnız Windows'ta iş görür (TestNoConsoleUsesTheKillPath).
 func withoutConsole(*exec.Cmd) {}
 
