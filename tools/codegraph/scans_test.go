@@ -273,6 +273,7 @@ func rootedListings(t *testing.T, file string) []int {
 // bütün koşulan paketler ve Fuzz* hedefleri dışarıda). Yeni bir tarama testi ya da paketi diziye yazılmazsa ya da dizide
 // eskimiş ad kalırsa test düşer.
 func TestFullCheckRepoScansMatchesScanNodes(t *testing.T) {
+	repoRule(t)
 	root, _, g := repoGraph(t)
 	data, err := os.ReadFile(filepath.Join(root, "tools/full_check.sh"))
 	if err != nil {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path"
 	"slices"
 	"strconv"
@@ -80,14 +81,24 @@ func TestEveryListedTestIsNamedByARunLine(t *testing.T) {
 		ix.printTestsFor(&out, n, defaultLimit)
 		cmds := runLines(out.String())
 		inRun := runCovers(cmds)
+		self := ix.selfTestsOf(n)
 		for _, gt := range listedIn(out.String()).goTests {
-			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") {
+			// codegraph'ın kendi testleri iki klasörün dışında koşmaz, S3 sayar (codegraph dilim 6, D6-3).
+			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") && !slices.Contains(self, gt) {
 				t.Errorf("%s: the answer lists %s %s, no run: line runs it", n.File, gt.dir, gt.name)
 			}
 		}
+		for _, gt := range self {
+			if !ix.isCodegraphSelfTest(gt) || inSelfTestFolders(n.File) || inRun(gt) {
+				t.Errorf("%s: %s %s is left out of the run: lines but is not a codegraph self-test of another folder's file", n.File, gt.dir, gt.name)
+			}
+		}
+		if want := fmt.Sprintf(selfTestsLine, len(self)); (len(self) > 0) != strings.Contains(out.String(), want) {
+			t.Errorf("%s: %d codegraph tests are left out, the answer must say so with %q:\n%s", n.File, len(self), want, out.String())
+		}
 		indTests, indBenchs := independentListedGoTests(out.String())
 		for _, gt := range indTests {
-			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") {
+			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") && !slices.Contains(self, gt) {
 				t.Errorf("%s: independent scan found %s %s in answer, no run: line runs it", n.File, gt.dir, gt.name)
 			}
 		}

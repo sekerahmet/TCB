@@ -36,6 +36,8 @@ type runPlan struct {
 	pkgCut  int      // onlardan satıra sığmayanların sayısı
 	trFiles []string // .tr dosyasında cevapta adı geçen TR test dosyaları (`go run ./cmd/trlang test ...`)
 	rest    []goTest // ön denetimin seçiminden komutların koşmadıkları
+	// selfTests iki klasörün dışındaki dosyada komutlardan ve rest'ten çıkan codegraph testleridir (self_tests.go, S3).
+	selfTests []goTest
 }
 
 // runPlanFor koşu satırlarını ön denetimin seçiminden (goTestSelection, `changed --go-tests`) kurar: dosyanın paketi
@@ -53,6 +55,16 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 	}
 	p.trFiles = trRunFiles(listed, s)
 	extra, golden, own := ix.collectPlanTests(file, p.pkg, s, listed)
+	selfOut := !inSelfTestFolders(file.File)
+	if selfOut {
+		for t := range extra {
+			if ix.isCodegraphSelfTest(t) {
+				delete(extra, t)
+				delete(golden, t.name)
+				p.selfTests = append(p.selfTests, t)
+			}
+		}
+	}
 	if isHeavyPackage(p.pkg) {
 		p.pkgFit, p.pkgCut = p.fitNames([]string{p.pkg}, sortedKeys(own))
 	}
@@ -69,6 +81,15 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 		p.fit, p.cut = p.fitNames(p.heavy, sortedKeys(heavyNames))
 	}
 	p.rest = ix.unrunSelection(file, ts, s, p)
+	if selfOut {
+		var out []goTest
+		p.rest, out = ix.withoutSelfTests(p.rest)
+		for _, t := range out {
+			if !slices.Contains(p.selfTests, t) {
+				p.selfTests = append(p.selfTests, t)
+			}
+		}
+	}
 	return p
 }
 
@@ -268,6 +289,7 @@ func printRunPlanText(w io.Writer, p runPlan, short bool) {
 	}
 	cmds := p.commands()
 	if len(cmds) == 0 && !isHeavyPackage(p.pkg) {
+		printSelfTestsLine(w, p)
 		return
 	}
 	for _, c := range cmds {
@@ -290,8 +312,11 @@ func printRunPlanText(w io.Writer, p runPlan, short bool) {
 		fmt.Fprintf(w, "  %s of %s did not fit the command line (heavy packages do not run whole here); %s\n",
 			countOf(p.cut, "more listed test"), strings.Join(p.heavy, ", "), inGroups)
 	}
+	defer printSelfTestsLine(w, p)
 	if len(p.rest) == 0 {
-		fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
+		if len(p.selfTests) == 0 {
+			fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")
+		}
 		return
 	}
 	pkgs := map[string]bool{}

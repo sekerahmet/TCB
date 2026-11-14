@@ -167,6 +167,13 @@ func replaceIn(t *testing.T, path, old, new string) {
 // repoState bu deponun bir kez yüklenmiş modülü ve ondan kurulan grafiğidir: planlama sınavı ve go/types'a karşı
 // tutarlılık testleri (kullanım kapsamı, arayüz gönderimi) aynı yüklemeyi paylaşır; böylece -short'ta da koşarlar
 // (bağımsız denetim S7: tam denetim -short koşar, bu güvence günlük denetimde kapalıydı).
+// repoRule bir depo kuralının işaretidir (codegraph dilim 6, D6-3, Karar 3): testin ilk satırında çağrılır. Depo kuralı
+// codegraph'ın dışındaki dosyaları denetler, düşünce düzeltme o dosyadadır; bu yüzden o dosyaların tests-for `run:`
+// satırına ve commit kipinin seçimine girer. Çağırmayan codegraph testleri (kendini gerçek depoyla ya da fikstürle
+// sınayanlar) iki klasörün (tools/codegraph, internal/devtools/codeindex) dışındaki dosyaların seçiminden çıkar; ön
+// denetim ve G4 onları da koşar, hiçbiri atlanmaz.
+func repoRule(t *testing.T) { t.Helper() }
+
 var repoState struct {
 	once sync.Once
 	root string

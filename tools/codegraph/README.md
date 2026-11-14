@@ -132,7 +132,15 @@ are written from the pre-check's own selection (`goTestSelection`, the function 
 below them counts what they leave out (they are among the groups below): "not run by these commands: N more Go tests in M packages; the full check
 (`tools/full_check.sh`, on Colab) runs them all". Every Go test the default answer lists (at 12
 lines per group; `--all` names the same ones) is named by a `run:` line: an answer does not list a test no `run:` line
-runs (chapter 28's G4 failed on `e2e.TestDocTRCodeBlocks`, listed and not run). The run line only names tests; which
+runs (chapter 28's G4 failed on `e2e.TestDocTRCodeBlocks`, listed and not run), except codegraph's own tests outside
+its folders (codegraph slice 6, D6-3, `self_tests.go`): for a file outside `tools/codegraph/` and
+`internal/devtools/codeindex/`, a `tools/codegraph` test enters the `run:` lines and the commit mode's selection
+(`changed --go-tests --without-codegraph-self-tests`) only when it starts with `repoRule(t)`, the mark of a repository
+rule: a test that checks the repository's own files (the fix is in that file) or a golden test that reads them
+(`TestDottedMemberSpellingsGolden`). A new repository rule starts with `repoRule(t)`; without it, it leaves the other
+files' selections and its failure is left to G4. The others stay in the groups and are counted: "not run by these
+commands: N codegraph tests (the full check on Colab runs them)". The pre-check's selection and G4 keep them all; no
+test is skipped. The run line only names tests; which
 of them to run before a commit is not its choice. A `-run` list longer than 20000 characters (the pre-check's Windows
 limit) runs its light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
 `internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the

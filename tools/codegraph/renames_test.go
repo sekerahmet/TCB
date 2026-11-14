@@ -82,6 +82,7 @@ func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 // kendi geçmişiyle sınanır; yeni satırlar (bir kimliğin yeniden adlandırılması, kitaplık kodları)
 // aynı testten geçer.
 func TestEveryRenameInTheMappingKeepsItsHistory(t *testing.T) {
+	repoRule(t)
 	slowFixture(t)
 	root := reporoot.Root()
 	if out, err := exec.Command("git", "-C", root, "rev-parse", "--is-shallow-repository").Output(); err != nil || strings.TrimSpace(string(out)) != "false" {

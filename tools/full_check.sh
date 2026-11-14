@@ -35,8 +35,9 @@
 #                     ve TCB'nin tek commit öncesi komutu, CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi
 #                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), dil
 #                     tanımı atıfları, son olarak değişen dosyaların hafif testleri (codegraph changed
-#                     --go-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120 sn'sinin kalanıyla; kalanlar "G4'e
-#                     kaldı" diye yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
+#                     --go-tests --without-codegraph-self-tests, ağır listesi commit_heavy_tests dışarıda, kipin 120
+#                     sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph testlerinin sayısı "G4'e kaldı" diye
+#                     yazılır). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -212,6 +213,7 @@ commit_left=()
 commit_left_heavy=0
 commit_left_cut=0
 commit_cut_pkgs=0
+commit_self_out=0 # seçime girmeyen codegraph testleri (changed --without-codegraph-self-tests'in S3'ü; codegraph dilim 6)
 commit_failed_tests=0
 commit_dups=-
 commit_specrefs=-
@@ -664,13 +666,14 @@ commit_settle() {
 # commit_selection commit kipinin son adımıdır (seçim: $1, codegraph changed --go-tests satırları): seçim boşsa adım yok.
 # Kalan test varsa adımın sonunda adlarıyla yazılır; düşen test adımı düşürür.
 commit_selection() {
-	local plan light pkgs n shown more=""
+	local plan light pkgs n shown more="" self=""
 	plan=$(mktemp)
 	commit_plan <<<"$1" >"$plan"
 	light=$(($(wc -l <"$plan")))
 	pkgs=$(($(cut -f2 "$plan" | sort -u | wc -l)))
 	if [ "$light" -eq 0 ] && [ ${#commit_left[@]} -eq 0 ]; then
 		rm -f "$plan"
+		[ "$commit_self_out" -eq 0 ] || echo "G4'e kaldı (seçime girmeyen $commit_self_out codegraph testi)"
 		return 0
 	fi
 	step "Değişen dosyaların hafif testleri ($light test, $pkgs paket; codegraph changed --go-tests; ağır listesindeki ve kipin $commit_seconds sn'si (kipin başından, derleme dahil) dolunca bitmemiş paketlerin testleri G4'e kalır)"
@@ -680,13 +683,18 @@ commit_selection() {
 	if [ "$n" -gt 0 ]; then
 		shown=$(printf '%s\n' "${commit_left[@]}" | head -20 | sed 's/^[^ ]* //' | paste -sd',' | sed 's/,/, /g')
 		[ "$n" -le 20 ] || more=" ve $((n - 20)) test daha"
-		echo "G4'e kaldı ($n test: $commit_left_heavy ağır listesinde, $commit_left_cut test $commit_seconds sn'de kesilen $commit_cut_pkgs pakette): $shown$more"
+		[ "$commit_self_out" -eq 0 ] || self="; seçime girmeyen $commit_self_out codegraph testi"
+		echo "G4'e kaldı ($n test: $commit_left_heavy ağır listesinde, $commit_left_cut test $commit_seconds sn'de kesilen $commit_cut_pkgs pakette$self): $shown$more"
+	elif [ "$commit_self_out" -gt 0 ]; then
+		echo "G4'e kaldı (seçime girmeyen $commit_self_out codegraph testi)"
 	fi
 	[ "$commit_failed_tests" -eq 0 ] || fail "değişen dosyaların hafif testleri"
 }
 
 # commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen
-# dosyalar dahil), dalın bütünü değil. Bu koşuda codegraph derlendiyse (commit kipinde spec_refs_check, öbür
+# dosyalar dahil), dalın bütünü değil. codegraph'ın repoRule'suz testleri, tools/codegraph ve
+# internal/devtools/codeindex dışındaki değişiklikte seçime girmez; sayıları "G4'e kaldı" satırındadır (codegraph
+# dilim 6, D6-3). Ön denetimin seçimi (selected_tests) onları da alır. Bu koşuda codegraph derlendiyse (commit kipinde spec_refs_check, öbür
 # kiplerde dups_check) o ikili koşar.
 commit_light_tests() {
 	local out errfile bin="" code=0
@@ -704,9 +712,9 @@ commit_light_tests() {
 		bin=${bin%$'\r'}
 	fi
 	if [ -n "$bin" ] && [ -f "$bin" ]; then
-		out=$("$bin" changed --go-tests --base HEAD HEAD 2>"$errfile") || code=$?
+		out=$("$bin" changed --go-tests --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	else
-		out=$(go run ./tools/edithook codegraph changed --go-tests --base HEAD HEAD 2>"$errfile") || code=$?
+		out=$(go run ./tools/edithook codegraph changed --go-tests --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	fi
 	if [ "$code" -ne 0 ]; then
 		head -20 "$errfile"
@@ -714,6 +722,9 @@ commit_light_tests() {
 		fail "codegraph changed --go-tests çalışmadı"
 		return
 	fi
+	# Seçime girmeyen codegraph testlerinin sayısı standart hatadadır (S3); "G4'e kaldı" satırına girer (S7).
+	commit_self_out=$(sed -n 's/^  not run by these commands: \([0-9][0-9]*\) codegraph tests .*/\1/p' "$errfile" | head -1)
+	commit_self_out=${commit_self_out:-0}
 	rm -f "$errfile"
 	commit_selection "$out"
 }

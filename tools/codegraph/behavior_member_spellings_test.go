@@ -144,6 +144,7 @@ func mapKeysBool(m map[string]string) map[string]bool {
 // sorulur; spec: dil tanımı düğümleri dışındaki adaylarda iki araç birebir aynı cevabı (durum, çıkış, aday kimlikleri,
 // etiket kodları) verir ve bütün cevaplar testdata/member_spellings.txt altın dosyasıyla eşleşir.
 func TestDottedMemberSpellingsGolden(t *testing.T) {
+	repoRule(t) // deponun .tr, .go ve .md dosyalarını okur: onlara dokunan her dosyanın seçiminde kalır (TCB 15:02)
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	idx, err := repoIndex(root)

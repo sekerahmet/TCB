@@ -228,6 +228,7 @@ func TestCodeConstantsDenoteCodes(t *testing.T) {
 // değişip bağlar sessizce kaybolursa (kimliklere geçişte sabit adının biçimine bakan desen gibi) "kullanılmıyor" cevabı
 // yanlış olur; bu test düşer.
 func TestEveryNameCodeHasAUse(t *testing.T) {
+	repoRule(t)
 	_, _, g := repoGraph(t)
 	used := map[string]bool{}
 	for _, e := range g.Edges {

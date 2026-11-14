@@ -56,8 +56,9 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 			want = append(want, t)
 			want = append(want, ix.fixtureRunners(t)...)
 		}
+		// codegraph'ın kendi testleri iki klasörün dışında koşmaz, S3 sayar (codegraph dilim 6, D6-3).
 		for _, n := range want {
-			if gt, ok := goTestOf(n); ok && !inRun(gt) {
+			if gt, ok := goTestOf(n); ok && !inRun(gt) && !slices.Contains(p.selfTests, gt) {
 				t.Errorf("%s: the run line does not run %s (%s)", file.File, n.Name, gt.dir)
 			}
 		}
@@ -72,6 +73,12 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 		for _, line := range nonEmptyLines(printed.String()) {
 			dir, name, _ := strings.Cut(line, " ")
 			gt := goTest{dir, name}
+			if slices.Contains(p.selfTests, gt) {
+				if inRun(gt) || rest[gt] {
+					t.Errorf("%s: %s is left out as a codegraph self-test but is run or counted", file.File, line)
+				}
+				continue
+			}
 			if inRun(gt) == rest[gt] {
 				t.Errorf("%s: %s is %s by the run line and %s in the remaining count", file.File, line, map[bool]string{true: "run", false: "not run"}[inRun(gt)], map[bool]string{true: "also", false: "not"}[rest[gt]])
 			}
@@ -276,8 +283,9 @@ func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
 			if len(direct) < 10 {
 				t.Fatalf("tools/full_check.sh: expected >=10 direct tests, got %d", len(direct))
 			}
+			self := ix.selfTestsOf(n)
 			for _, e := range direct {
-				if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) {
+				if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) && !slices.Contains(self, gt) {
 					t.Errorf("tools/full_check.sh: direct test %s (%s) not covered by run: line", gt.name, gt.dir)
 				}
 			}
@@ -298,8 +306,9 @@ func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
 	if len(nt.walks) < 40 {
 		t.Fatalf("definitions.json: expected >=40 whole-list walkers, got %d", len(nt.walks))
 	}
+	self := ix.selfTestsOf(defs) // codegraph'ın kendi testleri S3'te sayılır (codegraph dilim 6, D6-3)
 	for _, e := range nt.walks {
-		if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) {
+		if gt, ok := goTestOf(ix.byID[e.From]); ok && !inRun(gt) && !slices.Contains(self, gt) {
 			t.Errorf("definitions.json: whole-list walker %s (%s) not covered by run: line", gt.name, gt.dir)
 		}
 	}

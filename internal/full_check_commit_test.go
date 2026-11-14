@@ -163,6 +163,17 @@ func TestCommitModeRunsTheLightSelection(t *testing.T) {
 	if strings.Contains(empty, "==") || !strings.Contains(empty, "✅ Commit öncesi denetim geçti (tam denetim değildir)\n") {
 		t.Errorf("boş seçimde adım olmamalı ve sonuç satırı sayısız kalmalı:\n%s", empty)
 	}
+	// Seçime girmeyen codegraph testleri (D6-3, S7): kalan varsa aynı satırda, yoksa kendi satırında sayılır.
+	self := runCommitBash(t, dir, env, "commit_self_out=7\ncommit_deadline_ms=$(($(commit_now_ms) + 60000))\n"+
+		"commit_selection $'b TestPlanningQuestionsAreAnswered'\ncommit_left=()\ncommit_left_heavy=0\ncommit_selection ''\n")
+	for _, want := range []string{
+		"G4'e kaldı (1 test: 1 ağır listesinde, 0 test 120 sn'de kesilen 0 pakette; seçime girmeyen 7 codegraph testi): TestPlanningQuestionsAreAnswered\n",
+		"G4'e kaldı (seçime girmeyen 7 codegraph testi)\n",
+	} {
+		if !strings.Contains(self, want) {
+			t.Errorf("çıktıda yok: %q\n%s", want, self)
+		}
+	}
 }
 
 // Kural (tools/full_check.sh, --kip=commit; D1 codegraph dilim 6, D6-2): commit kipi tekrar adaylarını aramaz (dups
@@ -186,7 +197,8 @@ func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
 	dir, env := fakeGo(t, map[string]string{"tools_edithook.out": "345 item(s), 7956 mention(s), 0 error(s), 0 note(s)\n"})
 	built := filepath.ToSlash(filepath.Join(dir, "bin", "codegraph-built"))
 	files := map[string]string{
-		"bin/codegraph-built":       "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$FAKE_GO_DIR/cg_args\"\n",
+		"bin/codegraph-built": "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$FAKE_GO_DIR/cg_args\"\n" +
+			"echo '  not run by these commands: 7 codegraph tests (the full check on Colab runs them)' >&2\n",
 		".codegraph/graph.json":     "{}\n",
 		".codegraph/last-codegraph": built + "\n",
 	}
@@ -207,8 +219,12 @@ func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
 		t.Errorf("go yalnız bir kez (spec-refs için) koşmalıydı: %q", args)
 	}
 	cgArgs, err := os.ReadFile(filepath.Join(dir, "fake", "cg_args"))
-	if err != nil || strings.TrimSpace(string(cgArgs)) != "changed --go-tests --base HEAD HEAD" {
+	if err != nil || strings.TrimSpace(string(cgArgs)) != "changed --go-tests --without-codegraph-self-tests --base HEAD HEAD" {
 		t.Errorf("hafif testlerin seçimi spec-refs'in derlediği ikiliden alınmalıydı: %q %v\n%s", cgArgs, err, out)
+	}
+	// Seçime girmeyen codegraph testlerinin sayısı codegraph'ın standart hatasından "G4'e kaldı" satırına gelir (D6-3, S7).
+	if want := "G4'e kaldı (seçime girmeyen 7 codegraph testi)"; !strings.Contains(out, want) {
+		t.Errorf("çıktıda yok: %q\n%s", want, out)
 	}
 }
 
