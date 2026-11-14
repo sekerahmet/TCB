@@ -1526,7 +1526,7 @@
 "H7058": { "param": ["fn", "index", "value"] },
 "H7059": { "param": ["fn", "position", "size", "case", "length"] },
 "H7060": { "param": ["fn"] },
-"H7061": { "param": ["path", "case", "value"] },
+"H7061": { "param": ["path", "case", "value"], "slots": {"run_process": "TR_fn_run_process"} },
 "H7062": { "param": ["path", "case"] },
 "H7063": { "param": ["path", "case"] },
 "H7064": { "param": ["path", "size", "least"] },

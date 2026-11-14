@@ -284,7 +284,9 @@ TR_func TR_write_wav(yol: TR_String, ses: TR_Sound) {
 TR_func _whisper_sesi(ses: TR_Sound) -> TR_Tensor[TR_Float] {
     _ses_şekli(ses.TR_samples)
     TR_var ad = "TR_whisper_log_mel"
-    TR_if ses.TR_sample_rate != _WHISPER_HIZI { TR_throw TR_Message("H7079", ad, "rate", ses.TR_sample_rate, "", "") }
+    # Yeniden örneklemenin yazımı (23.6, 21.1): kopyalanınca çalışan TR_run_process çağrısı.
+    TR_var yeniden = "`TR_run_process(\"ffmpeg\", [\"-nostdin\", \"-y\", \"-i\", \"girdi.wav\", \"-ar\", \"16000\", \"-c:a\", \"pcm_s16le\", \"çıktı.wav\"])`"
+    TR_if ses.TR_sample_rate != _WHISPER_HIZI { TR_throw TR_Message("H7079", ad, "rate", ses.TR_sample_rate, yeniden, "") }
     TR_var şekil = ses.TR_samples.TR_shape
     TR_if şekil[0] > 1 {
         TR_var ilk = "`TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: ses.TR_sample_rate)`"
