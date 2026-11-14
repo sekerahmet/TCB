@@ -32,7 +32,7 @@ Bedel de aynı üçüyle yazılır: dosya ve dilim, kipe eklenen süre, cevaba e
 
 ## Sıradaki iş (fayda/maliyet, 2026-11-15)
 
-Bu tablo kalite ölçüsüdür; hız ve token ölçüsü (`cg_firsat.py`: araç çağrıları ve karakterleri, kanca notları, yeniden kurulum süreleri; notların kaçının S8, kaçının dar satırlı olduğunu 2026-11-15 sürümü saymıyor, Dilim A'nın bitti ölçütü için uzman 2026-11-16'dan önce ekler) 2026-11-16'da koşar ve tabloya eklenir. Ölçü: 2026-10-23–11-15 arasındaki 459 G4 günlüğünün (sayım 2026-11-15 00:28:49 TSS) 122'sinde en az bir test düştü; teste göre en çok düşenler [ölçüldü: G4 tam denetim günlükleri (`olcumler/tam-denetim/*.log`), günlük başına `--- FAIL: Test…` satırlarının tekilleri]:
+Bu tablo kalite ölçüsüdür; hız ve token ölçüsü (`cg_firsat.py`: araç çağrıları ve karakterleri, kanca notları, yeniden kurulum süreleri; notların kaçının S8, kaçının dar satırlı olduğunu 2026-11-15 01:05 TSS'teki değişiklikten beri sayıyor: not türü S8, dar ya da eski, Dilim A'nın bitti ölçütü) 2026-11-16'da koşar ve tabloya eklenir. Ölçü: 2026-10-23–11-15 arasındaki 459 G4 günlüğünün (sayım 2026-11-15 00:28:49 TSS) 122'sinde en az bir test düştü; teste göre en çok düşenler [ölçüldü: G4 tam denetim günlükleri (`olcumler/tam-denetim/*.log`), günlük başına `--- FAIL: Test…` satırlarının tekilleri]:
 
 | Küme | Testler (G4 düşüşü) | İlgili madde | Karar |
 | :-- | :-- | :-- | :-- |

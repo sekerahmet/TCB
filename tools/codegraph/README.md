@@ -56,7 +56,7 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | what this function calls | `callees <function>` | agent rules |
 | which functions call into this package the most | `calls-into <pkg> --min N --in DIR` | none |
 | who uses this | `who-uses <name>` | agent rules |
-| is there a path from A to B | `path <A> <B>` (`--undirected`) | none |
+| is there a path from A to B | `path <A> <B>` (`--undirected`) | agent rules |
 | when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` | agent rules |
 | which message or name codes existed once and are gone | `deleted` | none |
 | functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers | none |
@@ -66,7 +66,7 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | tests with a wall-clock ceiling | `time-ceilings --in DIR` | none |
 | broken references to language-definition items | `spec-refs` | gate |
 
-The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `agent rules` (the agents' rules name it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
+The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `agent rules` (the agents' rules tell them to run it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
 
 ## Staying fresh
 
@@ -778,7 +778,7 @@ is the stored, wider graph (docs, rules, messages, tests) for navigation.
 
 ## Time
 
-On 2026-11-04, when the repository's graph had about 1 200 Go files, 31 000 nodes and 229 000 edges, `build` took 7-8 s
+On 2026-10-26, when the repository's graph had about 980 Go files, 25 000 nodes and 172 000 edges, `build` took 7-8 s
 with the built binary and a warm Go build cache (Windows; up to about 15 s on a loaded machine), and about 57 s with a cold cache in an older measurement
 (almost all of it compiling the standard library export data that `go list -export` asks for; the module's own
 packages are type-checked from source, not compiled). Query costs are under "Cost" above.
