@@ -116,13 +116,22 @@ type Iterable interface {
 
 // Stream is a lazy (streaming) source for 'döngü x içinde value', 'döngü i, x içinde value'
 // and list comprehensions: the number of items is not known in advance and items are produced
-// on demand (e.g. a dataset's sequential reader, later file lines). The VM calls Next for each
+// on demand (e.g. a dataset's sequential reader, file lines). The VM calls Next for each
 // round; devam=false means the source is exhausted. A loop does not restart the source: it
-// consumes from where it stopped (a second loop over the same stream visits the remaining
-// items). If Next will wait long (disk, network) it releases the interpreter lock with
-// v.Blocking. A value that is both Iterable and Stream is used as Iterable.
+// consumes from where it stopped (a second loop over an unfinished stream visits the remaining
+// items; an exhausted stream may reject a new loop via StreamLoopStarter). If Next will wait
+// long (disk, network) it releases the interpreter lock with v.Blocking. A value that is both
+// Iterable and Stream is used as Iterable.
 type Stream interface {
 	Next(v *VM) (value Value, cont bool, err error)
+}
+
+// StreamLoopStarter is an optional hook on a Stream: the VM calls StartLoop once before
+// entering a TR_for loop or list comprehension over the stream, so an already-exhausted or
+// closed stream can report an error at loop entry while allowing an active loop's final Next
+// call to end cleanly.
+type StreamLoopStarter interface {
+	StartLoop(v *VM) error
 }
 
 // PlainValuer returns the plain TR value that stands in for a value when it is written to

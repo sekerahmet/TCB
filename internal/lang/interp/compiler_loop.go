@@ -253,6 +253,11 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 // streamLoop tembel bir kaynağı (Akis) biter, 'çık' ya da 'sonuç' gelene kadar gezer.
 // Öğe sayısı önceden bilinmediğinden her tur Sonraki ile istenir.
 func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyBlock *blockCode, line int, pairs *tupleGuard) (Value, flowSignal, error) {
+	if s, ok := it.(StreamLoopStarter); ok {
+		if err := s.StartLoop(v); err != nil {
+			return nil, signalNone, lineSuffix(line, err)
+		}
+	}
 	var lastVal Value = Null
 	for idx := int64(0); ; idx++ {
 		v.loopTurn()

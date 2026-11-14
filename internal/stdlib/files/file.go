@@ -35,6 +35,7 @@ var (
 
 // Register dosya ve yol yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
+	v.AddForkHook(forkEndedReaders)
 	v.RegisterNoNamed(codes.FnReadLines, safe(codes.FnReadLines, linesBuiltin))
 	v.RegisterTypeCall(codes.TypePath, &interp.BuiltinVal{NoNamedArgs: true, Fn: safe(codes.TypePath, pathBuiltin)})
 	v.RegisterNoNamed(codes.FnListDir, safe(codes.FnListDir, listBuiltin))

@@ -1573,7 +1573,7 @@ const (
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
 	H7103 Code = 7103 // salt okunur bir dosya; TR salt okunur dosyaları zorla silmez (önce yazma iznini açın)
 	H7104 Code = 7104 // içinde salt okunur bir dosya var ({inner|q}); TR salt okunur dosyaları zorla silmez, hiçbir şey silinmedi (önce yazma iznini açın)
-	H7105 Code = 7105 // {line}. satır 64 MB'tan uzun; dosya satırlara bölünmemiş olabilir (bütün dosya için {fn}(...))
+	H7105 Code = 7105 // {line}. satır 64 MB'tan uzun; dosya satırlara bölünmemiş olabilir (bütün dosya için `{#read_file}({path|q})`)
 	H7106 Code = 7106 // Uyarı: {fn}: {count} bağlantı ya da özel dosya kopyalanmadı (ilki: {first|q}); TR bağlantıları izlemez
 	H7107 Code = 7107 // {fn}: {path|q} bir bağlantı; TR bağlantıları izlemez ve kopyalamaz (bağlantının gösterdiği yolu verin)
 	H7108 Code = 7108 // {fn}: {path|q} sıradan bir dosya ya da klasör değil (aygıt, boru ...); kopyalanmaz
@@ -1599,7 +1599,7 @@ const (
 	H7130 Code = 7130 // {type}({path}, {count} satır okundu)
 	H7131 Code = 7131 // {type}({path}, {count} satır okundu, kapatıldı)
 	H7132 Code = 7132 // {type}({path}, {count} satır okundu, bitti)
-	H7134 Code = 7134 // {type}: {path|q} okuyucusu {close}() ile kapatıldı; yeniden okumak için {open}(...) ile yeni bir okuyucu açın
+	H7134 Code = 7134 // {type}: {path|q} okuyucusu {reason, select, long {64 MB'ı aşan bir satırdan sonra kapandı} error {okuma hatasıyla kapandı} other {{@close}() ile kapatıldı}}; yeniden okumak için `{#read_lines}({path|q})` ile yeni bir okuyucu açın
 	H7135 Code = 7135 // {fn}: kalıp {pattern|q} geçersiz: {error}
 	H7136 Code = 7136 // {fn}: {path|q} bir dosya, klasör değil; listelenecek klasörü verin
 	H7137 Code = 7137 // Uyarı: {fn}: {count} alt klasör okunamadı ve atlandı (ilki: {first|q}: {reason})
@@ -1621,6 +1621,7 @@ const (
 	H7153 Code = 7153 // {fn}: {path|q} {place}; TR bunu silmez
 	H7154 Code = 7154 // {fn}: {path|q} içindeki {open|q} bu programda bir {type} ile okunuyor; önce okuyucuyu kapatın (x.{close}()) ya da dosyayı sonuna kadar okuyun
 	H7155 Code = 7155 // {@pretrained_gguf}: dosyada {key|q} {value} yazıyor; bağlam uzunluğu pozitif olmazsa modelin konumu olmaz: dosya hatalı, modeli yeniden indirin
+	H7156 Code = 7156 // {type}: {path|q} okuyucusu sonuna kadar okundu; yeniden okumak için `{#read_lines}({path|q})` ile yeni bir okuyucu açın
 	H7160 Code = 7160 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisinin tanımında olmayan {count, plural, one {anahtar} other {# anahtar}}: {keys}{file, select, empty {} other { ({file|q})}}; tanınmayan anahtar hesabı değiştirebilir, model okunmadan yüklenmez: modelin başka bir dönüştürmesini kullanın
 	H7161 Code = 7161 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {first|q} ile {second|q} aynı ayarın iki yazımı ama değerleri ayrı ({a} ve {b}); config.json'da yalnız birini bırakın
 	H7164 Code = 7164 // parçalayıcıda {tag|q} parçası yok: Llama 3'ün sohbet biçimi bir Llama 3 modelinin parçalayıcısını ister (24.5)

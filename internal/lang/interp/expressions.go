@@ -56,6 +56,11 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 		}
 	case Stream:
 		// Tembel kaynak (ör. sıralı okuyucu): biter ya da liste sınırına ulaşana kadar
+		if s, ok := it.(StreamLoopStarter); ok {
+			if err := s.StartLoop(v); err != nil {
+				return nil, lineSuffix(line, err)
+			}
+		}
 		for {
 			item, cont, err := it.Next(v)
 			if err != nil {

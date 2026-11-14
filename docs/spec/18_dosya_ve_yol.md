@@ -74,8 +74,8 @@ Karşılaştırma yolun üst klasörlerinde bağlantıları çözülmüş mutlak
 - *Test:* TR testi.
 
 **18.11** `TR_read_lines(yol)` dosyayı açar (olmayan dosya hemen hata verir) ve bir `TR_LineReader` döndürür. Okuyucu dosyayı **akışla** okur: bellek dosyanın boyutundan bağımsızdır.
-- `TR_for satır TR_in okuyucu { ... }` ile dolaşılır ya da `.TR_next()` ile sıradaki satır alınır (dosya bitince `TR_none`); ikisi aynı akışı tüketir.
-- Satır sonu (`\n`, `\r\n`) atılır, ilk satırın başındaki BOM atılır; dosya satır sonuyla bitiyorsa sonda boş bir satır üretilmez. Tek bir satır en çok 64 MB'tır, daha uzunu hatadır; bu hatadan sonra okuyucu kapanır, sonraki `.TR_next()` 18.15'teki gibi hatadır (`TR_none` vermez).
+- `TR_for satır TR_in okuyucu { ... }` ile dolaşılır ya da `.TR_next()` ile sıradaki satır alınır (dosya bitince bir kez `TR_none`, 18.15); ikisi aynı akışı tüketir.
+- Satır sonu (`\n`, `\r\n`) atılır, ilk satırın başındaki BOM atılır; dosya satır sonuyla bitiyorsa sonda boş bir satır üretilmez. Tek bir satır en çok 64 MB'tır, daha uzunu hatadır; bu hatadan ya da okuma hatasından sonra okuyucu kapanır, sonraki `.TR_next()` ve `TR_for` 18.15'teki gibi hatadır (`TR_none` vermez).
 - Geçerli UTF-8 olmayan satır, sıra ona gelince hatadır (13.1'in `TR_read_file` kuralı): ileti satırın numarasını söyler ve `TR_read_bytes`'ı önerir (`.gz` dosyasında öneri yok); bozuk bayt `TR_String`'e girmez. Bu hata yakalanırsa sonraki `.TR_next()` sıradaki satırı okur.
 - Aynı okuyucuyu dolaşan görevler her satırı bir kez alır.
 - Dosya sonuna gelince, `.TR_close()` ile (18.15) ya da program bitince kapanır.
@@ -108,7 +108,7 @@ TR_print(TR_list_dir(k).TR_length) # program bitince k silinir
 
 **18.15** `okuyucu.TR_close()` okuyucunun dosyasını sonuna kadar okumadan bırakır: dosya artık bu programda açık değildir, silinebilir ve taşınabilir.
 - Dosyayı bu çağrı kapattıysa `TR_true`, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) `TR_false` verir; iki kez kapatmak hata değildir.
-- Kapatılmış okuyucudan satır istemek (`.TR_next()`, `TR_for`) hatadır; ileti yeni bir okuyucu açmayı söyler.
+- Kapatılmış okuyucudan satır istemek (`.TR_next()`, `TR_for`) hatadır; ileti yeni bir okuyucu açmayı söyler. Sonuna kadar okunmuş okuyucudan yeniden satır istemek (`.TR_next()`, yeni `TR_for` ya da liste üreteci) de hatadır: dosya bitince bitişi almamış görev bir kez bitiş alır (`.TR_next()` bir kez `TR_none` verir, süren döngü biter); bitişi almış görevde ve o görevin bundan sonra `TR_async` ile açtığı görevde sonraki istek yeni bir okuyucu açmayı söyleyen bir hatadır.
 - Kapatma yorumlayıcı kilidini bırakır; başka bir görev o sırada diskten okuyorsa okuması bitince kapanır.
 - *Test:* TR testi.
 

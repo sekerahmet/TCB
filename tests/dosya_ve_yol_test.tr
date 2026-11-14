@@ -213,7 +213,11 @@ TR_test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
     TR_assert_equal(TR_LineReader, TR_Type(o))
     TR_assert_equal("1", o.TR_next())
     TR_assert_equal(["2", "3"], [s TR_for s TR_in o])
-    TR_assert_equal(TR_none, o.TR_next())
+    TR_assert_equal("H7156", TR_error_code { o.TR_next() })
+    TR_assert_equal("H7156", TR_error_code { [s TR_for s TR_in o] })
+    TR_var o2 = TR_read_lines(TR_Path(k, "b.txt"))
+    TR_assert_equal(["1", "2", "3", TR_none], [o2.TR_next(), o2.TR_next(), o2.TR_next(), o2.TR_next()])
+    TR_assert_equal("H7156", TR_error_code { o2.TR_next() })
     TR_assert_equal("H2132", TR_error_code { TR_read_lines(TR_Path(k, "olmayan.txt")) })
 }
 
@@ -241,6 +245,14 @@ TR_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
     TR_write_file(TR_Path(k, "duz.txt"), "sıkıştırılmamış")
     TR_copy(TR_Path(k, "duz.txt"), TR_Path(k, "duz.gz"))
     TR_assert_equal("H2040", TR_error_code { TR_read_file(TR_Path(k, "duz.gz")) })
+    # Yarıda kesilmiş .gz akışı okuma hatası verir ve okuyucuyu kapatır (sonraki istek H7134).
+    TR_var ham = TR_read_bytes(TR_Path(k, "t.csv.gz"))
+    TR_write_file(TR_Path(k, "yarim.bin"), ham[0..ham.TR_length - 4])
+    TR_move(TR_Path(k, "yarim.bin"), TR_Path(k, "yarim.gz"))
+    TR_var yo = TR_read_lines(TR_Path(k, "yarim.gz"))
+    TR_assert_equal("H2043", TR_error_code { [s TR_for s TR_in yo] })
+    TR_assert_equal("H7134", TR_error_code { yo.TR_next() })
+    TR_assert_equal("H7134", TR_error_code { [s TR_for s TR_in yo] })
 }
 
 TR_test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
@@ -276,11 +288,14 @@ TR_test "18.15 SatırOkuyucu.kapat dosyayı bırakır; kapatılmış okuyucu sat
     TR_assert_equal(1, TR_remove(TR_Path(k, "s.txt")))
     TR_assert_equal("H7134", TR_error_code { o.TR_next() })
     TR_assert_equal("H7134", TR_error_code { [s TR_for s TR_in o] })
-    # Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır.
+    # Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır; yeniden istemek H7156, kapatınca H7134 verir.
     TR_write_file(TR_Path(k, "t.txt"), "a")
     TR_var t = TR_read_lines(TR_Path(k, "t.txt"))
     TR_assert_equal(["a"], [s TR_for s TR_in t])
+    TR_assert_equal("H7156", TR_error_code { t.TR_next() })
+    TR_assert_equal("H7156", TR_error_code { [s TR_for s TR_in t] })
     TR_assert_equal(TR_false, t.TR_close())
+    TR_assert_equal("H7134", TR_error_code { t.TR_next() })
 }
 
 TR_test "18.16 değiştiren işler göreli yolu yalnız çalışma klasörüne göre çözer; başka klasördeki dosyaya dokunmaz" {

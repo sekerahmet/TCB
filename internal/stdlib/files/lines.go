@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -34,13 +35,52 @@ const readBuffer = 64 << 10
 // çağrılınca ya da program bitince (CloseAll) kapanır; erken bırakılan okuyucunun dosyası
 // çöp toplayıcı onu topladığında kapanır.
 type LineReader struct {
-	fpath   string // kullanıcının yazdığı
-	mu      sync.Mutex
-	r       io.ReadCloser
-	br      *bufio.Reader
-	counter int
-	done    bool // dosya kapandı (sonuna gelindi, okuma hatası ya da close())
-	closed  bool // kullanıcı close() ile kapattı: sonraki satır istemek hatadır
+	id          uint64
+	fpath       string // kullanıcının yazdığı
+	mu          sync.Mutex
+	r           io.ReadCloser
+	br          *bufio.Reader
+	counter     int
+	done        bool   // dosya kapandı (sonuna gelindi, okuma hatası ya da close())
+	closed      bool   // close(), satır sınırı ya da okuma hatasıyla kapandı: sonraki istek H7134
+	closeReason string // "close", "long" ya da "error"
+}
+
+var nextReaderID atomic.Uint64
+
+// endedReadersKey görev durumunda (VM.TaskValue) bu görevin bitişini aldığı satır okuyucularının
+// kimlik kümesinin anahtarıdır.
+type endedReadersKey struct{}
+
+// forkEndedReaders yeni göreve açıldığı görevin bitiş kümesini kopyalar (10.4, 18.15).
+func forkEndedReaders(parent, task *interp.VM) {
+	src, ok := parent.TaskValue(endedReadersKey{}).(map[uint64]struct{})
+	if !ok || len(src) == 0 {
+		return
+	}
+	dst := make(map[uint64]struct{}, len(src))
+	for id := range src {
+		dst[id] = struct{}{}
+	}
+	task.SetTaskValue(endedReadersKey{}, dst)
+}
+
+func hasTaskEnded(m *interp.VM, id uint64) bool {
+	set, ok := m.TaskValue(endedReadersKey{}).(map[uint64]struct{})
+	if !ok {
+		return false
+	}
+	_, ended := set[id]
+	return ended
+}
+
+func markTaskEnded(m *interp.VM, id uint64) {
+	set, ok := m.TaskValue(endedReadersKey{}).(map[uint64]struct{})
+	if !ok {
+		set = map[uint64]struct{}{}
+		m.SetTaskValue(endedReadersKey{}, set)
+	}
+	set[id] = struct{}{}
 }
 
 // openReaders açık satır okuyucularının dosyalarıdır (bağlantıları çözülmüş mutlak yollarıyla):
@@ -183,7 +223,7 @@ func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if err != nil {
 		return nil, interp.ReadError(fn, raw, messages.H2100, err, tried)
 	}
-	o := &LineReader{fpath: raw, r: r, br: bufio.NewReaderSize(r, readBuffer)}
+	o := &LineReader{id: nextReaderID.Add(1), fpath: raw, r: r, br: bufio.NewReaderSize(r, readBuffer)}
 	addEntry(r, realPath(resolved))
 	runtime.AddCleanup(o, closeEntry, io.Closer(r))
 	return o, nil
@@ -221,6 +261,9 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 			if len(args) != 0 {
 				return nil, messages.New(messages.H2014, codes.NameRef(codes.MemNext), len(args))
 			}
+			if err := o.StartLoop(m); err != nil {
+				return nil, err
+			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
 				return interp.Null, err
@@ -246,8 +289,7 @@ func (o *LineReader) closeMethod() *interp.BuiltinVal {
 			o.mu.Lock()
 			defer o.mu.Unlock()
 			didClose = !o.done
-			o.closed = true
-			o.close()
+			o.closeWithReason("close")
 		})
 		return interp.BoolToVal(didClose), nil
 	}}
@@ -256,8 +298,41 @@ func (o *LineReader) closeMethod() *interp.BuiltinVal {
 }
 
 // closedError kapatılmış okuyucudan satır istenince verilen hatadır.
-func (o *LineReader) closedError() error {
-	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.NameRef(codes.MemClose), codes.NameRef(codes.FnReadLines))
+func (o *LineReader) closedError(reason string) error {
+	return messages.New(messages.H7134, LineReaderType, o.fpath, reason)
+}
+
+// exhaustedError sonuna kadar okunmuş okuyucudan yeniden satır istenince verilen hatadır.
+func (o *LineReader) exhaustedError() error {
+	return messages.New(messages.H7156, LineReaderType, o.fpath)
+}
+
+func (o *LineReader) readerClosed(m *interp.VM) (bool, string) {
+	if o.mu.TryLock() {
+		closed, reason := o.closed, o.closeReason
+		o.mu.Unlock()
+		return closed, reason
+	}
+	var closed bool
+	var reason string
+	m.Blocking(func() {
+		o.mu.Lock()
+		closed, reason = o.closed, o.closeReason
+		o.mu.Unlock()
+	})
+	return closed, reason
+}
+
+// StartLoop yeni bir döngü ya da .TR_next() çağrısı başında kapatılmış okuyucuyu (H7134) ve
+// bitişi almış görevin yeniden okuma isteğini (H7156) reddeder.
+func (o *LineReader) StartLoop(m *interp.VM) error {
+	if closed, reason := o.readerClosed(m); closed {
+		return o.closedError(reason)
+	}
+	if hasTaskEnded(m, o.id) {
+		return o.exhaustedError()
+	}
+	return nil
 }
 
 // Next sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı
@@ -265,11 +340,12 @@ func (o *LineReader) closedError() error {
 func (o *LineReader) Next(m *interp.VM) (interp.Value, bool, error) {
 	if o.mu.TryLock() {
 		if o.done {
-			closed := o.closed
+			closed, reason := o.closed, o.closeReason
 			o.mu.Unlock()
 			if closed {
-				return nil, false, o.closedError()
+				return nil, false, o.closedError(reason)
 			}
+			markTaskEnded(m, o.id)
 			return nil, false, nil
 		}
 		line, ok := o.fromBuffer()
@@ -279,25 +355,26 @@ func (o *LineReader) Next(m *interp.VM) (interp.Value, bool, error) {
 			return o.lineValue(line, number)
 		}
 	}
-	var line string
+	var line, reason string
 	var last, closed bool
 	var number int
 	var err error
 	m.Blocking(func() {
 		o.mu.Lock()
 		defer o.mu.Unlock()
-		if closed = o.closed; !closed {
+		if closed, reason = o.closed, o.closeReason; !closed {
 			line, last, err = o.read()
 			number = o.counter
 		}
 	})
 	if closed {
-		return nil, false, o.closedError()
+		return nil, false, o.closedError(reason)
 	}
 	if err != nil {
 		return nil, false, turkish.FileError(interp.CallPrefix(codes.FnReadLines), o.fpath, messages.H2100, err)
 	}
 	if last {
+		markTaskEnded(m, o.id)
 		return nil, false, nil
 	}
 	return o.lineValue(line, number)
@@ -339,8 +416,8 @@ func (o *LineReader) read() (line string, last bool, err error) {
 		part, err := o.br.ReadSlice('\n')
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(long)+len(part) > lineLimit {
-				o.close()
-				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.NameRef(codes.FnReadFile))
+				o.closeWithReason("long")
+				return "", false, turkish.NewReason(messages.H7105, o.counter+1, o.fpath)
 			}
 			long = append(long, part...)
 			continue
@@ -363,7 +440,7 @@ func (o *LineReader) read() (line string, last bool, err error) {
 			return line, false, nil
 		}
 		if err != nil {
-			o.close()
+			o.closeWithReason("error")
 			return "", false, err
 		}
 		return o.lineText(part), false, nil
@@ -387,12 +464,21 @@ func (o *LineReader) close() {
 	closeEntry(o.r)
 }
 
+func (o *LineReader) closeWithReason(reason string) {
+	if !o.closed {
+		o.closed = true
+		o.closeReason = reason
+	}
+	o.close()
+}
+
 // bomBytes UTF-8 bayt sırası işaretidir (bazı programlar metin dosyalarının başına yazar).
 var bomBytes = []byte{0xEF, 0xBB, 0xBF}
 
 // Compile-time checks: the interpreter finds these hooks with type assertions, so a
 // renamed or changed method would otherwise drop the hook silently.
 var (
-	_ interp.PropertyGetter = (*LineReader)(nil)
-	_ interp.Stream         = (*LineReader)(nil)
+	_ interp.PropertyGetter    = (*LineReader)(nil)
+	_ interp.Stream            = (*LineReader)(nil)
+	_ interp.StreamLoopStarter = (*LineReader)(nil)
 )
