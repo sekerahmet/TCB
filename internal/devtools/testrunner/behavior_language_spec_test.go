@@ -492,6 +492,10 @@ func TestLanguageSpecTestsPass(t *testing.T) {
 	// Komut satırındaki gibi dilin kitaplığı bağlanır (11.6: aktar "tr/...").
 	interp.SetLibrary(lib.Files)
 	defer interp.SetLibrary(nil)
+	// Koşudan önce aynı süreç numarasıyla kalmış klasörler sayılmaz: Windows numarayı yeniden verir, eski bir koşunun
+	// artığı bu testi düşürüyordu (2026-11-14, metin kapısı: 2026-11-02–11-11'den 48 klasör).
+	pattern := filepath.Join(os.TempDir(), fmt.Sprintf("tr_%d_*", os.Getpid()))
+	before, _ := reporoot.GlobAll(pattern)
 	var out bytes.Buffer
 	summary, err := Run([]string{reporoot.Path("tests")}, &out)
 	// Komut satırındaki gibi (trlang test) açık kaynaklar kapanır ve geçici klasörler silinir:
@@ -503,7 +507,8 @@ func TestLanguageSpecTestsPass(t *testing.T) {
 	if !summary.OK() {
 		t.Fatalf("dil tanımı testleri kaldı: %s\n%s", summary, out.String())
 	}
-	left, _ := reporoot.GlobAll(filepath.Join(os.TempDir(), fmt.Sprintf("tr_%d_*", os.Getpid())))
+	all, _ := reporoot.GlobAll(pattern)
+	left := slices.DeleteFunc(all, func(p string) bool { return slices.Contains(before, p) })
 	if len(left) > 0 {
 		t.Errorf("testler bitince %d geçici klasör kaldı, ilki %s", len(left), left[0])
 	}
