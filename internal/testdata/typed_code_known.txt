@@ -26,8 +26,8 @@ lib/layers.tr:647 parametre TR_mem_loss.TR_arg_targets — hedefler iç içe lis
 lib/layers.tr:647 parametre TR_mem_loss.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
 lib/optimizers.tr:362 alan TR_type_MuonAndAdamW.TR_mem_muon — TR_Muon ya da TR_NorMuon tutar (normuon: seçeneği); ortak arayüz tanımlanmadı (7.8)
 lib/optimizers_test.tr:195 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
-lib/optimizers_test.tr:396 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
-lib/optimizers_test.tr:396 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
+lib/optimizers_test.tr:395 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
+lib/optimizers_test.tr:395 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
 lib/pretrained.tr:56 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
 lib/pretrained.tr:62 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
 lib/pretrained.tr:71 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük

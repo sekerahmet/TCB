@@ -46,9 +46,9 @@ func (c *Checker) checkFieldAssign(s *ast.AssignStatement, valType string) {
 	if op != "" {
 		valType = arithmeticType(op, declared, valType)
 	}
-	if declared != typeAny && valType != typeAny && !c.assignable(declared, valType, s.Value) {
-		c.addErrorAt(s, messages.New(messages.H1124, m.Property, c.typeArg(owner), c.typeArg(declared), c.typeArg(valType),
-			c.typeHint(declared, valType, s.Value, op == "/" || op == "" && dividesAtTop(s.Value))))
+	if declared != typeAny {
+		c.checkPlace(place{at: s, value: s.Value, expected: declared, actual: valType, assign: s, op: op, divides: op == "/" || op == "" && dividesAtTop(s.Value),
+			code: messages.H1124, args: []any{m.Property, c.typeArg(owner), c.typeArg(declared), argGiven, argHint}})
 	}
 }
 
@@ -74,8 +74,8 @@ func (c *Checker) checkConstruction(e *ast.CallExpression, name string, argTypes
 
 func (c *Checker) checkFieldValue(structName string, f ast.StructField, value ast.Expression, given string) {
 	declared := c.localType(normalizedType(f.Type))
-	if declared != typeAny && given != typeAny && !c.assignable(declared, given, value) {
-		c.addErrorAt(value, messages.New(messages.H1125, f.Name, c.typeArg(structName), c.typeArg(declared), c.typeArg(given),
-			c.typeHint(declared, given, value, dividesAtTop(value))))
+	if declared != typeAny {
+		c.checkPlace(place{at: value, value: value, expected: declared, actual: given, divides: dividesAtTop(value),
+			code: messages.H1125, args: []any{f.Name, c.typeArg(structName), c.typeArg(declared), argGiven, argHint}})
 	}
 }

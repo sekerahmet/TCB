@@ -370,6 +370,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}
 	}
 	prog := ms.Program
+	v.addRuntimeChecks(prog)
 
 	prev, prevChain := v.source, v.loading
 	v.source = modSource

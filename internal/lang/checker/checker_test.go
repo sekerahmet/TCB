@@ -126,7 +126,7 @@ func TestTypedVarCompatible(t *testing.T) {
 		"TR_var a: TR_List[TR_Int] = [1, 2]",
 		"TR_var a: TR_Range = 1..=5",
 		"TR_var a: TR_Float = 7 / 2",
-		"TR_var a: TR_Float = 2 ** -1",
+		"TR_var a: TR_Float = 2.0 ** -1",
 		"TR_var a: TR_Int = 7 % 2",
 		"TR_var a: TR_Int = (2 ** 3) * 4",
 		"TR_var a = 7 / 2",
@@ -304,7 +304,8 @@ func TestFunctionParamTypes(t *testing.T) {
 func TestFunctionReturnTypeInference(t *testing.T) {
 	def := "TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a + b }\n"
 	singleError(t, def+"TR_var s: TR_String = topla(1, 2)", messages.H1001, 2, `"TR_String"`, `"TR_Int"`)
-	noErrors(t, def+"TR_var s: TR_Float = topla(1, 2)")
+	// TR_Int tipli değer ondalık yere girmez; yalnız tam sayı yazımı girer (3.13).
+	singleError(t, def+"TR_var s: TR_Float = topla(1, 2)", messages.H1001, 2, `"TR_Float"`, `"TR_Int"`)
 
 	// Parametresiz fonksiyonların dönüş tipi de kullanılır
 	singleError(t, "TR_func ad() -> TR_String { TR_return \"Ali\" }\nTR_var n: TR_Int = ad()", messages.H1001, 2, `"TR_Int"`, `"TR_String"`)

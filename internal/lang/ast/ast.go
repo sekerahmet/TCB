@@ -26,7 +26,8 @@ type Expression interface {
 
 // Program is the root node of a whole source file.
 type Program struct {
-	Statements []Statement
+	Statements    []Statement
+	RuntimeChecks RuntimeChecks // the checker's run-time checks of untyped values (runtime_check.go)
 }
 
 func (p *Program) TokenLiteral() string {

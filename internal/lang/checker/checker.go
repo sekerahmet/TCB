@@ -124,6 +124,9 @@ type Checker struct {
 	expectedReturns map[*ast.FunctionLiteral]bool
 	// noneBranches dalları hepsi TR_none veren TR_if ve TR_match ifadeleridir (5.5, 5.6; block_values.go).
 	noneBranches noneBranches
+	// runtimeChecks tipi bilinmeyen değerin tipli yerdeki çalışma denetimleridir (1.2; runtime_checks.go).
+	runtimeChecks      ast.RuntimeChecks
+	runtimeStructNames map[string]bool
 }
 
 // New returns a checker with an empty global scope.
@@ -208,6 +211,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkValuePlaces(prog)
 	c.checkWrittenAny(prog)
 	sortByLine(c.errors[start:])
+	c.takeRuntimeChecks(prog)
 }
 
 // soleValue çoklu tanım ve atamanın tek sağ yanıdır (5.3); birden çok değer varsa nil (açma yok).
@@ -230,9 +234,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.expect(s.Type, s.Value)
 		inferred := c.inferExpression(s.Value)
 		c.recordValueType(s.Value, inferred)
-		if s.Type != nil && !c.assignable(declared, inferred, s.Value) {
-			c.addErrorAt(s, messages.New(messages.H1001,
-				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.typeHint(declared, inferred, s.Value, dividesAtTop(s.Value))))
+		if s.Type != nil {
+			c.checkPlace(place{at: s, value: s.Value, expected: declared, actual: inferred, divides: dividesAtTop(s.Value),
+				code: messages.H1001, args: []any{s.Name.Value, c.typeArg(declared), argGiven, argHint}})
 		}
 		// Yerel değişkenin tipi ilk değerinden çıkar ve değişmez (1.2, 3.13): sonraki atama ona uyar.
 		// Çıkarılamayan tip ve TR_none'la başlayan açıklamasız değişken TR_Any kalır (local_types.go).
@@ -502,9 +506,9 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		argType := c.itemType(arg) // TR_List(j)'nin tipi argümanın tipine bakar (json_values.go)
 		argTypes[i] = argType
 		c.noteCall(e, objType, i, "", arg, argType)
-		if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
-			c.addErrorAt(arg, messages.New(messages.H1004, ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType),
-				c.typeHint(info.ParamTypes[i], argType, arg, dividesAtTop(arg))))
+		if found && i < len(info.ParamTypes) {
+			c.checkPlace(place{at: arg, value: arg, expected: info.ParamTypes[i], actual: argType, divides: dividesAtTop(arg),
+				code: messages.H1004, args: []any{ident.Value, i + 1, c.typeArg(info.ParamTypes[i]), argGiven, argHint}})
 		}
 	}
 	namedTypes := make([]string, len(e.NamedArgs))
@@ -545,9 +549,9 @@ func (c *Checker) checkReturn(s *ast.ReturnStatement) {
 	}
 	valType := c.inferExpression(s.ReturnValue)
 	c.noteReturn(s, valType)
-	if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
-		c.addErrorAt(s, messages.New(messages.H1003,
-			c.typeArg(c.returnType), c.typeArg(valType), c.typeHint(c.returnType, valType, s.ReturnValue, dividesAtTop(s.ReturnValue))))
+	if c.returnType != "" {
+		c.checkPlace(place{at: s, value: s.ReturnValue, expected: c.returnType, actual: valType, divides: dividesAtTop(s.ReturnValue),
+			code: messages.H1003, args: []any{c.typeArg(c.returnType), argGiven, argHint}})
 	}
 }
 
@@ -570,9 +574,9 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 			c.expect(info.Written, s.Value)
-			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType, s.Value) {
-				c.addErrorAt(s, messages.New(messages.H1005,
-					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.typeHint(info.TypeName, valType, s.Value, op == "/" || op == "" && dividesAtTop(s.Value))))
+			if info.TypeName != typeAny && info.TypeName != typeNull {
+				c.checkPlace(place{at: s, value: s.Value, expected: info.TypeName, actual: valType, assign: s, op: op, divides: op == "/" || op == "" && dividesAtTop(s.Value),
+					code: messages.H1005, args: []any{ident.Value, c.typeArg(info.TypeName), argGiven, argHint}})
 			}
 		}
 	} else {
