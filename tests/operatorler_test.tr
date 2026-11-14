@@ -260,6 +260,18 @@ TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
     # Gösterilen hata üyeyi '?.' ile okumayı da önerir (TestNoneIndexError); yakalanan hatanın
     # değeri iletinin kodu ve değerleridir (8.3): üyenin adı ve okuma kolu.
     TR_try { TR_var ad = kişi.ad } TR_catch h { TR_assert_equal(`Message("H2744", "ad", "other")`, TR_String(h)) }
+    # Çağrıda kısa devre: alıcı TR_none ise argümanlar hesaplanmaz (TestSafeCallOnNoneSkipsTheCall).
+    TR_var sayaç: TR_List[TR_Int] = []
+    TR_func say() -> TR_Int {
+        sayaç.TR_append(1)
+        TR_return 0
+    }
+    TR_var l: TR_List[TR_Int]? = TR_none
+    TR_assert_equal(TR_none, l?.TR_get(say()))
+    TR_assert_equal(0, sayaç.TR_length)
+    l = [5]
+    TR_assert_equal(5, l?.TR_get(say()))
+    TR_assert_equal(1, sayaç.TR_length)
 }
 
 TR_test "4.9 fonksiyon çağrıyla, metot '.' ile zincirlenir; üyelik .TR_contains ile sorulur" {

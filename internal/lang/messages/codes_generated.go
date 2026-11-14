@@ -221,7 +221,7 @@ const (
 	H1171 Code = 1171 // ; uymayan ilk anahtar `{path}` sözlüğündeki {key|q}, tipi {given|q}
 	H1180 Code = 1180 // `{value}` isteğe bağlıdır ({given}) ve açılmadan {op, select, field {alanı kullanılıyor} member {üyesi kullanılıyor} other {indeksleniyor}} (3.5): değer `{#none}` olunca çalışırken hata verirdi{hint}
 	H1181 Code = 1181 // ; öğe her zaman varsa kabı doğrudan indeksleyin: `{direct}` (öğe yoksa çalışma hatası eksik öğeyi söyler)
-	H1182 Code = 1182 // ; alan ve indeks daraltılmaz: değeri yerel bir ada alıp `{#none}`'la sınayın: `{#var} {copy} = {value}; {#if} {copy} != {#none} {{ {stmt} }}`
+	H1182 Code = 1182 // ; alan ve indeks daraltılmaz: değeri yerel bir ada alıp {form, select, test {`{#none}`'la sınayın} other {`{#none}` iken çıkın (ad sonraki satırlarda da görünür)}}: `{#var} {copy} = {value}; {#if} {copy} {form, select, test {!=} other {==}} {#none} {{ {form, select, test {} other {{#throw} }}{inner} }}{after}`
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
@@ -411,7 +411,7 @@ const (
 	H2512 Code = 2512 // '{line}' okunamayan bir başlık: TR dosyasının ilk satırı tam olarak '{header}' olmalıdır (ilk satır '#!' ile başlıyorsa ikinci satırı)
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
 	H2514 Code = 2514 // sözdizimi hatası olan kaynağın görünümü yazılmaz: {error}
-	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse .{get}({index}) ?? varsayılan yazın
+	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse `.{#get}({index}) ?? varsayılan` yazın
 	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
@@ -537,7 +537,7 @@ const (
 	H2741 Code = 2741 // `{step}` kabın öğesini isteğe bağlı bir değer olarak verir: yerinde yazmanın hedefi yalnız adlardan, alanlardan ve kap öğelerinden geçer (5.4). Kabın öğesine yazmak için kabı indeksleyin: `{direct}` (öğe yoksa çalışırken hata verir).
 	H2742 Code = 2742 // `{#none}` {op, select, write {değerine indeksle yazılmaz} other {değeri indekslenmez}} (`{#NoneType}`): isteğe bağlı değer önce açılır (3.5); `{#none}`'la sınayın{op, select, write { ve sınamanın içinde yazın} other { ya da `??` ile bir varsayılan verin}}
 	H2743 Code = 2743 // `{step}` bir dilimdir ve yeni bir listedir (3.6): yazma bu kopyada kalır, `{base}` değişmezdi (5.4). `{base}` listesine yazmak için onu indeksleyin: `{source}` (yalnız `{index}` negatif değilken; negatif indeks dilimin sonundan sayar); kopyayı değiştirmek için ona ad verin: `{#var} {copy} = {step}; {write}`.
-	H2744 Code = 2744 // `{#none}` değerinin `{name}` {op, select, write {alanına yazılmaz} other {üyesi yoktur}} (`{#NoneType}`): isteğe bağlı değer önce açılır (3.5); `{#none}`'la sınayın{op, select, write { ve alana sınamanın içinde yazın} other {, `??` ile bir varsayılan verin ya da üyeyi `?.` ile okuyun}}
+	H2744 Code = 2744 // `{#none}` değerinin `{name}` {op, select, write {alanına yazılmaz} change {metodu yoktur} other {üyesi yoktur}} (`{#NoneType}`): isteğe bağlı değer önce açılır (3.5); `{#none}`'la sınayın{op, select, write { ve alana sınamanın içinde yazın} change { ve metodu sınamanın içinde çağırın} other {, `??` ile bir varsayılan verin ya da üyeyi `?.` ile okuyun}}
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
 	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
 	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}

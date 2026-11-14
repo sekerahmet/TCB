@@ -157,7 +157,7 @@ func TestCaughtRunTimeErrorTextIsItsMessage(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() -> TR_Int { TR_return [1][5] }\n")}})
 	out := runCoded(t, "TR_import \"tr/kitap\" TR_as k\nTR_try { [1].TR_join(TR_true) } TR_catch e { TR_print(e, e.TR_code) }\nTR_try { k.taşır() } TR_catch e { TR_print(e) }\n", nil)
 	want := "Message(\"H2423\", \"TR_join\", 1, \"String\", Message(\"H2424\", \"Bool\", \"true\"), \"\") H2423\n" +
-		"Message(\"H2515\", \"List\", 5, 1, \"TR_get\")\n"
+		"Message(\"H2515\", \"List\", 5, 1)\n"
 	if out != want {
 		t.Errorf("yakalanan hatanın metni:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -177,7 +177,7 @@ TR_func f() {
 }
 TR_try { f() } TR_catch e { TR_print(e, e.TR_suppressed) }
 `, nil)
-	want := "Message(\"H2132\")\nMessage(\"H2515\", \"List\", 5, 1, \"TR_get\") [Message(\"H2515\", \"List\", 7, 1, \"TR_get\")]\n"
+	want := "Message(\"H2132\")\nMessage(\"H2515\", \"List\", 5, 1) [Message(\"H2515\", \"List\", 7, 1)]\n"
 	if out != want {
 		t.Errorf("yakalanan hatalar:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -244,13 +244,17 @@ TR_input(TR_true)
 	}
 }
 
-// Kural: sınır dışı indeksin ipucu öğeyi okuyan metodu çağrı olarak yazar: nokta, metodun adı
-// iletinin dilinde ve indeks (.varsa_al(5), .get(5)) (4D denetimi, bulgu 5: nokta şablondadır,
-// silinince bu test kalır).
+// Kural (3.6, H2515): sınır dışı indeksin ipucu öğeyi okuyan metodu çağrı olarak yazar: nokta, metodun
+// kimliği ve indeks, her dilde aynı (`.TR_get(5) ?? varsayılan`); görünüm adı (varsa_al) kopyalanınca
+// koşmaz (H2541; TCB 2026-11-15, eskiden ad iletinin dilindeydi, 4D denetimi, bulgu 5). Öneri koşar.
 func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
 	_, err := New().Run(mustParseProgram(t, "[1][5]\n"))
-	if tr, en := messages.ErrorIn(err, "tr"), messages.ErrorIn(err, "en"); !strings.Contains(tr, ".varsa_al(5) ?? ") || !strings.Contains(en, ".get(5) ?? ") {
+	tr, en := messages.ErrorIn(err, "tr"), messages.ErrorIn(err, "en")
+	if !strings.Contains(tr, "`.TR_get(5) ?? varsayılan`") || !strings.Contains(en, "`.TR_get(5) ?? default`") || strings.Contains(tr, "varsa_al") {
 		t.Errorf("tr %q, en %q", tr, en)
+	}
+	if out, err := runSourced(t, "TR_var l = [10, 20, 30]\nTR_print(l.TR_get(5) ?? 0)"); err != nil || out != "0\n" {
+		t.Errorf("önerilen yazım: %q %v", out, err)
 	}
 }
 

@@ -147,7 +147,7 @@ TR_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce ç
     TR_assert(TR_read_file("data/tokenizer.json").TR_contains("model"))
     TR_assert_equal("H2132", TR_error_code { TR_read_file("data/olmayan_dosya.txt") })
     # Gösterilen ileti dosyanın yolunu söyler, işletim sisteminin kendi metni sızmaz
-    # (TestShownErrorKeepsTheMessageText); yakalanan hatanın değeri asıl nedendir (8.3).
+    # (TestCaughtErrorTypesAreErrorValues); yakalanan hatanın değeri asıl nedendir (8.3).
     TR_try { TR_read_file("data/olmayan_dosya.txt") } TR_catch h { TR_assert_equal(`Message("H2132")`, TR_String(h)) }
     TR_assert_equal("H2130", TR_error_code { TR_read_file("data") })
     TR_assert_equal("H2131", TR_error_code { TR_write_file("olmayan_klasör_tr/a.txt", "x") })
