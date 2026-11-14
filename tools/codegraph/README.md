@@ -105,8 +105,8 @@ stale, there is no incremental rebuild. The edit hook does not rebuild (codegrap
 which says on stderr when the graph is older than the tree ("warning: the graph is older than the tree (--no-rebuild);
 answers may miss new or changed code"; an older extractor counts too), and then shows no list, only the command that
 rebuilds (a stale graph's `run:` lines differed in 12 of 12 sample files; the hook had rebuilt 385 times in five days).
-The hook runs after the edit, so for a file whose content enters the stamp (`stampExts`, `go.mod`) the graph is stale and
-the hook gives only that command; the agent's own `tests-for` gives the `run:` lines (DENETİM 750 Ş1).
+The hook runs after the edit, so for a file whose content enters the stamp (`stampExts`, `go.mod`, `testdata/planning_questions.txt`) the
+graph is stale, unless the edit brings the content back to what the graph was built from, and the hook gives only that command; the agent's own `tests-for` gives the `run:` lines (DENETİM 750 Ş1).
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names
