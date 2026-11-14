@@ -158,6 +158,14 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		}
 		return lineSuffix(line, container.SetIndex(idx, finalVal))
 	}
+	return indexWriteError(left, line)
+}
+
+// indexWriteError indeksle yazılamayan değerin hatasıdır: TR_none'da H2742 (3.5), öbüründe H2403.
+func indexWriteError(left Value, line int) error {
+	if left.Type() == ValNull {
+		return messages.At(line, 0, messages.New(messages.H2742, "write"))
+	}
 	return messages.At(line, 0, messages.New(messages.H2403, left.Type()))
 }
 
@@ -194,6 +202,9 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 			}
 		}
 		return lineSuffix(line, inst.SetMember(u.codeVal, prop, finalVal))
+	}
+	if obj.Type() == ValNull {
+		return messages.At(line, 0, messages.New(messages.H2744, u.written(prop), "write")) // 3.5
 	}
 	return messages.At(line, 0, messages.New(messages.H2407, obj.Type(), prop))
 }

@@ -247,7 +247,9 @@ TR_struct _Blok {
     }
     TR_func _çöz(x: TR_Tensor, önbellek: TR_KVCache, katman: TR_Int, kv: TR_List[TR_Tensor]) -> TR_Tensor {
         TR_var y = x + TR_self.dikkat._nedensel(TR_self.dikkat_normu._ileri(x), önbellek, katman)
-        TR_var z = y + TR_self.çapraz._çapraz(TR_self.çapraz_normu._ileri(y), kv)
+        TR_var ç = TR_self.çapraz
+        TR_var çn = TR_self.çapraz_normu
+        TR_var z = y + ç._çapraz(çn._ileri(y), kv)
         TR_return z + TR_self._mlp(z)
     }
 }
@@ -286,7 +288,12 @@ TR_struct _Çözücü {
     norm: _Norm
     # _başlat bir pencerenin belleğini kodlayıcı çıktısından kurar.
     TR_func _başlat(kodlanmış: TR_Tensor) -> _Bellek {
-        TR_return _Bellek(önbellek: TR_KVCache(TR_self.bloklar.TR_length, TR_kind: "büyüyen"), çapraz: [blok.çapraz._anahtarlar(kodlanmış) TR_for blok TR_in TR_self.bloklar])
+        TR_var çapraz: TR_List[TR_List[TR_Tensor]] = []
+        TR_for blok TR_in TR_self.bloklar {
+            TR_var ç = blok.çapraz
+            çapraz.TR_append(ç._anahtarlar(kodlanmış))
+        }
+        TR_return _Bellek(önbellek: TR_KVCache(TR_self.bloklar.TR_length, TR_kind: "büyüyen"), çapraz: çapraz)
     }
     # _ileri parçaları önbelleğin konumundan sürdürür ve [1, parça, dağarcık] logit verir.
     TR_func _ileri(parçalar: TR_List[TR_Int], bellek: _Bellek) -> TR_Tensor {

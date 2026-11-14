@@ -191,3 +191,36 @@ func TestCoalesceSuggestion(t *testing.T) {
 		}
 	}
 }
+
+// Kural (3.5, KB1): ad olmayan açılmamış T?'nin indeksi (okuma, yazma), alanı (okuma, yazma) ve
+// üyesi (özellik, metot çağrısının alıcısı) H1180'dir; iletinin select'i hangisi olduğunu söyler
+// (index, field, member). Ad (4b), '?.' ve '??' hata değildir. 5.4'ün raporladığı adımda H1180
+// verilmez: tek ileti H2741'dir.
+func TestUnopenedOptionalIndex(t *testing.T) {
+	const pre = "TR_struct N { x: TR_Int = 0 }\nTR_struct K {\n    n: N? = TR_none\n    l: TR_List[TR_Int]? = TR_none\n}\n" +
+		"TR_var d: TR_Dict[TR_String, TR_List[TR_Int]] = {\"a\": [1]}\nTR_var lf: TR_List[TR_List[TR_Int]] = [[1]]\n" +
+		"TR_var ll: TR_List[TR_List[TR_Int]?] = [[1], TR_none]\nTR_var k = K()\n"
+	cases := []struct{ name, src, op string }{
+		{"okuma", "TR_print(d.TR_get(\"a\")[0])", "it is indexed"},
+		{"yazma", "k.l[0] = 5", "it is indexed"},
+		{"bileşik yazma", "k.l[0] += 5", "it is indexed"},
+		{"aralık", "TR_print(k.l[0..1])", "it is indexed"},
+		{"ilk", "TR_print(lf.TR_first[0])", "it is indexed"},
+		{"isteğe bağlı öğe", "TR_print(ll[1][0])", "it is indexed"},
+		{"alan", "TR_print(k.n.x)", "its field is used"},
+		{"alana yazma", "k.n.x = 3", "its field is used"},
+		{"özellik", "TR_print(d.TR_get(\"a\").TR_length)", "its member is used"},
+		{"metot", "TR_print(k.l.TR_contains(1))", "its member is used"},
+		{"yerinde değiştirici", "k.l.TR_append(1)", "its member is used"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := pre + tc.src
+			singleErrorIn(t, "en", src, messages.H1180, strings.Count(src, "\n")+1, tc.op, "without being opened")
+		})
+	}
+	noErrors(t, pre+"TR_var o = d.TR_get(\"a\")\nTR_print(o[0])\nTR_print(o.TR_length)\nTR_var n = k.n\nTR_print(n.x)\n"+
+		"TR_print(d.TR_get(\"a\")?.TR_length)\nTR_print(k.n?.x)\nTR_print((d.TR_get(\"a\") ?? [0])[0])\nTR_print(d[\"a\"][0])")
+	singleError(t, pre+"d.TR_get(\"a\")[0] = 5", messages.H2741, 10) // 5.4'ün önerisi ikisini birden düzeltir
+	singleError(t, pre+"d.TR_get(\"a\").TR_append(3)", messages.H2741, 10)
+}

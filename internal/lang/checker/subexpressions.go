@@ -62,10 +62,12 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 	case *ast.IndexExpression:
 		c.checkModuleIndex(e) // modül değeri köşeli ayraçla okunmaz ve atanmaz (11.2)
 		left, index := c.itemType(e.Left), c.itemType(e.Index)
-		c.checkDictKey(e.Index, left, index) // 3.7 (dict_keys.go)
+		c.noteUnopened(unopenedUse{e, e.Left, left, "index"}) // açılmamış değerin indeksi (3.5)
+		c.checkDictKey(e.Index, left, index)                  // 3.7 (dict_keys.go)
 		return indexType(left, index), true
 	case *ast.MemberExpression:
 		obj := c.itemType(e.Object) // alan hedefinin zinciri nesnenin tipine bakar (5.4, copy_writes.go)
+		c.noteMember(e, e, obj, "") // açılmamış değerin alanı ya da üyesi (3.5)
 		if t := c.variantType(e, false); t != "" {
 			return t, true // durumlu tipin alansız durumu: C.Yok (7.7)
 		}

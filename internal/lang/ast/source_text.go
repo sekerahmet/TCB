@@ -133,11 +133,12 @@ func StatementWith(lines []string, first, last, part Node, with string) (string,
 }
 
 // SliceSourceIndex dilimin (base[a..b]) üstündeki i indeksinin kaynaktaki karşılığıdır (3.6, H2743):
-// a + i; a yazılmamışsa i, ikisi de sabitse toplamları. i negatif olmamalıdır (çağıran bilir).
+// a + i, ikisi de sabitse toplamları. Aralığın başı hep yazılıdır (`l[..2]` sözdizimi hatası). i
+// negatif olmamalıdır (çağıran bilir).
 func SliceSourceIndex(lines []string, r *RangeExpression, i Expression) (string, bool) {
 	it, ok := SourceText(lines, i)
-	if !ok || r.Start == nil {
-		return it, ok
+	if !ok {
+		return "", false
 	}
 	st, ok := SourceText(lines, r.Start)
 	if !ok {
@@ -155,6 +156,17 @@ func SliceSourceIndex(lines []string, r *RangeExpression, i Expression) (string,
 		it = "(" + it + ")"
 	}
 	return st + " + " + it, true
+}
+
+// FreshName önerinin yeni adıdır (3.5, H1182): base, dosyada geçen sözcüklerle ya da kapsamdaki
+// adlarla (taken) çakışırsa base2, base3, ...
+func FreshName(lines []string, base string, taken func(string) bool) string {
+	used := wordsIn(lines)
+	name := base
+	for n := 2; used[name] || taken(name); n++ {
+		name = base + strconv.Itoa(n)
+	}
+	return name
 }
 
 // wordsIn dosyada geçen sözcüklerdir (harf, rakam ve '_' dizileri): önerinin adları onlarla çakışmaz.

@@ -115,6 +115,20 @@ TR_test "3.5 yok: boş değer" {
     hicbir_sey()
 }
 
+TR_test "3.5 ad olmayan açılmamış değer indekslenmez, üyesi kullanılmaz: önce açılır (yerel ad, ?., ??); TR_none çalışırken H2742 ve H2744 verir" {
+    TR_var d: TR_Dict[TR_String, TR_List[TR_Int]] = {"a": [1, 2]}
+    TR_var c = d.TR_get("a")
+    TR_if c != TR_none { TR_assert_equal(2, c[1]) }
+    TR_assert_equal(2, d["a"][1])
+    TR_assert_equal(2, d.TR_get("a")?.TR_length)
+    TR_assert_equal(0, (d.TR_get("b") ?? [0])[0])
+    TR_var eksik = d.TR_get("b")
+    TR_assert_equal("H2742", TR_error_code { eksik[0] })
+    TR_assert_equal("H2742", TR_error_code { eksik[0] = 1 })
+    TR_assert_equal("H2744", TR_error_code { eksik.TR_length })
+    TR_assert_equal("H2744", TR_error_code { eksik.TR_append(1) })
+}
+
 TR_test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatadır, varsa_al yok verir" {
     TR_var l = [1, "iki", 3.0]
     TR_assert_equal(3, l.TR_length)

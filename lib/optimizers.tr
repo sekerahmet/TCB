@@ -404,16 +404,18 @@ TR_struct TR_MuonAndAdamW {
             TR_self.TR_adamw_no_decay.TR_lr = TR_self.TR_adamw_lr * c
             TR_self.TR_adamw_no_decay.TR_step()
         }
-        TR_if TR_self.TR_row_rms != TR_none {
-            TR_self.TR_row_rms.TR_lr = TR_self.TR_sparse_lr * c
-            TR_self.TR_row_rms.TR_step()
+        TR_var satır = TR_self.TR_row_rms
+        TR_if satır != TR_none {
+            satır.TR_lr = TR_self.TR_sparse_lr * c
+            satır.TR_step()
         }
     }
     TR_func TR_zero_grad() {
         TR_self.TR_muon.TR_zero_grad()
         TR_self.TR_adamw.TR_zero_grad()
         TR_if TR_self.TR_adamw_no_decay != TR_none { TR_self.TR_adamw_no_decay.TR_zero_grad() }
-        TR_if TR_self.TR_row_rms != TR_none { TR_self.TR_row_rms.TR_zero_grad() }
+        TR_var satır = TR_self.TR_row_rms
+        TR_if satır != TR_none { satır.TR_zero_grad() }
     }
 }
 

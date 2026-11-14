@@ -37,9 +37,10 @@ TR_struct TR_Linear {
         TR_self.TR_bias = TR_if TR_use_bias { TR_Tensor(TR_zeros([TR_out_features]), TR_requires_grad: TR_true) } TR_else { TR_none }
     }
     TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {
-        TR_if TR_self.TR_bias == TR_none { TR_return TR_x @ TR_self.TR_weight }
+        TR_var sapma = TR_self.TR_bias
+        TR_if sapma == TR_none { TR_return TR_x @ TR_self.TR_weight }
         TR_var y = TR_x @ TR_self.TR_weight
-        TR_return y + TR_self.TR_bias.TR_to_dtype(y.TR_dtype)
+        TR_return y + sapma.TR_to_dtype(y.TR_dtype)
     }
 }
 
@@ -170,22 +171,27 @@ TR_struct TR_CausalAttention {
         TR_var T = TR_x.TR_shape[1]
         TR_var k_ham = TR_none
         TR_var v_ham = TR_none
-        TR_if TR_self.TR_kv_proj != TR_none {
-            TR_var kv = TR_self.TR_kv_proj.TR_forward(TR_x).TR_split(2, TR_dim: -1) # [K | V]
+        TR_var kvp = TR_self.TR_kv_proj
+        TR_if kvp != TR_none {
+            TR_var kv = kvp.TR_forward(TR_x).TR_split(2, TR_dim: -1) # [K | V]
             k_ham = kv[0]
             v_ham = kv[1]
         } TR_else {
-            k_ham = TR_self.TR_k_proj.TR_forward(TR_x)
-            v_ham = TR_self.TR_v_proj.TR_forward(TR_x)
+            TR_var kp = TR_self.TR_k_proj
+            TR_var vp = TR_self.TR_v_proj
+            k_ham = kp.TR_forward(TR_x)
+            v_ham = vp.TR_forward(TR_x)
         }
         # [B, T, bakış · bakış_boyutu] → [B, T, bakış, bakış_boyutu]: dikkat'in düzeni (dil tanımı 15.24),
         # bakışlar şekillendirmeyle ayrılır, kopya yoktur.
         TR_var q = TR_self.TR_q_proj.TR_forward(TR_x).TR_reshape([B, T, TR_self.TR_num_heads, TR_self.TR_head_dim])
         TR_var k = k_ham.TR_reshape([B, T, TR_self.TR_num_kv_heads, TR_self.TR_head_dim])
         TR_var v = v_ham.TR_reshape([B, T, TR_self.TR_num_kv_heads, TR_self.TR_head_dim])
-        TR_if TR_self.TR_q_norm != TR_none {
-            q = TR_self.TR_q_norm.TR_forward(q)
-            k = TR_self.TR_k_norm.TR_forward(k)
+        TR_var qn = TR_self.TR_q_norm
+        TR_if qn != TR_none {
+            TR_var kn = TR_self.TR_k_norm
+            q = qn.TR_forward(q)
+            k = kn.TR_forward(k)
         }
         q = TR_apply_rotary_fused(q, TR_cos_table, TR_sin_table)
         k = TR_apply_rotary_fused(k, TR_cos_table, TR_sin_table)
@@ -254,12 +260,15 @@ TR_struct TR_SwiGLU {
         TR_self.TR_down_proj = TR_Linear(TR_intermediate_dim, TR_embed_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_output_init_std, TR_seed: TR_seed + 2, TR_dtype: TR_weight_dtype)
     }
     TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {
-        TR_if TR_self.TR_gate_up_proj != TR_none {
-            TR_var gu = TR_self.TR_gate_up_proj.TR_forward(TR_x)
+        TR_var gup = TR_self.TR_gate_up_proj
+        TR_if gup != TR_none {
+            TR_var gu = gup.TR_forward(TR_x)
             TR_return TR_self.TR_down_proj.TR_forward(TR_if TR_self._gelu { _geglu_birleşik_kaynaşık(gu) } TR_else { TR_swiglu_merged_gate_fused(gu) })
         }
-        TR_var g = TR_self.TR_gate_proj.TR_forward(TR_x)
-        TR_var u = TR_self.TR_up_proj.TR_forward(TR_x)
+        TR_var gp = TR_self.TR_gate_proj
+        TR_var upp = TR_self.TR_up_proj
+        TR_var g = gp.TR_forward(TR_x)
+        TR_var u = upp.TR_forward(TR_x)
         TR_return TR_self.TR_down_proj.TR_forward(TR_if TR_self._gelu { _geglu_kapısı_kaynaşık(g, u) } TR_else { TR_swiglu_gate_fused(g, u) })
     }
 }
@@ -363,12 +372,15 @@ TR_struct TR_TransformerBlock {
     TR_func TR_forward(TR_x: TR_Tensor, TR_cos_table: TR_Tensor, TR_sin_table: TR_Tensor, TR_token_ids = TR_none, TR_ple_context: TR_Tensor? = TR_none, TR_cache: TR_KVCache? = TR_none, TR_layer_idx: TR_Int = 0) -> TR_Tensor {
         # Norm çıktılarını yalnızca dikkatin ve ileri beslemenin ilk çarpımları okur.
         TR_var a = TR_self.TR_attention.TR_forward(TR_self.TR_input_norm.TR_forward(TR_x, TR_output_dtype: TR_compute_dtype()), TR_cos_table, TR_sin_table, TR_cache: TR_cache, TR_layer_idx: TR_layer_idx)
-        TR_if TR_self.TR_attention_output_norm != TR_none { a = TR_self.TR_attention_output_norm.TR_forward(a) }
+        TR_var an = TR_self.TR_attention_output_norm
+        TR_if an != TR_none { a = an.TR_forward(a) }
         TR_var h = TR_x + a
         TR_var f = TR_self.TR_feed_forward.TR_forward(TR_self.TR_post_attention_norm.TR_forward(h, TR_output_dtype: TR_compute_dtype()))
-        TR_if TR_self.TR_feed_forward_output_norm != TR_none { f = TR_self.TR_feed_forward_output_norm.TR_forward(f) }
+        TR_var fon = TR_self.TR_feed_forward_output_norm
+        TR_if fon != TR_none { f = fon.TR_forward(f) }
         h = h + f
-        TR_if TR_self.TR_ple != TR_none { TR_return TR_self.TR_ple.TR_forward(h, TR_token_ids, TR_ple_context) }
+        TR_var ple = TR_self.TR_ple
+        TR_if ple != TR_none { TR_return ple.TR_forward(h, TR_token_ids, TR_ple_context) }
         TR_return h
     }
 }
@@ -463,23 +475,27 @@ TR_struct TR_KVCache {
     TR_func TR_append_buffer(TR_buffers: TR_List[TR_Tensor?], TR_layer_idx: TR_Int, TR_new_chunk: TR_Tensor, TR_end: TR_Int) -> TR_Tensor {
         TR_if TR_self.TR_kind == "büyüyen" {
             TR_var tampon = TR_new_chunk
-            TR_if TR_buffers[TR_layer_idx] != TR_none {
-                tampon = TR_concat([TR_buffers[TR_layer_idx].TR_slice(1, 0, TR_self.TR_position), TR_new_chunk], TR_dim: 1)
+            TR_var önceki = TR_buffers[TR_layer_idx]
+            TR_if önceki != TR_none {
+                tampon = TR_concat([önceki.TR_slice(1, 0, TR_self.TR_position), TR_new_chunk], TR_dim: 1)
             }
             TR_buffers[TR_layer_idx] = tampon
             TR_return tampon
         }
-        TR_if TR_self.TR_step_position != TR_none {
+        TR_var konum = TR_self.TR_step_position
+        TR_if konum != TR_none {
             TR_var tampon = TR_buffers[TR_layer_idx]
             TR_if tampon == TR_none { TR_throw TR_Message("H6913", TR_layer_idx) }
-            TR_write_slice(tampon, TR_new_chunk, TR_dim: 1, TR_start: TR_self.TR_step_position[0])
+            TR_write_slice(tampon, TR_new_chunk, TR_dim: 1, TR_start: konum[0])
             TR_return tampon
         }
-        TR_if TR_buffers[TR_layer_idx] == TR_none {
-            TR_buffers[TR_layer_idx] = TR_zeros([TR_new_chunk.TR_shape[0], TR_self.TR_capacity, TR_new_chunk.TR_shape[2], TR_new_chunk.TR_shape[3]], TR_dtype: TR_new_chunk.TR_dtype).TR_to_device(TR_new_chunk.TR_device)
+        TR_var dolu = TR_buffers[TR_layer_idx]
+        TR_if dolu == TR_none {
+            dolu = TR_zeros([TR_new_chunk.TR_shape[0], TR_self.TR_capacity, TR_new_chunk.TR_shape[2], TR_new_chunk.TR_shape[3]], TR_dtype: TR_new_chunk.TR_dtype).TR_to_device(TR_new_chunk.TR_device)
+            TR_buffers[TR_layer_idx] = dolu
         }
-        TR_buffers[TR_layer_idx].TR_slice(1, TR_self.TR_position, TR_end)[0..TR_new_chunk.TR_shape[0]] = TR_new_chunk
-        TR_return TR_buffers[TR_layer_idx].TR_slice(1, 0, TR_end)
+        dolu.TR_slice(1, TR_self.TR_position, TR_end)[0..TR_new_chunk.TR_shape[0]] = TR_new_chunk
+        TR_return dolu.TR_slice(1, 0, TR_end)
     }
     # ilerle: bir ileri hesabın T parçası bütün katmanlara yazıldıktan sonra konumu ilerletir.
     TR_func TR_advance(TR_T: TR_Int) { TR_self.TR_position = TR_self.TR_position + TR_T }
@@ -570,7 +586,8 @@ TR_struct TR_GPT {
     TR_func TR_embed(TR_token_ids) -> (TR_Tensor, TR_List[TR_Tensor]?) {
         TR_var x = TR_self.TR_embedding.TR_forward(TR_token_ids)
         TR_if TR_self._gömme_ölçeği != TR_none { x = x * TR_self._gömme_ölçeği }
-        TR_return x, TR_if TR_self.TR_ple_context == TR_none { TR_none } TR_else { TR_self.TR_ple_context.TR_forward(x) }
+        TR_var pc = TR_self.TR_ple_context
+        TR_return x, TR_if pc == TR_none { TR_none } TR_else { pc.TR_forward(x) }
     }
     # blokları_işle: x'i bloklardan sırayla geçirir (gizli_durum ve tek_adım ortak gövdesi).
     # Pencereli blok, model yerel tablo taşıyorsa (Gemma 3) onun bu çağrının konumlarına düşen satırlarını okur.
@@ -638,18 +655,20 @@ TR_struct TR_GPT {
     }
     # logit: gizli durumu ([B, T, boyut]) sözlüğe çevirir (paylaşımlı gömmede tablonun devriği).
     TR_func TR_logits(TR_x: TR_Tensor) -> TR_Tensor {
-        TR_if TR_self.TR_logit_layer == TR_none { TR_return TR_x @ TR_self.TR_embedding.TR_table.TR_transpose() }
-        TR_return TR_self.TR_logit_layer.TR_forward(TR_x)
+        TR_var çıkış = TR_self.TR_logit_layer
+        TR_if çıkış == TR_none { TR_return TR_x @ TR_self.TR_embedding.TR_table.TR_transpose() }
+        TR_return çıkış.TR_forward(TR_x)
     }
     # kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi. Çıkış sapmasızsa
     # (paylaşımlı gömme ya da sapmasız Doğrusal) logitler bütün olarak tutulmaz:
     # doğrusal_çapraz_entropi aynı kaybı dilim dilim hesaplar (dil tanımı 15.25).
     TR_func TR_loss(TR_token_ids, TR_targets) -> TR_Tensor {
-        TR_if TR_self.TR_logit_layer == TR_none {
+        TR_var çıkış = TR_self.TR_logit_layer
+        TR_if çıkış == TR_none {
             TR_return TR_linear_cross_entropy(TR_self.TR_hidden_states(TR_token_ids), TR_self.TR_embedding.TR_table.TR_transpose(), TR_targets)
         }
-        TR_if TR_self.TR_logit_layer.TR_bias == TR_none {
-            TR_return TR_linear_cross_entropy(TR_self.TR_hidden_states(TR_token_ids), TR_self.TR_logit_layer.TR_weight, TR_targets)
+        TR_if çıkış.TR_bias == TR_none {
+            TR_return TR_linear_cross_entropy(TR_self.TR_hidden_states(TR_token_ids), çıkış.TR_weight, TR_targets)
         }
         TR_return TR_cross_entropy(TR_self.TR_forward(TR_token_ids), TR_targets)
     }
