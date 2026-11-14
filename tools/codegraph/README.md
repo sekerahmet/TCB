@@ -339,7 +339,10 @@ line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows t
   dictionary files in the past and are gone today, with the commit that removed them and the one
   that added them, and codes that were defined again after a deletion (a bug: numbers are never
   reused). `--retired-json` prints the `retired.json` content (`internal/lang/messages/retired.json`
-  was produced by it). Since 2026-10-21 (the language is a draft) removed name codes are deleted from the
+  was produced by it). `TestEveryDeletedMessageCodeIsRetired` keeps that file complete with the repository's own
+  history: every deleted message code that is not live today is in it, no code is defined again after a deletion
+  but the four reused before the rule (H2487, H3088, H5291, H8604), and a deletion not yet committed (in `HEAD`, not
+  in the working tree) is in it too. Since 2026-10-21 (the language is a draft) removed name codes are deleted from the
   dictionary, so the `names` list shows them too. History
   before a file was renamed is not visible to it.
 - Renames: every row of a mapping document (`identityMaps`: `docs/code_identities.md`) whose first two cells are

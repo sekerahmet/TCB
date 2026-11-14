@@ -19,13 +19,29 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H0152": {
+  "commit": "5259dddc",
+  "reason": "deleted: messages: fragment test sees variables and + joins; leftover fragments become full templates"
+ },
  "H0157": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H0163": {
+  "commit": "020a98a7",
+  "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
+ },
  "H1011": {
   "commit": "0f969d3",
   "reason": "deleted: checker: an unused value without a call is the error H1017 (2.8)"
+ },
+ "H1100": {
+  "commit": "020a98a7",
+  "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
+ },
+ "H1102": {
+  "commit": "020a98a7",
+  "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
  },
  "H1116": {
   "commit": "claude/d1-dilim1-bf7baf",
@@ -103,6 +119,10 @@
   "commit": "2eab12b",
   "reason": "deleted: messages: case suffixes move from Go into templates"
  },
+ "H2488": {
+  "commit": "5259dddc",
+  "reason": "deleted: messages: fragment test sees variables and + joins; leftover fragments become full templates"
+ },
  "H2490": {
   "commit": "306d121",
   "reason": "deleted: interp: arguments a program never reads are a usage error before the run (1.4), no warning at the end"
@@ -135,6 +155,10 @@
   "commit": "claude/serene-pascal-rbkqwf",
   "reason": "deleted: source: the encoder from a view to code is gone (17.7); no conversion to check for loss"
  },
+ "H2518": {
+  "commit": "020a98a7",
+  "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
+ },
  "H2521": {
   "commit": "claude/katman2-deger-12bdf3",
   "reason": "deleted: interp: a JSON integer beyond Int is a Float (3.7a), not an error"
@@ -142,6 +166,10 @@
  "H2523": {
   "commit": "0f969d3",
   "reason": "deleted: source: the header '# TR 4' carries no language (2.1)"
+ },
+ "H2527": {
+  "commit": "b8c2db66",
+  "reason": "deleted: codes, cmd/tr, debugger: reject display-language command, option and environment names and suggest identities (17.9)"
  },
  "H2542": {
   "commit": "claude/serene-pascal-rbkqwf",
@@ -211,6 +239,10 @@
   "commit": "b3a5b22",
   "reason": "deleted: tokenizer: load errors keep the core's message instead of editing its text"
  },
+ "H5616": {
+  "commit": "5259dddc",
+  "reason": "deleted: messages: fragment test sees variables and + joins; leftover fragments become full templates"
+ },
  "H5635": {
   "commit": "085e86f",
   "reason": "deleted: tokenizer, messages: a non-integer id names its list by row number and H5639's template words it"
@@ -270,6 +302,10 @@
  "H6817": {
   "commit": "d2a1a753",
   "reason": "deleted: interp, ml: special numbers are value names TR_val_inf/TR_val_nan, one name for numbers and tensors"
+ },
+ "H6954": {
+  "commit": "32b3e9db",
+  "reason": "deleted: ml, gpu: the element kind comes from the data (15.2)"
  },
  "H7002": {
   "commit": "e5a76ed",
@@ -339,9 +375,17 @@
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
  },
+ "H8040": {
+  "commit": "020a98a7",
+  "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
+ },
  "H8190": {
   "commit": "3080380",
   "reason": "deleted: messages: lexer, parser, checker and hint use message codes (H0001-H1106)"
+ },
+ "H8501": {
+  "commit": "5259dddc",
+  "reason": "deleted: messages: fragment test sees variables and + joins; leftover fragments become full templates"
  },
  "H8506": {
   "commit": "claude/kolA-test-komutu",
@@ -350,6 +394,10 @@
  "H8600": {
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H8609": {
+  "commit": "020a98a7",
+  "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
  },
  "H8620": {
   "commit": "claude/serene-pascal-rbkqwf",
@@ -374,6 +422,10 @@
  "H8681": {
   "commit": "claude/serene-pascal-rbkqwf",
   "reason": "deleted: cmd/tr: tr encode is gone (17.7)"
+ },
+ "H8690": {
+  "commit": "e7c9d173",
+  "reason": "deleted: cmd/tr: options are name codes; messages take command names as values"
  },
  "H8703": {
   "commit": "claude/serene-pascal-rbkqwf",
