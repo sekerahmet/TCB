@@ -23,7 +23,9 @@ const schemaVersion = 1
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
 // 101: yolun .TR_modified_ns ve .TR_disk_available_bytes'ı da diske soran özelliktir (18.3; pathProps).
-const extractorRevision = 101
+// 102: strings.Replace, ReplaceAll ve (*Replacer).Replace TR metnini geçirir; .tr dosyasına yazılan metnin ad kodu
+// kenarı Via "trlang" taşır (codegraph dilim 6, D6-4 (a)).
+const extractorRevision = 102
 
 // Düğüm türleri.
 const (
@@ -128,7 +130,8 @@ type Edge struct {
 	// bildirimini yapının adıyla tek satırda özetler. İşleve giden calls kenarında, işlev bir ad koduyla anahtarlanmış
 	// çiftin değeriyse o kodun düğümüdür ("name:TR_cmd_format"; keyedImplementations), çağrı argümanı olarak geçen
 	// paket düzeyi işlev ya da somut alıcılı metot değeriyse "arg"dır (viaArg; yalnız INFERRED kenarda: doğrudan da
-	// çağrılan işlevin EXTRACTED kenarında graph() siler).
+	// çağrılan işlevin EXTRACTED kenarında graph() siler). Testten ad koduna giden tests kenarında, metin .tr dosyasına
+	// yazılıp trlang ikilisinde koşuluyorsa "trlang"dır (viaTrlang).
 	Via string `json:"via,omitempty"`
 }
 

@@ -218,3 +218,76 @@ func TestEveryScriptAnE2ETestWritesLinksToItsNameCodes(t *testing.T) {
 		t.Fatalf("the scan found %d scripts with %d name uses: it no longer sees how e2e writes TR scripts", len(scripts), checked)
 	}
 }
+
+// trlangRunFiles: yer tutuculu bir TR programı strings.NewReplacer(...).Replace ile doldurulup .tr dosyasına yazılır
+// (trlang ikilisi koşar) ya da strings.ReplaceAll ile doldurulup süreç içinde okuyucuya verilir.
+var trlangRunFiles = map[string]string{
+	"internal/lang/codes/tr.json": "{\n  \"TR_fn_default_device\": { \"name\": \"varsayılan_cihaz\", \"family\": \"x\" }\n}\n",
+	"internal/lang/lexer/lexer.go": `package lexer
+
+// New TR metnini okur.
+func New(input string) int { return len(input) }
+`,
+	"app/run_test.go": `package app
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"example.com/audit/internal/lang/lexer"
+)
+
+const program = "TR_import \"{zincir}\"\nTR_default_device(\"cpu\")\n"
+
+func TestRunByTrlang(t *testing.T) {
+	text := strings.NewReplacer("{zincir}", "lib/zincir").Replace(program)
+	os.WriteFile(filepath.Join(t.TempDir(), "cihaz.tr"), []byte(text), 0o600)
+}
+
+func TestRunInProcess(t *testing.T) { lexer.New(strings.ReplaceAll(program, "{zincir}", "lib/zincir")) }
+`,
+}
+
+// Kural (codegraph dilim 6, D6-4 (a), Karar 5): strings.Replace, ReplaceAll ve (*Replacer).Replace TR metnini ilk
+// argümandan geçirir. .tr dosyasına yazılıp trlang ikilisiyle koşulan metinden gelen ad kodu kenarı "trlang" işaretini
+// taşır ve TR testi gibi her paketin yerleşiğine ulaşır: testin paketi yerleşiğin paketini içe aktarmasa da
+// (assistant_test.TestChainDeviceTransitions → ml.defaultDeviceBuiltin). Süreç içinde koşulan metnin kenarı işaretsizdir;
+// onun bağı inTestBinary süzgecinden geçer (TestNameCodeTestsMustLinkTheFunctionsPackage).
+func TestATRProgramRunByTheTrlangBinaryReachesItsBuiltins(t *testing.T) {
+	g, err := buildGraph(auditModule(t, trlangRunFiles))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app = "go:func:example.com/audit/app."
+	byTrlang, inProcess := edge(g, app+"TestRunByTrlang", "name:TR_fn_default_device", edgeTests), edge(g, app+"TestRunInProcess", "name:TR_fn_default_device", edgeTests)
+	if byTrlang == nil || byTrlang.Via != viaTrlang {
+		t.Errorf("a program filled by (*strings.Replacer).Replace and written to a .tr file links its codes with via %q: %+v", viaTrlang, byTrlang)
+	}
+	if inProcess == nil || inProcess.Via != "" {
+		t.Errorf("a program filled by strings.ReplaceAll and run in the process links its codes without a mark: %+v", inProcess)
+	}
+
+	const m = "example.com/m"
+	fn := "go:func:" + m + "/ml.defaultDeviceBuiltin"
+	h := &Graph{Module: m, Nodes: []Node{
+		{ID: pkgID(m + "/ml"), Kind: kindPackage},
+		{ID: pkgID(m + "/assistant"), Kind: kindPackage},
+		{ID: fn, Kind: kindFunc, Name: "ml.defaultDeviceBuiltin", File: "ml/device.go"},
+		{ID: "name:TR_fn_default_device", Kind: kindName, Name: "TR_fn_default_device"},
+		{ID: "go:func:" + m + "/assistant.TestChainDeviceTransitions", Kind: kindFunc, Name: "assistant.TestChainDeviceTransitions", File: "assistant/device_test.go"},
+		{ID: "go:func:" + m + "/assistant.TestInProcess", Kind: kindFunc, Name: "assistant.TestInProcess", File: "assistant/device_test.go"},
+	}, Edges: []Edge{
+		{From: fn, To: "name:TR_fn_default_device", Kind: edgeUsesName},
+		{From: "go:func:" + m + "/assistant.TestChainDeviceTransitions", To: "name:TR_fn_default_device", Kind: edgeTests, Via: viaTrlang},
+		{From: "go:func:" + m + "/assistant.TestInProcess", To: "name:TR_fn_default_device", Kind: edgeTests},
+	}}
+	var got []string
+	for _, nt := range newIndex(h).testsThroughNames(newIndex(h).byID[fn]) {
+		got = append(got, nt.test.Name)
+	}
+	if strings.Join(got, ", ") != "assistant.TestChainDeviceTransitions" {
+		t.Errorf("tests through the name codes of ml.defaultDeviceBuiltin: %q, want only the test that runs the program with trlang (assistant imports no ml)", got)
+	}
+}

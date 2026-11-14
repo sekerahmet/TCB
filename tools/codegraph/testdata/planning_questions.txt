@@ -324,3 +324,5 @@ trlang index definition TR_arg_env | exit: 0 | contains: TR_arg_env | not: bulun
 
 # codegraph B1a: yanlış "test yok" (K1, 2026-11-09)
 codegraph tests-for codegraph.argCallable --list | contains: beyond the 8-step limit, inside its folder: | contains: through codegraph.goExtractor.scan | not: no tests found | src: codegraph B1a B1.6, 2026-11-09 (klasör içi 10 adımlık zincirle ulaşan test listeye girmez, tek satırda girişiyle yazılır; B0 tasarımı K1, 49 yanlış "test yok"un ilki)
+# codegraph dilim 6, D6-4: tests-for'un üç yanlış "yok"u (gaps.md Kritik, 2026-11-14)
+codegraph tests-for ml.defaultDeviceBuiltin --all | contains: assistant_test.TestChainDeviceTransitions [func] | src: codegraph dilim 6 D6-4 (a), 2026-11-14 (metin sabitindeki program strings.Replacer'la doldurulup cihaz.tr'ye yazılır, trlang koşar: ad kodu kenarı "trlang" işaretiyle her paketin yerleşiğine ulaşır)

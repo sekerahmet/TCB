@@ -18,6 +18,11 @@ import (
 // ötekiler ondan türer (linkSnippets).
 var fileSinks = map[paramKey]int{{memberID("os", "", "WriteFile"), 1}: 0}
 
+// viaTrlang .tr dosyasına yazılan metinden gelen ad kodu kenarının (test → name:) işaretidir (Edge.Via): test programı
+// trlang ikilisinde koşar, o ikiliye her paket girer; ad kodu bağı inTestBinary süzgecinden geçmez (codegraph dilim 6,
+// D6-4 (a): assistant_test.TestChainDeviceTransitions cihaz.tr'yi trlang'la koşar, ml.defaultDeviceBuiltin'i sınar).
+const viaTrlang = "trlang"
+
 // isTextType tip metin taşıyor mu: string, ...string ya da []byte (dosyaya yazılan içerik).
 func isTextType(t types.Type) bool {
 	if s, ok := t.(*types.Slice); ok {
@@ -29,8 +34,10 @@ func isTextType(t types.Type) bool {
 }
 
 // pathTexts yolu ya da metni parçalarından kuran standart işlevlerin metnidir: filepath.Join ve path.Join parçaları "/"
-// ile, FromSlash, ToSlash ve Clean metnin kendisi, strings.Join yazılı listenin öğelerini ayraçla birleştirir. Dosyaya
-// yazılan TR metninin yolu (`filepath.Join(dir, "karsilastir.tr")`) ve satırlardan kurulan program böyle okunur.
+// ile, FromSlash, ToSlash ve Clean metnin kendisi, strings.Join yazılı listenin öğelerini ayraçla birleştirir;
+// strings.Replace, ReplaceAll ve (*strings.Replacer).Replace metni ilk argümandan geçirir (yer tutucu metinde kalır:
+// `TR_import "{zincir}"`; codegraph dilim 6, D6-4 (a)). Dosyaya yazılan TR metninin yolu
+// (`filepath.Join(dir, "karsilastir.tr")`), satırlardan ve kalıptan kurulan program böyle okunur.
 func (x *goExtractor) pathTexts(fc *fileCtx, fn *types.Func, c *ast.CallExpr) ([]textSrc, bool) {
 	switch pkg := fn.Pkg().Path(); {
 	case (pkg == "path/filepath" || pkg == "path") && fn.Name() == "Join":
@@ -40,6 +47,8 @@ func (x *goExtractor) pathTexts(fc *fileCtx, fn *types.Func, c *ast.CallExpr) ([
 		}
 		return joinTexts(lists, "/"), true
 	case pkg == "path/filepath" && (fn.Name() == "FromSlash" || fn.Name() == "ToSlash" || fn.Name() == "Clean") && len(c.Args) == 1:
+		return x.textSources(fc, c.Args[0]), true
+	case pkg == "strings" && (fn.Name() == "Replace" || fn.Name() == "ReplaceAll") && len(c.Args) > 0:
 		return x.textSources(fc, c.Args[0]), true
 	case pkg == "strings" && fn.Name() == "Join" && len(c.Args) == 2:
 		list, ok := c.Args[0].(*ast.CompositeLit)
@@ -112,6 +121,7 @@ func (st *snippetState) linkFileWrites() {
 		}
 		if f.from.fn != "" {
 			st.sinks[f.from] = true
+			st.fileSinks[f.from] = true
 		} else {
 			f.trFile = true
 		}
