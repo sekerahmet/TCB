@@ -24,6 +24,8 @@ type preparation struct {
 	typeHeader string
 	// library gömülü kitaplığın dosya adıdır, metin o dosyaysa (interp.LibraryFileName).
 	library string
+	// quiet uyarıları yazmaz: üretilen uygulamanın uyarıları derlenirken yazıldı.
+	quiet bool
 }
 
 // Dosya çalıştırmada ve etkileşimli kabukta (REPL) ortak kullanılan hata başlıkları. Metinler
@@ -47,8 +49,12 @@ var (
 		syntaxHeader: "❌ " + messages.Text(messages.H8654),
 		typeHeader:   "❌ " + messages.Text(messages.H8655),
 	}
+	// Üretilen uygulama açılışta da denetlenir: denetleyicinin ağaca yazdığı bilgi (1.2)
+	// uygulamada da çalışsın. Program derlenirken denetlendiği için hata beklenmez.
 	embeddedPreparation = preparation{
 		syntaxHeader: "❌ " + messages.Text(messages.H8656),
+		typeHeader:   typeHeader,
+		quiet:        true,
 	}
 )
 
@@ -76,7 +82,9 @@ func prepareFile(path string, h preparation) (string, *source.Result) {
 // sonucun gövdesidir (kodlu dosyada başlıktan sonrası).
 func prepareSource(text string, h preparation) *source.Result {
 	s := source.Prepare(text, source.Options{TypeCheck: h.typeHeader != "", Library: h.library})
-	writeWarnings(s.Warnings, s.Text)
+	if !h.quiet {
+		writeWarnings(s.Warnings, s.Text)
+	}
 	switch s.Stage {
 	case source.StageSyntax:
 		if h.syntaxHeader == "" {
@@ -193,9 +201,16 @@ func moduleHeader(header, filePath string) string {
 // okunamayan modül hatalarının başlığıdır. Dosyanın metnini ve hazırlığının sonucunu verir.
 func checkProgram(path string, h preparation, globalHeader string) (string, *source.Result) {
 	text, s := prepareFile(path, h)
-	err := interp.CheckImportedModules(path, s.Program)
+	checkImportsOrExit(path, s.Program, h, globalHeader)
+	return text, s
+}
+
+// checkImportsOrExit path'teki prog'un aktardığı bütün modülleri çalıştırmadan denetler
+// (interp.CheckImportedModules); hata varsa yazıp 1 koduyla çıkar.
+func checkImportsOrExit(path string, prog *ast.Program, h preparation, globalHeader string) {
+	err := interp.CheckImportedModules(path, prog)
 	if err == nil {
-		return text, s
+		return
 	}
 	var moduleErr *interp.ModuleError
 	if errors.As(err, &moduleErr) && len(moduleErr.Errors) > 0 {
@@ -207,7 +222,6 @@ func checkProgram(path string, h preparation, globalHeader string) (string, *sou
 	}
 	fmt.Fprintf(os.Stderr, "%s %v\n", globalHeader, err)
 	exit(1)
-	return text, s
 }
 
 // checkModules programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve

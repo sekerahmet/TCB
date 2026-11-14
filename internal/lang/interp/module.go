@@ -181,7 +181,8 @@ func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 // module (a top-level 'sonuç' is an error) and type-checks it; on errors the result's Stage
 // ("sözdizimi" or "tip denetimi") and Errors are set. 'trlang check', 'trlang build' and
 // CheckImportedModules use this one check before the run (1.3); 'aktar' at run time only reads
-// and parses the module. A module sees only its own names, the builtins and what it imports,
+// and parses a module file, while a library module is checked once per process
+// (checkedLibraryModule). A module sees only its own names, the builtins and what it imports,
 // not its importer's (5.14): a name defined nowhere in it is an undefined-name error. filePath
 // tells the library's own file from a user's (LibraryFileName).
 func CheckModule(filePath, text string) *source.Result {
@@ -353,9 +354,12 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	// Modül yalnız yerleşiklerin kapsamının altında çalışır (moduleRoot): kendi adlarını,
 	// yerleşikleri ve aktardıklarını görür, kendisini aktaranın adlarını görmez (5.14). Tip denetimi
 	// çalışmadan önce yapılmıştır (CheckImportedModules, 1.3): metin aynıysa denetlenmiş ağaç kullanılır
-	// (checked_modules.go), değilse yalnız ayrıştırılır; ikinci bir denetim yolu yoktur.
+	// (checked_modules.go), değilse yalnız ayrıştırılır; ikinci bir denetim yolu yoktur. Kitaplık
+	// modülü her yolda denetlenmiş ağacıyla çalışır, süreç başına bir kez denetlenir (1.2).
 	ms, checked := (*source.Result)(nil), false
-	if !dest.Embedded {
+	if dest.Embedded {
+		ms, checked = checkedLibraryModule(strings.TrimPrefix(dest.Path, LibraryPrefix), dest.Code), true
+	} else {
 		ms, checked = checkedModuleSource(dest.Path, dest.Code)
 	}
 	if !checked {

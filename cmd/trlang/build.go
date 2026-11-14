@@ -484,6 +484,7 @@ func runEmbeddedApp(pk *pkg) {
 	}
 
 	s := prepareSource(code, embeddedPreparation)
+	checkImportsOrExit(embeddedSourceName, s.Program, embeddedPreparation, "❌ "+messages.Text(messages.H8632))
 	machine := interp.New()
 	machine.SourceFile = embeddedSourceName
 	machine.CommandName = filepath.Base(os.Args[0])
