@@ -11,8 +11,11 @@ import (
 // satır yakın testlerdir (query_run_line.go, codegraph 7 A1).
 
 // heavyTestPackages bu makinede -run'sız koşulmayan ağır paketlerdir: koşu satırı bunları bütün olarak önermez, adla
-// koşturur (yan oturumların genel kancası onları durdurur; iki listeyi ana oturum eşit tutar).
-var heavyTestPackages = []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser", "tools/codegraph"}
+// koşturur. Kural (codegraph 7, K2): G4'te 30 sn'yi ya da dizüstünde bütün koşusu 2 dakikayı aşan paket ağırdır
+// (`internal/stdlib/httpserver` G4'te 67,8 sn; `internal/stdlib/process` dizüstünde en çok 133,3 sn). Yan oturumların
+// genel kancası da bunları durdurur; commit kipinin commit_late_packages'ı aynı listedir (TestCommitHeavyTestsExist).
+var heavyTestPackages = []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser",
+	"internal/stdlib/httpserver", "internal/stdlib/process", "tools/codegraph"}
 
 func isHeavyPackage(dir string) bool { return slices.Contains(heavyTestPackages, dir) }
 

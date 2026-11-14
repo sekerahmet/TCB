@@ -152,7 +152,9 @@ starts with `repoRule(t)`; without it, its failure is left to G4. Why narrow: wh
 share of the file, every G4 failure widened it (203 names for `checker.go`), and an agent either waited for hundreds
 of far tests or skipped the line. A `-run` list longer than 20000 characters (the pre-check's Windows limit) runs its
 light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
-`internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the
+`internal/detmath`, `internal/lang/parser`, `internal/stdlib/httpserver`, `internal/stdlib/process`, `tools/codegraph`,
+which this machine does not run without `-run`; a package is heavy when G4 runs it in more than 30 s or this laptop runs
+it whole in more than 2 minutes, codegraph 7 K2) gets the
 names that fit and a line counting the rest. A file of a heavy package does not get its package whole either: the
 first command names the package's near tests, and a line says the package is heavy (the full check runs it whole); a
 file with no near test there gets no command, only the count line. A non-Go file or doc (a `.tr` module, a data file,

@@ -21,7 +21,8 @@ func runLines(out string) []string {
 // Kural: -run listesi commandLineLimit'i aşınca ağır olmayan paketler bütün koşar (ön denetimin kuralı), ağır paket
 // (heavyTestPackages) -run'sız önerilmez: sığan ilk adlar yazılır, kalanı sayılır (DENETİM 358 Ş2).
 func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
-	want := []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser", "tools/codegraph"}
+	want := []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser",
+		"internal/stdlib/httpserver", "internal/stdlib/process", "tools/codegraph"} // K2: G4'te 30 sn ya da dizüstünde 2 dakika
 	if !slices.Equal(heavyTestPackages, want) {
 		t.Errorf("heavy packages %q, want %q (the main session keeps this list equal to its hook's)", heavyTestPackages, want)
 	}
@@ -47,7 +48,7 @@ func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
 
 // Kural: ağır paketteki (heavyTestPackages) bir dosyanın koşu satırı paketini -run'sız önermez (D1 ipucu, 2026-11-06:
 // kanca `go test -short ./tools/codegraph/`'ı durduruyordu): o paketteki yakın testler adlandırılır, satır bunu söyler.
-// Hiçbir `run:` komutu ağır bir paketi bütün olarak koşmaz.
+// Hiçbir `run:` komutu ağır bir paketi bütün olarak koşmaz; K2 ile giren `httpserver` de.
 func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -56,6 +57,7 @@ func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) 
 		{"tools/codegraph/query_run_line.go", "TestTheRunLineStaysWithinTheCommandLine"},
 		{"internal/detmath/detmath.go", ""},
 		{"internal/lang/parser/conditionals.go", ""},
+		{"internal/stdlib/httpserver/stream.go", ""},
 	} {
 		n := ix.byID[fileID(c.file)]
 		if n == nil {
