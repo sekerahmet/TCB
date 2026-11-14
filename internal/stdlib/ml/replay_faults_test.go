@@ -187,6 +187,9 @@ func TestReplayInt64ArithFaultNamesRecordedLine(t *testing.T) {
 		{"x // (x - k)", "1", "TR_Tensor([1, 5])", messages.H6962},
 		{"k - k - x", "1", "TR_Tensor([3, -9223372036854775807 - 1])", messages.H6961},
 		{"TR_abs(x) + k", "1", "TR_Tensor([3, -9223372036854775807 - 1])", messages.H6961},
+		// Tekli eksi görevle çağrılır (interp.TaskNegatable): yuvanın yeri kayda yazılır. Önceden
+		// kanca görevi almıyordu, kayıt H4065 ile bitiyordu (DENETİM 512 N1).
+		{"-x", "0", "TR_Tensor([3, -9223372036854775807 - 1])", messages.H6961},
 	} {
 		k := "TR_Tensor(" + c.k + ")"
 		program := `TR_default_device("gpu")
@@ -211,20 +214,6 @@ TR_no_grad {
 		if direct != out || derr == nil || derr.Error() != err.Error() {
 			t.Fatalf("%s: doğrudan çağrı başka sonuç verdi:\n%s\n%v\nkayıtta\n%s\n%v", c.body, direct, derr, out, err)
 		}
-	}
-	// Tekli eksinin kancası (interp.Negatable) görevi almaz: kayıtta yuvanın yeri yazılamaz, kayıt
-	// açık hatayla biter (H4065), sessiz değil.
-	_, err := run(t, `TR_default_device("gpu")
-TR_func g(x: TR_Tensor[TR_Int]) -> TR_Tensor[TR_Int] {
-    TR_return -x
-}
-TR_var f = TR_replay(g)
-TR_no_grad {
-    f(TR_Tensor([2, 3]))
-    f(TR_Tensor([2, 3]))
-}`)
-	if !messages.Has(err, messages.H4065) {
-		t.Fatalf("kayıtta tekli eksi H4065 bekleniyordu: %v", err)
 	}
 }
 

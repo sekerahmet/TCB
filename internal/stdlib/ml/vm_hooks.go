@@ -53,16 +53,20 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 }
 
 // Negate tekli eksidir (-t); türev izlenir. Sonuç tazedir (yorumlayıcı sahiplenir).
-func (d *TensorValue) Negate() (interp.Value, error) {
+func (d *TensorValue) Negate() (interp.Value, error) { return d.TaskNegate(nil) }
+
+// TaskNegate görevle tekli eksidir: tam sayı tensörün taşma yuvası GPU kaydında görevin kaydına
+// yazılır (görevsiz Negate'te H4065 olurdu, oysa program bir şey okumuyor; DENETİM 512 N1).
+func (d *TensorValue) TaskNegate(m *interp.VM) (interp.Value, error) {
 	start := tensor.Created()
-	res, err := d.negate()
+	res, err := d.negate(m)
 	if err == nil {
 		markFresh(res, start)
 	}
 	return res, err
 }
 
-func (d *TensorValue) negate() (interp.Value, error) {
+func (d *TensorValue) negate(m *interp.VM) (interp.Value, error) {
 	if err := float64GradError(d); err != nil {
 		return nil, err // tekli eksi çizgeye kenar ekler (15.46)
 	}
@@ -72,8 +76,7 @@ func (d *TensorValue) negate() (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Negate kancası görevi almaz: kayıtta yuvanın yeri yazılamaz (H4065, typedResult).
-		return typedResult(nil, codes.NameRef(codes.TypeTensor), "-", r, f)
+		return typedResult(m, codes.NameRef(codes.TypeTensor), "-", r, f)
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Neg() })
 	if err != nil {
@@ -260,19 +263,29 @@ func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, on
 	return New(r), nil
 }
 
-var _ interp.ValueEqualer = (*TensorValue)(nil)
+var (
+	_ interp.ValueEqualer     = (*TensorValue)(nil)
+	_ interp.TaskValueEqualer = (*TensorValue)(nil)
+	_ interp.TaskNegatable    = (*TensorValue)(nil)
+)
 
-// ValueEqual tensörün == ve != işleçleridir: öğe öğe, TR_Tensor[TR_Bool] verir (15.5). İki
-// tensörün bütün eşitliği TR_equal'dır. TR_none ile karşılaştırma (3.5) ve öbür değerler
-// yorumlayıcının olağan yolundan gider (ok false). Yayın uyarısı yazılmaz: kancanın görevi yok.
+// ValueEqual görevsiz eşitliktir; yayın uyarısı yazılmaz (TaskValueEqual).
 func (d *TensorValue) ValueEqual(op string, other interp.Value) (interp.Value, bool, error) {
+	return d.TaskValueEqual(nil, op, other)
+}
+
+// TaskValueEqual tensörün == ve != işleçleridir: öğe öğe, TR_Tensor[TR_Bool] verir (15.5). İki
+// tensörün bütün eşitliği TR_equal'dır. TR_none ile karşılaştırma (3.5) ve öbür değerler
+// yorumlayıcının olağan yolundan gider (ok false). Görevle iki yanlı yayın uyarısı `<`'deki gibi
+// yazılır (15.6b).
+func (d *TensorValue) TaskValueEqual(m *interp.VM, op string, other interp.Value) (interp.Value, bool, error) {
 	switch other.(type) {
 	case *TensorValue, *interp.IntVal, *interp.FloatVal, *interp.BoolVal, *interp.ListVal:
 	default:
 		return nil, false, nil
 	}
 	start := tensor.Created()
-	res, _, err := d.operator(nil, op, other, false)
+	res, _, err := d.operator(m, op, other, false)
 	if err == nil {
 		markFresh(res, start)
 	}

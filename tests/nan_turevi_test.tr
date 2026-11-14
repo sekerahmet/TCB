@@ -15,6 +15,11 @@ TR_test "15.16 TR_relu'nun türevi x > 0'da 1, 0'da 0, NaN'da NaN" {
     TR_assert_equal(["nan", "1.0", "0.0", "0.0"], türev(girdi(), (x) => TR_relu(x)))
 }
 
+TR_test "15.16 TR_relu'nun türevi x ≤ 0'da tam 0: yukarıdan gelen sonsuz geçmez" {
+    TR_var x = TR_Tensor([-1.0, 0.0, 4.0], TR_requires_grad: TR_true)
+    TR_assert_equal(["0.0", "0.0", "0.25"], türev(x, (t) => TR_sqrt(TR_relu(t))))
+}
+
 TR_test "15.13 TR_clamp'in türevi aralıkta 1, dışında 0, NaN'da NaN" {
     TR_assert_equal(["nan", "0.0", "0.0", "1.0"], türev(girdi(), (x) => TR_clamp(x, TR_min: -0.5, TR_max: 0.5)))
     TR_assert_equal(["nan", "1.0", "0.0", "1.0"], türev(girdi(), (x) => TR_clamp(x, TR_min: -0.5)))

@@ -666,9 +666,8 @@ func unaryGradLoop(op UnOp, p float32, gx, g, x, y []float32) {
 				gx[i] += v
 			case xi != xi:
 				gx[i] += v * xi // NaN'da türev NaN'dır (15.16)
-			default:
-				gx[i] += v * 0 // NaN ya da sonsuz gradyan yayılır
 			}
+			// x ≤ 0'da türev tam 0'dır: yukarıdan gelen NaN ve sonsuz bu dala geçmez (15.15).
 		}
 	case OpGelu:
 		geluBackwardVec(gx, g, x)

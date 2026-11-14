@@ -845,9 +845,9 @@ e765a65216a901b3334021c8a11b1fb0c56032f972b9ee1f8456d897dd1a1880 tekli_turev:3:g
 5316f73e77fa70573d1c176602229000e29d85b79c1b0891cf1b5d44a2b572d0 tekli_turev:4::[float32 float16 float16 float16]:true
 9a11764cc6d584164e5c40544f81d3098977a8aec908187cef86460c3fcefc01 tekli_turev:4::[float32 float32 float32 float32]:false
 1d67757421b38d9fa66fed468988e68695db3db4c935c364d851ac89814ebc88 tekli_turev:4::[float32 float32 float32 float32]:true
-72dc85faaf3a1939952887b9944752c813c0300086422e9d36b1c7c632b85611 tekli_turev:5::[float32 bfloat16 bfloat16 bfloat16]:false
-97117859f5abc7295c4ee8e721ca59ca9c1bc19cf2d16392e01e918b451c4954 tekli_turev:5::[float32 float16 float16 float16]:false
-16733b9ca616a68aef0563f770b7191c4747243611629362abe21088826cc7af tekli_turev:5::[float32 float32 float32 float32]:true
+3e0837980254f98a7a804417b216fed6b2f8b05f061945b5673ab1e953fe0d2a tekli_turev:5::[float32 bfloat16 bfloat16 bfloat16]:false
+48ee7b1eebae279a0a2d7147bbcfa4e7fdbb5dee1af2b68d47df940ebc5814ee tekli_turev:5::[float32 float16 float16 float16]:false
+9e704feb36714ed123b497a5b70bb1d9c033b55280803298a79c607bbbc75012 tekli_turev:5::[float32 float32 float32 float32]:true
 89b6a72d0ac32db0b058d3901495e5e1d8be6f3d8b0b525c63da3cc5685c2bf8 tekli_turev:6::[float32 bfloat16 bfloat16 bfloat16]:false
 05c93f3217c62f8054240dedf47455fc105a392b3f54a77e160a77158312c2c5 tekli_turev:6::[float32 float16 float16 float16]:false
 0940cbba763e3838bce2550ff741b5409e7e1d74f39616ad43e345a47073fdd1 tekli_turev:6::[float32 float32 float32 float32]:true

@@ -167,7 +167,7 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 	// Değerlerin kendi işleç kancaları (ör. tensör @ tensör, 2 - tensör, tensör < 0,
 	// '==' ve '!=' için ValueEqualer); hatalarına satır bilgisi eklenir.
 	if codeVal == opEq || codeVal == opNe {
-		if val, ok, err := hookValueEqual(op, left, right, line); ok {
+		if val, ok, err := v.hookValueEqual(op, left, right, line); ok {
 			return val, err
 		}
 		return equalityResult(codeVal == opEq, op, left, right, line)

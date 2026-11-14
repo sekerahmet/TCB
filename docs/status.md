@@ -631,10 +631,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** liste işlenen hata vermeden çalışıyor: `TR_Tensor([1.0, 2.0]) + [10, 20]` → `[11.0, 22.0]` [ölçüldü].
 - **Yapılacaklar (D, Ö3; sınıf uzak 14):** liste işlenenin denetim hatası; `TR_Tensor[TR_Int]` ile `2.5`'in denetim hatası (4c; `d6adf7e3`'te çalışmada H6968; "uint8" ile `300` çalışmada H6964, kurala uygun) [ölçüldü: `d6adf7e3`]; TR testi. Göç [ölçüldü: grep, `d6adf7e3`]: liste işlenen 3 yer (`tests/matematik_test.tr:38`, `tests/tensor_test.tr:189`, `:1824`), Go dizelerinde 2.
 
-### 15.6b
-
-- **Yapılacaklar (F, Ö3; sınıf uzak 14):** eksen sayıları eşitken iki yanlı genişleme uyarı vermez: `TR_zeros([3, 1]) >= TR_zeros([1, 3])` H6128 yazıyor [ölçüldü: `d6adf7e3`]: `bothWiden` eksen sayılarına bakmıyor (`internal/stdlib/ml/operators.go:71`); TR testi.
-
 ### 15.6c
 
 - **Yapılacaklar (E, Ö3; sınıf uzak 14):** tam sayı hassasiyetlerinin birleşmesi işlemcide işleçlerde ve `TR_where`'de var ("uint8" + "int8" → "int16"); kalan: `TR_concat` (H6966), kartta dar tam sayılar (H6969) [ölçüldü: `d6adf7e3`, benzetici]; TR testi.
@@ -672,10 +668,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** ondalık ya da tam sayı koşul ve sayı imzası (`TR_where(TR_true, 2, 3)`) denetimde değil, çalışmada H6207 veriyor [ölçüldü].
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** iki sayılı biçimin cinsi ve hassasiyeti.
-
-### 15.16
-
-- **Yapılacaklar (D, Ö3; sahip T1; Tur 6B, 2026-11-10):** `TR_relu`'nun türevi `x ≤ 0`'da tam 0 olur (15.15'in seçimi); bugün `g * 0` ile yukarıdan gelen NaN geçiyor: `x = -1`'de `TR_sqrt(TR_relu(x))`'in türevi NaN, `TR_clamp`'inki 0.0 [ölçüldü: DENETİM 388]. Var olan NaN testi değişmez; yeni TR testi bu durumu sınar.
 
 ### 15.16a
 
@@ -857,7 +849,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (E, Ö3; sahip T1, sonraki dilim; DENETİM 528 N1):** `TR_logsumexp`'in türevi kartta 2²⁴ öğeden uzun satırda kullanıcıya TR'nin iç hatasını veriyor ("lütfen bildirin"), ileri yönde değil `TR_backward`'da; işlemcide sınır yok [kanıtlı: DENETİM 528, `RowLogSumExpGrad`]. Neden: ilk +∞'ın konumu float32'de tutuluyor. Dost'ta ulaşılmaz (Whisper'ın satırı ~5·10⁴). Düzeltme: konum tam sayıyla indirgenir, 2²⁴ + 1 öğelik test; olmazsa kodlu ileti ve 15.41'de istisna.
 - **Yapılacaklar (D, Ö3; sahip T1; T1 dilim 5'in B6'sı):** kayıtta kartın `TR_stft`'i her seferinde H4066 veriyor: çerçevelerin konum tablosu her çağrıda konaktan yükleniyor (`internal/compute/tensor/fourier_card.go:135`). Kayıtta `TR_rfft` doğrudan çağrıyla aynı [test: `TestReplayFourierOnTheCard`]. Çaresi ayrı dilim, 5'ten sonra (TCB).
 - **Yapılacaklar (C, Ö2; sahip T1; T1 dilim 5'in B7'si; sınıf DENETİM 642 N1):** kayıtta `TR_rfft`'in sonucu taban önbelleğinin geçmişine bağlı (128 MiB'i aşan iki taban): aynı adım önbellek doluyken H4066 verir [ölçüldü: T1 dilim 5, benzetici, n = 4096 ve 4095, üç turda none, H4066, none].
-- **Yapılacaklar (D ile F1, Ö3; sahip T1; DENETİM 512 N1):** kayıtta tekli eksi H4065 veriyor: ileti "cihazdan konağa okunamaz … değeri kayıttan sonra okuyun" diyor, oysa program bir şey okumuyor; çalışan yazım `0 - x` [kanıtlı: DENETİM 512, `internal/stdlib/ml/replay_faults.go:42-43`, `tr.json:731`]. Aynı yolun H4066'sının gerekçesi ("yüklenen veri her oynatmada aynı kalırdı") sabit sayı işleneninde yanlış: sabit için istenen zaten budur (D, Ö3; `tr.json:732`).
+- **Yapılacaklar (D, Ö3; sahip T1; DENETİM 512 N1):** kayıtta H4066'nın gerekçesi ("yüklenen veri her oynatmada aynı kalırdı") sabit sayı işleneninde yanlış: sabit için istenen zaten budur (`tr.json:750`). Tekli eksi kayıtta çalışıyor, taşması kaydedilen satırı söylüyor (DIL UZMANI iş 8) [test: TestReplayInt64ArithFaultNamesRecordedLine].
 - **Yapılacaklar (F, Ö3; sahip T1; T1 dilim 5'in B6'sı):** H4066'nın önerisi kayıtta kartın `TR_stft`'inde uygulanamaz: yüklenen konum tablosu kullanıcının verisi değil, kitaplığın sabitidir.
 - **Yapılacaklar (F, Ö3; sahip T1; DENETİM 512 N1):** tam sayı toplamının ve birikimli toplamının taşma iletisi H6961 konumu boş geçebiliyor (`tr.json:1446`, konum yuvasının boş seçeneği); ileti doğru ama eksik.
 - **Yapılacaklar (sınıfsız: hız; sahip T1, dilim 5'ten önce TCB'nin kararı; DENETİM 512 N7):** kartın int64 toplamında eksensiz toplam tek iş parçacığıyla sırayla toplanıyor (`internal/compute/gpu/typed_reduce.go:35`, `plain(m, sameBlock)`, m = 1); 2²⁴ öğede ~1 sn [hesap, kaba] ve Windows'ta ekranı süren kartta sürücünün süre aşımı [hipotez]. Dost'un ekseni kısa; bedel dilim 5'in ölçüsünde görünür. Öneri: büyük n, küçük m için ağaç yolu ya da sınır.
@@ -880,7 +872,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Yapılacaklar (C, Ö2; sınıf TCB 15:09):** GPU'da aynı hata (denetim cihazdan önce, stdlib'de): L4'te koşulacak.
 - **Yapılacaklar (F, Ö3; DENETİM istek 83 Ş3):** modül adı ve metot yolu `VM.EvalExpression` ile okunuyor; `debug_support.go`'nun yorumu bu yöntemleri yalnız hata ayıklayıcı için tanımlıyor. Yorum ikinci kullanıcıyı söyler ya da dar bir üye okuma fonksiyonu açılır.
-- **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** liste kavrayışının değişkeni `TR_fuse`'un toplayıcısında yerel sayılmıyor; dışta aynı adlı değişken varsa doğru program gereksiz H6986 ile duruyor (sessiz değil) [kanıtlı: T1 devri, okuma].
 - **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş3):** H6986 fonksiyon değerinde yanlış yönlendiriyor: öneri "değişen sayıyı argüman verin" diyor, oysa fonksiyon `TR_fuse`'a argüman olamaz; doğrusu `TR_fuse(...)`'i yeniden kurmak (öneri okunan değerin türüne göre ayrılır). Fabrika kapanışında eski ve yeni fonksiyon aynı görünüyor (`<ok fonksiyonu>`). Takma adla okunan bağlı metodun yolu iletide sınıflı iç kimlikle (self anahtar sözcüğünün iç kodu) yazılıyor; nesnenin yolu olmalı.
 - **Yapılacaklar (C, Ö3; DENETİM istek 84 N1) [hipotez]:** fonksiyon kimliği `%p` ile metin olarak tutuluyor; eski kapanış toplanıp yenisinin ortamı aynı adrese düşerse değişim görünmez. Yeniden üretilemedi (400 denemede 400 H6986). Koruma: kaydedilen gövde ve ortam işaretçilerini `fuseCapture`'da tutmak.
 - **Uygulama sınırı:** `TR_clamp`, `TR_atan2` ve `TR_where` bugün kaynaştırılmıyor; `f`'de kullanılınca hata veriyor. Kural onları da kapsar.
@@ -907,8 +898,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.49
 
-- **Mevcut durum:** tensörün `==`'si ve `!=`'si eşitlik kancasından gidiyor: iki yan birden genişlediğinde yayın uyarısı `<` için yazılıyor, `==` için yazılmıyor (T1 bulgu 7) [ölçüldü: DENETİM istek 57, `[2,1] < [1,3]` ve `==`].
-- **Yapılacaklar (F, Ö3; sınıf uzak 14):** `==`/`!=`'de yayın uyarısı; satırların kalanı kendi maddeleriyle; TR testi.
+- **Mevcut durum:** tensörün `==`'si ve `!=`'si de iki yan birden genişlediğinde yayın uyarısı yazıyor, `<` gibi (DIL UZMANI iş 8) [test: TestBroadcastWarningOnEquality].
 
 ### 15.50
 
