@@ -49,6 +49,8 @@ ifadedir ve metin anahtarı çevrilmez (`{"step": 1}`; 3.7): `TR_keys()`, `d["st
 günlük, kontrol noktası; `KeyText`) aynı anahtarı görür. Anahtar yalnız köşeli parantezle okunur ve yazılır;
 `d.ad` hatadır (H2648), olmayan anahtar da (H2647; `.TR_get(k)` yok verir). Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtRunTimeErrorTextIsItsMessage`, `TestCaughtErrorTypesAreErrorValues`, `TestOneValueTextForEveryValue`, `TestDictKeysAreTextNotMembers`, `TestDataFormatsAreLanguageIndependent` ve `TestDictTextKeysOnDisk` (cmd/trlang/e2e).
 
+**Yerinde yazmanın zinciri çalışırken de denetlenir (15.6d, 5.4).** Denetimin tipini bilmediği hedefte (1.2) ve denetimsiz koşuda `copy_writes.go` zinciri derlemede kurar, kopya verebilecek adımı olmayan yazmayı sarmaz. Değer hesaplanınca tensörde tensörle indeks ve kopya adımı, liste, sözlük ve yapı nesnesinde kopya adımı ve dilim (yazımdaki ya da çalışırken gelen aralık) denetimle aynı kodu verir; alan hedefi ve `in_place` metodun alıcısı (`inPlaceReceiver`) yalnız kap kuralına girer. Hata hedefin yeri hesaplanırken, sağ yandan önce çıkar. Denetim: `TestContainerWriteChainAtRunTime`, `TestContainerWriteSuggestionsRun`, `TestCopyWriteTargetsAtRunTime` (ml).
+
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.
 

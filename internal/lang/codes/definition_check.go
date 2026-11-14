@@ -73,6 +73,9 @@ func CheckDefinitions(d *Language) []error {
 		if t.Pure && (k.IsLibrary() || t.Kind != KindFunction && t.Kind != KindMethod) {
 			errorf("%s: only a builtin function or method is marked pure (13.10)", k)
 		}
+		if t.InPlace && (k.IsLibrary() || t.Kind != KindMethod) {
+			errorf("%s: only a builtin method is marked in_place (5.4)", k)
+		}
 		if k.IsLibrary() {
 			if len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() {
 				errorf("%s: a library code's signature and types are written only in the library's source", k)

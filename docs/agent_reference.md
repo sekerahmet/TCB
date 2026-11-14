@@ -91,6 +91,7 @@ Bu belge bugün çalışan dili anlatır. Kuralların tam metni [`docs/spec`](sp
   - `=`, `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
   - Tip değişmez: `TR_Int` değişkene `/=` hatadır, `//=` yazılır. Listede `+=` listeyi yerinde uzatır.
   - Öğeye atama: `l[i] = x`, `d[k] = v` (sözlükte anahtar yoksa eklenir).
+  - Hedefin zinciri adlardan, alanlardan ve kap öğelerinden kurulur: `f()[0] = 5`, `l[0..2][0] = 5`, `d.TR_get(k)[0] = 5` ve `f().TR_append(x)` denetim hatasıdır, yazma kopyada ya da adsız değerde kalırdı. Değere ad verin (`TR_var c = f(); c[0] = 5`) ya da kabı indeksleyin (`d[k][0] = 5`).
 - **Koşul:**
   - `TR_if k { } TR_else TR_if k { } TR_else { }`. Süslü parantez zorunludur; `TR_elif` yoktur.
   - İfade olarak: `TR_var s = TR_if k { "a" } TR_else { "b" }`; `TR_else` zorunludur. Python'un `a if c else b`'si yoktur.

@@ -65,7 +65,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.checkDictKey(e.Index, left, index) // 3.7 (dict_keys.go)
 		return indexType(left, index), true
 	case *ast.MemberExpression:
-		obj := c.inferExpression(e.Object)
+		obj := c.itemType(e.Object) // alan hedefinin zinciri nesnenin tipine bakar (5.4, copy_writes.go)
 		if t := c.variantType(e, false); t != "" {
 			return t, true // durumlu tipin alansız durumu: C.Yok (7.7)
 		}

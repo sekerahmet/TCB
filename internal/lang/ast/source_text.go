@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"unicode"
@@ -71,7 +72,7 @@ func closeParens(text, rest []rune) (int, bool) {
 	return n, len(open) == 0
 }
 
-// CopyWriteText bir kopyaya yazmanın iletisinin metinleridir (15.6d; H6740, H6741).
+// CopyWriteText bir kopyaya yazmanın iletisinin metinleridir (15.6d; H6740, H6741; kapta 5.4, H2740).
 type CopyWriteText struct {
 	Step, Base, Index string // kopya adımı; tensörle indekste solu ve indeksi (ayraçlı)
 	Write             string // deyimin kopya adımı yerine Copy yazılmış hâli
@@ -114,6 +115,46 @@ func NewCopyWriteText(lines []string, first, last Node, step WriteStep, taken fu
 		}
 	}
 	return t, true
+}
+
+// StatementWith deyimin (first'ten last'a) metnidir, part'ın yerine with yazılır (5.4'ün önerileri:
+// H2741'de kabın indeksi, H2743'te kaynağın indeksi). ok false ise deyim tek satıra sığmıyor ya da
+// part deyimin içinde değil.
+func StatementWith(lines []string, first, last, part Node, with string) (string, bool) {
+	s0, _, ok1 := sourceSpan(lines, first)
+	_, e1, ok2 := sourceSpan(lines, last)
+	a, b, ok3 := sourceSpan(lines, part)
+	r := RangeOf(first)
+	if !ok1 || !ok2 || !ok3 || RangeOf(last).Line != r.Line || RangeOf(part).Line != r.Line || a < s0 || b > e1 {
+		return "", false
+	}
+	line := []rune(lines[r.Line-1])
+	return string(line[s0:a]) + with + string(line[b:e1]), true
+}
+
+// SliceSourceIndex dilimin (base[a..b]) üstündeki i indeksinin kaynaktaki karşılığıdır (3.6, H2743):
+// a + i; a yazılmamışsa i, ikisi de sabitse toplamları. i negatif olmamalıdır (çağıran bilir).
+func SliceSourceIndex(lines []string, r *RangeExpression, i Expression) (string, bool) {
+	it, ok := SourceText(lines, i)
+	if !ok || r.Start == nil {
+		return it, ok
+	}
+	st, ok := SourceText(lines, r.Start)
+	if !ok {
+		return "", false
+	}
+	a, aLit := r.Start.(*IntegerLiteral)
+	b, bLit := i.(*IntegerLiteral)
+	if aLit && bLit && a.Value >= 0 && b.Value >= 0 && a.Value <= math.MaxInt64-b.Value {
+		return strconv.FormatInt(a.Value+b.Value, 10), true
+	}
+	if !simpleOperand(r.Start) && !aLit {
+		st = "(" + st + ")"
+	}
+	if !simpleOperand(i) && !bLit {
+		it = "(" + it + ")"
+	}
+	return st + " + " + it, true
 }
 
 // wordsIn dosyada geçen sözcüklerdir (harf, rakam ve '_' dizileri): önerinin adları onlarla çakışmaz.
