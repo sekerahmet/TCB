@@ -69,3 +69,12 @@ TR_test "28.11 127.0.0.1 dışında http, localhost ve kimlikli adres çağrı h
     TR_assert_equal("H7706", TR_error_code { TR_download("http://localhost:8080/a", TR_Path(k, "a"), TR_sha256: TR_none, TR_size: TR_none) })
     TR_assert_equal("H7707", TR_error_code { TR_download("https://ad:parola@huggingface.co/a", TR_Path(k, "a"), TR_sha256: TR_none, TR_size: TR_none) })
 }
+
+TR_test "28.11 vekil açıkça verilir; 127.0.0.1'e giden istek vekilden geçmez; vekilin şeması http ya da https" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var k = TR_temp_dir()
+    TR_var karma = TR_download(adres(s, "/not.txt"), TR_Path(k, "a"), TR_sha256: TR_none, TR_size: 7, TR_proxy: "http://vekil.invalid:8080")
+    TR_assert_equal(TR_sha256(TR_Bytes("merhaba")), karma)
+    TR_assert_equal("H7727", TR_error_code { TR_download("https://huggingface.co/a", TR_Path(k, "b"), TR_sha256: TR_none, TR_size: TR_none, TR_proxy: "socks5://vekil.invalid:1080") })
+    s.TR_close()
+}
