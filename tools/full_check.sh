@@ -784,8 +784,8 @@ commit_light_tests() {
 }
 
 # commit_record commit kipinin bu koşusunu deponun ortak git klasörüne yazar: codegraph-kip/<UTC saat>-<ağacın ilk
-# 12'si>.tsv, tek satır, geçici adla yazılıp taşınır (birkaç çalışma ağacı aynı anda yazar). Depoya girmez; birleşme
-# sonrası denetim (D1'in K5'i) okur. Ağaç kipin sınadığı çalışma ağacıdır: index'in kopyasıyla geçici bir index'e
+# 12'si>.tsv, tek satır, geçici adla yazılıp taşınır (birkaç çalışma ağacı aynı anda yazar). Depoya girmez; CODEGRAPH
+# UZMANI'nın haftalık sayımı okur (not klasörü codegraph-7-deneme/cg_kip.py; birleşme başına K5 raporu 2026-11-15'te durdu). Ağaç kipin sınadığı çalışma ağacıdır: index'in kopyasıyla geçici bir index'e
 # `git add -A`; gerçek index'e dokunulmaz. Satırda yol ve kullanıcı adı yok: paketler ./ ile, dal adı ya da "-".
 # Alanlar (sekmeyle): saat, ağaç, dal, sonuç (geçti, uyarı ya da bilgi, commit_kind; düşen kipte düşen ilk adım), aday:- (kip
 # dups koşmaz, alan biçim için kalır; codegraph dilim 6), hata:<n>,not:<m> (spec-refs), yakın:<koşan>/<seçilen> (codegraph 7

@@ -51,22 +51,22 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` | agent rules |
 | who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) | agent rules |
 | which fields a type has and how often each is read and written | `fields <Type>` | none |
-| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) | merge audit |
+| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) | none |
 | which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) | none |
 | what this function calls | `callees <function>` | agent rules |
 | which functions call into this package the most | `calls-into <pkg> --min N --in DIR` | none |
 | who uses this | `who-uses <name>` | agent rules |
-| is there a path from A to B | `path <A> <B>` (`--undirected`) | none |
+| is there a path from A to B | `path <A> <B>` (`--undirected`) | agent rules |
 | when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` | agent rules |
-| which message or name codes existed once and are gone | `deleted` | merge audit |
-| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers | merge audit |
-| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) | merge audit |
+| which message or name codes existed once and are gone | `deleted` | none |
+| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers | none |
+| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) | none |
 | is there a function like this one | `similar <function>` | agent rules |
-| which code in a folder is repeated | `dups --in <folder>` | gate, merge audit, agent rules |
-| tests with a wall-clock ceiling | `time-ceilings --in DIR` | merge audit |
-| broken references to language-definition items | `spec-refs` | gate, merge audit |
+| which code in a folder is repeated | `dups --in <folder>` | gate, agent rules |
+| tests with a wall-clock ceiling | `time-ceilings --in DIR` | none |
+| broken references to language-definition items | `spec-refs` | gate |
 
-The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `merge audit` (the audit read after each large merge), `agent rules` (the agents' rules name it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
+The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `agent rules` (the agents' rules tell them to run it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
 
 ## Staying fresh
 
@@ -778,9 +778,8 @@ is the stored, wider graph (docs, rules, messages, tests) for navigation.
 
 ## Time
 
-On this repository (2026-11-09: about 1 350 Go files, 36 000 nodes, 304 000 edges; `TestReadmeGraphSizeIsCurrent`
-fails when one of them drifts by more than a quarter) `build` took 7-8 s on 2026-11-04 with the built binary and a warm Go build
-cache (Windows; up to about 15 s on a loaded machine), and about 57 s with a cold cache in an older measurement
+On 2026-10-26, when the repository's graph had about 980 Go files, 25 000 nodes and 172 000 edges, `build` took 7-8 s
+with the built binary and a warm Go build cache (Windows; up to about 15 s on a loaded machine), and about 57 s with a cold cache in an older measurement
 (almost all of it compiling the standard library export data that `go list -export` asks for; the module's own
 packages are type-checked from source, not compiled). Query costs are under "Cost" above.
 

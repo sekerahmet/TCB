@@ -150,14 +150,14 @@ func readmeCommandRows(t *testing.T, doc string) []commandRow {
 }
 
 // flowValues soru-komut tablosunun flow sütununun değerleridir (README.md'de tablonun altındaki cümle).
-var flowValues = map[string]bool{"gate": true, "hook": true, "merge audit": true, "agent rules": true, "none": true}
+var flowValues = map[string]bool{"gate": true, "hook": true, "agent rules": true, "none": true}
 
 // Kural (codegraph dilim 5): tablonun flow sütunu her komutun hangi akışa bağlı olduğunu söyler ve değerleri kümededir.
 // gate ve hook iki yönlü sınanır: satır gate diyorsa tools/full_check.sh komutu `go run ./tools/edithook codegraph
 // <komut>` ya da derlenmiş ikiliyle `"$bin" <komut>` biçiminde çağırır, çağırıyorsa satır gate der (yorum satırı
 // sayılmaz; build bu biçimlerle çağrılmaz, tabloda satırı da yok); hook için tools/edithook'un test dışı Go
-// dosyalarındaki `codegraph(<kök>, "<komut>", ...)` çağrısı. merge audit ve agent rules depo dışındaki belgelere
-// dayanır: onlarda yalnız kümeye bakılır.
+// dosyalarındaki `codegraph(<kök>, "<komut>", ...)` çağrısı. agent rules depo dışındaki belgelere dayanır: onda yalnız
+// kümeye bakılır. merge audit (birleşme başına K5 raporu) 2026-11-15'te durdu, değer kümeden çıktı (codegraph eksiklerinin "Sıradaki iş" bölümü).
 func TestCommandTableFlowsMatchTheGateAndHook(t *testing.T) {
 	repoRule(t)
 	data, err := os.ReadFile("README.md")
@@ -183,7 +183,7 @@ func TestCommandTableFlowsMatchTheGateAndHook(t *testing.T) {
 		for _, f := range strings.Split(r.flow, ",") {
 			f = strings.TrimSpace(f)
 			if !flowValues[f] {
-				t.Errorf("README.md command table row %d (%s): flow %q is not one of gate, hook, merge audit, agent rules, none", i+1, cmd, f)
+				t.Errorf("README.md command table row %d (%s): flow %q is not one of gate, hook, agent rules, none", i+1, cmd, f)
 			}
 			says[f] = true
 		}
