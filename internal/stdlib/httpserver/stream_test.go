@@ -182,7 +182,6 @@ TR_func f(i: TR_Request) -> TR_Response {
 }
 TR_var s = TR_serve_http(f)`, map[string]interp.Value{"say": say})
 	res, c := streamGet(t, ts, "GET", "/")
-	_ = c.(*net.TCPConn).SetReadBuffer(4096)
 	if line, err := bufio.NewReader(res.Body).ReadString('\n'); err != nil || line != "data: 0\n" {
 		t.Fatalf("ilk olay: %q %v", line, err)
 	}
@@ -198,12 +197,14 @@ TR_var s = TR_serve_http(f)`, map[string]interp.Value{"say": say})
 			t.Fatalf("yazma süresi aşılınca blok durmalı: sayaç %d", n.Load())
 		}
 	}
-	// Blok yalnız takılmış değil, bağlantı kapanmıştır: kalan okunurken akış süre dolmadan kesilir.
-	_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+	// Blok yalnız takılmış değil, iptal edilmiş ve bağlantı kapanmıştır: istemci kalanı okuyunca akış
+	// süre dolmadan biter ve blok yeniden yazmaya başlamaz (takılmış olsaydı okuma onu sürdürürdü).
+	stopped := n.Load()
+	_ = c.SetReadDeadline(time.Now().Add(10 * time.Second))
 	_, err := io.Copy(io.Discard, res.Body)
 	var ne net.Error
-	if errors.As(err, &ne) && ne.Timeout() {
-		t.Fatalf("yazma süresi aşılınca bağlantı kapanmalıydı: %v", err)
+	if errors.As(err, &ne) && ne.Timeout() || n.Load() != stopped {
+		t.Fatalf("yazma süresi aşılınca bağlantı kapanmalıydı: %v, sayaç %d → %d", err, stopped, n.Load())
 	}
 	if out := ts.errOut.String(); out != "" {
 		t.Errorf("takılan istemci standart hataya satır yazdırmamalı: %q", out)
