@@ -58,6 +58,7 @@ Kurallar: [`10_eszamanlilik.md`](../10_eszamanlilik.md). Bu dosya her kuralın e
 - *Almadık:* durma noktalarını yalnız engelleyici işlere daraltmak: saf hesap döngüsü iptal edilemez olurdu (10.7'nin sabit hızlı döngüsü). Çok adımlı bir durumu iptale karşı korumak `TR_defer`'in işidir; kritik bölge yazımı yeni bir ad olur, Sonraya.
 - *Gerekçe:* amaç uzak modeli kullanmayı, sunmayı ve gecikmeye dayanıklı çalışmayı ister; üçü de artık gerekmeyen bir işi durdurabilmeyi gerektirir. Yakalanabilen iptal, ajanın geniş bir `TR_catch` ile iptali farkında olmadan yutmasına yol açar; Python bunu hata hiyerarşisiyle önler; TR'de hiyerarşi yoktur, `TR_catch` her hatayı yakalar. Bu yüzden iptal yakalanmaz, yalnız ertelenen işler çalışır (kaynaklar kapanır). İptalin 1.5'in durdurmasıyla aynı noktaları ve aynı yerleşik ayrımını kullanması ajanın öğrendiği tek bir durma kuralı bırakır; saf hesabın bırakılması iptali gerçekten hızlı yapar. Alt görevlere geçmesi, iptal edilen görevin bıraktığı ve kimsenin beklemediği işlerin programı açık tutmasını önler.
 - *Tur 7 (2026-11-13, görevin açtığı sunucu):* sunucu, alt görevler gibi, onu açan görevin alt işidir (28.8). Trio, kotlinx.coroutines ve Go'nun `context`'i alt işi üst işe bağlar; karşı seçenekte görevi iptal eden ajan kapının kapandığını sanır, kapı sessizce açık kalırdı.
+- *İndirme (2026-11-14, C dilimi):* iptalde dosyaya yazmanın bitmesi kuralı kısa yazmalar içindir; dakikalarca süren bir indirmeyi bitirmek iptali anlamsız kılardı. İndirme bir okuma sınırında durur (28.10). Emsal 21.5'in `p.TR_read`'i.
 
 ### 10.10
 

@@ -44,6 +44,8 @@ func Register(v *interp.VM) {
 	v.RegisterBuiltinCode(codes.FnCopy, safe(codes.FnCopy, copyBuiltin))
 	v.RegisterBuiltinCode(codes.FnMove, safe(codes.FnMove, moveBuiltin))
 	v.RegisterNoNamed(codes.FnTempDir, safe(codes.FnTempDir, tempDirBuiltin))
+	v.RegisterNoNamed(codes.FnSha256, safe(codes.FnSha256, sha256Builtin))
+	v.RegisterNoNamed(codes.FnSha256File, safe(codes.FnSha256File, sha256FileBuiltin))
 }
 
 // safe yerleşiği Go paniğine karşı korur (panik dene/yakala ile yakalanan bir hataya döner).

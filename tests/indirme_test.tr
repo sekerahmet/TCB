@@ -1,0 +1,80 @@
+# TR 4
+# docs/spec/28_ag.md §28.10–28.11 — indirme ve istemcinin güvenlik kuralları
+# Sunucu 127.0.0.1'de TR'nin kendi sunucusudur (28.11'in tek http istisnası). Kesilen ve süren
+# indirme, kilit, süreler, yönlendirme, TLS ve yerel adres Go testleridir: internal/stdlib/download.
+
+TR_func cevapla(istek: TR_Request) -> TR_Response {
+    TR_match istek.TR_path {
+        "/not.txt" => { TR_return TR_Response(TR_body: "merhaba") }
+        "/bos" => { TR_return TR_Response(TR_body: "") }
+        _ => { TR_return TR_Response(TR_status: 404) }
+    }
+}
+
+TR_func adres(s: TR_HTTPServer, yol: TR_String) -> TR_String {
+    TR_return "http://127.0.0.1:" + TR_String(s.TR_port) + yol
+}
+
+TR_test "28.10 doğru karma ve boyla indirir, sonucu dosyanın sha256'sıdır" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var y = TR_Path(TR_temp_dir(), "not.txt")
+    TR_var k = TR_download(adres(s, "/not.txt"), y, TR_sha256: TR_sha256(TR_Bytes("merhaba")), TR_size: 7)
+    TR_assert_equal(TR_sha256_file(y), k)
+    TR_assert_equal("merhaba", TR_read_file(y))
+    TR_assert_equal(TR_false, TR_Path(TR_String(y) + ".part").TR_exists)
+    TR_var b = TR_Path(TR_temp_dir(), "bos.bin")
+    TR_assert_equal(TR_sha256(TR_Bytes([])), TR_download(adres(s, "/bos"), b, TR_sha256: TR_none, TR_size: 0))
+    s.TR_close()
+}
+
+TR_test "28.10 404 çalışma hatasıdır; yanlış karma .part'ı sıfırlar; boy aşımı durur" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var k = TR_temp_dir()
+    TR_assert_equal("H7709", TR_error_code { TR_download(adres(s, "/yok"), TR_Path(k, "a"), TR_sha256: TR_none, TR_size: TR_none) })
+    TR_assert_equal(TR_false, TR_Path(k, "a").TR_exists)
+    TR_var yanlis = TR_sha256(TR_Bytes("başka"))
+    TR_assert_equal("H7721", TR_error_code { TR_download(adres(s, "/not.txt"), TR_Path(k, "b"), TR_sha256: yanlis, TR_size: TR_none) })
+    TR_assert_equal(0, TR_Path(k, "b.part").TR_size)
+    TR_assert_equal(TR_false, TR_Path(k, "b").TR_exists)
+    TR_assert_equal("H7719", TR_error_code { TR_download(adres(s, "/not.txt"), TR_Path(k, "c"), TR_sha256: TR_none, TR_size: 3) })
+    s.TR_close()
+}
+
+TR_test "28.10 karma ve boy zorunludur; yazımları denetlenir; öneri kopyalanınca çalışır" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var k = TR_temp_dir()
+    TR_var a = adres(s, "/not.txt")
+    TR_assert_equal("H7700", TR_error_code { TR_download(a, TR_Path(k, "a"), TR_size: 7) })
+    TR_assert_equal("H7701", TR_error_code { TR_download(a, TR_Path(k, "a"), TR_sha256: TR_none) })
+    TR_var buyuk = TR_sha256(TR_Bytes("merhaba")).TR_upper()
+    TR_assert_equal("H7702", TR_error_code { TR_download(a, TR_Path(k, "a"), TR_sha256: buyuk, TR_size: 7) })
+    TR_download(a, TR_Path(k, "a"), TR_sha256: buyuk.TR_lower(), TR_size: 7)
+    TR_assert_equal("H7703", TR_error_code { TR_download(a, TR_Path(k, "b"), TR_sha256: buyuk.TR_lower()[0..63], TR_size: 7) })
+    TR_assert_equal("H7703", TR_error_code { TR_download(a, TR_Path(k, "b"), TR_sha256: buyuk.TR_lower() + "0", TR_size: 7) })
+    TR_assert_equal("H7704", TR_error_code { TR_download(a, TR_Path(k, "b"), TR_sha256: TR_none, TR_size: -1) })
+    s.TR_close()
+}
+
+TR_test "28.10 ilerleme fonksiyonunun son çağrısında alınan toplama eşittir" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var son = [0, 0]
+    TR_download(adres(s, "/not.txt"), TR_Path(TR_temp_dir(), "a"), TR_sha256: TR_none, TR_size: 7, TR_on_progress: (alinan, toplam) => { son = [alinan, toplam] })
+    TR_assert_equal([7, 7], son)
+    s.TR_close()
+}
+
+TR_test "28.11 127.0.0.1 dışında http, localhost ve kimlikli adres çağrı hatasıdır" {
+    TR_var k = TR_temp_dir()
+    TR_assert_equal("H7705", TR_error_code { TR_download("http://huggingface.co/a", TR_Path(k, "a"), TR_sha256: TR_none, TR_size: TR_none) })
+    TR_assert_equal("H7706", TR_error_code { TR_download("http://localhost:8080/a", TR_Path(k, "a"), TR_sha256: TR_none, TR_size: TR_none) })
+    TR_assert_equal("H7707", TR_error_code { TR_download("https://ad:parola@huggingface.co/a", TR_Path(k, "a"), TR_sha256: TR_none, TR_size: TR_none) })
+}
+
+TR_test "28.11 vekil açıkça verilir; 127.0.0.1'e giden istek vekilden geçmez; vekilin şeması http ya da https" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var k = TR_temp_dir()
+    TR_var karma = TR_download(adres(s, "/not.txt"), TR_Path(k, "a"), TR_sha256: TR_none, TR_size: 7, TR_proxy: "http://vekil.invalid:8080")
+    TR_assert_equal(TR_sha256(TR_Bytes("merhaba")), karma)
+    TR_assert_equal("H7727", TR_error_code { TR_download("https://huggingface.co/a", TR_Path(k, "b"), TR_sha256: TR_none, TR_size: TR_none, TR_proxy: "socks5://vekil.invalid:1080") })
+    s.TR_close()
+}

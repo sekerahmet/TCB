@@ -1297,6 +1297,10 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md).
 - **Mevcut durum:** WAV okumasının bellek tepesi dosyanın yaklaşık 10 katı: 38,4 MB'lık dosyada 395 904 KB [ölçüldü: S1].
 - **Yapılacaklar (F, Ö3; sahip S1):** iletide bayt adı okunmuyor: H7067 metin olmayan parça adını sayı listesi diye gösteriyor [ölçüldü: S1]. Uzun dosyalar için parça parça okuma, önce gerçek ihtiyaç ölçülür.
 
+### 22.5
+
+- **Mevcut durum (Dost Interface, indirmenin C dilimi):** `TR_sha256` ve `TR_sha256_file` `internal/stdlib/files/sha256.go`'da; dosya akışla okunuyor, `.gz` açılmıyor, klasör H7729 [test: `TestSha256FileStreams`, `tests/bayt_ve_sayi_test.tr` 22.5].
+
 ## 23. Sinyal ve spektrum
 
 Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
@@ -1342,7 +1346,7 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 
 - **Mevcut durum (T1, birleşik 55):** ad maddesi önce geldiği için bazı fiil çekimleri ad veriyor [ölçüldü: T1]; görülmemiş 60 sözcükte 57 doğru [ölçüldü: DENETİM 264, TCB].
 
-## 28. Ağ: HTTP sunucusu
+## 28. Ağ: HTTP sunucusu ve indirme
 
 Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 
@@ -1361,5 +1365,8 @@ Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 - **Yapılacaklar (B, Ö0; sahip HTTP sunucusu kolu; tur 7, 2026-11-13; DENETİM 638, 639, 644):** görevin içinde açılan sunucu görevin alt işi değil: motor işleyici görevlerini yeni bir sahip görevin altında açıyor, açan görevin değil [kanıtlı: `internal/lang/interp/task_host.go:33`, `internal/stdlib/httpserver/serve.go:83`, `a28200ea`]; açan görev iptal edilince sunucunun sürdüğü koşulmadı [hipotez: dilimin ilk testi]; dönüş değeri açık bir sunucu olan görevin hatası yok. Dilimin ilk adımı sunucuyu bir listede ya da yapıda döndüren görevi de sınar (`TR_async { [TR_serve_http(f)] }` de bitmez); kapsam TCB'nin kararı (DENETİM 646 N6). Göç: görev içinde sunucu açan programlar dilimin ilk adımında sayılır (`tools/assistant/ekran_sunucu.tr:20` fonksiyondan döndürüyor, etkilenmez). Metin 28.8 ve 10.9'da.
 - **Yapılacaklar (D, Ö3; sahip HTTP sunucusu kolu; tur 7, 2026-11-13; DENETİM 638, 639, 644):** başlıkların bayt sınırı motorda metnin sayısından gevşek: `MaxHeaderBytes` ayarlanmıyor [kanıtlı: `internal/stdlib/httpserver/serve.go:88`, `a28200ea`], Go'nun okuma sınırı `MaxHeaderBytes + 4096`; 500 değer sınırının testi yok. Tam sınır Go'nun tamponuyla sağlanamıyorsa dilim durur ve sorar. Metin 28.5'te.
 - **Yapılacaklar (D, Ö3; sahip HTTP sunucusu kolu; tur 7, 2026-11-13; DENETİM 638, 639, 644):** `Trailer`, `Keep-Alive`, `Upgrade` ve `426` (28.3) ile başlık değerinin HTAB'ı ve uçlarındaki boşluk: motorun bu üç başlıktaki davranışı ölçülmedi; değerdeki HTAB bugün reddediliyor [kanıtlı: `pending.md`'nin HTTP aşama 1 satırı, DENETİM 371]. Dilimin ilk adımı ölçer. İleti: uçtaki boşluk H7611'in metnine girmiyor; yeni kod ya da H7611'in genişlemesi, uygulama diliminin bloğundan (DENETİM 646 N5). Metin 28.3'te.
-- **Yapılacaklar (B, Ö1; sahip Dost Interface, indirmenin C dilimi; tur 7 K1c, DENETİM 646 Ş4):** dilin kendi iletisi (HTTP istemcisinin, indirmenin hatası) adresi şema, ana makine, kapı ve yolla yazar; kimlik kısmı ve sorgu (`?X-Amz-Signature=...`) yazılmaz. Karar indirme tasarımında (indirmenin iletileri, 28.10'un metni C dilimiyle).
 - **Ölçü kalemi (sınıfsız, Ö3; sahip HTTP sunucusu kolu; tur 7, 2026-11-13; DENETİM 638, 639, 644):** görüntünün katlanmasının bedeli: T baytlık cevap k olayda yaklaşık T·k/2 bayt kopya [hesap: tur 7 araştırması 2.3]; ölçülmedi.
+
+### 28.10–28.11
+
+- **Mevcut durum (Dost Interface, indirmenin C dilimi):** `TR_download` (28.10) ve istemcinin güvenlik kuralları (28.11) `internal/stdlib/download/`'da; `.part` kilitli, Windows'ta dosya sonunun ötesindeki baytta kilit ve tutamakla yerine koyma (K7'nin ölçüsü); iletiler H7700–H7728, H7738, H7739 [test: `internal/stdlib/download`'un Go testleri, `tests/indirme_test.tr`].

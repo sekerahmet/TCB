@@ -55,6 +55,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | norm | TR_arg_norm, TR_mem_norm | aynı anlam: norm (bir büyüklüğün ölçüsü ya da ona göre ölçekleme); TR_arg_norm `.TR_norm`'u kurmaz: mel süzgeçlerinin normlama biçimidir (`TR_mel_filterbank(..., TR_norm: "slaney")`) ve eğitimde gradyanın normudur (`TR_SpikeGuard.TR_observe(kayıp, norm)`); TR_mem_norm bloğun norm katmanıdır (RMSNorm) |
 | parametreler | TR_arg_parameters, TR_fn_parameters, TR_mem_parameters | aynı anlam: modelin eğitilen tensörleri (`TR_parameters(model)`, `TR_Muon(parametreler)` ve iyileştiricinin `.TR_parameters` alanı; PyTorch `model.parameters()`, `Optimizer(params)`) |
 | rope_tabanı | TR_arg_rope_theta, TR_fn_rope_theta | aynı anlam: RoPE tabanı (`TR_GPT(TR_rope_theta:)` ve onu Hugging Face ayarından okuyan `TR_rope_theta(ayar)`; Hugging Face `rope_theta`) |
+| sha256 | TR_arg_sha256, TR_fn_sha256 | aynı anlam: sha256 karması (`TR_sha256(b)` baytların karmasını verir, `TR_download`'ın `TR_sha256:`'ı dosyanın beklenen karmasıdır; 22.5, 28.10) |
 | tablo | TR_dbg_table, TR_mem_table | ayrı alan: TR_dbg_table hata ayıklayıcıda bir değeri tablo olarak gösterir; TR_mem_table gömme katmanının ağırlık tablosudur |
 
 ## İleride karar verilecek
