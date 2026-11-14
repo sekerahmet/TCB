@@ -68,7 +68,12 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return nil, ArgCountError(codes.FnInput, Counts(0, 1), len(args), "", messages.Text(messages.H2300))
 	}
 	if y.inputHasEnded() {
-		return nil, messages.New(messages.H2561) // TR_none'dan sonraki çağrı (13.1; Python'un EOFError'ı)
+		// TR_none'dan sonraki çağrı (13.1; Python'un EOFError'ı); öneri çağrının istemini korur.
+		prompt := ""
+		if len(args) > 0 {
+			prompt = QuoteText(y.textOf(args[0]))
+		}
+		return nil, messages.New(messages.H2561, prompt)
 	}
 	if len(args) > 0 {
 		y.WriteOutput(y.Out, y.textOf(args[0]))

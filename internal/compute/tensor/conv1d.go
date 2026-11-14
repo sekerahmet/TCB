@@ -1,5 +1,7 @@
 package tensor
 
+import "github.com/sekerahmet/TCB/internal/lang/messages"
+
 // Bir boyutlu evrişim (15.23c). Girdi pencereleri bir kez satırlara açılır, çarpımı `@` yapar:
 // hesap, biriktirme ve türev onunla aynıdır. Açma tensörün cihazındadır (15.41): işlemcide
 // openRows, kartta arka ucun açma çekirdeği (Conv1dFolder). Açma kopyadır; türevi her girdi
@@ -96,6 +98,7 @@ func unfold1d(x *Tensor, k, frames int, o Conv1dOptions) *Tensor {
 func openOn(x *Tensor, f foldShape, shape []int) *Tensor {
 	cf, ok := x.be.(Conv1dFolder)
 	if !ok {
+		noFolderOff(x.be)
 		allocSizeOn(x.be, isCreate, shape, Float32)
 		return NewOn(CPU, openRows(x.Detach().Data(), f), shape...)
 	}
@@ -106,10 +109,19 @@ func openOn(x *Tensor, f foldShape, shape []int) *Tensor {
 	return out
 }
 
+// noFolderOff Conv1dFolder'ı sağlamayan işlemci dışı arka uçta iç hatadır: açma ve katlama sessizce
+// işlemcide kurulmaz (15.41). Bugün işlemci dışı tek arka uç (GPU) onu sağlar.
+func noFolderOff(be Backend) {
+	if be.Device() != CPU {
+		panic(messages.Internalf("tensor: conv1d: the %v backend has no Conv1dFolder; the unfold would fall back to the CPU", be.Device()))
+	}
+}
+
 // foldOn açmanın türevini be'nin cihazında toplar (openOn'un eşi).
 func foldOn(be Backend, g *Tensor, f foldShape) *Tensor {
 	cf, ok := be.(Conv1dFolder)
 	if !ok {
+		noFolderOff(be)
 		return NewOn(CPU, foldRows(g.Data(), f), f.batch, f.cin, f.l)
 	}
 	shape := []int{f.batch, f.cin, f.l}

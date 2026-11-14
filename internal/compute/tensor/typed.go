@@ -410,7 +410,7 @@ const ConvertIntegral uint8 = 1
 func ConvertSortIndex(t *Tensor, dt DType) *Tensor {
 	r, f := typed(TypedOp{Kind: TConvert, Sub: ConvertIntegral}, dt, t.shape, t)
 	if f != nil {
-		panic("tensor: ConvertSortIndex: the sort index is not integral (Backend.Sort contract broken)")
+		panic(messages.Internalf("tensor: ConvertSortIndex: the sort index is not integral (Backend.Sort contract broken)"))
 	}
 	return r
 }

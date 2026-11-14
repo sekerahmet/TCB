@@ -9,6 +9,7 @@ import (
 	"go/types"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
@@ -85,6 +86,45 @@ func TestBackendDataCallsGoThroughTheGate(t *testing.T) {
 	}
 }
 
+// Kural (10.2, access.go: Kernel.end): newKernel'e verilen gövde kapıyı doğrudan çağırmaz: gövde
+// izinleri tutarken kapı aynı izni bekleyip kilitlenirdi; depo iadesi çekirdeğin end'indedir.
+// Gövdenin çağırdığı bir yardımcının iadesi (cpu_dtype.go'nun temp.finish'i, tutulmayan geçici
+// tampon) doğrudan çağrı değildir, sayılmaz.
+func TestKernelBodiesCallNoGate(t *testing.T) {
+	fset, files, info, _ := checkTensorPackage(t)
+	bodies := 0
+	for _, f := range files {
+		ast.Inspect(f, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok || len(call.Args) == 0 {
+				return true
+			}
+			fn, ok := call.Fun.(*ast.Ident)
+			body, lit := call.Args[len(call.Args)-1].(*ast.FuncLit)
+			if !ok || fn.Name != "newKernel" || !lit {
+				return true
+			}
+			bodies++
+			ast.Inspect(body, func(m ast.Node) bool {
+				inner, ok := m.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				if fn, ok := inner.Fun.(*ast.Ident); ok && strings.HasPrefix(fn.Name, "gate") {
+					if obj, ok := info.Uses[fn].(*types.Func); ok && obj.Parent() == obj.Pkg().Scope() {
+						t.Errorf("%s: çekirdeğin gövdesi kapıyı (%s) doğrudan çağırıyor; iadeyi çekirdeğin end'ine taşıyın", fset.Position(inner.Pos()), fn.Name)
+					}
+				}
+				return true
+			})
+			return true
+		})
+	}
+	if bodies < 5 {
+		t.Fatalf("yalnız %d çekirdek gövdesi bulundu; tarama newKernel çağrılarını görmüyor", bodies)
+	}
+}
+
 // gateFile kapı dosyasıdır: gate_calls.go ve 600 satır sınırı yüzünden ondan ayrılan
 // gate_calls_*.go (aynı kural, ayrı dosya).
 func gateFile(name string) bool {
@@ -98,13 +138,34 @@ func derefType(t types.Type) types.Type {
 	return t
 }
 
-// checkTensorPackage paketin (testsiz, bu yapılandırmadaki) dosyalarını tip denetiminden geçirir.
+// checkedTensorPackage checkTensorPackage'ın sonucudur: paketin kaynaktan tip denetimi uzun sürer,
+// iki test aynı sonucu okur (yalnız okur).
+var checkedTensorPackage struct {
+	once  sync.Once
+	fset  *token.FileSet
+	files []*ast.File
+	info  *types.Info
+	pkg   *types.Package
+	err   error
+}
+
+// checkTensorPackage paketin (testsiz, bu yapılandırmadaki) dosyalarını tip denetiminden bir kez geçirir.
 func checkTensorPackage(t *testing.T) (*token.FileSet, []*ast.File, *types.Info, *types.Package) {
 	t.Helper()
+	c := &checkedTensorPackage
+	c.once.Do(func() { c.fset, c.files, c.info, c.pkg, c.err = loadTensorPackage() })
+	if c.err != nil {
+		t.Fatal(c.err)
+	}
+	return c.fset, c.files, c.info, c.pkg
+}
+
+// loadTensorPackage paketin dosyalarını okur ve tip denetiminden geçirir.
+func loadTensorPackage() (*token.FileSet, []*ast.File, *types.Info, *types.Package, error) {
 	fset := token.NewFileSet()
 	entries, err := reporoot.ReadDir(".")
 	if err != nil {
-		t.Fatal(err)
+		return nil, nil, nil, nil, err
 	}
 	var files []*ast.File
 	for _, e := range entries {
@@ -117,7 +178,7 @@ func checkTensorPackage(t *testing.T) (*token.FileSet, []*ast.File, *types.Info,
 		}
 		f, err := parser.ParseFile(fset, n, nil, 0)
 		if err != nil {
-			t.Fatal(err)
+			return nil, nil, nil, nil, err
 		}
 		files = append(files, f)
 	}
@@ -126,7 +187,7 @@ func checkTensorPackage(t *testing.T) (*token.FileSet, []*ast.File, *types.Info,
 	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil)}
 	pkg, err := conf.Check("github.com/sekerahmet/TCB/internal/compute/tensor", fset, files, info)
 	if err != nil {
-		t.Fatal(err)
+		return nil, nil, nil, nil, err
 	}
-	return fset, files, info, pkg
+	return fset, files, info, pkg, nil
 }

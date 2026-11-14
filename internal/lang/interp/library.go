@@ -104,12 +104,14 @@ func ResolveModulePath(filePath string, dirs []string) (resolved string, searche
 
 // ModulePathError is why ResolveModulePath did not find the relative 'aktar' path written (as
 // written, with or without .tr) among dirs (11.1): when only the letter case differs from the
-// name on disk the message gives the name on disk (H2721); when the file is not next to the
+// name on disk, the extension's too ("ortak.TR"), the message gives the name on disk (H2721); when the file is not next to the
 // importing file but the program's directory has it, the message gives the explicit path there
 // (H2722, "../ad"); otherwise fs.ErrNotExist. Both suggestions are 'aktar' paths that load.
 func ModulePathError(written string, dirs []string) error {
 	filePath := written
-	if !strings.HasSuffix(filePath, ".tr") {
+	if ext := filepath.Ext(written); ext != ".tr" && strings.EqualFold(ext, ".tr") {
+		filePath = strings.TrimSuffix(written, ext) + ".tr" // "ortak.TR": uzantının harf büyüklüğü de diskteki adla
+	} else if !strings.HasSuffix(filePath, ".tr") {
 		filePath += ".tr"
 	}
 	if filepath.IsAbs(filePath) {

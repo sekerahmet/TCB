@@ -439,7 +439,7 @@ const (
 	H2558 Code = 2558 // {fn}: anahtar fonksiyonu tek parametre alır (öğe) ve öğenin anahtarını verir; {count} parametreli fonksiyon verildi, karşılaştırıcı anahtar değildir (13.1)
 	H2559 Code = 2559 // `{#ord}(k)`'nin `k`'si tek karakterlik bir metindir, {given|q} {length} karakterdir (13.1); her karakterin kodu ayrı alınır: `{#ord}({given|q}[0])`
 	H2560 Code = 2560 // `{#chr}(n)`'nin `n`'si bir Unicode skaler değeridir: 0 ile 0x10FFFF arası, 0xD800–0xDFFF vekil aralığı hariç (13.1, 2.6); {given} verildi
-	H2561 Code = 2561 // `{#input}()` girdi bittikten sonra yeniden çağrıldı: önceki çağrı girdinin sonunu `{#none}` ile bildirdi, ondan sonra okunacak satır yok (13.1); satırı bir değişkene alıp `{#none}`'ı sınayın ve döngüyü bitirin: `{#var} s = {#input}()`, sonra `{#if} s == {#none} {{ {#break} }}`
+	H2561 Code = 2561 // `{#input}()` girdi bittikten sonra yeniden çağrıldı: önceki çağrı girdinin sonunu `{#none}` ile bildirdi, ondan sonra okunacak satır yok (13.1); satırı bir değişkene alıp `{#none}`'ı sınayın ve döngüyü bitirin: `{#var} s = {#input}({prompt})`, sonra `{#if} s == {#none} {{ {#break} }}`
 	H2570 Code = 2570 // JSON metninde eşi olmayan vekil kaçışı `{escape}` var (satır {line}, sütun {column}); UTF-16 vekili yalnız çift olarak bir karakterdir: yüksek vekilden (`\ud800`–`\udbff`) hemen sonra düşük vekil (`\udc00`–`\udfff`) gelir
 	H2571 Code = 2571 // JSON metninde geçersiz UTF-8 baytı 0x{byte} var (satır {line}, sütun {column}); JSON metni UTF-8'dir
 	H2572 Code = 2572 // JSON nesnesinde {found|q} beklenmiyordu (satır {line}, sütun {column}); burada {after, select, open {çift tırnaklı bir anahtar ya da} other {`,` ya da}} `}}` bekleniyordu

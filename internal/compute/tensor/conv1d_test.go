@@ -4,6 +4,8 @@ import (
 	"runtime"
 	"slices"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Sonuç ve girdinin gradyanı işçi sayısına bağlı değildir (15.22a).
@@ -26,6 +28,16 @@ func TestConv1dSameBitsForAnyWorkerCount(t *testing.T) {
 			t.Fatalf("GOMAXPROCS=%d sonucu seri hesaptan farklı", n)
 		}
 	}
+}
+
+// Kural (15.41): evrişimin açması ve katlaması tensörün cihazındadır; Conv1dFolder'ı sağlamayan
+// işlemci dışı bir arka uçta (fakeGPU) iç hatadır, sessizce işlemcide kurulmaz.
+func TestConv1dWithoutFolderOffTheCPUIsInternal(t *testing.T) {
+	x, w := New(noise(1*2*6), 1, 2, 6), New(noise(1*2*3), 1, 2, 3)
+	x.be, w.be = fakeGPU{}, fakeGPU{}
+	panicCode(t, "açma", messages.H9000, func() { Conv1d(x, w, nil, Conv1dOptions{Stride: 1, Dilation: 1, Groups: 1}, MatMul) })
+	f := foldShape{batch: 1, cin: 2, l: 6, k: 3, frames: 4, o: Conv1dOptions{Stride: 1, Dilation: 1, Groups: 1}}
+	panicCode(t, "katlama", messages.H9000, func() { foldOn(fakeGPU{}, New(noise(1*6*4), 1, 6, 4), f) })
 }
 
 // Dolgu sıfırdır; çıkış uzunluğu PyTorch'un formülüdür.

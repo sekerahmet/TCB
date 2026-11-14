@@ -61,6 +61,13 @@ func TestInputAfterTheEndIsAnError(t *testing.T) {
 			}
 		}
 	}
+	// İstemli çağrının önerisi istemi korur (DENETİM 400 kapanış K-N5): öneri yazılan çağrının biçimidir.
+	_, prompted := run("TR_var a = TR_input(\"> \")\nTR_var b = TR_input(\"> \")", "")
+	for _, lang := range []string{"tr", "en"} {
+		if text := messages.ErrorIn(prompted, lang); !strings.Contains(text, "`TR_var s = TR_input(\"> \")`") {
+			t.Errorf("%s: istemli çağrının önerisi istemi taşımalı: %s", lang, text)
+		}
+	}
 	out, err = run("TR_var a = TR_input()\nTR_print(a, TR_error_code { TR_input() })", "")
 	if err != nil || out != "none H2561" {
 		t.Errorf("H2561 yakalanmalı: çıktı %q, hata %v", out, err)

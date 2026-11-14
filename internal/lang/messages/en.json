@@ -434,7 +434,7 @@
 "H2558": "{fn}: the key function takes one parameter (the element) and gives the element's key; a function with {count, plural, one {# parameter} other {# parameters}} was given, a comparator is not a key (13.1)",
 "H2559": "the `k` of `{#ord}(k)` is a one-character text, {given|q} has {length, plural, one {# character} other {# characters}} (13.1); each character's code is taken on its own: `{#ord}({given|q}[0])`",
 "H2560": "the `n` of `{#chr}(n)` is a Unicode scalar value: from 0 to 0x10FFFF, except the surrogate range 0xD800–0xDFFF (13.1, 2.6); {given} was given",
-"H2561": "`{#input}()` was called again after the input ended: the previous call reported the end of the input with `{#none}`, and no line is left to read (13.1); take the line into a variable, test it for `{#none}` and end the loop: `{#var} s = {#input}()`, then `{#if} s == {#none} {{ {#break} }}`",
+"H2561": "`{#input}()` was called again after the input ended: the previous call reported the end of the input with `{#none}`, and no line is left to read (13.1); take the line into a variable, test it for `{#none}` and end the loop: `{#var} s = {#input}({prompt})`, then `{#if} s == {#none} {{ {#break} }}`",
 "H2570": "the JSON text has a lone surrogate escape `{escape}` (line {line}, column {column}); a UTF-16 surrogate is a character only as a pair: a high surrogate (`\\ud800`–`\\udbff`) immediately followed by a low surrogate (`\\udc00`–`\\udfff`)",
 "H2571": "the JSON text has an invalid UTF-8 byte 0x{byte} (line {line}, column {column}); JSON text is UTF-8",
 "H2572": "unexpected {found|q} in a JSON object (line {line}, column {column}); expected {after, select, open {a double-quoted key or} other {`,` or}} `}}` here",

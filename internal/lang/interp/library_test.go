@@ -123,6 +123,10 @@ func TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase(t *testing.T) 
 			map[string]string{"ana.tr": "TR_import \"ortak\" TR_as a\nTR_import \"ortak\" TR_as b\nTR_print(a.artır(), b.artır())\n"}, "1 2\n"},
 		{map[string]string{"ortak.tr": counter, "ana.tr": "TR_import \"ORTAK.tr\" TR_as a\nTR_print(a.artır())\n"},
 			messages.H2721, "TR_import \"ortak.tr\"", nil, ""},
+		// Uzantının harf büyüklüğü de (11.1): "ortak.TR" "ortak.TR.tr"yi değil diskteki ortak.tr'yi önerir.
+		{map[string]string{"ortak.tr": counter, "ana.tr": "TR_import \"ortak.TR\" TR_as a\nTR_print(a.artır())\n"},
+			messages.H2721, "TR_import \"ortak\"",
+			map[string]string{"ana.tr": "TR_import \"ortak\" TR_as a\nTR_print(a.artır())\n"}, "1\n"},
 		{map[string]string{"ortak.tr": counter, "alt/m.tr": "TR_import \"ortak\" TR_as o\nTR_func x() -> TR_Int {\n    TR_return o.artır()\n}\n",
 			"ana.tr": "TR_import \"alt/m\" TR_as m\nTR_print(m.x())\n"},
 			messages.H2722, "TR_import \"../ortak\"",
