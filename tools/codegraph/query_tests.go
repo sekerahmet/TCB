@@ -249,6 +249,15 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	flushAnswer(w, ab, listed)
 }
 
+// printTestsForShort tests-for'un bayraksız cevabıdır (codegraph dilim 6, D6-1; düzenleme kancasının çağrısı): dosya
+// satırı, koşu satırları, boyut satırı ve listelenen test sayısı (S1). Gruplar --list ile gelir; dal satırı olan cevap
+// (testi bulunmayan düğüm) tamdır.
+func (ix *index) printTestsForShort(w io.Writer, n *Node) {
+	ab := &answerBuffer{}
+	ix.testsForBody(n)(ab, defaultLimit)
+	flushShortAnswer(w, ab)
+}
+
 // testsForBody printTestsFor'un gövdesidir: testleri bir kez toplar, dönen işlev onları verilen sınırla yazar;
 // koşu satırlarının yerini ayırır (writeRunPlan).
 func (ix *index) testsForBody(n *Node) func(io.Writer, int) {
@@ -275,6 +284,9 @@ func (ix *index) printNodeTests(w io.Writer, n *Node, t nodeTests, limit int) {
 	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindDoc || n.Kind == kindFile {
 		writeRunPlan(w, func(l listedTests) runPlan { return ix.nodeRunPlan(n, t, tests, l) })
+	}
+	if t.branch == branchTested {
+		markHeadEnd(w) // öbür dallar "below" diye gruplara gönderir: kısa kipte de tam yazılırlar
 	}
 	switch t.branch {
 	case branchWeak, branchExam, branchUntested:

@@ -8,7 +8,9 @@ Bir oturum depoda izlenen bir dosyayı ilk kez düzenleyince kanca `tests-for` c
 satırını ajana bağlam olarak verir (Claude Code'un `additionalContext` cevabı; çıkış kodu
 kullanılmaz, çünkü `go run` programın 2 kodunu 1'e çevirir). Listenin başı tek başına yetmez (doğrudan testi olmayan
 bir dosyada ilk 30 satır başka paketlerin uzak testleriydi, 2026-10-29); Go dosyasında yeten, codegraph'ın en üste
-koyduğu satırlardır: koşu satırları (`run:`, koşmadıkları sayıyla) ve boyut satırı (`size (...)`). Düzenleme durmaz: 2026-10-28'e kadar
+koyduğu satırlardır: koşu satırları (`run:`, koşmadıkları sayıyla) ve boyut satırı (`size (...)`). codegraph dilim 6'dan
+beri bayraksız `tests-for` yalnız bunları ve listelenen test sayısını verir; gruplar `tests-for <dosya> --list` ile
+sorulur, 30 satır güvenlik sınırı olarak kalır. Düzenleme durmaz: 2026-10-28'e kadar
 kanca ilk düzenlemeyi durdurup yinelenmesini istiyordu; bu her dosyada bir tur alıyor, kararı
 değiştirmiyordu. Aynı oturumda aynı dosya için bir daha söylenmez (işaret geçici klasörde,
 `tr-edithook/<oturum>/`). Kabuktan (Python, sed) yapılan düzenlemeyi görmez; bu açık yol

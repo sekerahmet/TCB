@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"path"
 	"regexp"
@@ -47,15 +48,48 @@ func writeRunPlan(w io.Writer, plan func(listedTests) runPlan) {
 	printRunPlan(w, plan(listedTests{}))
 }
 
-// flushAnswer gövdeyi w'ye yazar; listed doluysa adlar ondan (--all'da varsayılan sınırla yazılmış gövdeden) okunur.
+// headEndSlot gövdede kısa cevabın bittiği yerdir (codegraph dilim 6, D6-1): dosya satırı, koşu satırları ve boyut
+// satırı ondan öncedir, gruplar sonra. Dal satırı olan cevapta (`no tests found…`) yazılmaz: o cevap kısa kipte de tamdır.
+const headEndSlot = "\x00head-end\x00\n"
+
+// markHeadEnd kısa cevabın sonunu işaretler; w bir answerBuffer değilse bir şey yazmaz.
+func markHeadEnd(w io.Writer) {
+	if ab, ok := w.(*answerBuffer); ok {
+		ab.WriteString(headEndSlot)
+	}
+}
+
+// flushAnswer gövdeyi w'ye yazar (--list ve --all); listed doluysa adlar ondan (--all'da varsayılan sınırla yazılmış
+// gövdeden) okunur.
 func flushAnswer(w io.Writer, ab *answerBuffer, listed *answerBuffer) {
-	text := ab.String()
+	text := strings.Replace(ab.String(), headEndSlot, "", 1)
 	if ab.plan != nil {
 		var run strings.Builder
 		printRunPlan(&run, ab.plan(listedIn(listed.String())))
 		text = strings.Replace(text, runPlanSlot, run.String(), 1)
 	}
 	_, _ = io.WriteString(w, text)
+}
+
+// flushShortAnswer tests-for'un bayraksız cevabıdır (D6-1, Karar 1): gövde --list'in gövdesidir, yazılan yalnız kısa
+// cevabın sonuna kadarki kısmı ve gövdede adı geçen testlerin sayısıdır (S1). Koşu satırları aynı adlarla kurulur;
+// gruplara gönderen satırları --list'e gönderir (S8).
+func flushShortAnswer(w io.Writer, ab *answerBuffer) {
+	text := ab.String()
+	listed := listedIn(text)
+	head, _, cut := strings.Cut(text, headEndSlot)
+	if !cut {
+		head = text
+	}
+	if ab.plan != nil {
+		var run strings.Builder
+		printRunPlanText(&run, ab.plan(listed), true)
+		head = strings.Replace(head, runPlanSlot, run.String(), 1)
+	}
+	_, _ = io.WriteString(w, head)
+	if n := len(listed.goTests) + len(listed.trFiles); cut && n > 0 {
+		_, _ = fmt.Fprintf(w, "  tests: %d listed (--list shows the first page of each group, --all every test)\n", n)
+	}
 }
 
 // listedGoTest ve listedTRTest cevabın test satırlarıdır: `ad [func] dosya:satır` (describe) ya da `... at dosya:satır`

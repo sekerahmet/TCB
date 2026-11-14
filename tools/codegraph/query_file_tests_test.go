@@ -18,7 +18,7 @@ var fileOrderFiles = map[string]string{
 func testsForItems(t *testing.T, root, target, heading string) []string {
 	t.Helper()
 	var out, errb strings.Builder
-	if code := run([]string{"tests-for", target, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", target, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for %s: %d %s", target, code, errb.String())
 	}
 	items, ok := groupItems(strings.Split(out.String(), "\n"), heading)
@@ -65,7 +65,7 @@ func TestInferredZeroStepEdgeIsNotWrittenAsDirect(t *testing.T) {
 		t.Fatalf("build: %d %s", code, buildErr.String())
 	}
 	var out, errb strings.Builder
-	if code := run([]string{"tests-for", "p/cmd.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "--list", "p/cmd.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for p/cmd.go: %d %s", code, errb.String())
 	}
 	got := out.String()

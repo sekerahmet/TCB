@@ -15,6 +15,7 @@ type queryOpts struct {
 	stdin          io.Reader // query -: grep çıktısı (query_lines.go)
 	stdout, stderr io.Writer
 	limit          int    // gruptaki en çok satır (0: sınırsız)
+	list           bool   // tests-for: grupları da yaz (--list, --all ya da --limit); yoksa kısa cevap
 	root, base     string // depo kökü; changed için karşılaştırılan dal
 	in             string // callees / calls-into: paket sınırı
 	min            int    // calls-into: en az kaç ayrı işlev
@@ -41,6 +42,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.SetOutput(stderr)
 	graphPath := fs.String("graph", "", "graph file (default <root>/.codegraph/graph.json)")
 	all := fs.Bool("all", false, "no line limit")
+	list := fs.Bool("list", false, "tests-for: also the first page of each group (without it only the file, run: and size: lines)")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
 	o := &queryOpts{stdin: os.Stdin, stdout: stdout, stderr: stderr}
 	fs.IntVar(&o.limit, "limit", defaultLimit, "lines per group")
@@ -82,6 +84,9 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	if *all {
 		o.limit = 0
 	}
+	// tests-for'un grupları --list, --all ya da --limit ile gelir; bayraksız cevap kısadır (codegraph dilim 6, D6-1).
+	o.list = *list || *all
+	fs.Visit(func(f *flag.Flag) { o.list = o.list || f.Name == "limit" })
 	g := loaded
 	if g == nil {
 		var code int
@@ -169,7 +174,11 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 		}
 	case "tests-for":
 		ix.withTestNotes(o.root)
-		ix.printTestsFor(o.stdout, nodes[0], o.limit)
+		if o.list {
+			ix.printTestsFor(o.stdout, nodes[0], o.limit)
+		} else {
+			ix.printTestsForShort(o.stdout, nodes[0])
+		}
 	case "fields":
 		if n := nodes[0]; n.Kind == kindField {
 			// Bir alanın erişimleri who-uses'ın işidir (K7): aynı soru iki komutla soruluyordu.

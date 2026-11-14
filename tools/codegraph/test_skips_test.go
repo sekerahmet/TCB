@@ -176,11 +176,11 @@ func TestTestsForMarksTestsThatSkipUnderACondition(t *testing.T) {
 	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
 		t.Fatalf("build: %d %s", code, errOut)
 	}
-	_, out, _ := runCLI("tests-for", "p.Lib", "--root", root, "--no-rebuild")
+	_, out, _ := runCLI("tests-for", "--list", "p.Lib", "--root", root, "--no-rebuild")
 	if !strings.Contains(out, "[skips when: g.lt == nil]") || !strings.Contains(out, "CI may run none of them") {
 		t.Errorf("both tests of Lib skip under a condition:\n%s", out)
 	}
-	if _, out, _ = runCLI("tests-for", "p.Plain", "--root", root, "--no-rebuild"); strings.Contains(out, "CI may run none") {
+	if _, out, _ = runCLI("tests-for", "--list", "p.Plain", "--root", root, "--no-rebuild"); strings.Contains(out, "CI may run none") {
 		t.Errorf("Plain has a test with no condition:\n%s", out)
 	}
 }

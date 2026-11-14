@@ -92,7 +92,7 @@ func TestExamSelectionOnModifyRenameDeleteAndStamp(t *testing.T) {
 	commitAll(t, root, "add exam fixture")
 
 	graph := buildInto(t, root)
-	code, out, errOut := commandIn("tests-for", root, graph, "shape.NamedInExam")
+	code, out, errOut := commandIn("tests-for", root, graph, "--list", "shape.NamedInExam")
 	if code != exitOK {
 		t.Fatalf("tests-for NamedInExam exit %d: %s", code, errOut)
 	}
@@ -100,7 +100,7 @@ func TestExamSelectionOnModifyRenameDeleteAndStamp(t *testing.T) {
 	if strings.Contains(out, "TestExamFormatOnly") || strings.Contains(out, "<- tests") {
 		t.Errorf("unexpected test link in tests-for NamedInExam:\n%s", out)
 	}
-	_, descOut, _ := commandIn("tests-for", root, graph, "shape.Describe")
+	_, descOut, _ := commandIn("tests-for", root, graph, "--list", "shape.Describe")
 	if before, _, ok := strings.Cut(descOut, "<- exam questions that name it"); !ok || strings.Contains(before, examTest) {
 		t.Errorf("Describe must list exam separately from direct/indirect tests:\n%s", descOut)
 	}

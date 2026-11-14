@@ -81,7 +81,7 @@ Bir şeyi bulmak için çok dosya okumadan önce yerel kod grafiğine sorun ([`t
 go run ./tools/codegraph build                   # .codegraph/graph.json (git'e girmez; ılık önbellekle ~3 sn)
 go run ./tools/codegraph query messages.New      # düğüm + komşuları
 go run ./tools/codegraph who-uses H2100          # ileti/ad kodunu ya da işlevi kullananlar
-go run ./tools/codegraph tests-for interp.VM.Run # sınayan testler ve koruduğu kurallar
+go run ./tools/codegraph tests-for interp.VM.Run --list # sınayan testler ve koruduğu kurallar (bayraksız: koşu ve boyut satırları)
 go run ./tools/codegraph query zaman_ms         # yerleşik adı → kod → Go kaydı/uygulaması → belge başlığı
 go run ./tools/codegraph calls-into tensor --in internal/stdlib # tensör işlevlerinden ≥2 tanesini çağıranlar
 go run ./tools/codegraph who-uses tensor.Tensor.shape --mode write # alanın yazıldığı yerler (tipe göre, kapanışlar işaretli; --mode read okumalar)

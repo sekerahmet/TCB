@@ -103,7 +103,7 @@ func TestTRQueries(t *testing.T) {
 	// Yerleşik ad TR çağrı yerlerini de verir.
 	_, out, _ = cli(t, "who-uses", "yazdır")
 	testkit.MustContain(t, out, "geo.yaz_alan [tr_func] at lib/geo.tr:", "examples/ana.tr [file] at examples/ana.tr:")
-	_, out, _ = cli(t, "tests-for", "geo.Kare")
+	_, out, _ = cli(t, "tests-for", "--list", "geo.Kare")
 	testkit.MustContain(t, out, "geo_test: kare alanı yazılır [tr_test]")
 }
 

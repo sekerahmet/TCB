@@ -231,7 +231,7 @@ func TestRepositoryTypeLoadedTestsAreSelected(t *testing.T) {
 	if err := writeGraph(graphPath, g); err != nil {
 		t.Fatal(err)
 	}
-	code, tfOut, errOut := commandIn("tests-for", root, graphPath, "--no-rebuild", "internal/stdlib/ml/members_freeze.go")
+	code, tfOut, errOut := commandIn("tests-for", root, graphPath, "--list", "--no-rebuild", "internal/stdlib/ml/members_freeze.go")
 	if code != exitOK {
 		t.Fatalf("tests-for members_freeze.go: exit %d: %s", code, errOut)
 	}

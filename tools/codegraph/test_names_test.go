@@ -111,7 +111,7 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 	}
 	for _, fn := range []string{"app.Update", "app.Save"} {
 		out.Reset()
-		if code := run([]string{"tests-for", fn, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		if code := run([]string{"tests-for", "--list", fn, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", fn, code, errb.String())
 		}
 		if !strings.Contains(out.String(), "tests through the name codes") || !strings.Contains(out.String(), "adım ilerlemesi bildirilir") {

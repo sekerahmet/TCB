@@ -43,7 +43,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   query <name>               a node and its neighbours; a name may be file:line[:col] (the declaration that contains it); query - reads grep -n output and writes each line's declaration
   path <from> <to> [--undirected|--through-hubs]   shortest directed path (calls, uses, dispatches ...); none is said plainly; --undirected also ignores direction but never goes through a type, package or file, --through-hubs allows those (marked)
   who-uses <name> [--mode read|write]   what uses a function, type, message code or name code; for a struct field its reads and writes (--mode: only those, and the name resolves only to a field)
-  tests-for <name>           tests that exercise a function, type or package
+  tests-for <name> [--list|--all]   tests that exercise a function, type, file or package: the run: and size: lines and how many tests are listed; --list (or --limit N) the first page of each group, --all every test
   untested [--in DIR] [--json]   non-test Go functions and methods grouped by the seven branches of tests-for
   fields <Type>              the table of a type's fields with read and write counts (one field: who-uses <Type.field> --mode read|write)
   captures <func> [--type T]  the variables its func literals capture, with types
@@ -58,7 +58,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   time-ceilings [--in DIR] [--json]  tests that compare an elapsed duration with a constant ceiling (file:line, constant, test name)
   spec-refs [--list] [--in DIR] [--json]   references to language-definition items (**N.M**, §N.M, the "dil tan…" form): a missing item is an error (exit 1), suffix vowel harmony after N.M is checked; --list prints each reference with the heading it points to
 
-query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --by-package, --min N, --in X, --tests, --base B, --root DIR (default: the repository root above the current directory), --no-rebuild
+query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --list, --by-package, --min N, --in X, --tests, --base B, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
 exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found
 `

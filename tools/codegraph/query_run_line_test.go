@@ -167,7 +167,7 @@ func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
 	wantWarn := "untracked: shape/untracked.go is not tracked by git; repository-wide checks do not see it (run `git add shape/untracked.go`)"
 
 	// 1. İzlenmeyen dosyada tests-for: uyarı run: satırlarından önce çıkar.
-	code, out, errOut := commandIn("tests-for", root, graph, "--no-rebuild", "shape/untracked.go")
+	code, out, errOut := commandIn("tests-for", root, graph, "--list", "--no-rebuild", "shape/untracked.go")
 	if code != exitOK {
 		t.Fatalf("tests-for untracked: exit %d: %s", code, errOut)
 	}
@@ -178,7 +178,7 @@ func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
 	}
 
 	// 2. İzlenen dosyada tests-for: uyarı çıkmaz.
-	code, out, errOut = commandIn("tests-for", root, graph, "--no-rebuild", "shape/shape.go")
+	code, out, errOut = commandIn("tests-for", root, graph, "--list", "--no-rebuild", "shape/shape.go")
 	if code != exitOK {
 		t.Fatalf("tests-for tracked: exit %d: %s", code, errOut)
 	}
@@ -197,7 +197,7 @@ func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
 
 	// 4. Dosya `git add` ile izlenmeye başlanınca iki komutta da uyarı kalkar.
 	gitMust(t, root, "add", "shape/untracked.go")
-	code, out, errOut = commandIn("tests-for", root, graph, "--no-rebuild", "shape/untracked.go")
+	code, out, errOut = commandIn("tests-for", root, graph, "--list", "--no-rebuild", "shape/untracked.go")
 	if code != exitOK || strings.Contains(out, "untracked:") {
 		t.Errorf("after git add, tests-for must not warn: exit %d\n%s%s", code, out, errOut)
 	}

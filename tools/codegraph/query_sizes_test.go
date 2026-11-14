@@ -220,6 +220,7 @@ func TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxE
 		t.Fatal(err)
 	}
 	var out, errb strings.Builder
+	// Bayraksız: boyut satırı kısa cevapta da var (codegraph dilim 6, D6-1).
 	if code := run([]string{"tests-for", "--root", root, "internal/lang/checker/unpack.go"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for exit %d: %s", code, errb.String())
 	}

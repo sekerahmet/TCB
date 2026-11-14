@@ -62,17 +62,17 @@ func TestWhoUsesMessage(t *testing.T) {
 }
 
 func TestTestsFor(t *testing.T) {
-	code, out, _ := cli(t, "tests-for", "shape.Describe")
+	code, out, _ := cli(t, "tests-for", "--list", "shape.Describe")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
 	testkit.MustContain(t, out, "shape.TestDescribe", "rules guarded by these tests", "Empty shapes fail")
-	code, out, _ = cli(t, "tests-for", "shape.Square.Area")
+	code, out, _ = cli(t, "tests-for", "--list", "shape.Square.Area")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
 	testkit.MustContain(t, out, "shape.TestSquare_Area")
-	_, out, _ = cli(t, "tests-for", "shape.Orphan")
+	_, out, _ = cli(t, "tests-for", "--list", "shape.Orphan")
 	testkit.MustContain(t, out, "no tests found")
 }
 
@@ -128,7 +128,11 @@ func TestMissingGraphFile(t *testing.T) {
 		graph := filepath.Join(t.TempDir(), "graph.json")
 		so.Reset()
 		se.Reset()
-		if code := run([]string{tc.cmd, "--root", root, "--graph", graph, tc.arg}, &so, &se); code != exitOK {
+		args := []string{tc.cmd, "--root", root, "--graph", graph, tc.arg}
+		if tc.cmd == "tests-for" {
+			args = append(args, "--list") // grupları okur (codegraph dilim 6, D6-1)
+		}
+		if code := run(args, &so, &se); code != exitOK {
 			t.Fatalf("%s without graph.json: exit %d: %s", tc.cmd, code, se.String())
 		}
 		if !strings.HasPrefix(se.String(), "graph rebuilt (") || !strings.Contains(so.String(), tc.want) {
@@ -157,15 +161,15 @@ func TestBuildCommandWritesGraph(t *testing.T) {
 
 func TestTestsForIndirect(t *testing.T) {
 	// Report → Twice → Describe: TestReport sınar Describe'ı üç adım uzaktan.
-	_, out, _ := cli(t, "tests-for", "shape.Describe")
+	_, out, _ := cli(t, "tests-for", "--list", "shape.Describe")
 	testkit.MustContain(t, out, "shape.TestDescribe", "tests, indirect", "shape.TestReport", "3 steps via shape.Twice", "[INFERRED]")
 	if strings.Count(out, "shape.TestDescribe") != 1 {
 		t.Errorf("a direct test is not repeated as indirect:\n%s", out)
 	}
 	// Twice'ı yalnızca TestReport sınar, iki adım uzaktan (Twice ← Report ← TestReport); Report doğrudan.
-	_, out, _ = cli(t, "tests-for", "shape.Twice")
+	_, out, _ = cli(t, "tests-for", "--list", "shape.Twice")
 	testkit.MustContain(t, out, "shape.TestReport", "2 steps via shape.Report")
-	_, out, _ = cli(t, "tests-for", "shape.Report")
+	_, out, _ = cli(t, "tests-for", "--list", "shape.Report")
 	if strings.Contains(out, "indirect") {
 		t.Errorf("TestReport calls Report directly:\n%s", out)
 	}

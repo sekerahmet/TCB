@@ -52,7 +52,7 @@ func TestOther(t *testing.T) {}
 	}
 	ask := func(name string) string {
 		var out, errb strings.Builder
-		if code := run([]string{"tests-for", name, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		if code := run([]string{"tests-for", "--list", name, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", name, code, errb.String())
 		}
 		return out.String()
