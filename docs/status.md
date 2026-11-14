@@ -1093,7 +1093,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 ### 19.4
 
 - **Yapılacaklar (F, Ö3; sınıf uzak 14):** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
-- **Yapılacaklar (B, Ö1; sahip Motor, 19.4'ün bir sonraki dilimi; DENETİM 660 N1):** bilinmeyen seçenek iletisi `=…` kesimini maskeden önce yapıyor; `=` adresin kimlik kısmındaysa (`--postgres://u:abcdef=gh@h/x`) parolanın başı iletide açık kalır [kanıtlı: process paketinin `unknownOption`'ı, kesim maskeden önceki satırda; hesap, koşulmadı]. Önce maske, sonra kesim.
 
 ### 19.4a
 
@@ -1204,7 +1203,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 - **Yapılacaklar (F, Ö3; sahip TCB, toplu karar):** görünüm adı iletiye sızıyor, `TR_std(1)`'in iletisi de öyle; `CallName`, `CallNameRef`, `CallPrefix` çağrısı 143 satır [ölçüldü: `git grep -n -E`, `*.go`, tanım satırları hariç, `d6adf7e3`].
 
-- **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 - **Yapılacaklar (F, Ö3; sahip DIL UZMANI; Kodlama3 Dilim B birleşince; DENETİM 726, TCB 15:47):** `.TR_tolist`'in eski Türkçe görünümü (".değer") Go yorumlarında 12 yerde kaldı; yerine kimlik yazılır [ölçüldü: git grep, `27c7eb12`]: internal/stdlib/ml/ altında builtin_reduce.go:187, error.go:192, members.go:145, members_test.go:11, optimizer.go:247, optimizer_test.go:16, value_test.go:60 (hata iletisinin metni), vm_hooks.go:14, :20, :366; internal/compute/ altında gpu/memory.go:39, tensor/optimizer.go:251.
 - **Yapılacaklar (F, Ö3; sahip DIL UZMANI; DENETİM 727 N1, TCB 16:22):** kitaplık yorumlarının ve örneklerin kullanım satırları görünüm adlarıyla yazılı; dil tanımı 17.2'ye göre program metni kimlikle yazılır, satırlar kimliğe geçer. Üç kalıpla (değişken ya da sabit, ad ve =; aktar ve tırnak; yazdır ve parantez) en az 58 yorum satırı: lib altında 8 dosyada 28, examples altında 25 dosyada 30 [ölçüldü: git grep -c -P, yalnız yorum satırları, `14a27cef`]; kalıp düzyazıdaki görünüm adlarını saymaz. Örnekler: lib/training.tr:5-7, examples/tr/23_tensor.tr:3, docs/recipes.md:22. recipes.md:22 ayrıca örneği tr.json'un satırına koyuyor; dil dosyası example alanını reddediyor, örnek definitions.json'da kimlikle duruyor [kanıtlı: internal/lang/codes/json_parse.go:139; internal/lang/codes/definitions.json:253]; örnek tarifin İmza satırına definitions.json'daki metinle taşınır.
 
