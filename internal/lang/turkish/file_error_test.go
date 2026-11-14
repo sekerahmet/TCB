@@ -89,8 +89,8 @@ func TestFileErrorUnknownStatusCode(t *testing.T) {
 }
 
 // Sistemin metni değere girmez (8.5): bilinmeyen sistem hatasında yalnız numarası kalır (1168 Windows'ta
-// "Element not found.", 71 Linux'ta EPROTO; ikisi de iki sistemde tanınmıyor). Go'nun metni de girmez
-// ("unexpected EOF"); özgün hata Unwrap ile korunur.
+// "Element not found.", 71 Linux'ta EPROTO; ikisi de iki sistemde tanınmıyor). Beklenmeyen dosya sonu
+// H2153'e, öbür kodsuz Go hatası H2629'a iner; özgün hata Unwrap ile korunur.
 func TestFileErrorReasonCarriesNoSystemText(t *testing.T) {
 	for _, n := range []syscall.Errno{1168, 71} {
 		r := fileErrorReason("", &fs.PathError{Op: "open", Path: "x", Err: n})
@@ -100,12 +100,19 @@ func TestFileErrorReasonCarriesNoSystemText(t *testing.T) {
 		}
 	}
 	for _, err := range []error{io.ErrUnexpectedEOF, &fs.PathError{Op: "read", Path: "x", Err: io.ErrUnexpectedEOF}} {
-		if r := fileErrorReason("", err); !messages.Has(r, messages.H2629) || r.Error() != "beklenmeyen bir hata oluştu" {
-			t.Errorf("Go'nun metni değere girdi: %v", r)
+		if r := fileErrorReason("", err); !messages.Has(r, messages.H2153) || r.Error() != "dosya bozuk ve okunamıyor" {
+			t.Errorf("io.ErrUnexpectedEOF H2153 olmalı: %v", r)
 		}
-		if f := FileError("", "x", messages.H2100, err); !errors.Is(f, io.ErrUnexpectedEOF) {
-			t.Errorf("özgün hata Unwrap ile korunmalı: %v", f)
+		if f := FileError("", "x", messages.H2100, err); !messages.Has(f, messages.H2153) || !errors.Is(f, io.ErrUnexpectedEOF) {
+			t.Errorf("özgün hata ve H2153 korunmalı: %v", f)
 		}
+	}
+	otherErr := errors.New("unexpected Go text")
+	if r := fileErrorReason("", otherErr); !messages.Has(r, messages.H2629) || r.Error() != "beklenmeyen bir hata oluştu" {
+		t.Errorf("Go'nun metni değere girdi: %v", r)
+	}
+	if f := FileError("", "x", messages.H2100, otherErr); !errors.Is(f, otherErr) {
+		t.Errorf("özgün Go hatası Unwrap ile korunmalı: %v", f)
 	}
 }
 

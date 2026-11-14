@@ -14,7 +14,7 @@ import (
 )
 
 // Bu dosya grafiğin göremediği yapılandırmayı söyler ve oradan okunabileni okur. Tip denetimi tek yapılandırmada yapılır
-// (goload: bu makinenin GOOS/GOARCH'ı); yapı kısıtı yüzünden derlenmeyen dosyalar (cuda_linux.go, file_error_unix.go,
+// (goload: bu makinenin GOOS/GOARCH'ı); yapı kısıtı yüzünden derlenmeyen dosyalar (cuda_linux.go, system_error_unix.go,
 // race_on.go ...) tiplerle okunamaz. Bütün yapılandırmaları ayrı ayrı denetleyip birleştirmek (staticcheck -matrix gibi)
 // her `build`'i katlar ve aynı adlı iki bildirimi (Windows ve Linux sürümü) tek kimlikte çakıştırır. Onun yerine bu
 // dosyalar tipsiz ayrıştırılır: dosya düğümü ("not built for windows/amd64"), yalnızca orada olan işlevlerin düğümü ve

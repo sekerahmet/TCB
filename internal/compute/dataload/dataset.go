@@ -43,7 +43,7 @@ func (m *Meta) TokenizerPath() string {
 func ReadMeta(path string) (*Meta, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, messages.New(messages.H5017, err)
+		return nil, messages.New(messages.H5017, messages.SystemError(path, err))
 	}
 	var m Meta
 	if err := json.Unmarshal(b, &m); err != nil {
@@ -97,41 +97,12 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 	}
 	st, err := os.Stat(dir)
 	if err != nil {
-		return nil, messages.New(messages.H5019, err)
+		return nil, messages.New(messages.H5019, messages.SystemError(dir, err))
 	}
-	var paths []string
-	byteBuf := map[string]int64{}
-	metaDirs := []string{dir, filepath.Dir(dir)}
-	if st.IsDir() {
-		if _, err := filepath.Match(s.Pattern, ""); err != nil {
-			return nil, messages.New(messages.H5020, s.Pattern, err)
-		}
-		// Dizin listesi boyutları da verir; parça başına ayrı sorgu gerekmez.
-		inputs, err := os.ReadDir(dir)
-		if err != nil {
-			return nil, messages.New(messages.H5021, err)
-		}
-		for _, g := range inputs {
-			if g.IsDir() {
-				continue
-			}
-			if ok, _ := filepath.Match(s.Pattern, g.Name()); !ok {
-				continue
-			}
-			info, err := g.Info()
-			if err != nil {
-				return nil, messages.New(messages.H2000, g.Name(), err)
-			}
-			y := filepath.Join(dir, g.Name())
-			paths = append(paths, y)
-			byteBuf[y] = info.Size()
-		}
-	} else {
-		paths = []string{dir}
-		byteBuf[dir] = st.Size()
-		metaDirs = []string{filepath.Dir(dir), filepath.Dir(filepath.Dir(dir))}
+	paths, byteBuf, metaDirs, err := collectShardPaths(dir, s.Pattern, st)
+	if err != nil {
+		return nil, err
 	}
-	sort.Strings(paths)
 	if len(paths) == 0 {
 		return nil, messages.New(messages.H5023, dir, s.Pattern)
 	}
@@ -167,6 +138,40 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 	return k, nil
 }
 
+func collectShardPaths(dir, pattern string, st os.FileInfo) ([]string, map[string]int64, []string, error) {
+	byteBuf := map[string]int64{}
+	if !st.IsDir() {
+		byteBuf[dir] = st.Size()
+		return []string{dir}, byteBuf, []string{filepath.Dir(dir), filepath.Dir(filepath.Dir(dir))}, nil
+	}
+	if _, err := filepath.Match(pattern, ""); err != nil {
+		return nil, nil, nil, messages.New(messages.H5020, pattern, err)
+	}
+	// Dizin listesi boyutları da verir; parça başına ayrı sorgu gerekmez.
+	inputs, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, nil, nil, messages.New(messages.H5021, messages.SystemError(dir, err))
+	}
+	var paths []string
+	for _, g := range inputs {
+		if g.IsDir() {
+			continue
+		}
+		if ok, _ := filepath.Match(pattern, g.Name()); !ok {
+			continue
+		}
+		y := filepath.Join(dir, g.Name())
+		info, err := g.Info()
+		if err != nil {
+			return nil, nil, nil, messages.New(messages.H2000, g.Name(), messages.SystemError(y, err))
+		}
+		paths = append(paths, y)
+		byteBuf[y] = info.Size()
+	}
+	sort.Strings(paths)
+	return paths, byteBuf, []string{dir, filepath.Dir(dir)}, nil
+}
+
 // resolveShardTokens meta.json'da olmayan token sayısını başlıktan okur ve sayıyı dosya boyuyla
 // denetler. Her token en az 1 bayttır: dosyadan çok token bildiren meta.json (ya da başlık)
 // bozuktur; bu sınır aynı zamanda token toplamının int64'ü taşmasını önler.
@@ -187,7 +192,7 @@ func resolveShardTokens(pb *ShardInfo) error {
 func headerLen(path string) (int64, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return 0, messages.New(messages.H5024, err)
+		return 0, messages.New(messages.H5024, messages.SystemError(path, err))
 	}
 	defer f.Close()
 	bs, err := readHeaderPath(f, path)

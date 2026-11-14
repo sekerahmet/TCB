@@ -91,7 +91,7 @@ codegraph tests-for codes.FindOption | group: function value => codes.TestComman
 codegraph tests-for trlang.catchStop | not: no tests found | contains: covered by subprocess tests | contains: cmd/trlang/e2e ( | src: bağımsız denetim Y5, 2026-10-24
 
 # Bağımsız denetim: başka yapılandırmanın dosyaları (Y4) (2026-10-24)
-codegraph who-uses H2154 | not: no uses | contains: internal/lang/turkish/file_error_unix.go | src: bağımsız denetim Y4, 2026-10-24
+codegraph who-uses H4002 | not: no uses | contains: internal/compute/gpu/cuda_other.go | src: bağımsız denetim Y4, 2026-10-24
 codegraph query gpu.runExitHandlers | contains: internal/compute/gpu/cuda_linux.go | contains: internal/compute/gpu/cuda_windows.go | src: bağımsız denetim Y4, 2026-10-24
 
 # Sağlık taraması: gömülü alandan yükseltilen metot (P1) ve ürün sürüm numarası (P2) (2026-10-24)

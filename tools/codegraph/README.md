@@ -210,12 +210,12 @@ Every edge has `confidence`, and `file`/`line` of the first place it was seen an
 Markdown link. They are real findings; `build` prints the first five.
 
 Limits: types come from one build configuration, this machine's GOOS/GOARCH (like `tools/impact`). The files that
-configuration does not build (`cuda_linux.go`, `file_error_unix.go`, `race_on.go` on Windows; `go list`'s
+configuration does not build (`cuda_linux.go`, `system_error_unix.go`, `race_on.go` on Windows; `go list`'s
 `IgnoredGoFiles`) are read without types (`other_os.go`): each becomes a file node "not built for windows/amd64", a
 function declared only there becomes a node, every declaration in it is `contains`-linked from that file (so `query
 gpu.runExitHandlers` lists `cuda_linux.go`, `cuda_other.go` and `cuda_windows.go`), and its message and name code uses
-(`messages.H2154`, resolved from the import, not from types) are INFERRED `uses_message`/`uses_name` edges, so `who-uses
-H2154` finds `file_error_unix.go`. Calls and type uses in those files are not seen: `build` warns which configuration
+(`messages.H4002`, resolved from the import, not from types) are INFERRED `uses_message`/`uses_name` edges, so `who-uses
+H4002` finds `cuda_other.go`. Calls and type uses in those files are not seen: `build` warns which configuration
 was type-checked and lists the files. Plain calls in those files (`F(...)` of the same package, `pkg.F(...)` of a module
 package, unless the function declares that name itself) are `calls` edges, so a test built only on Linux
 (`mmap_unix_test.go: TestMmapTruncatedDoesNotCrash` → `OpenShard`) joins the chain. When the asked name occurs in those

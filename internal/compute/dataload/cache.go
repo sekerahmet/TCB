@@ -171,7 +171,7 @@ func OpenCache(s CacheOptions) (*Cache, error) {
 		s.Workers = 2
 	}
 	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
-		return nil, messages.New(messages.H5006, err)
+		return nil, messages.New(messages.H5006, messages.SystemError(s.Dir, err))
 	}
 	key := dirKey(s.Dir)
 	cacheRecord.mu.Lock()
@@ -216,9 +216,10 @@ func (o *cacheCore) isClosing() bool {
 // openCore dizinin yöneticisini kurar: süreçler arası kilidi alır,
 // önceki çalıştırmadan kalan kopyaları benimser ve işçileri başlatır.
 func openCore(s CacheOptions) (*cacheCore, error) {
-	lock, err := os.OpenFile(filepath.Join(s.Dir, lockPath), os.O_RDWR|os.O_CREATE, 0o644)
+	lockFilePath := filepath.Join(s.Dir, lockPath)
+	lock, err := os.OpenFile(lockFilePath, os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
-		return nil, messages.New(messages.H5007, err)
+		return nil, messages.New(messages.H5007, messages.SystemError(lockFilePath, err))
 	}
 	if err := lockFile(lock); err != nil {
 		_ = lock.Close()
@@ -227,7 +228,7 @@ func openCore(s CacheOptions) (*cacheCore, error) {
 	inputs, err := os.ReadDir(s.Dir)
 	if err != nil {
 		_ = lock.Close()
-		return nil, messages.New(messages.H5009, err)
+		return nil, messages.New(messages.H5009, messages.SystemError(s.Dir, err))
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	o := &cacheCore{
@@ -333,7 +334,7 @@ func sameTime(cached, source time.Time) bool {
 func (o *cacheCore) fetch(ctx context.Context, src string, prefetch bool) (string, func(), error) {
 	st, err := os.Stat(src)
 	if err != nil {
-		return "", nil, messages.New(messages.H5010, err)
+		return "", nil, messages.New(messages.H5010, messages.SystemError(src, err))
 	}
 	ad := localName(src)
 	local := filepath.Join(o.dir, ad)
@@ -542,13 +543,13 @@ func (o *cacheCore) ongoingPrefetch(required int64) chan struct{} {
 func copyFile(ctx context.Context, src, target string, expected int64, when time.Time) (err error) {
 	k, err := os.Open(src)
 	if err != nil {
-		return messages.New(messages.H5013, err)
+		return messages.New(messages.H5013, messages.SystemError(src, err))
 	}
 	defer k.Close()
 	temp := target + tempSuffix
 	h, err := os.Create(temp)
 	if err != nil {
-		return messages.New(messages.H5013, err)
+		return messages.New(messages.H5013, messages.SystemError(temp, err))
 	}
 	defer func() {
 		if err != nil {
@@ -565,7 +566,7 @@ func copyFile(ctx context.Context, src, target string, expected int64, when time
 		n, rerr := k.Read(buf)
 		if n > 0 {
 			if _, werr := h.Write(buf[:n]); werr != nil {
-				return messages.New(messages.H5013, werr)
+				return messages.New(messages.H5013, messages.SystemError(temp, werr))
 			}
 			written += int64(n)
 		}
@@ -573,23 +574,23 @@ func copyFile(ctx context.Context, src, target string, expected int64, when time
 			break
 		}
 		if rerr != nil {
-			return messages.New(messages.H5013, rerr)
+			return messages.New(messages.H5013, messages.SystemError(src, rerr))
 		}
 	}
 	if written != expected {
 		return messages.New(messages.H5014, filepath.Base(src), written, expected)
 	}
 	if err := h.Sync(); err != nil {
-		return messages.New(messages.H5015, err)
+		return messages.New(messages.H5015, messages.SystemError(temp, err))
 	}
 	if err := h.Close(); err != nil {
-		return messages.New(messages.H5013, err)
+		return messages.New(messages.H5013, messages.SystemError(temp, err))
 	}
 	if err := os.Chtimes(temp, when, when); err != nil {
-		return messages.New(messages.H5013, err)
+		return messages.New(messages.H5013, messages.SystemError(temp, err))
 	}
 	if err := os.Rename(temp, target); err != nil {
-		return messages.New(messages.H5013, err)
+		return messages.New(messages.H5013, messages.SystemError(target, err))
 	}
 	return nil
 }

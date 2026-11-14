@@ -183,7 +183,7 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 		if err == nil || errors.Is(err, io.EOF) {
 			return Header{}, formatError(messages.H5051, n)
 		}
-		return Header{}, messages.New(messages.H5030, err)
+		return Header{}, messages.New(messages.H5030, messages.SystemError("", err))
 	}
 	bl, prefix, err := headerExtent(on[:n], false, messages.H5052)
 	if err != nil {
@@ -197,7 +197,7 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 			if err == nil || errors.Is(err, io.EOF) {
 				return Header{}, formatError(messages.H5056, prefix+bl)
 			}
-			return Header{}, messages.New(messages.H5030, err)
+			return Header{}, messages.New(messages.H5030, messages.SystemError("", err))
 		}
 	}
 	return ParseHeader(exact)

@@ -175,6 +175,8 @@ func (c *Catalog) translatesValue(a any) bool {
 	switch e := a.(type) {
 	case *Error:
 		return e == nil || c.translates(e.Code, e.Args) // nil: yok olan ileti parçası
+	case *systemError:
+		return e == nil || c.translatesValue(e.reason)
 	case *PosError:
 		if code, args, ok := e.message(); ok {
 			return c.translates(code, args)

@@ -12,7 +12,7 @@ import (
 // Kural: bu yapılandırmada derlenmeyen bir Go dosyası (başka işletim sistemi) grafikte sessizce yok olmaz: dosya ve
 // yalnızca orada tanımlı işlev düğüm olur ("not built for ..."), oradaki ileti kodu kullanımı INFERRED kenarla gelir,
 // `build` uyarısı hangi yapılandırmanın tiplerle okunduğunu söyler, boş kalan bir Go cevabı ("no uses") o dosyaları
-// not eder (bağımsız denetim Y4: who-uses H2154 file_error_unix.go'yu görmüyordu).
+// not eder (bağımsız denetim Y4: who-uses H2154 system_error_unix.go'yu görmüyordu).
 func TestFilesOfOtherBuildConfigsAreReadWithoutTypes(t *testing.T) {
 	root := t.TempDir()
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)

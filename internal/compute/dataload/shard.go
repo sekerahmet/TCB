@@ -57,7 +57,7 @@ type Shard struct {
 func OpenShard(path string, s ShardOptions) (*Shard, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, messages.New(messages.H5024, err)
+		return nil, messages.New(messages.H5024, messages.SystemError(path, err))
 	}
 	p, err := buildShard(path, f, s)
 	if err != nil {
@@ -75,7 +75,7 @@ func buildShard(path string, f *os.File, s ShardOptions) (*Shard, error) {
 	}
 	st, err := f.Stat()
 	if err != nil {
-		return nil, messages.New(messages.H2000, path, err)
+		return nil, messages.New(messages.H2000, path, messages.SystemError(path, err))
 	}
 	needed := bs.DataOffset + bs.DataSize()
 	if st.Size() < needed {
@@ -210,7 +210,7 @@ func (p *Shard) readAtRead(n int, begin int64, convert func(i int, b []byte, k i
 			if err == nil || errors.Is(err, io.EOF) {
 				err = io.ErrUnexpectedEOF
 			}
-			return messages.New(messages.H5089, p.path, err)
+			return messages.New(messages.H5089, p.path, messages.SystemError(p.path, err))
 		}
 		convert(i, b, k)
 	}

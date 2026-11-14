@@ -2,10 +2,6 @@ package turkish
 
 import (
 	"errors"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"syscall"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -64,10 +60,10 @@ func (n Reason) Unwrap() error                  { return n.Message }
 // suffixes (message parts, nil skipped) are appended after the reason with "; " (e.g. "bakılan
 // yerler: ..."); like the message they are written in the language of the message. Known cases:
 // file or folder missing, permission denied, path is a folder, disk full, file in use,
-// invalid name, path too long, write-protected disk. An unknown operating system error
-// gives its number only (H2628), any other unknown error none (H2629): the text of the
-// operating system or of Go never enters the value (8.5), it differs from machine to machine;
-// the original error stays reachable with Unwrap.
+// invalid name, path too long, write-protected disk, unexpected EOF (H2153). An unknown
+// operating system error gives its number only (H2628), any other unknown error none (H2629):
+// the text of the operating system or of Go never enters the value (8.5), it differs from
+// machine to machine; the original error stays reachable with Unwrap.
 //
 // Returns nil when err is nil. Standard library packages (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) must report file errors through it as well.
@@ -106,80 +102,5 @@ func fileErrorReason(path string, err error) *messages.Error {
 	if errors.As(err, &n) {
 		return n.Message
 	}
-	// Kodlu bir ileti işletim sistemi hatası taşımıyorsa kendisi nedendir (ör. "digest.json çok
-	// büyük"); işletim sistemi hatası sanılıp "beklenmeyen bir hata" diye sarılmaz, kodu da
-	// zincirde kalır. Taşıyorsa (ör. compute'un "dosya açılamadı: {error}" sarmalayıcısı)
-	// işletim sistemi hatası sınıflandırılır.
-	if m, ok := messages.As(err); ok && !hasSystemError(err) {
-		return m
-	}
-	// Denetimler işletim sisteminin gerçekten denediği yolla yapılır (göreli yol programın
-	// klasörüne göre çözülmüş olabilir).
-	var pe *fs.PathError
-	if errors.As(err, &pe) && pe.Path != "" {
-		path = pe.Path
-	}
-	// Yol var ve bir klasörse işletim sistemleri bunu farklı biçimlerde bildirir
-	// (Windows'ta "Incorrect function", Unix'te EISDIR); hepsi aynı cümleye iner.
-	if path != "" {
-		if info, e := os.Stat(path); e == nil && info.IsDir() {
-			return messages.New(messages.H2130)
-		}
-	}
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		if dir := missingDir(path); dir != "" {
-			return messages.New(messages.H2131, dir)
-		}
-		return messages.New(messages.H2132)
-	case errors.Is(err, fs.ErrPermission):
-		return messages.New(messages.H2133)
-	case errors.Is(err, fs.ErrExist):
-		return messages.New(messages.H2134)
-	case errors.Is(err, syscall.EISDIR):
-		return messages.New(messages.H2130)
-	}
-	var code syscall.Errno
-	if errors.As(err, &code) {
-		if reason := systemErrorReason(code); reason != 0 {
-			return messages.New(reason)
-		}
-		return messages.New(messages.H2628, uintptr(code)) // sistemin metni değere girmez (8.5)
-	}
-	return messages.New(messages.H2629) // Go'nun metni de (ör. "unexpected EOF")
-}
-
-// hasSystemError zincirde bir dosya sistemi ya da işletim sistemi hatası olup olmadığını söyler.
-func hasSystemError(err error) bool {
-	var pe *fs.PathError
-	var code syscall.Errno
-	return errors.As(err, &pe) || errors.As(err, &code) ||
-		errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) || errors.Is(err, fs.ErrExist)
-}
-
-// missingDir yolun klasör kısımlarından ilk olmayanını kullanıcının yazdığı biçimde
-// döndürür; klasörler tamamsa (eksik olan dosyanın kendisiyse) "" döner.
-func missingDir(path string) string {
-	if path == "" {
-		return ""
-	}
-	dir := filepath.Dir(path)
-	if dir == "." || dir == path {
-		return ""
-	}
-	if _, err := os.Stat(dir); err == nil {
-		return ""
-	}
-	// En üstteki eksik klasörü bul: "a/b/c.txt" için 'a' yoksa "a" söylenir.
-	for {
-		parentDir := filepath.Dir(dir)
-		if parentDir == "." || parentDir == dir {
-			break
-		}
-		if _, err := os.Stat(parentDir); err == nil {
-			break
-		}
-		dir = parentDir
-	}
-	return filepath.ToSlash(dir)
+	return messages.SystemReason(path, err)
 }
