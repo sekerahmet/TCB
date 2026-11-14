@@ -99,8 +99,11 @@ queries never read half a file) and prints one line on stderr: `graph rebuilt (N
 
 Cost when the graph is fresh (this repository, Windows, 2026-10-26, built binary): `tests-for` takes about 1.5 s,
 1.4 s with `--no-rebuild` (reading the 62 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds
-about 1 s once its build is cached. A stale graph costs one `build` (7-15 s, see "Time"), so the edit hook waits about
-that long on a stale graph; a real edit makes the graph stale, there is no incremental rebuild.
+about 1 s once its build is cached. A stale graph costs one `build` (7-15 s, see "Time"); a real edit makes the graph
+stale, there is no incremental rebuild. The edit hook does not rebuild (codegraph 7, K3): it asks with `--no-rebuild`,
+which says on stderr when the graph is older than the tree ("warning: the graph is older than the tree (--no-rebuild);
+answers may miss new or changed code"; an older extractor counts too), and then shows no list, only the command that
+rebuilds (a stale graph's `run:` lines differed in 12 of 12 sample files; the hook had rebuilt 385 times in five days).
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names

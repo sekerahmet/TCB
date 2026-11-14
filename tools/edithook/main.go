@@ -1,8 +1,9 @@
 // edithook, Claude Code'un düzenleme kancasıdır (PostToolUse: Edit, Write, MultiEdit,
 // NotebookEdit; .claude/settings.json). Bir oturum depoda izlenen bir dosyayı ilk kez
-// düzenleyince o dosyanın `codegraph tests-for` cevabının başını ajana bağlam olarak verir:
-// düzenleme durmaz (durdurup yinelemek her dosyada bir tur alıyor, kararı değiştirmiyordu), ajan
-// dosyayı koruyan testleri görür ve commit'ten önce hızlı olanları koşar.
+// düzenleyince o dosyanın `codegraph tests-for --no-rebuild` cevabının dar kısmını ajana bağlam olarak
+// verir: düzenleme durmaz (durdurup yinelemek her dosyada bir tur alıyor, kararı değiştirmiyordu), ajan
+// yazarken koşacağı yakın testleri görür; kalanları commit öncesi denetim ve G4 koşar. Graf bayatsa liste
+// yerine grafı kuran komutu söyler (codegraph.go, testsFor).
 //
 // Kabuk araçlarında (Bash, PowerShell; PreToolUse) ikinci kural: dakikalar süren denetimler (ön
 // denetim ve tam denetim `tools/full_check.sh`, bütün ağacın ya da bir üst klasörün `go test`'i:
@@ -41,11 +42,9 @@ import (
 
 // maxLines tests-for çıktısından gösterilen en çok satırdır. Listenin başı tek başına yetmez: doğrudan testi
 // olmayan bir dosyada ilk 30 satır başka paketlerin uzak testleriydi (2026-10-29, compiler_assign.go, 496 test).
-// Yeten, codegraph'ın Go dosyası için en üste koyduğu iki satırdır: koşu satırları (`run:`, dosyanın paketi, onu
-// tarayan kurallar ve konu edinen testler; koşmadıkları sayıyla) ve boyut satırı (`size (...)`: dosyanın ve sınıra
-// yakın fonksiyonların bugünkü boyu ve sınırı). codegraph dilim 6'dan beri (D6-1) bayraksız tests-for yalnız bunları
-// ve listelenen test sayısını verir, gruplar `--list` ile elle sorulur; sınır güvenlik için kalır (testi olmayan
-// düğümün cevabı tamdır).
+// Yeten, codegraph'ın en üste koyduğu dar koşu satırları (`run:`, yakın testler) ve sayı satırıdır (codegraph 7 A1, A3);
+// boyut satırı yalnız sınıra yakınsa gelir (A5, testsFor). Gruplar `--list` ile elle sorulur; sınır güvenlik için kalır
+// (testi olmayan düğümün cevabı tamdır).
 const maxLines = 30
 
 type hookInput struct {
@@ -116,10 +115,10 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		fmt.Fprintln(errOut, "edithook:", err)
 		return 1
 	}
-	note := fmt.Sprintf("First edit of %s in this session (the edit is done): these tests and rules guard it; "+
-		"keep the change by them and run the fast ones before committing. A wrong, ambiguous or missing "+
-		"answer is reported to the main session with the command, the expected and the actual answer "+
-		"(tools/codegraph/gaps.md).\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
+	note := report // bayat grafta yalnız staleLine (codegraph 7, K3, S8)
+	if !strings.HasPrefix(report, staleLinePrefix) {
+		note = fmt.Sprintf(firstEditNote, t.rel, t.rel, report)
+	}
 	return context(out, errOut, note)
 }
 
@@ -316,31 +315,4 @@ func locate(path string) (target, bool) {
 		return target{}, false
 	}
 	return target{filepath.Clean(strings.TrimSpace(string(top))), strings.TrimSpace(string(rel))}, true
-}
-
-// commandTableLine cevabın altındaki tek satırdır: var olan komutları bilmeden istek yazılıyordu (dokuz istek; gaps,
-// "Düzenleme kancasının çıktısı soru → komut tablosunu göstermiyor").
-const commandTableLine = `which command answers which question: tools/codegraph/README.md, "Which command answers which question"`
-
-// testsFor codegraph'a dosyayı koruyan testleri ve kuralları sorar; cevabın ilk maxLines satırı ve tablonun yeri.
-// Araç bu ağaçla derlenmiyorsa cevap son derlenen sürümündür ve başında bunu söyler (codegraph.go).
-func testsFor(t target) string {
-	cmd, stale, err := codegraph(t.root, "tests-for", t.rel)
-	var b []byte
-	if err == nil {
-		b, err = cmd.CombinedOutput()
-	}
-	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	if len(lines) > maxLines {
-		lines = append(lines[:maxLines], fmt.Sprintf("... (%d more lines: run the command)", len(lines)-maxLines))
-	}
-	text := strings.Join(lines, "\n")
-	if stale != "" {
-		text = stale + "\n" + text
-	}
-	if err != nil {
-		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence: check with grep, "+
-			"tools/codegraph/README.md, Reading an answer)", err)
-	}
-	return text + "\n" + commandTableLine
 }
