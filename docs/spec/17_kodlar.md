@@ -61,9 +61,9 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 **17.5** Ad: her kodun her dilde tek bir adı vardır (2.9: bir iş, bir yazım).
 - **Ortak ad:** uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır: `sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `GPT`, `Muon`. Tanım dosyasında bir kez yazılır, hiçbir dil dosyasında yazılmaz.
 - **Kısa ve düz:** ad işi söyler ve kısa tutulur; tek sözcük yeterse tek sözcüktür. Örnekler: Türkçede `yazdır`, `sınırla`, `dilim`; soru soran ad soru ekiyle (`sonlu_mu`).
-- **Ad alanında çakışmaz:** aynı ad alanında iki kod aynı adı taşıyamaz; dil dosyası yüklenirken reddedilir. Ayrı alanda aynı ad ancak aynı anlamda ya da gerekçesiyle verilir; her eş ad grubu [`docs/terimler.md`](../terimler.md)'dedir.
+- **Ad alanında çakışmaz:** aynı ad alanında iki kod aynı adı taşıyamaz; dil dosyası yüklenirken reddedilir. Ayrı alanda aynı ad ancak aynı anlamda ya da gerekçesiyle verilir; her eş ad grubu [`docs/terimler.md`](../terimler.md)'dedir. Adlı argüman ve kurduğu özellik (`TR_requires_grad:` ve `.TR_requires_grad`) aynı anlamdadır ve tablodan muaftır: yalnız özellik türündeki üyelerle adlı argümanlardan oluşan ve İngilizce adları da aynı olan grup tabloya yazılmaz.
 - Harfleri o dilin harfleridir.
-- *Test:* Go: `TestSingleSpelling`, `TestCommonNamesAreNotInLanguageFiles`, `TestClashesCaught`, `TestNamespacesUnique`.
+- *Test:* Go: `TestSingleSpelling`, `TestCommonNamesAreNotInLanguageFiles`, `TestClashesCaught`, `TestNamespacesUnique`, `TestSharedNamesListed` (eş ad tablosu ve muafiyet).
 
 **17.6** Başka dillerin alışkanlık adları (`str`, `range`, `lambda`, PyTorch'un `long`'u) kod değildir; tanım dosyasının `familiar` alanında durur ve yazıldığında ileti doğru kimliği önerir (2.3a). Kaldırılmış bir kodun eski adı `familiar` değildir (17.10).
 - *Test:* Go: `TestFindForeign`.
@@ -80,9 +80,9 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 **17.8** Program dilden bağımsızdır.
 - **Anlam koda bağlıdır:** hangi yerleşiğin çağrıldığı, kullanıcının adları ve sonuç gösterim diline bağlı değildir.
 - **Değerin metni dilden bağımsızdır** (3.14): "true", "none", "List", `<builtin print>`. Tipin metni kimliğin adıdır: kitaplığın `TR_Linear`'ının metni "Linear"dir, sınıflı kimlik değil.
-- **Dosya biçimleri dilden bağımsızdır:** TR'nin, motorların ve kitaplığın diske yazdığı dosyaların (kontrol noktası, günlük, profil, paket, veri önbelleği) dosya ve alan adları İngilizce tanımlayıcıdır. Değeri dilin bir öğesi olan alan sınıflı kimliği taşır (`"optimizer": "TR_fn_AdamW"`); ağırlık adları kimlik yoludur.
+- **Dosya biçimleri dilden bağımsızdır:** TR'nin, motorların ve kitaplığın diske yazdığı dosyaların (kontrol noktası, günlük, profil, paket, veri önbelleği) dosya ve alan adları İngilizce tanımlayıcıdır. Değeri dilin bir öğesi olan alan sınıflı kimliği taşır (`"optimizer": "TR_fn_AdamW"`); ağırlık adları kimlik yoludur. Kitaplığın ağırlık, tablo ve durum tensörü taşıyan her alanı kimlik üyesidir; diske kaydederken kitaplığın yapısının düz ya da `_` önekli bir alanında tensör bulunursa çalışma hatasıdır. Kimlik üyesi olan alanın modüle özel bir yazımı yoktur.
 - **Kişinin dili yalnız görüntüdedir** (`TR_LANG`, 17.9): iletiler, yardım, kabuk, hata ayıklayıcı ve görünüm.
-- *Test:* Go: `TestValueTextIsLanguageIndependent`, `TestEveryTextConversionIsLanguageIndependent`, `TestCheckpointFormatIsLanguageIndependent`; kitaplık tipinin metni uygulanınca TR testi.
+- *Test:* Go: `TestValueTextIsLanguageIndependent`, `TestEveryTextConversionIsLanguageIndependent`, `TestCheckpointFormatIsLanguageIndependent`; kitaplık tipinin metni TR testi ("3.14 ve 17.8 kitaplığın tipinin metni …", `tests/tipler_test.tr`); kitaplık alanının kaydetme hatası uygulanınca TR testi.
 
 ## Komut satırı
 

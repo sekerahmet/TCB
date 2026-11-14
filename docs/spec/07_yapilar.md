@@ -38,10 +38,15 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 
 **7.6** Yapı nesnesi listeler gibi başvuruyla paylaşılır (3.6): `TR_var q = p` aynı nesnedir, `q.x = 9` `p.x`'i de değiştirir; bu yüzden 4.10'un yineleme kuralına girer.
 - `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5). Alanlarından biri karşılaştırılamayan yapı karşılaştırılamaz, denetim hatasıdır: fonksiyon alanı, arayüz alanı (7.8) ve tensör alanı (tensörün `==`'si öğe öğedir, 15.5) böyledir.
+- **Nesne kimliği:** `TR_same_object(a, b)` iki adın aynı nesneyi gösterip göstermediğini `TR_Bool` olarak verir; sayı ya da adres vermez (aynı veriyle aynı sonuç). Paylaşımı `==` sınamaz: alanları eşit iki ayrı nesne de `TR_true` verir.
+  - Başvuruyla paylaşılan değerde (liste, sözlük, yapı nesnesi: 3.6; tensör: 15) geçerlidir, öbür her tipte denetim hatasıdır. `TR_same_object(x, TR_none)` denetim hatasıdır: `T?` tipli ad `== TR_none` ile sınanır (2.9, 3.5).
+  - Tipi `TR_Any` ya da arayüz olan değer çalışmada başvuruyla paylaşılan bir değer çıkmazsa çalışma hatasıdır (3.7a).
+  - Tensörde soru yalnız "aynı nesne mi"dir: her okuma yeni bir görünüm kurar; `TR_same_object(t, t)` `TR_true`, `TR_same_object(t[0], t[0])` `TR_false`'tur. İki tensörün aynı depoyu paylaşması (`tablo.TR_transpose()`) bu işlemle sınanmaz.
+  - Aynı yapının iki alansız nesnesi ayrı nesnedir: `TR_same_object(Boş(), Boş())` `TR_false`'tur.
 - Metni kurma yazımıdır: "Nokta(x: 3.0, y: 4.0)"; alanlar 3.14'teki gibi yazılır.
 - Nesne kendine bağlanabilir (ağaçta ebeveyn, çift yönlü bağlantı). Metin, yazılmakta olan bir nesneye yeniden varınca orada "..." yazar. `==` kendine bağlanan nesneleri de karşılaştırır ve biter (4.5).
 - `TR_Type(p)` yapının kendisidir (`TR_Type(p) == Nokta`); yapının metni adıdır.
-- *Test:* TR testi; fonksiyon ya da tensör alanlı yapının denetimi uygulanınca denetleyicinin testi.
+- *Test:* TR testi; fonksiyon ya da tensör alanlı yapının denetimi uygulanınca denetleyicinin testi; `TR_same_object` uygulanınca TR testi.
 
 **7.7** `TR_enum Ad { ... }` durumlu bir tip tanımlar: değer, sayılı durumlardan biridir; durum alan taşıyabilir.
 - Durum `BüyükDeve` bir addır (2.3b), alanları parantez içinde 7.1'deki gibi yazılır: `Bekliyor`, `Çalışıyor(adım: TR_Int)`. Durumlardan sonra metotlar yazılabilir (7.3). Durumlu tip 6.10'daki gibi tip parametresi alabilir: `TR_enum Cevap[T] { ... }`, durumları `Tamam(v: T)` ve `Hata(m: TR_String)`.

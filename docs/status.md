@@ -342,7 +342,8 @@ Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sın
 
 - **Mevcut durum:** yapının tipi StructType [ölçüldü: denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** yapının tipi `TR_Type` (3.11); denetleyicinin testi.
-- **Yapılacaklar (sınıfsız: test kapsamı, Ö3; sahip TCB, 7.6'nın kimlik işlemiyle; D1 15.5 devri, birleşik 65):** `lib/optimizers_test.tr`'nin 14 yeri parametrenin grupta olduğunu kimlikle değil değerle sınıyor (değerle arayan bir yardımcı fonksiyon ve her parametreye ayrı sabit ekleyen bir hazırlık); aynı değerde iki parametre testi düşürür, sessiz geçirmez; hazırlık her parametreye ayrı sabit eklediği için ikiz kalmaz. Sıradaki adım: 7.6'nın kimlik işlemi gelince ona geçer.
+- **Yapılacaklar (sınıfsız: test kapsamı, Ö3; sahip TCB, 7.6'nın `TR_same_object`'iyle; D1 15.5 devri, birleşik 65):** `lib/optimizers_test.tr`'nin 14 yeri parametrenin grupta olduğunu kimlikle değil değerle sınıyor (değerle arayan bir yardımcı fonksiyon ve her parametreye ayrı sabit ekleyen bir hazırlık); aynı değerde iki parametre testi düşürür, sessiz geçirmez; hazırlık her parametreye ayrı sabit eklediği için ikiz kalmaz. Sıradaki adım: `TR_same_object` gelince ona geçer.
+- **Yapılacaklar (E, Ö3; sahip Motor; tur 8, 2026-11-14; DENETİM 708):** 7.6'nın nesne kimliği yok: `TR_same_object` kod listesinde yok [ölçüldü: `grep -c -i '"TR_[a-z_]*same' internal/lang/codes/definitions.json`, 0]. Kimlik (görünüm `aynı_nesne`) aynı dilimle kod listesine girer; öbür tiplerin ve `TR_none`'ın denetim iletilerinin kod bloğunu uygulayana TCB verir.
 
 ### 7.7
 
@@ -605,7 +606,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.3
 
 - **Mevcut durum:** sürüm iletisi (H3012) `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM]. Hesap ondalığından float64'e `.TR_to_dtype` türev izlemiyor [ölçüldü].
-- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 231 N2):** `.TR_fill` kuralda var, kimliği yok [ölçüldü: DENETİM 231].
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 231 N2):** `.TR_fill` kuralda var, kimliği yok [ölçüldü: DENETİM 231]. 15.34'ün iki örneği (`g.TR_fill(0.0)` ve 16 bitlik parametrenin iletisindeki `p.TR_fill(ana)`) onunla çalışır; tur 8'de metin değişmedi (2026-11-14, DENETİM 708 N3).
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM 280):** iki argümanlı `.TR_slice(eksen, baş)` H6717 veriyor; 15.3'ün örneği (`x.TR_slice(1, 1)`) kopyalanınca çalışmıyor [ölçüldü: S1].
 - **Yapılacaklar:**
   - `TR_wrapping_add`, `TR_wrapping_sub` ve `TR_wrapping_mul`'ın tensör imzası; PyTorch'un `.float()`/`.long()`/`.bool()`/`.to(...)` alışkanlığına doğru yazımı öneren ileti (bugün genel "özellik ya da metot bulunamadı");
@@ -630,6 +631,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** kitaplıkta pencerenin sınırı konumların float32 kopyasıyla karşılaştırılır (GPU'da tam sayı çıkarması yok; konum < 2²⁴ kesin).
 - **Yapılacaklar:** cinsli işleç tablosu ve dönüşüm dışındaki bekleyen işlemler (2b; bayrağın altyapısı, `TR_replay`'deki yuvası ve dönüşüm T1 dilim 2a'da); TR testi.
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
+- **Yapılacaklar (C, Ö2; sahip T1; tur 8, 2026-11-14; DENETİM 708):** işlemcide `TR_Int` tensörünün `**`'ı tabanı -1 olan büyük üste asılır: `powInt` üssü tek tek çarpar, yalnız sonuç 0 ya da taban 1 iken erken çıkar, taban -1'de döngü üs kadar döner [kanıtlı: `internal/compute/tensor/cpu_typed_ops.go:333-345`, erken çıkış `:343`]; kart ve sayı yolu kare alarak hesaplar [hipotez: tur 8 araştırması, koddan okuma, koşulmadı]. İşlemci kare alarak hesaplamaya geçerken iki cihazın ilk hatalı öğesi aynı kalır (15.6).
 
 ### 15.6a
 
@@ -755,7 +757,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.23a
 
 - **Yapılacaklar (A, Ö0, 2. sıra; sahip T1, Tur 6A'dan sonraki dilim; Tur 6B, 2026-11-10):** sınıf hedefinin şekli tam denetlenir, `TR_linear_cross_entropy`'de de; bugün yalnız öğe sayısı: `[2, 3, 4]` logite devrik `[3, 2]` hedef hatasız, kayıp 1.3893125, doğrusu 1.751252 [ölçüldü: DENETİM 388]. Göç: örnek 35 ve 36 hedefi düz kuruyor; öbür çağrılar (`.tr`'de 44, Go'da 25 satır [ölçüldü: DENETİM 388, `git grep -c`]) kuraldan önce sayılır. İleti beklenen şekli söyler: H3045'in metni ve parametreleri (bugün `rows` ve `n`) şekle döner ya da yeni kod. Aynı işte belge: `TR_cross_entropy`'nin katalog açıklaması "negatif hedefler yok sayılır" diyor, 15.23a'ya döner (yalnız `-100`, şekil) [kanıtlı: DENETİM 393, F1'e yakın]; kılavuzun hedef satırı (`docs/guide/04_yapay_zeka_ve_veri.md`, "Sinir ağı") şekli de söyler.
-- **Yapılacaklar:** iki denetim hedefi konağa okuyarak yapılıyor (GPU'da bekler); `TR_replay` kaydındaki cihaz içi bayrak 15.6'nın bayrağıyla gelir (bugün kayıtta cihazdan okuma H4065 [hipotez: `internal/compute/gpu/backend_memory.go:181`; GPU'suz ölçülmedi]).
+- **Yapılacaklar (E, Ö3; sahip T1; tur 8, 2026-11-14):** iki denetim hedefi konağa okuyarak yapılıyor (GPU'da bekler); bayrağın altyapısı ve kayıttaki yuvası var [test: `TestReplayInt64ArithFaultNamesRecordedLine`], çapraz entropinin hedef denetimi aynı bayrağa yazar (bugün kayıtta cihazdan okuma H4065 [hipotez: `internal/compute/gpu/backend_memory.go:181`; GPU'suz ölçülmedi]).
 
 ### 15.23b
 
@@ -776,7 +778,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.24
 
 - **Mevcut durum:** `TR_mask:`'in cins hatası (H6985) çalışma anında: denetleyici tensörün cinsini bilmiyor (`TR_Tensor[TR_Float]` tipli değişken de `TR_Tensor`) [ölçüldü: T1 `claude/kolB-o0-3`, 9 yazım].
-- **Yapılacaklar:** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
+- **Yapılacaklar (D, Ö3; sahip T1; tur 8, 2026-11-14: metin değişmez, kural hedeftir; DENETİM 713 N1):** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
 - **Mevcut durum (2026-11-11, D1):** dil tanımı `TR_attention`'ın imzasında `TR_bias:`'ı yazıyor (`15_tensorler.md:353`, `:359`); motorda yok, çağrı "'sapma' adında bir parametre almaz (geçerli adlar: nedensel, pencere, maske)" hatası veriyor [ölçüldü: D1, main `ae73b3b9`].
 - **Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_bias:` argümanı (aşağıdaki −∞ sapma maddesi de buna bağlı).
 - **Mevcut durum (2026-11-11, D1):** ölçek sabit `1/√dh`; Gemma 3n'nin ölçeği 1,0 [ölçüldü: D1, koşu 4, transformers 4.56.2], Gemma 4'ünki 1,0 [kanıtlı: D1, llama.cpp `gemma4.cpp`], Gemma 3 27B'ninki `1/√168` (`dh` 128) [ölçüldü: D1, koşu 4, config]. Kitaplık `q`'yu çarparak yazabiliyor: `q · 16` ile fark 7,15e-07 [ölçüldü: D1, koşu 4]. Dil tanımı değişmeden Gemma diliminin işi; 27B'de yuvarlama farkı.
@@ -813,7 +815,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **Mevcut durum:** `TR_parameters` `TR_named:` argümanıyla yol adlı sözlük veriyor; `TR_named_parameters` adı yok; yapıdaki ara sonuçlar ve türev izlemeyen tensörler sessizce atlanıyor [kanıtlı: bugünkü 15.33'ün metni; `definitions.json`'da `TR_named_parameters` kodu yok].
 - **Yapılacaklar (A, Ö1, Kol B, 13.8a ile; ölçüm status'un):** `TR_named:` kalkar, `TR_named_parameters` (13.1) gelir; parametre tanımı (donmuşlar `TR_parameters`'ta); `TR_named_parameters` bütün yapraklar; türevli ara sonuçta hata; TR testi bunlara göre.
-- **Yapılacaklar (C, Ö2; sahip D1, aileler kolu; TCB 2026-11-12 18:39 A19, DENETİM 546):** VITS, Whisper ve VAD'ın ağırlık taşıyan alanları `_` önekli (`lib/vits.tr:440-445`, `lib/whisper.tr:306-307`, `lib/vad.tr:43-54`) [kanıtlı: D1, DENETİM 546]; modelleri adlarıyla kaydedilirse dosyanın anahtarlarına bir kullanıcı adı girer, kimlik kodlu dilde diske giden ad dilden bağımsız olmalı. C'nin "kesilen iş aynı sürmüyor" parçası: alanlar kimlik üyesine dönünce bugün kaydedilen dosya açılmaz (DENETİM 555 N3). Bugün yalnız çıkarım için kuruluyorlar. Gemma 3'ün dört alanı A19 ile kimlik üyesi oldu (`e92a215e`). Kural (kitaplık, dil tanımı değil): ağırlık ya da tablo taşıyan alan kimlik üyesidir, seçenek `_` alan kalır.
+- **Yapılacaklar (C, Ö2; sahip D1, aileler kolu; TCB 2026-11-12 18:39 A19, DENETİM 546):** VITS, Whisper ve VAD'ın ağırlık taşıyan alanları `_` önekli (`lib/vits.tr:440-445`, `lib/whisper.tr:306-307`, `lib/vad.tr:43-54`) [kanıtlı: D1, DENETİM 546]; modelleri adlarıyla kaydedilirse dosyanın anahtarlarına bir kullanıcı adı girer, kimlik kodlu dilde diske giden ad dilden bağımsız olmalı. C'nin "kesilen iş aynı sürmüyor" parçası: alanlar kimlik üyesine dönünce bugün kaydedilen dosya açılmaz (DENETİM 555 N3). Bugün yalnız çıkarım için kuruluyorlar. Gemma 3'ün dört alanı A19 ile kimlik üyesi oldu (`e92a215e`). Kural 17.8'de (tur 8, 2026-11-14; DENETİM 708 Ş2): ağırlık, tablo ve durum tensörü taşıyan alan kimlik üyesidir; kaydederken düz ya da `_` önekli alanda tensör çalışma hatasıdır, bu hata da uygulanmadı. Göç 68 alan (düz 53, `_` önekli 15) [ölçüldü: tur 8 araştırması, taban `6fc9f27a`].
 
 ### 15.34
 
@@ -1170,7 +1172,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **Yapılacaklar (araç, Ö3; sahip D1; DENETİM 400 N2):** `reporoot.Glob` izlenmeyen dosyayı tasarım gereği süzüyor; `git add` edilmemiş yeni fikstür testte görünmüyor, uyarı yok [kanıtlı: `internal/reporoot/files.go:84–87`].
 - **Yapılacaklar (E, Ö3; sahip D1; ajan denemesi 3):** dil tanımının adları motordan önde: testin istisna listesinde 50 onaylı yeni ad bekliyor [ölçüldü: `behavior_language_spec_test.go`; `.TR_lines()` ve `.TR_index_of` birleşik 50'de yapıldı], yazınca sözdizimi hatası geliyor; bazılarının maddesi *Test:* satırında "TR testi" diyor, 13.2 gibi. Dil tanımını okuyan ajan bunları var sanıyor: üç ajan buna çarptı [ölçüldü: `docs/agent_trials.md`]. 19.2 de yapı diyor, motor sözlük istiyor; denetim geçiriyor, çalışma anı düşüyor. Ajanın göreceği yerde "henüz yok" yazılsın; maddenin *Test:* satırı doğrulansın.
 - **Yapılacaklar (F1, Ö3; sahip D1; DENETİM 256 N1, N2):** yeri değişmiş önerisi derlenmeyen yazım veriyor: sözlükte `.TR_index_of`, sayıda `.TR_contains`. Listede işlev alan JavaScript araması yanlış ipucu alıyor, Python'un dizin araması ipucu almıyor. Sıradaki adım: öneri tablosu.
-- **Yapılacaklar (C, Ö2; sahip S1; CI `9126e27f`):** `TestEscapedGrandchildDoesNotBlockTheStop` yarış dedektörlü Linux işinde 15,32 saniyede düştü [ölçüldü: CI]. Sıradaki adım: süreye mi bağlı, gerçek hata mı, ayrılır.
+- **Yapılacaklar (C, Ö2; sahip S1; CI `9126e27f`, `4dbf6515`):** `TestEscapedGrandchildDoesNotBlockTheStop` yarış dedektörlü Linux işinde iki kez düştü: `9126e27f`'de 15,32 saniyede [ölçüldü: CI]; 2026-11-14 `4dbf6515`'te 15,33 saniyede, "beklenen olmadı: torun bitti" (`behavior_run_process_stop_test.go:478`), yeniden koşuda geçti [ölçüldü: CI 43581840682, Yarış dedektörü (Linux), deneme 1 ve 2; DENETİM 707 N2]. İki süre hemen aynı; zaman aşımına işaret edebilir [hipotez: iki düşüş]. Sıradaki adım: süreye mi bağlı, gerçek hata mı, ayrılır.
 - **Yapılacaklar (F, Ö3; sahip D1; D1 ipucu devri):** hatalı satırda kullanıcının kendi adı da ipucu alıyor: dosyada tanımlı ad ipucu almamalı. Döngü başında yalın in sözcüğü için `TR_in` ipucu aynı dilime girer.
 - **Yapılacaklar (D, Ö3; sahip D1; ajan denemesi 7):** modüle özel ad denetimden geçiyor, çalışırken hata veriyor (11.7) [ölçüldü: `TR_import` ile `_kur()` ve `m._kur()`]. Sıradaki adım: denetim hatası, 4a5'e bakılır.
 - **Yapılacaklar (F1, Ö3; sahip D1; DENETİM 258 N1):** Türkçe adlar genel olarak ipucu almıyor, biri yanlış alıyor: Türkçe yok sözcüğü yazılınca ileti `TR_Path` öneriyor, doğrusu `TR_none` [ölçüldü]. Sıradaki adım: öneri her dilin görünüm adına bakar.
@@ -1394,3 +1396,4 @@ Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 - **Yapılacaklar (F, Ö3; sahip HTTP sunucusu kolu; tur 7, 2026-11-13; DENETİM 638, 639, 644):** yazarken kopan istemci için standart hataya satır yazılmaz (28.9); motorun bugünkü satırı ölçülmedi, dilimin ilk adımı ölçer.
 - **Yapılacaklar (B, Ö1; sahip Dost Interface, indirmenin C dilimi; tur 7 K1c, DENETİM 646 Ş4):** dilin kendi iletisi (HTTP istemcisinin, indirmenin hatası) adresi şema, ana makine, kapı ve yolla yazar; kimlik kısmı ve sorgu (`?X-Amz-Signature=...`) yazılmaz. Karar indirme tasarımında (indirmenin iletileri, 28.10'un metni C dilimiyle).
 - **Ölçü kalemi (sınıfsız, Ö3; sahip HTTP sunucusu kolu; tur 7, 2026-11-13; DENETİM 638, 639, 644):** görüntünün katlanmasının bedeli: T baytlık cevap k olayda yaklaşık T·k/2 bayt kopya [hesap: tur 7 araştırması 2.3]; ölçülmedi.
+- **Yapılacaklar (E, Ö3; sahip HTTP sunucusu kolu; tur 8, 2026-11-14; DENETİM 708):** 28.7'nin iki kapanma koşulunun ikisi de uygulandı [kanıtlı: `internal/stdlib/httpserver/broadcast.go:317-318`, `stream.go:30`, `:145-153`]; saklananlardan düşen canlı dinleyicinin ve istek akışının 10 saniyelik yazma süresinin testi yok [ölçüldü: `git grep -l slowWrite -- 'internal/stdlib/httpserver/*_test.go'`, yalnız `broadcast_test.go`; tur 8 araştırması].

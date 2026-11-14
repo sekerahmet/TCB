@@ -685,7 +685,7 @@ TR_test "3.14 tip adının tek yazımı vardır" {
     TR_assert_equal(adet, TR_Int("3"))
 }
 
-TR_test "3.14 kitaplığın tipinin metni kimliğinin adıdır, kullanıcının yapısınınki adıdır" {
+TR_test "3.14 ve 17.8 kitaplığın tipinin metni kimliğinin adıdır, kullanıcının yapısınınki adıdır" {
     # Sınıflı kimlik (TR_type_Linear) tipin metnine sızmaz (17.8: program dilden bağımsızdır).
     TR_assert_equal("Linear", TR_String(TR_Type(katmanlar.TR_Linear(2, 3, TR_seed: 1))))
     TR_assert_equal("RMSNorm", TR_String(TR_Type(katmanlar.TR_RMSNorm(3))))

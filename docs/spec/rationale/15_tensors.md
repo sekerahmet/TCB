@@ -87,6 +87,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **`TR_and`/`TR_or` tensörde hata.** 4.6 `TR_and`'i `TR_Bool`'a ayırır; maske `&`, `|`, `~` ile birleşir.
   - **Bekleyen işlemler.** Hatası öğeye bağlı olan işlemin hatasını kendi satırında vermek (8, 15.48) GPU'da sonucun beklenmesini ister (15.3'ün bedeli). Bekleme ancak hata mümkünse yapılır: toplamda karar şekil ve hassasiyetten, veri okunmadan verilir. `TR_replay` kaydında bekleme yapılamaz; hata cihaz içi bayrakla kaydedilen satıra bağlanır. Liste tek yerdedir: ajan hangi satırın beklediğini tek yerde okur.
   - **İlk hatalı öğe** (TCB 2026-11-11, T1'in Dost GPU tasarımı D3; metin T1 dilim 2a): hatalı çıktı öğelerinden düz konumu en küçük olanı. Toplamda (çıkış konumu), öğe öğe işlemde ve birikimli toplamda aynı kural geçer; kullanıcı tensörü satır sırasıyla okur; "ilk" bir döngü sırasına bağlanmaz (işlemcinin `TR_cumsum`'u `(o, i, k)` döngüsüyle başka öğeyi söylüyordu); kartta anahtar doğrudan düz çıktı konumudur, tek `atom.min` konumu ve çeşidi birlikte yazar, sonuç atomların sırasından bağımsızdır. Kayıtta (15.45) ilk hatalı işlem kayıt sırasıyla seçilir: doğrudan çağrı da o işlemde dururdu.
+- *Bekleyen işlemlerin parantezleri (dil tanımı turu 8, 2026-11-14; DENETİM 512 N3):* parantezler iki cihazın davranışını yazar: `**` taşar, en küçük değerin `-1`'e bölümü taşmadır, kalanı 0'dır [kanıtlı: `internal/compute/tensor/cpu_typed_ops.go:306-307`, `internal/compute/gpu/typed_arith.go:9-11`]. Kural değişmedi; liste eksikti.
 
 ### 15.6a
 
@@ -382,6 +383,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Donma durumu kontrol noktasına girer:** donma bir değere bağlıysa (kayıp eşiği), sürdürme başka durumla başlayıp 20.17'yi bozardı ("Güvenilir").
   - `TR_load_tensors`'ın varsayılanı parametre değildir: dosyadan okunan tablo sessizce eğitime açılmasın.
 - *Kullanılmayan alt modül (Tur 6B, 2026-11-10):* çok iyileştiricili eğitimde bir adımda kullanılmayan alt modülün iyileştiricisi H6988 ile durur; PyTorch orada gradyansız parametreyi atlayıp sessizce geçer. Kural değişmez, çünkü sessiz geçiş taşınan yaprak hatasını (15.39) da gizlerdi; cümle ajana iki doğru yazımı söyler.
+- *"Yazmaya kapalı olmayan" (dil tanımı turu 8, 2026-11-14):* koşul tanımın kendi terimine bağlanır (15.3). Bugün yazmaya kapalı tek depo kopya `.TR_reshape`'in sonucudur; ileride başka bir yazmaya kapalı depo gelirse kural onu da kapsar. "Yazılabilir"in tanımda karşılığı yoktu.
 
 ### 15.35
 
@@ -573,6 +575,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Kitaplık:** `lib/` bloğu sessizce açmaz, varsayılan kapalıdır; seçimi program yazar (asistanın zinciri kendi kodunda).
   - **Açık konu:** blok kendi içinde kapatılamaz (15.4'ün `"float32"` bloğunun karşılığı yok); kitaplık kesin sonuç istediği yerde kendini koruyamaz. Bugün gerek görülmedi.
 - *Belirlenimcilik:* üç x86 makinede (Windows ve Linux, Intel ve AMD) logit baytları aynı [ölçüldü: H1, `fcadf73c`; sonraki iki düzeltme commit'inde yalnız dizüstünde]; AVX2'siz yol (Go eşi) birim testinde çekirdekle bit bit aynıdır (`TestQ8KernelsMatchGo`); ARM'de ölçülmedi, Go eşi açık `float32` dönüşümleriyle kaynaştırmasızdır. Söz bu yüzden 15.22a'nınkidir (aynı CPU özellik kümesi).
+- *İki blok birlikte (dil tanımı turu 8, 2026-11-14; H1'in nicemli zincir tasarımı A4):* kapı çarpımın başındadır, öbür bloklara bakmaz [kanıtlı: `internal/stdlib/ml/operators.go:215-219`]. Kitaplığın bloğu nicemli etkinleştirme bloğunu yok saysaydı istenen nicemleme sessizce yapılmazdı; bu, hatanın "sessizce düşmez" sözüyle çelişirdi.
 
 ### 15.53b
 
