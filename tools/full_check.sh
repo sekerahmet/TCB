@@ -623,8 +623,10 @@ commit_run_chunks() {
 
 # commit_settle bir parçanın paketlerini sonuçlandırır. Zamanlayıcı dolmadan "ok" basan paketin testleri koşuldu;
 # "FAIL" basan paket düştü (süre dolmadan geldiyse --- FAIL satırı olmasa da: TestMain, os.Exit). Zamanlayıcı dolduysa
-# (çıkış 124) sonucu hiç gelmeyen ya da FAIL'i süre dolduktan sonra --- FAIL'siz gelen paket kesildi: bütün seçilmiş
-# testleri G4'e kalır, hiçbiri geçti sayılmaz. go test bir paketin çıktısını bütün olarak, sonuç satırıyla bitirerek basar:
+# (çıkış 124) sonucu hiç gelmeyen ya da FAIL'i süre dolduktan sonra, süre dolmadan gelmiş bir --- FAIL'i olmadan gelen
+# paket kesildi: bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz. Süre dolduktan sonra gelen --- FAIL sayılmaz:
+# durdurma testin alt süreçlerini de öldürür, test durdurulmadan önce onları düşüş diye yazabilir (codegraph dilim 6;
+# TestTimeCeilingsListsConstantCeilings, `go list: exit status 143`). go test bir paketin çıktısını bütün olarak, sonuç satırıyla bitirerek basar:
 # iki sonuç satırı arasındaki --- FAIL satırları sonrakinin paketinindir.
 commit_settle() {
 	local chunk=$1 plan=$2 log=$3 code=$4 module=$5 pkg rel path state name
@@ -636,7 +638,7 @@ commit_settle() {
 		mapfile -t names < <(awk -F'\t' -v c="$chunk" -v p="$pkg" '$1 == c && $2 == p { print $3 }' "$plan")
 		state=$(awk -F'\t' -v p="$path" -v d="$commit_deadline_ms" '
 			{ split($3, f, " ") }
-			$2 ~ /^--- FAIL/ { pending++; next }
+			$2 ~ /^--- FAIL/ { if ($1 < d) pending++; next }
 			$2 ~ /^ok/ && f[1] == p { print "ok"; found = 1; exit }
 			$2 == "FAIL" && f[1] == p { print (($1 < d || pending) ? "fail" : "cut"); found = 1; exit }
 			($2 ~ /^ok/ || $2 == "FAIL") && f[1] != "" { pending = 0 }

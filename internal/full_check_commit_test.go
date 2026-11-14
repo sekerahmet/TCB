@@ -214,8 +214,9 @@ func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
 
 // Kural (tools/full_check.sh, --kip=commit; D1 codegraph dilim 3, DENETİM 681 N3): 120 sn kipin baştan sona süresidir.
 // Süre dolmadan gelen FAIL düşüştür, --- FAIL satırı olmasa da (TestMain, os.Exit); paket ancak zamanlayıcı dolduysa
-// kesilir: sonucu gelmeyen ya da FAIL'i süre dolduktan sonra --- FAIL'siz gelen (go test, test ikilisi durdurulunca böyle
-// basar) paketin bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz. Süre bitince sonraki parça başlamaz ve
+// kesilir: sonucu gelmeyen ya da FAIL'i süre dolduktan sonra gelen (go test, test ikilisi durdurulunca böyle basar)
+// paketin bütün seçilmiş testleri G4'e kalır, hiçbiri geçti sayılmaz; süre dolduktan sonra gelen --- FAIL de düşüş
+// sayılmaz (durdurma testin alt sürecini öldürür, test onu düşüş diye yazar; codegraph dilim 6, TCB 14:53). Süre bitince sonraki parça başlamaz ve
 // durdurulan komut süreç olarak kalmaz (DENETİM 670 N2).
 func TestCommitModeCutsAtTheLimitByPackage(t *testing.T) {
 	dir, env := fakeGo(t, map[string]string{
@@ -223,7 +224,9 @@ func TestCommitModeCutsAtTheLimitByPackage(t *testing.T) {
 		"c.out":   "FAIL\texample.com/fix/c\t0.1s\n",
 		"b.sleep": "30",
 		"d.sleep": "30",
-		"d.kill":  "FAIL\texample.com/fix/d\t3.0s\n",
+		// Durdurulan paket testin alt sürecini de öldürür; test süre dolduktan sonra --- FAIL basar (codegraph dilim 6,
+		// TestTimeCeilingsListsConstantCeilings'in `go list: exit status 143`'ü): bu satır düşüş sayılmaz.
+		"d.kill": "--- FAIL: TestD (3.00s)\n    d_test.go:1: go list: exit status 143\nFAIL\nFAIL\texample.com/fix/d\t3.0s\n",
 	})
 	out := runCommitBash(t, dir, env, "commit_chunk_chars=24\ncommit_deadline_ms=$(($(commit_now_ms) + 3000))\n"+
 		"commit_selection $'a TestA\\nc TestC\\nb TestB\\nd TestD\\ne TestE'\n"+
