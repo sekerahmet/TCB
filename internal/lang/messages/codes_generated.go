@@ -462,7 +462,7 @@ const (
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
 	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
 	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri ({@Bool}) döndürmeli; {type} döndü. Açık bir sınama döndürün: `l.{#filter}((x) => x != 0)`
-	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri ({@Bool}) alır; {type} verildi. {kind, select, tensor {Tensörün `==`'si öğe öğedir, mantık değeri vermez (15.5): `{#assert_equal}(beklenen, x)` yazın; öğelerin hepsi için `{#assert}({#all}(x == beklenen))`, 0 boyutluda `{#assert}(x.{#item}() == beklenen)`, yaklaşık eşitlikte `{#assert_close}(x, beklenen)`} other {Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`}}
+	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri ({@Bool}) alır; {type} verildi. {kind, select, value {Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`} other {Tensörün `==`'si öğe öğedir, mantık değeri vermez (15.5): `{#assert_equal}(beklenen, x)` yazın; öğelerin hepsi için `{#assert}({#all}(x == beklenen))`, 0 boyutluda `{#assert}(x.{#item}() == beklenen)`, yaklaşık eşitlikte `{#assert_close}(x, beklenen)`}}
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için `l + [x]` ya da `l.{#append}(x)` yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar

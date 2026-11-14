@@ -2867,9 +2867,9 @@ tr: değişken b = gizli_belirteç(); değişken m = maskeli_akış(); değişke
 
 #### `TR_max(...)` (`TR_fn_max`, `max`)
 
-    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+    max(Liste | Tam | Ondalık | Metin | Tensör, [Tam | Ondalık | Metin | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Metin | Tensör
 
-Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en büyük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok değerin (sayı, metin ya da demet) en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, metinde kod noktası sırası geçer, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en büyük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_max([2.0, 1.5]), TR_max(3, 7, 5), TR_max(TR_Tensor([[1, 5], [3, 2]]), TR_dim: 0).TR_tolist)
@@ -2962,9 +2962,9 @@ tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayıs
 
 #### `TR_min(...)` (`TR_fn_min`, `min`)
 
-    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+    min(Liste | Tam | Ondalık | Metin | Tensör, [Tam | Ondalık | Metin | Fonksiyon...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Metin | Tensör
 
-Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en küçük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok değerin (sayı, metin ya da demet) en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, metinde kod noktası sırası geçer, boş listede hatadır. Listeyle anahtar fonksiyonu verilirse anahtarı en küçük öğeyi verir (her öğe için bir kez çağrılır, eşitlerde ilki). Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_min([3, 1, 2]), TR_min(4, 2.5), TR_min(1, 1.5))
@@ -4081,9 +4081,9 @@ tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_
 
 #### `TR_where(...)` (`TR_fn_where`, `koşullu`)
 
-    koşullu(Tensör | Mantık | Tam | Ondalık, Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
+    koşullu(Tensör, Tensör | Tam | Ondalık | Mantık, Tensör | Tam | Ondalık | Mantık) → Tensör
 
-koşullu(koşul, a, b), koşulun doğru (sıfırdan farklı) olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır, koşul 0/1 maskesi (ör. x > 0), sayı ya da Mantık olabilir. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz; hiçbiri tensör değilse a ya da b olduğu gibi döner.
+koşullu(koşul, a, b), koşulun doğru olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır; koşul bir mantık tensörüdür (ör. x > 0, sayı tensöründe t != 0), tek bir değere bağlı seçim eğer ile yazılır. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz.
 
 ```tr
 TR_var x = TR_Tensor([-1.0, 2.0, -3.0]); TR_print(TR_where(x > 0, x, 0).TR_tolist)
