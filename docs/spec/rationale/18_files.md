@@ -77,7 +77,7 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 ### 18.14
 
 - *Emsal:* Python `tempfile.TemporaryDirectory` bağlam bitince siler; `mkdtemp` silmez [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* testlerin ve denemelerin bıraktığı dosyalar depoyu kirletir; ajan temizliği unutur. Silme 18.7 ve 18.8'in kurallarıyla yapıldığı için geçici klasör bir bağlantıyla başka bir yere açılsa da dışarıyı silmez. Zorla öldürülen süreç kendi temizliğini çalıştıramaz; `trlang`'ın açılışta ölmüş süreçlerin klasörlerini silmesi seçilmedi: süreç numarası yeniden verilir, başka bir sürecin klasörü silinebilir, ve programın açılışına bir yan etki eklenir [ölçüldü: taskkill /F ile durdurulan programın klasörü kaldı, 2026-11-14].
+- *Gerekçe:* testlerin ve denemelerin bıraktığı dosyalar depoyu kirletir; ajan temizliği unutur. Silme 18.7 ve 18.8'in kurallarıyla yapıldığı için geçici klasör bir bağlantıyla başka bir yere açılsa da dışarıyı silmez. Zorla öldürülen süreç kendi temizliğini çalıştıramaz ve TR bu klasörü sonradan da silmez: ne zaman silineceği işletim sisteminin geçici klasör temizliğine kalır, TR bunun için söz vermez. `trlang`'ın açılışta ölmüş süreçlerin klasörlerini silmesi seçilmedi: süreç numarası yeniden verilir, başka bir sürecin klasörü silinebilir, ve programın açılışına bir yan etki eklenir [ölçüldü: taskkill /F ile durdurulan programın klasörü kaldı, 2026-11-14].
 
 ### 18.15
 

@@ -1064,7 +1064,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 
 ### 18.14
 
-- **Yapılacaklar (C, Ö2; sahip DIL UZMANI; geçici klasör işi, TCB 2026-11-15 00:02):** 2026-11-14 11:22–14:55 arasında 105 süreç %TEMP%'te 6 422 geçici klasör bıraktı (süreç başına 5, 195 ya da 258–263, çoğu boş; içindekiler `tests/dosya_ve_yol_test.tr`'nin ve kontrol noktası testlerinin adları); kaynağı bulunamadı [ölçüldü: klasörlerin süreç numarasına göre sayımı; oturum kayıtlarındaki komutlarla eşleşen yok]. O günün öbür iki kaynağı kapandı: `tests/` takımını temizliksiz koşan `TestLanguageSpecTestsPass` (`6852b131`) ve programın klasörlerini silmeyen `trrun.Exec` (bu commit). Sıradaki: bir daha görülürse süreç numarasını kayıtlı komutla eşleştir.
+- **Yapılacaklar (C, Ö2; sahip DIL UZMANI; geçici klasör işi, TCB 2026-11-15 00:02):** 2026-11-14 11:22–14:55 arasında 105 süreç %TEMP%'te 6 422 geçici klasör bıraktı (süreç başına 5, 195 ya da 258–263, çoğu boş; içindekiler `tests/dosya_ve_yol_test.tr`'nin ve kontrol noktası testlerinin adları); kaynağı bulunamadı [ölçüldü: klasörlerin süreç numarasına göre sayımı; oturum kayıtlarındaki komutlarla eşleşen yok]. O günün öbür iki kaynağı kapandı: `tests/` takımını temizliksiz koşan `TestLanguageSpecTestsPass` (`6852b131`) ve programın klasörlerini silmeyen `trrun.Exec` (`94abc110`). Sıradaki: bir daha görülürse süreç numarasını kayıtlı komutla eşleştir.
 
 ### 18.16
 
