@@ -13,8 +13,12 @@ ile sorulur; 30 satır güvenlik sınırı olarak kalır. **Kanca grafı kurmaz:
 `--no-rebuild`'de bunu stderr'e yazar) ya da hiç yoksa liste vermez, yalnız "codegraph: the graph is older than the tree;
 run go run ./tools/codegraph tests-for <dosya> for the run: lines (it rebuilds the graph)" yazar. Neden: eski grafla
 (117 dosya geride) 12 dosyanın 12'sinde `run:` satırı taze graftan farklıydı, yakın testler eksikti; kanca beş günde 385
-kez grafı kurup 6 975 sn bekletmişti. Denetim: `TestTheHookSaysTheGraphIsStaleAndShowsNoList`,
-`TestTheHookShowsTheSizeLineOnlyNearTheLimit`, `TestFirstEditShowsTheNarrowRunLines`. Düzenleme durmaz: 2026-10-28'e kadar
+kez grafı kurup 6 975 sn bekletmişti. **Kod dosyasında kanca çoğu kez yalnız bu komutu verir:** kanca düzenlemeden sonra
+koşar ve içeriği grafın damgasına giren dosyanın (`.go .json .md .tr .js .mjs .cjs .sh .py`, `go.mod`) düzenlenmesi grafı
+bayatlatır; dar satırları ajanın kendi `tests-for`'u verir (codegraph 7, DENETİM 750 Ş1: taze grafla `fresh.go`'nun
+düzenlenmesinden sonra yalnız bu satır, `ci.yml`'de not ve dar kısım geldi). Denetim: `TestTheHookSaysTheGraphIsStaleAndShowsNoList`,
+`TestTheHookLooksForCodegraphsOwnStaleLine` (aranan baş codegraph'ın kendi satırıdır), `TestTheHookShowsTheSizeLineOnlyNearTheLimit`,
+`TestFirstEditShowsTheNarrowRunLines`. Düzenleme durmaz: 2026-10-28'e kadar
 kanca ilk düzenlemeyi durdurup yinelenmesini istiyordu; bu her dosyada bir tur alıyor, kararı
 değiştirmiyordu. Aynı oturumda aynı dosya için bir daha söylenmez (işaret geçici klasörde,
 `tr-edithook/<oturum>/`). Kabuktan (Python, sed) yapılan düzenlemeyi görmez; bu açık yol

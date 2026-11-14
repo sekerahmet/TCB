@@ -7,7 +7,8 @@ shipped to users.
 
 What it is for: for a changed file it gives two lists. The **narrow** list (`tests-for`'s `run:` lines) is run while
 writing; the **wide** list (`changed --go-tests`) is run by the commit mode as its time allows and by G4 in full. The
-edit hook shows the agent only the narrow lines. A question this does not answer goes to `grep` or to the command table
+edit hook shows the agent at most the narrow lines; after an edit of a code file the graph is stale and it shows only the
+command that gives them. A question this does not answer goes to `grep` or to the command table
 below; a new command needs a measured use.
 
 ```sh
@@ -104,6 +105,8 @@ stale, there is no incremental rebuild. The edit hook does not rebuild (codegrap
 which says on stderr when the graph is older than the tree ("warning: the graph is older than the tree (--no-rebuild);
 answers may miss new or changed code"; an older extractor counts too), and then shows no list, only the command that
 rebuilds (a stale graph's `run:` lines differed in 12 of 12 sample files; the hook had rebuilt 385 times in five days).
+The hook runs after the edit, so for a file whose content enters the stamp (`stampExts`, `go.mod`) the graph is stale and
+the hook gives only that command; the agent's own `tests-for` gives the `run:` lines (DENETİM 750 Ş1).
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names

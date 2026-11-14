@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -207,6 +208,27 @@ func TestTheHookSaysTheGraphIsStaleAndShowsNoList(t *testing.T) {
 	}
 	if note, ok := shown(t, out.String()); !ok || note != want {
 		t.Errorf("on a stale graph the note is the stale line alone:\n%s", note)
+	}
+}
+
+// Kural (codegraph 7, DENETİM 750 N4): kancanın aradığı iki metin codegraph'ın kendi satırlarıdır: staleGraph
+// `--no-rebuild`'in bayat graf satırının (staleNoRebuild) başı, noGraph graf yokken yazılan satırın parçası. Sahte codegraph
+// metni kendisi yazdığı için bu bağ ancak kaynağı okuyarak sınanır: S4 değişirse kanca bayat listeyi sessizce gösterirdi.
+// Gerçek düzenlemede zincir: içerik değişir, S4 yazılır (codegraph TestNoRebuildWarnsOnAStaleGraph), kanca S8 yazar (yukarıda).
+func TestTheHookLooksForCodegraphsOwnStaleLine(t *testing.T) {
+	src, err := os.ReadFile(reporoot.Path("tools", "codegraph", "main_query.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^const staleNoRebuild = "([^"]*)"`).FindSubmatch(src)
+	if m == nil {
+		t.Fatal("tools/codegraph/main_query.go: const staleNoRebuild not found")
+	}
+	if !strings.HasPrefix(string(m[1]), staleGraph) {
+		t.Errorf("codegraph's stale line %q does not start with the hook's staleGraph %q", m[1], staleGraph)
+	}
+	if !strings.Contains(string(src), noGraph) {
+		t.Errorf("tools/codegraph/main_query.go does not write the hook's noGraph %q", noGraph)
 	}
 }
 
