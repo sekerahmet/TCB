@@ -66,7 +66,8 @@ func TestFirstEditShowsTheGuardingTestsOnce(t *testing.T) {
 	stamps := t.TempDir()
 	asked := 0
 	_, out := hook(t, stamps, "s1", "a.go", &asked)
-	if note, ok := shown(t, out); !ok || !strings.Contains(note, "tests-for a.go") || !strings.Contains(note, "tests guarding it") {
+	if note, ok := shown(t, out); !ok || note != "First edit of a.go in this session: run its narrow run: lines while you write; "+
+		"the commit check and G4 run the rest.\n$ go run ./tools/codegraph tests-for a.go\ntests guarding it" {
 		t.Fatalf("ilk düzenlemeden sonra cevap bağlam olarak verilmeli: %q", out)
 	}
 	if _, held := held(t, out); held {
@@ -86,23 +87,31 @@ func TestFirstEditShowsTheGuardingTestsOnce(t *testing.T) {
 	}
 }
 
-// Kural: kancanın gösterdiği ilk maxLines satır, doğrudan testi olmayan uzun listeli bir Go dosyasında da koşu
-// satırlarını ve boyut satırını içerir (2026-10-29: compiler_assign.go'nun 496 testlik cevabının başında ne
-// düzenlenen paketin testi ne de compiler.assignTo'nun 80/80 satırı vardı). Gerçek codegraph'a sorar, bu yüzden
-// kısa kipte atlanır.
-func TestFirstEditShowsTheRunLineAndTheSizeLine(t *testing.T) {
+// Kural: kancanın gösterdiği ilk maxLines satır, doğrudan testi olmayan uzun listeli bir Go dosyasında da dar koşu
+// satırlarını ve sayı satırını içerir (2026-10-29: compiler_assign.go'nun 496 testlik cevabının başında düzenlenen
+// paketin testi yoktu). Dar satır taramaları (TestLayoutFuncSize) koşmaz; boyut satırı sınırdan uzak dosyada, codegraph'ın
+// dosya satırı hiç gelmez: not dosyayı adlandırır (codegraph 7 A1, A3, A5). Kanca grafı kurmaz; test önce kurar. Gerçek codegraph'a sorar, bu yüzden kısa kipte atlanır.
+func TestFirstEditShowsTheNarrowRunLines(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds codegraph and the graph")
 	}
 	root := reporoot.Root()
+	build, _, err := codegraph(root, "build")
+	if err == nil {
+		err = build.Run()
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	got := testsFor(target{root, "internal/lang/interp/compiler_assign.go"})
 	lines := strings.Split(got, "\n")
-	if len(lines) > maxLines+3 { // bayat uyarısı, "... more lines" satırı ve soru → komut tablosunun yeri
+	if len(lines) > maxLines+2 { // derlenmeyen ağacın uyarısı ve "... more lines" satırı
 		t.Fatalf("%d lines shown, at most %d:\n%s", len(lines), maxLines, got)
 	}
-	if !strings.Contains(got, "\nrun: go test -short ./internal/lang/interp/\n") || !strings.Contains(got, "TestLayoutFuncSize|") ||
-		!strings.Contains(got, "\n  size (TestLayoutFileSize, TestLayoutFuncSize): file ") {
-		t.Fatalf("the first %d lines must hold the run lines and the size line:\n%s", maxLines, got)
+	if !strings.Contains("\n"+got, "\nrun: go test -short ./internal/lang/interp/\n") || strings.Contains(got, "TestLayoutFuncSize|") ||
+		!strings.Contains(got, "\n  narrow: these lines run the near tests; ") || strings.Contains(got, "size (") ||
+		strings.Contains(got, "compiler_assign.go [file]") {
+		t.Fatalf("the first %d lines must hold the narrow run lines and the count line, no size line far from the limit:\n%s", maxLines, got)
 	}
 }
 
@@ -300,24 +309,5 @@ func TestLocateTrackedFilesOnly(t *testing.T) {
 	}
 	if _, ok := locate(filepath.Join(t.TempDir(), "x.go")); ok {
 		t.Fatal("depo dışı dosya geçmeli")
-	}
-}
-
-// Kural: cevabın altındaki satır README'de var olan bir bölümü gösterir: soru → komut tablosu (gaps, "Düzenleme
-// kancasının çıktısı soru → komut tablosunu göstermiyor"; yan oturumlar var olan komutları bilmeden istek yazıyordu).
-func TestTheAnswerPointsToTheCommandTable(t *testing.T) {
-	file, section, ok := strings.Cut(strings.TrimPrefix(commandTableLine, "which command answers which question: "), ", ")
-	if !ok {
-		t.Fatalf("the line names a file and a section: %q", commandTableLine)
-	}
-	data, err := os.ReadFile(reporoot.Path(file))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if heading := "\n## " + strings.Trim(section, `"`) + "\n"; !strings.Contains(string(data), heading) {
-		t.Errorf("%s has no section %q", file, heading)
-	}
-	if !strings.Contains(string(data), "| `tests-for <file") || !strings.Contains(string(data), "| `untested --in <folder>`") {
-		t.Errorf("the section holds the question → command table")
 	}
 }

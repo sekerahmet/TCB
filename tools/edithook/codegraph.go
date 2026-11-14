@@ -21,6 +21,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -111,6 +113,80 @@ func remember(last, bin string) {
 	if os.WriteFile(tmp, []byte(bin+"\n"), 0o644) != nil || os.Rename(tmp, last) != nil {
 		os.Remove(tmp)
 	}
+}
+
+// firstEditNote kancanın ilk düzenlemedeki notudur (codegraph 7, S1): dosya, dar satırların ne zaman koşulacağı, komut
+// ve cevap. Komut tablosuna gönderen satır yok (A5).
+const firstEditNote = "First edit of %s in this session: run its narrow run: lines while you write; the commit check and G4 run the rest.\n" +
+	"$ go run ./tools/codegraph tests-for %s\n%s"
+
+// staleGraph codegraph'ın `--no-rebuild` bayat grafta stderr'e yazdığı satırın başıdır (tools/codegraph/main_query.go,
+// staleNoRebuild); noGraph graf hiç yokken yazdığı satırın parçasıdır (loadGraph).
+const (
+	staleGraph = "warning: the graph is older than the tree"
+	noGraph    = "not found; run `go run ./tools/codegraph build` first"
+)
+
+// staleLine kancanın bayat grafta ya da graf yokken yazdığı tek satırdır (codegraph 7, K3, S8): eski grafla (117 dosya
+// geride) 12 dosyanın 12'sinde run: satırı taze graftan farklıydı, yakın testler eksikti; bayat liste yanlış güven verir.
+// Kanca grafı kurmaz (5 günde 385 kurulum, 6 975 sn): kurulumu ajan bu komutla, bilerek bekler.
+const (
+	staleLinePrefix = "codegraph: the graph is older than the tree; "
+	staleLine       = staleLinePrefix + "run go run ./tools/codegraph tests-for %s for the run: lines (it rebuilds the graph)"
+)
+
+// testsFor codegraph'a dosyanın dar koşu satırlarını sorar (`tests-for --no-rebuild`, grafı kurmaz): cevabın ilk maxLines
+// satırı, dosya satırı hariç; boyut satırı yalnız dosya ya da bir fonksiyon sınırının %90'ında ya da üstündeyse (A5). Graf bayatsa ya da yoksa
+// cevap yerine staleLine. Araç bu ağaçla derlenmiyorsa cevap son derlenen sürümündür ve başında bunu söyler.
+func testsFor(t target) string {
+	cmd, stale, err := codegraph(t.root, "tests-for", "--no-rebuild", t.rel)
+	var stdout, stderr bytes.Buffer
+	if err == nil {
+		cmd.Stdout, cmd.Stderr = &stdout, &stderr
+		err = cmd.Run()
+	}
+	if strings.Contains(stderr.String(), staleGraph) || strings.Contains(stderr.String(), noGraph) {
+		return fmt.Sprintf(staleLine, t.rel)
+	}
+	var lines []string
+	for _, l := range strings.Split(strings.TrimRight(stderr.String()+stdout.String(), "\n"), "\n") {
+		switch {
+		case strings.HasPrefix(l, t.rel+" ["): // codegraph'ın dosya satırı: not dosyayı zaten adlandırır
+		case strings.HasPrefix(l, "  size (") && !nearLimit(l):
+		default:
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) > maxLines {
+		lines = append(lines[:maxLines], fmt.Sprintf("... (%d more lines: run the command)", len(lines)-maxLines))
+	}
+	text := strings.Join(lines, "\n")
+	if stale != "" {
+		text = stale + "\n" + text
+	}
+	if err != nil {
+		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence: check with grep, "+
+			"tools/codegraph/README.md, Reading an answer)", err)
+	}
+	return text
+}
+
+// sizeFile boyut satırının dosya kısmıdır: `file 387/600`.
+var sizeFile = regexp.MustCompile(`: file (\d+)/(\d+)`)
+
+// nearLimit codegraph'ın boyut satırı sınıra yakın bir şey söylüyor mu: dosya sınırının %90'ı ya da üstü, %90'daki ya da
+// sınırı aşan bir fonksiyon (codegraph "functions at >=90%" yazar) ya da ayrıştırılamayan dosya.
+func nearLimit(sizeLine string) bool {
+	if strings.Contains(sizeLine, "functions at >=") || strings.Contains(sizeLine, "functions: stale") {
+		return true
+	}
+	m := sizeFile.FindStringSubmatch(sizeLine)
+	if m == nil {
+		return false
+	}
+	n, _ := strconv.Atoi(m[1])
+	limit, _ := strconv.Atoi(m[2])
+	return n*10 >= limit*9
 }
 
 // runCodegraph ön denetimin codegraph çağrısıdır (`go run ./tools/edithook codegraph <args>`):

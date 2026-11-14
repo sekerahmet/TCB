@@ -4,13 +4,17 @@ Claude Code'un düzenleme kancası (`.claude/settings.json`, `PostToolUse`: `Edi
 `MultiEdit`, `NotebookEdit`). Codegraph kuralını ajanın önüne getirir: bir dosyayı koruyan testler
 ve kurallar (`go run ./tools/codegraph tests-for <dosya>`).
 
-Bir oturum depoda izlenen bir dosyayı ilk kez düzenleyince kanca `tests-for` cevabının ilk 30
-satırını ajana bağlam olarak verir (Claude Code'un `additionalContext` cevabı; çıkış kodu
-kullanılmaz, çünkü `go run` programın 2 kodunu 1'e çevirir). Listenin başı tek başına yetmez (doğrudan testi olmayan
-bir dosyada ilk 30 satır başka paketlerin uzak testleriydi, 2026-10-29); Go dosyasında yeten, codegraph'ın en üste
-koyduğu satırlardır: koşu satırları (`run:`, koşmadıkları sayıyla) ve boyut satırı (`size (...)`). codegraph dilim 6'dan
-beri bayraksız `tests-for` yalnız bunları ve listelenen test sayısını verir; gruplar `tests-for <dosya> --list` ile
-sorulur, 30 satır güvenlik sınırı olarak kalır. Düzenleme durmaz: 2026-10-28'e kadar
+Bir oturum depoda izlenen bir dosyayı ilk kez düzenleyince kanca `tests-for --no-rebuild` cevabının dar
+kısmını ajana bağlam olarak verir (Claude Code'un `additionalContext` cevabı; çıkış kodu
+kullanılmaz, çünkü `go run` programın 2 kodunu 1'e çevirir; codegraph 7, Dilim A): tek cümlelik not, dar `run:` satırları
+ve sayı satırı ("narrow: these lines run the near tests; N more are left to the commit check and G4"); boyut satırı
+(`size (...)`) yalnız dosya ya da bir fonksiyon sınırının %90'ında ya da üstündeyse. Gruplar `tests-for <dosya> --list`
+ile sorulur; 30 satır güvenlik sınırı olarak kalır. **Kanca grafı kurmaz:** graf ağaçtan eskiyse (codegraph
+`--no-rebuild`'de bunu stderr'e yazar) ya da hiç yoksa liste vermez, yalnız "codegraph: the graph is older than the tree;
+run go run ./tools/codegraph tests-for <dosya> for the run: lines (it rebuilds the graph)" yazar. Neden: eski grafla
+(117 dosya geride) 12 dosyanın 12'sinde `run:` satırı taze graftan farklıydı, yakın testler eksikti; kanca beş günde 385
+kez grafı kurup 6 975 sn bekletmişti. Denetim: `TestTheHookSaysTheGraphIsStaleAndShowsNoList`,
+`TestTheHookShowsTheSizeLineOnlyNearTheLimit`, `TestFirstEditShowsTheNarrowRunLines`. Düzenleme durmaz: 2026-10-28'e kadar
 kanca ilk düzenlemeyi durdurup yinelenmesini istiyordu; bu her dosyada bir tur alıyor, kararı
 değiştirmiyordu. Aynı oturumda aynı dosya için bir daha söylenmez (işaret geçici klasörde,
 `tr-edithook/<oturum>/`). Kabuktan (Python, sed) yapılan düzenlemeyi görmez; bu açık yol
@@ -28,8 +32,8 @@ ikili yoksa derleme hatası görünür. Ön denetim (`tools/full_check.sh`) code
 koşar: `go run ./tools/edithook codegraph <args>`. Denetim:
 `TestABrokenTreeFallsBackToTheLastBuiltCodegraph` (sahte `go` ile).
 
-Cevap yanlış, belirsiz ya da eksikse ajan bunu ana oturuma bildirir (komut, beklenen, gelen); ana
-oturum doğrulayıp [`tools/codegraph/gaps.md`](../codegraph/gaps.md)'ye yazar.
+Cevap yanlış, belirsiz ya da eksikse ajan bunu devirine yazar (komut, beklenen, gelen); ana oturum CODEGRAPH UZMANI'na
+iletir, o doğrulayıp [`tools/codegraph/gaps.md`](../codegraph/gaps.md)'ye yazar.
 
 ## Uzun denetimler arka planda
 

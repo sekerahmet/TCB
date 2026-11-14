@@ -102,6 +102,11 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	return ix.dispatch(cmd, fs.Args(), o)
 }
 
+// staleNoRebuild `--no-rebuild`'in bayat grafta (damga ya da çıkarıcı sürümü farklı) stderr'e yazdığı satırdır (codegraph 7,
+// S4): cevap yine verilir. Düzenleme kancası (tools/edithook) bu satırı görünce listeyi göstermez (K3: eski grafla 12
+// dosyanın 12'sinde run: satırı taze graftan farklıydı). Damganın git çağrıları yaklaşık 0,1 sn'dir (README, "Cost").
+const staleNoRebuild = "warning: the graph is older than the tree (--no-rebuild); answers may miss new or changed code"
+
 // loadGraph grafiği okur ve gerekirse (yoksa ya da eskiyse) kurar; okunamaz ya da kurulamazsa nil ve çıkış kodunu verir.
 func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	g, err := readGraph(path)
@@ -120,6 +125,11 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 		}
 	case g.Extractor != extractorRevision:
 		fmt.Fprintf(o.stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
+		fmt.Fprintln(o.stderr, staleNoRebuild)
+	case g.Stamp != "":
+		if now, err := sourceStamp(o.root); err == nil && now != g.Stamp {
+			fmt.Fprintln(o.stderr, staleNoRebuild)
+		}
 	}
 	for _, w := range g.Warnings {
 		if strings.HasPrefix(w, trSkipped) { // Go cevapları tam; .tr kodu ve TR bağları yok

@@ -192,6 +192,36 @@ func TestQueryRebuildsStaleGraph(t *testing.T) {
 	}
 }
 
+// Kural (codegraph 7, S4): `--no-rebuild` bayat grafla yine cevap verir ama stderr'e grafın ağaçtan eski olduğunu tek
+// satırla yazar; taze grafta ve çıkarıcı sürümü aynı grafta yazmaz. Çıkarıcı sürümü eski graf da bayattır. Düzenleme
+// kancası (tools/edithook) bu satırı görünce listeyi göstermez.
+func TestNoRebuildWarnsOnAStaleGraph(t *testing.T) {
+	root := gitFixture(t)
+	graph := buildInto(t, root)
+	if code, _, errOut := commandIn("query", root, graph, "--no-rebuild", "shape.Describe"); code != exitOK || strings.Contains(errOut, staleNoRebuild) {
+		t.Fatalf("a fresh graph gives no stale line: exit %d: %q", code, errOut)
+	}
+	extra := "package shape\n\n// Fresh appears after a source change.\nfunc Fresh() {}\n"
+	if err := os.WriteFile(filepath.Join(root, "shape", "fresh.go"), []byte(extra), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, out, errOut := commandIn("query", root, graph, "--no-rebuild", "shape.Describe")
+	if code != exitOK || !strings.Contains(out, "shape.Describe [func]") || strings.Count(errOut, staleNoRebuild+"\n") != 1 {
+		t.Errorf("a stale graph still answers and says so once on stderr: exit %d\nout: %s\nerr: %q", code, out, errOut)
+	}
+	g, err := readGraph(graph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.Extractor--
+	if err := writeGraph(graph, g); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, errOut = commandIn("query", root, graph, "--no-rebuild", "shape.Describe"); !strings.Contains(errOut, "older codegraph") || strings.Count(errOut, staleNoRebuild) != 1 {
+		t.Errorf("a graph of an older extractor is stale too: %q", errOut)
+	}
+}
+
 func TestQueryKeepsOldGraphWhenRebuildFails(t *testing.T) {
 	slowFixture(t)
 	root := gitFixture(t)

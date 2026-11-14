@@ -242,13 +242,9 @@ func (ix *index) buildPkgOf(id string) string {
 // uzakta, en yakın önce); koruduğu kurallar en sonda.
 func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	body := ix.testsForBody(n)
-	ab, listed := &answerBuffer{}, &answerBuffer{}
+	ab := &answerBuffer{}
 	body(ab, limit)
-	if listed = ab; limit == 0 { // --all: koşu satırı varsayılan cevapta adı geçenleri adlandırır
-		listed = &answerBuffer{}
-		body(listed, defaultLimit) // aynı toplamadan, yalnız sınırı farklı (hız işi, tekrar 1)
-	}
-	flushAnswer(w, ab, listed)
+	flushAnswer(w, ab)
 }
 
 // printTestsForShort tests-for'un bayraksız cevabıdır (codegraph dilim 6, D6-1; düzenleme kancasının çağrısı): dosya
@@ -285,7 +281,7 @@ func (ix *index) printNodeTests(w io.Writer, n *Node, t nodeTests, limit int) {
 	}
 	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindDoc || n.Kind == kindFile {
-		writeRunPlan(w, func(l listedTests) runPlan { return ix.nodeRunPlan(n, t, tests, l) })
+		writeRunPlan(w, func() runPlan { return ix.nodeRunPlan(n, t, tests) })
 	}
 	if t.branch == branchTested {
 		markHeadEnd(w) // öbür dallar "below" diye gruplara gönderir: kısa kipte de tam yazılırlar

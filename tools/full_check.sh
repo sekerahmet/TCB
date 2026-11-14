@@ -205,6 +205,8 @@ commit_late_packages=(
 	./internal/compute/gpu
 	./internal/detmath
 	./internal/lang/parser
+	./internal/stdlib/httpserver
+	./internal/stdlib/process
 	./tools/codegraph
 )
 # commit_seconds commit kipinin baştan sona süre sınırıdır, derleme dahil; commit_chunk_chars bir parçanın -run

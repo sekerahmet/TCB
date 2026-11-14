@@ -2,15 +2,17 @@ package main
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"testing"
 )
 
 // Kural: TR programlarını tip denetleyicisinden (Checker.CheckProgram) geçiren ortak test yardımcıları,
 // seçenek bayrağını açık geçiren çağrılar ve denetleyici alt komutunu çalıştıran alt süreç testleri
-// hem CheckProgram'a [INFERRED] tests kenarı kurar hem de denetleyici dosyalarının `run:` satırlarında yer alır;
-// bayrağı kapalı ya da denetleyiciye varmayan alt komutla çağrılan testler seçilmez.
-func TestCheckerRunnerTestsLinkAndAppearInRunLine(t *testing.T) {
+// CheckProgram'a [INFERRED] tests kenarı kurar ve denetleyici dosyalarının cevabında yer alır: CheckProgram'ın
+// dosyasında dar `run:` satırında (doğrudan test), öbür dosyalarda yalnız gruplarda (codegraph 7 A1: koşucular uzaktır,
+// commit öncesi denetim koşar); bayrağı kapalı ya da denetleyiciye varmayan alt komutla çağrılan testler seçilmez.
+func TestCheckerRunnerTestsLinkAndStayInTheAnswer(t *testing.T) {
 	files := map[string]string{
 		"internal/lang/checker/checker.go": `package checker
 
@@ -125,13 +127,18 @@ func TestSubprocessFmt(t *testing.T) { _ = exec.Command("cli", "fmt", "doc.md") 
 	}
 
 	ix := newIndex(g)
-	for _, target := range []string{"internal/lang/checker/checker.go", "internal/lang/checker/rules.go"} {
+	for _, c := range []struct {
+		target string
+		inRun  bool // CheckProgram'ın dosyasında koşucular doğrudan testtir, dar satırdadır; öbür dosyada uzaktır (codegraph 7 A1)
+	}{{"internal/lang/checker/checker.go", true}, {"internal/lang/checker/rules.go", false}} {
+		target := c.target
 		var buf bytes.Buffer
 		ix.printTestsFor(&buf, ix.byID["go:file:"+target], 12)
 		out := buf.String()
-		for _, want := range []string{"./cmd/cli/e2e/", "./pkg/ml/", "TestSubprocessCheck", "TestViaRunnerHelper", "TestViaOptionEnabled"} {
-			if !strings.Contains(out, want) {
-				t.Errorf("%s run lines missing %q:\n%s", target, want, out)
+		run := strings.Join(runLines(out), "\n")
+		for _, want := range []string{"TestSubprocessCheck", "TestViaRunnerHelper", "TestViaOptionEnabled"} {
+			if !strings.Contains(out, want) || strings.Contains(run, want) != c.inRun {
+				t.Errorf("%s: %q must be in the answer, in its run lines %v:\n%s", target, want, c.inRun, out)
 			}
 		}
 		for _, notWant := range []string{"TestViaOptionDisabled", "TestUncheckedOnly", "TestSubprocessFmt"} {
@@ -142,9 +149,10 @@ func TestSubprocessFmt(t *testing.T) { _ = exec.Command("cli", "fmt", "doc.md") 
 	}
 }
 
-// Kural: depoda `tests-for internal/lang/checker/checker.go`'nun `run:` satırları hem `cmd/trlang/e2e`'nin
-// `TestDocTRCodeBlocks`'unu hem de `internal/stdlib/ml`'in `TestTensorIsNotACondition`'ını içerir.
-func TestRepoCheckerTestsForRunLineIncludesDocBlocksAndMLRunner(t *testing.T) {
+// Kural: depoda `tests-for internal/lang/checker/checker.go`'nun koşucuları (`cmd/trlang/e2e`'nin `TestDocTRCodeBlocks`'u,
+// `internal/stdlib/ml`'in `TestTensorIsNotACondition`'ı) dar satırda değildir; seçimdedir ve kalan sayısına girer: commit
+// öncesi denetim ve G4 koşar (codegraph 7 A1–A3; checker.go'nun başka paketlerde 175 doğrudan testi var, sınırı aşıyor).
+func TestRepoCheckerRunnersAreLeftToTheCommitCheck(t *testing.T) {
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	file := ix.byID["go:file:internal/lang/checker/checker.go"]
@@ -153,14 +161,18 @@ func TestRepoCheckerTestsForRunLineIncludesDocBlocksAndMLRunner(t *testing.T) {
 	}
 	ts := ix.fileDecls(file)
 	s := ix.fileTests(file, ts)
-	cmds := ix.runPlanFor(file, ts, s).commands()
+	p := ix.runPlanFor(file, ts, s)
+	cmds := p.commands()
 	inRun := runCovers(cmds)
 	for _, want := range []goTest{
 		{"cmd/trlang/e2e", "TestDocTRCodeBlocks"},
 		{"internal/stdlib/ml", "TestTensorIsNotACondition"},
 	} {
-		if !inRun(want) {
-			t.Errorf("checker.go run: lines do not cover %v:\n%s", want, strings.Join(cmds, "\n"))
+		if inRun(want) || !slices.Contains(p.rest, want) {
+			t.Errorf("checker.go: %v must be left to the commit check (counted, not run):\n%s", want, strings.Join(cmds, "\n"))
 		}
+	}
+	if p.hub <= narrowHubLimit {
+		t.Errorf("checker.go: %d direct tests in other packages, more than %d expected", p.hub, narrowHubLimit)
 	}
 }

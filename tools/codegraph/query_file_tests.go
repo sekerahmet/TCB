@@ -66,7 +66,7 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, ts *touchSet, decls i
 	if isUntracked(ix.root, file.File) {
 		printUntrackedWarning(w, file.File)
 	}
-	writeRunPlan(w, func(l listedTests) runPlan { return ix.runPlanWith(file, ts, s, l) })
+	writeRunPlan(w, func() runPlan { return ix.runPlanFor(file, ts, s) })
 	ix.printSizes(w, file)
 	if len(s.own)+len(s.about)+len(s.others)+len(s.subprocess) > 0 {
 		markHeadEnd(w) // testi olmayan dosyanın "tests: none found" satırı kısa kipte de yazılır

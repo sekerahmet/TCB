@@ -5,6 +5,11 @@ A local, deterministic knowledge graph of this repository, so an agent (or a per
 files. No network, no model, no new dependency: Go's standard library only. Developer tool; not
 shipped to users.
 
+What it is for: for a changed file it gives two lists. The **narrow** list (`tests-for`'s `run:` lines) is run while
+writing; the **wide** list (`changed --go-tests`) is run by the commit mode as its time allows and by G4 in full. The
+edit hook shows the agent only the narrow lines. A question this does not answer goes to `grep` or to the command table
+below; a new command needs a measured use.
+
 ```sh
 go run ./tools/codegraph build                  # writes .codegraph/graph.json (git ignores it)
 go run ./tools/codegraph query messages.New     # a node and its neighbours
@@ -94,8 +99,11 @@ queries never read half a file) and prints one line on stderr: `graph rebuilt (N
 
 Cost when the graph is fresh (this repository, Windows, 2026-10-26, built binary): `tests-for` takes about 1.5 s,
 1.4 s with `--no-rebuild` (reading the 62 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds
-about 1 s once its build is cached. A stale graph costs one `build` (7-15 s, see "Time"), so the edit hook waits about
-that long on a stale graph; a real edit makes the graph stale, there is no incremental rebuild.
+about 1 s once its build is cached. A stale graph costs one `build` (7-15 s, see "Time"); a real edit makes the graph
+stale, there is no incremental rebuild. The edit hook does not rebuild (codegraph 7, K3): it asks with `--no-rebuild`,
+which says on stderr when the graph is older than the tree ("warning: the graph is older than the tree (--no-rebuild);
+answers may miss new or changed code"; an older extractor counts too), and then shows no list, only the command that
+rebuilds (a stale graph's `run:` lines differed in 12 of 12 sample files; the hook had rebuilt 385 times in five days).
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names
@@ -109,9 +117,9 @@ query has at least 3 characters, text search: a name that starts with it, a name
 a `detail` (message text, rule text, heading) that contains it, all case-insensitive. One match is
 answered (`query "Cümle parçalardan"` finds the rule); several are listed (exit 3). A bare or dot-qualified TR name (no colon or slash) is resolved among the TR names (`.tr` modules, TR declarations and tests, name codes) by the rule of `codeindex.Resolve` itself, not a copy (`codeindex.NameKeys`, `codeindex.PickByName`, `codeindex.QualifiedMatch`, `codeindex.MemberQuery`), so `query`, `TR_cmd_index TR_sub_definition` and `TR_cmd_index TR_sub_rename` see the same candidates (`query bakış_sayısı`: 7). Case: a query without capitals ignores case (Turkish rule); one with capitals first matches exactly, and only when nothing does, ignoring case (`GÖMMEKATMANI` finds `TR_type_Embedding`; ripgrep's `--smart-case` with a fallback); that pass also tries the ASCII lower case (`GIZLI_DURUM`, typed on an English keyboard), and there is no such pass when the query is exactly a word of the language (`TR_type_String` is the type name, not the builtin `TR_type_String`). Go and document names keep codegraph's tiers: an exact-case name comes first, since case means something in Go (`identifier` is `interp.identifier`; a lowercase query that resolves this way also lists, on stderr, the names that match only in another case, `ast.Identifier`, so they are not a silent "none"), and the case-insensitive tiers compare with both foldings, Turkish and Go's (`ifexpression` finds `ast.IfExpression`, which Turkish folding alone, `I` → `ı`, missed; audit group 7). Classes: a module name comes before declarations (`katman` is the module, not the parameters named `katman`); a builtin name joins the first class that matches (`TR_type_String` is both the module `tools/bench/tr/metin.tr` and the builtin TR_type_String); a test's description only when nothing else matches (`TR_fn_mean` is the builtin). A capitalised query that matches only case-insensitively ranks with the case-insensitive Go tiers. Name codes the index does not know (keywords, unused builtins) are candidates in the builtin class too. The planning exam asks both tools every TR name (each declaration's short name, module names, test descriptions, every name of every builtin in the index) as written, in lower and in upper case, and checks the same set (audit group 6, R1). Text queries try whole words first (Turkish case folding, word boundary; name, then detail and doc comment), then a name prefix, then a substring: `query "ölü"` finds the doc comments that say "ölü", not every "bölüm".
 
-Without a flag, `tests-for` prints the node's line, the `run:` lines, the `size:` line and the number of tests it
-lists (`tests: N listed`; codegraph slice 6, D6-1): the edit hook shows this, the agent decides with the `run:` and
-`size:` lines and the list filled the context (DENETİM 699). `--list` (or `--limit N`) adds the first page of each
+Without a flag, `tests-for` prints the node's line, the `run:` lines with their count line and the `size:` line
+(codegraph slice 6, D6-1; codegraph 7, A3): the edit hook shows the narrow part of this, the agent decides with the
+`run:` and `size:` lines and the list filled the context (DENETİM 699). `--list` (or `--limit N`) adds the first page of each
 group, `--all` every test; the `run:` lines are the same in the three. An answer with a branch line (`no tests found`,
 `no tests traced to it`, `no tests read it by name`, ...) is whole without a flag too: those lines point below.
 
@@ -124,29 +132,38 @@ touching it" answers for Go files too. Nothing is cut from that collection; it i
 of a declaration's answer (one rule, `testRank`): the tests about one of its declarations, then the direct tests, the
 chains of at most 4 steps, and the longer chains under "weak evidence"; at equal steps a test in the file's own folder
 (the edited package) comes first (2026-10-29: in `tests-for internal/lang/interp/assign.go` the first `interp` test was
-on line 140, behind other packages' tests in alphabetical order). Right under the file line (preceded by `untracked: <file> is not tracked by git; repository-wide checks do not see it (run 'git add <file>')` when the file is not tracked by git, which `changed --go-tests` also prints for any untracked source file in the working tree) come the `run:` lines, the
-short command for the edit loop: `go test -short ./<the file's package>/` whole (it also runs the same-package tests the
-graph cannot see), then one `go test -short` with `-run '^(...)$'` over the packages of every repository-wide check that
-scans the file and of the Go tests about it (plus, for files in the type checker, the Go tests that run programs through it), including the Go runner (`testrunner.TestNegativeFixtures`) of any negative `.tr` fixture about it (two commands: `-run` applies to every package of one `go test`). The lines
-are written from the pre-check's own selection (`goTestSelection`, the function of `changed --go-tests`), and the line
-below them counts what they leave out (they are among the groups below): "not run by these commands: N more Go tests in M packages; the full check
-(`tools/full_check.sh`, on Colab) runs them all". Every Go test the default answer lists (at 12
-lines per group; `--all` names the same ones) is named by a `run:` line: an answer does not list a test no `run:` line
-runs (chapter 28's G4 failed on `e2e.TestDocTRCodeBlocks`, listed and not run), except codegraph's own tests outside
-its folders (codegraph slice 6, D6-3, `self_tests.go`): for a file outside `tools/codegraph/` and
-`internal/devtools/codeindex/`, a `tools/codegraph` test enters the `run:` lines and the commit mode's selection
-(`changed --go-tests --without-codegraph-self-tests`) only when it starts with `repoRule(t)`, the mark of a repository
-rule: a test that checks the repository's own files (the fix is in that file) or a golden test that reads them
-(`TestDottedMemberSpellingsGolden`). A new repository rule starts with `repoRule(t)`; without it, it leaves the other
-files' selections and its failure is left to G4. The others stay in the groups and are counted: "not run by these
-commands: N codegraph tests (the full check on Colab runs them)". The pre-check's selection and G4 keep them all; no
-test is skipped. The run line only names tests; which
-of them to run before a commit is not its choice. A `-run` list longer than 20000 characters (the pre-check's Windows
-limit) runs its light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
-`internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the
+on line 140, behind other packages' tests in alphabetical order). Right under the file line (preceded by `untracked: <file> is not tracked by git; repository-wide checks do not see it (run 'git add <file>')` when the file is not tracked by git, which `changed --go-tests` also prints for any untracked source file in the working tree) come the `run:` lines: the **narrow** list, the short command to run while writing (codegraph 7, slice A).
+They run the near tests only: `go test -short ./<the file's package>/` whole (it also runs the same-package tests the
+graph cannot see), then one `go test -short` with `-run '^(...)$'` over the file's own tests, the tests about it (with
+the Go runner, `testrunner.TestNegativeFixtures`, of any negative `.tr` fixture about it) and its direct tests in other
+packages (the "tests" group: for a Go file the tests that use it, for a non-Go file the tests that read it by name)
+when there are at most 20 of them (`narrowHubLimit`; `vm.go` has 291, `checker.go` 175); more are counted on a line
+of their own, "narrow: N direct tests in other packages are left to the commit check (more than 20)". For a non-Go file
+the tests that walk its whole list are near too. Repository-wide checks that scan the file, the Go tests that run
+programs through the type checker, chains through calls, weak evidence and subprocess tests are far: they stay in
+the groups and are not on the narrow lines (two commands: `-run` applies to every package of one `go test`). One line
+below them counts the far ones, from the pre-check's own selection (`goTestSelection`, the function of
+`changed --go-tests`): "narrow: these lines run the near tests; N more are left to the commit check and G4 (among
+the groups below)" (`--list names them` in the short answer). The commit mode runs that **wide** list as its time
+allows and G4 runs it all; no test is skipped. Codegraph's own tests outside its folders (codegraph slice 6, D6-3,
+`self_tests.go`) are in that count: for a file outside `tools/codegraph/` and `internal/devtools/codeindex/`, a
+`tools/codegraph` test enters the commit mode's selection (`changed --go-tests --without-codegraph-self-tests`, which
+counts the others on stderr: "not run by these commands: N codegraph tests (the full check on Colab runs them)") only
+when it starts with `repoRule(t)`, the mark of a repository rule: a test that checks the repository's own files (the
+fix is in that file) or a golden test that reads them (`TestDottedMemberSpellingsGolden`). A new repository rule
+starts with `repoRule(t)`; without it, its failure is left to G4. Why narrow: when the `run:` line was the pre-check's
+share of the file, every G4 failure widened it (203 names for `checker.go`), and an agent either waited for hundreds
+of far tests or skipped the line. A `-run` list longer than 20000 characters (the pre-check's Windows limit) runs its
+light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
+`internal/detmath`, `internal/lang/parser`, `internal/stdlib/httpserver`, `internal/stdlib/process`, `tools/codegraph`,
+which this machine does not run without `-run`; a package is heavy when G4 runs it in more than 30 s or this laptop runs
+it whole in more than 2 minutes, codegraph 7 K2) gets the
 names that fit and a line counting the rest. A file of a heavy package does not get its package whole either: the
-first command names the file's own tests and the package's listed tests, and a line says the package is heavy (the
-full check runs it whole). A non-Go file or doc (a `.tr` module, a data file, a script, a Markdown doc) gets the same `go test` line over its own, whole-list-walking and listed Go tests and the Go checks that scan it, and any file or doc whose answer lists TR tests (Go files included) gets one `run: go run ./cmd/trlang test <file> <file> ...` over those TR test files (`trlang test` takes several targets). The `run:` lines are not indented, so they are no item of a group.
+first command names the package's near tests, and a line says the package is heavy (the full check runs it whole); a
+file with no near test there gets no command, only the count line. A non-Go file or doc (a `.tr` module, a data file,
+a script, a Markdown doc) gets the same `go test` line, and any file or doc with near TR tests (Go files included) gets
+one `run: go run ./cmd/trlang test <file> <file> ...` over those TR test files (`trlang test` takes several targets);
+for a `.tr` module the TR test file that loads it (`tests/whisper_model_test.tr` for `lib/whisper.tr`) is near. The `run:` lines are not indented, so they are no item of a group.
 Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,
 TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to

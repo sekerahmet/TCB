@@ -14,7 +14,7 @@ func (ix *index) selfTestsOf(n *Node) []goTest {
 	if ab.plan == nil {
 		return nil
 	}
-	return ab.plan(listedIn(ab.String())).selfTests
+	return ab.plan().selfTests
 }
 
 // Kural (codegraph dilim 6, D6-3, Karar 3): codegraph'ın repoRule çağırmayan testleri tools/codegraph ve
@@ -31,17 +31,21 @@ func TestCodegraphSelfTestsStayOutOfOtherFilesSelections(t *testing.T) {
 	if data == nil || own == nil {
 		t.Fatal("tr.json or data_coverage_test.go is not in the graph")
 	}
+	// tests-for'un dar satırında ikisi de yok (kural bir taramadır); kalan sayısı codegraph testlerini de sayar (codegraph 7 A3).
 	var out strings.Builder
 	ix.printTestsForShort(&out, data)
 	run := strings.Join(runLines(out.String()), "\n")
 	left := ix.selfTestsOf(data)
-	if !strings.Contains(run, rule) || strings.Contains(run, self) || len(left) == 0 ||
-		!strings.Contains(out.String(), fmt.Sprintf(selfTestsLine, len(left))) {
-		t.Errorf("tests-for tr.json must run the rule %s, not the self-test %s, and count the %d left out:\n%s", rule, self, len(left), out.String())
+	ab := &answerBuffer{}
+	ix.testsForBody(data)(ab, defaultLimit)
+	p := ab.plan()
+	countLine := fmt.Sprintf("  narrow: these lines run the near tests; %d more are left to the commit check and G4 (--list names them)", len(p.rest)+len(left))
+	if strings.Contains(run, self) || len(left) == 0 || slices.ContainsFunc(p.rest, ix.isCodegraphSelfTest) || !strings.Contains(out.String(), countLine) {
+		t.Errorf("tests-for tr.json must not run the self-test %s and count the %d left out with the rest (%q):\n%s", self, len(left), countLine, out.String())
 	}
 	out.Reset()
 	ix.printTestsForShort(&out, own)
-	if strings.Contains(out.String(), "codegraph tests (the full check") || len(ix.selfTestsOf(own)) > 0 {
+	if len(ix.selfTestsOf(own)) > 0 {
 		t.Errorf("a file of tools/codegraph keeps every codegraph test in its selection:\n%s", out.String())
 	}
 

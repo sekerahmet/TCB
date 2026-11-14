@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"path"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -20,102 +18,11 @@ func runLines(out string) []string {
 	return cmds
 }
 
-// independentListedGoTests `listedIn` ya da `listedGoTest` kullanmadan, çıktı satırlarını bağımsızca tarayarak
-// test dosyasında (`_test.go`) gösterilen `[func]` satırlarındaki koşulabilir Go test (`Test*`/`Fuzz*`/`Example*`,
-// küçük harf kuralına uygun) ve `Benchmark*` işlevlerini ayırır (DENETİM 510 Ş4, DENETİM 534 N2).
-func independentListedGoTests(text string) (tests, benchmarks []goTest) {
-	for _, line := range strings.Split(text, "\n") {
-		if !strings.HasPrefix(line, "    ") || strings.HasPrefix(line, "      ") {
-			continue
-		}
-		before, after, ok := strings.Cut(strings.TrimSpace(line), " [func] ")
-		if !ok {
-			continue
-		}
-		after = strings.TrimPrefix(after, "at ")
-		loc, _, _ := strings.Cut(after, " ")
-		file, _, hasColon := strings.Cut(loc, ":")
-		if !hasColon || !strings.HasSuffix(file, "_test.go") {
-			continue
-		}
-		name := before[strings.LastIndex(before, ".")+1:]
-		gt := goTest{path.Dir(file), name}
-		switch {
-		case isTestName(name) && !strings.HasPrefix(name, "Benchmark"):
-			if !slices.Contains(tests, gt) {
-				tests = append(tests, gt)
-			}
-		case strings.HasPrefix(name, "Benchmark"):
-			if !slices.Contains(benchmarks, gt) {
-				benchmarks = append(benchmarks, gt)
-			}
-		}
-	}
-	return tests, benchmarks
-}
-
-// Kural: tests-for'un varsayılan cevabında adı geçen her Go testi bir `run:` satırında koşar; satıra sığmayan ağır paket
-// adları sayılır (28. bölümün G4'ü: docs/spec/28_ag.md'nin cevabı TestDocTRCodeBlocks'u listeliyor, koşu satırı onu
-// koşmuyordu). Yalnız adlandırır: hangisinin commit'ten önce koşulacağına karar vermez.
-func TestEveryListedTestIsNamedByARunLine(t *testing.T) {
-	root, _, g := repoGraph(t)
-	ix := newIndex(g)
-	ix.root = root
-	nodes := runPlanFiles(g)
-	for _, id := range []string{
-		"doc:docs/spec/28_ag.md",
-		"file:tools/full_check.sh",
-		"file:internal/lang/codes/definitions.json",
-		"tr:file:examples/tr/36_karakter_modeli.tr",
-		fileID("internal/stdlib/httpserver/stream.go"),
-		"file:internal/compute/gpu/testdata/ptx_ozet.txt",
-	} {
-		n := ix.byID[id]
-		if n == nil {
-			t.Fatalf("%s is not in the graph", id)
-		}
-		nodes = append(nodes, n)
-	}
-	for _, n := range nodes {
-		var out strings.Builder
-		ix.printTestsFor(&out, n, defaultLimit)
-		cmds := runLines(out.String())
-		inRun := runCovers(cmds)
-		self := ix.selfTestsOf(n)
-		for _, gt := range listedIn(out.String()).goTests {
-			// codegraph'ın kendi testleri iki klasörün dışında koşmaz, S3 sayar (codegraph dilim 6, D6-3).
-			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") && !slices.Contains(self, gt) {
-				t.Errorf("%s: the answer lists %s %s, no run: line runs it", n.File, gt.dir, gt.name)
-			}
-		}
-		for _, gt := range self {
-			if !ix.isCodegraphSelfTest(gt) || inSelfTestFolders(n.File) || inRun(gt) {
-				t.Errorf("%s: %s %s is left out of the run: lines but is not a codegraph self-test of another folder's file", n.File, gt.dir, gt.name)
-			}
-		}
-		if want := fmt.Sprintf(selfTestsLine, len(self)); (len(self) > 0) != strings.Contains(out.String(), want) {
-			t.Errorf("%s: %d codegraph tests are left out, the answer must say so with %q:\n%s", n.File, len(self), want, out.String())
-		}
-		indTests, indBenchs := independentListedGoTests(out.String())
-		for _, gt := range indTests {
-			if !inRun(gt) && !strings.Contains(out.String(), "did not fit the command line") && !slices.Contains(self, gt) {
-				t.Errorf("%s: independent scan found %s %s in answer, no run: line runs it", n.File, gt.dir, gt.name)
-			}
-		}
-		for _, bm := range indBenchs {
-			for _, cmd := range cmds {
-				if strings.Contains(cmd, bm.name) {
-					t.Errorf("%s: benchmark %s leaked into run: line %q", n.File, bm.name, cmd)
-				}
-			}
-		}
-	}
-}
-
 // Kural: -run listesi commandLineLimit'i aşınca ağır olmayan paketler bütün koşar (ön denetimin kuralı), ağır paket
 // (heavyTestPackages) -run'sız önerilmez: sığan ilk adlar yazılır, kalanı sayılır (DENETİM 358 Ş2).
 func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
-	want := []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser", "tools/codegraph"}
+	want := []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser",
+		"internal/stdlib/httpserver", "internal/stdlib/process", "tools/codegraph"} // K2: G4'te 30 sn ya da dizüstünde 2 dakika
 	if !slices.Equal(heavyTestPackages, want) {
 		t.Errorf("heavy packages %q, want %q (the main session keeps this list equal to its hook's)", heavyTestPackages, want)
 	}
@@ -134,14 +41,14 @@ func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
 	}
 	var out strings.Builder
 	printRunPlan(&out, p)
-	if !strings.Contains(out.String(), "more listed tests of tools/codegraph did not fit the command line") {
+	if !strings.Contains(out.String(), "more near tests of tools/codegraph did not fit the command line") {
 		t.Errorf("the answer counts the names that did not fit:\n%s", out.String())
 	}
 }
 
 // Kural: ağır paketteki (heavyTestPackages) bir dosyanın koşu satırı paketini -run'sız önermez (D1 ipucu, 2026-11-06:
-// kanca `go test -short ./tools/codegraph/`'ı durduruyordu): dosyanın kendi testleri ve cevapta adı geçen testleri
-// adlandırılır, satır bunu söyler. Hiçbir `run:` komutu ağır bir paketi bütün olarak koşmaz.
+// kanca `go test -short ./tools/codegraph/`'ı durduruyordu): o paketteki yakın testler adlandırılır, satır bunu söyler.
+// Hiçbir `run:` komutu ağır bir paketi bütün olarak koşmaz; K2 ile giren `httpserver` de.
 func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -150,6 +57,7 @@ func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) 
 		{"tools/codegraph/query_run_line.go", "TestTheRunLineStaysWithinTheCommandLine"},
 		{"internal/detmath/detmath.go", ""},
 		{"internal/lang/parser/conditionals.go", ""},
+		{"internal/stdlib/httpserver/stream.go", ""},
 	} {
 		n := ix.byID[fileID(c.file)]
 		if n == nil {
@@ -175,9 +83,9 @@ func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) 
 	}
 }
 
-// Kural: bir .tr modülünün cevabı TR testlerini listeliyorsa onları tek koşulabilir satır koşar:
-// `go run ./cmd/trlang test <dosya1> <dosya2> ...` (gaps: lib/whisper.tr için dolaylı TR testleri listeleniyor, run:
-// satırı yoktu; lib/audio.tr'nin doğrusu `trlang test lib/audio_test.tr`, S1 2026-11-05).
+// Kural: bir .tr modülünün dar satırı kendi TR test dosyasını ve modülü yükleyen TR test dosyasını tek koşulabilir satırla
+// koşar: `go run ./cmd/trlang test <dosya1> <dosya2> ...` (gaps: lib/whisper.tr'nin run: satırı yoktu; lib/audio.tr'nin
+// doğrusu `trlang test lib/audio_test.tr`, S1 2026-11-05). Dolaylı TR testleri satıra girmez (codegraph 7 A1).
 func TestATRModuleRunLineRunsItsListedTRTestFiles(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -197,18 +105,12 @@ func TestATRModuleRunLineRunsItsListedTRTestFiles(t *testing.T) {
 		if !strings.Contains(tr, " "+c.want+" ") {
 			t.Errorf("%s: no run: line runs %s:\n%s", c.file, c.want, out.String())
 		}
-		for _, f := range listedIn(out.String()).trFiles {
-			if !strings.Contains(tr, " "+f+" ") {
-				t.Errorf("%s: the answer lists TR tests of %s, the trlang test line does not run it", c.file, f)
-			}
-		}
 	}
 }
 
-// Kural: cevabında `[tr_test]` listelenen her dosya ya da belge (Go dosyaları dahil, ör. stream.go) bu TR test
-// dosyalarını tek `go run ./cmd/trlang test ...` satırıyla (önce listed.trFiles sırasıyla) koşar; `[tr_test]`
-// listelenmeyen Go dosyasında (`root.go`) bu satır çıkmaz ve negatif fikstürler (`tests/negative/*.tr`) `trlang test`
-// satırına girmez (Madde 5, DENETİM 510 N3).
+// Kural: yakın TR testi olan her dosya ya da belge (Go dosyaları dahil, ör. stream.go) bu TR test dosyalarını tek
+// `go run ./cmd/trlang test ...` satırıyla koşar; TR testi olmayan Go dosyasında (`root.go`) bu satır çıkmaz ve negatif
+// fikstürler (`tests/negative/*.tr`) `trlang test` satırına girmez (Madde 5, DENETİM 510 N3).
 func TestGoFileRunLineRunsListedTRTestsOnlyWhenPresent(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -231,7 +133,7 @@ func TestGoFileRunLineRunsListedTRTestsOnlyWhenPresent(t *testing.T) {
 		t.Errorf("lib/audio.tr must keep lib/audio_test.tr first in trlang test line:\n%s", out.String())
 	}
 
-	// Her örnek düğümde listelenen `[tr_test]` dosyaları `trlang test` satırında yer alır, negatif fikstürler girmez.
+	// Her örnek düğümde negatif fikstürler `trlang test` satırına girmez.
 	nodes := append(runPlanFiles(g),
 		stream,
 		ix.byID[trFileID("lib/audio.tr")],
@@ -250,11 +152,6 @@ func TestGoFileRunLineRunsListedTRTestsOnlyWhenPresent(t *testing.T) {
 		}
 		if strings.Contains(tr, "tests/negative/") {
 			t.Errorf("%s: negative fixture leaked into trlang test line:%s", n.File, tr)
-		}
-		for _, f := range listedIn(out.String()).trFiles {
-			if !strings.Contains(tr, " "+f+" ") {
-				t.Errorf("%s: listed TR test file %s missing from trlang test line:%s", n.File, f, tr)
-			}
 		}
 	}
 
@@ -301,65 +198,9 @@ func TestBenchmarksNeverLeakIntoRunLines(t *testing.T) {
 	}
 }
 
-// Kural: `listedIn` süzgeci `isTestName(name) && !strings.HasPrefix(name, "Benchmark")` kuralıyla `Test*`, `Fuzz*` ve
-// `Example*` (`Example` dahil) adlarını `-run` listesine alır; `Benchmark*` ölçümlerini ve önekten sonra küçük harfle
-// devam eden yardımcı adlarını (`Testing`, `Fuzzing`, `Examplewidget`) `-run` listesine almaz (DENETİM 534 N2, 539 N2).
-func TestListedInKeepsExamplesAndRejectsLowercasePrefixContinuations(t *testing.T) {
-	body := strings.Join([]string{
-		"pkg/data.json [file] pkg/data.json:1",
-		"  <- tests (8):",
-		"    pkg.TestValid [func] at pkg/p_test.go:10",
-		"    pkg.FuzzValid [func] at pkg/p_test.go:15",
-		"    pkg.Example [func] at pkg/p_test.go:20",
-		"    pkg.ExampleWidget [func] at pkg/p_test.go:25",
-		"    pkg.Testing [func] at pkg/p_test.go:30",
-		"    pkg.Fuzzing [func] at pkg/p_test.go:35",
-		"    pkg.Examplewidget [func] at pkg/p_test.go:40",
-		"    pkg.BenchmarkWidget [func] at pkg/p_test.go:45",
-		"",
-	}, "\n")
-
-	var ab answerBuffer
-	ab.WriteString("pkg/data.json [file] pkg/data.json:1\n")
-	writeRunPlan(&ab, func(listed listedTests) runPlan {
-		var names []string
-		for _, gt := range listed.goTests {
-			names = append(names, gt.name)
-		}
-		return runPlan{others: []string{"pkg"}, names: names}
-	})
-	ab.WriteString(body)
-
-	var listedBuf answerBuffer
-	listedBuf.WriteString(body)
-	var out strings.Builder
-	flushAnswer(&out, &ab, &listedBuf)
-
-	cmds := runLines(out.String())
-	if len(cmds) != 1 {
-		t.Fatalf("expected 1 run: line, got %q:\n%s", cmds, out.String())
-	}
-	_, runArg, hasRun := strings.Cut(cmds[0], " -run ")
-	if !hasRun {
-		t.Fatalf("expected -run flag in %q", cmds[0])
-	}
-	names := strings.Split(strings.TrimSuffix(strings.TrimPrefix(runArg, "'^("), ")$'"), "|")
-
-	for _, want := range []string{"TestValid", "FuzzValid", "Example", "ExampleWidget"} {
-		if !slices.Contains(names, want) {
-			t.Errorf("expected %s in -run list %v (cmd: %q)", want, names, cmds[0])
-		}
-	}
-	for _, reject := range []string{"Testing", "Fuzzing", "Examplewidget", "BenchmarkWidget"} {
-		if slices.Contains(names, reject) {
-			t.Errorf("unexpected %s in -run list %v (cmd: %q)", reject, names, cmds[0])
-		}
-	}
-}
-
-// Kural (codegraph dilim 6, D6-1, Karar 1): tests-for'un bayraksız cevabı dosya satırı, run: satırları, size: satırı ve
-// listelenen test sayısıdır (S1); grupların ilk sayfası --list ile (--limit de açar), hepsi --all ile gelir. Kısa cevabın
-// satırları --list cevabının başıdır ve koşu satırları aynı adları koşar; gruplara gönderen satır --list'e gönderir (S8).
+// Kural (codegraph dilim 6, D6-1, Karar 1; codegraph 7 A3): tests-for'un bayraksız cevabı dosya satırı, run: satırları,
+// tek sayı satırı ve size: satırıdır; grupların ilk sayfası --list ile (--limit de açar), hepsi --all ile gelir. Kısa
+// cevabın satırları --list cevabının başıdır ve koşu satırları aynıdır; gruplara gönderen satır --list'e gönderir (S8).
 // Testi bulunmayan düğümün cevabı (dal satırı) kısa kipte de tamdır.
 func TestTestsForShowsTheRunAndSizeLinesUnlessListed(t *testing.T) {
 	root := gitFixture(t)
@@ -373,14 +214,13 @@ func TestTestsForShowsTheRunAndSizeLinesUnlessListed(t *testing.T) {
 		return out
 	}
 	short, list, all := ask("shape/shape.go"), ask("--list", "shape/shape.go"), ask("--all", "shape/shape.go")
-	lines := strings.Split(strings.TrimSuffix(short, "\n"), "\n")
-	s1 := lines[len(lines)-1]
-	n := len(listedIn(list).goTests) + len(listedIn(list).trFiles)
-	if want := "  tests: " + strconv.Itoa(n) + " listed (--list shows the first page of each group, --all every test)"; n == 0 || s1 != want {
-		t.Errorf("last line of the short answer %q, want %q:\n%s", s1, want, short)
+	if strings.Contains(short, " listed (--list shows") || strings.Contains(short, "not run by these commands") {
+		t.Errorf("the short answer has one count line, not the old two:\n%s", short)
 	}
-	head := strings.Join(lines[:len(lines)-1], "\n") + "\n"
-	head = strings.ReplaceAll(head, "(--list names them)", "(among the groups below)")
+	if !strings.Contains(short, "\n  narrow: these lines run the near tests; ") && !strings.Contains(short, "\n  these commands run every Go test") {
+		t.Errorf("the short answer must end its run: lines with the count line:\n%s", short)
+	}
+	head := strings.ReplaceAll(short, "(--list names them)", "(among the groups below)")
 	// Fikstürde boyut testi yok, size: satırı da yok; depo dosyasındaki size: satırını kısa cevapta
 	// TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxError sınar.
 	if !strings.HasPrefix(list, head) || !strings.Contains(head, "\nrun: ") {
