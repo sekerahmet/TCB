@@ -367,7 +367,12 @@ line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows t
   line: the changed tests, the tests of the changed code, the subprocess tests, and the tests that read, walk or scan any changed file (a data
   file the graph does not parse, such as `planning_questions.txt`, maps to no node, its readers are still listed); the pre-check and the full check
   (`tools/full_check.sh`) run them (`TestChangedGoTestsSelectsTheTestsOfAChangedDataFile`); an untracked file is in neither (DENETİM 2026-10-26:
-  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
+  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). `--by-distance` keeps the same
+  tests and ends each line with `near` or `far`, all near tests first (`changed_distance.go`): near are the changed
+  tests, the tests in a changed Go file's own `_test.go`, the tests about a changed declaration, direct tests, chains of
+  at most 2 steps, the tests that read, walk or scan a changed file, and the fixture runners of these; far are chains of
+  3 steps or more, subprocess tests and the exam. The commit mode asks for it and runs the near tests first, so its time
+  limit leaves the far tests to G4, not the changed file's own (codegraph 7 B1; `TestChangedGoTestsByDistanceMarksNearAndFar`). Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
   for Go files, named from the branch's own copy of the file ("declarations on the branch that the
   graph does not have": new functions, new tests, new test files). A graph written by an older
   codegraph (`extractor` below the tool's) is rebuilt by the next query even when its stamp matches.
@@ -801,6 +806,7 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
 - `fresh_test.go`, `root_test.go`, `changed_test.go`, `deleted_test.go`, `codehist_test.go`: the
   stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
   scan `deleted` reads.
+- `changed_distance_test.go`: `changed --go-tests --by-distance` gives the plain form's tests, near before far.
 - `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
 - `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
   spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),

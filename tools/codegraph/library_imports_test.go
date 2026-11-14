@@ -101,7 +101,7 @@ func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
 	ts := newTouchSet()
 	ts.files["lib/katmanx.tr"] = true
 	out.Reset()
-	ix.printGoTests(&out, ts)
+	ix.printGoTests(&out, ts, false)
 	for _, name := range []string{"TestReady", "TestCoded", "TestScript"} {
 		if !strings.Contains(out.String(), "app "+name+"\n") {
 			t.Errorf("changed --go-tests for lib/katmanx.tr misses %s:\n%s", name, out.String())

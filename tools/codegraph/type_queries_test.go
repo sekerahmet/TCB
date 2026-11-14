@@ -250,7 +250,7 @@ func TestRepositoryTypeLoadedTestsAreSelected(t *testing.T) {
 		ts := newTouchSet()
 		ts.files[rel] = true
 		var b strings.Builder
-		ix.printGoTests(&b, ts)
+		ix.printGoTests(&b, ts, false)
 		return "\n" + b.String()
 	}
 	for _, rel := range []string{"internal/stdlib/ml/members_freeze.go", "internal/stdlib/ml/deleted_impl.go"} {

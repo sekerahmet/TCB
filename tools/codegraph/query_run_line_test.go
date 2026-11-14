@@ -102,7 +102,7 @@ func TestTheNarrowRunLineHasItsNearTestsAndNoFarOnes(t *testing.T) {
 		var printed strings.Builder
 		sel := newTouchSet()
 		sel.nodes, sel.files = ts.nodes, map[string]bool{file.File: true}
-		ix.printGoTests(&printed, sel) // changed --go-tests'in yazdığı
+		ix.printGoTests(&printed, sel, false) // changed --go-tests'in yazdığı
 		rest := map[goTest]bool{}
 		for _, gt := range p.rest {
 			rest[gt] = true

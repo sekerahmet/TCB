@@ -60,7 +60,7 @@ func TestCodegraphSelfTestsStayOutOfOtherFilesSelections(t *testing.T) {
 			}
 		}
 		var so, se strings.Builder
-		ix.printGoTestsWithoutSelfTests(&so, &se, ts)
+		ix.printGoTestsWithoutSelfTests(&so, &se, ts, false)
 		return so.String(), se.String(), ix.goTestSelection(ts)
 	}
 	so, se, plain := ask("internal/lang/messages/tr.json")
