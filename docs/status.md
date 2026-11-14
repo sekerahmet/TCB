@@ -28,6 +28,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 2. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
 3. 3.3a, HTTP başlık değerinin UTF-8 denetimi (A; HTTP sunucusu; Motor, 2026-11-13): geçersiz bayt metne giriyor.
 4. Tur 7'nin Ö0'ları (tur 7, 2026-11-13; DENETİM 638, 639, 644; sıra TCB'nin taslağı, DENETİM 646 N7 kabul): 28.7'de maskenin anı ve unutulan maske, 28.3a'nın dosya boyutu, 28.8'in görevin açtığı sunucu (B; HTTP sunucusu kolu, TCB atar).
+5. 11.3, bir modülün iki yoldan iki kez yüklenmesi (A; dil çekirdeği kolunun bir sonraki dilimi; DENETİM 744 N1, 746 Ş3): bağlantı ya da kısa adla yazılan ikinci yol modülü ayrı durumla yeniden yüklüyor.
 Sonra Ö2: 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14, 15.1'in öğe cinsi. Kol A: 8.5'in işletim sistemi hatası (DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı.
@@ -459,7 +460,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md).
 
 ### 11.3
 
-- **Yapılacaklar (A, Ö1; sahip dil çekirdeği; DENETİM 744 N1, 2026-11-14):** bir modül bağlantı (symlink) ya da Windows kısa (8.3) adıyla yazılan ikinci yoldan ikinci kez, ayrı durumla ve hatasız yükleniyor: modülün anahtarı `filepath.Abs` [kanıtlı: `internal/lang/interp/module.go:250-255`]; 11.3 "bir modül program boyunca bir kez yüklenir" diyor. Sessiz yanlış [hesap: koddan, koşulmadı]. Sıradaki adım: anahtar `filepath.EvalSymlinks` ile kanonik yol olur, iki yolla aynı modülü aktaran test.
+- **Yapılacaklar (A, Ö0; sahip dil çekirdeği; DENETİM 744 N1, 746 Ş3, 2026-11-14):** bir modül bağlantı (symlink) ya da Windows kısa (8.3) adıyla yazılan ikinci yoldan ikinci kez, ayrı durumla ve hatasız yükleniyor: modülün anahtarı `filepath.Abs` [kanıtlı: `internal/lang/interp/module.go:250-255`]; 11.3 "bir modül program boyunca bir kez yüklenir" diyor. Sessiz yanlış [hesap: koddan, koşulmadı]. Sıradaki adım: anahtar `filepath.EvalSymlinks` ile kanonik yol olur, iki yolla aynı modülü aktaran test; testin iki kolu var: bağlantı ve 8.3 kısa ad (kısa ad kolu yalnız Windows'ta koşar; DENETİM 746 N1).
 
 ### 11.5
 
@@ -1339,7 +1340,7 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 
 ### 25.10–25.17
 
-- **Yapılacaklar (F, Ö3; sahip T1; DENETİM 744 Ş3):** çok büyük sessizlik süresi ya da baş tamponu artık H2484 değil H7539 veriyor (`lib/vad.tr:165-168`), ama H7539'un önerisi yalnız üst sınırı anıyor (`TR_max_speech: 29.0`); sessizlik ya da baş tamponu 1e300 iken öneri kopyalansa da kesitleyici kurulmaz (25.12: üst sınır baş tamponu artı sessizlikten büyük olmalı) [hesap: DENETİM 744]. Sıradaki adım: H7539'a nedeni seçen kol (ileti metni, söz ister).
+- **Yapılacaklar (F1, Ö3; sahip T1; DENETİM 744 Ş3, 746 Ş2):** çok büyük sessizlik süresi ya da baş tamponu artık H2484 değil H7539 veriyor (`lib/vad.tr:165-168`), ama H7539'un önerisi yalnız üst sınırı anıyor (`TR_max_speech: 29.0`); sessizlik ya da baş tamponu 1e300 iken öneri kopyalansa da kesitleyici kurulmaz (25.12: üst sınır baş tamponu artı sessizlikten büyük olmalı) [hesap: DENETİM 744]. Sıradaki adım: H7539'a nedeni seçen kol (ileti metni, söz ister).
 - **Yapılacaklar (E, Ö2; sahip S1; Jarvis'in söz kesmesi; Tur 6B, 2026-11-10):** 25.13'ün yeni salt okunur özelliği (yeni üye kodu, Türkçe adı konuşmada, tanıdık adı triggered); kesicinin `_tetik`'ini okur [kanıtlı: `lib/vad.tr:148`]. 25.12'nin alt sınırı katılaşır: üst sınır baş tamponu artı sessizlikten büyük olmalı (eşitse de H7539); eşitliği kabul eden iki test kuralla değişir: `tests/vad_test.tr:281` (0,928 sn, 10 + 19 = 29 çerçeve) ve `:340` (yuvarlama, 2 + 2 = 4) [kanıtlı: DENETİM 393 kapanışı]. TR testi: tetik açılınca `TR_true`, kesit bitince, bölünüp süren kesitte ve `TR_flush`'tan sonra kuralın değerleri, eşit sınırın hatası. Belge: `lib/README.md`'nin `tr/vad` "Kesit"i.
 - **Yapılacaklar (hız; sahip H1; canlı dinleme):** kısa sözde de Whisper yaklaşık 2,2 saniyeden aşağı inmiyor [ölçüldü]; sebep tam pencere olabilir [hipotez]. Sıradaki adım: profil.
 
