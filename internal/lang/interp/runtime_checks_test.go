@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
@@ -24,6 +26,25 @@ func runChecked(t *testing.T, vm *VM, code string) (string, error) {
 	vm.Out, vm.Err = &out, &out
 	_, err := vm.Run(r.Program)
 	return out.String(), err
+}
+
+// runCheckedIn kodlu gövdeyi kişinin lang dilinde yazılan satır olarak denetler
+// (checker.SetFileLanguage; denetim hatası testi düşürür) ve çalıştırır; çalışma hatasını döndürür.
+func runCheckedIn(t *testing.T, lang, code string) error {
+	t.Helper()
+	p := parser.New(bodyLexer(code))
+	prog := p.ParseProgram()
+	c := checker.New()
+	c.SetFileLanguage(lang)
+	c.SetFile(checker.ProgramFile, code)
+	c.CheckProgram(prog)
+	if errs := append(p.Errs(), c.Errs()...); len(errs) > 0 {
+		t.Fatalf("hazırlık: %v\n%s", errs, code)
+	}
+	vm := New()
+	vm.Out, vm.Err = &bytes.Buffer{}, &bytes.Buffer{}
+	_, err := vm.Run(prog)
+	return err
 }
 
 // Kural (1.2): denetleyicinin tipini bilmediği değer tipli bir yere girerken çalışırken denetlenir:
@@ -111,6 +132,7 @@ func TestRuntimeFitsMatchesTheChecker(t *testing.T) {
 		{"TR_Dict[TR_String, TR_Int]", "{\"a\": 1}", true},
 		{"TR_Dict[TR_String, TR_Int]", "{\"a\": \"b\"}", false},
 		{"TR_Dict[TR_String, TR_Int]", "{1: 1}", false},
+		{"TR_List[TR_JSON]", "[TR_none]", true},
 		{"(TR_Int, TR_String)", "(1, \"a\")", true},
 		{"(TR_Int, TR_String)", "(1, 2)", false},
 		{"A", "A(x: 1)", true},
@@ -133,33 +155,48 @@ func TestRuntimeFitsMatchesTheChecker(t *testing.T) {
 // Kural (1.2, 2.6): çalışma hatasının iletisi değerin çalışırken bilinen tipini yazar (öğeleri tek
 // tipte kap öğe tipiyle, karışık kap asıl adıyla) ve kapta uymayan ilk öğeyi yoluyla ve tipiyle
 // (H1170; anahtarda H1171). Yoldaki metin anahtar TR'nin metin yazımıyla, ters tırnak \u{60}
-// ile yazılır; yazımı olmayan yol ya da birden çok satırlık değer ipucu vermez.
+// ile yazılır; yazımı olmayan yol (TR_Bool anahtar), birden çok satırlık ya da ters tırnaklı değer
+// ipucu vermez. Kişinin dilinde yazılan satırda (lang) tip adları iletinin dilindedir.
 func TestUntypedValueErrorsSayTheValue(t *testing.T) {
 	for _, c := range []struct {
-		name, code    string
-		parts, absent []string
+		name, lang, code string
+		parts, absent    []string
 	}{
-		{"karışık kap", "TR_var m = [1, \"a\"]\nTR_var y: TR_List[TR_Int] = m\n",
+		{"karışık kap", "", "TR_var m = [1, \"a\"]\nTR_var y: TR_List[TR_Int] = m\n",
 			[]string{"\"TR_List\" tipinde", "uymayan ilk öğe `m[1]`, tipi \"TR_String\""}, nil},
-		{"tek tipli kap", "TR_var m = [[\"a\"], 1]\nTR_var y: TR_List[TR_Int] = m[0]\n",
+		{"tek tipli kap", "", "TR_var m = [[\"a\"], 1]\nTR_var y: TR_List[TR_Int] = m[0]\n",
 			[]string{"\"TR_List[TR_String]\" tipinde", "uymayan ilk öğe `m[0][0]`"}, nil},
-		{"iç içe sözlük", "TR_var m = [{\"a\\tb\": [\"x\"]}, 1]\nTR_var y: TR_Dict[TR_String, TR_List[TR_Int]] = m[0]\n",
+		{"iç içe sözlük", "", "TR_var m = [{\"a\\tb\": [\"x\"]}, 1]\nTR_var y: TR_Dict[TR_String, TR_List[TR_Int]] = m[0]\n",
 			[]string{"`m[0][\"a\\tb\"][0]`, tipi \"TR_String\""}, nil},
-		{"ters tırnaklı anahtar", "TR_var m = [{\"`\": \"x\"}, 1]\nTR_var y: TR_Dict[TR_String, TR_Int] = m[0]\n",
+		{"ters tırnaklı anahtar", "", "TR_var m = [{\"`\": \"x\"}, 1]\nTR_var y: TR_Dict[TR_String, TR_Int] = m[0]\n",
 			[]string{"`m[0][\"\\u{60}\"]`"}, nil},
-		{"anahtar", "TR_var m = [{1: 2}, \"a\"]\nTR_var y: TR_Dict[TR_String, TR_Int] = m[0]\n",
+		{"anahtar", "", "TR_var m = [{1: 2}, \"a\"]\nTR_var y: TR_Dict[TR_String, TR_Int] = m[0]\n",
 			[]string{"uymayan ilk anahtar `m[0]` sözlüğündeki \"1\", tipi \"TR_Int\""}, nil},
-		{"kap değil", "TR_var m = [1, \"a\"]\nTR_var y: TR_Int = m[1]\n",
+		{"yazımı olmayan anahtar", "", "TR_var m = [{TR_true: [\"x\"]}, 1]\nTR_var y: TR_Dict[TR_Bool, TR_List[TR_Int]] = m[0]\n",
+			[]string{"\"TR_Dict[TR_Bool, TR_List[TR_String]]\" tipinde"}, []string{"uymayan"}},
+		{"kap değil", "", "TR_var m = [1, \"a\"]\nTR_var y: TR_Int = m[1]\n",
 			[]string{"\"TR_String\" tipinde"}, []string{"uymayan"}},
-		{"birden çok satır", "TR_var m = [1, \"a\"]\nTR_var y: TR_List[TR_Int] = [\n    m[1],\n]\n",
+		{"birden çok satır", "", "TR_var m = [1, \"a\"]\nTR_var y: TR_List[TR_Int] = [\n    m[1],\n]\n",
 			nil, []string{"uymayan"}},
+		{"ters tırnaklı değer yazımı", "", "TR_var m = {\"a`b\": [\"x\"], \"c\": 1}\nTR_var y: TR_List[TR_Int] = m[\"a`b\"]\n",
+			[]string{"\"TR_List[TR_String]\" tipinde"}, []string{"uymayan"}},
+		{"iletinin dilinde tip adı", "en", "TR_var m = [1, \"a\"]\nTR_var y: TR_List[TR_Int] = m\n",
+			[]string{"\"List\"", "of type \"String\""}, []string{"TR_List", "TR_String"}},
 	} {
-		_, err := runChecked(t, nil, c.code)
+		var err error
+		if c.lang == "" {
+			_, err = runChecked(t, nil, c.code)
+		} else {
+			err = runCheckedIn(t, c.lang, c.code)
+		}
 		if err == nil {
 			t.Errorf("%s: hata bekleniyordu", c.name)
 			continue
 		}
 		text := err.Error()
+		if c.lang != "" {
+			text = messages.ErrorIn(err, c.lang)
+		}
 		for _, p := range c.parts {
 			if !strings.Contains(text, p) {
 				t.Errorf("%s: ileti %q parçasını içermeli: %s", c.name, p, text)

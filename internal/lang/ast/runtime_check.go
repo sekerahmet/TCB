@@ -24,7 +24,8 @@ type RuntimeCheck struct {
 	// writes the place's own type; otherwise in the message's language.
 	Spelled bool
 	// Text is the value's spelling in the program, the start of the hint's path; empty when it
-	// does not fit on one line (no hint then).
+	// does not fit on one line or holds a backtick, which would close the message's code span
+	// (no hint then).
 	Text string
 	// At is the node the check error is reported at; the run-time error has the same place.
 	At Node

@@ -88,8 +88,10 @@ func (c *Checker) noteRuntimeCheck(p place) {
 		}
 		m.Args[i] = a
 	}
+	// İpucunun yolu iletide ters tırnak içinde yazılır: birden çok satırlık ya da ters tırnaklı
+	// yazım yolu kopyalanamaz kılar, ipucu yazılmaz.
 	if p.value != nil && p.op == "" {
-		if text, ok := c.exprText(p.value); ok && !strings.Contains(text, "\n") {
+		if text, ok := c.exprText(p.value); ok && !strings.ContainsAny(text, "\n`") {
 			m.Text = text
 		}
 	}
