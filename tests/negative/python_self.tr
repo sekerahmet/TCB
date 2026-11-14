@@ -1,0 +1,8 @@
+# TR 4
+# TEST 7.3 metodun ilk parametresi Python'un self'iyse sözdizimi hatasıdır, tipli de; serbest fonksiyonun self adlı parametresi sıradan addır
+TR_struct N {
+    n: TR_Int = 0
+    TR_func m(self) -> TR_Int { TR_return 1 } # ERROR H0284
+    TR_func k(self: N, j: TR_Int) -> TR_Int { TR_return j } # ERROR H0284
+}
+TR_func f(self: TR_Int) -> TR_Int { TR_return self }

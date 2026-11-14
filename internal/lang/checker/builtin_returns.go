@@ -131,7 +131,7 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 	return ""
 }
 
-// extremeType TR_max ve TR_min'in sayı çağrısının tipidir (13.1, işlecin tipi, 4.2): değerler (ya da
+// extremeType TR_max ve TR_min'in sayı ve metin çağrısının tipidir (13.1, işlecin tipi, 4.2): değerler (ya da
 // tek liste argümanının öğeleri) hep TR_Int ise TR_Int, aralarında TR_Float varsa TR_Float
 // (TR_max(2, 1.5) → 2.0). Anahtar fonksiyonlu biçim (liste ve fonksiyon) listenin öğe tipini verir:
 // sonuç listenin bir öğesidir. Adlı argüman (tensör), tek sayı, sayı olmayan ya da tipi bilinmeyen
@@ -154,6 +154,14 @@ func (c *Checker) extremeType(e *ast.CallExpression, k codes.Code) string {
 			return ""
 		}
 		types = list.args
+	}
+	if types[0] == typeString {
+		for _, t := range types {
+			if t != typeString {
+				return ""
+			}
+		}
+		return typeString // metinlerin en büyüğü bir metindir (kod noktası sırası, 4.4)
 	}
 	result := typeInt
 	for _, t := range types {

@@ -153,6 +153,7 @@ func TestAllNoneBranchesNeedAnExpectedType(t *testing.T) {
 		"TR_print(al(" + none + "))",
 		"TR_var f: (TR_Bool) -> TR_Int? = (b) => TR_if b { TR_none } TR_else { TR_none }",
 		"TR_var m: TR_List[TR_Int?] = [" + none + "]",
+		"TR_var e: TR_Dict[TR_String, TR_Int?] = {\"a\": " + none + ", \"b\": 1}",
 		"k.x = " + none,
 		"l[0] = " + none,
 		"l.TR_append(" + none + ")",

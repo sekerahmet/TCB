@@ -123,7 +123,7 @@ const (
 	H0281 Code = 281  // '{class} {struct}({base})': TR'de sınıf yok ve yapı ({keyword}) kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
 	H0282 Code = 282  // kurucu '{init}' değer döndürmez (yapının çağrısı nesneyi verir); '{return}' değersiz yazılır ya da hiç yazılmaz
 	H0283 Code = 283  // kurucu '{init}' dönüş tipi almaz (yapının çağrısı nesneyi verir); '->' ile ardındaki tipi silin
-	H0284 Code = 284  // '{self}' parametre değildir: metot nesnesine {self} ile, onu bildirmeden erişir (Python'un self'inden farklı); parametre listesinden silin
+	H0284 Code = 284  // '{name}' parametre değildir: metot nesnesine {self} ile, onu bildirmeden erişir (Python'un self'inden farklı); parametre listesinden silin
 	H0285 Code = 285  // '{enum}' durumlu tipinin '{init}' kurucusu yoktur: her durum kendi alanlarıyla kurulur, {enum}.Durum(...) gibi
 	H0286 Code = 286  // durumlu tipin durumları metotlarından önce gelir: bu durumu ilk '{func}'in üstüne yazın
 	H0287 Code = 287  // desen '{variant}' durumunun alanlarını adla değil sırayla bağlar: '{value}' adını '{field}:' olmadan, alanın yerine yazın
@@ -462,7 +462,7 @@ const (
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
 	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
 	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri ({@Bool}) döndürmeli; {type} döndü. Açık bir sınama döndürün: `l.{#filter}((x) => x != 0)`
-	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri ({@Bool}) alır; {type} verildi. Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`
+	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri ({@Bool}) alır; {type} verildi. {kind, select, tensor {Tensörün `==`'si öğe öğedir, mantık değeri vermez (15.5): `{#assert_equal}(beklenen, x)` yazın; öğelerin hepsi için `{#assert}({#all}(x == beklenen))`, 0 boyutluda `{#assert}(x.{#item}() == beklenen)`, yaklaşık eşitlikte `{#assert_close}(x, beklenen)`} other {Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`}}
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için `l + [x]` ya da `l.{#append}(x)` yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar

@@ -161,6 +161,8 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 func (p *Parser) parseFunctionParameters() []ast.Param {
 	params := []ast.Param{}
 	withDefault := false
+	method := p.methodParams
+	p.methodParams = false
 
 	if p.peekTokenIs(lexer.TokRParen) {
 		p.nextToken()
@@ -176,6 +178,14 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 			}
 			break
 		}
+		if method && p.curTokenIs(lexer.TokIdent) && p.curToken().Literal == "self" { // 7.3: struct.go
+			method = false
+			if p.pythonSelfError() {
+				continue
+			}
+			break
+		}
+		method = false
 		param := ast.Param{Name: p.curToken().Literal, NameToken: p.curToken()}
 		param.Type, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)

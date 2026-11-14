@@ -186,6 +186,7 @@ func (b *structBody) signature() bool {
 		p.skipToBlockEnd()
 		return false
 	}
+	p.methodParams = true
 	lit.Parameters = p.parseFunctionParameters()
 	if p.peekTokenIs(lexer.TokMinus) {
 		p.nextToken() // '-'

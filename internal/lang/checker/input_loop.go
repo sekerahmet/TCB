@@ -7,12 +7,12 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Girdi döngüsü tuzağı (13.1): TR_input giriş bitince TR_none verir; 'TR_while TR_input() != "son"'
+// Girdi döngüsü tuzağı (13.1): TR_input giriş bitince TR_none verir; 'TR_for TR_input() != "son"'
 // koşulu TR_none'da hep doğrudur, girdi bitince döngü durmaz, boş dönmeye sürer (Python'un
 // 'while line := input()' alışkanlığı; Python'da girdi sonu EOFError'dur). Koşul doğrudan TR_input
 // çağrısını TR_none olmayan bir değerle '!=' ile karşılaştırıyorsa denetim hatasıdır (H1162); ileti
 // girdi sonunu da bitiş sayan yazımı verir: '(TR_input() ?? "son") != "son"' (TR_none bitiş değerine
-// döner). Satırı önce değişkene alan biçim yakalanmaz ('TR_var s = TR_input()' ... 'TR_while s != ""'),
+// döner). Satırı önce değişkene alan biçim yakalanmaz ('TR_var s = TR_input()' ... 'TR_for s != ""'),
 // orada değişkenin tipi TR_String?'dir; o döngü girdi bitince bir sonraki TR_input'ta H2561 ile durur.
 
 // checkInputLoop döngü koşulundaki girdi tuzağını denetler.

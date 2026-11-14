@@ -118,6 +118,10 @@ func TestSelfParameterIsDeleted(t *testing.T) {
 		{false, "fonksiyon m(kendi) -> Tam { sonuç 1 }", "kendi"},
 		{true, "TR_func m(TR_self, k: TR_Int) -> TR_Int { TR_return k }", "TR_self, "},
 		{true, "TR_func m(TR_self) -> TR_Int { TR_return 1 }", "TR_self"},
+		// Python'un self'i adıyla da (7.3): tipiyle birlikte silinir
+		{false, "fonksiyon m(self) -> Tam { sonuç 1 }", "self"},
+		{true, "TR_func m(self: N) -> TR_Int { TR_return 1 }", "self: N"},
+		{true, "TR_func m(self: N, k: TR_Int) -> TR_Int { TR_return k }", "self: N, "},
 	} {
 		code := "yapı N {\n" + c.line + "\n}"
 		errs := parseErrsIn(code, codes.Source())
@@ -136,5 +140,14 @@ func TestSelfParameterIsDeleted(t *testing.T) {
 		if got := string([]rune(c.line)[f.Col-1 : f.EndCol-1]); f.Line != 2 || got != c.cut {
 			t.Errorf("%q: the fix deletes %q on line %d, want %q", code, got, f.Line, c.cut)
 		}
+		// İleti yazılan adı söyler ve nesneye erişen sözcüğü verir.
+		name := strings.TrimSuffix(strings.Fields(c.cut)[0], ",")
+		if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, "'"+strings.TrimSuffix(name, ":")+"' is not a parameter") {
+			t.Errorf("%q: the message names %q: %q", code, name, text)
+		}
+	}
+	// Serbest fonksiyonun self adlı parametresi sıradan bir addır.
+	if errs := parseErrs("TR_func f(self: TR_Int) -> TR_Int { TR_return self }"); len(errs) != 0 {
+		t.Errorf("free function's self: %v", errs)
 	}
 }

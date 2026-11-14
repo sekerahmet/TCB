@@ -36,7 +36,9 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = TR_min([3, 1])":                      typeInt,
 		"TR_var v = TR_min([2.0, 1.5])":                  typeFloat,
 		"TR_var v = TR_max(TR_Tensor([1.0]), TR_dim: 0)": typeAny,
-		"TR_var v = TR_max(\"a\", \"b\")":                typeAny,
+		"TR_var v = TR_max(\"a\", \"b\")":                typeString,
+		"TR_var v = TR_min([\"b\", \"a\"])":              typeString,
+		"TR_var v = TR_max(\"a\", 1)":                    typeAny,
 		// 13.1: anahtarlı biçim listenin öğesini verir
 		"TR_var v = TR_max([1, 2], (x) => -x)":           typeInt,
 		"TR_var v = TR_min([\"a\"], (s) => s.TR_length)": typeString,

@@ -35,8 +35,20 @@ TR_test "13.1 TR_monotonic_ns tekdüze saattir: nanosaniye sayar, geri gitmez, a
     TR_var fark = TR_monotonic_ns() - ikinci
     TR_assert(fark >= 10_000_000)
     TR_assert(fark < 10_000_000_000)
-    TR_assert_equal("H2012", TR_error_code { TR_monotonic_ns(1) })
-    TR_assert_equal("H2012", TR_error_code { TR_time_ms(1) })
+    # Argüman verilmesi denetim hatasıdır (H2012): tests/negative/arguman_almayan.tr
+}
+
+TR_test "13.1 TR_max ve TR_min metinde kod noktası sırasıyla seçer" {
+    TR_assert_equal("b", TR_max("a", "b"))
+    TR_assert_equal("a", TR_min(["b", "a", "c"]))
+    # Kod noktası sırası (4.4): "ä" (U+00E4) "z"den (U+007A) büyüktür; büyük harf küçükten önce gelir.
+    TR_assert_equal("ä", TR_max("ä", "z"))
+    TR_assert_equal("Z", TR_min("a", "Z"))
+    TR_assert_equal(TR_String, TR_Type(TR_max(["x", "y"])))
+    # Metinle sayı karışamaz; tek metin bir liste değildir.
+    TR_assert_equal("H2423", TR_error_code { TR_max("a", [1, "b"][0]) })
+    TR_assert_equal("H2486", TR_error_code { TR_min(["a", [1, "b"][0]]) })
+    TR_assert_equal("H2011", TR_error_code { TR_max("ab") })
 }
 
 TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
@@ -64,7 +76,8 @@ TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştı
     TR_var boş: TR_List[TR_Float] = []
     TR_assert_equal("H2625", TR_error_code { TR_min(boş) })
     TR_assert_equal("H2486", TR_error_code { TR_max([1, "a", 5]) })
-    TR_assert_equal("H2423", TR_error_code { TR_min("abc") })
+    # Tek değer (sayı ya da metin) bir liste değildir: bir liste ya da iki ve daha çok değer (13.1)
+    TR_assert_equal("H2011", TR_error_code { TR_min("abc") })
     TR_assert_equal("H2486", TR_error_code { TR_sum([1, "a", 2]) })
 }
 

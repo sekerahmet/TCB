@@ -24,6 +24,14 @@ func (c *Checker) requireBool(e ast.Expression, t string, code messages.Code) {
 	if t == typeBool || t == "" || t == typeAny || shapeOf(t).optional || !c.knownType(t) && t != typeNull {
 		return
 	}
+	if code == messages.H2612 { // 12.3: tensörde ileti tensörün yazımlarını önerir (15.5)
+		kind := "value"
+		if baseType(t) == typeTensor {
+			kind = "tensor"
+		}
+		c.addErrorAt(e, messages.New(code, c.typeArg(t), kind))
+		return
+	}
 	c.addErrorAt(e, messages.New(code, c.typeArg(t)))
 }
 

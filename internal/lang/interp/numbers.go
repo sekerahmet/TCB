@@ -167,6 +167,25 @@ func ListElementError(name any, i int, expected any, given Value) error {
 	return messages.New(messages.H2486, name, i+1, expected, TypeAndSummary(given))
 }
 
+// extremeString metinlerin en küçüğü ya da en büyüğüdür (13.1): kod noktası sırasıyla (4.4, 13.10),
+// eşitlerden ilki. Metinle başka tip karışırsa hatadır.
+func extremeString(kd codes.Code, elems []Value, upper, listVal bool) (Value, error) {
+	var picked *StringVal
+	for i, el := range elems {
+		s, ok := el.(*StringVal)
+		if !ok {
+			if listVal {
+				return nil, ListElementError(CallPrefix(kd), i, TypeName(codes.TypeString), el)
+			}
+			return nil, ArgTypeError(kd, i+1, el, codes.TypeString)
+		}
+		if picked == nil || upper && s.Val > picked.Val || !upper && s.Val < picked.Val {
+			picked = s
+		}
+	}
+	return picked, nil
+}
+
 // extreme min/max'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
 // büyüğünü döndürür. Karşılaştırma kesindir (4.5, Tam yuvarlanmaz); sonucun tipi işlecin tipidir
 // (13.1, 4.2): Tam ile Ondalık karışırsa kazanan sonra Ondalık'a çevrilir (TR_max(2, 1.5) → 2.0).
@@ -181,6 +200,9 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 	}
 	if _, ok := elems[0].(*TupleVal); ok {
 		return extremeTuple(kd, elems, upper)
+	}
+	if _, ok := elems[0].(*StringVal); ok {
+		return extremeString(kd, elems, upper, listVal)
 	}
 	var picked Value
 	anyFloat := false

@@ -136,7 +136,6 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 - **Mevcut durum:** karışık değerli sözlük öğe tipsiz. Tipi bilinmeyen anahtarda ve öğe tipsiz sözlükte başka tipte anahtar çalışma anında kalıyor: okuma H2647, `.TR_get` sessizce `TR_none`, `.TR_contains` `TR_false`. Tipli yere giren karışık sözlük çalışırken denetleniyor (1.2) [test: `TestDictKeyType`, `TestUntypedValuesAreCheckedAtTypedPlaces`].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** değerleri karışık sözlük değişmezi (3.6'nın karışık liste kuralıyla).
-- **Yapılacaklar (D, Ö3; DENETİM istek 70):** anahtarı anahtar olamayan tipte (liste, demette liste) yazılan `TR_Dict[K, V]`.
 
 ### 3.7a
 
@@ -218,7 +217,6 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 - **Mevcut durum (T1, Tur 6A):** dalları hepsi `TR_none` veren `TR_if` ve `TR_match` beklenen tip yoksa ya da her tipi alıyorsa H1161; tipli yer (değişken, atama, dönüş, kullanıcı fonksiyonunun parametresi, tipli fonksiyon ifadesi, tipli liste) tipi verir; `T` ile `T?` dalı `T?` [test: `TestAllNoneBranchesNeedAnExpectedType`, `TestIfAndMatchValueTypes`, `tests/negative/hepsi_yok_dallar.tr`].
 - **Mevcut durum:** `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor; tipli yere girerken çalışırken duruyor (1.2), tipsiz yerde değer akıyor [ölçüldü: T1 1.2 ağı ilk adımı, `r11`].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
-- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 400 kapanış 2, K2-N2):** `TR_Dict[TR_String, TR_Int?]` sözlük değişmezinde dalları hepsi `TR_none` veren değer yanlışlıkla H1161 alıyor [ölçüldü: DENETİM 400 kapanış 2].
 
 ### 5.6
 
@@ -273,7 +271,6 @@ Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yaln
 ### 6.4
 
 - **Mevcut durum:** varsayılanda parametrenin kendisi ya da sonraki parametre ancak çalışırken bulunuyor (H2440) [ölçüldü: ileri başvuru; denetim ve çalıştırma].
-- **Yapılacaklar (D, Ö3; sınıf uzak 14):** varsayılanda parametrenin kendisi ve sonraki parametreler denetim hatası; denetleyicinin testi.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** varsayılanın tipi parametrenin tipine uymazsa denetim hatası: bugün `TR_func f(x: TR_Int = "a") -> TR_Int`'te `f()` `"a"` (`TR_String`) veriyor, denetim ve çalışma hatasız [ölçüldü: DENETİM istek 68].
 
 ### 6.5
@@ -327,7 +324,6 @@ Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sın
 ### 7.3
 
 - **Mevcut durum:** Python alışkanlığıyla ilk parametreye düz self sözcüğü yazılınca tipsiz parametre hatası (H1111) çıkıyor; ileti tip uydurmuyor ama `TR_self`'i de önermiyor, self: <tip> yazımını gösteriyor; tiplenen self çağrıda eksik argüman hatası veriyor (F1) [ölçüldü: TR_func m(self) ve self: Nokta, `d6adf7e3`].
-- **Yapılacaklar (D ve F1, Ö3; ölçüldü 30b44b01):** metodun ilk parametresi Python'un self'iyse sözdizimi hatası, ileti `TR_self`'i önerir; TR testi.
 
 ### 7.4
 
@@ -494,8 +490,6 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md).
 ### 12.3
 
 - **Mevcut durum (2026-11-03, main `51b75f0a`):** tensörün `==`'si doğrulamada denetim hatası [ölçüldü: DENETİM istek 81]; ileti tensöre hâlâ `TR_assert(x == beklenen)` öneriyor.
-- **Yapılacaklar (F1, Ö3; DENETİM istek 81):** iletinin tensöre doğru yazımı önermesi (15'in öğe öğe eşitliğiyle).
-- **Yapılacaklar (F1, Ö3; sahip T1; Gemini uzak 14, TCB 14:39; sınıf TCB 15:09):** H2612'nin tensör koşulundaki önerisi yanlış yazımı öğretiyor: tensörle `TR_assert(x)` iletisi `TR_assert(x == expected)` yazmayı söylüyor, oysa tensörün `==`'si öğe öğedir ve mantık değeri vermez (15.5) [ölçüldü: trlang run, `4eb3f9ac`; `internal/lang/messages/en.json:458`]. 3.10'un iletisi gibi `TR_equal`'ı ya da `TR_all_close`'u önermeli [görüş].
 
 ### 12.4a
 
@@ -520,13 +514,10 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 - **Bedel (TCB kararı, 2026-11-04):** `utf8.ValidString` satır okumayı yavaşlatıyor: 1 GB'da ASCII +%9,5, Türkçe metin +%147,5 [ölçüldü: D1, Colab, altı tur]; doğruluk hızdan önce gelir, kabul. SIMD doğrulayıcı hız kolunda (D, Ö3).
 - **Bulgu (D1, 2026-11-04, Ö3):** kesin istatistiğin bedeli on öğeli listede `TR_mean` +0,44 µs, `TR_std` +2,4 µs (5,8 kat), `TR_median` +0,26 µs [ölçüldü: Colab]. Sığan toplamda büyük sayısız yol düşürür [hipotez].
 - **Mevcut durum:** `internal/detmath`'in bit özeti Windows, Linux ve qemu arm64'te aynı; gerçek ARM makinesinde koşmadı [ölçüldü: T1, `detmath` testi].
-- **Yapılacaklar (D, Ö3; sahip D1, denetleyici; D1 tekdüze saat devri, 2026-11-09):** argüman almayan yerleşiğin fazla argümanı denetimde yakalanmıyor, yalnız çalışırken H2012: `TR_print(TR_monotonic_ns(1))` denetimden (`trlang` komutunun denetim kipi) hatasız geçiyor [ölçüldü: TCB, birleşik 60]; `TR_compute_dtype(1)` de [ölçüldü: D1, taban `fbf624ee`]. Tanım dosyasında `"params": []` yazılı; denetleyici argüman sayısını oradan okumuyor [hipotez: D1, kod okunmadı]. Ajan hatayı ancak koşunca görür.
 - **Yapılacaklar (A, Ö1, 4c; öncelik DENETİM istek 97 Ş2'de düzeltildi):** öğe tipi bilinmeyen boş listenin `TR_sum`'ı hata yerine 0 veriyor (tipli boş tensör listesininki 15.18'in hatası); 0'ın tensör tipli yere girişi çalışırken H1001 (1.2), tipsiz yerde 0 akıyor [ölçüldü: T1 1.2 ağı ilk adımı, `r13`]. Liste değeri öğe tipini taşımıyor, çalışma anında ayırt edilemez; `TR_sum[TR_Float]([])` da "indekslenemez" hatası veriyor [ölçüldü: DENETİM]. İş `pending.md`'nin 3.11'iyle aynı: parametre denetimden çalışma anına gelmeli.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_min` ve `TR_max`'ın anahtar fonksiyonlu biçimi sıralama sırasını kullanır; `TR_sum` tensör listesinde boşta hata (15.18).
 - **Mevcut durum (T1, Tur 6A, DENETİM 400):** girdi sonunda `TR_none` bir kez gelir, sonraki `TR_input` H2561 [test: `TestInputAfterTheEndIsAnError`]; H1162'nin önerisi `(TR_input() ?? x) != x`, iki dilin iletisinden kopyalanıp koşuluyor [test: `TestInputLoopSuggestionEnds`]; `examples/tr/06_girdi.tr` girdi bitince ikinci soruyu sormuyor.
-- **Yapılacaklar (E, Ö3; sahip D1; DENETİM 400 N2):** `TR_max` ve `TR_min` metin almıyor: `TR_max("a", "b")` ve metin listesi çalışma hatası, 13.1 metni sayıyor [ölçüldü: DENETİM 400].
 - **Yapılacaklar (F, Ö3; sahip T1; DENETİM 400 kapanış K-N5):** H2561 istemle yapılan çağrıda da istemsiz yazımı gösteriyor.
-- **Yapılacaklar (F, Ö3; sahip T1; DENETİM 403 N7):** `internal/lang/checker/input_loop.go:10` ve `:15`'in yorumları TR'de olmayan `TR_while` ile yazıyor.
 - **Yapılacaklar (E, Ö3; sahip dil çekirdeği kolu (Motor); tur 7, 2026-11-13; DENETİM 638, 639, 644):** etkileşimli kabuğun yeni istemi girdi sonu durumunu sıfırlamıyor [hipotez: kod okuması, DENETİM 400 kapanış K-N4; terminalde koşulmadı]; dilimin ilk adımı terminalde ölçer. Metin 13.1'de.
 
 ### 13.2
@@ -549,7 +540,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 ### 13.7
 
 - **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik); `TR_where(TR_true, 2, 3)` denetimden geçip çalışırken hata veriyor [ölçüldü: DENETİM istek 81, `30b44b01` ve main `51b75f0a`] (15'in yan değişikliği, uygulanmadı). Tensörde `TR_is_finite` `TR_fuse` içinde float32 0/1 kalıyor (15.16a).
-- **Yapılacaklar (E ve D, Ö3; sahip D1, yeni kimlik ister; DENETİM istek 81, 184, 229 N5: yokluğu açık hata, `TR_where` çalışırken hata veriyor, sessiz yanlış değil):** fuse'ta H3107 kalır (kural fuse'ta yalnız `TR_is_finite` istiyor); `TR_is_finite(TR_Tensor([1, 2]))` hatasız, 13.7 yalnız `TR_Float` diyor (`TR_is_nan` bunu kopyalamaz); `definitions.json`'un koşul ve dönüş yazımı ile `tr.json`'un "0/1 maskesi" sözü düzelir; `TR_is_nan`'ın sayı ve tensör imzası; `TR_where`'in sayı imzasının kalkması, göçü 15.15'in status'unda (`tests/matematik_test.tr:208-209`) [kanıtlı: `tests/matematik_test.tr:208-209`]; TR testi.
+- **Yapılacaklar (E ve D, Ö3; sahip D1, yeni kimlik ister; DENETİM istek 81, 184, 229 N5: yokluğu açık hata, `TR_where` çalışırken hata veriyor, sessiz yanlış değil):** fuse'ta H3107 kalır (kural fuse'ta yalnız `TR_is_finite` istiyor); `TR_is_finite(TR_Tensor([1, 2]))` hatasız, 13.7 yalnız `TR_Float` diyor (`TR_is_nan` bunu kopyalamaz); `TR_is_nan`'ın sayı ve tensör imzası; TR testi. `TR_where`'in tanımdaki imzası ve açıklaması düzeldi, mantık ve sayı koşulu denetim hatası (`tests/negative/kosullu_kosul.tr`; DIL UZMANI iş 7).
 
 ### 13.8
 
@@ -679,7 +670,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.15
 
 - **Mevcut durum:** ondalık ya da tam sayı koşul ve sayı imzası (`TR_where(TR_true, 2, 3)`) denetimde değil, çalışmada H6207 veriyor [ölçüldü].
-- **Yapılacaklar (D ve F, Ö3; sınıf uzak 14):** hataların denetimde verilmesi (tanımdaki `TR_where` imzası bugün `TR_Bool|TR_Int|TR_Float` koşul ve sayı dönüşü yazıyor; satır bu dilimin değil); `tr.json`'daki açıklamanın "0/1 maskesi" metni.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** iki sayılı biçimin cinsi ve hassasiyeti.
 
 ### 15.16
@@ -1166,7 +1156,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **Yapılacaklar (E, Ö3; sahip D1; ajan denemesi 3):** dil tanımının adları motordan önde: testin istisna listesinde 37 onaylı yeni ad bekliyor [ölçüldü: `behavior_language_spec_test.go`, `identityExceptions`, `6043ab99`], yazınca sözdizimi hatası geliyor; bazılarının maddesi *Test:* satırında "TR testi" diyor, 13.1 gibi. Dil tanımını okuyan ajan bunları var sanıyor: üç ajan buna çarptı [ölçüldü: `docs/agent_trials.md`]. 19.2 de yapı diyor, motor sözlük istiyor; denetim geçiriyor, çalışma anı düşüyor. Ajanın göreceği yerde "henüz yok" yazılsın; maddenin *Test:* satırı doğrulansın.
 - **Yapılacaklar (F1, Ö3; sahip D1; DENETİM 256 N1, N2):** listede işlev alan JavaScript araması yanlış ipucu alıyor (`l.find((x) => x > 1)` için `TR_index_of`), Python'un dizin araması ipucu almıyor [ölçüldü: `trlang`, `6043ab99`]. Sözlükte `.indexOf` ve sayıda `.includes` artık derlenmeyen yazım önermiyor [ölçüldü: aynı]. Sıradaki adım: öneri tablosu.
 - **Yapılacaklar (C, Ö2; sahip S1; CI `9126e27f`, `4dbf6515`):** `TestEscapedGrandchildDoesNotBlockTheStop` yarış dedektörlü Linux işinde iki kez düştü: `9126e27f`'de 15,32 saniyede [ölçüldü: CI]; 2026-11-14 `4dbf6515`'te 15,33 saniyede, "beklenen olmadı: torun bitti" (`behavior_run_process_stop_test.go:478`), yeniden koşuda geçti [ölçüldü: CI 43581840682, Yarış dedektörü (Linux), deneme 1 ve 2; DENETİM 707 N2]. İki süre hemen aynı; zaman aşımına işaret edebilir [hipotez: iki düşüş]. Sıradaki adım: süreye mi bağlı, gerçek hata mı, ayrılır.
-- **Yapılacaklar (F, Ö3; sahip D1; D1 ipucu devri):** hatalı satırda kullanıcının kendi adı da ipucu alıyor: dosyada tanımlı ad ipucu almamalı.
 - **Yapılacaklar (D, Ö3; sahip D1; ajan denemesi 7):** modüle özel ad denetimden geçiyor, çalışırken hata veriyor (11.7) [ölçüldü: `TR_import` ile `_kur()` ve `m._kur()`]. Sıradaki adım: denetim hatası, 4a5'e bakılır.
 - **Yapılacaklar (F1, Ö3; sahip D1; DENETİM 258 N1):** Türkçe adlar genel olarak ipucu almıyor, biri yanlış alıyor: Türkçe yok sözcüğü yazılınca ileti `TR_Path` öneriyor, doğrusu `TR_none` [ölçüldü]. Sıradaki adım: öneri her dilin görünüm adına bakar.
 - **Yapılacaklar (F, Ö3; sahip D1; ajan denemesi 7):** yaygın yardım bayrağı çıkış kodu 2 ile hata veriyor, ileti doğrusunu söylüyor, ama ajanın ilk denediği yazım o [ölçüldü]. Sıradaki adım: yardım gibi davranır.

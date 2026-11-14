@@ -27,6 +27,17 @@ func TestUndefinedNameIsError(t *testing.T) {
 	singleError(t, "TR_print(a)\nTR_print(a + 1)", messages.H1010, 1, "'a'")
 }
 
+// Kural (6.4): varsayılan önceki parametreleri ve dış kapsamı görür; parametrenin kendisi ve sonraki
+// parametreler denetim hatasıdır, dıştaki aynı adlı değişken olsa da (çalışma anının H2440'ı). Varsayılandaki
+// fonksiyon ifadesinin kendi parametresi ayrıdır.
+func TestDefaultSeesOnlyEarlierParameters(t *testing.T) {
+	singleError(t, "TR_func h(a: TR_Int = b, b: TR_Int = 1) -> TR_Int { TR_return a }", messages.H2440, 1, "'b'")
+	singleError(t, "TR_var b = 7\nTR_func h(a: TR_Int = b, b: TR_Int = 1) -> TR_Int { TR_return a }", messages.H2440, 2, "'b'")
+	singleError(t, "TR_func k(a: TR_Int = a) -> TR_Int { TR_return a }", messages.H2440, 1, "'a'")
+	noErrors(t, "TR_func g(x: TR_Int, y: TR_Int = x + 1, z: TR_Int = x + y) -> TR_Int { TR_return z }\n"+
+		"TR_func m(f: (TR_Int) -> TR_Int = (b) => b + 1, b: TR_Int = 2) -> TR_Int { TR_return f(b) }\nTR_print(g(1), m())")
+}
+
 // Kural (17, kitaplık kodu): kitaplık kodu yerleşik değildir; kitaplığın fonksiyon ve tip adları her
 // kapsamda tanımlı sayılmaz.
 func TestLibraryNameIsNotABuiltinName(t *testing.T) {

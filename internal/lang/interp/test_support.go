@@ -19,8 +19,13 @@ func (v *VM) registerTestBuiltins() {
 		}
 		b, ok := args[0].(*BoolVal)
 		if !ok {
-			// Koşul TR_Bool'dur (3.10): TR_assert(l) neyi sorduğunu söylemez.
-			return nil, messages.New(messages.H2612, args[0].Type())
+			// Koşul TR_Bool'dur (3.10): TR_assert(l) neyi sorduğunu söylemez. Tensörde ileti
+			// tensörün yazımlarını önerir (12.3, 15.5).
+			kind := "value"
+			if args[0].Type() == ValTensor {
+				kind = "tensor"
+			}
+			return nil, messages.New(messages.H2612, args[0].Type(), kind)
 		}
 		if b.Val {
 			return Null, nil

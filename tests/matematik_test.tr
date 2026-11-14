@@ -64,6 +64,17 @@ TR_test "15.5 mantık tensörü koşul olamaz: TR_if, TR_for ve TR_assert hata v
     TR_assert_equal("H2600", TR_error_code { TR_if a == 1.0 { TR_print("koşul tensör") } })
 }
 
+TR_test "12.3 tensör koşulunda iletinin önerdiği yazımlar koşar" {
+    # H2612'nin tensör kolu bu dört yazımı önerir (internal/lang/checker TestAssertTensorConditionSuggestsTensorSpellings).
+    TR_var x = TR_Tensor([1.0, 2.0])
+    TR_var beklenen = TR_Tensor([1.0, 2.0])
+    TR_assert_equal(beklenen, x)
+    TR_assert(TR_all(x == beklenen))
+    TR_var s = TR_Tensor(3.0)
+    TR_assert(s.TR_item() == 3.0)
+    TR_assert_close(x, beklenen)
+}
+
 TR_test "3.5 tensörün TR_none ile == ve != karşılaştırması TR_Bool kalır" {
     TR_var a = TR_Tensor([1.0, 2.0])
     TR_assert(a != TR_none TR_and TR_not (a == TR_none))
@@ -204,9 +215,10 @@ TR_test "15.15 koşullu: koşul mantık tensörüdür, yayınlar; gradyan seçil
     TR_assert_equal([0.0, 2.0, 0.0], TR_where(x > 0, x, 0).TR_tolist)
     TR_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_where(TR_Tensor([[TR_true], [TR_false]]), TR_Tensor([1.0, 2.0]), -1).TR_tolist)
     TR_assert_equal([7.0], TR_where(TR_Tensor([TR_false]), TR_Tensor([1.0]), 7).TR_tolist)
-    # Sayı imzası yok (seçim TR_if'tir); ondalık ya da tam sayı koşul karşılaştırmayla maske olur.
-    TR_assert_equal("H6207", TR_error_code { TR_where(TR_true, 2, 3) })
-    TR_assert_equal("H6207", TR_error_code { TR_where(TR_false, TR_Tensor([1.0]), 7) })
+    # Sayı imzası yok (seçim TR_if'tir): mantık ya da sayı koşul denetim hatasıdır (tests/negative/kosullu_kosul.tr);
+    # tipi bilinmeyen koşulda çalışma hatası. Ondalık ya da tam sayı tensör koşul karşılaştırmayla maske olur.
+    TR_var bilinmeyen = [TR_true, 1][0]
+    TR_assert_equal("H6207", TR_error_code { TR_where(bilinmeyen, 2, 3) })
     TR_assert_equal("H6207", TR_error_code { TR_where(TR_Tensor([1.0, 0.0]), 1.0, 0.0) })
     TR_assert_equal("H6207", TR_error_code { TR_where(TR_Tensor([1, 0]), 1, 0) })
     TR_assert_equal([1.0, 0.0], TR_where(TR_Tensor([1.0, 0.0]) != 0, 1.0, 0.0).TR_tolist)

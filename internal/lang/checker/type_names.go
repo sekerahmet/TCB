@@ -249,8 +249,10 @@ func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 		return typeAny
 	}
 	name := c.checkedTypeName(t.Name, siteOf(t.Token, line))
-	if name == typeDict && len(args) == 2 && args[0] == typeFloat {
-		c.addErrorAtToken(siteOf(t.Args[0].Token, line), messages.New(messages.H2646, c.typeArg(typeFloat))) // 3.7 (dict_keys.go)
+	if name == typeDict && len(args) == 2 {
+		if err := c.keyTypeError(args[0]); err != nil {
+			c.addErrorAtToken(siteOf(t.Args[0].Token, line), err) // 3.7 (dict_keys.go)
+		}
 	}
 	return containerType(name, args)
 }

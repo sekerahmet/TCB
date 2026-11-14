@@ -438,7 +438,7 @@ func extremeArgs(kd codes.Code, args []Value, upper bool) (Value, error) {
 		switch x := args[0].(type) {
 		case *ListVal:
 			return extreme(kd, x.Elements, upper, true)
-		case *IntVal, *FloatVal, *TupleVal:
+		case *IntVal, *FloatVal, *StringVal, *TupleVal:
 			return nil, ArgCountErrorWriting(kd, AtLeast(2), 1, "[a, b]", "a, b")
 		}
 	}

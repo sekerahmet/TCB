@@ -86,6 +86,24 @@ func TestKeywordSpellingHintKept(t *testing.T) {
 	}
 }
 
+// The user's own name gets no spelling hint on a bad line: a name the file declares (a variable, a
+// parameter, a loop variable) is not a keyword's ASCII spelling; the same word undeclared still gets it.
+func TestDeclaredNameGetsNoSpellingHint(t *testing.T) {
+	for _, src := range []string{
+		"TR_var degisken = 1\nTR_print(degisken +)",
+		"TR_func f(degisken: TR_Int) -> TR_Int {\n    TR_return degisken +\n}",
+		"TR_for degisken TR_in [1] {\n    TR_print(degisken +)\n}",
+		"TR_var a, degisken = 1, 2\nTR_print(degisken +)",
+	} {
+		if errs := parseErrs(src); len(errs) == 0 || hasCode(errs, messages.H0164) {
+			t.Errorf("%q: a syntax error without a hint expected, got %v", src, errs)
+		}
+	}
+	if errs := parseErrs("TR_print(degisken +)"); !hasCode(errs, messages.H0164) {
+		t.Errorf("an undeclared degisken keeps its hint: %v", errs)
+	}
+}
+
 // A syntax error is at the token it is about, from its first character to the one after its last
 // (2.13), and carries the innermost code, not the H0100 every syntax error is wrapped in.
 func TestSyntaxErrorRangeIsTheToken(t *testing.T) {
