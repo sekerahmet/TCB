@@ -25,7 +25,8 @@ const schemaVersion = 1
 // 101: yolun .TR_modified_ns ve .TR_disk_available_bytes'ı da diske soran özelliktir (18.3; pathProps).
 // 102: strings.Replace, ReplaceAll ve (*Replacer).Replace TR metnini geçirir; .tr dosyasına yazılan metnin ad kodu
 // kenarı Via "trlang" taşır (codegraph dilim 6, D6-4 (a)). 103: kol kenarı (linkCaseTests) Via "case" taşır (D6-4 (b)).
-const extractorRevision = 103
+// 104: paket klasörünü ReadDir(".") ile listeleyen test bir taramadır (scan düğümü; D6-4 (c)).
+const extractorRevision = 104
 
 // Düğüm türleri.
 const (

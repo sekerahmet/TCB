@@ -116,9 +116,11 @@ fi
 
 # repo_scans düzen kurallarının paketleri dışında depoyu tarayan kural testleridir (ön denetim hepsini koşar).
 repo_scans=(
+	TestBackendDataCallsGoThroughTheGate
 	TestBuildTagsNeverSelectCPUFeatures
 	TestCloseCallsEveryPackageCloser
 	TestCodeListAndTRFileWalkersAreInTestsForAndChangedGoTests
+	TestDAPWireFieldsHaveExplicitNames
 	TestDocCodeBlocksShow
 	TestDottedMemberSpellingsGolden
 	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
@@ -131,10 +133,13 @@ repo_scans=(
 	TestExamplesCoverLibraryNames
 	TestExamplesCoverNames
 	TestExprWalkersMatchReferenceOnRepositoryPrograms
+	TestExtractorRevisionFollowsExtractorCode
 	TestFileSelectionIsConsistentInEveryConfiguration
 	TestGoCodeDoesNotEditMessageText
 	TestHeaderRulesLiveOnlyInSourceAndLexer
 	TestHintMessagesBuiltOnlyHere
+	TestHostBlockReadersKeepTheirTensors
+	TestHostBlockSlicesStayWithTheirBlock
 	TestJSONFieldsHaveExplicitNames
 	TestLibraryModulesDoNotReadTheCommandLine
 	TestMessageArgsAreNotMessageFragments
@@ -222,6 +227,8 @@ repo_scan_pkgs=(
 	./cmd/trlang
 	./cmd/trlang/e2e
 	./internal/compute
+	./internal/compute/tensor
+	./internal/devtools/debugger
 	./internal/lang/hint
 	./internal/lang/interp
 	./internal/lang/messages

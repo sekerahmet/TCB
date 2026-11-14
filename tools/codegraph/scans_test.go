@@ -204,7 +204,8 @@ var (
 
 // rootedListings bir test dosyasında depo kökünden dosya listeleyen çağrıların satırlarıdır (metinden, codegraph'tan
 // bağımsız): reporoot.WalkDir'in tabanı ya da `git -C <kök> ls-files`'ın kökü reporoot.Root()/Path'i ya da onlarla
-// atanmış bir yereli taşır; yalnızca klasör gezen geri çağırma sayılmaz.
+// atanmış bir yereli taşır; yalnızca klasör gezen geri çağırma sayılmaz. reporoot.ReadDir(".") ve os.ReadDir(".") testin
+// paket klasörünü listeler, onlar da sayılır.
 func rootedListings(t *testing.T, file string) []int {
 	t.Helper()
 	src, err := os.ReadFile(file)
@@ -255,6 +256,8 @@ func rootedListings(t *testing.T, file string) []int {
 					lines = append(lines, line)
 				case sel.Sel.Name == "GitTracked" && text(sel.X) == "codeindex" && len(call.Args) == 1 && rooted(call.Args[0]):
 					lines = append(lines, line)
+				case sel.Sel.Name == "ReadDir" && (text(sel.X) == "reporoot" || text(sel.X) == "os") && len(call.Args) == 1 && text(call.Args[0]) == `"."`:
+					lines = append(lines, line) // paket klasörü (codegraph dilim 6, D6-4 (c))
 				}
 			}
 			if s := text(call); strings.HasPrefix(s, "exec.Command(\"git\"") && strings.Contains(s, "\"ls-files\"") {
@@ -358,4 +361,86 @@ func parseBashArray(t *testing.T, script, name string) []string {
 		out = append(out, strings.Fields(line)...)
 	}
 	return out
+}
+
+// packageDirFiles: tool paketinin testleri kendi klasörünü listeler: yardımcı reporoot.ReadDir(".") ile test dışı .go
+// dosyalarını, TestDocs os.ReadDir(".") ile .md dosyalarını; TestTemp geçici klasörü listeler.
+var packageDirFiles = map[string]string{
+	"internal/reporoot/root.go": `package reporoot
+
+import "os"
+
+func ReadDir(dir string) ([]os.DirEntry, error) { return os.ReadDir(dir) }
+`,
+	"tool/a.go":     "package tool\n",
+	"tool/b.go":     "package tool\n",
+	"tool/notes.md": "# Notlar\n",
+	"other/c.go":    "package other\n",
+	"tool/dir_test.go": `package tool
+
+import (
+	"os"
+	"strings"
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+func sources(t *testing.T) []string {
+	entries, _ := reporoot.ReadDir(".")
+	var names []string
+	for _, e := range entries {
+		if n := e.Name(); strings.HasSuffix(n, ".go") && !strings.HasSuffix(n, "_test.go") {
+			names = append(names, n)
+		}
+	}
+	return names
+}
+
+func TestDigest(t *testing.T) { _ = sources(t) }
+
+func TestDocs(t *testing.T) {
+	entries, _ := os.ReadDir(".")
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".md") {
+			_ = e
+		}
+	}
+}
+
+func TestTemp(t *testing.T) { _, _ = os.ReadDir(t.TempDir()) }
+`,
+}
+
+// Kural (codegraph dilim 6, D6-4 (c), Karar 7): testin paket klasörünü ReadDir(".") ile (reporoot ya da os) listeleyen
+// çağrı, kalıbı o klasörün dosyaları olan bir taramadır; süzgeç her zamanki gibi okunur, liste dönen yardımcıda
+// çağıranınki de. Eksikler listesinin Kritik maddesi: TestExtractorRevisionFollowsExtractorCode codegraph'ın bütün test
+// dışı .go dosyalarını okuyor ama yeni dosyanın tests-for cevabında yoktu, G4'te düştü. Başka klasörün dosyası ve
+// geçici klasörün listelenmesi tarama değildir.
+func TestAPackageDirectoryReadIsAScan(t *testing.T) {
+	g, err := buildGraph(auditModule(t, packageDirFiles))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix := newIndex(g)
+	for file, want := range map[string]string{
+		"tool/a.go": "TestDigest", "tool/b.go": "TestDigest", "tool/notes.md": "TestDocs",
+		"tool/dir_test.go": "", "other/c.go": "",
+	} {
+		var got []string
+		for _, h := range ix.scansCovering(file) {
+			for _, tn := range h.tests {
+				got = append(got, strings.TrimPrefix(tn.Name, "tool."))
+			}
+		}
+		slices.Sort(got)
+		if strings.Join(got, ",") != want {
+			t.Errorf("%s is scanned by %v, want %q", file, got, want)
+		}
+	}
+	for _, e := range g.Edges {
+		if e.Kind == edgeScans && strings.HasSuffix(e.From, ".TestTemp") {
+			t.Errorf("listing a temporary folder is not a scan: %+v", e)
+		}
+	}
 }
