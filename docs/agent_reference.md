@@ -99,7 +99,7 @@ Bu belge bugün çalışan dili anlatır. Kuralların tam metni [`docs/spec`](sp
   - Desende düz ad yalnız bir sabittir; değişkenle karşılaştırma `(x)` diye yazılır.
 - **Döngü:**
   - `TR_for x TR_in kaynak { }`: liste, aralık, metin; sözlükte anahtarlar.
-  - `TR_for i, x TR_in l { }`: indeks ve öğe; sözlükte anahtar ve değer.
+  - `TR_for i, x TR_in l { }`: indeks ve öğe; sözlükte anahtar ve değer. Öğe demetse `TR_for (a, b) TR_in l` ya da `TR_for i, (a, b) TR_in l`; iki adlı biçim demette hatadır.
   - `TR_for koşul { }`: koşullu döngü; `TR_while` yoktur.
   - `TR_for { }`: sonsuz döngü. `TR_break` ve `TR_continue` vardır.
   - Dolaşılan liste ya da sözlüğe öğe eklemek ya da ondan öğe çıkarmak çalışma hatasıdır.

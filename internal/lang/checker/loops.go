@@ -13,7 +13,9 @@ import (
 
 // checkForIn döngüyü denetler: adları kendi kapsamında öğenin tipleriyle tanımlar, gövdeyi denetler.
 func (c *Checker) checkForIn(s *ast.ForInStatement) {
-	key, value := loopTypes(c.inferExpression(s.Iterable), s.KeyVar != "")
+	iterType := c.inferExpression(s.Iterable)
+	key, value := loopTypes(iterType, s.KeyVar != "")
+	c.checkTwoNamesOverTuple(s, iterType, value)
 	prev := c.scope
 	c.scope = NewScope(prev)
 	types := c.loopNameTypes(s, key, value)
@@ -22,6 +24,21 @@ func (c *Checker) checkForIn(s *ast.ForInStatement) {
 	}
 	c.checkStatements(s.Body.Statements)
 	c.scope = prev
+}
+
+// checkTwoNamesOverTuple iki adlı biçimin demet öğesini denetler: sözlük dışındaki kaynakta öğenin tipi
+// demetse (isteğe bağlı olmayan) H2730; ileti deseni indekssiz ve indeksli önerir. Tipi bilinmeyen
+// öğede aynı hata çalışırken öğe demet çıktığı turda gelir (interp, compiler_loop_bind.go).
+func (c *Checker) checkTwoNamesOverTuple(s *ast.ForInStatement, iterType, value string) {
+	if s.KeyVar == "" || s.Pattern != nil || shapeOf(iterType).base == typeDict {
+		return
+	}
+	sh := shapeOf(value)
+	if sh.elems == nil || sh.optional {
+		return
+	}
+	pattern, index := s.TupleSuggestion(len(sh.elems))
+	c.addErrorAt(s, messages.New(messages.H2730, len(sh.elems), pattern, index, s.IterableToken.Literal))
 }
 
 // loopNameTypes Names()'in sırasıyla adların tipleridir: indeks ya da anahtar, sonra öğe ya da

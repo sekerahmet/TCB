@@ -40,7 +40,8 @@ func (p *Parser) parseForStatement() ast.Statement {
 
 // parseForIn döngünün 'döngü <adlar> içinde <kaynak> { ... }' biçimini okur; imleç 'döngü'dedir. Adlar
 // tek ad (x), indeksli iki ad (i, x) ya da öğenin yerinde bir demet desenidir ((a, b), i, (a, b); 5.7).
-// Parantezli tek ad (a) desen değildir: H0040, döngü yine o adla okunur.
+// Parantezli tek ad (a) desen değildir: H0040, döngü yine o adla okunur. Ayrıştırıcı öğenin tipini
+// bilmez; ileti iki yolu da önerir: demet olmayan öğede parantezsiz ad, demette (a, _) deseni.
 func (p *Parser) parseForIn(tok lexer.Token) *ast.ForInStatement {
 	s := &ast.ForInStatement{Token: tok}
 	if p.peekTokenIs(lexer.TokIdent) {
@@ -71,11 +72,11 @@ func (p *Parser) parseForIn(tok lexer.Token) *ast.ForInStatement {
 	s.Iterable = p.parseHeaderExpression()
 	s.IterableToken = p.spanToken(start, p.curToken())
 	if len(s.Pattern) == 1 {
-		head := s.Pattern[0].Name
+		head, pattern := s.Pattern[0].Name, ast.PatternText([]string{s.Pattern[0].Name, "_"})
 		if s.KeyVar != "" {
-			head = s.KeyVar + ", " + head
+			head, pattern = s.KeyVar+", "+head, s.KeyVar+", "+pattern
 		}
-		p.syntaxError(paren, messages.H0040, head, s.IterableToken.Literal)
+		p.syntaxError(paren, messages.H0040, head, pattern, s.IterableToken.Literal)
 		s.ValueVar, s.ValueToken, s.Pattern = s.Pattern[0].Name, s.Pattern[0].Token, nil
 	}
 	if !p.expectPeek(lexer.TokLBrace) {

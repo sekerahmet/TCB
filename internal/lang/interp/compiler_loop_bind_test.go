@@ -27,9 +27,9 @@ func loopError(t *testing.T, src string) error {
 	return err
 }
 
-// loopSuggestion iletinin önerdiği döngü başlığıdır: H0040 ve H2731'de son ters tırnaklı yazım,
-// H1026 ve H2709'da sondaki parantezin içindeki örnek.
-func loopSuggestion(t *testing.T, err error) string {
+// loopSuggestion iletinin önerdiği döngü başlığıdır: H0040, H2730 ve H2731'de sondan back'inci
+// (0: son) ters tırnaklı yazım, H1026 ve H2709'da sondaki parantezin içindeki örnek.
+func loopSuggestion(t *testing.T, err error, back int) string {
 	t.Helper()
 	text := err.Error()
 	if messages.Has(err, messages.H1026) || messages.Has(err, messages.H2709) {
@@ -51,30 +51,44 @@ func loopSuggestion(t *testing.T, err error) string {
 		}
 		t.Fatalf("örneğin parantezi kapanmıyor: %s", text)
 	}
-	end := strings.LastIndex(text, "`")
-	start := strings.LastIndex(text[:end], "`")
-	if start < 0 {
-		t.Fatalf("iletide ters tırnaklı öneri yok: %s", text)
+	parts := strings.Split(text, "`")
+	if i := len(parts) - 2 - 2*back; i >= 1 && len(parts)%2 == 1 {
+		return parts[i]
 	}
-	return text[start+1 : end]
+	t.Fatalf("iletide sondan %d. ters tırnaklı öneri yok: %s", back, text)
+	return ""
 }
 
 // Her önerinin kopyası çalışır (5.7): iletinin önerdiği döngü başlığı programdaki başlığın yerine
 // konunca program sözdiziminden, denetimden ve çalışmadan hatasız geçer ve beklenen çıktıyı verir.
-// Tipi bilinmeyen kaynak (fonksiyon değerinin dönüşü) hatayı çalışırken aynı kodla verir.
+// Tipi bilinmeyen kaynak (fonksiyon değerinin dönüşü) hatayı çalışırken aynı kodla verir. H2730'un
+// iki önerisi (indekssiz desen, indeksli desen) ayrı ayrı denenir; indeksin adı desendekilerden
+// ayrıdır (desende i varken j). H0040'ın iki yolu (ayrıştırıcı öğenin tipini bilmez): demet olmayan
+// öğede parantezsiz ad, demette (a, _) deseni; üç öğeli demette desen H1026 verir ve onun önerisi
+// (then) doğru sayıya götürür (TCB 13:29).
 func TestLoopPatternSuggestionsRun(t *testing.T) {
 	cases := []struct {
 		code                      messages.Code
+		back                      int
 		setup, header, body, want string
+		then                      messages.Code
 	}{
-		{messages.H0040, "TR_var l = [(1, 2)]", "TR_for (a) TR_in l", "TR_print(a)", "(1, 2)\n"},
-		{messages.H0040, "TR_var l = [(1, 2)]", "TR_for i, (a) TR_in l", "TR_print(i, a)", "0 (1, 2)\n"},
-		{messages.H2731, "TR_var m = [[1, 2]]", "TR_for (a, b) TR_in m", "TR_print(a)", "[1, 2]\n"},
-		{messages.H2731, "TR_var m = [3]", "TR_for i, (a, _) TR_in m", "TR_print(i, a)", "0 3\n"},
-		{messages.H2731, "TR_var g = (n: TR_Int) => [[n, n]]", "TR_for (a, b) TR_in g(1)", "TR_print(a)", "[1, 1]\n"},
-		{messages.H1026, "TR_var l = [(1, 2)]", "TR_for (a, b, c) TR_in l", "TR_print(a, b)", "1 2\n"},
-		{messages.H1026, "TR_var l = [(1, 2, 3)]", "TR_for i, (a, b) TR_in l", "TR_print(i, a, b)", "0 1 2\n"},
-		{messages.H2709, "TR_var h = (n: TR_Int) => [(n, n, n)]", "TR_for (a, b) TR_in h(1)", "TR_print(a, b)", "1 1\n"},
+		{messages.H0040, 1, "TR_var l = [(1, 2)]", "TR_for (a) TR_in l", "TR_print(a)", "(1, 2)\n", 0},
+		{messages.H0040, 0, "TR_var l = [(1, 2)]", "TR_for (a) TR_in l", "TR_print(a)", "1\n", 0},
+		{messages.H0040, 1, "TR_var l = [5, 6]", "TR_for i, (a) TR_in l", "TR_print(i, a)", "0 5\n1 6\n", 0},
+		{messages.H0040, 0, "TR_var l = [(1, 2)]", "TR_for i, (a) TR_in l", "TR_print(i, a)", "0 1\n", 0},
+		{messages.H0040, 0, "TR_var l = [(1, 2, 3)]", "TR_for i, (a) TR_in l", "TR_print(i, a)", "0 1\n", messages.H1026},
+		{messages.H2731, 0, "TR_var m = [[1, 2]]", "TR_for (a, b) TR_in m", "TR_print(a)", "[1, 2]\n", 0},
+		{messages.H2731, 0, "TR_var m = [3]", "TR_for i, (a, _) TR_in m", "TR_print(i, a)", "0 3\n", 0},
+		{messages.H2731, 0, "TR_var g = (n: TR_Int) => [[n, n]]", "TR_for (a, b) TR_in g(1)", "TR_print(a)", "[1, 1]\n", 0},
+		{messages.H1026, 0, "TR_var l = [(1, 2)]", "TR_for (a, b, c) TR_in l", "TR_print(a, b)", "1 2\n", 0},
+		{messages.H1026, 0, "TR_var l = [(1, 2, 3)]", "TR_for i, (a, b) TR_in l", "TR_print(i, a, b)", "0 1 2\n", 0},
+		{messages.H2709, 0, "TR_var h = (n: TR_Int) => [(n, n, n)]", "TR_for (a, b) TR_in h(1)", "TR_print(a, b)", "1 1\n", 0},
+		{messages.H2730, 1, "TR_var l = [(1, 2), (3, 4)]", "TR_for a, b TR_in l", "TR_print(a, b)", "1 2\n3 4\n", 0},
+		{messages.H2730, 0, "TR_var l = [(1, 2), (3, 4)]", "TR_for a, b TR_in l", "TR_print(a, b)", "1 2\n3 4\n", 0},
+		{messages.H2730, 1, "TR_var l = [(1, 2, 3)]", "TR_for i, x TR_in l", "TR_print(i, x)", "1 2\n", 0},
+		{messages.H2730, 0, "TR_var l = [(1, 2, 3)]", "TR_for i, x TR_in l", "TR_print(i, x)", "1 2\n", 0},
+		{messages.H2730, 0, "TR_var h = (n: TR_Int) => [(n, n)]", "TR_for a, b TR_in h(5)", "TR_print(a + b)", "10\n", 0},
 	}
 	for _, c := range cases {
 		program := func(header string) string { return c.setup + "\n" + header + " {\n    " + c.body + "\n}\n" }
@@ -83,7 +97,15 @@ func TestLoopPatternSuggestionsRun(t *testing.T) {
 			t.Errorf("%s: %s bekleniyordu, alınan: %v", c.header, c.code, err)
 			continue
 		}
-		fixed := loopSuggestion(t, err)
+		fixed := loopSuggestion(t, err, c.back)
+		if c.then != 0 {
+			err := loopError(t, program(fixed))
+			if !messages.Has(err, c.then) {
+				t.Errorf("%s: öneri %q için %s bekleniyordu, alınan: %v", c.header, fixed, c.then, err)
+				continue
+			}
+			fixed = loopSuggestion(t, err, 0)
+		}
 		if err := loopError(t, program(fixed)); err != nil {
 			t.Errorf("%s: öneri %q hata verdi: %v", c.header, fixed, err)
 			continue
@@ -115,6 +137,7 @@ TR_for k, (a, _) TR_in d {
 	for src, code := range map[string]messages.Code{
 		"TR_var g = (n: TR_Int) => [n]\nTR_for (a, b) TR_in g(1) { TR_print(a) }":         messages.H2731,
 		"TR_var g = (n: TR_Int) => [(n, n, n)]\nTR_for (a, b) TR_in g(1) { TR_print(a) }": messages.H2709,
+		"TR_var g = (n: TR_Int) => [(n, n)]\nTR_for a, b TR_in g(1) { TR_print(a) }":      messages.H2730,
 	} {
 		if _, _, err := runTROut(t, src); !messages.Has(err, code) {
 			t.Errorf("%q: %s bekleniyordu, alınan: %v", src, code, err)

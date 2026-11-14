@@ -11,7 +11,9 @@ import (
 // tek adın yerinde anahtarın, indeksli biçimde değerin. Tipi bilinen öğe demet değilse (liste, sayı,
 // isteğe bağlı demet) H2731, iletinin önerisi öğeyi tek adla alır ve listede gövdede açmayı söyler;
 // demetin öğe sayısı tutmazsa H1026, örnek düzeltilmiş döngü başlığıdır. Tipi bilinmeyen öğe
-// (fonksiyon değerinin dönüşü) denetimde hatasızdır, çalışırken denetlenir (interp).
+// (fonksiyon değerinin dönüşü) denetimde hatasızdır, çalışırken denetlenir (interp). İki adlı biçimde
+// öğenin tipi demetse (sözlük dışında) H2730, ileti deseni indekssiz ve indeksli önerir; sözlükte ikinci
+// ad değerdir, isteğe bağlı demet ve iç liste bu kuralın dışındadır.
 func TestLoopPatternIsChecked(t *testing.T) {
 	const pairs = "TR_var l = [(1, \"p\")]\n"
 	cases := []struct {
@@ -29,6 +31,11 @@ func TestLoopPatternIsChecked(t *testing.T) {
 		{"TR_for (_, b) TR_in 0..3 { TR_print(b) }", messages.H2731, "`TR_for b TR_in 0..3`"},
 		{"TR_var o: (TR_Int, TR_Int)? = (1, 2)\nTR_for (a, b) TR_in [o] { TR_print(a) }", messages.H2731, "öğenin tipi (TR_Int, TR_Int)?"},
 		{"TR_var g = (n: TR_Int) => [n]\nTR_for (a, b) TR_in g(1) { TR_print(a) }", 0, ""},
+		{"TR_for a, b TR_in [(1, 2)] { TR_print(a, b) }", messages.H2730, "`TR_for (a, b) TR_in [(1, 2)]`, indeksiyle birlikte `TR_for i, (a, b) TR_in [(1, 2)]`"},
+		{"TR_for i, x TR_in [(1, 2, 3)] { TR_print(i, x) }", messages.H2730, "3 öğeli bir demet; demeti açmak için `TR_for (i, x, _) TR_in [(1, 2, 3)]`, indeksiyle birlikte `TR_for j, (i, x, _) TR_in [(1, 2, 3)]`"},
+		{"TR_for k, v TR_in {\"a\": (1, 2)} { TR_print(k, v) }", 0, ""},
+		{"TR_var o: (TR_Int, TR_Int)? = (1, 2)\nTR_for i, x TR_in [o] { TR_print(i, x) }", 0, ""},
+		{"TR_for i, x TR_in [[1, 2]] { TR_print(i, x) }", 0, ""},
 	}
 	for _, c := range cases {
 		errs := checkCoded(t, c.src)

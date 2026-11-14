@@ -79,6 +79,24 @@ TR_test "5.7 demet olmayan öğede desen çalışma hatasıdır" {
     TR_assert_equal(4, toplam)
 }
 
+TR_test "5.7 tipi bilinmeyen kaynakta demet öğesi iki adlı döngüde çalışma hatasıdır" {
+    TR_var çiftler = (n: TR_Int) => [(n, n * 10)]
+    TR_assert_equal("H2730", TR_error_code {
+        TR_for a, b TR_in çiftler(1) {
+            TR_print(a, b)
+        }
+    })
+    TR_var toplam = 0
+    TR_for i, (a, b) TR_in çiftler(2) {
+        toplam += i + a + b
+    }
+    TR_assert_equal(22, toplam)
+    TR_var değerler = (n: TR_Int) => ({"a": (n, n)})
+    TR_for k, v TR_in değerler(3) {
+        TR_assert_equal((3, 3), v)
+    }
+}
+
 TR_test "5.7 TR_JSON dizisinde iki adlı biçim indeksle öğeyi verir" {
     TR_var indeksler = 0
     TR_var tur = 0

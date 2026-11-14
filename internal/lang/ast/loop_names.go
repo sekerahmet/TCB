@@ -67,6 +67,21 @@ func (fs *ForInStatement) PatternHead() string {
 	return head
 }
 
+// TupleSuggestion is what H2730 suggests for a two-name loop over a tuple of count elements (5.7):
+// the two written names as a pattern filled up with "_" ("(a, b)", "(a, b, _)") and a free index
+// name for the indexed form ("i"; "j" when the pattern has i, then "k").
+func (fs *ForInStatement) TupleSuggestion(count int) (pattern, index string) {
+	names := PadNames([]string{fs.KeyVar, fs.ValueVar}, count)
+	index = "i"
+	for _, free := range []string{"i", "j", "k"} {
+		if free != fs.KeyVar && free != fs.ValueVar {
+			index = free
+			break
+		}
+	}
+	return PatternText(names), index
+}
+
 // patternNames are the pattern's names in order.
 func (fs *ForInStatement) patternNames() []string {
 	names := make([]string, len(fs.Pattern))

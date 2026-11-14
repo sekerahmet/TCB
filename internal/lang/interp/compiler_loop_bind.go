@@ -13,8 +13,12 @@ import (
 // için aynı kodla.
 
 // loopSlots döngünün adlarına yuva ayırır: indeks ya da anahtar keySlot (yoksa -1), öğe valueSlot.
-// Desenli döngüde unpack gövdenin önüne konacak açma adımıdır; desen yoksa nil.
-func (c *compiler) loopSlots(sub *compilerScope, s *ast.ForInStatement) (keySlot, valueSlot int, unpack statementCode) {
+// Desenli döngüde unpack gövdenin önüne konacak açma adımıdır; desen yoksa nil. pairs iki adlı
+// biçimin demet denetimidir (tek adlı ve desenli döngüde nil).
+func (c *compiler) loopSlots(sub *compilerScope, s *ast.ForInStatement) (keySlot, valueSlot int, unpack statementCode, pairs *tupleGuard) {
+	if s.KeyVar != "" && s.Pattern == nil {
+		pairs = &tupleGuard{s}
+	}
 	slotOf := func(name string) int {
 		slot := sub.info.slot(name)
 		sub.recordShadow(name, s.Line(), messages.H2452)
@@ -31,9 +35,28 @@ func (c *compiler) loopSlots(sub *compilerScope, s *ast.ForInStatement) (keySlot
 		slots[i] = slotOf(n.Name)
 	}
 	if s.Pattern == nil {
-		return keySlot, slots[0], nil
+		return keySlot, slots[0], nil, pairs
 	}
-	return keySlot, slots[0], patternUnpack(s, slots)
+	return keySlot, slots[0], patternUnpack(s, slots), nil
+}
+
+// tupleGuard iki adlı biçimin çalışma anı denetimidir (5.7, K7): sözlük dışındaki kaynakta öğe demetse
+// H2730, ileti iki deseni önerir. Tipi bilinen öğede hata denetimdedir (checker/loops.go); burada
+// tipi bilinmeyen öğe, demet çıktığı turda. Aralık, metin ve sözlük kollarında çağrılmaz: aralığın ve
+// metnin öğesi demet olamaz, sözlükte ikinci ad değerdir.
+type tupleGuard struct{ s *ast.ForInStatement }
+
+// check öğe demetse H2730 verir; g nil ise (tek adlı ya da desenli döngü) hiçbir şey yapmaz.
+func (g *tupleGuard) check(item Value) error {
+	if g == nil {
+		return nil
+	}
+	t, ok := item.(*TupleVal)
+	if !ok {
+		return nil
+	}
+	pattern, index := g.s.TupleSuggestion(len(t.Elements))
+	return messages.At(g.s.Line(), 0, messages.New(messages.H2730, len(t.Elements), pattern, index, g.s.IterableToken.Literal))
 }
 
 // patternUnpack desenin açma adımıdır: öğeyi desenin ilk adının yuvasından alır, öğelerini
