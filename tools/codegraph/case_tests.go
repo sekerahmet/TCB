@@ -70,6 +70,10 @@ func (x *goExtractor) noteTestText(fc *fileCtx, owner string, lit *ast.BasicLit)
 	}
 }
 
+// viaCase kol kenarının (linkCaseTests) işaretidir (Edge.Via): indirectTests kolun işlevinden çağrı zinciriyle ulaşılan
+// işlevlerde bu kenarın testini, testin paketi aynı olsa da zincirin adımıyla sayar (codegraph dilim 6, D6-4 (b), Karar 6).
+const viaCase = "case"
+
 // linkCaseTests kolun değerini taşıyan ve kolun işlevine ulaşan testlerden koldaki çağrılara `tests` kenarı çeker.
 func linkCaseTests(b *builder, idx *goIndex, reach *testReach) {
 	values := map[string]bool{}
@@ -97,6 +101,7 @@ func linkCaseTests(b *builder, idx *goIndex, reach *testReach) {
 			}
 			for _, callee := range c.callees {
 				b.addEdge(test, callee, edgeTests, inferred, c.file, c.line)
+				b.edges[edgeKey{test, callee, edgeTests}].Via = viaCase
 			}
 		}
 	}

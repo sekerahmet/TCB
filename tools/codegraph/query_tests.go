@@ -45,7 +45,9 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 		if !isTestNode(n) && !isTRMeasurement(n) {
 			if ix.pkgOf(r.ID) == ix.pkgOf(target.ID) && r.Steps < testMaxSteps {
 				for _, e := range ix.in[r.ID] {
-					if tn := ix.byID[e.From]; e.Kind == edgeTests && e.Confidence == inferred && isTestNode(tn) && ix.pkgOf(tn.ID) != ix.pkgOf(r.ID) {
+					// Başka paketin INFERRED test kenarı (checker koşucusu) ya da kol kenarı (viaCase, aynı paket de):
+					// zincirin ulaştığı işlevin testi, zincirin adımıyla (codegraph dilim 6, D6-4 (b)).
+					if tn := ix.byID[e.From]; e.Kind == edgeTests && e.Confidence == inferred && isTestNode(tn) && (ix.pkgOf(tn.ID) != ix.pkgOf(r.ID) || e.Via == viaCase) {
 						note(tn, n, r.Steps+1)
 					}
 				}
