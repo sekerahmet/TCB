@@ -1251,8 +1251,8 @@ for mode in $modes; do
 		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
 			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
-		# Tekrar adayları (dups_check) bu kipte yok: dups --changed commit'siz değişikliği görmüyor, kipin her kaydında
-		# aday:0 çıkıyordu (codegraph dilim 6, D6-2); commit'ten sonra `dups --changed main` koşulur. Kaydın aday: alanı -.
+		# Tekrar adayları (dups_check) bu kipte yok: kopya aramasını G4'ün tam denetimi yapar (codegraph dilim 6, D6-2;
+		# codegraph 7 K1). Kaydın aday: alanı -.
 		spec_refs_check
 		commit_light_tests
 		;;
