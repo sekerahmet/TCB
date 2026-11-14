@@ -28,6 +28,7 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* matematik ve makine öğrenmesi gösterimi uluslararasıdır: `sin`, `log`, `argmax`, `relu`, optimizer adları (AdamW, Muon) her dilde aynı yazılır.
 - *Gerekçe:* her işin tek adı vardır (2.9). Ortak ad iki dilde ayrı yazılsaydı aynı kavramın iki gösterimi olurdu. "Kısa ve düz" ilkesi okunurluk içindir: kod okunurken ad cümlenin parçasıdır (`TR_if hepsi(t >= 0.0)` "eğer hepsi" diye okunur); var olan Türkçe adların %60'ı tek sözcüktür, ortalaması 9 harftir [ölçüldü: `tr.json`, 2026-10-29]. Gösterim adını baş geliştirici onaylar ([`docs/development.md`](../../development.md)). Türkçe harfsiz yazımı (`yazdir`) yakalayan kural yoktur: kimse bir gösterim dilinde kod yazmaz (17.7).
+- *Argüman ve kurduğu özellik (dil tanımı turu 8, 2026-11-14):* `TR_requires_grad:` argümanı `.TR_requires_grad` özelliğini kurar; iki ad tek kavramdır ve her çifti tabloya yazmak tabloyu gerekçesiz satırlarla büyütürdü. Muafiyet `docs/terimler.md`'de yazılıydı ve sınanıyordu, 17.5 onu anmıyordu [kanıtlı: `internal/doc_terms_test.go:231-248`, `sameMeaningByRule`]. Muafiyet ada bakar, argümanın özelliği gerçekten kurup kurmadığına bakmaz.
 
 ### 17.6
 
@@ -43,6 +44,7 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* Python, Java, Swift ve Go değerin metnini yerelleştirmez. Excel ve LibreOffice çalıştıranın diline göre değiştirir: aynı program farklı sonuç verir. PyTorch'un `state_dict`'i ve Hugging Face'in `config.json`'u İngilizce ve dilden bağımsızdır.
 - *Gerekçe:* Güvenilir: aynı program aynı veriyle aynı sonucu verir, kimin hangi dilde okuduğundan bağımsız. Tipin metni sınıflı kimlik değil kimliğin adıdır; bugün kitaplık tipi `TR_type_Linear` yazıyor [ölçüldü: main `1ef66921`, `TR_print(TR_Type(TR_Linear(2, 3, TR_seed: 1)))`], içerideki biçim değere sızıyor.
+- *Kitaplığın ağırlık alanları (dil tanımı turu 8, 2026-11-14; D1 Gemma 3 Teslim A, A19; DENETİM 546, 708 Ş2):* parametrenin diske giden yolu alanın tanımdaki adından kurulur [kanıtlı: `internal/stdlib/ml/params.go:101-104`]. Kitaplığın Türkçe adlı alanı kaydedilen dosyaya Türkçe anahtar yazar; İngilizce okuyan ajan o anahtarı Türkçe yazmak zorunda kalır, oysa hiçbir dilin ayrıcalığı yoktur. Kural kitaplıkla sınırlıdır: kullanıcının alan adı onun adıdır (17.1). Dil tanımında dışa aktarma listesi yoktur, 11.7 yalnız `_` önekiyle çalışır; bu yüzden kimlikli alanın özel bir yazımı yoktur.
 
 ### 17.9
 

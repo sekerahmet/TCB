@@ -211,6 +211,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - Unutulan maskenin yakalanması yola bağlı değildir (tur 7): `choices[0].delta.content` gibi sabit bir yol yalnız OpenAI'nin sohbet biçimidir; Anthropic, Responses, Ollama, llama.cpp'nin yerli ucu ve `n > 1` metni başka yolda taşır [kanıtlı: tur 7 araştırması 1.4]. Akışın olayı kendisinin `TR_MaskStream`'den geçirmesi reddedildi: olayı programın yazdığından başka yapardı. Gitmiş baş geri alınmaz; kazanç sızıntının sessiz kalmamasıdır.
   - Nabız kimliksizdir: ekranın ayrıştırıcısı son kimliği tutar, yeniden bağlanmada `Last-Event-ID` doğru kalır.
   - Nabzın biçimi kipe göre ayrıdır. "Sunmak"ın yaygın biçimi istek akışıdır ve OpenAI uyumlu istemci adsız her olayı bir parça sayar; orada veri olayı olan nabız her 15 saniyede sahte bir parça olurdu. Yorum satırını her SSE istemcisi atlar (axum ve sse-starlette'in varsayılanı). Ekranın tarayıcı kodu yorumu göremez; ekran yayın akışını kullanır, orada nabız veri olayıdır ve sözleşmenin biçimi `TR_heartbeat:` ile verilir. Aralık emsallerle aynı, 15 saniye.
+- *Yavaş dinleyici ve yazma süresi (dil tanımı turu 8, 2026-11-14; HTTP aşama 2 devri):* koşullar ve sayı motorun davranışıdır [kanıtlı: `internal/stdlib/httpserver/broadcast.go:317-318`, `stream.go:30`, `:145-153`]. 10 saniye 28.5'in süre sınırları gibi sabittir; bir ayar yeni bir ad ve gerçek bir yavaş istemcinin ölçüsünü isterdi. Sayı yazılı olunca ajan zaman aşımını tahmin etmez.
 
 ### 28.8
 
@@ -220,6 +221,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - **TR:** 21.5'in 2 saniyelik nazik durdurması, 1.5 durdurma, 10.9 iptal; `TR_Bool` dönüşü 18.15 gibi.
 - *Gerekçe:* kapanış dilin geri kalanıyla aynı yoldan geçer; yarım yazılmış olay istemcide bozuk çerçeve bırakmaz.
   - Görevin içinde açılan sunucu görevin alt işidir (tur 7): Trio, kotlinx.coroutines ve Go'nun `context`'i alt işi üst işe bağlar. Karşı seçenekte ajan görevi iptal edip kapının kapandığını sanır, kapı sessizce açık kalırdı (güvenlik). Gövdesinin dönüş değeri açık bir sunucu olan görev hiç bitmezdi; hata iki doğru yazımı önerir (DENETİM 638 N5).
+- *İki akış kipinin sonu (dil tanımı turu 8, 2026-11-14; HTTP aşama 2 devri):* yayın dinleyicisi düzgün biter, çünkü istemci `Last-Event-ID` ile döner ve olay kaybolmaz. İstek akışını düzgün bitirmek yarım cevabı tam gösterirdi (28.7'nin blok hatası kuralı) [kanıtlı: `internal/stdlib/httpserver/server.go:65`, `guard.go:78-79`; test: `TestCloseEndsOpenStreams`].
 
 ### 28.9
 

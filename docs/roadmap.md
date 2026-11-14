@@ -51,7 +51,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
 
 Dilin davranışı: ana oturum karar verir, Gemini araştırır, DENETİM doğrular. İlgili bölümün sıradaki turunda karara bağlanır.
 
-- **Nesne kimliğinin sınanması:** iki ad aynı nesneyi mi gösteriyor (paylaşılan ağırlıklar, 15). 7.6 paylaşmayı yazıyor, sınamayı yazmıyor.
+- **Paylaşılan deponun sınanması:** iki tensör aynı depoyu mu paylaşıyor (paylaşılan ağırlığın `.TR_transpose()`'u, 15). 7.6'nın `TR_same_object`'i yalnız aynı nesneyi sınar (dil tanımı turu 8). Nesne başına önbellek de burada bekler: somut ihtiyaç olmadan eklenmez (tur 4, DENETİM 167).
 - **Salt okunur görünüm ya da derin değişmezlik:** `TR_const` yalnız bağı sabitler.
 - **Yapı alanlarının ve metotlarının gizliliği:** 11.7'nin `_` kuralı yalnız modülün üst düzey adlarını kapsar. Yapının `_x` alanı dışarıdan okunuyor; 7'de karar yok. Kitaplığın iç yardımcıları da buna bağlı.
 - **Ağırlıkların kurala göre gruplanması** (iyileştiricinin parametre grupları): elle gruplama 15'te var, otomatik gruplama için karar yok.

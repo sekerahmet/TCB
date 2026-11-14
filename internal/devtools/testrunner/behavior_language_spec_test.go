@@ -380,7 +380,7 @@ var identityExceptions = map[string]string{
 	"TR_decode_stream": "onaylı yeni ad (16.3a; akışla_çöz)", "TR_DecodeStream": "onaylı yeni ad (16.3a; ÇözmeAkışı)", "TR_read_chat": "onaylı yeni ad (24.4; sohbet_oku)",
 	"TR_boundary_tokens": "onaylı yeni ad (16.2; sınır_parçaları)",
 	"TR_Queue":           "onaylı yeni ad (10.10; Kuyruk)", "TR_put": "onaylı yeni ad (10.10; koy)",
-	"TR_max_file_bytes": "onaylı yeni ad (28.3a; dil tanımı turu 7)", "TR_merge_stderr": "onaylı yeni ad (21.4; dil tanımı turu 7)",
+	"TR_max_file_bytes": "onaylı yeni ad (28.3a; dil tanımı turu 7)", "TR_same_object": "onaylı yeni ad (7.6; aynı_nesne; dil tanımı turu 8)", "TR_merge_stderr": "onaylı yeni ad (21.4; dil tanımı turu 7)",
 	"TR_while":   "bilerek yanlış: kalkan sözcük (2.9)",
 	"TR_default": "bilerek yanlış: kalkan sözcük (2.9)",
 	"TR_elif":    "bilerek yanlış: başka dilin yazımı (5.5)", "TR_it": "kalkan sözcük (6.7): status anlatımı, ana oturum güncelleyince kalkar", "TR_acc": "aynı (6.7)",
