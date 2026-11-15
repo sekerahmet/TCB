@@ -218,3 +218,26 @@ func TestTextFilterReachesInsideJSON(t *testing.T) {
 		t.Fatalf("süzgeçsiz: %s %v, beklenen %s", b, err, want)
 	}
 }
+
+// TestLeafFilterGetsThePath: LeafFilter değer olan metni RFC 6901'in göstergesiyle alır ('~' "~0", '/'
+// "~1"; değerin kendisi metinse ""); anahtarlar TextFilter'dan geçer, LeafFilter'a gelmez.
+func TestLeafFilterGetsThePath(t *testing.T) {
+	var paths []string
+	leaf := func(path, s string) string { paths = append(paths, path+"="+s); return strings.ToUpper(s) }
+	key := func(s string) string { return "k" + s }
+	v := dict("a/b", list(&interp.StringVal{Val: "x"}, dict("~k", &interp.StringVal{Val: "y"})), "z", &interp.StringVal{Val: "w"})
+	got, err := WriteOptions(v, Options{TextFilter: key, LeafFilter: leaf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != `{"ka/b":["X",{"k~k":"Y"}],"kz":"W"}` {
+		t.Fatalf("yazım: %s", got)
+	}
+	if want := "/a~1b/0=x,/a~1b/1/~0k=y,/z=w"; strings.Join(paths, ",") != want {
+		t.Fatalf("yollar: %v, beklenen %s", paths, want)
+	}
+	paths = nil
+	if _, err := WriteOptions(&interp.StringVal{Val: "parça"}, Options{LeafFilter: leaf}); err != nil || strings.Join(paths, ",") != "=parça" {
+		t.Fatalf("kökteki metnin yolu boş olmalı: %v %v", paths, err)
+	}
+}

@@ -393,8 +393,9 @@ y2.TR_send_event(1)`,
 }
 
 // TestBroadcastSnapshotIsMaskedAgain (DENETİM 377 Ş1): maskeli akıştan geçmeyen, iki olaya bölünen gizli
-// değer akışta iki yarım olarak gider (olay başına maske onu görmez), katlanan görüntüde *** olur;
-// sonradan eklenen gizli değer de görüntüde maskelenir (28.7 (e)).
+// değerin akışta ilk yarısı gider, ikincisi unutulan maskeyle *** olur (H7644); katlama olayın kendi
+// maskesini alır, iki yarım görüntüde birleşip *** olur; sonradan eklenen gizli değer de görüntüde
+// maskelenir (28.7 (e)).
 func TestBroadcastSnapshotIsMaskedAgain(t *testing.T) {
 	ts, _ := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(""), TR_reduce: (g, olay) => TR_JSON(TR_String(g) + TR_String(olay)))`, "")
 	ts.vm.AddSecret("gizli-deger-123")
@@ -404,7 +405,7 @@ func TestBroadcastSnapshotIsMaskedAgain(t *testing.T) {
 y.TR_send_event("ger-123 sonra-eklenen")`); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"id: 1\ndata: \"gizli-de\"\n\n", "id: 2\ndata: \"ger-123 sonra-eklenen\"\n\n"} {
+	for _, want := range []string{"id: 1\ndata: \"gizli-de\"\n\n", "id: 2\ndata: \"*** sonra-eklenen\"\n\n"} {
 		if f := frame(t, br); f != want {
 			t.Fatalf("akışta %q, beklenen %q", f, want)
 		}

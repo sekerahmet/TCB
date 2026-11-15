@@ -141,3 +141,36 @@ func FuzzMaskStream(f *testing.F) {
 		}
 	})
 }
+
+// TestMaskJoined: unutulan maskenin birleşimi (28.7). Tutulan yoksa çıktı Mask'ınkidir; bölünen gizli
+// değerin yeni olaydaki kısmı *** olur; kendi maskesinin örttüğü hiçbir zaman açılmaz; sınırı gelmemiş
+// bölge en çok en uzun gizli değer (kaçışlı biçimi dahil) + pad bayt tutulur.
+func TestMaskJoined(t *testing.T) {
+	v := New()
+	v.AddSecret("gizli-deger-123")
+	cases := []struct {
+		held, text, out, next string
+		caught                bool
+	}{
+		{"", "a gizli-deger-123 b", "a *** b", "", false},
+		{"", "son gizli-de", "son gizli-de", "gizli-de", false},
+		{"gizli-de", "ger-123 x", "*** x", "", true},
+		{"ab", "gizli-deger-123", "***", "", false},
+		{"://ali:parola", "123@sunucu/yol", "***@sunucu/yol", "", true},
+		{"", "https://" + strings.Repeat("a", 15+10-3), "https://" + strings.Repeat("a", 22), "://" + strings.Repeat("a", 22), false},
+		{"", "https://" + strings.Repeat("a", 15+10-2), "https***", "", true},
+		{"://" + strings.Repeat("a", 22), "bb", "***", "", true},
+	}
+	for _, c := range cases {
+		out, next, caught := v.MaskJoined(c.held, c.text, 10)
+		if out != c.out || next != c.next || caught != c.caught {
+			t.Errorf("MaskJoined(%q, %q) = %q, %q, %v; beklenen %q, %q, %v", c.held, c.text, out, next, caught, c.out, c.next, c.caught)
+		}
+	}
+	w := New()
+	w.AddSecret("çok-gizli\x01")
+	long := len(w.mask.Load().longestFirst()[0])
+	if long <= len("çok-gizli\x01") || long != w.LongestSecret() {
+		t.Fatalf("en uzun biçim kaçışlı olmalı ve LongestSecret'le aynı: %d, %d", long, w.LongestSecret())
+	}
+}

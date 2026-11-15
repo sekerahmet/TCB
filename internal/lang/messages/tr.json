@@ -1904,6 +1904,7 @@
 "H7641": "{fn}: `{#reduce}:` aynı yayıncıya gönderemez, katlama sürerken yayıncı kendini beklerdi; olayı katlamanın dışında gönderin",
 "H7642": "Geçersiz istek başlığı",
 "H7643": "{fn}: {path|q} {size} bayt, en çok {limit} bayt olabilir: büyük dosya için sınırı çağrıya ekleyin: `{#max_file_bytes}: {size}`",
+"H7644": "olay akışı: {path|q} yolundaki metin önceki olayınkiyle birleşince gizli bir değer ya da adresin kimlik kısmı olabilecek bir metin çıktı; bu olaydaki kalanı `***` yazıldı, önceki olayda giden baş geri alınmaz. Parçaları göndermeden önce maskeleyin: `{#var} m = {#mask_stream}()`, her parça için `m.{#step}(parça)`'nın verdiğini gönderin, akışın sonunda `m.{#finish}()`'in verdiğini de gönderin",
 "H7645": "{fn}: `Cookie` başlığının değeri geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); çerezi başka bir uygulama koymuş olabilir. Okumayı yakalayıp çerezsiz sürdürün: `{#var} c: {#String}? = {#none}; {#try} {{ c = istek.{#headers}.{#get}(\"Cookie\") }} {#catch} h {{ }}`; kullanıcı tarayıcıda 127.0.0.1'in çerezlerini silebilir",
 "H7660": "{fn}: `{#tokenless_paths}:`'taki {path|q} tam bir yol değil: yol `/` ile başlar, sorgu, ters bölü, denetim karakteri ve `..` bileşeni taşımaz; her dosya adıyla yazılır: `{#tokenless_paths}: [\"/\", \"/index.html\"]`",
 "H7661": "{fn}: `{#tokenless_paths}:` yalnız belirteçli sunucuda anlamlıdır, belirteçsiz sunucuda her yol zaten açıktır; korumak için belirteç verin: `{#token}: {#secret_token}()`",

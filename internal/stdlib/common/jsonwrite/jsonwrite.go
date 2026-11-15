@@ -42,11 +42,16 @@ type Options struct {
 	// TextFilter yazılan her metne (sözlük anahtarları dahil) uygulanır, ör. gizli değer süzgeci;
 	// nil ise metinler olduğu gibi yazılır.
 	TextFilter func(string) string
+	// LeafFilter verilirse değer olan her metne (sözlük anahtarlarına değil) TextFilter'ın yerine
+	// uygulanır ve metnin yolunu da alır: RFC 6901'in JSON göstergesi ("/parça", "/liste/0"; değerin
+	// kendisi metinse ""). Anahtar yolda süzgeçsiz, '~' "~0", '/' "~1" olarak yazılır. Olay akışının
+	// unutulan maskesi bunu kullanır (28.7).
+	LeafFilter func(path, text string) string
 }
 
 // WriteOptions değeri verilen seçeneklerle yazar.
 func WriteOptions(val interp.Value, s Options) ([]byte, error) {
-	y := writer{indent: s.Indent, nonFiniteAsText: s.NonFiniteAsText, textFilter: s.TextFilter}
+	y := writer{indent: s.Indent, nonFiniteAsText: s.NonFiniteAsText, textFilter: s.TextFilter, leafFilter: s.LeafFilter}
 	if err := y.value(val, 0); err != nil {
 		return nil, err
 	}
@@ -58,6 +63,8 @@ type writer struct {
 	indent          string
 	nonFiniteAsText bool
 	textFilter      func(string) string
+	leafFilter      func(path, text string) string
+	path            []byte // leafFilter varken yazılan değerin JSON göstergesi
 	walker          interp.ContainerWalker
 }
 
@@ -130,12 +137,17 @@ func (y *writer) value(val interp.Value, depth int) error {
 	case *interp.FloatVal:
 		return y.number(v.Val)
 	case *interp.StringVal:
+		if y.leafFilter != nil {
+			b, _ := json.Marshal(y.leafFilter(string(y.path), v.Val))
+			y.b = append(y.b, b...)
+			return nil
+		}
 		y.text(v.Val)
 	case *interp.JSONVal:
 		// TR_JSON (3.7a): sayının tam ya da ondalık yazımı korunur. Süzgeç varsa içindeki metinler de
 		// ondan geçer (19.4: gizli değer TR_JSON'un içinde de ***); öğeler çekirdeğin değerleridir, yazım
 		// aynıdır (FloatText).
-		if y.textFilter != nil {
+		if y.textFilter != nil || y.leafFilter != nil {
 			return y.value(v.Unwrap(), depth)
 		}
 		y.b = append(y.b, v.JSONText()...)
@@ -166,9 +178,14 @@ func (y *writer) array(v interp.Value, elems []interp.Value, depth int) error {
 			y.b = append(y.b, ',')
 		}
 		y.newline(depth + 1)
+		at := len(y.path)
+		if y.leafFilter != nil {
+			y.path = strconv.AppendInt(append(y.path, '/'), int64(i), 10)
+		}
 		if err := y.value(elem, depth+1); err != nil {
 			return err
 		}
+		y.path = y.path[:at]
 	}
 	if len(elems) > 0 {
 		y.newline(depth)
@@ -206,15 +223,35 @@ func (y *writer) dict(v *interp.DictVal, depth int) error {
 		if y.indent != "" {
 			y.b = append(y.b, ' ')
 		}
+		at := len(y.path)
+		if y.leafFilter != nil {
+			y.path = appendPointerToken(append(y.path, '/'), v.KeyText(k))
+		}
 		if err := y.value(elem, depth+1); err != nil {
 			return err
 		}
+		y.path = y.path[:at]
 	}
 	if !first {
 		y.newline(depth)
 	}
 	y.b = append(y.b, '}')
 	return nil
+}
+
+// appendPointerToken anahtarı JSON göstergesinin bir parçası olarak ekler (RFC 6901: '~' "~0", '/' "~1").
+func appendPointerToken(b []byte, key string) []byte {
+	for i := 0; i < len(key); i++ {
+		switch key[i] {
+		case '~':
+			b = append(b, "~0"...)
+		case '/':
+			b = append(b, "~1"...)
+		default:
+			b = append(b, key[i])
+		}
+	}
+	return b
 }
 
 // notData veri olmayan değerin (fonksiyon, yerleşik, iyileştirici, yapı nesnesi ...) hatasıdır:

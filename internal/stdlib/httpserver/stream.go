@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
@@ -149,6 +150,53 @@ func eventData(m *interp.VM, v interp.Value) ([]byte, error) {
 	return jsonwrite.WriteOptions(v, jsonwrite.Options{TextFilter: m.Mask})
 }
 
+// holdPad unutulan maskenin tutulanına en uzun gizli değerin üstüne eklenen sınırdır (28.7): adresin
+// kimlik kısmındaki belirtecin ya da JWT'nin çoğu sığar (tasarım Açık-6). Yol başına tarama en çok
+// en uzun gizli değer + holdPad + yaprağın boyudur, olay sayısından bağımsız.
+const holdPad = 1024
+
+// forgotten olay akışının unutulan maskesidir (28.7): son olayın her metin yaprağından 19.4a'nın akışının
+// tutacağı, yaprağın JSON göstergesiyle. Sözlük anahtarları ve nabız tutulmaz. İstek akışında akış
+// başına, yayında yayıncı başınadır.
+type forgotten struct {
+	mu     sync.Mutex
+	held   map[string]string // yalnız son olayın yolları
+	warned bool              // H7644 akış başına bir kez
+}
+
+// data olayın verisidir (eventData gibi): her metin yaprağı aynı yolun önceki olaydan tutulanıyla
+// birlikte maskelenir (interp.VM.MaskJoined). Birleşim bir şey bulursa caught true'dur ve standart hataya
+// H7644 yazılır, akış başına bir kez; bulmazsa veri eventData'nınkiyle bayt bayt aynıdır. Hata verirse olay
+// gitmez, tutulan değişmez.
+func (f *forgotten) data(m *interp.VM, v interp.Value) (data []byte, caught bool, err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var next map[string]string
+	at := ""
+	data, err = jsonwrite.WriteOptions(v, jsonwrite.Options{TextFilter: m.Mask, LeafFilter: func(path, text string) string {
+		out, held, c := m.MaskJoined(f.held[path], text, holdPad)
+		if held != "" {
+			if next == nil {
+				next = map[string]string{}
+			}
+			next[path] = held
+		}
+		if c && !caught {
+			caught, at = true, path
+		}
+		return out
+	}})
+	if err != nil {
+		return nil, false, err
+	}
+	f.held = next
+	if caught && !f.warned {
+		f.warned = true
+		m.WriteOutput(m.Err, turkish.Printable(messages.Text(messages.H7644, at))+"\n")
+	}
+	return data, caught, nil
+}
+
 // dataHead yalnız data: satırı olan SSE olayının başıdır (istek akışının olayı ve nabzı).
 var dataHead = []byte("data: ")
 
@@ -168,6 +216,7 @@ type EventStream struct {
 	mu     sync.Mutex
 	closed bool // blok bitti; sonra yazılmaz
 	broken bool // bir yazma hata verdi
+	held   forgotten
 }
 
 // EventStreamType TR_EventStream'in tip adıdır.
@@ -201,7 +250,7 @@ func (e *EventStream) sendEvent(m *interp.VM, args []interp.Value, _ map[string]
 	if closed {
 		return nil, messages.New(messages.H7636, interp.CallPrefix(codes.MemSendEvent))
 	}
-	data, err := eventData(m, args[0])
+	data, _, err := e.held.data(m, args[0])
 	if err != nil {
 		return nil, err
 	}

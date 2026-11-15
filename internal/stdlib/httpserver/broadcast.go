@@ -56,6 +56,7 @@ type EventBroadcast struct {
 
 	sem  chan struct{} // yayıncının dışlaması: gönderim ve abonelik
 	snap *interp.JSONVal
+	held forgotten // unutulan maske (28.7): yayıncı başına
 
 	mu        sync.Mutex // aşağıdakiler: dinleyici goroutine'leri kilitsiz okur
 	holder    *interp.VM // dışlamayı tutan görev (katlamanın kendine göndermesi)
@@ -182,11 +183,19 @@ func (b *EventBroadcast) sendEvent(m *interp.VM, args []interp.Value, _ map[stri
 	}
 	defer b.release()
 	key := m.MaskKey() // maskeden önce: arada eklenen gizli değer yazılırken yeniden maskelenir
-	data, err := eventData(m, args[0])
+	data, caught, err := b.held.data(m, args[0])
 	if err != nil {
 		return nil, err
 	}
-	ev, err := interp.JSONToTR(data)
+	// Katlama olayın kendi maskesini alır: görüntü kendi metniyle maskelenir (28.7 (e)), bölünen gizli
+	// değerin iki yarısı görüntüde birleşip *** olur. Birleşimin maskesi yalnız akışa giden çerçevededir.
+	own := data
+	if caught {
+		if own, err = eventData(m, args[0]); err != nil {
+			return nil, err
+		}
+	}
+	ev, err := interp.JSONToTR(own)
 	if err != nil {
 		return nil, err
 	}

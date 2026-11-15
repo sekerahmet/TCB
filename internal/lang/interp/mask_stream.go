@@ -53,6 +53,13 @@ func (m *MaskStream) Finish() string {
 // the first address region with no boundary yet (-1: none), and the end whose decision is not final
 // is returned as held instead of being masked.
 func maskWith(ordered []string, text string, spans []span, open int, atEnd bool) (out, held string) {
+	spans, cut := maskCut(ordered, text, spans, open, atEnd)
+	return applySpans(text, spans, cut), text[cut:]
+}
+
+// maskCut maskWith'in kararıdır: birleşmiş aralıklar ve kararı kesinleşen başın sonu (atEnd'de
+// len(text)); metni yazmaz.
+func maskCut(ordered []string, text string, spans []span, open int, atEnd bool) ([]span, int) {
 	cut := len(text)
 	if len(ordered) > 0 {
 		longest := len(ordered[0])
@@ -86,7 +93,59 @@ func maskWith(ordered []string, text string, spans []span, open int, atEnd bool)
 			cut = s.start
 		}
 	}
-	return applySpans(text, spans, cut), text[cut:]
+	return spans, cut
+}
+
+// MaskJoined olay akışının unutulan maskesidir (28.7): held aynı yolun önceki olaydaki metninden
+// tutulan, text yeni olayın metni. out text'in maskelisidir: kendi maskesi (Mask) ile birleşimin
+// (held+text) maskesinin text'e düşen kısmı birlikte; held boşsa Mask(text)'tir. caught: birleşim
+// text'in kendi maskesinin görmediği bir aralık buldu (iki olaya bölünen gizli değer ya da adres), ya
+// da sınırı gelmemiş bölge sınırı aştı. next 19.4a'nın akışının birleşimden tutacağıdır; en çok en
+// uzun gizli değerin boyu (kayıttaki kaçışlı biçimler dahil, LongestSecret) + pad bayttır: aşarsa
+// tutulanın text'e düşen kısmı *** olur, next boştur ve caught true'dur. Her goroutine'den
+// çağrılabilir; maske tek kez okunur.
+func (v *VM) MaskJoined(held, text string, pad int) (out, next string, caught bool) {
+	ordered := v.mask.Load().longestFirst()
+	n := len(held)
+	joined := held + text
+	var spans []span // nil: text'in maskesi Mask'ınkidir
+	if n > 0 {
+		own := fullSpans(ordered, text)
+		spans = own
+		for _, s := range fullSpans(ordered, joined) {
+			if s.end > n {
+				spans = append(spans, span{max(s.start-n, 0), s.end - n})
+			}
+		}
+		spans = joinSpans(spans)
+		caught = !slices.Equal(spans, own)
+	}
+	ctx, open := contextSpans(joined, false)
+	_, cut := maskCut(ordered, joined, ctx, open, false)
+	next = joined[cut:]
+	longest := 0
+	if len(ordered) > 0 {
+		longest = len(ordered[0])
+	}
+	if len(next) > longest+pad {
+		if spans == nil {
+			spans = fullSpans(ordered, text)
+		}
+		spans = joinSpans(append(spans, span{max(cut-n, 0), len(text)}))
+		next, caught = "", true
+	}
+	if spans == nil {
+		return v.Mask(text), next, false
+	}
+	return applySpans(text, spans, len(text)), next, caught
+}
+
+// fullSpans text'in 19.4 maskesinin birleşmiş aralıklarıdır (Mask'ın kararı): adres bölgeleri metnin
+// sonunda biter, gizli değerler soldan taranır.
+func fullSpans(ordered []string, text string) []span {
+	ctx, _ := contextSpans(text, true)
+	spans, _ := maskCut(ordered, text, ctx, -1, true)
+	return spans
 }
 
 // joinSpans aralıkları başlarına göre sıralar; ortak baytı olan aralıklar tek aralık olur (bitişik
