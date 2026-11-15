@@ -131,8 +131,8 @@ TR_test "devices ve catalog: liste okunamazsa devices_unavailable; katalog her t
     TR_var yazıcı = [x TR_for x TR_in l TR_if TR_String(x["kind"]) == "transcriber"][0]
     TR_assert_equal(["tr", "en"], [TR_String(d) TR_for d TR_in yazıcı["languages"]])
     TR_assert_equal(küçük_bellek(o.k, TR_String(yazıcı["id"])), TR_Int(yazıcı["memory_bytes"]))
-    TR_var vad = [x TR_for x TR_in l TR_if TR_String(x["kind"]) == "vad"][0]
-    TR_assert(vad.TR_get("languages") == TR_none TR_and vad.TR_get("fit") == TR_none)
+    TR_var algılayıcı = [x TR_for x TR_in l TR_if TR_String(x["kind"]) == "vad"][0] # `vad` adı lib/vad.tr'yi gölgelerdi
+    TR_assert(algılayıcı.TR_get("languages") == TR_none TR_and algılayıcı.TR_get("fit") == TR_none)
     o.e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({})}
     o.kataloğu_gönder()
     TR_assert(TR_Bool(TR_List(_son(o.e)["data"]["entries"])[0]["installed"]))
