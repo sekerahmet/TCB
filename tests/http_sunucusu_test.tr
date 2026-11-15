@@ -129,6 +129,8 @@ TR_test "28.3a dosya_cevabı kökün içindeki dosyayı verir, öbür yolları 4
     TR_for istenen TR_in ["/", "/lang", "/Index.html", "/con", "/CON .js", "/index.html.", "/a:b", "/../index.html", "/yok.txt"] {
         TR_assert_equal(404, TR_file_response(kök, istenen).TR_status)
     }
+    TR_assert_equal([200, "H7643", "H7628"], [TR_file_response(kök, "/index.html", TR_max_file_bytes: 3).TR_status,
+        TR_error_code { TR_file_response(kök, "/index.html", TR_max_file_bytes: 2) }, TR_error_code { TR_file_response(kök, "/index.html", TR_max_file_bytes: 0) }])
 }
 
 TR_test "28.7 akış cevabı tek parametreli blokla kurulur, text/event-stream'dir; blok yanlışsa çağrı hatasıdır" {

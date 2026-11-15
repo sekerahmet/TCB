@@ -35,7 +35,7 @@ func (m *MaskStream) Step(piece string) (out string, ok bool) {
 	}
 	text := m.held + piece
 	spans, open := contextSpans(text, false)
-	out, m.held = maskWith(m.vm.mask.Load().longestFirst(), text, spans, open, false)
+	out, m.held = maskWith(m.vm.mask.Load(), text, spans, open, false)
 	return out, true
 }
 
@@ -47,16 +47,28 @@ func (m *MaskStream) Finish() string {
 	return out
 }
 
-// maskWith masks text with the value mask (ordered: the secrets longest first) and the contextual
+// maskWith masks text with the value mask (m, nil: none; its secrets are tried longest first) and the contextual
 // spans together (19.4): value matches are found in the same original text as spans, and ranges
 // sharing a byte become one SecretMask. atEnd false (a stream's Step): open is the "://" offset of
 // the first address region with no boundary yet (-1: none), and the end whose decision is not final
 // is returned as held instead of being masked.
-func maskWith(ordered []string, text string, spans []span, open int, atEnd bool) (out, held string) {
+func maskWith(m *valueMask, text string, spans []span, open int, atEnd bool) (out, held string) {
+	spans, cut := maskCut(m, text, spans, open, atEnd)
+	return applySpans(text, spans, cut), text[cut:]
+}
+
+// maskCut maskWith'in kararıdır: birleşmiş aralıklar ve kararı kesinleşen başın sonu (atEnd'de
+// len(text)); metni yazmaz. Bir gizli değerin ilk baytı olmayan konum atlanır: orada ne eşleşme ne
+// eksik baş başlar (ikisi de rest[0] == g[0] ister), karar aynıdır.
+func maskCut(m *valueMask, text string, spans []span, open int, atEnd bool) ([]span, int) {
 	cut := len(text)
-	if len(ordered) > 0 {
+	if ordered := m.longestFirst(); len(ordered) > 0 {
 		longest := len(ordered[0])
 		for i := 0; i < len(text); {
+			if !m.first[text[i]] {
+				i++
+				continue
+			}
 			rest := text[i:]
 			if !atEnd && len(rest) < longest && incompleteSecret(ordered, rest) {
 				cut = i
@@ -86,7 +98,65 @@ func maskWith(ordered []string, text string, spans []span, open int, atEnd bool)
 			cut = s.start
 		}
 	}
-	return applySpans(text, spans, cut), text[cut:]
+	return spans, cut
+}
+
+// MaskJoined olay akışının unutulan maskesidir (28.7): held aynı yolun önceki olaydaki metninden
+// tutulan, text yeni olayın metni. out text'in maskelisidir: kendi maskesi (Mask) ile birleşimin
+// (held+text) maskesinin text'e düşen kısmı birlikte; held boşsa Mask(text)'tir. caught: birleşim
+// text'in kendi maskesinin görmediği bir aralık buldu (iki olaya bölünen gizli değer ya da adres), ya
+// da sınırı gelmemiş bölge sınırı aştı. next 19.4a'nın akışının birleşimden tutacağıdır; en çok en
+// uzun gizli değerin boyu (kayıttaki kaçışlı biçimler dahil, LongestSecret) + pad bayttır: aşarsa
+// tutulanın text'e düşen kısmı *** olur, next boştur ve caught true'dur. Her goroutine'den
+// çağrılabilir; maske tek kez okunur.
+func (v *VM) MaskJoined(held, text string, pad int) (out, next string, caught bool) {
+	m := v.mask.Load()
+	n := len(held)
+	joined := held + text
+	var spans []span // nil: text'in maskesi Mask'ınkidir
+	if n > 0 {
+		own := fullSpans(m, text)
+		spans = own
+		for _, s := range fullSpans(m, joined) {
+			if s.end > n {
+				spans = append(spans, span{max(s.start-n, 0), s.end - n})
+			}
+		}
+		spans = joinSpans(spans)
+		caught = !slices.Equal(spans, own)
+	}
+	ctx, open := contextSpans(joined, false)
+	// Adressiz metin (bölge yok ya da hepsi sınırlı ve gizlisiz): Mask'ın bağlamlı aralığı da yoktur
+	// (sınırlı bölgeler atEnd'den bağımsızdır), çıktı yalnız değer maskesidir; "://" bir kez aranır.
+	plain := len(ctx) == 0 && open < 0
+	_, cut := maskCut(m, joined, ctx, open, false)
+	next = joined[cut:]
+	longest := 0
+	if ordered := m.longestFirst(); len(ordered) > 0 {
+		longest = len(ordered[0])
+	}
+	if len(next) > longest+pad {
+		if spans == nil {
+			spans = fullSpans(m, text)
+		}
+		spans = joinSpans(append(spans, span{max(cut-n, 0), len(text)}))
+		next, caught = "", true
+	}
+	if spans == nil {
+		if n == 0 && plain {
+			return m.values(text), next, false
+		}
+		return m.apply(text), next, false
+	}
+	return applySpans(text, spans, len(text)), next, caught
+}
+
+// fullSpans text'in 19.4 maskesinin birleşmiş aralıklarıdır (Mask'ın kararı): adres bölgeleri metnin
+// sonunda biter, gizli değerler soldan taranır.
+func fullSpans(m *valueMask, text string) []span {
+	ctx, _ := contextSpans(text, true)
+	spans, _ := maskCut(m, text, ctx, -1, true)
+	return spans
 }
 
 // joinSpans aralıkları başlarına göre sıralar; ortak baytı olan aralıklar tek aralık olur (bitişik

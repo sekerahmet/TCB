@@ -109,6 +109,7 @@ func escapedForms(values []string) []string {
 type valueMask struct {
 	replacer *strings.Replacer
 	ordered  []string
+	first    [256]bool // gizli değerlerin ilk baytları: başka baytta ne eşleşme ne eksik baş başlar (maskCut)
 }
 
 // longestFirst builds the value mask of secrets; longer values are tried first, so that when one
@@ -119,10 +120,13 @@ func longestFirst(secrets []string) *valueMask {
 	slices.Sort(ordered)
 	slices.SortStableFunc(ordered, func(a, b string) int { return len(b) - len(a) })
 	pairs := make([]string, 0, 2*len(ordered))
+	m := &valueMask{ordered: ordered}
 	for _, g := range ordered {
 		pairs = append(pairs, g, SecretMask)
+		m.first[g[0]] = true // kayıttaki değer en az MinSecretLength karakterdir, boş değildir
 	}
-	return &valueMask{replacer: strings.NewReplacer(pairs...), ordered: ordered}
+	m.replacer = strings.NewReplacer(pairs...)
+	return m
 }
 
 // apply masks text with the values of m (nil: none) and the contextual mask (19.4). Text with no
@@ -136,8 +140,16 @@ func (m *valueMask) apply(text string) string {
 		}
 		return m.replacer.Replace(text)
 	}
-	out, _ := maskWith(m.longestFirst(), text, spans, -1, true)
+	out, _ := maskWith(m, text, spans, -1, true)
 	return out
+}
+
+// values text'in yalnız değer maskesidir (bağlamlı maske yok; m nil ise text).
+func (m *valueMask) values(text string) string {
+	if m == nil {
+		return text
+	}
+	return m.replacer.Replace(text)
 }
 
 // longestFirst m'nin değerleridir, uzundan kısaya (m nil ise yok).
@@ -169,6 +181,12 @@ func (v *VM) HasSecrets() bool { return v.mask.Load() != nil }
 // Mask replaces the registered secret values in text, with their escaped forms, and the userinfo
 // secret of every address in text (the contextual mask, 19.4) with SecretMask.
 func (v *VM) Mask(text string) string { return v.mask.Load().apply(text) }
+
+// MaskKey şimdiki değer maskesinin kimliğidir: her yeni gizli değer yenisini kurar (addSecrets); aynı
+// kimlikle maskelenmiş çıktı yeniden maskelenmez. Saklanan çıktı (olay akışının saklanan olayı, nabzı)
+// kimlik değiştiyse yazılmadan önce yeniden maskelenir (28.7: maske çıktının yazıldığı anda uygulanır).
+// Her goroutine'den çağrılabilir.
+func (v *VM) MaskKey() any { return v.mask.Load() }
 
 // maskValues is Mask without the contextual mask: only the registered values and their escaped
 // forms. TR_write_file's H7600 check uses it (18.13): an address with a password in the written

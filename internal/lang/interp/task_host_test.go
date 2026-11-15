@@ -94,7 +94,7 @@ func TestTaskHostCloseCancelsRunningTasks(t *testing.T) {
 	})
 	<-started
 	v.acquireGIL()
-	if !h.Close(v) || h.Close(v) {
+	if !h.Close(v, nil) || h.Close(v, nil) {
 		t.Fatal("ilk Close true, ikincisi false vermeli")
 	}
 	close(release)

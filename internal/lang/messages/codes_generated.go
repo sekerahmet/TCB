@@ -583,6 +583,7 @@ const (
 	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): iş durduruldu (satır {line|loc} başlatılan)
 	H2922 Code = 2922 // ; `{written}` dilin kimliğidir, {struct} yapısının alanı olamaz: alanı `{field}: {#Int}` diye ekleyin, `.{field}` ile kullanın
 	H2923 Code = 2923 // ; `{written}` dilin kimliğidir, {struct} yapısının bu üyesi `.{field}` diye yazılır
+	H2924 Code = 2924 // satır {line|loc} başlatılan işin gövdesi bittiğinde açtığı HTTP sunucusu hâlâ açıktı, sunucu kapatıldı: sunucuyu görevin dışında açın ya da görevin içinde `s.{#wait}()` ile bekleyip dışarıdan `g.{#cancel}()` ile kapatın
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -1908,6 +1909,10 @@ const (
 	H7639 Code = 7639 // {fn}: `{#reduce}:` hatayla bitti; olay gönderilmedi, görüntü değişmedi: {err}
 	H7640 Code = 7640 // {fn}: `{#reduce}:` yeni görüntüyü {@JSON} olarak vermeli, {given} verdi: `{#reduce}: (g, olay) => {#JSON}({{"son": olay}})` yazın
 	H7641 Code = 7641 // {fn}: `{#reduce}:` aynı yayıncıya gönderemez, katlama sürerken yayıncı kendini beklerdi; olayı katlamanın dışında gönderin
+	H7642 Code = 7642 // Geçersiz istek başlığı
+	H7643 Code = 7643 // {fn}: {path|q} {size} bayt, en çok {limit} bayt olabilir: büyük dosya için sınırı çağrıya ekleyin: `{#max_file_bytes}: {size}`
+	H7644 Code = 7644 // olay akışı: {path|q} yolundaki metin önceki olayınkiyle birleşince gizli bir değer ya da adresin kimlik kısmı olabilecek bir metin çıktı; bu olaydaki kalanı `***` yazıldı, önceki olayda giden baş geri alınmaz. Parçaları göndermeden önce maskeleyin: `{#var} m = {#mask_stream}()`, her parça için `m.{#step}(parça)`'nın verdiğini gönderin, akışın sonunda `m.{#finish}()`'in verdiğini de gönderin
+	H7645 Code = 7645 // {fn}: `Cookie` başlığının değeri geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); çerezi başka bir uygulama koymuş olabilir. Okumayı yakalayıp çerezsiz sürdürün: `{#var} c: {#String}? = {#none}; {#try} {{ c = istek.{#headers}.{#get}("Cookie") }} {#catch} h {{ }}`; kullanıcı tarayıcıda 127.0.0.1'in çerezlerini silebilir
 	H7660 Code = 7660 // {fn}: `{#tokenless_paths}:`'taki {path|q} tam bir yol değil: yol `/` ile başlar, sorgu, ters bölü, denetim karakteri ve `..` bileşeni taşımaz; her dosya adıyla yazılır: `{#tokenless_paths}: ["/", "/index.html"]`
 	H7661 Code = 7661 // {fn}: `{#tokenless_paths}:` yalnız belirteçli sunucuda anlamlıdır, belirteçsiz sunucuda her yol zaten açıktır; korumak için belirteç verin: `{#token}: {#secret_token}()`
 	H7662 Code = 7662 // {fn}: `{#tokenless_paths}:`'taki {path|q} `%` taşıyor: liste çözülmüş yolla yazılır, istek de çözülmüş yoluyla karşılaştırılır; çözülmüş biçimini yazın: `{#tokenless_paths}: [{decoded|q}]`

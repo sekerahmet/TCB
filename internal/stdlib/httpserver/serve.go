@@ -89,6 +89,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 		ErrorLog: log.New(serverLog{s}, "", 0),
 	}
 	st.add(s)
+	s.host.OnCancel(func(y *interp.VM) { s.shutdown(y) }) // açan görevin iptali sunucuyu kapatır (28.8)
 	go func() { _ = s.srv.Serve(ln) }()
 	return s, nil
 }

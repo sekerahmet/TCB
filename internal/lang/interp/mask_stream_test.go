@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -140,4 +141,83 @@ func FuzzMaskStream(f *testing.F) {
 			t.Fatalf("gizli %q %q, parçalar %q: akış %q, toplu maske %q", s1, s2, pieces, got, want)
 		}
 	})
+}
+
+// TestMaskJoined: unutulan maskenin birleşimi (28.7). Tutulan yoksa çıktı Mask'ınkidir; bölünen gizli
+// değerin yeni olaydaki kısmı *** olur; kendi maskesinin örttüğü hiçbir zaman açılmaz; sınırı gelmemiş
+// bölge en çok en uzun gizli değer (kaçışlı biçimi dahil) + pad bayt tutulur.
+func TestMaskJoined(t *testing.T) {
+	v := New()
+	v.AddSecret("gizli-deger-123")
+	cases := []struct {
+		held, text, out, next string
+		caught                bool
+	}{
+		{"", "a gizli-deger-123 b", "a *** b", "", false},
+		{"", "son gizli-de", "son gizli-de", "gizli-de", false},
+		{"gizli-de", "ger-123 x", "*** x", "", true},
+		{"ab", "gizli-deger-123", "***", "", false},
+		{"://ali:parola", "123@sunucu/yol", "***@sunucu/yol", "", true},
+		{"", "https://" + strings.Repeat("a", 15+10-3), "https://" + strings.Repeat("a", 22), "://" + strings.Repeat("a", 22), false},
+		{"", "https://" + strings.Repeat("a", 15+10-2), "https***", "", true},
+		{"://" + strings.Repeat("a", 22), "bb", "***", "", true},
+	}
+	for _, c := range cases {
+		out, next, caught := v.MaskJoined(c.held, c.text, 10)
+		if out != c.out || next != c.next || caught != c.caught {
+			t.Errorf("MaskJoined(%q, %q) = %q, %q, %v; beklenen %q, %q, %v", c.held, c.text, out, next, caught, c.out, c.next, c.caught)
+		}
+	}
+	w := New()
+	w.AddSecret("çok-gizli\x01")
+	long := len(w.mask.Load().longestFirst()[0])
+	if long <= len("çok-gizli\x01") || long != w.LongestSecret() {
+		t.Fatalf("en uzun biçim kaçışlı olmalı ve LongestSecret'le aynı: %d, %d", long, w.LongestSecret())
+	}
+}
+
+// TestMaskCutSkipKeepsTheDecision: maskCut'ın ilk bayt atlaması (valueMask.first) kararı değiştirmez:
+// atlamalı ve atlamasız (first'ün her baytı açık) maske aynı aralıkları ve aynı kesimi verir. Gizli
+// değerin ilk baytı metinde başka yerde de geçer ("g") ya da hiç geçmez ("Z"); akışın adımında
+// (atEnd false) eksik baş da aynı yerde kesilir (DENETİM 791 N2). first her değerin (kaçışlı biçimler
+// dahil) ilk baytını içerir.
+func TestMaskCutSkipKeepsTheDecision(t *testing.T) {
+	v := New()
+	v.AddSecret("gizli-deger-123")
+	v.AddSecret("Zq9-anahtar-77")
+	v.AddSecret(`çok"gizli`)
+	m := v.mask.Load()
+	for _, g := range m.longestFirst() {
+		if !m.first[g[0]] {
+			t.Errorf("first %q'nin ilk baytını (%q) içermeli", g, g[0])
+		}
+	}
+	all := *m
+	for i := range all.first {
+		all.first[i] = true
+	}
+	cases := []struct {
+		text   string
+		masked bool // metinde tam bir gizli değer var
+	}{
+		{"gg ağ gizli-deger-123 gizli gizli-de", true},
+		{"gece gündüz gizli değil", false},
+		{"gizli-deger-123gizli-deger-123", true},
+		{"a Zq9-anahtar-77 b", true},
+		{"son Zq9-ana", false},
+		{"hiçbir şey yok", false},
+		{`"çok\"gizli" ve çok`, true},
+	}
+	for _, c := range cases {
+		for _, atEnd := range []bool{true, false} {
+			skip, skipCut := maskCut(m, c.text, nil, -1, atEnd)
+			full, fullCut := maskCut(&all, c.text, nil, -1, atEnd)
+			if !slices.Equal(skip, full) || skipCut != fullCut {
+				t.Errorf("maskCut(%q, atEnd %v): atlamalı %v %d, atlamasız %v %d", c.text, atEnd, skip, skipCut, full, fullCut)
+			}
+			if (len(skip) > 0) != c.masked {
+				t.Errorf("maskCut(%q, atEnd %v) aralıkları %v; gizli değer var: %v", c.text, atEnd, skip, c.masked)
+			}
+		}
+	}
 }

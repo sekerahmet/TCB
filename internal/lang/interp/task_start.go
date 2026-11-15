@@ -69,10 +69,10 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement, held bool)
 				}
 				err = task.takeUnwindErrors(err) // çözülürken ertelenen işlerin hataları (9.4)
 				// Görev program gibi biter (10.9): önce başlattığı görevler beklenir (hatayla ya da
-				// iptalle bittiyse önce iptal edilirler), sonra ertelenen işleri çalışır; hataları
-				// görev hatasına eklenir. Durdurma, iptal ya da TR_exit yüzünden bitmek bir görev
-				// hatası değildir.
-				t.endChildren(task, err != nil)
+				// iptalle bittiyse önce iptal edilirler; açık bıraktığı sunucu H2924'tür), sonra
+				// ertelenen işleri çalışır; hataları görev hatasına eklenir. Durdurma, iptal ya da
+				// TR_exit yüzünden bitmek bir görev hatası değildir.
+				err = t.endBody(task, err)
 				err = addDeferError(err, task.runDefers(e))
 				report(taskError(err))
 			}()

@@ -28,9 +28,36 @@ type TaskHost struct {
 	running  sync.WaitGroup
 }
 
-// NewTaskHost şablonu alır; çağıran kilidi tutar. line görevlerin satırıdır (iptal iletisi).
+// NewTaskHost şablonu alır; çağıran kilidi tutar. line görevlerin satırıdır (iptal iletisi). Açan bir
+// görevin içindeyse sahip o görevin alt görevidir (10.9, 28.8): açanın iptali sahibe ve süren görevlere
+// geçer (OnCancel sunucuyu kapatır), açanın gövdesi açık host'la bitemez (endBody).
 func (v *VM) NewTaskHost(line int) *TaskHost {
-	return &TaskHost{template: v.NewTaskVM(), owner: newTask(line, false)}
+	h := &TaskHost{template: v.NewTaskVM(), owner: newTask(line, false)}
+	h.owner.host = h
+	if v.task != nil {
+		v.task.addChild(v, h.owner)
+	}
+	return h
+}
+
+// OnCancel f'yi sahibin iptalinde bir kez, kilidi tutan bir görünümle çalıştırır: açan görevin iptali,
+// hatası ya da süre sınırı (10.7, 10.9) ve Close. Close'dan sonra gelen çağrı (kapanış zaten başladı)
+// f'nin işidir; sunucunun kapanışı ikinci kez kapatmaz.
+func (h *TaskHost) OnCancel(f func(y *VM)) {
+	go func() {
+		<-h.owner.cancelCh
+		y := h.template.forkView()
+		y.acquireGIL()
+		defer y.releaseGIL()
+		f(y)
+	}()
+}
+
+// open host kapanmadı mı (Close)?
+func (h *TaskHost) open() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return !h.closed
 }
 
 // forkView v'den çatallanan görünümdür, kancalar çalışmadan. Görev başlatıldığı yerin dosyasında ve
@@ -115,17 +142,18 @@ func (task *VM) runHosted(t *TaskVal, fn func(task *VM) (Value, error)) {
 		if r := recover(); r != nil {
 			err = panicError(r)
 		}
-		err = task.takeUnwindErrors(err)
-		t.endChildren(task, err != nil)
+		err = t.endBody(task, task.takeUnwindErrors(err))
 	}()
 	task.checkInterrupt() // başlamadan iptal edilen görev hiç çalışmaz
 	result, err = fn(task)
 }
 
 // Close yeni görev açılmasını durdurur ve süren görevleri iptal eder (10.9); y kilidi tutar. Bu
-// çağrı kapattıysa true verir. Görevler bitince sahibin finish'i kilitsiz bir goroutine'den çağrılır:
-// finish yorumlayıcının kilidini istemez, yalnız t.mu'yu ve atomikleri (cancelled, pending, interrupted) kullanır.
-func (h *TaskHost) Close(y *VM) bool {
+// çağrı kapattıysa true verir. Görevler bitince ve ended kapanınca (nil: beklenmez) sahibin finish'i
+// kilitsiz bir goroutine'den çağrılır: finish yorumlayıcının kilidini istemez, yalnız t.mu'yu ve
+// atomikleri (cancelled, pending, interrupted) kullanır. Sunucu ended'ı dinleyicisi kapanınca kapatır:
+// sunucuyu açan görev ancak kapı bırakılınca biter (28.8; aynı kapı hemen yeniden açılabilir).
+func (h *TaskHost) Close(y *VM, ended <-chan struct{}) bool {
 	h.mu.Lock()
 	was := h.closed
 	h.closed = true
@@ -136,6 +164,9 @@ func (h *TaskHost) Close(y *VM) bool {
 	h.owner.cancel(y)
 	go func() {
 		h.running.Wait()
+		if ended != nil {
+			<-ended
+		}
 		h.owner.finish(y, nil, nil) // iptalin açtığı güvenli nokta yolu kapanır
 	}()
 	return true

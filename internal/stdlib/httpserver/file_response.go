@@ -15,13 +15,22 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// fileResponse TR_file_response(kök, yol)'dur (28.3a): kök klasördeki dosyayı cevap olarak verir. Yolu
-// program kurmaz: baştaki / atılır, dosya kökün içinde açılır. Bulunmayan dosya, reddedilen yol ve
-// klasör 404'tür; klasör listelenmez.
+var nameMaxFileBytes = bind.NamedArg(codes.ArgMaxFileBytes)
+
+// defaultMaxFile TR_max_file_bytes:'ın varsayılanıdır (28.3a; TR_max_body_bytes:'ınki gibi 1 MiB).
+const defaultMaxFile = 1 << 20
+
+// fileResponse TR_file_response(kök, yol, TR_max_file_bytes: n)'dir (28.3a): kök klasördeki dosyayı cevap
+// olarak verir. Yolu program kurmaz: baştaki / atılır, dosya kökün içinde açılır. Bulunmayan dosya,
+// reddedilen yol ve klasör 404'tür; klasör listelenmez. n bayttan büyük dosya çalışma hatasıdır (H7643).
 func fileResponse(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.FnFileResponse)
-	if len(named) > 0 {
-		return nil, interp.NoNamedArgsError(fn, named)
+	if err := bind.CheckNamed(fn, named, nameMaxFileBytes); err != nil {
+		return nil, err
+	}
+	limit, err := positiveArg(fn, named, nameMaxFileBytes, defaultMaxFile)
+	if err != nil {
+		return nil, err
 	}
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(codes.FnFileResponse, 2, len(args))
@@ -39,7 +48,10 @@ func fileResponse(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	}
 	dir, _ := bind.ResolvePathTried(m, root) // 18.16: göreli kök programın kuralıyla çözülür
 	var res *Response
-	m.Blocking(func() { res = serveFile(os.ReadDir, dir, p.Val) })
+	m.Blocking(func() { res, err = serveFile(os.ReadDir, dir, p.Val, limit) })
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
@@ -50,51 +62,59 @@ var afterResolve func()
 // serveFile yolu bileşen bileşen kökün içinde arar; readDir bir klasörün gerçek adlarını verir.
 // Bağlantılar çözülür (realPath), çözülmüş yolun kökün içinde olduğuna bakılır ve dosya köke
 // göre göreli hâliyle os.Root'ta açılır: çözme ile açma arasında bir bileşen dışarıyı gösteren bir
-// bağlantıyla değiştirilirse os.Root onu açmaz.
-func serveFile(readDir func(string) ([]fs.DirEntry, error), root, reqPath string) *Response {
+// bağlantıyla değiştirilirse os.Root onu açmaz. limit bayttan büyük dosya okunmaz, H7643'tür.
+func serveFile(readDir func(string) ([]fs.DirEntry, error), root, reqPath string, limit int64) (*Response, error) {
 	full, ok := lookup(readDir, root, reqPath)
 	if !ok {
-		return notFound()
+		return notFound(), nil
 	}
 	realRoot, ok1 := realPath(root)
 	realFile, ok2 := realPath(full)
 	rel, ok3 := within(realRoot, realFile)
 	if !ok1 || !ok2 || !ok3 {
-		return notFound()
+		return notFound(), nil
 	}
 	if afterResolve != nil {
 		afterResolve()
 	}
-	data, ok := readInRoot(realRoot, rel)
+	data, size, ok := readInRoot(realRoot, rel, limit)
 	if !ok {
-		return notFound()
+		return notFound(), nil
+	}
+	if data == nil && size > limit {
+		return nil, messages.New(messages.H7643, interp.CallPrefix(codes.FnFileResponse), reqPath, size, limit)
 	}
 	h := newHeaders()
 	h.add("Content-Type", contentTypeOf(full))
-	return &Response{status: http.StatusOK, body: data, headers: h}
+	return &Response{status: http.StatusOK, body: data, headers: h}, nil
 }
 
-// readInRoot dosyayı kökün içinde os.Root ile açar; boyut ve tür açılan dosyanın Stat'ından okunur.
-func readInRoot(root, rel string) ([]byte, bool) {
+// readInRoot dosyayı kökün içinde os.Root ile açar; boyut ve tür açılan dosyanın Stat'ından okunur. Boyu
+// limit'i aşan dosya okunmaz: data nil, size boyudur. Okuma Stat'ın boyu kadardır; dosya arada büyürse
+// fazlası okunmaz.
+func readInRoot(root, rel string, limit int64) (data []byte, size int64, ok bool) {
 	dir, err := os.OpenRoot(root)
 	if err != nil {
-		return nil, false
+		return nil, 0, false
 	}
 	defer dir.Close()
 	f, err := dir.Open(rel)
 	if err != nil {
-		return nil, false
+		return nil, 0, false
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil || !info.Mode().IsRegular() {
-		return nil, false
+		return nil, 0, false
 	}
-	data := make([]byte, info.Size())
+	if info.Size() > limit {
+		return nil, info.Size(), true
+	}
+	data = make([]byte, info.Size())
 	if _, err := io.ReadFull(f, data); err != nil {
-		return nil, false
+		return nil, 0, false
 	}
-	return data, true
+	return data, info.Size(), true
 }
 
 // realPath yolun bağlantılarını çözer. Windows'ta kendi çözücüdür (resolveLinks); Linux'ta ve macOS'ta

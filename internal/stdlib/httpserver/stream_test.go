@@ -11,8 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/stdlib/process"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
@@ -327,4 +329,219 @@ func mustRequest(t *testing.T, method, url string) *http.Request {
 		t.Fatal(err)
 	}
 	return req
+}
+
+// TestBroadcastReplayIsMaskedAgain: abonelikten önce eklenen gizli değer geri oynatılan olayda *** olur;
+// halkadaki olay dinleyiciye yazılırken (since) de yeniden maskelenir (28.7: maske yazıldığı anda).
+func TestBroadcastReplayIsMaskedAgain(t *testing.T) {
+	ts, b := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`, "")
+	if err := send(t, ts, `y.TR_send_event("bir")
+y.TR_send_event({"metin": "olay gizli-deger-456", "gizli-deger-456": 1})`); err != nil {
+		t.Fatal(err)
+	}
+	ts.vm.AddSecret("gizli-deger-456")
+	_, br, _ := subscribeRaw(t, ts, "GET", "Last-Event-ID: "+b.prefix+"-1\r\n")
+	if f := frame(t, br); f != "id: 2\ndata: {\"metin\":\"olay ***\",\"***\":1}\n\n" {
+		t.Fatalf("geri oynatılan olay yeniden maskelenmeli: %q", f)
+	}
+	if err := send(t, ts, `y.TR_send_event("canlı gizli-deger-789")`); err != nil {
+		t.Fatal(err)
+	}
+	ts.vm.AddSecret("gizli-deger-789")
+	frames, _, ok := b.since(2)
+	if !ok || len(frames) != 1 || !strings.HasSuffix(string(frames[0]), "data: \"canlı ***\"\n\n") {
+		t.Fatalf("halkadaki olay yazılırken yeniden maskelenmeli: %q", frames)
+	}
+}
+
+// TestHeartbeatIsMaskedAtEachWrite: TR_heartbeat:'ın verisi her yazılışta maskelenir (28.7): akış ya da
+// yayıncı kurulduktan sonra eklenen gizli değer nabızda *** olur; iki kipte.
+func TestHeartbeatIsMaskedAtEachWrite(t *testing.T) {
+	old := heartbeatInterval
+	heartbeatInterval = 30 * time.Millisecond
+	t.Cleanup(func() { heartbeatInterval = old })
+	ts, _ := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g, TR_heartbeat: "nabız gizli-deger-321")`, "")
+	_, br, _ := subscribeRaw(t, ts, "GET", "")
+	frame(t, br)
+	if f := frame(t, br); f != "data: \"nabız gizli-deger-321\"\n\n" {
+		t.Fatalf("yayın nabzı: %q", f)
+	}
+	ts.vm.AddSecret("gizli-deger-321")
+	if f := frame(t, br); f != "data: \"nabız ***\"\n\n" {
+		t.Fatalf("yayın nabzı yeniden maskelenmeli: %q", f)
+	}
+	rs := serveTR(t, `TR_func f(i: TR_Request) -> TR_Response {
+    TR_return TR_stream_response((a) => { TR_sleep(1) }, TR_heartbeat: "istek nabzı gizli-deger-654")
+}
+TR_var s = TR_serve_http(f)`, nil)
+	res, _ := streamGet(t, rs, "GET", "/")
+	rb := bufio.NewReader(res.Body)
+	if f, _ := rawFrame(rb); f != "data: \"istek nabzı gizli-deger-654\"\n\n" {
+		t.Fatalf("istek nabzı: %q", f)
+	}
+	rs.vm.AddSecret("gizli-deger-654")
+	if f, _ := rawFrame(rb); f != "data: \"istek nabzı ***\"\n\n" {
+		t.Fatalf("istek nabzı yeniden maskelenmeli: %q", f)
+	}
+}
+
+// TestRemaskKeepsTheBytes: yeniden maske yalnız metin sözcüklerini değiştirir (DENETİM 775 Ş2): gizli değer
+// içermeyen olay, alakasız bir gizli değer eklenince bayt bayt aynı kalır (ondalığın yazımı, 2^53'ten
+// büyük tam sayı, kaçışlı metin, anahtar sırası); gizli değer taşıyan metin eventData'nın yazımıyla ***.
+func TestRemaskKeepsTheBytes(t *testing.T) {
+	v := interp.New()
+	data := []byte(`{"z":1.0,"a":12345678901234567890,"e":1e3,"n":-0.0,"m":"xç\n<\"","l":[true,null,"gizli-deger-987 son"]}`)
+	if got := remask(v, data); string(got) != string(data) {
+		t.Fatalf("gizli değer yokken baytlar değişmemeli: %s", got)
+	}
+	v.AddSecret("alakasız-değer")
+	if got := remask(v, data); string(got) != string(data) {
+		t.Fatalf("alakasız gizli değerde baytlar değişmemeli: %s", got)
+	}
+	v.AddSecret("gizli-deger-987")
+	want := `{"z":1.0,"a":12345678901234567890,"e":1e3,"n":-0.0,"m":"xç\n<\"","l":[true,null,"*** son"]}`
+	if got := remask(v, data); string(got) != want {
+		t.Fatalf("yalnız gizli değerli metin değişmeli:\n%s\n%s", got, want)
+	}
+}
+
+// forgottenCase TestForgottenMaskIsCaught'un bir akışıdır: events TR'de olayların listesi, want her olayın
+// verisi, warn H7644'ün yolu (boş: uyarı yok, "-" yerine).
+type forgottenCase struct {
+	name, events string
+	secret       bool
+	want         []string
+	warn         string // "-": uyarı yok
+}
+
+// TestForgottenMaskIsCaught: olay akışı her metin yaprağından 19.4a'nın akışının tutacağını tutar (28.7):
+// iki olaya bölünen gizli değer ve adresin kimlik kısmı yeni olayda *** olur, standart hataya H7644 akış
+// başına bir kez yazılır (yolu tırnaklı JSON göstergesi). Sınırı gelmemiş bölge en çok en uzun gizli değer
+// + holdPad bayt tutulur: sınırdaki tutulan maskelenmez, bir bayt fazlası yeni olayda *** olur. Parçalar
+// TR_mask_stream()'le gönderilince (H7644'ün önerisi) uyarı yoktur. İki kipte: istek akışı ve yayın.
+func TestForgottenMaskIsCaught(t *testing.T) {
+	long := "https://" + strings.Repeat("a", holdPad-len("://")) // tutulan "://a...": tam holdPad bayt
+	cases := []forgottenCase{
+		{"bölünen değer", `["anahtar gizli-de", "ger-123 bitti", "ger-123"]`, true,
+			[]string{`"anahtar gizli-de"`, `"*** bitti"`, `"ger-123"`}, ""},
+		{"bölünen adres", `[{"m": "bağlan https://ali:parola", "n": 1}, {"m": "123@sunucu/yol"}]`, false,
+			[]string{`{"m":"bağlan https://ali:parola","n":1}`, `{"m":"***@sunucu/yol"}`}, "/m"},
+		{"listede ve uyarı bir kez", `[["x", "anahtar gizli-de"], ["y", "ger-123"], ["", "gizli-de"], ["", "ger-123"]]`, true,
+			[]string{`["x","anahtar gizli-de"]`, `["y","***"]`, `["","gizli-de"]`, `["","***"]`}, "/1"},
+		{"anahtar tutulmaz", `[{"gizli-de": 1}, {"ger-123": 2}]`, true,
+			[]string{`{"gizli-de":1}`, `{"ger-123":2}`}, "-"},
+		{"sınırda", `["` + long + `", "/yol"]`, false,
+			[]string{`"` + long + `"`, `"/yol"`}, "-"},
+		{"sınırı aşan", `["` + long + `", "b", "c/yol"]`, false,
+			[]string{`"` + long + `"`, `"***"`, `"c/yol"`}, ""},
+		{"TR_mask_stream'le", "", true, []string{`"anahtar "`, `"*** bitti"`, `""`}, "-"},
+	}
+	for _, c := range cases {
+		t.Run(c.name+"/istek akışı", func(t *testing.T) {
+			body := `TR_for o TR_in ` + c.events + ` { a.TR_send_event(o) }`
+			if c.events == "" {
+				body = `TR_var m = TR_mask_stream()
+        TR_for p TR_in ["anahtar gizli-de", "ger-123 bitti"] { a.TR_send_event(m.TR_step(p)) }
+        a.TR_send_event(m.TR_finish())`
+			}
+			ts := serveTR(t, `TR_func f(i: TR_Request) -> TR_Response {
+    TR_return TR_stream_response((a) => {
+        `+body+`
+    })
+}
+TR_var s = TR_serve_http(f)`, nil)
+			withMaskStream(ts.vm)
+			if c.secret {
+				ts.vm.AddSecret("gizli-deger-123")
+			}
+			res, _ := streamGet(t, ts, "GET", "/")
+			got, err := io.ReadAll(res.Body)
+			if err != nil {
+				t.Fatalf("akış düzgün bitmeli: %v", err)
+			}
+			var want strings.Builder
+			for _, w := range c.want {
+				want.WriteString("data: " + w + "\n\n")
+			}
+			if string(got) != want.String() {
+				t.Fatalf("akış:\n%q\nbeklenen:\n%q", got, want.String())
+			}
+			checkForgottenWarning(t, ts, c.warn)
+		})
+		t.Run(c.name+"/yayın", func(t *testing.T) {
+			ts, b := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`, "")
+			withMaskStream(ts.vm)
+			if c.secret {
+				ts.vm.AddSecret("gizli-deger-123")
+			}
+			code := `TR_for o TR_in ` + c.events + ` { y.TR_send_event(o) }`
+			if c.events == "" {
+				code = `TR_var m = TR_mask_stream()
+TR_for p TR_in ["anahtar gizli-de", "ger-123 bitti"] { y.TR_send_event(m.TR_step(p)) }
+y.TR_send_event(m.TR_finish())`
+			}
+			if err := send(t, ts, code); err != nil {
+				t.Fatal(err)
+			}
+			frames, _, ok := b.since(0)
+			if !ok || len(frames) != len(c.want) {
+				t.Fatalf("halka: %q", frames)
+			}
+			for i, f := range frames {
+				if got := frameData(string(f)); got != c.want[i] {
+					t.Fatalf("%d. olay: %q, beklenen %q", i+1, got, c.want[i])
+				}
+			}
+			checkForgottenWarning(t, ts, c.warn)
+		})
+	}
+}
+
+// withMaskStream v'ye TR_mask_stream'i tanımlar (H7644'ün önerisi koşsun diye): yerleşik süreç
+// paketinindir; yalnız o alınır, sürecin öbür yerleşikleri ve ortamın adresleri (19.4) bu paketin testlerine
+// girmez.
+func withMaskStream(v *interp.VM) {
+	src := interp.New()
+	process.Register(src)
+	for _, name := range codes.Spellings(codes.FnMaskStream) {
+		b, _ := src.GlobalEnv.Get(name)
+		v.GlobalEnv.Define(name, b, true)
+	}
+}
+
+// checkForgottenWarning standart hatada H7644'ün path yoluyla tam bir kez durduğunu ("-": hiç durmadığını)
+// denetler. İleti kodsuz yazılır (28.4'ün satırı gibi); sayım iletinin yoldan önceki başıyla yapılır.
+func checkForgottenWarning(t *testing.T, ts *testServer, path string) {
+	t.Helper()
+	out := ts.errOut.String()
+	head := strings.Split(messages.Text(messages.H7644, "§"), `"§"`)[0]
+	n := strings.Count(out, head)
+	if path == "-" {
+		if n != 0 {
+			t.Fatalf("uyarı olmamalı: %q", out)
+		}
+		return
+	}
+	line := messages.Text(messages.H7644, path)
+	if n != 1 || !strings.Contains(out, line) {
+		t.Fatalf("H7644 bir kez, yol %q: %q", path, out)
+	}
+}
+
+// TestForgottenHoldSurvivesAFailedEvent: JSON'a yazılamayan olay gitmez ve tutulanı değiştirmez (28.7):
+// bölünen gizli değerin arasına düşen hatalı olaydan sonra ikinci yarı yine *** olur.
+func TestForgottenHoldSurvivesAFailedEvent(t *testing.T) {
+	ts, b := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`, "")
+	ts.vm.AddSecret("gizli-deger-123")
+	if err := send(t, ts, `y.TR_send_event("anahtar gizli-de")
+TR_var kod = TR_error_code { y.TR_send_event([(x) => x]) }
+y.TR_send_event("ger-123 bitti")
+TR_print(kod)`); err != nil {
+		t.Fatal(err)
+	}
+	frames, _, ok := b.since(0)
+	if !ok || len(frames) != 2 || frameData(string(frames[1])) != `"*** bitti"` {
+		t.Fatalf("hatalı olaydan sonra tutulan kalmalı: %q", frames)
+	}
+	checkForgottenWarning(t, ts, "")
 }

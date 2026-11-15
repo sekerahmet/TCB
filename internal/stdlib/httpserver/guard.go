@@ -36,8 +36,8 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		refuseUnread(w, r, http.StatusUnauthorized, messages.Text(messages.H7617))
 		return
 	}
-	if !validPath(r.URL.Path) || !validQuery(r.URL.RawQuery) {
-		refuseUnread(w, r, http.StatusBadRequest, messages.Text(messages.H7618))
+	if text := requestError(r); text != "" {
+		refuseUnread(w, r, http.StatusBadRequest, text)
 		return
 	}
 	body, ok := s.readBody(w, r)
@@ -136,6 +136,34 @@ func (s *HTTPServer) tokenMatches(r *http.Request) bool {
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(got[0]), []byte("Bearer "+s.token)) == 1
+}
+
+// requestError isteğin 400 alan yanlışının metnidir, yoksa "" (28.3): yol, sorgu ve başlık değerleri.
+func requestError(r *http.Request) string {
+	if !validPath(r.URL.Path) || !validQuery(r.URL.RawQuery) {
+		return messages.Text(messages.H7618)
+	}
+	if !validHeaders(r.Header) {
+		return messages.Text(messages.H7642)
+	}
+	return ""
+}
+
+// validHeaders Cookie dışındaki başlık değerleri geçerli UTF-8 mi (28.3)? Başlığın değeri metindir. Cookie
+// isteği düşürmez: tarayıcı başka bir 127.0.0.1 kapısının koyduğu çerezi de gönderir; bozuk değeri
+// okununca hatadır (Headers.cookieError). Adları ve Host'u Go denetler.
+func validHeaders(h http.Header) bool {
+	for k, vs := range h {
+		if k == "Cookie" { // Go adı kanonik yazar (textproto.CanonicalMIMEHeaderKey)
+			continue
+		}
+		for _, v := range vs {
+			if !utf8.ValidString(v) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // validPath çözülmüş yol geçersiz UTF-8, denetim karakteri, \ ya da .. bileşeni taşımıyor mu (28.3)?

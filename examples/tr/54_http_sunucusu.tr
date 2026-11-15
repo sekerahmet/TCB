@@ -37,6 +37,8 @@ TR_print("adres hazır:", s.TR_port > 0, TR_Type(s) == TR_HTTPServer)
 TR_print("kapandı:", s.TR_close())
 
 # Dosya sunmak: ekranın dosyaları bir klasörden verilir; yolu program kurmaz, kökten çıkan yol 404'tür.
+# Dosya en çok TR_max_file_bytes: bayttır (varsayılan 1 MiB); büyüğü belleğe okunmaz, çalışma hatasıdır.
 TR_var ekran = TR_temp_dir()
 TR_write_file(TR_Path(ekran, "index.html"), "<p>merhaba</p>")
-TR_print(TR_file_response(ekran, "/index.html").TR_status, TR_file_response(ekran, "/../belirtec.txt").TR_status)
+TR_print(TR_file_response(ekran, "/index.html", TR_max_file_bytes: 65536).TR_status, TR_file_response(ekran, "/../belirtec.txt").TR_status)
+TR_print(TR_error_code { TR_file_response(ekran, "/index.html", TR_max_file_bytes: 4) })
