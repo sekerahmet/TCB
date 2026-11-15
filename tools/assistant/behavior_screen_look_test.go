@@ -235,7 +235,8 @@ func TestQuantizedSelectorIsInModels(t *testing.T) {
 }
 
 // Takım kutusu (K7) sağ panelde MODEL satırının yerindedir: sohbet, sesten yazıya, yazıdan sese ve durum. Yüklü takım
-// yokken (`setup`) yalnız "Model yok" der; "bilinmiyor" (`model_unknown`) hiçbir yerde kalmaz (defter 5 (c)).
+// yokken (`setup`) yalnız "Model yok" der; "bilinmiyor" (`model_unknown`) hiçbir yerde kalmaz (defter 5 (c)); bağlantı
+// yokken "Hazır" demez.
 func TestTeamBoxNamesTheTeam(t *testing.T) {
 	box := capture(t, `(?s)<div class="team" id="teamBox">(.*?)\n    </div>`, block(t, "aside", "right"))
 	for _, id := range []string{"teamChat", "teamTranscriber", "teamVoice", "teamState"} {
@@ -252,7 +253,9 @@ func TestTeamBoxNamesTheTeam(t *testing.T) {
 		}
 	}
 	team := capture(t, `(?s)function renderTeam\(\) \{(.*?)\n\}`, script(t))
-	for _, want := range []string{`if (setup) bind(line, "state_setup_empty");`, `teamEntry("transcriber")`, `teamEntry("voice")`, `"team_preparing"`, `"team_ready"`} {
+	// Bağlantı yokken kutu "Hazır" demez: durum halkanınki gibi stateKey'den (çevrimdışı "Bağlantı yok").
+	for _, want := range []string{`if (setup) bind(line, "state_setup_empty");`, `teamEntry("transcriber")`, `teamEntry("voice")`,
+		`"team_preparing"`, `"team_ready"`, `const state = stateKey();`, `state === "offline" ? ` + "`state_${state}`"} {
 		if !strings.Contains(team, want) {
 			t.Errorf("renderTeam has no %q", want)
 		}

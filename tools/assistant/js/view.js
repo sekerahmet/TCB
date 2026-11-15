@@ -94,11 +94,13 @@ function renderTeam() {
   const chat = ui.loadingModel !== "" ? entryById(ui.loadingModel) : teamEntry("language_model");
   const names = { teamChat: chat, teamTranscriber: teamEntry("transcriber"), teamVoice: teamEntry("voice") };
   for (const [id, entry] of Object.entries(names)) byId(id).textContent = entry ? entry.name : "—";
+  // Bağlantı yokken durum bilinmez: halka gibi "Bağlantı yok" der, "Hazır" demez.
+  const state = stateKey();
   const line = byId("teamState");
-  line.className = setup ? "team-state" : ui.state === "loading" ? "team-state" : ui.state === "error" ? "team-state team-bad" : "team-state team-ok";
+  line.className = ["setup", "loading", "offline"].includes(state) ? "team-state" : state === "error" ? "team-state team-bad" : "team-state team-ok";
   if (setup) bind(line, "state_setup_empty");
-  else if (ui.state === "loading") bind(line, "team_preparing", { model: chat ? chat.name : "", percent: progressText() });
-  else bind(line, ui.state === "error" ? "state_error" : "team_ready");
+  else if (state === "loading") bind(line, "team_preparing", { model: chat ? chat.name : "", percent: progressText() });
+  else bind(line, state === "error" || state === "offline" ? `state_${state}` : "team_ready");
 }
 
 // Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla).
