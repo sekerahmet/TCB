@@ -56,13 +56,3 @@ func auditJSON(t *testing.T, cmd, root string, args ...string) map[string]any {
 	}
 	return res
 }
-
-// auditText bir komutun düz metin çıktısını verir.
-func auditText(t *testing.T, cmd, root string, args ...string) string {
-	t.Helper()
-	var out, errb bytes.Buffer
-	if code := run(append([]string{cmd, "--root", root}, args...), &out, &errb); code != exitOK {
-		t.Fatalf("%s: exit %d: %s", cmd, code, errb.String())
-	}
-	return out.String()
-}

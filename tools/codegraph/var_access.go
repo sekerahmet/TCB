@@ -119,14 +119,6 @@ func rootIdent(info *types.Info, e ast.Expr) *ast.Ident {
 	}
 }
 
-// packageVar bir yazım hedefinin köküne inip paket düzeyi değişkeni verir; değilse nil.
-func packageVar(info *types.Info, e ast.Expr) *types.Var {
-	if id := rootIdent(info, e); id != nil {
-		return pkgLevel(info.Uses[id])
-	}
-	return nil
-}
-
 // pkgLevel nesne bir paket düzeyi değişken ise onu verir.
 func pkgLevel(o types.Object) *types.Var {
 	v, ok := o.(*types.Var)
