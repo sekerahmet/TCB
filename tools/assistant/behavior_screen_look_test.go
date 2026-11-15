@@ -142,7 +142,7 @@ func TestPressedChipCarriesAMark(t *testing.T) {
 
 // Kurulum kartının Yükle'si ayarın dil modelinin takımı kurulana kadar sönüktür (D, TCB 15:04): inerken basılan Yükle
 // `not_installed` alırdı. Koşul katalogdaki `installed`'dır (contract.md); bağlantı da gerekir. Katalog ve ayar gelince
-// kart yeniden çizilir; yoksa indirme bitince düğme sönük kalırdı.
+// kart yeniden çizilir; yoksa indirme bitince düğme sönük kalırdı. Durum satırı ve kurulu satır da aynı koşulu söyler.
 func TestSetupLoadWaitsForTheTeam(t *testing.T) {
 	code := script(t)
 	setup := capture(t, `(?s)function renderSetup\(\) \{(.*?)\n\}`, code)
@@ -164,5 +164,14 @@ func TestSetupLoadWaitsForTheTeam(t *testing.T) {
 	ready := capture(t, `(?s)function setupReady\(\) \{(.*?)\n\}`, code)
 	if !strings.Contains(ready, `e.id === model && e.installed`) {
 		t.Errorf("setupReady does not look at the catalog's installed:\n%s", ready)
+	}
+	// Durum satırı kartla aynı koşulu kullanır, kurulu satır "Kurulu" der (DENETİM 787 N1).
+	ring := capture(t, `(?s)function renderRing\(\) \{(.*?)\n\}`, code)
+	if !strings.Contains(ring, `state === "setup" && setupReady() ? "state_setup_done"`) {
+		t.Errorf("renderRing does not say setup is complete when the team is installed:\n%s", ring)
+	}
+	installed := capture(t, `(?s)\} else if \(entry\.installed\) \{(.*?)\n    \}`, capture(t, `(?s)function renderDownloads\(\) \{(.*?)\n\}`, code))
+	if !strings.Contains(installed, `"download_installed"`) {
+		t.Errorf("an installed row does not say download_installed:\n%s", installed)
 	}
 }
