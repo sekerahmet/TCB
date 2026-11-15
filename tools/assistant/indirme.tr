@@ -7,8 +7,8 @@
 #   kurulu bırakmaz; `indirme/`'de kalan tam dosya sonraki işte karılır, tutarsa kullanılır.
 # - Adres yalnız katalogdan kurulur (`katalog_adresi`); her dosya katalogun sha256'sı ve boyuyla iner. Yönlendirme
 #   28.11'in kurallarıyla izlenir (her adımda `https`, yerel adres yasağı): izin ilk adreste.
-# - Aynı anda tek iş, ayrı bir görevde koşar. Görev yalnız işin `alınan`'ını ve `durum`'unu yazar; olayları ana döngü
-#   gönderir: durum değişince hemen, ilerlemede iş başına en çok saniyede bir.
+# - Aynı anda tek iş, ayrı bir görevde koşar. Görev yalnız işin `alınan`'ını ve durum geçişlerini (`geç`) yazar; olayları
+#   ana döngü gönderir: her geçiş sırasıyla, ilerleme iş başına en çok saniyede bir.
 TR_import "yuva"
 
 TR_const _OLAY_ARALIĞI_MS = 1000
@@ -24,12 +24,18 @@ TR_struct İş {
     alınan: TR_Dict[TR_String, TR_Int] = {}
     hata: TR_JSON? = TR_none
     iptal: TR_Bool = TR_false
-    gönderilen: TR_String = "" # son olayın durumu
+    geçişler: TR_List[TR_String] = [] # görevin geçtiği, olayı henüz gitmemiş durumlar (sırasıyla)
     olay_ms: TR_Int = -1 # son ilerleme olayının anı
     olay_baytı: TR_Int = 0 # o olaydaki toplam bayt
     hız: TR_Int = 0
 
     TR_func girdi_kimliği() -> TR_String { TR_return TR_String(TR_self.girdi["id"]) }
+
+    # geç: görevin durum değişimi; ana döngü her geçişin olayını sırayla gönderir (iki bakış arasında biten durum da).
+    TR_func geç(durum: TR_String) {
+        TR_self.durum = durum
+        TR_self.geçişler.TR_append(durum)
+    }
 
     TR_func toplam() -> TR_Int {
         TR_var n = 0
@@ -37,16 +43,16 @@ TR_struct İş {
         TR_return n
     }
 
-    # olay: `download` olayının verisi.
-    TR_func olay() -> TR_JSON {
+    # olay: `durum`'daki işin `download` olayının verisi.
+    TR_func olay(durum: TR_String) -> TR_JSON {
         TR_var dosyalar: TR_List[TR_JSON] = []
         TR_for f TR_in TR_self.girdi["source"]["files"] {
             TR_var t = TR_String(f["target"])
             dosyalar.TR_append(TR_JSON({"name": t, "done_bytes": TR_self.alınan.TR_get(t) ?? 0, "total_bytes": f["bytes"]}))
         }
         TR_var hata = TR_self.hata
-        TR_return TR_JSON({"job_id": TR_self.kimlik, "entry_id": TR_self.girdi_kimliği(), "state": TR_self.durum, "files": dosyalar,
-            "bytes_per_second": TR_if TR_self.durum == "running" { TR_self.hız } TR_else { 0 }, "error": hata ?? TR_JSON(TR_none)})
+        TR_return TR_JSON({"job_id": TR_self.kimlik, "entry_id": TR_self.girdi_kimliği(), "state": durum, "files": dosyalar,
+            "bytes_per_second": TR_if durum == "running" { TR_self.hız } TR_else { 0 }, "error": hata ?? TR_JSON(TR_none)})
     }
 }
 
@@ -110,9 +116,13 @@ TR_struct İndirici {
         TR_return TR_if TR_self.bitenler.TR_contains(iş_kimliği) { "bitmiş" } TR_else { "yok" }
     }
 
-    TR_func olayı_gönder(iş: İş) {
-        iş.gönderilen = iş.durum
-        TR_self.gönder("download", iş.olay())
+    TR_func olayı_gönder(iş: İş) { TR_self.gönder("download", iş.olay(iş.durum)) }
+
+    # geçişleri_gönder: görevin geçtiği durumların olayları, sırasıyla; gönderilen varsa TR_true.
+    TR_func geçişleri_gönder(iş: İş) -> TR_Bool {
+        TR_var var_mı = iş.geçişler.TR_length > 0
+        TR_for iş.geçişler.TR_length > 0 { TR_self.gönder("download", iş.olay(iş.geçişler.TR_remove_at(0))) }
+        TR_return var_mı
     }
 
     # adım: ana döngünün her bakışında: biten görevin sonucunu yazar, süren işin ilerlemesini gönderir, boşsa sıradaki
@@ -136,10 +146,9 @@ TR_struct İndirici {
 
     TR_func ilerleme(iş: İş) {
         TR_var ş = şimdi_ms()
-        TR_if iş.durum != iş.gönderilen {
+        TR_if TR_self.geçişleri_gönder(iş) {
             iş.olay_ms = ş
             iş.olay_baytı = iş.toplam()
-            TR_self.olayı_gönder(iş)
             TR_return
         }
         TR_if iş.durum != "running" TR_or ş - iş.olay_ms < _OLAY_ARALIĞI_MS { TR_return }
@@ -155,6 +164,7 @@ TR_struct İndirici {
     TR_func bitir(iş: İş, g: TR_Task[TR_JSON]) {
         TR_self.süren = TR_none
         TR_self.görev = TR_none
+        TR_self.geçişleri_gönder(iş)
         TR_try {
             TR_var sonuç = g.TR_wait()
             iş.durum = TR_if sonuç.TR_get("code") == TR_none { "done" } TR_else { "failed" }
@@ -228,7 +238,7 @@ TR_func _indir(klasör: TR_String, adres: (TR_JSON, TR_JSON) -> TR_String, iş: 
     TR_var gereken = _gereken(g, iş)
     TR_var boş = ara.TR_disk_available_bytes
     TR_if gereken > boş { TR_return _kod("disk_full", TR_JSON({"needed_bytes": gereken, "free_bytes": boş})) }
-    iş.durum = "running"
+    iş.geç("running")
     TR_for f TR_in g["source"]["files"] {
         TR_var t = TR_String(f["target"])
         TR_if hazır.TR_contains(t) { TR_continue }
@@ -240,7 +250,7 @@ TR_func _indir(klasör: TR_String, adres: (TR_JSON, TR_JSON) -> TR_String, iş: 
         }
         iş.alınan[t] = TR_Int(f["bytes"])
     }
-    iş.durum = "verifying"
+    iş.geç("verifying")
     taşı(klasör, g)
     TR_return TR_JSON({})
 }

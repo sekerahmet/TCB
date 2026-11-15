@@ -87,9 +87,10 @@ TR_func _düzen() -> Düzen {
     TR_var s = TR_serve_http(cevapla)
     TR_var kj = _ham_katalog()
     TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "Dost"))
-    TR_var d = Düzen(s: s, klasör: klasör, kj: kj, ind: İndirici(kj: kj, klasör: klasör, gönder: (t, v) => {}, bitti: () => {}))
-    d.ind = İndirici(kj: kj, klasör: klasör, gönder: (t, v) => { d.olaylar.TR_append(v) }, bitti: () => { d.kurulan += 1 },
-        adres: (g, f) => "http://127.0.0.1:\(s.TR_port)/\(TR_String(f["path"]))")
+    # Adres her kurulan indiricide açıkça verilir: katalogun adresi (`katalog_adresi`) yalnız "kuyruk"ta sınanır.
+    TR_var adres = (g: TR_JSON, f: TR_JSON) => "http://127.0.0.1:\(s.TR_port)/\(TR_String(f["path"]))"
+    TR_var d = Düzen(s: s, klasör: klasör, kj: kj, ind: İndirici(kj: kj, klasör: klasör, gönder: (t, v) => {}, bitti: () => {}, adres: adres))
+    d.ind = İndirici(kj: kj, klasör: klasör, gönder: (t, v) => { d.olaylar.TR_append(v) }, bitti: () => { d.kurulan += 1 }, adres: adres)
     TR_return d
 }
 
@@ -330,8 +331,8 @@ TR_test "komutlar: model_download dil modelini ve konuşma dilinin kurulu olmaya
         TR_sleep(0.01)
     }
     TR_assert_equal(0, TR_Dict(o.e.yüklenebilir["dm"]).TR_length)
-    TR_var katalog = [x TR_for x TR_in o.e.giden TR_if TR_String(x["type"]) == "catalog"]
-    TR_assert(TR_Bool(katalog[katalog.TR_length - 1]["data"]["entries"][0]["installed"]))
+    TR_var kataloglar = [x TR_for x TR_in o.e.giden TR_if TR_String(x["type"]) == "catalog"]
+    TR_assert(TR_Bool(kataloglar[kataloglar.TR_length - 1]["data"]["entries"][0]["installed"]))
     TR_assert_equal("accepted", _karar(o, "download_cancel", TR_JSON({"job_id": "d1"})))
     d.s.TR_close()
 }
