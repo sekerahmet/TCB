@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
+	"sort"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -242,4 +244,73 @@ func TestArgMaxBlockMatchesCPU(t *testing.T) {
 	if !built[0] || !built[1] || !built[2] {
 		t.Fatalf("blok yolu her kipte seçilmedi: derlenen kipler %v", built)
 	}
+}
+
+// TestArgMaxBlockThreshold argmax'ın blok yolunun eşiğini (argmaxBlockMaxOut, R4 A2) ölçer:
+// K × eksen ızgarasında ([K, L], son eksen) eski yol (çıktı başına iş parçacığı) ve blok yolu
+// aynı koşuda, sırası tekrardan tekrara dönüşümlü; her nokta 5 tekrar, tekrar 20 çağrının
+// ortalaması (microMeasure); ortanca ve yayılım (en küçük, en büyük). 1 GiB'ı aşan girdi
+// atlanır ve yazılır. Eşik: her eksende blok yolunun eskiden yavaş olmadığı en büyük K; o K'da
+// bir eksende eşitse bir alttaki K. Yalnızca gerçek kartta ve TR_GPU_ARGMAX_ESIK=1 ile koşar.
+func TestArgMaxBlockThreshold(t *testing.T) {
+	if os.Getenv("TR_GPU_ARGMAX_ESIK") != "1" || inSim() {
+		t.Skip("yalnızca gerçek GPU'da ve TR_GPU_ARGMAX_ESIK=1 ile")
+	}
+	argmaxThreshold([]int{1, 4, 16, 64, 256, 1024, 4096, 16384, 65536}, []int{256, 2048, 16384, 51865})
+}
+
+// argmaxThreshold TestArgMaxBlockThreshold'un ölçüsü: Ks × Ls ızgarasında satırları ve eşiği
+// yazar, eşiği verir.
+func argmaxThreshold(Ks, Ls []int) int {
+	g := gpuBackend()
+	rng := rand.New(rand.NewSource(3))
+	keep := argmaxBlockMaxOut
+	defer func() { argmaxBlockMaxOut = keep }()
+	verdict := map[int]int{} // K → 1 her eksende hızlı, 0 bir eksende eşit, -1 bir eksende yavaş
+	for _, K := range Ks {
+		verdict[K] = 1
+		for _, L := range Ls {
+			if K*L > 1<<28 {
+				fmt.Printf("ESIK|%d|%d|atlandı: girdi %d MiB > 1 GiB\n", K, L, K*L*4>>20)
+				continue
+			}
+			x := randomStorage(g, rng, K*L, 1)
+			out := g.AllocUninit(K, tensor.Float32)
+			xv := tensor.View{S: x, Shape: []int{K, L}, Strides: []int{L, 1}}
+			var ms [2][]float64
+			for r := 0; r < 5; r++ {
+				for i := 0; i < 2; i++ {
+					p := (i + r) % 2 // 0 eski, 1 blok; sıra dönüşümlü
+					argmaxBlockMaxOut = []int{0, math.MaxInt}[p]
+					ms[p] = append(ms[p], microMeasure(g, 20, func() { g.Max(out, xv, 1) }))
+				}
+			}
+			for p := range ms {
+				sort.Float64s(ms[p])
+			}
+			oldM, newM := ms[0][2], ms[1][2]
+			fmt.Printf("ESIK|%d|%d|eski %.4f ms [%.4f, %.4f]|blok %.4f ms [%.4f, %.4f]|oran %.2f\n", K, L,
+				oldM, ms[0][0], ms[0][4], newM, ms[1][0], ms[1][4], oldM/newM)
+			switch {
+			case newM > oldM:
+				verdict[K] = -1
+			case newM == oldM && verdict[K] == 1:
+				verdict[K] = 0
+			}
+			g.Release(x)
+			g.Release(out)
+		}
+	}
+	threshold := 0
+	for _, K := range Ks {
+		if verdict[K] < 0 {
+			break
+		}
+		if verdict[K] == 0 {
+			break // sınırda eşit: eski yol
+		}
+		threshold = K
+	}
+	fmt.Printf("ESIK|sonuç|argmaxBlockMaxOut = %d\n", threshold)
+	return threshold
 }
