@@ -198,8 +198,9 @@ func TestNamedArgsMatchDefinitions(t *testing.T) {
 	tried := 0
 	for _, k := range codes.Codes() {
 		tn, _ := codes.DefinitionOf(k)
-		// Kitaplık kodunun imzası yalnız kitaplığın kaynağındadır (madde 15, Ç7).
-		if tn.Kind != codes.KindFunction && tn.Kind != codes.KindMethod || k.IsLibrary() {
+		// Kitaplık kodunun imzası yalnız kitaplığın kaynağındadır (madde 15, Ç7). İç yerleşik örneksizdir
+		// (11.7a); adlı argümanını ml'nin TestCacheBufferBuiltin'i sınar.
+		if tn.Kind != codes.KindFunction && tn.Kind != codes.KindMethod || k.IsLibrary() || tn.InternalTo != "" {
 			continue
 		}
 		prog, example := exampleProgram(t, k)

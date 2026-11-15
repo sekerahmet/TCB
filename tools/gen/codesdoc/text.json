@@ -13,7 +13,8 @@
   "usedBy": "Kullananlar",
   "members": "Üyeleri",
   "related": "İlişkili",
-  "views": "Görünümü"
+  "views": "Görünümü",
+  "internal": "İç yerleşik (11.7a), yalnız şu modülün kaynağı çağırır ve anar"
  },
  "families": [
   {

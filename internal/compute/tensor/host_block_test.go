@@ -205,13 +205,14 @@ func TestHostBlockBudgetEndsInTheHeap(t *testing.T) {
 	}
 }
 
-// Sınır işletim sisteminden gelir, yarısı Go'ya kalır; dosya okunamazsa çekirdek varsayılanı sayılır.
+// Sınır işletim sisteminden gelir, yarısı Go'ya kalır, yarının dörtte üçü ağırlıklarındır; dosya
+// okunamazsa çekirdek varsayılanı sayılır.
 func TestHostBlockLimitComesFromTheSystem(t *testing.T) {
 	needBlock(t, hostSize*2)
 	if hostLimits.blocks() <= 0 {
 		t.Fatalf("blok sınırı %d", hostLimits.blocks())
 	}
-	if hostLimits.address != hostAddressSpace/2 {
+	if hostLimits.address != hostAddressSpace/2-hostAddressSpace/8 {
 		t.Fatalf("adres sınırı %d", hostLimits.address)
 	}
 	for text, want := range map[string]int64{"262144\n": 262144, "65530": 65530, "": hostDefaultMaps, "yok": hostDefaultMaps, "-1": hostDefaultMaps} {

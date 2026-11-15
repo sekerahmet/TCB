@@ -513,6 +513,9 @@ func nearestSpelling(place codes.Place, lit string) (string, int) {
 		if abs(len(cand)-len(name)) > limit {
 			continue
 		}
+		if k, ok := codes.FromSpelling(place, s); ok && k.InternalTo() != "" {
+			continue // iç yerleşik önerilmez: kullanıcının programında çalışmaz (11.7a)
+		}
 		d := editDistance(name, cand)
 		if d < bestDist || d == bestDist && s < best {
 			best, bestDist = s, d

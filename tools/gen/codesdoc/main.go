@@ -330,6 +330,9 @@ func Generate() ([]byte, error) {
 					b.WriteString(ex)
 				}
 				var extras []string
+				if t.InternalTo != "" {
+					extras = append(extras, text.Labels["internal"]+": `"+t.InternalTo+"`")
+				}
 				if t.Kind == codes.KindNamedArg && len(usedBy[k]) > 0 {
 					extras = append(extras, text.Labels["usedBy"]+": "+codeList(usedBy[k]))
 				}

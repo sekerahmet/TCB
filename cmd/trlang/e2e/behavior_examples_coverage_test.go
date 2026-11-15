@@ -157,7 +157,8 @@ func TestExamplesCoverNames(t *testing.T) {
 	for _, k := range codes.Codes() {
 		id := k.String()
 		// Kitaplık kodlarını TestExamplesCoverLibraryNames sınar.
-		if k.ExpectedKind() == codes.KindCommand || k.IsLibrary() {
+		// İç yerleşiği kullanıcının programı çağıramaz (11.7a): örnekte geçemez, kitaplık kullanır.
+		if k.ExpectedKind() == codes.KindCommand || k.IsLibrary() || k.InternalTo() != "" {
 			continue
 		}
 		live[id] = true

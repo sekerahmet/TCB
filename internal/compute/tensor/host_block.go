@@ -53,29 +53,54 @@ const hostAddressSpace = 1 << min(47, strconv.IntSize-1)
 // hostDefaultMaps Linux çekirdeğinin vm.max_map_count varsayılanıdır; değer okunamazsa bu sayılır.
 const hostDefaultMaps = 65530
 
-// hostLimits blokların harcayabileceği aralık sayısı ve adres. İkisi de işletim sisteminin sınırının
-// yarısıdır: öbür yarısı Go çalışma zamanının ve programın öbür eşlemelerine kalır; sınır blokla
-// dolsaydı Go'nun kendi eşlemesi de düşerdi.
-var hostLimits = struct {
+// hostLimit bir payın harcayabileceği aralık sayısı ve adrestir.
+type hostLimit struct {
 	blocks  func() int64
 	address int64
-}{sync.OnceValue(hostBlockLimit), hostAddressSpace / 2}
-
-// hostMemory süreçteki blokların toplamı, son toplamadan beri ayrılan bayt, ömür boyu verilen blok ve
-// adres; çöp toplayıcı blokları görmez, baskıyı burada sayar. Verilen adres geri gelmez, sayaçlar düşmez.
-var hostMemory struct {
-	live, sinceGC, blocks, address atomic.Int64
 }
 
-// HostBlock Go öbeğinin dışında sıfırlı, yazılabilir bellektir.
+// Bloklar işletim sisteminin sınırının yarısını harcar: öbür yarısı Go çalışma zamanının ve programın
+// öbür eşlemelerine kalır; sınır blokla dolsaydı Go'nun kendi eşlemesi de düşerdi. Yarının dörtte biri
+// sabit önbelleğin tamponlarınındır (hostCacheLimits), kalanı ağırlıkların ve çevirmelerin
+// (hostLimits): önbellek her yeni konuşmada ve her TR_generate çağrısında yeniden kurulur, ortak
+// bütçede ağırlıkların payını tüketirdi. Linux'un varsayılanında 2 730 ve 8 191 blok.
+var (
+	hostLimits = hostLimit{
+		sync.OnceValue(func() int64 { n := hostBlockLimit(); return n - n/4 }),
+		hostAddressSpace/2 - hostAddressSpace/8,
+	}
+	hostCacheLimits = hostLimit{sync.OnceValue(func() int64 { return hostBlockLimit() / 4 }), hostAddressSpace / 8}
+)
+
+// hostSpent bir payın ömür boyu verilen blok ve adresidir; verilen adres geri gelmez, sayaçlar düşmez.
+type hostSpent struct {
+	blocks, address atomic.Int64
+}
+
+// hostMemory süreçteki blokların toplamı, son toplamadan beri ayrılan bayt ve ağırlık payının
+// harcaması; çöp toplayıcı blokları görmez, baskıyı burada sayar. hostCacheSpent önbellek payınındır.
+var (
+	hostMemory struct {
+		live, sinceGC atomic.Int64
+		hostSpent
+	}
+	hostCacheSpent hostSpent
+)
+
+// HostBlock Go öbeğinin dışında sıfırlı, yazılabilir bellektir. cache önbellek payından verildiğini
+// söyler: ondan türeyen çevirme ağırlık payından blok almaz (hostTarget).
 type HostBlock struct {
-	mem []byte
+	mem   []byte
+	cache bool
 }
 
-// NewHostBlock n baytlık blok verir. Tensör küçükse, platformda yol yoksa, bütçe dolduysa ya da
-// işletim sistemi vermezse nil döner: çağıran öbeği kullanır.
-func NewHostBlock(n int) *HostBlock {
-	if n < hostBlockMin || !hostLittleEndian || !hostBudgetLeft(n) {
+// NewHostBlock ağırlık payından n baytlık blok verir. Tensör küçükse, platformda yol yoksa, bütçe
+// dolduysa ya da işletim sistemi vermezse nil döner: çağıran öbeği kullanır.
+func NewHostBlock(n int) *HostBlock { return newHostBlock(n, hostLimits, &hostMemory.hostSpent) }
+
+// newHostBlock n baytlık bloğu lim payından verir, harcamayı spent'e yazar.
+func newHostBlock(n int, lim hostLimit, spent *hostSpent) *HostBlock {
+	if n < hostBlockMin || !hostLittleEndian || !hostBudgetLeft(n, lim, spent) {
 		return nil
 	}
 	relieveHostPressure(n)
@@ -83,9 +108,9 @@ func NewHostBlock(n int) *HostBlock {
 	if !ok {
 		return nil
 	}
-	b := &HostBlock{mem: mem}
-	hostMemory.blocks.Add(1)
-	hostMemory.address.Add(int64(n))
+	b := &HostBlock{mem: mem, cache: spent == &hostCacheSpent}
+	spent.blocks.Add(1)
+	spent.address.Add(int64(n))
 	hostMemory.live.Add(int64(n))
 	runtime.AddCleanup(b, func(c hostCleanup) {
 		free()
@@ -95,10 +120,10 @@ func NewHostBlock(n int) *HostBlock {
 	return b
 }
 
-// hostBudgetLeft n baytlık blok bütçeye sığar mı. Aynı anda gelen yüklemeler sınırı birkaç blok
-// aşabilir: sınır işletim sisteminin yarısı, aşım zarar vermez.
-func hostBudgetLeft(n int) bool {
-	return hostMemory.blocks.Load() < hostLimits.blocks() && hostMemory.address.Load()+int64(n) <= hostLimits.address
+// hostBudgetLeft n baytlık blok payın bütçesine sığar mı. Aynı anda gelen yüklemeler sınırı birkaç
+// blok aşabilir: sınır işletim sisteminin yarısının içinde, aşım zarar vermez.
+func hostBudgetLeft(n int, lim hostLimit, spent *hostSpent) bool {
+	return spent.blocks.Load() < lim.blocks() && spent.address.Load()+int64(n) <= lim.address
 }
 
 // hostMapCount vm.max_map_count dosyasının metnini okur.
@@ -169,7 +194,7 @@ func FromHostBlock(b *HostBlock, dt DType, shape ...int) *Tensor {
 // kopyası da öbeğe düşmez, yoksa çevirme hedefi yeniden ağırlıkla büyürdü. t blokta değilse nil.
 func (t *Tensor) hostTarget(dt DType, n int) *cpuStorage {
 	s, ok := t.storage.(*cpuStorage)
-	if !ok || s.block == nil {
+	if !ok || s.block == nil || s.block.cache {
 		return nil
 	}
 	size := n * dt.Bits() / 8

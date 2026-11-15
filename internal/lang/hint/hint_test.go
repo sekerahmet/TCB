@@ -30,6 +30,11 @@ func TestAsciiSpellingSuggestsRealName(t *testing.T) {
 		switch {
 		case k.IsKeyword():
 			got, want = KeywordSpellingHint(ascii, tr), messages.New(messages.H1103, ascii, codes.NameRef(k))
+		case k.IsBuiltin() && k.InternalTo() != "":
+			if got := BuiltinSpellingHint(ascii, tr); got != nil {
+				t.Errorf("%s (%s): iç yerleşik önerildi (11.7a): %v", k, ascii, got)
+			}
+			continue
 		case k.IsBuiltin():
 			got, want = BuiltinSpellingHint(ascii, tr), NotInTRHint(ascii, codes.NameRef(k))
 		default:

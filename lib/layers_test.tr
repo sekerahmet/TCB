@@ -325,6 +325,42 @@ TR_test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden 
     }
 }
 
+# Tamponu 1 MiB'lık (blok eşiği) sabit önbellek işlemcide tek öbek dışı blokta durur (15.43);
+# logitleri önbelleksiz hesabınkiyle aynıdır.
+TR_test "KVÖnbellek: sabit önbelleğin tek tamponu önbelleksizle aynı logitleri verir" {
+    TR_var m = TR_GPT(20, TR_context: 256, TR_embed_dim: 256, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 3)
+    TR_var dizi = [3, 7, 1, 9, 4, 12]
+    TR_no_grad {
+        TR_var tam = m.TR_forward([dizi])
+        TR_var ö = m.TR_build_cache(TR_capacity: 256)
+        TR_var ilk = m.TR_forward([dizi[0..4]], TR_cache: ö)
+        TR_assert(en_büyük_mutlak_fark(ilk[0], tam[0][0..4]) < 0.0001, "başlangıç logitleri")
+        TR_for i TR_in 4..dizi.TR_length {
+            TR_var l = m.TR_forward([[dizi[i]]], TR_cache: ö)
+            TR_assert(en_büyük_mutlak_fark(l[0][0], tam[0][i]) < 0.0001, "\(i). konum")
+        }
+    }
+}
+
+# Katmanların anahtar ve değeri ortak tamponun ayrı dilimleridir; ilk parçası ortak tampona uymayan
+# katman (başka bakış sayısı ve boyutu) kendi tamponunu alır ve sonraki parçaları ona yazılır.
+TR_test "KVÖnbellek: katmanların dilimleri ayrıdır; ortak tampona uymayan katman kendi tamponunu alır" {
+    TR_var ö = TR_KVCache(2, TR_capacity: 4)
+    TR_var a = TR_randn([1, 2, 2, 4], TR_seed: 1)
+    TR_var b = TR_randn([1, 2, 1, 8], TR_seed: 2)
+    TR_var ka = ö.TR_append(0, a, a * 2)
+    TR_var kb = ö.TR_append(1, b, b * 3)
+    TR_assert_equal([a.TR_tolist, (a * 2).TR_tolist], [ka[0].TR_tolist, ka[1].TR_tolist])
+    TR_assert_equal([b.TR_tolist, (b * 3).TR_tolist], [kb[0].TR_tolist, kb[1].TR_tolist])
+    ö.TR_advance(2)
+    TR_var c = TR_randn([1, 1, 1, 8], TR_seed: 3)
+    TR_var kc = ö.TR_append(1, c, c)
+    TR_assert_equal([1, 3, 1, 8], kc[0].TR_shape)
+    TR_assert_equal([b.TR_tolist[0][0], b.TR_tolist[0][1], c.TR_tolist[0][0]], kc[0].TR_tolist[0])
+    TR_var d = TR_randn([1, 1, 2, 4], TR_seed: 4)
+    TR_assert_equal(a.TR_tolist[0], ö.TR_append(0, d, d)[0].TR_tolist[0][0..2])
+}
+
 TR_test "GPT: üret önbellekli ve önbelleksiz aynı parçaları verir, bağlam dolunca da" {
     TR_var m = TR_GPT(16, TR_context: 6, TR_embed_dim: 16, TR_num_layers: 2, TR_num_heads: 2, TR_num_kv_heads: 1, TR_windows: [2, 0], TR_seed: 8)
     TR_var yok_ile = m.TR_generate([1, 2, 3], 9, TR_temperature: 0, TR_cache_kind: TR_none)

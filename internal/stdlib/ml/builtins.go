@@ -79,6 +79,7 @@ func registerConstructors(v *interp.VM) {
 		return tensor.Ones(sh...), nil
 	})))
 	wrap(v, codes.FnRandn, newBuiltin(shapedConstructor(codes.FnRandn, randomNormal)))
+	wrap(v, codes.FnCacheBuffer, newBuiltin(cacheBuffer)) // lib/layers.tr'nin önbelleği (11.7a)
 
 	// --- Matris (2 boyutlu tensör) oluşturucusu (matris.go) ---
 	wrap(v, codes.FnEye, newBuiltin(identity))

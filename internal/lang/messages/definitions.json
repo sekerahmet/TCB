@@ -1502,6 +1502,7 @@
 "H6994": { "param": ["file", "line", "dtype", "op"], "slots": {"shape": "TR_mem_shape"} },
 "H6995": { "param": ["fn", "order", "shape", "example"], "slots": {"requires_grad": "TR_mem_requires_grad", "true": "TR_kw_true"} },
 "H6996": { "param": ["path"], "slots": {"pretrained_model": "TR_fn_pretrained_model", "pretrained_gguf": "TR_fn_pretrained_gguf"} },
+"H6998": { "param": [], "slots": {"cache_buffer": "TR_fn_cache_buffer", "capacity": "TR_arg_capacity", "build_cache": "TR_mem_build_cache"} },
 "H7000": { "param": ["fn", "text", "given"] },
 "H7001": { "param": ["error"] },
 "H7003": { "param": ["fn", "path"] },

@@ -1,0 +1,4 @@
+# TR 4
+# TEST 11.7a kitaplığın iç yerleşiği yalnız kendi modülünün kaynağından çağrılır ve anılır: kullanıcının programında çağrı da anma da denetim hatasıdır, ileti genel yolu (önbellek_kur) söyler
+TR_var t = TR_cache_buffer([2, 3]) # ERROR H6998
+TR_var f = TR_cache_buffer # ERROR H6998
