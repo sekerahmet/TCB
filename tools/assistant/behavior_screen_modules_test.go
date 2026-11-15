@@ -245,6 +245,39 @@ func TestDownloadRowShowsOnlyItsOwnJob(t *testing.T) {
 	}
 }
 
+// "Kullanılıyor" yalnız takım yüklüyken ya da hazırlanırken görünür (M tasarımı K5; DENETİM 806 Ş1): kurulumda
+// (yüklü takım yok, takım kutusu "Model yok"), bağlantı yokken ve hatada hiçbir satır kullanılmıyor. Hazırken ayarın
+// takımı, hazırlanırken sohbette hazırlanan model kullanılıyor. inUse saf fonksiyondur; test onu node ile koşar.
+func TestModelsRowSaysInUseOnlyWithATeam(t *testing.T) {
+	catalog := `[{"id":"qwen","kind":"language_model","name":"Qwen","downloaded":true,"languages":[]},` +
+		`{"id":"copy","kind":"language_model","name":"Copy","downloaded":true,"languages":[]},` +
+		`{"id":"big","kind":"language_model","name":"Big","downloaded":false,"languages":[]},` +
+		`{"id":"whisper","kind":"transcriber","name":"Whisper","downloaded":true,"languages":["tr","en"]},` +
+		`{"id":"tts-tur","kind":"voice","name":"MMS-TTS tur","downloaded":true,"languages":["tr"]},` +
+		`{"id":"tts-eng","kind":"voice","name":"MMS-TTS eng","downloaded":true,"languages":["en"]},` +
+		`{"id":"vad","kind":"vad","name":"VAD","downloaded":true,"languages":[]}]`
+	cases := []struct{ state, loading, want string }{
+		{"setup", "", `[]`},
+		{"offline", "", `[]`},
+		{"error", "", `[]`},
+		{"idle", "", `["qwen","whisper","tts-tur","vad"]`},
+		{"speaking", "", `["qwen","whisper","tts-tur","vad"]`},
+		{"loading", "copy", `["copy","whisper","tts-tur","vad"]`},
+	}
+	for _, c := range cases {
+		output := nodeBlock(t, modelsModule, "Satırın işi", "const catalog = JSON.parse(process.argv[2]);\n"+
+			"const settings = {language_model: \"qwen\", speech_language: \"tr\"};\n"+
+			"process.stdout.write(JSON.stringify(catalog.filter((e) => inUse(e, catalog, settings, process.argv[3], process.argv[4])).map((e) => e.id)));\n",
+			catalog, c.state, c.loading)
+		if string(output) != c.want {
+			t.Errorf("state %s, loading %q: in use %s, want %s", c.state, c.loading, output, c.want)
+		}
+	}
+	if !strings.Contains(pageCode(t), `if (inUse(entry, ui.catalog, ui.settings, stateKey(), ui.loadingModel)) name.append(bind(el("span", "tag tag-use"), "model_in_use"));`) {
+		t.Error("modelRow does not take In use from inUse with the screen's state")
+	}
+}
+
 // İnen satır yüzdenin yanında hızı (`download` olayının `bytes_per_second`'i) gösterir; son 30 sn'nin hızıyla kalan süre
 // 1 saati aşarsa ya da 30 sn'dir bayt gelmediyse "yavaş" uyarısı çıkar (M tasarımı K11; eşikler tahmindir). Pencere
 // 30 sn dolmadan karar verilmez. slowDownload saf fonksiyondur; test onu node ile koşar.

@@ -68,6 +68,28 @@ function slowDownload(samples, total, now) {
   if (gained <= 0) return true;
   return (total - last.done) / (gained / (now - base.at)) > limit;
 }
+
+/**
+ * Ayarın takımındaki girdi: dil modeli ayardan, yazıcı ve ses konuşma dilinden (`languages`), VAD katalogun ilkidir.
+ * @param {string} kind @param {any[]} catalog @param {Record<string, unknown>} settings
+ */
+function teamOf(kind, catalog, settings) {
+  if (kind === "language_model") return catalog.find((e) => e.id === settings.language_model);
+  if (kind === "vad") return catalog.find((e) => e.kind === "vad");
+  return catalog.find((e) => e.kind === kind && e.languages.includes(settings.speech_language));
+}
+
+/**
+ * "Kullanılıyor" yalnız takım yüklüyken ya da hazırlanırken: kurulumda (yüklü takım yok; takım kutusu "Model yok"
+ * der), bağlantı yokken ve hatada hiçbir satır kullanılmıyor. Hazırlanırken sohbette hazırlanan model kullanılır.
+ * `state` ekranın durumudur (çevrimdışı `offline`), `loading` hazırlanan dil modelinin kimliği.
+ * @param {any} entry @param {any[]} catalog @param {Record<string, unknown>} settings @param {string} state @param {string} loading
+ */
+function inUse(entry, catalog, settings, state, loading) {
+  if (!entry.downloaded || !["loading", "idle", "listening", "thinking", "speaking"].includes(state)) return false;
+  if (entry.kind === "language_model" && state === "loading" && loading !== "") return entry.id === loading;
+  return teamOf(entry.kind, catalog, settings) === entry;
+}
 // ---------- Satırın işi sonu ----------
 
 /**
@@ -116,10 +138,7 @@ function nameOf(id) {
  * @param {string} kind
  */
 function teamEntry(kind) {
-  if (kind === "language_model") return entryById(str(ui.settings.language_model));
-  if (kind === "vad") return ui.catalog.find((e) => e.kind === "vad");
-  const speech = str(ui.settings.speech_language);
-  return ui.catalog.find((e) => e.kind === kind && e.languages.includes(speech));
+  return teamOf(kind, ui.catalog, ui.settings);
 }
 
 /** Yazıcıda ve seste ad, kullanıldığı dillerle. @param {any} entry */
@@ -220,7 +239,7 @@ function modelRow(entry) {
   if (entry.kind === "language_model" && entry.fit !== "") meta.append(bind(el("span", `fit fit-${entry.fit}`), `fit_${entry.fit}`));
   const name = el("span", "dl-name");
   name.append(el("span", "m-name", entryLabel(entry)));
-  if (entry.downloaded && teamEntry(entry.kind) === entry) name.append(bind(el("span", "tag tag-use"), "model_in_use"));
+  if (inUse(entry, ui.catalog, ui.settings, stateKey(), ui.loadingModel)) name.append(bind(el("span", "tag tag-use"), "model_in_use"));
   const buttons = el("span", "dl-actions");
   buttons.append(...actions);
   const row = el("div", "dl-row m-row");
