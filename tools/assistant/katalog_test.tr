@@ -485,6 +485,19 @@ TR_test "ayarın iki yeni alanı: eski dosya okunur, microphone ve recording oku
     TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"mikrofon\":\"x\"").TR_starts_with("Message(\"H8163\", \"A\", \"mikrofon\""))
 }
 
+TR_test "ayarın quantized_activations'ı: yoksa TR_none, auto, on ve off okunur; başka değer H8166, türü yanlışsa H8165" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_assert(ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).nicemli == TR_none)
+    TR_for v TR_in ["auto", "on", "off"] {
+        TR_var a = ayar_oku(_dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"quantized_activations\":\"\(v)\"")), k)
+        TR_assert_equal(v, TR_String(a.nicemli))
+    }
+    TR_for v TR_in ["açık", "true", "", "AUTO"] {
+        TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"quantized_activations\":\"\(v)\"").TR_starts_with("Message(\"H8166\", \"A\", \"quantized_activations\""))
+    }
+    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"quantized_activations\":true").TR_starts_with("Message(\"H8165\", \"A\", \"quantized_activations\""))
+}
+
 TR_test "ayarı_değiştir: yalnız bir alan değişir, öbürleri kalır; denetimden geçmeyen değer yazılmaz; yazılamazsa dosya aynı" {
     TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
     TR_var y = _dosya("ayar.json", _örnek_ayar())

@@ -55,6 +55,7 @@ TR_struct Ayar {
     kapı: TR_Int
     mikrofon: TR_String = "" # ayarın `microphone`'u; yoksa "" (ekranlı kip `--aygıt`'ı alır)
     kayıt: TR_Bool = TR_false # ayarın `recording`'i; yoksa kapalı
+    nicemli: TR_String? = TR_none # ayarın `quantized_activations`'ı (auto, on, off); yoksa TR_none (nicemli.tr, nicemli_seç)
 }
 
 # Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`; bağlam modelin
@@ -378,12 +379,12 @@ TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
 }
 
 # ayar_denetle: ayar dosyasının JSON'unun bütünü denetlenir (`yol` iletide görünür); ayarın tek denetimi budur:
-# ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir. `microphone` (metin) ve `recording` (true/false) isteğe
-# bağlıdır: ikisi olmayan eski dosya da okunur; bilinmeyen alan yine H8163.
+# ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir. `microphone` (metin), `recording` (true/false) ve
+# `quantized_activations` (auto, on, off) isteğe bağlıdır: olmayan eski dosya da okunur; bilinmeyen alan yine H8163.
 TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     _sürüm(yol, j)
     TR_var alanlar = ["v", "language_model", "speech_language", "system_prompt", "context", "device", "port", "machine"]
-    _nesne(yol, j, "", alanlar + ["microphone", "recording"], alanlar)
+    _nesne(yol, j, "", alanlar + ["microphone", "recording", "quantized_activations"], alanlar)
     TR_var lm = _metin(yol, j, "", "language_model")
     _ayar_kimliği(k, "language_model", lm, "language_model")
     TR_var dil = _metin(yol, j, "", "speech_language")
@@ -404,7 +405,10 @@ TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
         _tip(yol, j["recording"], "recording", "boolean")
         kayıt = TR_Bool(j["recording"])
     }
-    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı, mikrofon: mikrofon, kayıt: kayıt)
+    TR_var nicemli: TR_String? = TR_none
+    TR_if j.TR_get("quantized_activations") != TR_none { nicemli = _seçim(yol, j, "", "quantized_activations", ["auto", "on", "off"]) }
+    TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı, mikrofon: mikrofon, kayıt: kayıt,
+        nicemli: nicemli)
 }
 
 # bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.

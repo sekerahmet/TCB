@@ -1,25 +1,71 @@
 # TR 4
-# Nicemli etkinleştirmenin (--nicemli_etkinleştirme, 15.53a) kurulum denetimleri, zincirden ayrı: zincir.tr (ısıt) ve
-# asistan.tr (asistan_kur) kullanır, zincir_test.tr sınar. Üç denetim: cihaz (modeller yüklenmeden önce), ağırlık türü
-# (dil modeli yüklendikten hemen sonra), ısıtmanın hatası (nicemli_hatasını_at).
+# Nicemli etkinleştirmenin (--nicemli_etkinleştirme, 15.53a) seçimi, çözümü ve kurulum denetimleri, zincirden ayrı:
+# zincir.tr (ısıt) ve asistan.tr (asistan_kur) kullanır, zincir_test.tr sınar. Seçim otomatik, açık ya da kapalı;
+# otomatik dil modeli yüklenince çözülür. Açıkken üç denetim: cihaz (modeller yüklenmeden önce), ağırlık türü (dil
+# modeli yüklendikten hemen sonra), ısıtmanın hatası (nicemli_hatasını_at).
 
-# nicemli_hatası: kurulumun birinci denetimi, modeller yüklenmeden önce: yalnız işlemci (kartta iki blok birlikteyken
-# 15.53a'nın hatası geçer, H6724). nicemli_hatasını_at ısıtmanın H6723'ünü ve H6724'ünü çevirir.
-TR_func nicemli_hatası(cihaz: TR_String) -> TR_String? {
-    TR_if cihaz != "cpu" { TR_return "--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin cihazı \(cihaz): kartta nicemlenmiş ağırlıkla bu yol yok (15.53a). --nicemli_etkinleştirme'yi kaldırın" }
+TR_const NİCEMLİ_DEĞERLERİ = ["otomatik", "açık", "kapalı"]
+TR_const _AYAR_DEĞERLERİ = {"auto": "otomatik", "on": "açık", "off": "kapalı"}
+TR_const _ÇARPIM_TÜRLERİ = ["q4_k", "q6_k"]
+TR_const _FLOAT_TÜRLERİ = ["float32", "float64", "bf16", "fp16"]
+
+# NicemliSeçim: seçimin değeri (otomatik, açık, kapalı) ve kaynağı (komut, ayar, öntanımlı); kaynak ayarsa `yol` ayar
+# dosyasıdır. Hata metinlerinin önerisi kaynağa göredir (_öneri).
+TR_struct NicemliSeçim {
+    değer: TR_String = "otomatik"
+    kaynak: TR_String = "öntanımlı"
+    yol: TR_String = ""
+}
+
+# _karşılık: yanlış değerin önerdiği doğru değer: true ve on → açık, false ve off → kapalı, auto → otomatik, öbürü açık.
+TR_func _karşılık(v: TR_String) -> TR_String {
+    TR_var k = v.TR_lower()
+    TR_if ["true", "on"].TR_contains(k) { TR_return "açık" }
+    TR_if ["false", "off"].TR_contains(k) { TR_return "kapalı" }
+    TR_if k == "auto" { TR_return "otomatik" }
+    TR_return "açık"
+}
+
+# nicemli_seç: komut satırı verildiyse o; yoksa ekranlı kipte ayarın `quantized_activations`'ı (ayar_denetle değerini
+# denetler: auto, on, off); yoksa otomatik (`--bağlam`'ın sırası, katalog.tr bağlam_seç).
+TR_func nicemli_seç(verilen: TR_String?, ayardaki: TR_String?, yol: TR_String) -> NicemliSeçim {
+    TR_var v = verilen
+    TR_if v != TR_none {
+        TR_if TR_not NİCEMLİ_DEĞERLERİ.TR_contains(v) {
+            TR_throw "--nicemli_etkinleştirme otomatik, açık ya da kapalı olur, \(v) verildi. Örnek: --nicemli_etkinleştirme \(_karşılık(v))"
+        }
+        TR_return NicemliSeçim(değer: v, kaynak: "komut")
+    }
+    TR_var a = ayardaki
+    TR_if a != TR_none { TR_return NicemliSeçim(değer: TR_String(_AYAR_DEĞERLERİ[a]), kaynak: "ayar", yol: yol) }
+    TR_return NicemliSeçim()
+}
+
+# _öneri: açık seçimin hatasında kullanıcının yapacağı: seçim ayardan geldiyse ayar dosyası, öbür durumda komut satırı.
+TR_func _öneri(s: NicemliSeçim) -> TR_String {
+    TR_if s.kaynak == "ayar" { TR_return "ayar dosyasında quantized_activations'ı \"off\" yapın (\(s.yol))" }
+    TR_return "--nicemli_etkinleştirme kapalı verin"
+}
+
+# nicemli_hatası: açık seçimde kurulumun birinci denetimi, modeller yüklenmeden önce: yalnız işlemci (kartta iki blok
+# birlikteyken 15.53a'nın hatası geçer, H6724). nicemli_hatasını_at ısıtmanın H6723'ünü ve H6724'ünü çevirir.
+TR_func nicemli_hatası(cihaz: TR_String, s: NicemliSeçim) -> TR_String? {
+    TR_if cihaz != "cpu" { TR_return "--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin cihazı \(cihaz): kartta nicemlenmiş ağırlıkla bu yol yok (15.53a). \(_öneri(s))" }
     TR_return TR_none
 }
 
-TR_func nicemli_hatasını_at(e: TR_Error) {
-    TR_if e.TR_code == "H6723" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelde başka türde nicemlenmiş ağırlık var (15.53a). --nicemli_etkinleştirme'yi kaldırın ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)", TR_cause: e) }
-    TR_if e.TR_code == "H6724" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin nicemlenmiş ağırlıkları kartta: kartta bu yol yok (15.53a). --nicemli_etkinleştirme'yi kaldırın", TR_cause: e) }
+# nicemli_hatasını_at: ısıtmanın hatası. Otomatik seçimde H6723 Dost'un hatasıdır: _çarpım_türleri bir çarpımı kaçırdı.
+TR_func nicemli_hatasını_at(e: TR_Error, s: NicemliSeçim) {
+    TR_if e.TR_code == "H6723" TR_and s.değer == "otomatik" { TR_throw TR_Error("nicemli etkinleştirme otomatik seçimle açıldı ama bu modelde q4_k ve q6_k dışında nicemlenmiş bir çarpım ağırlığı var (15.53a): otomatik bu modelde yanlış seçti, bu Dost'un hatasıdır (nicemli.tr, nicemli_ağırlıklı). \(_öneri(s))", TR_cause: e) }
+    TR_if e.TR_code == "H6723" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelde başka türde nicemlenmiş ağırlık var (15.53a). \(_öneri(s)) ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)", TR_cause: e) }
+    TR_if e.TR_code == "H6724" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin nicemlenmiş ağırlıkları kartta: kartta bu yol yok (15.53a). \(_öneri(s))", TR_cause: e) }
 }
 
-# nicemli_ağırlıklı: modelin çarpım ağırlıklarından biri (blokların ve PLE'nin izdüşümleri, çıkış katmanı; paylaşımlı
-# çıkışta gömme tablosu) nicemlenmiş mi (float32, float64, bf16, fp16 dışında bir tür). Değilse blok her çarpıma
-# etkisizdir (15.53a: float ağırlıklı `@` bloğun dışındaki gibi), seçenek hiçbir şey yapmaz. Ağırlıklar alanlardan
-# okunur: TR_parameters nicemlenmiş yaprakları atlar, TR_named_parameters yok (docs/status.md:801-802).
-TR_func nicemli_ağırlıklı(m: TR_GPT) -> TR_Bool {
+# _çarpım_türleri: modelin çarpım ağırlıklarının türleri (blokların ve PLE'nin izdüşümleri, çıkış katmanı; paylaşımlı
+# çıkışta gömme tablosu). Ağırlıklar alanlardan okunur: TR_parameters nicemlenmiş yaprakları atlar, TR_named_parameters
+# yok (docs/status.md:801-802). Liste lib/layers.tr'nin TR_Linear alanlarıyla karşılaştırılır
+# (behavior_chain_test.go, TestQuantListCoversEveryLinear).
+TR_func _çarpım_türleri(m: TR_GPT) -> TR_List[TR_String] {
     TR_var katmanlar: TR_List[TR_Linear?] = [m.TR_logit_layer]
     TR_if m.TR_ple_context != TR_none { katmanlar = katmanlar + [m.TR_ple_context.TR_context_proj] }
     TR_for b TR_in m.TR_blocks {
@@ -32,16 +78,52 @@ TR_func nicemli_ağırlıklı(m: TR_GPT) -> TR_Bool {
     TR_for k TR_in katmanlar {
         TR_if k != TR_none { türler = türler + [k.TR_weight.TR_dtype] }
     }
-    TR_for t TR_in türler {
-        TR_if TR_not ["float32", "float64", "bf16", "fp16"].TR_contains(t) { TR_return TR_true }
+    TR_return türler
+}
+
+# nicemli_ağırlıklı: modelin çarpım ağırlıklarından biri nicemlenmiş mi (float32, float64, bf16, fp16 dışında bir tür).
+# Değilse blok her çarpıma etkisizdir (15.53a: float ağırlıklı `@` bloğun dışındaki gibi), seçenek hiçbir şey yapmaz.
+TR_func nicemli_ağırlıklı(m: TR_GPT) -> TR_Bool {
+    TR_for t TR_in _çarpım_türleri(m) {
+        TR_if TR_not _FLOAT_TÜRLERİ.TR_contains(t) { TR_return TR_true }
     }
     TR_return TR_false
 }
 
-# nicemli_ağırlık_hatası: kurulumun üçüncü denetimi, dil modeli yüklendikten hemen sonra: modelde hiç nicemlenmiş çarpım
-# ağırlığı yoksa (F16, BF16) kullanıcının metni (seçenek etkisiz kalırdı), varsa TR_none. Başka nicemlenmiş türde (Q8_0)
-# ısıtma H6723'ü nicemli_hatasını_at ile kendi metnine çevirir.
-TR_func nicemli_ağırlık_hatası(m: TR_GPT) -> TR_String? {
+# nicemli_uygun: otomatiğin ağırlık koşulu: nicemlenmiş çarpım ağırlıklarının hepsi q4_k ya da q6_k ve en az biri var.
+# Başka nicemlenmiş tür (q8) blokta H6723 verirdi; float model blokta etkisizdir.
+TR_func nicemli_uygun(m: TR_GPT) -> TR_Bool {
+    TR_var var_mı = TR_false
+    TR_for t TR_in _çarpım_türleri(m) {
+        TR_if _FLOAT_TÜRLERİ.TR_contains(t) { TR_continue }
+        TR_if TR_not _ÇARPIM_TÜRLERİ.TR_contains(t) { TR_return TR_false }
+        var_mı = TR_true
+    }
+    TR_return var_mı
+}
+
+# nicemli_çöz: seçimin bu cihazda ve bu modelde sonucu. Otomatik: işlemcide ve nicemli_uygun modelde açık, öbüründe
+# hatasız kapalı. Açık ve kapalı olduğu gibi (açığın denetimleri asistan_kur'da).
+TR_func nicemli_çöz(s: NicemliSeçim, cihaz: TR_String, m: TR_GPT) -> TR_Bool {
+    TR_if s.değer == "otomatik" { TR_return cihaz == "cpu" TR_and nicemli_uygun(m) }
+    TR_return s.değer == "açık"
+}
+
+# nicemli_satırı: dil modeli yüklenince bir kez basılan makine satırı (OLCU_YUKLEME'nin yanında); okuyan betik `sonuc`'a
+# bakar.
+TR_func nicemli_satırı(s: NicemliSeçim, sonuç: TR_Bool) -> TR_String {
+    TR_return "NICEMLI secim=\(s.değer) sonuc=\(nicemli_hâli(sonuç))"
+}
+
+# nicemli_hâli: çözülmüş hâlin yazımı (açılış satırı, kaydın tur satırı).
+TR_func nicemli_hâli(açık: TR_Bool) -> TR_String {
+    TR_return TR_if açık { "açık" } TR_else { "kapalı" }
+}
+
+# nicemli_ağırlık_hatası: açık seçimde kurulumun üçüncü denetimi, dil modeli yüklendikten hemen sonra: modelde hiç
+# nicemlenmiş çarpım ağırlığı yoksa (F16, BF16) kullanıcının metni (seçenek etkisiz kalırdı), varsa TR_none. Başka
+# nicemlenmiş türde (Q8_0) ısıtma H6723'ü nicemli_hatasını_at ile kendi metnine çevirir.
+TR_func nicemli_ağırlık_hatası(m: TR_GPT, s: NicemliSeçim) -> TR_String? {
     TR_if nicemli_ağırlıklı(m) { TR_return TR_none }
-    TR_return "--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelin çarpım ağırlıklarında q4_k ya da q6_k yok (örneğin F16 ya da BF16 GGUF), seçenek etkisiz kalırdı (15.53a). --nicemli_etkinleştirme'yi kaldırın ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)"
+    TR_return "--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelin çarpım ağırlıklarında q4_k ya da q6_k yok (örneğin F16 ya da BF16 GGUF), seçenek etkisiz kalırdı (15.53a). \(_öneri(s)) ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)"
 }

@@ -132,7 +132,8 @@ func before(t *testing.T, where, text, a, b string) {
 
 // Nicemli seçeneğin kurulum denetimleri (H1 nicemli zincir, K3): cihaz modeller yüklenmeden önce; ısıtma üretimin
 // istem okumasını türevsiz koşar ve nicemli hatayı yutmadan önce çevirir; önbelleksiz kipin sınaması ısıtmadan sonra.
-// Ağırlık türünün denetimi (sürüm 9, DENETİM 549 N1) dil modelinden hemen sonra, Whisper'dan önce.
+// Ağırlık türünün denetimi (sürüm 9, DENETİM 549 N1) dil modelinden hemen sonra, Whisper'dan önce. Otomatik seçim
+// (dilim N) dil modeli yüklenince, zincir kurulmadan çözülür; çözülen hâl NICEMLI satırında ve her turun Tur'unda.
 // Davranışı zincir_test.tr sınar (q8 çıkış katmanlı model; float ve q4_k ağırlıklı model).
 func TestChainQuantChecksOrder(t *testing.T) {
 	setup := body(t, chainProgram, readFile(t, chainProgram), "TR_func asistan_kur(")
@@ -140,7 +141,14 @@ func TestChainQuantChecksOrder(t *testing.T) {
 	before(t, chainProgram+" asistan_kur", setup, "TR_pretrained_gguf(", "nicemli_ağırlık_hatası(")
 	before(t, chainProgram+" asistan_kur", setup, "nicemli_ağırlık_hatası(", "TR_pretrained_whisper(")
 	before(t, chainProgram+" asistan_kur", setup, "ısıt(", "nicemli_hatasını_at(")
-	// Seçenek zincire geçmezse blok hiç açılmaz, açılış denetimleri yine geçer ve deneme başlığı "true" yazar (DENETİM 553 N1).
+	before(t, chainProgram+" asistan_kur", setup, "TR_pretrained_gguf(", "nicemli_çöz(")
+	before(t, chainProgram+" asistan_kur", setup, "nicemli_çöz(", "Zincir(")
+	before(t, chainProgram+" asistan_kur", setup, "OLCU_YUKLEME", "nicemli_satırı(")
+	// Ekranlı kipte model oturum içinde yeniden yüklenir: kaydın tur satırı o turun zincirinin hâlidir (DENETİM 774 Ş1).
+	if open := body(t, chainProgram, readFile(t, chainProgram), "TR_func tur_aç("); !strings.Contains(open, "nicemli: z.nicemli") {
+		t.Errorf("%s tur_aç: Tur'a nicemli: z.nicemli verilmeli", chainProgram)
+	}
+	// Seçenek zincire geçmezse blok hiç açılmaz, açılış denetimleri yine geçer ve NICEMLI satırı yanlış yazar (DENETİM 553 N1).
 	if !strings.Contains(setup, "nicemli: nicemli") {
 		t.Errorf("%s asistan_kur: Zincir'e nicemli: nicemli verilmeli", chainProgram)
 	}
@@ -153,5 +161,27 @@ func TestChainQuantChecksOrder(t *testing.T) {
 	before(t, chainModule+" ısıt'ın TR_catch'i", catch, "nicemli_hatasını_at(", "ISITMA HATASI")
 	if !strings.Contains(body(t, chainModule, chain, "TR_func üret("), "istem_oku(") {
 		t.Errorf("%s üret: istem istem_oku ile okunmalı", chainModule)
+	}
+}
+
+// Otomatik nicemlinin kararı nicemli.tr'nin elle tutulan katman listesine dayanır (dilim N, DENETİM 774 N3): modelin
+// her TR_Linear alanı (lib/layers.tr'deki dikkat, ileri katman, PLE ve GPT yapıları) listede okunur. Liste bir
+// çarpımı kaçırırsa otomatik q8 bir izdüşümü görmez, açar ve ısıtmanın H6723'ü Dost'un hatası olarak çıkar (N-S3b).
+func TestQuantListCoversEveryLinear(t *testing.T) {
+	layers := readFile(t, "lib/layers.tr")
+	list := body(t, quantModule, readFile(t, quantModule), "TR_func _çarpım_türleri(")
+	field := regexp.MustCompile(`(?m)^    (TR_[a-z_]+): TR_Linear\??\s*(?:=|$|#)`)
+	seen := 0
+	for _, name := range []string{"TR_CausalAttention", "TR_SwiGLU", "TR_PLEContext", "TR_PLEBlock", "TR_TransformerBlock", "TR_GPT"} {
+		block := capture(t, `(?s)\nTR_struct `+name+` \{\n(.*?)\n    TR_func `, layers)
+		for _, m := range field.FindAllStringSubmatch(block, -1) {
+			seen++
+			if !strings.Contains(list, "."+m[1]) {
+				t.Errorf("%s _çarpım_türleri: %s.%s (lib/layers.tr) listede yok", quantModule, name, m[1])
+			}
+		}
+	}
+	if seen < 12 {
+		t.Errorf("lib/layers.tr'de %d TR_Linear alanı bulundu, en az 12 bekleniyordu: desen yapıları okuyamıyor", seen)
 	}
 }

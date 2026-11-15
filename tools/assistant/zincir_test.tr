@@ -194,16 +194,59 @@ TR_test "nicemli açıkken float ağırlıklı modelde ısıtma ve ilk tur kapal
     TR_assert_equal(ilk_tur(kapalı, Tur(sıra: 1, söz_ms: 0)), ilk_tur(açık, Tur(sıra: 1, söz_ms: 0)))
 }
 
-TR_test "nicemli seçeneğin cihaz denetimi: işlemcide hata yok, kartta cihazı söyleyen metin" {
-    TR_assert_equal(TR_none, nicemli_hatası("cpu"))
-    TR_var h = TR_String(nicemli_hatası("gpu:0"))
+# Testlerin üç seçimi: komut satırından açık, ayardan açık, öntanımlı otomatik.
+TR_func _açık() -> NicemliSeçim { TR_return NicemliSeçim(değer: "açık", kaynak: "komut") }
+TR_func _ayardan() -> NicemliSeçim { TR_return NicemliSeçim(değer: "açık", kaynak: "ayar", yol: "C:/Dost/ayar.json") }
+TR_func _otomatik() -> NicemliSeçim { TR_return NicemliSeçim() }
+
+TR_test "nicemli seçeneğin cihaz denetimi: işlemcide hata yok, kartta cihazı söyleyen metin; öneri kaynağa göre" {
+    TR_assert_equal(TR_none, nicemli_hatası("cpu", _açık()))
+    TR_var h = TR_String(nicemli_hatası("gpu:0", _açık()))
     TR_assert(h.TR_contains("--nicemli_etkinleştirme"))
     TR_assert(h.TR_contains("gpu:0"))
+    TR_assert(h.TR_ends_with("--nicemli_etkinleştirme kapalı verin"))
+    TR_var a = TR_String(nicemli_hatası("gpu:0", _ayardan()))
+    TR_assert(a.TR_ends_with("ayar dosyasında quantized_activations'ı \"off\" yapın (C:/Dost/ayar.json)"))
+}
+
+TR_test "nicemli seçimi: komut satırı ayardan önce, ayar öntanımlıdan önce; ayarın değerleri; yanlış değer doğrusunu önerir" {
+    TR_var k = nicemli_seç("kapalı", "on", "a.json")
+    TR_assert_equal(["kapalı", "komut", ""], [k.değer, k.kaynak, k.yol])
+    TR_for ç TR_in [["auto", "otomatik"], ["on", "açık"], ["off", "kapalı"]] {
+        TR_var a = nicemli_seç(TR_none, ç[0], "a.json")
+        TR_assert_equal([ç[1], "ayar", "a.json"], [a.değer, a.kaynak, a.yol])
+    }
+    TR_var ö = nicemli_seç(TR_none, TR_none, "a.json")
+    TR_assert_equal(["otomatik", "öntanımlı"], [ö.değer, ö.kaynak])
+    TR_for v TR_in ["otomatik", "açık", "kapalı"] { TR_assert_equal(v, nicemli_seç(v, TR_none, "").değer) }
+    TR_for ç TR_in [["true", "açık"], ["on", "açık"], ["TRUE", "açık"], ["false", "kapalı"], ["off", "kapalı"], ["auto", "otomatik"], ["", "açık"], ["evet", "açık"]] {
+        TR_var ileti = ""
+        TR_try { nicemli_seç(ç[0], TR_none, "") } TR_catch h { ileti = TR_String(h) }
+        TR_assert_equal("--nicemli_etkinleştirme otomatik, açık ya da kapalı olur, \(ç[0]) verildi. Örnek: --nicemli_etkinleştirme \(ç[1])", ileti)
+    }
+}
+
+TR_test "otomatik nicemli: işlemcide yalnız q4_k ve q6_k ağırlıklı modelde açık; float, q8 karışık modelde ve kartta kapalı; açık ve kapalı olduğu gibi" {
+    TR_var f = küçük_zincir(256, TR_false).model
+    TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "cpu", f)) # float: blok etkisiz, açmaya gerek yok
+    TR_assert_equal(TR_true, nicemli_çöz(_açık(), "cpu", f))
+    TR_assert_equal(TR_false, nicemli_çöz(NicemliSeçim(değer: "kapalı"), "cpu", f))
+    TR_var m = küçük_zincir(256, TR_false).model
+    m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q4_k")
+    m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q6_k")
+    TR_assert_equal(TR_true, nicemli_çöz(_otomatik(), "cpu", m))
+    TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "gpu:0", m))
+    TR_var q = q8_çıkışlı_zincir(TR_false).model
+    TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "cpu", q)) # q8 çıkış katmanı blokta H6723 verirdi
+    q.TR_blocks[0].TR_feed_forward.TR_down_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q4_k")
+    TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "cpu", q)) # q4_k ile q8 karışık
+    TR_assert_equal("NICEMLI secim=otomatik sonuc=kapalı", nicemli_satırı(_otomatik(), TR_false))
+    TR_assert_equal("NICEMLI secim=açık sonuc=açık", nicemli_satırı(_açık(), TR_true))
 }
 
 # çevrilen: hata nicemli_hatasını_at'tan geçince atılanın metni ve nedeninin kodu; atmazsa ["", ""].
-TR_func çevrilen(e: TR_Error) -> TR_List[TR_String] {
-    TR_try { nicemli_hatasını_at(e) } TR_catch h { TR_return [TR_String(h.TR_value), TR_String(h.TR_cause.TR_code)] }
+TR_func çevrilen(e: TR_Error, s: NicemliSeçim? = TR_none) -> TR_List[TR_String] {
+    TR_try { nicemli_hatasını_at(e, s ?? _açık()) } TR_catch h { TR_return [TR_String(h.TR_value), TR_String(h.TR_cause.TR_code)] }
     TR_return ["", ""]
 }
 
@@ -211,8 +254,14 @@ TR_test "nicemli_hatasını_at: H6723 kullanıcının metni olur, nedeni H6723; 
     TR_var w = TR_zeros([2, 32], TR_dtype: "q8")
     TR_var s: TR_List[TR_String] = []
     TR_try { TR_quantized_activations { TR_zeros([1, 32]) @ w.TR_transpose() } } TR_catch e { s = çevrilen(e) }
-    TR_assert(s[0].TR_contains("q4_k ve q6_k ağırlıklı bir GGUF verin"))
+    TR_assert(s[0].TR_contains("--nicemli_etkinleştirme kapalı verin ya da q4_k ve q6_k ağırlıklı bir GGUF verin"))
     TR_assert_equal("H6723", s[1])
+    # Otomatik seçimde H6723 Dost'un hatasıdır (liste bir çarpımı kaçırdı): kendi metni, sessiz değil.
+    TR_try { TR_quantized_activations { TR_zeros([1, 32]) @ w.TR_transpose() } } TR_catch e { s = çevrilen(e, _otomatik()) }
+    TR_assert(s[0].TR_contains("otomatik bu modelde yanlış seçti, bu Dost'un hatasıdır"))
+    TR_assert_equal("H6723", s[1])
+    TR_try { TR_quantized_activations { TR_zeros([1, 32]) @ w.TR_transpose() } } TR_catch e { s = çevrilen(e, _ayardan()) }
+    TR_assert(s[0].TR_contains("ayar dosyasında quantized_activations'ı \"off\" yapın (C:/Dost/ayar.json) ya da q4_k"))
     TR_var w4 = TR_zeros([3, 256], TR_dtype: "q4_k")
     TR_assert_equal(TR_none, TR_error_code { TR_quantized_activations { TR_ones([2, 256]) @ w4.TR_transpose() } })
     TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { s = çevrilen(e) }
@@ -224,12 +273,12 @@ TR_test "nicemli_hatasını_at: H6723 kullanıcının metni olur, nedeni H6723; 
 TR_test "nicemli_ağırlıklı: float modelde yanlış ve kullanıcının metni; bir izdüşüm q4_k, çıkış katmanı ya da paylaşımlı tablo q6_k, PLE izdüşümü q4_k olunca doğru; q8 çıkışta metin yok, ısıtma H6723'ün metnini verir" {
     TR_var m = küçük_zincir(256, TR_false).model
     TR_assert_equal(TR_false, nicemli_ağırlıklı(m))
-    TR_var s = TR_String(nicemli_ağırlık_hatası(m))
+    TR_var s = TR_String(nicemli_ağırlık_hatası(m, _açık()))
     TR_assert(s.TR_contains("çarpım ağırlıklarında q4_k ya da q6_k yok"))
-    TR_assert(s.TR_contains("--nicemli_etkinleştirme'yi kaldırın"))
+    TR_assert(s.TR_contains("--nicemli_etkinleştirme kapalı verin ya da q4_k"))
     m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q4_k") # yalnız tür okunur
     TR_assert_equal(TR_true, nicemli_ağırlıklı(m))
-    TR_assert(nicemli_ağırlık_hatası(m) == TR_none)
+    TR_assert(nicemli_ağırlık_hatası(m, _açık()) == TR_none)
     TR_var ç = küçük_zincir(256, TR_false).model
     ç.TR_logit_layer = TR_Linear(1, 1, TR_init_std: 0.0)
     ç.TR_logit_layer.TR_weight = TR_zeros([16, 256], TR_dtype: "q6_k")
@@ -245,7 +294,7 @@ TR_test "nicemli_ağırlıklı: float modelde yanlış ve kullanıcının metni;
     TR_assert_equal(TR_true, nicemli_ağırlıklı(g)) # yalnız PLE izdüşümü nicemli
     # Başka nicemlenmiş tür (q8 çıkış katmanı): üçüncü denetim geçer, ısıtma kendi metnini (H6723) verir.
     TR_var q = q8_çıkışlı_zincir(TR_true)
-    TR_assert(nicemli_ağırlık_hatası(q.model) == TR_none)
+    TR_assert(nicemli_ağırlık_hatası(q.model, _açık()) == TR_none)
     TR_var h = ["", ""]
     TR_try { ısıt(q) } TR_catch e { h = [TR_String(e.TR_value), TR_String(e.TR_cause.TR_code)] }
     TR_assert(h[0].TR_contains("başka türde nicemlenmiş ağırlık var"))
