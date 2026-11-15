@@ -1042,7 +1042,8 @@ selected_tests() {
 gpu_race() {
 	# Otomatik sınamada yarış işi ayrıca koşar.
 	[ "${GITHUB_ACTIONS:-}" != "true" ] || return 0
-	changed_packages | grep -qx './internal/compute/gpu' || return 0
+	# grep -q değil: erken çıkınca changed_packages SIGPIPE alır, pipefail adımı sessizce atlatırdı (DENETİM 788 N1).
+	changed_packages | grep -x './internal/compute/gpu' >/dev/null || return 0
 	step "GPU paketi yarış dedektörüyle (değişti; go test -race -short)"
 	if ! command -v "$(go env CC)" >/dev/null 2>&1; then
 		echo "not: C derleyicisi ($(go env CC)) yok, adım atlandı; otomatik sınamanın yarış işi koşar"
