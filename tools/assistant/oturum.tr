@@ -181,7 +181,8 @@ TR_struct Oturum {
 
     # ayarı_uygula: kabul edilen `settings_set` (ekran.tr, `ayar_kararı`). Model yüklüyse dil değişimi atomiktir
     # (yuva.tr, `dil_değiştir`): yeni ses (ve başka yazıcıysa Whisper) eskiler yerinde dururken yüklenir; düşerse
-    # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır.
+    # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır. Model
+    # yüklü değilken (kurulum) yeni dille ayarın takımı kuruluysa takım yüklenir (`yüklenecek`).
     # Ayar dosyası varsa değişiklik önce ona yazılır (`dosyaya_yaz`); yazma düşerse hiçbir şey değişmez. Dilin
     # modelleri yüklenemezse dosyanın eski hâli geri yazılır. Bağlam ve mikrofon yalnız dosyaya yazılır (bir sonraki
     # açılışta geçerli); kayıt hemen `etkin`'e geçer (tur, kaydı turun başında ve sonunda okur). `settings` olayı yeni
@@ -226,6 +227,12 @@ TR_struct Oturum {
         TR_self.e.konuşma_dili = yeni.konuşma_dili
         TR_self.e.dil_cevabı = dil_cevapları(TR_self.kj, TR_self.klasör, yeni)
         TR_self.e.yüklenebilir = yüklenebilirler(TR_self.k, TR_self.kj, TR_self.klasör, yeni)
+        # Model yüklü değilken dil değişti ve ayarın takımı bu dille kurulu: Dost onu kendisi yükler (contract.md,
+        # "Yükleme"). Bekleyen yükleme varsa o kalır; takımı yeni dille kurulur (takım_kur, etkin).
+        TR_var e = TR_self.e
+        TR_if anahtar == "speech_language" TR_and a == TR_none TR_and TR_not e.yüklemede TR_and e.yüklenecek == TR_none TR_and TR_self.takım_kurulu() {
+            e.yüklenecek = yeni.dil_modeli
+        }
         TR_self.kataloğu_gönder()
         TR_self.ayarı_gönder()
     }

@@ -498,6 +498,30 @@ TR_test "yükleme sürerken settings_set language_model, sonra model_load: ayar 
     d.s.TR_close()
 }
 
+TR_test "kurulumda speech_language değişince ayarın takımı bu dille kuruluysa Dost kendisi yükler; bekleyen yükleme kalır; takım kurulu değilse yüklemez" {
+    TR_var d = _düzen()
+    TR_var o = _yüklemedeki_oturum(d)
+    o.e.yüklemede = TR_false # kurulum: model yüklü değil, yükleme yok
+    TR_var dil = (kimlik: TR_String, kod: TR_String) => {
+        TR_var k = _ayar_komutu(kimlik, "speech_language", kod)
+        o.e.bekleyen = [k]
+        o.istekleri_işle()
+        TR_assert_equal("accepted", _durumu(k))
+    }
+    dil("a", "en")
+    TR_assert_equal("dm", TR_String(o.e.yüklenecek))
+    o.e.yüklenecek = "dm2" # bekleyen yükleme (ör. model_load)
+    dil("b", "tr")
+    TR_assert_equal("dm2", TR_String(o.e.yüklenecek))
+    o.e.yüklenecek = TR_none
+    TR_assert(sil(o.kj, o.klasör, "ses-en"))
+    o.kurulumu_yenile()
+    o.ayarı_uygula("speech_language", TR_JSON("en")) # İngilizce ses kurulu değil: takım kurulu değil
+    TR_assert_equal("en", o.etkin.konuşma_dili)
+    TR_assert(o.e.yüklenecek == TR_none, "kurulu olmayan takım yüklenecek oldu")
+    d.s.TR_close()
+}
+
 TR_test "yükleme sürerken settings_set speech_language, sonra settings_set language_model: ikisi de uygulanır ve dosyada, yeni dilin takımı yüklenir" {
     TR_var d = _düzen()
     TR_var o = _yüklemedeki_oturum(d)
