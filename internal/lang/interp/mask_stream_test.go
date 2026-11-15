@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -172,5 +173,51 @@ func TestMaskJoined(t *testing.T) {
 	long := len(w.mask.Load().longestFirst()[0])
 	if long <= len("çok-gizli\x01") || long != w.LongestSecret() {
 		t.Fatalf("en uzun biçim kaçışlı olmalı ve LongestSecret'le aynı: %d, %d", long, w.LongestSecret())
+	}
+}
+
+// TestMaskCutSkipKeepsTheDecision: maskCut'ın ilk bayt atlaması (valueMask.first) kararı değiştirmez:
+// atlamalı ve atlamasız (first'ün her baytı açık) maske aynı aralıkları ve aynı kesimi verir. Gizli
+// değerin ilk baytı metinde başka yerde de geçer ("g") ya da hiç geçmez ("Z"); akışın adımında
+// (atEnd false) eksik baş da aynı yerde kesilir (DENETİM 791 N2). first her değerin (kaçışlı biçimler
+// dahil) ilk baytını içerir.
+func TestMaskCutSkipKeepsTheDecision(t *testing.T) {
+	v := New()
+	v.AddSecret("gizli-deger-123")
+	v.AddSecret("Zq9-anahtar-77")
+	v.AddSecret(`çok"gizli`)
+	m := v.mask.Load()
+	for _, g := range m.longestFirst() {
+		if !m.first[g[0]] {
+			t.Errorf("first %q'nin ilk baytını (%q) içermeli", g, g[0])
+		}
+	}
+	all := *m
+	for i := range all.first {
+		all.first[i] = true
+	}
+	cases := []struct {
+		text   string
+		masked bool // metinde tam bir gizli değer var
+	}{
+		{"gg ağ gizli-deger-123 gizli gizli-de", true},
+		{"gece gündüz gizli değil", false},
+		{"gizli-deger-123gizli-deger-123", true},
+		{"a Zq9-anahtar-77 b", true},
+		{"son Zq9-ana", false},
+		{"hiçbir şey yok", false},
+		{`"çok\"gizli" ve çok`, true},
+	}
+	for _, c := range cases {
+		for _, atEnd := range []bool{true, false} {
+			skip, skipCut := maskCut(m, c.text, nil, -1, atEnd)
+			full, fullCut := maskCut(&all, c.text, nil, -1, atEnd)
+			if !slices.Equal(skip, full) || skipCut != fullCut {
+				t.Errorf("maskCut(%q, atEnd %v): atlamalı %v %d, atlamasız %v %d", c.text, atEnd, skip, skipCut, full, fullCut)
+			}
+			if (len(skip) > 0) != c.masked {
+				t.Errorf("maskCut(%q, atEnd %v) aralıkları %v; gizli değer var: %v", c.text, atEnd, skip, c.masked)
+			}
+		}
 	}
 }
