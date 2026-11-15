@@ -156,7 +156,7 @@ TR_if m.TR_os == "windows" { TR_print("Windows") }
 - *Test:* TR testi (`tests/surec_ve_kayit_test.tr`, 19.12); denetim `tests/negative/makine_yazimi.tr`; Go: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineOSTable`, `TestMachineCPUFeaturesTable`; sınırla tavanın küçüğü (19.12a): gerekmez, henüz uygulanmadı.
 
 **19.12a** Bellek tavanı. Programı başlatan, sürecin belleğine bir tavan koyabilir: `TR_MEMORY_LIMIT` ortam değişkeni, değeri bayt cinsinden pozitif bir tam sayıdır (6 GiB için `TR_MEMORY_LIMIT=6442450944`). Program içinden tavan konmaz ve değiştirilmez: tavan, durdurmanın süresi gibi (1.8), makinenin ve başlatanın bilgisidir.
-- Tavan sürecin ana belleğini sayar: çöp toplayıcının öbeği ve öbek dışında tutulan bloklar (yüklenen ağırlıklar) birlikte. Kartın belleği sayılmaz. Dosya eşlemeleri (veri kümesinin dosyadan okunan sayfaları) sayılmaz; işletim sistemi onları dosyadan yeniden okuyabilir.
+- Tavan sürecin ana belleğini sayar: çöp toplayıcının öbeği ve öbek dışında tutulan bloklar (yüklenen ağırlıklar ve sabit önbelleğin tamponları) birlikte. Kartın belleği sayılmaz. Dosya eşlemeleri (veri kümesinin dosyadan okunan sayfaları) sayılmaz; işletim sistemi onları dosyadan yeniden okuyabilir.
 - Tavan yumuşaktır: aşılması hata değildir. Süreç tavana yaklaştıkça çöp toplayıcı sıklaşır; toplayıcının süreden aldığı pay bir eşiği geçince süreç kodlu bir uyarı verir, profil raporu da payı gösterir. Program yavaşlar ama sessiz kalmaz (15.49).
 - Değeri pozitif bir tam sayı olmayan `TR_MEMORY_LIMIT` (boş, birimli, ondalık, sıfır ya da eksi) kullanım hatasıdır: program başlamaz, çıkış kodu 2'dir (1.9).
 - Tavan süreç başınadır: ortamı alan alt süreç (21.6) aynı tavanı kendisi için alır; tavan iki sürecin toplamı değildir.
