@@ -115,8 +115,10 @@ function svgIcon(d) {
 
 // renderDownloads: katalogun her dil modeli için bir satır (tek tık D): ad, durum yazısı, düğmeler. Düğmeler her satırda
 // sağa yaslı, adla dikey ortalı; kısa durum ("İndiriliyor %43") adın satırında, uzun yazı (hata, silme onayı) altında
-// tam genişlikte (`dl-long`). İndir ve Sürdür olumlu (`btn-go`), Sil tehlike (`btn-danger`) düğmesidir; Vazgeç sıradan. Ayarlar paneli `setup`'ta gizli olduğundan kap orada kurulum
-// kutusuna geçer: hiç modeli olmayan kullanıcı ilk modeli oradan indirir.
+// tam genişlikte (`dl-long`). İndir ve Sürdür olumlu (`btn-go`), Sil tehlike (`btn-danger`) düğmesidir; Vazgeç sıradan.
+// Satır takımın işlerini gösterir: dil modelinin kendi işi ve konuşma modellerinin işleri (`rowJobs`); yüzde onların
+// toplamı, Vazgeç hepsini durdurur. Ayarlar paneli `setup`'ta gizli olduğundan kap orada kurulum kutusuna geçer: hiç
+// modeli olmayan kullanıcı ilk modeli oradan indirir.
 function renderDownloads() {
   const box = byId("settingsDownload");
   const anchor = ui.state === "setup" ? byId("loadButton") : /** @type {HTMLElement} */ (byId("settingsModel").closest(".field"));
@@ -134,10 +136,15 @@ function renderDownloads() {
   };
   /** @param {string} key @param {Record<string, unknown>} [values] @param {boolean} [long] */
   const note = (key, values, long) => bind(el("span", long ? "card-note dl-long" : "card-note"), key, values);
-  const download = (/** @type {string} */ id) => () => command("model_download", { entry_id: id });
+  // İndir ve Sürdür: biten ve duran işler unutulur, yüzde yeni işlerden hesaplanır.
+  const download = (/** @type {string} */ id) => () => {
+    for (const [key, job] of Object.entries(ui.downloads)) if (!ACTIVE_DOWNLOADS.includes(str(job.state))) delete ui.downloads[key];
+    command("model_download", { entry_id: id });
+  };
   box.replaceChildren(...ui.catalog.map((entry) => {
-    const job = ui.downloads[entry.id];
-    const state = job ? str(job.state) : "";
+    const jobs = rowJobs(entry.id);
+    const active = jobs.filter((j) => ACTIVE_DOWNLOADS.includes(str(j.state)));
+    const stopped = jobs.find((j) => j.state === "failed" || j.state === "cancelled");
     let status = el("span");
     /** @type {HTMLElement[]} */
     let actions = [];
@@ -145,16 +152,20 @@ function renderDownloads() {
       status = note("settings_model_delete_confirm", undefined, true);
       actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = ""; command("model_delete", { entry_id: entry.id }); renderDownloads(); }),
         button("download_cancel", "", () => { ui.confirmDelete = ""; renderDownloads(); })];
-    } else if (state === "queued" || state === "running") {
-      status = state === "queued" ? note("download_queued") : note("download_running", { percent: percentOf(job) });
-      actions = [button("download_cancel", "", () => command("download_cancel", { job_id: str(job.job_id) }))];
-    } else if (state === "verifying") {
-      status = note("download_verifying");
     } else if (entry.installed) {
       actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = entry.id; renderDownloads(); })];
-    } else if (state === "failed" || state === "cancelled") {
-      const error = job.error || {};
-      status = state === "failed" ? note(`error_${str(error.code)}`, error.values || {}, true) : note("download_cancelled");
+    } else if (active.length > 0) {
+      const states = active.map((j) => str(j.state));
+      const counted = jobs.filter((j) => j.state !== "failed" && j.state !== "cancelled");
+      status = states.includes("running") ? note("download_running", { percent: percentOf(counted) })
+        : states.includes("verifying") ? note("download_verifying") : note("download_queued");
+      const stoppable = active.filter((j) => j.state !== "verifying");
+      if (stoppable.length > 0) {
+        actions = [button("download_cancel", "", () => { for (const j of stoppable) command("download_cancel", { job_id: str(j.job_id) }); })];
+      }
+    } else if (stopped) {
+      const error = stopped.error || {};
+      status = stopped.state === "failed" ? note(`error_${str(error.code)}`, error.values || {}, true) : note("download_cancelled");
       actions = [button("download_resume", "resume", download(entry.id))];
     } else {
       actions = [button("settings_model_download", "download", download(entry.id))];
@@ -167,11 +178,23 @@ function renderDownloads() {
   }));
 }
 
-// percentOf: işin dosyalarının toplam yüzdesi, aşağı yuvarlanmış (`download_running`).
-/** @param {any} job */
-function percentOf(job) {
+const ACTIVE_DOWNLOADS = ["queued", "running", "verifying"];
+
+// rowJobs: bir dil modelinin satırının işleri: kendi işi ve katalogda dil modeli olmayan girdilerin (konuşma modelleri)
+// işleri; `model_download` onları dil modeliyle birlikte sıraya koyar (contract.md).
+/** @param {string} id @returns {any[]} */
+function rowJobs(id) {
+  const models = new Set(ui.catalog.map((e) => e.id));
+  return Object.values(ui.downloads).filter((j) => j.entry_id === id || !models.has(str(j.entry_id)));
+}
+
+// percentOf: işlerin dosyalarının toplam yüzdesi, aşağı yuvarlanmış (`download_running`).
+/** @param {any[]} jobs */
+function percentOf(jobs) {
   let done = 0, total = 0;
-  for (const f of Array.isArray(job.files) ? job.files : []) { done += num(f.done_bytes) ?? 0; total += num(f.total_bytes) ?? 0; }
+  for (const job of jobs) {
+    for (const f of Array.isArray(job.files) ? job.files : []) { done += num(f.done_bytes) ?? 0; total += num(f.total_bytes) ?? 0; }
+  }
   return total > 0 ? Math.floor((done * 100) / total) : 0;
 }
 
