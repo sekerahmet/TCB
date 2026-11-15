@@ -9,6 +9,7 @@ import (
 // Kural: dil tanımının "related" bağı (internal/lang/codes/definitions.json) ad kodları arasında `related` kenarıdır;
 // `query <ad>` akraba adları gösterir (deneme 8 S2: yazdır ↔ girdi, birleştir ↔ böl grafikte yoktu).
 func TestRelatedNamesAreLinked(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"internal/lang/codes/tr.json":          "{\n  \"TR_mem_split\": { \"name\": \"böl\", \"family\": \"x\" },\n  \"TR_mem_join\": { \"name\": \"birleştir\", \"family\": \"x\" }\n}\n",
 		"internal/lang/codes/definitions.json": "{\n  \"TR_mem_split\": { \"kind\": \"method\" },\n  \"TR_mem_join\": { \"kind\": \"method\", \"related\": [\"TR_mem_split\"] }\n}\n",

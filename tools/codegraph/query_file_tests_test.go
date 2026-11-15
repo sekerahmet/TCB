@@ -36,6 +36,7 @@ func testsForItems(t *testing.T, root, target, heading string) []string {
 // hedefle aynı klasördeki test önce, sonra ada göre (DENETİM 2026-10-29: `tests-for assign.go`'da düzenlenen paketin
 // ilk testi 140. satırdaydı). Koşulan küme değişmez: dosyanın grupları changed'in seçimidir.
 func TestAFileOrdersItsTestsLikeItsDeclarations(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, fileOrderFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
@@ -53,6 +54,7 @@ func TestAFileOrdersItsTestsLikeItsDeclarations(t *testing.T) {
 // Kural (DENETİM 104 N6): 0 adımlı da olsa [INFERRED] bir `tests` kenarı dosya düzeyindeki tests-for ve changed
 // çıktısında `direct` diye yazılmaz (`[INFERRED]` olarak ve EXTRACTED `direct` testlerden sonra yazılır).
 func TestInferredZeroStepEdgeIsNotWrittenAsDirect(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p/dispatch.go": "package p\n\nfunc Run(cmd string) {\n\tswitch cmd {\n\tcase \"check\":\n\t\thandleCheck()\n\t}\n}\n",
 		"p/cmd.go":      "package p\n\nfunc handleCheck() {}\n\nfunc DirectEntry() {}\n",

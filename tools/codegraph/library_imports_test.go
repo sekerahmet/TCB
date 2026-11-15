@@ -60,6 +60,7 @@ func TestEveryLibraryFile(t *testing.T) { _ = reporoot.Path("lib", "*.tr") }
 // testleri; kendi test dosyası aynı uzaklıkta önce). Adıyla ya da aktarmayla okuyan test kalıpla ve gömmeyle okuyanların
 // önünde yazılır; ön denetimin seçimi (changed --go-tests) aynı erişimi kullanır.
 func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
+	t.Parallel()
 	files := libraryImportFiles(t)
 	g, err := buildGraph(auditModule(t, files))
 	if err != nil {
@@ -114,6 +115,7 @@ func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
 // dosyanın bir testini) verir; Go testinin reporoot.Path ile verdiği `.tr` dosyasının geçişli kitaplık aktarmaları da
 // o testi verir. Aktarmalar codeindex'ten değil düz metinden okunur (anahtar sözcüğün adı codes'tan).
 func TestEveryLibraryImportOfARepositoryTestReachesTheLibraryFile(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	imp := regexp.MustCompile(`(?:` + regexp.QuoteMeta(codes.Source().Name(codes.KwImport)) + `|TR_import)\s+"((?:tr/)?[^"]+)"`)
@@ -220,6 +222,7 @@ func TestEveryLibraryImportOfARepositoryTestReachesTheLibraryFile(t *testing.T) 
 // lib/*.tr kalıbını okuyan bir test değil (önceden lib/pretrained.tr'nin altı testinden dördü lib/embedded.go üzerinden
 // geliyordu, asıl davranış testi yoktu).
 func TestALibraryFileListsItsBehaviourTestsFirst(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	checked := 0

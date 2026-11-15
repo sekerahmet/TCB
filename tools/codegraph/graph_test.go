@@ -19,6 +19,7 @@ const (
 )
 
 func TestGoNodes(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	for _, id := range []string{
 		"go:pkg:example.com/mini/shape", "go:file:shape/shape.go", describeID, squareArea, shapeArea,
@@ -36,6 +37,7 @@ func TestGoNodes(t *testing.T) {
 }
 
 func TestGoEdges(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	mustEdge(t, g, "go:pkg:example.com/mini/shape", "go:pkg:example.com/mini/internal/lang/messages", edgeImports, extracted)
 	mustEdge(t, g, twiceID, describeID, edgeCalls, extracted)
@@ -47,6 +49,7 @@ func TestGoEdges(t *testing.T) {
 }
 
 func TestCodeNodesAndUses(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	for _, n := range g.Nodes {
 		if n.ID == "msg:H0001" && (n.Detail != "first message {name}" || len(n.Params) != 1 || n.Line != 2) {
@@ -61,6 +64,7 @@ func TestCodeNodesAndUses(t *testing.T) {
 }
 
 func TestTestEdges(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	mustEdge(t, g, testDescID, "go:pkg:example.com/mini/shape", edgeTests, extracted)
 	mustEdge(t, g, testDescID, describeID, edgeTests, extracted) // check() yardımcısı üzerinden
@@ -71,6 +75,7 @@ func TestTestEdges(t *testing.T) {
 }
 
 func TestNameBasedTestEdgeIsInferred(t *testing.T) {
+	t.Parallel()
 	syms := map[string]string{"Describe": "a", "Square.Area": "b", "Square": "c"}
 	cases := map[string][]string{
 		"TestDescribe":      {"a"},
@@ -88,6 +93,7 @@ func TestNameBasedTestEdgeIsInferred(t *testing.T) {
 }
 
 func TestRules(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	mustEdge(t, g, "rule:README.md:7", testDescID, edgeGuardedBy, inferred) // kök belge, yol ipucu yok: depo geneli
 	mustEdge(t, g, "rule:README.md:11", testAreaID, edgeGuardedBy, extracted)
@@ -107,6 +113,7 @@ func TestRules(t *testing.T) {
 }
 
 func TestDocs(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	mustEdge(t, g, "heading:README.md#mini", "heading:README.md#rules", edgeContains, extracted)
 	mustEdge(t, g, "heading:README.md#rules", "heading:docs/guide.md#usage", edgeLinksTo, extracted)
@@ -126,6 +133,7 @@ func TestDocs(t *testing.T) {
 }
 
 func TestSlugify(t *testing.T) {
+	t.Parallel()
 	cases := map[string]string{
 		"Gönderim sırası: CPU ve GPU": "gönderim-sırası-cpu-ve-gpu",
 		"Yeni kod (ad) isteği":        "yeni-kod-ad-isteği",
@@ -139,6 +147,7 @@ func TestSlugify(t *testing.T) {
 }
 
 func TestEdgesHaveConfidenceAndEndpoints(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	ids := map[string]bool{}
 	for _, n := range g.Nodes {
@@ -155,6 +164,7 @@ func TestEdgesHaveConfidenceAndEndpoints(t *testing.T) {
 }
 
 func TestGraphIsDeterministic(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	if g.SchemaVersion != schemaVersion {
 		t.Errorf("schema_version = %d", g.SchemaVersion)
@@ -177,6 +187,7 @@ func TestGraphIsDeterministic(t *testing.T) {
 }
 
 func TestReadGraphRejectsOtherSchema(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "g.json")
 	if err := os.WriteFile(path, []byte(`{"schema_version": 99}`), 0o644); err != nil {
 		t.Fatal(err)
@@ -187,6 +198,7 @@ func TestReadGraphRejectsOtherSchema(t *testing.T) {
 }
 
 func TestConstAndVarNodes(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	const pkg = "example.com/mini/shape."
 	for _, n := range g.Nodes {
@@ -210,6 +222,7 @@ func TestConstAndVarNodes(t *testing.T) {
 // Kod sabiti (messages.H0001, codes.KwIf) kodun düğümüne bağlanır; kullanımları hem
 // uses_message/uses_name hem uses kenarıdır.
 func TestCodeConstantsDenoteCodes(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	msgConst := "go:const:example.com/mini/internal/lang/messages.H0001"
 	nameConst := "go:const:example.com/mini/internal/lang/codes.KwIf"
@@ -225,6 +238,7 @@ func TestCodeConstantsDenoteCodes(t *testing.T) {
 // değişip bağlar sessizce kaybolursa (kimliklere geçişte sabit adının biçimine bakan desen gibi) "kullanılmıyor" cevabı
 // yanlış olur; bu test düşer.
 func TestEveryNameCodeHasAUse(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	_, _, g := repoGraph(t)
 	used := map[string]bool{}
@@ -257,6 +271,7 @@ func TestEveryNameCodeHasAUse(t *testing.T) {
 // anlamsızdır, kurulumun sonunda silinir (gaps, "19 EXTRACTED kenar da `via: "arg"` taşıyor"; 6a289d84'te 27 EXTRACTED,
 // 361 INFERRED, DENETİM 358 Ş4). Yalnız argüman olan işlevin INFERRED kenarı işaretini korur; okuyan taraf değişmez.
 func TestAnExtractedCallCarriesNoArgMark(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, map[string]string{"app/app.go": `package app
 
 func leaf()  {}

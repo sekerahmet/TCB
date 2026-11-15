@@ -34,6 +34,7 @@ func beyondModule(t *testing.T) string {
 // yapar; tests-for'da hedefin kendi test dosyasındaki adıyla (koşu satırına da girer), kalanı tek satırda girişiyle
 // yazılır. Başka paketten gelen zincir sınırda kalır (TestOther yok).
 func TestATestBeyondTheStepLimitMakesAFunctionTestedAndIsSummarized(t *testing.T) {
+	t.Parallel()
 	root := beyondModule(t)
 	code, out, errOut := runCLI("untested", "--root", root, "--no-rebuild")
 	if code != exitOK || !strings.Contains(out, "11 non-test Go functions and methods: 11 tested") {
@@ -62,6 +63,7 @@ func TestATestBeyondTheStepLimitMakesAFunctionTestedAndIsSummarized(t *testing.T
 // Kural ("değişmedi" denetimi, DENETİM 363 Ş1): listeler sınırda kalır. changed --go-tests'in seçimi (testDistances),
 // tests-for'un zinciri (indirectTests) sınırın ötesindeki testi almaz; yalnız untested'ın kararı ve toplam satırı onu görür.
 func TestTheListsKeepTheStepLimit(t *testing.T) {
+	t.Parallel()
 	g, err := readGraph(filepath.Join(beyondModule(t), ".codegraph", "graph.json"))
 	if err != nil {
 		t.Fatal(err)

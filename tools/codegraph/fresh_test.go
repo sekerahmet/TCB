@@ -42,6 +42,7 @@ func buildInto(t *testing.T, root string) string {
 }
 
 func TestStampIsStableAndFollowsContent(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	a, err := sourceStamp(root)
 	if err != nil {
@@ -95,6 +96,7 @@ func appendTo(t *testing.T, file, text string) {
 // ve sorgu eski cevabı verir. Bağımsız kaynak çıkarıcının kendi çıktısıdır: fikstür grafiğindeki her düğümün dosyası
 // (Go, sözlük, belge, TR) ve her kenarın görüldüğü dosya (JavaScript yüklemesi, test yorumundaki anma) stamped olmalı.
 func TestStampCoversEverySourceTheGraphReads(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root) // testdata altında go list paket görmez
 	g, err := buildGraph(root)
@@ -132,6 +134,7 @@ func TestStampCoversEverySourceTheGraphReads(t *testing.T) {
 // Kaynak olmayan izlenen dosyanın içeriği girmez, varlığı girer (dosya düğümü); izlenmeyen dosyalardan yalnızca Go
 // kaynağı girer (grafik öbürlerini okumaz).
 func TestStampFollowsContentNotCommits(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, "tools/notes.txt", "not\n")
 	gitMust(t, root, "add", "-A")
@@ -166,6 +169,7 @@ func TestStampFollowsContentNotCommits(t *testing.T) {
 }
 
 func TestQueryRebuildsStaleGraph(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	code, _, errOut := commandIn("query", root, graph, "shape.Describe")
@@ -196,6 +200,7 @@ func TestQueryRebuildsStaleGraph(t *testing.T) {
 // satırla yazar; taze grafta ve çıkarıcı sürümü aynı grafta yazmaz. Çıkarıcı sürümü eski graf da bayattır. Düzenleme
 // kancası (tools/edithook) bu satırı görünce listeyi göstermez.
 func TestNoRebuildWarnsOnAStaleGraph(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	if code, _, errOut := commandIn("query", root, graph, "--no-rebuild", "shape.Describe"); code != exitOK || strings.Contains(errOut, staleNoRebuild) {
@@ -223,6 +228,7 @@ func TestNoRebuildWarnsOnAStaleGraph(t *testing.T) {
 }
 
 func TestQueryKeepsOldGraphWhenRebuildFails(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := gitFixture(t)
 	graph := buildInto(t, root)
@@ -239,6 +245,7 @@ func TestQueryKeepsOldGraphWhenRebuildFails(t *testing.T) {
 }
 
 func TestQueryWarnsWhenGitFails(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := gitFixture(t)
 	graph := buildInto(t, root)
@@ -253,6 +260,7 @@ func TestQueryWarnsWhenGitFails(t *testing.T) {
 }
 
 func TestChangedEntriesParsesRenames(t *testing.T) {
+	t.Parallel()
 	status := []byte(" M a.go\x00?? b.txt\x00R  new.md\x00old.md\x00A  c.json\x00")
 	var got []string
 	for _, e := range changedEntries(status) {
@@ -265,6 +273,7 @@ func TestChangedEntriesParsesRenames(t *testing.T) {
 }
 
 func TestRuleName(t *testing.T) {
+	t.Parallel()
 	cases := map[string]string{
 		"- **Katman sınırı.** Bir paket üsttekini bilmez.": "Katman sınırı",
 		"**Kural adı.** Gövde":                             "Kural adı",
@@ -284,6 +293,7 @@ func TestRuleName(t *testing.T) {
 // lib/ altında da olsa) ve .md grafiğe girmez; trlang index ise aynı dosyayı bulur (codeindex TestListFilesKeepsTwoRules;
 // DENETİM T1 gerilemesi).
 func TestGraphSkipsIgnoredFolders(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, ".gitignore", "scratch/\nlib/yerel/\n")
 	testkit.WriteFile(t, root, "lib/yerel/deneme.tr", "TR_func deneme_fonk() -> TR_Int {\n    TR_return 1\n}\n")

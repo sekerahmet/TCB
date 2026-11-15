@@ -50,6 +50,7 @@ func Guard()       { guarded.mu.Lock(); guarded.n++; guarded.mu.Unlock() }
 // Süreç geneli değişebilir durum: init dışında yazılan değişkenler, adı ve nasıl yazıldığıyla; yalnızca
 // okunanlar, init'te yazılanlar listelenmez; sync/atomic tipliler ayrı işaretlenir.
 func TestPackageStateListsProcessWideMutableVariables(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p.go":      stateSource,
 		"p_test.go": "package p\n\nimport \"testing\"\n\nfunc TestHook(t *testing.T) { hook = func() {} }\n",

@@ -16,6 +16,7 @@ import (
 // ve kullanımları codegraph'tan bağımsız, modülün tipleri ve sözdizimiyle bulunur; her kullanımın dosyasından o koda bir
 // kenar olmalı.
 func TestANameCodeAliasIsAUseOfTheCode(t *testing.T) {
+	t.Parallel()
 	root, m, g := repoGraph(t)
 	keys := codeConstKeys(root)
 	codesPkg := m.Path + "/" + codesDir

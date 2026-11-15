@@ -11,6 +11,7 @@ import (
 // dalın kodu hakkında bir cevap sanılıyordu (gaps, "`dups --changed` değişiklik yokken bunu söylemiyor", D1 15.5 devri).
 // Değişiklik varken satır çıkmaz; JSON biçimi değişmez.
 func TestDupsChangedSaysWhenThereIsNothingToScan(t *testing.T) {
+	t.Parallel()
 	root := branchWithCopy(t)
 	var out, errb bytes.Buffer
 	if code := run([]string{"dups", "--root", root, "--min", "60", "--changed", "main"}, &out, &errb); code != exitOK ||

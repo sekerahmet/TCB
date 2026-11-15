@@ -29,6 +29,7 @@ func siteAt(g *Graph, from, to, kind string, line int) *Site {
 }
 
 func TestFieldNodesAndAccessModes(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	for _, id := range []string{counterN, counterList, otherN} {
 		if !hasNode(g, id) {
@@ -59,6 +60,7 @@ func TestFieldNodesAndAccessModes(t *testing.T) {
 }
 
 func TestFieldsOfOtherTypesAreNotMixed(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	if siteAt(g, bumpID, counterN, edgeWritesField, 88) != nil {
 		t.Error("o.n = 9 belongs to Other.n, not Counter.n")
@@ -69,6 +71,7 @@ func TestFieldsOfOtherTypesAreNotMixed(t *testing.T) {
 }
 
 func TestClosureAccessesNameTheClosure(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	s := siteAt(g, bumpID, counterN, edgeReadsField, 94)
 	if s == nil || s.Closure == "" {
@@ -86,6 +89,7 @@ func TestClosureAccessesNameTheClosure(t *testing.T) {
 }
 
 func TestFieldsCommands(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "who-uses", "Counter.n")
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
@@ -105,6 +109,7 @@ func TestFieldsCommands(t *testing.T) {
 }
 
 func TestCaptures(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "captures", "shape.Bump")
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)

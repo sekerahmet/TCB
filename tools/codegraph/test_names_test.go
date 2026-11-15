@@ -18,6 +18,7 @@ import (
 // onlar her adı sayıp hiçbirini davranışıyla sınamaz. Yeni bir yerleşik eklenip testsiz bırakılırsa ya da bir testin
 // silinmesiyle bir ad testsiz kalırsa bu test düşer; bayat bir istisna da düşürür; liste yalnızca küçülür (onlyShrinks).
 func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	const maxUntestedNames = 2 // testdata/untested_names.txt: yalnızca küçülür (onlyShrinks)
 	_, _, g := repoGraph(t)    // sınavla paylaşılan yükleme
@@ -105,6 +106,7 @@ func Update() {
 // testleriyle sınanmış sayılır: `tests-for app.Save`, Save'i çağıran Update'in uyguladığı güncelle'nin TR test bloğunu
 // "tests through the name codes" altında verir.
 func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, nameTestFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
@@ -126,6 +128,7 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 // kodun TR testi (tr ikilisinde koşar) sayılmaya devam eder (TCB 2026-10-25, 3. madde: tr komutunun ana dosyasının
 // tests-for cevabının başında checker testleri vardı).
 func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
+	t.Parallel()
 	const m = "example.com/m"
 	g := &Graph{Module: m, Nodes: []Node{
 		{ID: pkgID(m + "/cmd/app"), Kind: kindPackage},
@@ -169,6 +172,7 @@ func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 // Doğrudan çağıran (`Update` → `Save`) eskisi gibi izlenir (DENETİM 279 Ş1: `interp.PathArg` kayıt işlevlerinden 16
 // alakasız kod alıyordu).
 func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
+	t.Parallel()
 	const m = "example.com/m"
 	fn := func(name string) string { return "go:func:" + m + "/app." + name }
 	g := &Graph{Module: m, Nodes: []Node{
@@ -227,6 +231,7 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 // stats.go'nun kendi testi (`New().Run(mustParseProgram(t, c.code))`, tablodan) ad koduna bağlanmıyordu, 40. sırada
 // çağrı zinciriyle "2 steps" geliyordu.
 func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	checked := 0
@@ -299,6 +304,7 @@ func listedChains(out string) []int {
 // Planlama sınavının hedef kümesinde (her TR işlevi, kullanılan her ad kodu, internal/stdlib'in her işlevi) ve her Go
 // dosyasında listelerdeki her "N steps" ≤ testMaxSteps.
 func TestNoChainIsLongerThanTheStepLimit(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	checked, bad := 0, 0

@@ -14,6 +14,7 @@ import (
 // `build` uyarısı hangi yapılandırmanın tiplerle okunduğunu söyler, boş kalan bir Go cevabı ("no uses") o dosyaları
 // not eder (bağımsız denetim Y4: who-uses H2154 system_error_unix.go'yu görmüyordu).
 func TestFilesOfOtherBuildConfigsAreReadWithoutTypes(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)
 	testkit.WriteFile(t, root, "shape/elsewhere_plan9.go", `//go:build plan9

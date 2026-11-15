@@ -29,6 +29,7 @@ var first, second = pick(), other()
 // Eskiden yalnız ilk ad kullanıyordu: `var display, active, displayErr, activeErr = startLanguages(...)`'te active'den
 // geçen zincir (codes.Codes → active → buildLanguage → tr.json) kopuktu ve listeyi gezen testler kayboluyordu.
 func TestEveryNameOfAValueSpecUsesItsOwnValue(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, tupleFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +54,7 @@ func TestEveryNameOfAValueSpecUsesItsOwnValue(t *testing.T) {
 // Kural: depodaki her çok adlı paket düzeyi belirtimde ortak değeri paylaşan adların kullanım kenarları aynıdır ve
 // kendi değeri bir çağrı olan her adın en az bir kenarı vardır. Bağımsız okuma: go/parser; kenarlar grafikten.
 func TestEveryMultiNameValueSpecInTheRepositoryHasItsUses(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t)
 	uses := map[string][]string{} // düğüm → kullanım kenarlarının hedefleri (inits_var ve contains hariç)
 	for _, e := range g.Edges {

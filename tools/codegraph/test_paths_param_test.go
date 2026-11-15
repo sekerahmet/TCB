@@ -12,6 +12,7 @@ import (
 // üretim kodundaki okuma bağlanmaz. Yorumda "/" sonrası gelen yol kuyruğu (`docs/README.md`) paket dosyasını anmaz, çıplak
 // dosya adı yorumu (`app.go`) anar.
 func TestBareReadCallsAndSlashTailComments(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"README.md":          "# root\n",
 		"docs/README.md":     "# docs\n",
@@ -111,6 +112,7 @@ func TestMissingInPkgDoesNotLinkRoot(t *testing.T) {
 // çıktıda göstermiyor": buildGraph'a ulaşan 172 test sınav dosyasının okuyucusu sayılıyordu). Sabiti kökten okuyan kod
 // (`os.ReadFile(sabit)`) okuma olarak kalır.
 func TestAPathJoinedToAParameterRootIsNotTheCallersRead(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"data/list.txt":   "a\n",
 		"data/table.md":   "# t\n",
@@ -165,6 +167,7 @@ func TestDirect(t *testing.T) { Direct() }
 // klasöründeki izlenen betiğe bağlanır; `cmd.Dir = tmp`, `-C` veya betik uzantısız çıplak argümanlar (`README.md`,
 // `model.tr`, `--list`) bağ kurmaz (Madde 1).
 func TestExecCommandAndFilepathAbsBareScripts(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"run.py":                   "print(0)\n",
 		"bench/run.py":             "print(1)\n",

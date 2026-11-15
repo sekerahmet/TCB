@@ -18,6 +18,7 @@ const (
 )
 
 func TestTRNodes(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	line := func(text string) int { return modLine(t, geo, text) }
 	want := map[string]int{
@@ -48,6 +49,7 @@ func TestTRNodes(t *testing.T) {
 }
 
 func TestTREdges(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	test1, test2 := modTest(t, "lib/geo_test.tr", "kare alanı yazılır"), modTest(t, "lib/geo_test.tr", "çevre")
 	mustEdge(t, g, geoYaz, geoCevre, edgeCalls, extracted)
@@ -74,6 +76,7 @@ func TestTREdges(t *testing.T) {
 }
 
 func TestTRSyntaxErrorIsAWarning(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	if !hasNode(g, "tr:file:examples/broken.tr") {
 		t.Error("a file with a syntax error still has a file node")
@@ -88,6 +91,7 @@ func TestTRSyntaxErrorIsAWarning(t *testing.T) {
 }
 
 func TestTRQueries(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "query", "Kare")
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
@@ -109,6 +113,7 @@ func TestTRQueries(t *testing.T) {
 
 // Kodlu biçimli (başlıklı) dosya gösterim metniyle okunur: satırlar dosyadaki gerçek satırdır (başlık satırı sayılır).
 func TestTRCodedFile(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	const fn = "tr:func:examples/coded.tr:kodlu_işlev"
 	found := false
@@ -129,6 +134,7 @@ func TestTRCodedFile(t *testing.T) {
 // Parametreler grafikte düğümdür (tr_param): sahibinden `contains`, varsayılan değer metniyle; adlı
 // argüman olarak geçtiği yerler `who-uses` ile bulunur.
 func TestTRParametersAndNamedArguments(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	const param = "tr:param:lib/geo.tr:Kare.TR_ctx_init.kenar"
 	found := false
@@ -148,6 +154,7 @@ func TestTRParametersAndNamedArguments(t *testing.T) {
 
 // Bilerek sözdizimi hatalı yazılan hata örnekleri (examples/tr/hatalar) uyarı değildir.
 func TestErrorExamplesAreNotWarnings(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	for _, w := range g.Warnings {
 		if strings.Contains(w, "examples/hatalar/") {

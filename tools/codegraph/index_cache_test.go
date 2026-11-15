@@ -35,6 +35,7 @@ func cacheGraph(asArg bool, dir string) *Graph {
 // Kural (hız işi, önbellek): önbellekten dönen çağıranlar her an önbelleksiz kurulanla aynıdır. Anahtar kimlik ve
 // yürüyüştür (argümanı izleyen ve izlemeyen aynı düğümde farklıdır); tests-for'un yürüyüşleri dilimi değiştirmez.
 func TestCachedCallersStayAsBuilt(t *testing.T) {
+	t.Parallel()
 	g := cacheGraph(true, "app")
 	ix := newIndex(g)
 	leaf := "go:func:example.com/m/app.leaf"
@@ -60,6 +61,7 @@ func TestCachedCallersStayAsBuilt(t *testing.T) {
 // Kural (hız işi, önbellek): önbellek indeksin içindedir. Aynı süreçte aynı kimlikli iki graf kendi kenarlarını ve
 // klasörlerini görür.
 func TestTwoGraphsWithTheSameIDsHaveTheirOwnCallers(t *testing.T) {
+	t.Parallel()
 	a, b := newIndex(cacheGraph(true, "app")), newIndex(cacheGraph(false, "other"))
 	leaf := "go:func:example.com/m/app.leaf"
 	if got := a.nameCallersOf(leaf); len(got) != 0 {

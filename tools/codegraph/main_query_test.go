@@ -14,6 +14,7 @@ import (
 // içine derlendiği için ikili bozuk listeyle derlenir; kökün kendi tr.json'u da bozuktur (ad
 // kodlarını codegraph oradan okur).
 func TestABrokenLanguageFileLeavesTheGoAnswers(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("codegraph'ı yeniden derler")
 	}
@@ -32,6 +33,7 @@ func TestABrokenLanguageFileLeavesTheGoAnswers(t *testing.T) {
 // Kural: dil dosyasında (internal/lang/codes/tr.json) definitions.json'da olmayan geçici bir kod varken
 // trSkipped uyarısı iç hata başlığında kesilmez; eksik kodun adını, dosyasını ve çaresini söyler.
 func TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy(t *testing.T) {
+	t.Parallel()
 	repoRoot, err := resolveRoot("")
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +71,7 @@ func TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy(t *testing.T) {
 // grafikle sorulan tests-for tek satır uyarı yazar, eski grafikle cevabı verir ve çıkış 0 döner; build ya da
 // grafik yokken tek satır hata yazar ve sıfır dışı çıkar.
 func TestUndefinedMessageSlotKeepsStaleGraphAndExitsOnBuild(t *testing.T) {
+	t.Parallel()
 	repoRoot, err := resolveRoot("")
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +122,7 @@ func TestUndefinedMessageSlotKeepsStaleGraphAndExitsOnBuild(t *testing.T) {
 // Square'in alanı Side'dır, `Square.area` yalnız harf katlamasıyla Area metoduna uyar: --mode ile cevap "not found"dur
 // (çıkış 4), metodun kullanımları verilmez. Gerçek alan --mode ile cevaplanır.
 func TestWhoUsesModeResolvesOnlyFields(t *testing.T) {
+	t.Parallel()
 	code, out, errOut := cli(t, "who-uses", "Square.area", "--mode", "write")
 	if code != exitNotFound {
 		t.Fatalf("exit %d, want %d (no field matches)\n%s%s", code, exitNotFound, out, errOut)
@@ -138,6 +142,7 @@ func TestWhoUsesModeResolvesOnlyFields(t *testing.T) {
 // çıkış 2 verir ve aynı soruyu soran `who-uses` satırını yazar (--mode verildiyse onunla). İletideki komut koşulunca
 // alanın erişimleri gelir: eskiden `fields <alan>`'ın verdiği çıktı (`who-uses`'la aynı yazıcı).
 func TestFieldsOfAFieldNamesTheWhoUsesLine(t *testing.T) {
+	t.Parallel()
 	const prefix = "go run ./tools/codegraph "
 	for _, tc := range []struct {
 		args []string
@@ -169,6 +174,7 @@ func TestFieldsOfAFieldNamesTheWhoUsesLine(t *testing.T) {
 // (çıkış 0) ve bunu stderr'e yazar; alan sorusu sanılan cevap bir metodun çağıranlarıydı. Tam harfle uyan ad (alan ya
 // da metot) not almaz.
 func TestWhoUsesSaysAFoldedMatchIsNotAField(t *testing.T) {
+	t.Parallel()
 	code, out, errOut := cli(t, "who-uses", "Square.area")
 	if code != exitOK || !strings.HasPrefix(out, "shape.Square.Area [method]") {
 		t.Fatalf("exit %d: the answer is still given\n%s", code, out)

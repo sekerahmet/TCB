@@ -62,6 +62,7 @@ func Peek() int { return a.Exported }
 // öğe/alan yazımı, delete, adres alma, sync/atomic ve başka paketten nitelikli yazım `writes_var`; okumalar
 // `reads_var`; `init` işlevindeki yazım ve değişkenin başlatıcısı `inits_var`. Kip kenarın erişim yerlerinde durur.
 func TestPackageVariablesSeparateReadsFromWrites(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, varAccessFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -116,6 +117,7 @@ func TestPackageVariablesSeparateReadsFromWrites(t *testing.T) {
 // Kural: `package-state` ve grafik "yazma nedir" kuralını paylaşır (writeTargets): package-state'in yazanları (init ve
 // başlatıcı hariç) grafikteki `writes_var` erişim yerleriyle birebir aynıdır, hiçbiri fazla ya da eksik değildir.
 func TestPackageStateAndGraphAgreeOnWriters(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, varAccessFiles)
 	g, err := buildGraph(root)
 	if err != nil {

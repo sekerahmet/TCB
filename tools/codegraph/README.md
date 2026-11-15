@@ -790,7 +790,11 @@ dictionaries, a README with rules, a doc with links, a broken link). Tests that 
 a temporary git repository take several seconds each, so they call `slowFixture` and are skipped
 by `-short`: `go test -short ./tools/codegraph` takes about 150 s, the full run about 260 s (2026-10-26, Windows; the
 repository graph is built once per run and shared, `repoGraph`). The full check (`tools/full_check.sh`) runs Go tests
-with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
+with `-short`; the skipped ones run in the `--kip=uzun` mode (CI). The tests run in parallel: every top-level test
+calls `t.Parallel()` first, except a test that sets the environment or the working directory (`Setenv`, `Unsetenv`,
+`Chdir`), itself or through a helper; Go would stop it (`TestCodegraphTestsRunInParallel`). On 2026-11-15, on G4, the
+package took 154.7 s in one process and 53.9 s with its tests spread over four (the longest test, the planning exam,
+44.8 s alone).
 
 - `extractor_digest_test.go`: `testdata/extractor_digest.txt` records the extractor revision and a
   digest of the extractor sources (comments and formatting do not count). If the code changes,
@@ -807,7 +811,8 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
   stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
   scan `deleted` reads.
 - `changed_distance_test.go`: `changed --go-tests --by-distance` gives the plain form's tests, near before far.
-- `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
+- `main_test.go`: the help text, the retired commands (`explain`, `history`) naming their replacement, and every test
+  of the package calling `t.Parallel()` first.
 - `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
   spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),
   which must agree. A spelling not in the golden file yet whose answer is `ok` does not fail the test: it is logged as

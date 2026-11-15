@@ -1,16 +1,23 @@
 package main
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Kural: `help`'in changed satırı ucu çıkış yapılmış HEAD olan farkın çalışma ağacına kadar alındığını söyler (gaps,
 // "`changed`'in `help` satırı çalışma ağacını söylemiyor": yalnız README söylüyordu, yan oturumlar `changed HEAD`'i
 // istek olarak yazdı; kural changeHunks'ta).
 func TestHelpSaysChangedHeadReadsTheWorkingTree(t *testing.T) {
+	t.Parallel()
 	var out, errOut strings.Builder
 	if code := run([]string{"help"}, &out, &errOut); code != exitOK {
 		t.Fatalf("help: exit %d: %s", code, errOut.String())
@@ -31,6 +38,7 @@ func TestHelpSaysChangedHeadReadsTheWorkingTree(t *testing.T) {
 // bulan `query` adımını ve her ad türü için sabitlenmiş `git log` biçimini verir. İletideki her biçim git'li fikstür
 // deposunda bir kez koşar ve o bildirimi (dosyayı, kodu) değiştiren commit'i verir, öbürünü vermez.
 func TestRetiredCommandsNameTheirReplacement(t *testing.T) {
+	t.Parallel()
 	var out, errOut strings.Builder
 	if code := run([]string{"explain", "shape.Square.Area"}, &out, &errOut); code != exitUsage || out.Len() != 0 {
 		t.Fatalf("explain: exit %d, want %d; stdout %q", code, exitUsage, out.String())
@@ -95,4 +103,110 @@ func TestRetiredCommandsNameTheirReplacement(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Kural: paketin üst testleri ilk satırda t.Parallel() çağırır; paket G4'te tek süreçte 154,7 sn sürüyordu, en uzun
+// iş önce dağıtılınca 53,9 sn (codegraph 7 Dilim C, K1). Süreç genelini değiştiren test sırayla kalır: gövdesinde ya da
+// paket içinden çağırdığı bir yardımcıda Setenv, Unsetenv ya da Chdir varsa (Go böyle bir testte ya da onun bir
+// üstünde t.Parallel()'i panikle durdurur). Seçim çağrıya bakar, metne değil: ters tırnaklı fikstürlerdeki
+// t.Setenv (env_names_test.go) sayılmaz.
+func TestCodegraphTestsRunInParallel(t *testing.T) {
+	t.Parallel()
+	fset := token.NewFileSet()
+	paths, err := reporoot.Glob("*_test.go")
+	if err != nil || len(paths) < 50 {
+		t.Fatalf("test files: %d, %v", len(paths), err)
+	}
+	funcs := map[string]*ast.FuncDecl{}
+	for _, p := range paths {
+		f, err := parser.ParseFile(fset, p, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, d := range f.Decls {
+			if fd, ok := d.(*ast.FuncDecl); ok && fd.Recv == nil && fd.Body != nil {
+				funcs[fd.Name.Name] = fd
+			}
+		}
+	}
+	sequential := processWideTests(funcs)
+	var stay []string
+	for name, fd := range funcs {
+		p := testingTParam(fd)
+		if !strings.HasPrefix(name, "Test") || p == "" {
+			continue
+		}
+		first := len(fd.Body.List) > 0 && isParallelCall(fd.Body.List[0], p)
+		switch {
+		case sequential[name]:
+			stay = append(stay, name)
+		case !first:
+			t.Errorf("%s: %s does not call %s.Parallel() first; the tests of this package run in parallel, only a test that sets the environment or the working directory (Setenv, Unsetenv, Chdir), itself or through a helper, stays sequential", fset.Position(fd.Pos()), name, p)
+		}
+	}
+	slices.Sort(stay)
+	if want := []string{"TestQueryFromSubdirectoryUsesRootGraph", "TestTRGraphIsIndependentOfTheActiveLanguage"}; !slices.Equal(stay, want) {
+		t.Errorf("sequential tests %v, want %v: a new one needs its reason here", stay, want)
+	}
+}
+
+// processWideTests gövdesinde ya da çağırdığı paket içi bir işlevde Setenv, Unsetenv ya da Chdir çağrısı olan
+// işlevlerdir (sabit noktaya kadar).
+func processWideTests(funcs map[string]*ast.FuncDecl) map[string]bool {
+	marked := map[string]bool{}
+	for changed := true; changed; {
+		changed = false
+		for name, fd := range funcs {
+			if marked[name] {
+				continue
+			}
+			ast.Inspect(fd.Body, func(n ast.Node) bool {
+				c, ok := n.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				switch fn := c.Fun.(type) {
+				case *ast.SelectorExpr:
+					marked[name] = marked[name] || fn.Sel.Name == "Setenv" || fn.Sel.Name == "Unsetenv" || fn.Sel.Name == "Chdir"
+				case *ast.Ident:
+					marked[name] = marked[name] || marked[fn.Name]
+				}
+				return true
+			})
+			changed = changed || marked[name]
+		}
+	}
+	return marked
+}
+
+// testingTParam tek parametresi *testing.T olan işlevde o parametrenin adıdır; değilse boş.
+func testingTParam(fd *ast.FuncDecl) string {
+	ps := fd.Type.Params.List
+	if len(ps) != 1 || len(ps[0].Names) != 1 {
+		return ""
+	}
+	if st, ok := ps[0].Type.(*ast.StarExpr); ok {
+		if sel, ok := st.X.(*ast.SelectorExpr); ok && sel.Sel.Name == "T" {
+			return ps[0].Names[0].Name
+		}
+	}
+	return ""
+}
+
+// isParallelCall deyim p.Parallel() mi.
+func isParallelCall(s ast.Stmt, p string) bool {
+	es, ok := s.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	c, ok := es.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := c.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Parallel" {
+		return false
+	}
+	id, ok := sel.X.(*ast.Ident)
+	return ok && id.Name == p
 }

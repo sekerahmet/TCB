@@ -18,6 +18,7 @@ const helperOut = "CODEGRAPH_TEST_GRAPH_OUT"
 // TestHelperBuildFixture bir test değil, alt süreçtir: HELPER çıktı yolunu verirse fikstürün
 // grafiğini oraya yazar.
 func TestHelperBuildFixture(t *testing.T) {
+	t.Parallel()
 	out := os.Getenv(helperOut)
 	if out == "" {
 		t.Skip("alt süreç yardımcısı")
@@ -78,6 +79,7 @@ func TestTRGraphIsIndependentOfTheActiveLanguage(t *testing.T) {
 // kayıtlıdır. TR çıkarımı başka pakete taşınırken değişmemesi gereken sözleşmedir; -update ile
 // yeniden yazılır.
 func TestTRFactsGolden(t *testing.T) {
+	t.Parallel()
 	got := strings.Join(trFacts(fixture(t)), "\n") + "\n"
 	path := filepath.Join("testdata", "tr_facts.golden")
 	if *updateGolden {

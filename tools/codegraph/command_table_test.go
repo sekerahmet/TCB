@@ -16,6 +16,7 @@ import (
 // yani bir satırın komut sütunundaki ilk ters tırnaklı parçanın ilk sözcüğüdür; her satırın o sözcüğü de
 // bilinen bir komuttur.
 func TestCommandTableMatchesUsage(t *testing.T) {
+	t.Parallel()
 	// Tabloda yer alması gerekmeyen usage komutları:
 	// - build: grafik gerektiğinde kendiliğinden kurulur (README.md: "Nobody has to remember `build`.").
 	exempt := map[string]string{
@@ -159,6 +160,7 @@ var flowValues = map[string]bool{"gate": true, "hook": true, "agent rules": true
 // dosyalarındaki `codegraph(<kök>, "<komut>", ...)` çağrısı. agent rules depo dışındaki belgelere dayanır: onda yalnız
 // kümeye bakılır. merge audit (birleşme başına K5 raporu) 2026-11-15'te durdu, değer kümeden çıktı (codegraph eksiklerinin "Sıradaki iş" bölümü).
 func TestCommandTableFlowsMatchTheGateAndHook(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	data, err := os.ReadFile("README.md")
 	if err != nil {
@@ -251,6 +253,7 @@ func hookCommands(t *testing.T, dir string) map[string]bool {
 // Kapının iki çağrı biçimi de sayılır (DENETİM 695 N2): kancanın yolu kalkıp yalnız derlenmiş ikili kalsa da komut
 // kapıda sayılır; yorumda ya da satır sonu yorumunda anılan komut sayılmaz (DENETİM 682 N3).
 func TestGateCommandsCountBothCallFormsAndSkipComments(t *testing.T) {
+	t.Parallel()
 	path := testkit.WriteFile(t, t.TempDir(), "full_check.sh", "# codegraph dups --changed, then go run ./tools/edithook codegraph untested\n"+
 		"\tout=$(\"$bin\" spec-refs 2>&1) || code=$?\n"+
 		"\tout=$(go run ./tools/edithook codegraph changed --go-tests --base HEAD HEAD) # go run ./tools/edithook codegraph similar\n"+

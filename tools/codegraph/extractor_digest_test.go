@@ -71,6 +71,7 @@ func extractorDigest(t *testing.T) string {
 // (graph.go) bilinçli olarak artırıldığını ya da değişikliğin grafiğin içeriğini
 // etkilemediğinin onaylandığını zorlar: özet ile revizyon çifti testdata'da kayıtlıdır.
 func TestExtractorRevisionFollowsExtractorCode(t *testing.T) {
+	t.Parallel()
 	digest := extractorDigest(t)
 	want := fmt.Sprintf("revision %d\ndigest %s\n", extractorRevision, digest)
 	data, err := os.ReadFile(filepath.FromSlash(digestFile))

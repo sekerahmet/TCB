@@ -45,6 +45,7 @@ func TestBetaThroughHelper(t *testing.T) { _ = runIt("beta") }
 // işlevine ulaşıyorsa, kolun çağırdıklarını doğrudan sınar: komut adıyla çalıştırılan komutun işlevi o testin doğrudan
 // testidir (eksikler listesi, ince ayar: query_fields.go'nun en yakın testi 5 adımdı). Başka kolun işlevi o testin olmaz.
 func TestACommandRunByNameIsTestedDirectly(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, caseFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -102,6 +103,7 @@ func TestDeadKeepsMarkers(t *testing.T) { _ = Run([]string{"dead"}) }
 // TestDeadMethodsKeepsMarkerInterfaceMethods'u).
 // Test aynı pakette olsa da sayılır. Kolun işlevinden çağrılmayan, aynı dosyadaki orphan bağlanmaz (DENETİM 708 Ş2).
 func TestACommandCaseTestReachesWhatTheCaseCalls(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, caseChainFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -133,6 +135,7 @@ func TestACommandCaseTestReachesWhatTheCaseCalls(t *testing.T) {
 // Kural: codegraph'ın kendi komutları için de: `answer`'ın her dize kolunun çağırdığı işlevin, kolun değerini taşıyan bir
 // test varsa en az bir doğrudan testi vardır. Kollar ve testlerdeki metinler go/parser ile bağımsız okunur.
 func TestEveryCodegraphCommandIsTestedDirectlyByTheTestsThatNameIt(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	carried := map[string]bool{} // test dosyalarındaki dize değişmezleri
 	files, err := reporoot.Glob("*_test.go")

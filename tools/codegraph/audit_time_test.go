@@ -76,6 +76,7 @@ func TestPlain(t *testing.T) {
 // Duvar saati tavanları: dosya:satır, test adı ve sabit; iki ölçümü birbirine bağlayan karşılaştırma ve
 // süreyle ilgisiz karşılaştırmalar listelenmez.
 func TestTimeCeilingsListsConstantCeilings(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{"p.go": "package p\n", "p_test.go": timeTestSource})
 	res := auditJSON(t, "time-ceilings", root)
 	got := map[string]string{}

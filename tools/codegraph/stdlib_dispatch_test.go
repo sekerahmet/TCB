@@ -70,6 +70,7 @@ func Plain(k Code) string { return fmt.Sprint(uint16(k)) }
 // dilim öğesinden, gösterici argümandan, dönüşümden ve çağrı sonucundan çözülür; temel tipe dönüştürülmüş değer
 // (`uint16(k)`) metodunu taşımaz (eksikler listesi kritik 3: codes.Code.String fmt ile, profiler.Snapshot.Start JSON ile).
 func TestStandardLibraryDispatchIsAUseWithItsRole(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, stdlibFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +104,7 @@ func TestStandardLibraryDispatchIsAUseWithItsRole(t *testing.T) {
 // küme çıkarıcıdan bağımsız, tam go/types ile (Info.Types: her argümanın tipi) kurulur; çıkarıcı tip bilgisi
 // yüklemeden çözer, çözemediği argüman biçimi burada eksik çıkar.
 func TestEveryStandardLibraryDispatchHasAnEdge(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	m, err := goload.Load(root, goload.Options{Types: true, Selections: true})
 	if err != nil {

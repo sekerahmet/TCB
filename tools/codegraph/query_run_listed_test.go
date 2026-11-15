@@ -21,6 +21,7 @@ func runLines(out string) []string {
 // Kural: -run listesi commandLineLimit'i aşınca ağır olmayan paketler bütün koşar (ön denetimin kuralı), ağır paket
 // (heavyTestPackages) -run'sız önerilmez: sığan ilk adlar yazılır, kalanı sayılır (DENETİM 358 Ş2).
 func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
+	t.Parallel()
 	want := []string{"cmd/trlang/e2e", "internal/compute/gpu", "internal/detmath", "internal/lang/parser",
 		"internal/stdlib/httpserver", "internal/stdlib/process", "tools/codegraph"} // K2: G4'te 30 sn ya da dizüstünde 2 dakika
 	if !slices.Equal(heavyTestPackages, want) {
@@ -50,6 +51,7 @@ func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
 // kanca `go test -short ./tools/codegraph/`'ı durduruyordu): o paketteki yakın testler adlandırılır, satır bunu söyler.
 // Hiçbir `run:` komutu ağır bir paketi bütün olarak koşmaz; K2 ile giren `httpserver` de.
 func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
@@ -87,6 +89,7 @@ func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) 
 // koşar: `go run ./cmd/trlang test <dosya1> <dosya2> ...` (gaps: lib/whisper.tr'nin run: satırı yoktu; lib/audio.tr'nin
 // doğrusu `trlang test lib/audio_test.tr`, S1 2026-11-05). Dolaylı TR testleri satıra girmez (codegraph 7 A1).
 func TestATRModuleRunLineRunsItsListedTRTestFiles(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
@@ -112,6 +115,7 @@ func TestATRModuleRunLineRunsItsListedTRTestFiles(t *testing.T) {
 // `go run ./cmd/trlang test ...` satırıyla koşar; TR testi olmayan Go dosyasında (`root.go`) bu satır çıkmaz ve negatif
 // fikstürler (`tests/negative/*.tr`) `trlang test` satırına girmez (Madde 5, DENETİM 510 N3).
 func TestGoFileRunLineRunsListedTRTestsOnlyWhenPresent(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
@@ -168,6 +172,7 @@ func TestGoFileRunLineRunsListedTRTestsOnlyWhenPresent(t *testing.T) {
 // Kural: çıktıda listelenen `Benchmark*` ölçümleri (`definitions.json`, `36_karakter_modeli.tr`) hiçbir `run:`
 // satırına sızmaz (Madde 6, DENETİM 510 Ş4).
 func TestBenchmarksNeverLeakIntoRunLines(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
@@ -203,6 +208,7 @@ func TestBenchmarksNeverLeakIntoRunLines(t *testing.T) {
 // cevabın satırları --list cevabının başıdır ve koşu satırları aynıdır; gruplara gönderen satır --list'e gönderir (S8).
 // Testi bulunmayan düğümün cevabı (dal satırı) kısa kipte de tamdır.
 func TestTestsForShowsTheRunAndSizeLinesUnlessListed(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	ask := func(args ...string) string {
