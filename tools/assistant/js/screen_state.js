@@ -158,6 +158,7 @@ const ui = {
   state: "idle",
   mic: false,
   progress: /** @type {number|null} */ (null),
+  verifying: false, // `loading`'in `verifying`'i: açılışta model dosyaları denetleniyor
   conn: "connecting", // connecting, open, reconnecting, auth, forbidden, rejected, mismatch, pair_invalid, pair_used, lost
   connValues: /** @type {Record<string, unknown>} */ ({}),
   model: "",
@@ -168,6 +169,8 @@ const ui = {
   metrics: /** @type {Record<string, unknown>} */ ({}),
   settings: /** @type {Record<string, unknown>} */ ({}),
   catalog: /** @type {{id: string, name: string, installed: boolean}[]} */ ([]),
+  downloads: /** @type {Record<string, any>} */ ({}), // girdi başına son `download` olayı
+  confirmDelete: "", // Sil'in onayını soran satırın girdisi
   microphones: /** @type {string[]|null} */ (null), // `devices`'in listesi; gelmediyse null
   devicesAsked: false,
   recordingNote: false, // kayıt bu sayfadan açıldı, bir sonraki tur başlamadı

@@ -8,6 +8,9 @@ TR_import "esleme"
 
 TR_const _SÜRÜM = 2
 TR_const _CEVAP_BEKLEMESİ = 0.005 # işleyicinin ana döngünün cevabına bakışı (sn)
+# Sözleşmenin komutları (contract.md, "Komutlar").
+TR_const _KOMUTLAR = ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set", "devices_list", "model_download",
+    "download_cancel", "model_delete"]
 # `script-src` sayfanın meta etiketindekiyle aynıdır (contract.md, "Sunulan dosyalar"); `file:` yalnız sahte kipte geçer.
 TR_const _CSP = "frame-ancestors 'none'; connect-src 'self'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:"
 
@@ -73,9 +76,7 @@ TR_func komut_al(e: Ekran, istek: TR_Request) -> TR_Response {
     TR_var veri = j.TR_get("data")
     TR_if t == TR_none TR_or TR_Type(t) != TR_String { TR_return ret(400, k, "bad_request", TR_JSON({})) }
     TR_var ad = TR_String(t)
-    TR_if TR_not ["send_text", "mic_set", "approval_answer", "stop", "model_load", "settings_set", "devices_list"].TR_contains(ad) {
-        TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad}))
-    }
+    TR_if TR_not _KOMUTLAR.TR_contains(ad) { TR_return ret(400, k, "unknown_command", TR_JSON({"type": ad})) }
     TR_var d = TR_if veri == TR_none { TR_JSON({}) } TR_else { veri }
     TR_if TR_not geçerli(ad, d) { TR_return ret(400, k, "bad_request", TR_JSON({})) }
     TR_var c = Komut(kimlik: k, tür: ad, veri: d)
@@ -91,7 +92,8 @@ TR_func geçerli(ad: TR_String, d: TR_JSON) -> TR_Bool {
         "send_text" => "text"
         "mic_set" => "on"
         "approval_answer" => "approval_id"
-        "model_load" => "entry_id"
+        "model_load", "model_download", "model_delete" => "entry_id"
+        "download_cancel" => "job_id"
         "settings_set" => "key"
         _ => ""
     }

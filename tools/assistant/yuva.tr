@@ -4,14 +4,16 @@
 #   status 6.10). Yükleme bir işlevin içinde koşar (`yükle`): görev ve ara yereller o işlevde kalır, sonucu o alana
 #   koyan `iş`'tir. Program modeli her kullanımda o alandan okur, ayrı bir adla tutmaz.
 # - Dost klasörü ayar dosyasının klasörüdür; yükleme işareti (`yukleme.json`) ve modeller (`modeller/<kimlik>/`) orada.
-# - Bir girdi, katalogdaki her dosyası `modeller/<kimlik>/<target>` olarak varsa ve boyu katalogdakine eşitse
-#   kuruludur. sha256 ve revizyon indirmenin kaydıyla gelir; bu tanımın yerine geçer.
+# - Bir girdi indirmenin kaydıyla (`modeller/<kimlik>/kurulu.json`) kuruludur: kayıttaki her dosyanın sha256'sı ve boyu
+#   katalogdakine, diskteki boyu ve değişme zamanı kayıttakine eşit. Kayıt yoksa ya da disk tutmuyorsa dosyalar karılır
+#   (`kurulu`); indirme ve kayıt indirme.tr'dedir.
 TR_import "katalog"
 TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
 
 TR_const _İŞARET = "yukleme.json"
+TR_const _KAYIT = "kurulu.json"
 
 # Takım: bir yüklemenin modelleri: dil modeli ve konuşma dilinin modelleri (yazıya çeviren, VAD, ses), dosya yollarıyla.
 # `giriş` dil modelinin katalog kimliğidir; komut satırından verilen yollarda "".
@@ -65,14 +67,107 @@ TR_func _ham(kj: TR_JSON, kimlik: TR_String) -> TR_JSON? {
     TR_return TR_none
 }
 
-# kurulu: girdinin her dosyası Dost klasöründe ve boyu katalogdakine eşit mi.
-TR_func kurulu(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Bool {
-    TR_var g = _ham(kj, kimlik)
-    TR_if g == TR_none { TR_return TR_false }
+# _karmalar: bu oturumda karılıp katalogla tutmayan girdiler; anahtar klasör, kimlik ve dosyaların boyu ve zamanı
+# (`_durum`). Dosya değişince anahtar değişir, yeniden karılır; tutan girdinin kaydı yazılır, burada durmaz.
+TR_var _karmalar: TR_Dict[TR_String, TR_Bool] = {}
+
+# yol_parçası_mı: tek yol parçası: boş, `.`, `..` değil, ayırıcı taşımıyor (DENETİM 768 N4, 778 N3). Katalogun `id`'si
+# ve `target`'ı kaydın, taşımanın ve silmenin yollarına girer; başka parça Dost klasörünün dışına yazdırırdı.
+TR_func yol_parçası_mı(x: TR_String) -> TR_Bool {
+    TR_return x != "" TR_and x != "." TR_and x != ".." TR_and TR_Path(x).TR_name == x
+}
+
+# yollar_doğru: girdinin `id`'si ve her `target`'ı tek yol parçası.
+TR_func yollar_doğru(g: TR_JSON) -> TR_Bool {
+    TR_if TR_not yol_parçası_mı(TR_String(g["id"])) { TR_return TR_false }
+    TR_for f TR_in g["source"]["files"] {
+        TR_if TR_not yol_parçası_mı(TR_String(f["target"])) { TR_return TR_false }
+    }
+    TR_return TR_true
+}
+
+TR_func kayıt_yolu(klasör: TR_String, kimlik: TR_String) -> TR_String { TR_return TR_String(TR_Path(girdi_klasörü(klasör, kimlik), _KAYIT)) }
+
+# kayıt_yaz: girdinin kurulu kaydı: katalogun `revision`'ı, her dosyanın boyu, sha256'sı ve diskteki değişme zamanı.
+# Geçici adla yazılıp taşınır: yarıda kalan yazma eski kaydı bozmaz.
+TR_func kayıt_yaz(g: TR_JSON, klasör: TR_String) {
+    TR_var kimlik = TR_String(g["id"])
+    TR_var l: TR_List[TR_JSON] = []
     TR_for f TR_in g["source"]["files"] {
         TR_var p = TR_Path(girdi_klasörü(klasör, kimlik), TR_String(f["target"]))
-        TR_if TR_not p.TR_exists TR_or p.TR_is_dir TR_or p.TR_size != TR_Int(f["bytes"]) { TR_return TR_false }
+        l.TR_append(TR_JSON({"target": f["target"], "bytes": p.TR_size, "sha256": f["sha256"], "mtime": p.TR_modified_ns}))
     }
+    TR_var yol = kayıt_yolu(klasör, kimlik)
+    TR_write_file("\(yol).tmp", TR_json_string(TR_JSON({"v": 1, "revision": g["source"]["revision"], "files": l})) + "\n")
+    TR_move("\(yol).tmp", yol, TR_overwrite: TR_true)
+}
+
+# _kayıt_tutuyor: kayıt okunuyor, `v` 1; her katalog dosyasının kayıtta aynı adla boyu ve sha256'sı katalogdaki, diskte
+# boyu ve zamanı kayıttaki. `revision` farklı ama dosyalar aynıysa kayıt yeni `revision`'la yazılır (içeriği sha256 sabitler).
+TR_func _kayıt_tutuyor(g: TR_JSON, klasör: TR_String) -> TR_Bool {
+    TR_var kimlik = TR_String(g["id"])
+    TR_var yol = kayıt_yolu(klasör, kimlik)
+    TR_if TR_not TR_Path(yol).TR_is_file { TR_return TR_false }
+    TR_var revizyon = ""
+    # Okunamayan, JSON olmayan ya da alanı eksik veya başka türde kayıt tutmaz (dönüşüm hatası yakalanır).
+    TR_try {
+        TR_var k = TR_json_parse(TR_read_file(yol))
+        TR_if TR_Int(k["v"]) != 1 { TR_return TR_false }
+        revizyon = TR_String(k["revision"])
+        TR_var dosyalar: TR_Dict[TR_String, TR_JSON] = {}
+        TR_for r TR_in k["files"] { dosyalar[TR_String(r["target"])] = r }
+        TR_for f TR_in g["source"]["files"] {
+            TR_var r = dosyalar.TR_get(TR_String(f["target"]))
+            TR_if r == TR_none TR_or TR_Int(r["bytes"]) != TR_Int(f["bytes"]) TR_or TR_String(r["sha256"]) != TR_String(f["sha256"]) { TR_return TR_false }
+            TR_var p = TR_Path(girdi_klasörü(klasör, kimlik), TR_String(f["target"]))
+            TR_if TR_not p.TR_is_file TR_or p.TR_size != TR_Int(r["bytes"]) TR_or p.TR_modified_ns != TR_Int(r["mtime"]) { TR_return TR_false }
+        }
+    } TR_catch h {
+        TR_return TR_false
+    }
+    TR_if revizyon != TR_String(g["source"]["revision"]) { kayıt_yaz(g, klasör) }
+    TR_return TR_true
+}
+
+# _durum: girdinin dosyalarının diskteki boyu ve zamanı; dosyası eksik ya da boyu katalogdakinden başka girdide TR_none
+# (karmaya gerek yok, kurulu değil).
+TR_func _durum(g: TR_JSON, klasör: TR_String) -> TR_String? {
+    TR_var kimlik = TR_String(g["id"])
+    TR_var parçalar = [klasör, kimlik]
+    TR_for f TR_in g["source"]["files"] {
+        TR_var p = TR_Path(girdi_klasörü(klasör, kimlik), TR_String(f["target"]))
+        TR_if TR_not p.TR_is_file TR_or p.TR_size != TR_Int(f["bytes"]) { TR_return TR_none }
+        parçalar.TR_append("\(p.TR_size):\(p.TR_modified_ns)")
+    }
+    TR_return parçalar.TR_join("|")
+}
+
+# karılacak_var: katalogun bir girdisi kaydıyla tutmuyor ama dosyaları katalogdaki boyda mı (`kurulu` onu karar;
+# açılışta ekran `verifying` görür).
+TR_func karılacak_var(kj: TR_JSON, klasör: TR_String) -> TR_Bool {
+    TR_for g TR_in kj["entries"] {
+        TR_if TR_not yollar_doğru(g) { TR_continue }
+        TR_var durum = _durum(g, klasör)
+        TR_if durum != TR_none TR_and TR_not _karmalar.TR_contains(durum) TR_and TR_not _kayıt_tutuyor(g, klasör) { TR_return TR_true }
+    }
+    TR_return TR_false
+}
+
+# kurulu: girdi kurulu mu; `id`'si ya da bir `target`'ı tek yol parçası değilse değil (kayıt yazılmaz). Önce kayıt (`_kayıt_tutuyor`); tutmuyorsa ve dosyalar katalogdaki boydaysa her dosya karılır
+# (`TR_sha256_file`): hepsi katalogla tutarsa kayıt yazılır, tutmazsa sonuç bu oturumda bellekte kalır (`_karmalar`).
+TR_func kurulu(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Bool {
+    TR_var g = _ham(kj, kimlik)
+    TR_if g == TR_none TR_or TR_not yollar_doğru(g) { TR_return TR_false }
+    TR_if _kayıt_tutuyor(g, klasör) { TR_return TR_true }
+    TR_var durum = _durum(g, klasör)
+    TR_if durum == TR_none TR_or _karmalar.TR_contains(durum) { TR_return TR_false }
+    TR_for f TR_in g["source"]["files"] {
+        TR_if TR_sha256_file(TR_Path(girdi_klasörü(klasör, kimlik), TR_String(f["target"]))) != TR_String(f["sha256"]) {
+            _karmalar[durum] = TR_false
+            TR_return TR_false
+        }
+    }
+    kayıt_yaz(g, klasör)
     TR_return TR_true
 }
 
@@ -82,22 +177,37 @@ TR_func _tek_dosya(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Str
     TR_return TR_String(TR_Path(girdi_klasörü(klasör, kimlik), TR_String(g["source"]["files"][0]["target"])))
 }
 
+# _dil: katalogun `kod` dili; yoksa ilk dil (ayar dosyası yokken takım_ayarı ilk dili verir).
+TR_func _dil(kj: TR_JSON, kod: TR_String) -> TR_JSON {
+    TR_var dil = kj["languages"][0]
+    TR_for d TR_in kj["languages"] {
+        TR_if TR_String(d["code"]) == kod { dil = d }
+    }
+    TR_return dil
+}
+
+# takım_girdileri: takımın girdileri, sırasıyla: dil modeli, konuşma dilinin yazıcısı, ilk VAD, dilin sesi. İndirme
+# (`model_download`) dil modeliyle birlikte bunları sıraya koyar.
+TR_func takım_girdileri(k: Katalog, kj: TR_JSON, giriş: TR_String, konuşma_dili: TR_String) -> TR_List[TR_String] {
+    TR_var dil = _dil(kj, konuşma_dili)
+    TR_var vad = ""
+    TR_for e TR_in k.girdiler {
+        TR_if e.tür == "vad" TR_and vad == "" { vad = e.kimlik }
+    }
+    TR_return [giriş, TR_String(dil["transcriber"]), vad, TR_String(dil["voice"])]
+}
+
 # takım_kur: `giriş` dil modeli ve ayarın konuşma dili için yüklenecek takım. Dil modeli katalogda değilse
 # `unknown_entry`; takımın bir girdisi kurulu değilse `not_installed` (değeri kurulu olmayan girdinin kimliği).
 TR_func takım_kur(k: Katalog, kj: TR_JSON, klasör: TR_String, giriş: TR_String, a: Ayar) -> Kurulum {
     TR_var g = girdi_bul(k, giriş)
     TR_if g == TR_none TR_or g.tür != "language_model" { TR_return Kurulum(kod: "unknown_entry", değerler: TR_JSON({"entry_id": giriş})) }
-    TR_var dil = kj["languages"][0]
-    TR_for d TR_in kj["languages"] {
-        TR_if TR_String(d["code"]) == a.konuşma_dili { dil = d }
-    }
-    TR_var vad = ""
-    TR_for e TR_in k.girdiler {
-        TR_if e.tür == "vad" TR_and vad == "" { vad = e.kimlik }
-    }
-    TR_var yazıcı = TR_String(dil["transcriber"])
-    TR_var ses = TR_String(dil["voice"])
-    TR_for kimlik TR_in [giriş, yazıcı, vad, ses] {
+    TR_var dil = _dil(kj, a.konuşma_dili)
+    TR_var kimlikler = takım_girdileri(k, kj, giriş, a.konuşma_dili)
+    TR_var yazıcı = kimlikler[1]
+    TR_var vad = kimlikler[2]
+    TR_var ses = kimlikler[3]
+    TR_for kimlik TR_in kimlikler {
         TR_if TR_not kurulu(kj, klasör, kimlik) { TR_return Kurulum(kod: "not_installed", değerler: TR_JSON({"entry_id": kimlik})) }
     }
     TR_var sistem = TR_if TR_String(a.sistem["source"]) == "user" { TR_String(a.sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }

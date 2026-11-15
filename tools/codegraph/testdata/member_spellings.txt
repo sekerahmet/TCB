@@ -1508,7 +1508,6 @@ p.TR_fill	ok	0	spec:15.54	tr_index:not_found:4
 p.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 p.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 p.TR_grad	ok	0	name:TR_mem_grad
-p.TR_is_dir	ok	0	name:TR_mem_is_dir
 p.TR_length	ok	0	name:TR_mem_length
 p.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 p.TR_lower	ok	0	name:TR_mem_lower

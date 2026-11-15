@@ -1,19 +1,21 @@
 # TR 4
 # Yuvanın, kurulu takımın ve yükleme işaretinin modelsiz sınaması (yuva.tr). Katalog elle kurulur: dosyalar birkaç
-# baytlık, kurulu sayılmaları boylarına bağlı.
+# baytlık "x"; katalogun sha256'sı bu içerikten. Kaydın ve karmanın ayrıntısı indirme_test.tr'de.
 TR_import "katalog"
 TR_import "yuva"
 
-TR_func _dosya(target: TR_String, bayt: TR_Int) -> TR_JSON { TR_return TR_JSON({"path": target, "target": target, "bytes": bayt}) }
+TR_func _dosya(target: TR_String, bayt: TR_Int) -> TR_JSON {
+    TR_return TR_JSON({"path": target, "target": target, "bytes": bayt, "sha256": TR_sha256(TR_Bytes("x" * bayt))})
+}
 
 TR_func _ham_katalog() -> TR_JSON {
     TR_return TR_JSON({"entries": [
-        {"id": "dm", "kind": "language_model", "source": {"files": [_dosya("dm.gguf", 4)]}},
-        {"id": "dm2", "kind": "language_model", "source": {"files": [_dosya("dm2.gguf", 4)]}},
-        {"id": "yaz", "kind": "transcriber", "source": {"files": [_dosya("config.json", 2), _dosya("model.safetensors", 3)]}},
-        {"id": "vad", "kind": "vad", "source": {"files": [_dosya("vad.safetensors", 1)]}},
-        {"id": "ses-tr", "kind": "voice", "source": {"files": [_dosya("model.safetensors", 2)]}},
-        {"id": "ses-en", "kind": "voice", "source": {"files": [_dosya("model.safetensors", 2)]}}],
+        {"id": "dm", "kind": "language_model", "source": {"revision": "r", "files": [_dosya("dm.gguf", 4)]}},
+        {"id": "dm2", "kind": "language_model", "source": {"revision": "r", "files": [_dosya("dm2.gguf", 4)]}},
+        {"id": "yaz", "kind": "transcriber", "source": {"revision": "r", "files": [_dosya("config.json", 2), _dosya("model.safetensors", 3)]}},
+        {"id": "vad", "kind": "vad", "source": {"revision": "r", "files": [_dosya("vad.safetensors", 1)]}},
+        {"id": "ses-tr", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
+        {"id": "ses-en", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}}],
         "languages": [
             {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voice": "ses-tr", "system_prompt": "Türkçe cevap ver."},
             {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voice": "ses-en", "system_prompt": "Answer in English."}]})
@@ -44,7 +46,7 @@ TR_func _kur(klasör: TR_String, kimlik: TR_String) {
 
 TR_func _klasör() -> TR_String { TR_return TR_String(TR_Path(TR_temp_dir(), "Dost")) }
 
-TR_test "kurulu: her dosyası boyuyla duran girdi kurulu; eksik dosya, boyu tutmayan dosya ve katalogda olmayan girdi kurulu değil" {
+TR_test "kurulu: her dosyası katalogun boyu ve sha256'sıyla duran girdi kurulu; eksik dosya, boyu tutmayan dosya ve katalogda olmayan girdi kurulu değil" {
     TR_var d = _klasör()
     TR_var kj = _ham_katalog()
     TR_assert(TR_not kurulu(kj, d, "yaz"))
