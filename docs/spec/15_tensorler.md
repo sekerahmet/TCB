@@ -542,7 +542,8 @@ op.TR_zero_grad()
 - Bir işlemin ürettiği ya da ifadede kurulan liste ve demet (`[a, b]`, `(a, b)`; `TR_topk`'un, özel türevin, `TR_next`'in demeti; 3.6a) içindeki tensörlerin sahibidir: o bırakılınca içindekiler de bırakılır, o kaçarsa içindekiler de kaçar; yalnız bir değişkene bağlı listeye sonradan (`.TR_append`, indeksle atama) yazılan tensör kaçar.
 - Görünümler ve geri yayılımın sakladıkları depoyu ortak tutar; depo son sahibiyle ve onu saklayan geri hesap çalışınca döner. Geri yayılım her işlemin sakladıklarını o işlemin geri hesabı biter bitmez bırakır.
 - Bırakılmış bir tensör kodda görünmez; uygulama hatası buna yol açarsa sessiz bozulma yerine iç hata verilir.
-- *Test:* TR testi; Go: `TestOwnershipEngineListOwnsElements`, `TestOwnershipEscapesAreNeverReleased`, `TestOwnershipDeferAndAsyncCaptureEscape`, `TestSavedTensorReleasedAfterItsBackward`, `TestViewKeepsStorage`, `TestDroppedHeaderUseIsInternalError`.
+- Sabit önbelleğin işlemcideki tamponları öbek dışında tutulur (19.12a'nın tavanında sayılır). Sabit önbellek `tr/layers`'ın `TR_KVCache`'inin "sabit" çeşididir; kartta önbellek kartta kalır.
+- *Test:* TR testi; Go: `TestOwnershipEngineListOwnsElements`, `TestOwnershipEscapesAreNeverReleased`, `TestOwnershipDeferAndAsyncCaptureEscape`, `TestSavedTensorReleasedAfterItsBackward`, `TestViewKeepsStorage`, `TestDroppedHeaderUseIsInternalError`; sabit önbelleğin öbek dışı tamponları: gerekmez, henüz uygulanmadı.
 
 **15.44** `TR_fuse(f)` öğe öğe tensör işlemlerinden oluşan `f`'yi tek geçişte hesaplayan bir fonksiyon döndürür (GPU'da her çıktı tek çekirdek): ara sonuçlar belleğe yazılmaz, geri yayılım ara değerleri saklamaz, girdilerden yeniden hesaplar.
 - Argümanlar tensör ya da sayıdır; sayı argümanları önbellek anahtarına girer. Önbellek anahtarı `TR_compute_dtype()`'ı da içerir (15.4).

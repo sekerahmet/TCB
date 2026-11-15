@@ -39,6 +39,14 @@ Kurallar: [`11_moduller.md`](../11_moduller.md). Bu dosya her kuralın emsalini 
 - *Emsal:* Dart'ta `_` ile başlayan ad kitaplığa özeldir ve dil bunu uygular; Python'da `_ad` yalnız gelenektir; Go dışa açıklığı büyük harfle yapar.
 - *Gerekçe:* kitaplığın dış yüzü bilinçli seçilir, iç yardımcılar kullanıcı koduna sızmaz. TR'de büyük harf sabiti söylediği için (2.3b) Go'nun yolu alınamaz; Dart'ınki alındı.
 
+### 11.7a
+
+- *Emsal:* Go'da `internal` öğesi taşıyan bir paketi yalnız onun üst klasörünün altındaki kod aktarabilir; dışarıdan aktarma derleme hatasıdır [kanıtlı: go1.27.4 src/cmd/go/internal/load/pkg.go:1587, "use of internal package %s not allowed"]. TR'nin emsali 11.7: modüle özel ad dışa aktarılmaz.
+- *Gerekçe:*
+  - İç yerleşik yalnız kitaplığın kendi tipinin değişmezini korumak içindir; kullanıcıya gereken iş genel yerleşikle verilir (DENETİM 779 N3). İlki `TR_cache_buffer`: sabit önbelleğin tamponunu öbek dışı blokta ayırır (15.43). Kullanıcı programı onu döngüde çağırırsa blok bütçesini sessizce tüketir, sonraki ağırlıklar öbeğe düşer (TCB 2026-11-15, Açık-4'ün kararı).
+  - 11.7'nin `_` adı alınmadı: dilin verdiği bir yerleşiğe kodsuz, tek dilde yazılmış bir ad verirdi. Kimlik kodlu dilde dilin her adının kodu olur, hiçbir dilin ayrıcalığı yoktur; 11.7 kullanıcının modül adları içindir (TCB 2026-11-15).
+  - Kural tanım dosyasındadır: yerleşiğin hangi modüle iç olduğu kod listesinin girişinde yazılır, denetleyici çağıran ya da anan kaynağın modülünü onunla karşılaştırır. Hata çalışmadan öncedir (11.4): program hiç çalışmaz, ileti `TR_build_cache` gibi genel yolu söyler.
+
 ### 11.8
 
 - *Emsal:* Go'da aynı adla iki paket aktarmak derleme hatasıdır ("util redeclared in this block"); Python'un `from a import *` ve `from b import *`'ı sonrakini uyarısız kazandırır [ölçüldü: DENETİM 11-1, Go 1.26, Python 3.12]. Go'nunki alındı.

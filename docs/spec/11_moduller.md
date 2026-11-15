@@ -45,6 +45,12 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 **11.7** Başı `_` olan üst düzey adlar (tek başına `_` değil) modüle özeldir: modülün içinde kullanılır, dışa aktarılmaz. `TR_import "yol"` onları getirmez; modül değerinde (`m._iç`) yoktur, yazılırsa ileti adın modüle özel olduğunu söyler. Yalnız üst düzey adlara uygulanır.
 - *Test:* TR testi.
 
+**11.7a** Kitaplığın iç yerleşiği yalnız tanım dosyasında adı yazılı kitaplık modülünün kaynağından çağrılır ve anılır; başka yerden çağrı da anma da denetim hatasıdır ve ileti yerleşiğin hizmet ettiği genel yolu söyler.
+- Kullanıcı programı iç yerleşiği çağıramaz ve anamaz (`TR_var f = TR_cache_buffer` de hatadır); kod listesinde ve tamamlamada iç olduğu yazılır; adı yine kodludur (17).
+- İç yerleşiğin kod listesinde örneği yoktur: örnek bir kullanıcı programıdır, iç yerleşiği çağıramaz.
+- İlk iç yerleşik `TR_cache_buffer`'dır (`tr/layers`, 15.43).
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca olumsuz fikstür (kullanıcı programında çağrı ve anma), TR testi (`tr/layers`'tan çağrı) ve kod listesinin örnek testi.
+
 **11.8** Ad çakışması denetim hatasıdır: iki aktarım aynı adı getirirse ya da dosya aktarılan bir adı yeniden tanımlarsa ileti iki yeri de gösterir ve `TR_as` ile aktarmayı önerir. Sonra gelenin sessizce kazanması yoktur.
 - **Aktarılan ad aktaran dosyada yeniden bağlanamaz:** takma adsız aktarılan bir ada atama (`PI = 7`) ve modül değerinin bir adına atama (`m.PI = 7`) denetim hatasıdır. Modülün en dışındaki değişken yalnız modülün kendi kodundan, onun fonksiyonlarıyla değişir; ileti modülün fonksiyonunu kullanmayı söyler.
 - Değerin içi değişebilir: modülün listesine eklemek (`m.kayıt.TR_append(x)`) modülün kendi listesini değiştirir ve her aktaran onu görür (11.3). İkisi yan yana: `m.PI = 7` hatadır; `m.yer.x = 1` modülün yapısının alanını değiştirir (7), geçerlidir. Görevlerden yazmak 10.2'ye göre bozulmaz, sırası 10.8'e göre tanımsızdır.
