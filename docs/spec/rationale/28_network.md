@@ -123,6 +123,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - İşleyicinin sıradan fonksiyon olması onu ağsız sınanabilir yapar ("aynı veri aynı sonuç").
   - `Trailer`, `Keep-Alive` ve `Upgrade` (tur 7): TR değer cevabında `Content-Length` yazar, bildirilen trailer gitmezdi; bağlantıyı ve `Keep-Alive`'ı sunucu yönetir; RFC 9110 7.8'e göre `426` cevabı `Upgrade` başlığını taşır. Kural RFC'den katıdır; "TR sessiz değiştirmez" ilkesiyle aynı.
   - Değerin HTAB'ı (tur 7): RFC 9110 5.5'in grameri alan değerinin içinde HTAB'a izin verir, baştaki ve sondaki boşluğu değerin parçası saymaz. TR sessiz kırpmaz: uçtaki boşluk hatadır, içteki HTAB geçer.
+  - Başlık değerinin UTF-8'i (HTTP Ö0, 2026-11-15): başlık değeri bir metindir (3.3). Go'nun sunucusu `0xFF`'li değeri kabul eder; denetimsiz metin JSON'a yazılınca sessizce U+FFFD olurdu. Bu yüzden geçersiz değer işleyiciden önce `400`'dür. `Cookie` ayrıdır: başka bir 127.0.0.1 uygulamasının koyduğu bozuk çerezi Chromium baytı değiştirmeden gönderir (TCB'nin ölçüsü, 2026-11-15). Girişte `400` olsaydı Dost'un ekranı gibi 127.0.0.1'deki her uygulamanın her isteği düşerdi. Bu yüzden `Cookie` okununca hatadır (H7645); ileti okumayı yakalayan yazımı ve kullanıcının çerezi silmesini önerir.
 
 ### 28.3a
 
@@ -221,6 +222,7 @@ Go satırları `go1.26.10`'dandır (okunduğu gün TR'nin derlendiği sürüm; 1
   - **TR:** 21.5'in 2 saniyelik nazik durdurması, 1.5 durdurma, 10.9 iptal; `TR_Bool` dönüşü 18.15 gibi.
 - *Gerekçe:* kapanış dilin geri kalanıyla aynı yoldan geçer; yarım yazılmış olay istemcide bozuk çerçeve bırakmaz.
   - Görevin içinde açılan sunucu görevin alt işidir (tur 7): Trio, kotlinx.coroutines ve Go'nun `context`'i alt işi üst işe bağlar. Karşı seçenekte ajan görevi iptal edip kapının kapandığını sanır, kapı sessizce açık kalırdı (güvenlik). Gövdesinin dönüş değeri açık bir sunucu olan görev hiç bitmezdi; hata iki doğru yazımı önerir (DENETİM 638 N5).
+  - Gövdesi biten görevin açık sunucusu beklenmez, görev hatayla biter (H2924; HTTP Ö0, TCB 2026-11-15). Blokta açılan sunucunun tutamacı hiç ele geçmez: beklemek `g.TR_wait()`'i hatasız sonsuza bekletirdi. Sunucuyu döndüren görevde de tutamaç ancak görev bitince ele geçerdi. Hata alt işleri iptal eder, kapı kapanır; sahip dinleyici kapanınca biter, aynı kapı hemen yeniden açılır.
 - *İki akış kipinin sonu (dil tanımı turu 8, 2026-11-14; HTTP aşama 2 devri):* yayın dinleyicisi düzgün biter, çünkü istemci `Last-Event-ID` ile döner ve olay kaybolmaz. İstek akışını düzgün bitirmek yarım cevabı tam gösterirdi (28.7'nin blok hatası kuralı) [kanıtlı: `internal/stdlib/httpserver/server.go:65`, `guard.go:78-79`; test: `TestCloseEndsOpenStreams`].
 
 ### 28.9
