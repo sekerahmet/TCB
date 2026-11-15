@@ -44,9 +44,10 @@ type Options struct {
 	TextFilter func(string) string
 	// LeafFilter verilirse değer olan her metne (sözlük anahtarlarına değil) TextFilter'ın yerine
 	// uygulanır ve metnin yolunu da alır: RFC 6901'in JSON göstergesi ("/parça", "/liste/0"; değerin
-	// kendisi metinse ""). Anahtar yolda süzgeçsiz, '~' "~0", '/' "~1" olarak yazılır. Olay akışının
-	// unutulan maskesi bunu kullanır (28.7).
-	LeafFilter func(path, text string) string
+	// kendisi metinse ""). Anahtar yolda süzgeçsiz, '~' "~0", '/' "~1" olarak yazılır. Yol yazıcının
+	// tamponudur, çağrıdan sonra değişir: saklayan kopyalar (string(path)). Olay akışının unutulan
+	// maskesi bunu kullanır (28.7).
+	LeafFilter func(path []byte, text string) string
 }
 
 // WriteOptions değeri verilen seçeneklerle yazar.
@@ -63,7 +64,7 @@ type writer struct {
 	indent          string
 	nonFiniteAsText bool
 	textFilter      func(string) string
-	leafFilter      func(path, text string) string
+	leafFilter      func(path []byte, text string) string
 	path            []byte // leafFilter varken yazılan değerin JSON göstergesi
 	walker          interp.ContainerWalker
 }
@@ -138,7 +139,7 @@ func (y *writer) value(val interp.Value, depth int) error {
 		return y.number(v.Val)
 	case *interp.StringVal:
 		if y.leafFilter != nil {
-			b, _ := json.Marshal(y.leafFilter(string(y.path), v.Val))
+			b, _ := json.Marshal(y.leafFilter(y.path, v.Val))
 			y.b = append(y.b, b...)
 			return nil
 		}

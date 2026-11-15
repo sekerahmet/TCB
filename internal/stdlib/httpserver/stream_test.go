@@ -527,3 +527,21 @@ func checkForgottenWarning(t *testing.T, ts *testServer, path string) {
 		t.Fatalf("H7644 bir kez, yol %q: %q", path, out)
 	}
 }
+
+// TestForgottenHoldSurvivesAFailedEvent: JSON'a yazılamayan olay gitmez ve tutulanı değiştirmez (28.7):
+// bölünen gizli değerin arasına düşen hatalı olaydan sonra ikinci yarı yine *** olur.
+func TestForgottenHoldSurvivesAFailedEvent(t *testing.T) {
+	ts, b := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`, "")
+	ts.vm.AddSecret("gizli-deger-123")
+	if err := send(t, ts, `y.TR_send_event("anahtar gizli-de")
+TR_var kod = TR_error_code { y.TR_send_event([(x) => x]) }
+y.TR_send_event("ger-123 bitti")
+TR_print(kod)`); err != nil {
+		t.Fatal(err)
+	}
+	frames, _, ok := b.since(0)
+	if !ok || len(frames) != 2 || frameData(string(frames[1])) != `"*** bitti"` {
+		t.Fatalf("hatalı olaydan sonra tutulan kalmalı: %q", frames)
+	}
+	checkForgottenWarning(t, ts, "")
+}

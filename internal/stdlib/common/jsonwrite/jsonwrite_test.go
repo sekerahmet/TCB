@@ -223,7 +223,10 @@ func TestTextFilterReachesInsideJSON(t *testing.T) {
 // "~1"; değerin kendisi metinse ""); anahtarlar TextFilter'dan geçer, LeafFilter'a gelmez.
 func TestLeafFilterGetsThePath(t *testing.T) {
 	var paths []string
-	leaf := func(path, s string) string { paths = append(paths, path+"="+s); return strings.ToUpper(s) }
+	leaf := func(path []byte, s string) string {
+		paths = append(paths, string(path)+"="+s)
+		return strings.ToUpper(s)
+	}
 	key := func(s string) string { return "k" + s }
 	v := dict("a/b", list(&interp.StringVal{Val: "x"}, dict("~k", &interp.StringVal{Val: "y"})), "z", &interp.StringVal{Val: "w"})
 	got, err := WriteOptions(v, Options{TextFilter: key, LeafFilter: leaf})

@@ -162,6 +162,25 @@ type forgotten struct {
 	mu     sync.Mutex
 	held   map[string]string // yalnız son olayın yolları
 	warned bool              // H7644 akış başına bir kez
+	// Bir data çağrısının durumu (mu altında). leafFn ve iki harita akış başına bir kez kurulur: olay
+	// başına ayırma yoktur, yol metni yalnız tutulan varsa ayrılır (profil 2026-11-15 15:52).
+	m      *interp.VM
+	next   map[string]string
+	caught bool
+	at     string
+	leafFn func(path []byte, text string) string
+}
+
+// leaf bir metin yaprağını aynı yolun tutulanıyla maskeler (data'nın içinden, mu altında).
+func (f *forgotten) leaf(path []byte, text string) string {
+	out, held, c := f.m.MaskJoined(f.held[string(path)], text, holdPad)
+	if held != "" {
+		f.next[string(path)] = held
+	}
+	if c && !f.caught {
+		f.caught, f.at = true, string(path)
+	}
+	return out
 }
 
 // data olayın verisidir (eventData gibi): her metin yaprağı aynı yolun önceki olaydan tutulanıyla
@@ -171,30 +190,22 @@ type forgotten struct {
 func (f *forgotten) data(m *interp.VM, v interp.Value) (data []byte, caught bool, err error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	var next map[string]string
-	at := ""
-	data, err = jsonwrite.WriteOptions(v, jsonwrite.Options{TextFilter: m.Mask, LeafFilter: func(path, text string) string {
-		out, held, c := m.MaskJoined(f.held[path], text, holdPad)
-		if held != "" {
-			if next == nil {
-				next = map[string]string{}
-			}
-			next[path] = held
-		}
-		if c && !caught {
-			caught, at = true, path
-		}
-		return out
-	}})
+	if f.leafFn == nil {
+		f.leafFn, f.held, f.next = f.leaf, map[string]string{}, map[string]string{}
+	}
+	clear(f.next)
+	f.m, f.caught, f.at = m, false, ""
+	data, err = jsonwrite.WriteOptions(v, jsonwrite.Options{TextFilter: m.Mask, LeafFilter: f.leafFn})
+	f.m = nil
 	if err != nil {
 		return nil, false, err
 	}
-	f.held = next
-	if caught && !f.warned {
+	f.held, f.next = f.next, f.held // yalnız son olayın yolları; eski harita bir sonraki çağrıda boşalır
+	if f.caught && !f.warned {
 		f.warned = true
-		m.WriteOutput(m.Err, turkish.Printable(messages.Text(messages.H7644, at))+"\n")
+		m.WriteOutput(m.Err, turkish.Printable(messages.Text(messages.H7644, f.at))+"\n")
 	}
-	return data, caught, nil
+	return data, f.caught, nil
 }
 
 // dataHead yalnız data: satırı olan SSE olayının başıdır (istek akışının olayı ve nabzı).
