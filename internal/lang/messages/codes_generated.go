@@ -1932,7 +1932,7 @@ const (
 	H7713 Code = 7713 // {fn}: 127.0.0.1'deki istek dışarı yönlenemez: {target|q}
 	H7714 Code = 7714 // {fn}: {host|q} için sertifika doğrulanamadı
 	H7715 Code = 7715 // {fn}: {host|q} ile bağlantı kurulamadı
-	H7716 Code = 7716 // {fn}: {host|q} 30 saniyede cevap vermedi
+	H7716 Code = 7716 // {fn}: {host|q} {stage, select, dns {adı 30 saniyede çözülmedi} connect {ile bağlantı 30 saniyede kurulmadı} tls {ile TLS el sıkışması 30 saniyede bitmedi} total {için yönlendirmeler dahil ilk üstbilgi 120 saniyede alınmadı} other {ilk üstbilgiyi 30 saniyede göndermedi}}; aynı çağrı yeniden denenebilir; .part varsa karmalı çağrı sürdürür
 	H7717 Code = 7717 // {fn}: {host|q} 60 saniye veri göndermedi; .part kaldı{resume, select, yes {, aynı çağrı sürdürür} other {; karma verilmediği için aynı çağrı baştan iner, sürdürmek için `{#sha256}:` verin}}
 	H7718 Code = 7718 // {fn}: sunucu gövdeyi {encoding|q} ile sıkıştırdı; indirme yalnız sıkıştırılmamış baytı alır
 	H7719 Code = 7719 // {fn}: dosya {size} baytı aştı, indirme durdu; `{#size}:` doğru mu?

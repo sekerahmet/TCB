@@ -31,6 +31,14 @@ var newHash = sha256.New
 // sıfırlandığını ve aynı çağrının baştan indiğini söyler.
 var errRestart = errors.New("restart")
 
+// errFirstHeader zincirin tavanının (firstHeaderTimeout) bağlamı iptal etme nedenidir: kullanıcının
+// iptalinden (10.9, nedensiz) ve Go'nun sürelerinden ayrılır.
+var errFirstHeader = errors.New("first header limit")
+
+// afterDo client.Do döndükten sonra, tavanın zamanlayıcısı durdurulmadan çağrılır; yalnız testler
+// koyar (zamanlayıcı Do'nun dönüşüyle yarışır, DENETİM 795 N1).
+var afterDo = func() {}
+
 // await work'ü kendi goroutine'inde, yorumlayıcının kilidi bırakılarak koşar; iptal, süre sınırı ya
 // da durdurma gelince stop çağrılır ve work bitene kadar beklenir (AwaitExternal, 10.9).
 func await(m *interp.VM, stop func(), work func()) error {
@@ -88,11 +96,17 @@ func (c *call) run(m *interp.VM, p *part) (string, error) {
 	return "", messages.New(messages.H7709, c.fn, http.StatusRequestedRangeNotSatisfiable, shown(c.url))
 }
 
-// fetch tek bir istek yapar; have > 0 ise Range ile sürdürür.
+// fetch tek bir istek zinciri yapar (yönlendirmeler dahil); have > 0 ise Range ile sürdürür. Zincirin
+// tavanı ilk üstbilgiye kadardır: zamanlayıcı Do dönünce durur, gövdeye toplam sınır yoktur (28.10).
+// Zamanlayıcı Do'nun dönüşüyle yarışıp çoktan koştuysa (Stop false) istek tavana takılmış sayılır:
+// bağlam iptal edilmiştir, gövde okunmaz. Kullanıcının iptali await'in kendi hatasıyla döner, H7716'ya
+// varmaz.
 func (c *call) fetch(m *interp.VM, p *part, have int64) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	base, cancelCause := context.WithCancelCause(context.Background())
+	cancel := func() { cancelCause(nil) }
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url.String(), nil)
+	t := &tracker{}
+	req, err := http.NewRequestWithContext(withTracker(base, t), http.MethodGet, c.url.String(), nil)
 	if err != nil {
 		return "", messages.New(messages.H7708, c.fn)
 	}
@@ -103,11 +117,23 @@ func (c *call) fetch(m *interp.VM, p *part, have int64) (string, error) {
 	var resp *http.Response
 	var doErr error
 	client := newClient(c.fn, c.proxy)
-	if err := await(m, cancel, func() { resp, doErr = client.Do(req) }); err != nil {
+	defer client.CloseIdleConnections() // her indirme kendi taşıyıcısını kurar; bağlantı havuzda kalmaz
+	limit := time.AfterFunc(firstHeaderTimeout, func() { cancelCause(errFirstHeader) })
+	if err := await(m, cancel, func() { resp, doErr = client.Do(req); afterDo() }); err != nil {
+		limit.Stop()
+		if resp != nil {
+			resp.Body.Close()
+		}
 		return "", err
 	}
+	if !limit.Stop() {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return "", requestError(c.fn, c.url, doErr, stageTotal)
+	}
 	if doErr != nil {
-		return "", requestError(c.fn, c.url, doErr)
+		return "", requestError(c.fn, c.url, doErr, t.current())
 	}
 	defer resp.Body.Close()
 	total, err := c.accept(p, resp, have)
@@ -246,7 +272,9 @@ func (c *call) readBody(m *interp.VM, p *part, resp *http.Response, h hash.Hash,
 		case errors.Is(readErr, io.ErrUnexpectedEOF):
 			return 0, messages.New(messages.H7720, c.fn, got, c.sizeText(total), c.resumeKey())
 		default:
-			return 0, requestError(c.fn, c.url, readErr)
+			// Gövdenin süresi hareketsizliktir (yukarıda); Go'nun bir süre hatası buraya ancak ilk
+			// üstbilgiden sonra kalan bir son süreden gelir, evresi ilk üstbilgidir.
+			return 0, requestError(c.fn, c.url, readErr, stageHeader)
 		}
 	}
 }

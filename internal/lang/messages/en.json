@@ -1927,7 +1927,7 @@
 "H7713": "{fn}: a request to 127.0.0.1 cannot be redirected outside: {target|q}",
 "H7714": "{fn}: the certificate of {host|q} could not be verified",
 "H7715": "{fn}: could not connect to {host|q}",
-"H7716": "{fn}: {host|q} did not answer within 30 seconds",
+"H7716": "{fn}: {host|q} {stage, select, dns {did not resolve within 30 seconds} connect {did not accept a connection within 30 seconds} tls {did not finish the TLS handshake within 30 seconds} total {gave no first header within 120 seconds, redirects included} other {sent no first header within 30 seconds}}; the same call can be retried; if a .part is left, a call with a hash resumes",
 "H7717": "{fn}: {host|q} sent no data for 60 seconds; the .part stays{resume, select, yes {, the same call resumes} other {; with no hash the same call starts over, give `{#sha256}:` to resume}}",
 "H7718": "{fn}: the server compressed the body with {encoding|q}; a download takes uncompressed bytes only",
 "H7719": "{fn}: the file went past {size} bytes, the download stopped; is `{#size}:` right?",

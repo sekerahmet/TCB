@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -97,8 +98,9 @@ func TestDownloadErrorsAreCoded(t *testing.T) {
 }
 
 // suggestionCodes indirmenin önerili iletileridir; hepsi aşağıdaki tabloda sınanır (DENETİM 645 N1:
-// H7706'nın parametresi local olduğu için öneri tablosunun kapsam denetimi onu görmez).
-var suggestionCodes = []messages.Code{messages.H7700, messages.H7701, messages.H7702, messages.H7706, messages.H7717, messages.H7720, messages.H7724, messages.H7726, messages.H7739}
+// H7706'nın parametresi local olduğu için öneri tablosunun kapsam denetimi onu görmez). H7716'nın
+// önerisi "aynı çağrı yeniden denenebilir"dir (DENETİM 793 N1).
+var suggestionCodes = []messages.Code{messages.H7700, messages.H7701, messages.H7702, messages.H7706, messages.H7716, messages.H7717, messages.H7720, messages.H7724, messages.H7726, messages.H7739}
 
 // TestDownloadSuggestionsWork: her önerili iletinin önerisi kopyalanınca indirme biter.
 func TestDownloadSuggestionsWork(t *testing.T) {
@@ -138,6 +140,16 @@ func TestDownloadSuggestionsWork(t *testing.T) {
 		<-r.Context().Done()
 	})
 	cases[messages.H7717] = [2]string{dl(stall.URL+"/a", dir+"/8", "TR_none", "TR_none"), dl(stall.URL+"/a", dir+"/8", h, "7")}
+	// H7716: ilk istekte üstbilgi gelmez; aynı çağrı yinelenince sunucu cevap verir ve indirme biter.
+	var asked atomic.Int32
+	late := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if asked.Add(1) == 1 {
+			<-r.Context().Done()
+			return
+		}
+		w.Write(body)
+	})
+	cases[messages.H7716] = [2]string{dl(late.URL+"/a", dir+"/9", h, "7"), dl(late.URL+"/a", dir+"/9", h, "7")}
 	shortIdle(t)
 	for _, c := range suggestionCodes {
 		pair, ok := cases[c]

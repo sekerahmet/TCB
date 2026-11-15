@@ -1927,7 +1927,7 @@
 "H7713": { "param": ["fn", "target"] },
 "H7714": { "param": ["fn", "host"] },
 "H7715": { "param": ["fn", "host"] },
-"H7716": { "param": ["fn", "host"] },
+"H7716": { "param": ["fn", "host", "stage"] },
 "H7717": { "param": ["fn", "host", "resume"], "slots": {"sha256": "TR_arg_sha256"} },
 "H7718": { "param": ["fn", "encoding"] },
 "H7719": { "param": ["fn", "size"], "slots": {"size": "TR_arg_size"} },
