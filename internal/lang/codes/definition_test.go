@@ -71,6 +71,9 @@ func TestEveryCodeHasDescription(t *testing.T) {
 			t.Errorf("%s (%s): açıklama %d cümle; en çok 2-3 cümle olmalı", k, g.Name, n)
 		}
 		def, _ := DefinitionOf(k)
+		if def.InternalTo != "" {
+			continue // iç yerleşik örneksizdir (11.7a): örnek kullanıcı programıdır; örnek varsa ParseDefinitions düşer
+		}
 		if strings.TrimSpace(def.Example) == "" {
 			t.Errorf("%s (%s): örnek yok", k, g.Name)
 		}
@@ -159,6 +162,26 @@ func TestParseDefinitions(t *testing.T) {
 	_, _, err = ParseDefinitions([]byte(`{"TR_fn_print": {"kind": "function", "named": [["TR_arg_dim"]]}}`))
 	if err == nil {
 		t.Error("eksik adlı argüman hata vermeli")
+	}
+}
+
+// Kural (11.7a): iç yerleşik ("internal_to") bir tr/ modülünün çekirdek yerleşiği olan fonksiyondur ve
+// örneksizdir: örnek kullanıcı programıdır, iç yerleşiği çağıramaz. Örnekli, modüllü ya da fonksiyon
+// olmayan giriş ayrıştırmada düşer.
+func TestInternalBuiltinHasNoExample(t *testing.T) {
+	defs, _, err := ParseDefinitions([]byte(`{"TR_fn_cache_buffer": {"kind": "function", "internal_to": "tr/layers"}}`))
+	if err != nil || defs[FnCacheBuffer].InternalTo != "tr/layers" {
+		t.Fatalf("iç yerleşik okunmadı: %+v %v", defs[FnCacheBuffer], err)
+	}
+	for entry, want := range map[string]string{
+		`{"TR_fn_cache_buffer": {"kind": "function", "internal_to": "tr/layers", "example": "TR_print(1)"}}`: "has no example",
+		`{"TR_fn_cache_buffer": {"kind": "function", "internal_to": "tr/layers", "module": "tr/layers"}}`:    "has no module",
+		`{"TR_fn_cache_buffer": {"kind": "function", "internal_to": "layers"}}`:                              "not a standard library module",
+		`{"TR_mem_build_cache": {"kind": "method", "internal_to": "tr/layers"}}`:                             "only on a function",
+	} {
+		if _, _, err := ParseDefinitions([]byte(entry)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %q bekleniyordu, alınan: %v", entry, want, err)
+		}
 	}
 }
 

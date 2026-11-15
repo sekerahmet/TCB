@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 795 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 184 fonksiyon, 13 sabit, 95 metot, 147 özellik, 199 adlı argüman.
+Toplam 796 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 185 fonksiyon, 13 sabit, 95 metot, 147 özellik, 199 adlı argüman.
 
 ## İçindekiler
 
@@ -1717,6 +1717,14 @@ tr: değişken x = Tensör(3.0, türev_izle: doğru); geri_yayılım(x * x); yaz
     hazır_model_kur()
 
 
+
+#### `TR_cache_buffer(...)` (`TR_fn_cache_buffer`, `önbellek_tamponu`)
+
+    önbellek_tamponu(Liste, tür: Metin = "float32") → Tensör
+
+Sabit KV önbelleğinin tamponunu ayırır: sıfırlı tensör, işlemcide öbek dışı blokta (önbelleğin payında), blok verilmezse öbekte; bitler aynı. Kullanıcının programı önbelleği model.önbellek_kur(kapasite: n) ile kurar.
+
+İç yerleşik (11.7a), yalnız şu modülün kaynağı çağırır ve anar: `tr/layers` · İlişkili: `.TR_build_cache(...)`
 
 #### `TR_ceil(...)` (`TR_fn_ceil`, `tavan`)
 
@@ -4744,7 +4752,7 @@ en: print(zeros([2, 2], dtype: "fp16").dtype)
 tr: yazdır(sıfırlar([2, 2], tür: "fp16").tür)
 ```
 
-Kullananlar: `TR_Tensor`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`
+Kullananlar: `TR_Tensor`, `TR_cache_buffer(...)`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`
 
 #### `TR_embed_dim:` (`TR_arg_embed_dim`, `boyut`)
 

@@ -1502,6 +1502,8 @@
 "H6994": "Warning ({file, select, main {line {line}} other {{file}, line {line}}}): a compound assignment ({op}=) to a 16-bit ({dtype}) parameter in no-grad mode (15.34): updates smaller than the parameter's precision are silently lost. Keep a float32 master copy, update it and write it to the parameter: `p[0..p.{#shape}[0]] = master`. This warning is shown once per place.",
 "H6995": "{fn}: tensor {order} ({shape}) is not a parameter: it was never set to track gradients (15.33, 15.34), so it would silently stay untrained. Create it with {example} or assign `.{#requires_grad} = {#true}` first",
 "H6996": "{@pretrained_model} takes a folder; a GGUF file is loaded by another name: `{#pretrained_gguf}(\"{path}\")`",
+"H6997": "a \"sabit\" cache needs {@capacity}: without it the model's whole context ({context, plural, one {# position} other {# positions}}) would be reserved; give the prompt plus the generation, for example `model.{#build_cache}({#capacity}: 1024)`",
+"H6998": "{@cache_buffer} is an internal builtin of the library, only `tr/layers` calls it: build the cache with `model.{#build_cache}({#capacity}: 1024)`",
 "H7000": "{fn}: expects JSON text ({text}), {given} given",
 "H7001": "JSON parsing error: {error}",
 "H7003": "{fn}: {path|q} is a folder; give the path of a CSV file",

@@ -408,7 +408,9 @@ TR_func TR_layer_windows(TR_layout: TR_String, TR_windows: TR_List[TR_Int]) -> T
 # türev izlemez (çıkarım içindir). İki çeşidi vardır (transformers DynamicCache ve StaticCache gibi):
 #   "sabit"   : her katman için [B, en_çok, kv_bakış, bakış_boyutu] tampon ilk yazmada bir kez
 #               ayrılır; yeni anahtarlar zaman ekseninde yerine yazılır (gpt-fast, FlashAttention
-#               kv önbelleği gibi), dikkat tamponun dolu kısmını görünüm olarak okur.
+#               kv önbelleği gibi), dikkat tamponun dolu kısmını görünüm olarak okur. Bütün
+#               katmanların tamponları tek tamponun ([2 · katman · B, ...]) sıfırıncı eksendeki
+#               dilimleridir; işlemcide öbek dışı blokta durur (önbellek_tamponu, 15, 19.12a).
 #   "büyüyen" : her adımda yeni anahtarlar bitiştir ile eklenir; bellek yalnızca kullanılan kadar.
 # Düzen [B, T, kv_bakış, bakış_boyutu]: dikkat'in beklediği düzen (FlashAttention'ın kv önbelleği
 # gibi), GQA'da kv bakışları çoğaltılmaz. konum önbellekteki parça sayısıdır (sonraki parçanın konumu).
@@ -471,7 +473,11 @@ TR_struct TR_KVCache {
     }
     # tampon_ekle: anahtar ya da değer tamponları listesinde (liste) katman no'nun tamponuna yeni
     # parçayı çeşide göre ekler ve katmanın görünür kısmını verir: büyüyen bitiştirir, cihaz adımında
-    # yerine yazar, sabit tamponu ilk kullanımda ayırıp konumdan başlayarak dilime yazar.
+    # yerine yazar, sabit tamponu ilk kullanımda ayırıp konumdan başlayarak dilime yazar. Sabitin ilk
+    # eklemesi bütün katmanların anahtar ve değerini tek tamponda kurar: katman i'nin anahtarı
+    # [2iB, (2i + 1)B), değeri [(2i + 1)B, (2i + 2)B) dilimidir (görünüm, depo tek). Bir katmanın
+    # ilk parçası (konum 0) ortak tampona uymuyorsa (bakış sayısı, bakış boyutu, tür ya da daha
+    # büyük B) o katman kendi tamponunu alır.
     TR_func TR_append_buffer(TR_buffers: TR_List[TR_Tensor?], TR_layer_idx: TR_Int, TR_new_chunk: TR_Tensor, TR_end: TR_Int) -> TR_Tensor {
         TR_if TR_self.TR_kind == "büyüyen" {
             TR_var tampon = TR_new_chunk
@@ -490,8 +496,17 @@ TR_struct TR_KVCache {
             TR_return tampon
         }
         TR_var dolu = TR_buffers[TR_layer_idx]
+        TR_var b = TR_new_chunk.TR_shape[0]
         TR_if dolu == TR_none {
-            dolu = TR_zeros([TR_new_chunk.TR_shape[0], TR_self.TR_capacity, TR_new_chunk.TR_shape[2], TR_new_chunk.TR_shape[3]], TR_dtype: TR_new_chunk.TR_dtype).TR_to_device(TR_new_chunk.TR_device)
+            TR_var n = TR_self.TR_k_buffers.TR_length
+            TR_var tek = TR_cache_buffer([2 * n * b, TR_self.TR_capacity, TR_new_chunk.TR_shape[2], TR_new_chunk.TR_shape[3]], TR_dtype: TR_new_chunk.TR_dtype).TR_to_device(TR_new_chunk.TR_device)
+            TR_for i TR_in 0..n {
+                TR_self.TR_k_buffers[i] = tek.TR_slice(0, 2 * i * b, (2 * i + 1) * b)
+                TR_self.TR_v_buffers[i] = tek.TR_slice(0, (2 * i + 1) * b, (2 * i + 2) * b)
+            }
+            dolu = TR_buffers[TR_layer_idx]
+        } TR_else TR_if TR_self.TR_position == 0 TR_and (dolu.TR_shape[0] < b TR_or dolu.TR_shape[2] != TR_new_chunk.TR_shape[2] TR_or dolu.TR_shape[3] != TR_new_chunk.TR_shape[3] TR_or dolu.TR_dtype != TR_new_chunk.TR_dtype) {
+            dolu = TR_cache_buffer([b, TR_self.TR_capacity, TR_new_chunk.TR_shape[2], TR_new_chunk.TR_shape[3]], TR_dtype: TR_new_chunk.TR_dtype).TR_to_device(TR_new_chunk.TR_device)
             TR_buffers[TR_layer_idx] = dolu
         }
         dolu.TR_slice(1, TR_self.TR_position, TR_end)[0..TR_new_chunk.TR_shape[0]] = TR_new_chunk
@@ -673,8 +688,9 @@ TR_struct TR_GPT {
         TR_return TR_cross_entropy(TR_self.TR_forward(TR_token_ids), TR_targets)
     }
     # önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
-    # önbellek en_çok konum tutar (verilmezse bağlam).
+    # önbellek en_çok konum tutar ve en_çok verilmelidir (H6997); büyüyende verilmez.
     TR_func TR_build_cache(TR_kind: TR_String = "sabit", TR_capacity: TR_Int? = TR_none) -> TR_KVCache {
+        TR_if TR_kind == "sabit" TR_and TR_capacity == TR_none { TR_throw TR_Message("H6997", TR_self.TR_config["bağlam"]) }
         TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi

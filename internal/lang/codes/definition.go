@@ -161,6 +161,12 @@ type Definition struct {
 	// Module is the standard library module ("module": tr/layers) whose public name the code is;
 	// empty for a core code. codes_generated.go carries it as the libraryModules table.
 	Module string
+	// InternalTo is the library module whose own source alone may call and mention the code
+	// ("internal_to": tr/layers, 11.7a): an internal builtin of the library guards the invariant of
+	// the library's own type; a call or a mention anywhere else is the check error H6998. It is a core
+	// builtin (registered in Go, with its signature here), not a library code: it has no module. An
+	// internal builtin has no example: a user program cannot run it.
+	InternalTo string
 	// Familiar holds names familiar from other languages and libraries ("familiar": print's
 	// println, none's None, null and nil, func's def): they are not accepted, a message only
 	// suggests the code (2.3a). They belong to no writing language; Load gives them to every
@@ -213,6 +219,14 @@ func DefinitionOf(k Code) (Definition, bool) {
 	loadDefinitions()
 	t, ok := defs[k]
 	return t, ok
+}
+
+// InternalTo is the library module whose source alone may call and mention k when k is an internal
+// builtin ("internal_to", 11.7a); empty otherwise. A message never suggests an internal builtin:
+// the suggestion would not run in the user's program.
+func (k Code) InternalTo() string {
+	t, _ := DefinitionOf(k)
+	return t.InternalTo
 }
 
 // DefinitionError returns the format error found while reading definitions.json, or nil.
@@ -307,10 +321,43 @@ type rawDefinition struct {
 	Related    []string                `json:"related"`
 	Common     string                  `json:"common_name"`
 	Module     string                  `json:"module"`
+	InternalTo string                  `json:"internal_to"`
 	Familiar   []string                `json:"familiar"`
 	Example    string                  `json:"example"`
 	Pure       bool                    `json:"pure"`
 	InPlace    bool                    `json:"in_place"`
+}
+
+// moduleProblem is what is wrong with t's "module", empty when nothing is: a module is written only
+// on a library's public names, and it is a standard library module (tr/…).
+func moduleProblem(k Code, t Definition) string {
+	switch c := k.Class(); {
+	case t.Module == "":
+		return ""
+	case c != ClassType && c != ClassFunction && c != ClassConstant && c != ClassMember && c != ClassNamedArg:
+		return "a module is written only on the public names of a library (type, fn, const, mem and arg codes)"
+	case !strings.HasPrefix(t.Module, "tr/"):
+		return fmt.Sprintf("module %q is not a standard library module (tr/…)", t.Module)
+	}
+	return ""
+}
+
+// internalProblem is what is wrong with t's "internal_to" (11.7a), empty when nothing is: an
+// internal builtin is a function, a core builtin without a module, of a tr/ module, without example.
+func internalProblem(k Code, t Definition) string {
+	switch {
+	case t.InternalTo == "":
+		return ""
+	case k.Class() != ClassFunction:
+		return "internal_to is written only on a function (an internal builtin of a library)"
+	case t.Module != "":
+		return "an internal builtin is a core builtin, it has no module (internal_to names the library)"
+	case !strings.HasPrefix(t.InternalTo, "tr/"):
+		return fmt.Sprintf("internal_to %q is not a standard library module (tr/…)", t.InternalTo)
+	case t.Example != "":
+		return "an internal builtin has no example (a user program cannot run it)"
+	}
+	return ""
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -400,12 +447,10 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 		}
 		t.Related = codeList("related", h.Related)
 		t.Common, t.Familiar, t.Example, t.Pure, t.InPlace = h.Common, h.Familiar, h.Example, h.Pure, h.InPlace
-		if t.Module = h.Module; t.Module != "" {
-			switch c := k.Class(); {
-			case c != ClassType && c != ClassFunction && c != ClassConstant && c != ClassMember && c != ClassNamedArg:
-				errorf("%s: a module is written only on the public names of a library (type, fn, const, mem and arg codes)", k)
-			case !strings.HasPrefix(t.Module, "tr/"):
-				errorf("%s: module %q is not a standard library module (tr/…)", k, t.Module)
+		t.Module, t.InternalTo = h.Module, h.InternalTo
+		for _, msg := range []string{moduleProblem(k, t), internalProblem(k, t)} {
+			if msg != "" {
+				errorf("%s: %s", k, msg)
 			}
 		}
 		out[k] = t

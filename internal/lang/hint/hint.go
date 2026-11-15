@@ -44,7 +44,7 @@ func KeywordSpellingHint(name string, lang *codes.Language) *messages.Error {
 // değişken boy = 180); only on an undefined-name error is the real name
 // suggested, since they may have been written out of habit. lang is as in KeywordSpellingHint.
 func BuiltinSpellingHint(name string, lang *codes.Language) *messages.Error {
-	k, ok := suggest(lang, codes.NamespaceGlobal, name, codes.Code.IsBuiltin)
+	k, ok := suggest(lang, codes.NamespaceGlobal, name, func(k codes.Code) bool { return k.IsBuiltin() && k.InternalTo() == "" })
 	if !ok {
 		return nil
 	}
@@ -139,6 +139,9 @@ func ClosestSuggestion(name string, candidates []string, lang *codes.Language) *
 		if err != nil || !codes.IsReservedName(c) {
 			spellings, names = append(spellings, c), append(names, c)
 			continue
+		}
+		if k.InternalTo() != "" {
+			continue // iç yerleşik önerilmez: kullanıcının programında çalışmaz (11.7a)
 		}
 		for _, s := range spellingsIn(lang, k) {
 			spellings, names = append(spellings, s), append(names, suggested(k, lang))

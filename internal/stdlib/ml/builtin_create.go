@@ -156,6 +156,36 @@ func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named 
 	}
 }
 
+// cacheBuffer önbellek_tamponu(şekil, tür:): sabit KV önbelleğinin tamponu (lib/layers.tr; 11.7a,
+// 15): sıfırlı tensör, işlemcide öbek dışı blokta, önbelleğin payında; blok verilmezse öbekte, bitler
+// aynı (tensor.CacheZeros). Kitaplığın iç yerleşiğidir: tr/layers dışındaki çağrıyı ve anmayı
+// denetleyici H6998 ile durdurur.
+func cacheBuffer(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	ad := codes.NameRef(codes.FnCacheBuffer)
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(codes.FnCacheBuffer, 1, len(args))
+	}
+	if _, list := args[0].(*interp.ListVal); !list {
+		return nil, messages.New(messages.H6021, ad, typeName(args[0]))
+	}
+	if err := bind.CheckNamed(ad.Called(), named, nameDType); err != nil {
+		return nil, err
+	}
+	sh, err := shapeList(ad, args[0])
+	if err != nil {
+		return nil, err
+	}
+	dt, err := constructorDType(ad, named, codes.TypeFloat)
+	if err != nil {
+		return nil, err
+	}
+	t, err := safe(func() *tensor.Tensor { return tensor.CacheZeros(dt, sh...) })
+	if err != nil {
+		return nil, err
+	}
+	return New(t), nil
+}
+
 // randomNormal tohumlu çağrıda kendi üretecini, tohumsuzda programın paylaşılan üretecini
 // (shared_random.go, 20.17) kullanır.
 func randomNormal(m *interp.VM, sh []int, named map[string]interp.Value) (*tensor.Tensor, error) {

@@ -403,7 +403,7 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 
 // name, okunan ya da atanan bir adın görünür olduğunu denetler.
 func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
-	if d.memberName(id, k) {
+	if d.memberName(id, k) || d.internalUse(id, k) {
 		return
 	}
 	if k.notYet(id.Value) {

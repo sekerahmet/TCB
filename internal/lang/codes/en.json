@@ -111,6 +111,7 @@
   "TR_fn_attention": { "name": "attention" },
   "TR_fn_backward": { "name": "backward" },
   "TR_fn_build_pretrained_model": { "name": "build_pretrained_model" },
+  "TR_fn_cache_buffer": { "name": "cache_buffer" },
   "TR_fn_ceil": { "name": "ceil" },
   "TR_fn_chr": { "name": "chr" },
   "TR_fn_clamp": { "name": "clamp" },

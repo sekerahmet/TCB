@@ -49,7 +49,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - Kullanıcı programı iç yerleşiği çağıramaz ve anamaz (`TR_var f = TR_cache_buffer` de hatadır); kod listesinde ve tamamlamada iç olduğu yazılır; adı yine kodludur (17).
 - İç yerleşiğin kod listesinde örneği yoktur: örnek bir kullanıcı programıdır, iç yerleşiği çağıramaz.
 - İlk iç yerleşik `TR_cache_buffer`'dır (`tr/layers`, 15.43).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca olumsuz fikstür (kullanıcı programında çağrı ve anma), TR testi (`tr/layers`'tan çağrı) ve kod listesinin örnek testi.
+- *Test:* TR testi: olumsuz fikstür `tests/negative/ic_yerlesik.tr` (kullanıcı programında çağrı ve anma) ve `lib/layers_test.tr` (`tr/layers`'tan çağrı); Go: `TestInternalBuiltinOnlyInItsLibrary`, `TestInternalBuiltinIsNeverSuggested`, kod listesinin örnek testi `TestInternalBuiltinHasNoExample`.
 
 **11.8** Ad çakışması denetim hatasıdır: iki aktarım aynı adı getirirse ya da dosya aktarılan bir adı yeniden tanımlarsa ileti iki yeri de gösterir ve `TR_as` ile aktarmayı önerir. Sonra gelenin sessizce kazanması yoktur.
 - **Aktarılan ad aktaran dosyada yeniden bağlanamaz:** takma adsız aktarılan bir ada atama (`PI = 7`) ve modül değerinin bir adına atama (`m.PI = 7`) denetim hatasıdır. Modülün en dışındaki değişken yalnız modülün kendi kodundan, onun fonksiyonlarıyla değişir; ileti modülün fonksiyonunu kullanmayı söyler.

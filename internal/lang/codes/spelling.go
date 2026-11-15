@@ -109,6 +109,7 @@ func FromSpelling(p Place, s string) (Code, bool) {
 func SuggestIdentity(name string) (string, bool) {
 	familiar, isFamiliar := FamiliarCode(name)
 	exact, isExact := FromSpelling(PlaceOther, IdentityPrefix+name)
+	isExact = isExact && exact.InternalTo() == "" // iç yerleşik önerilmez (11.7a)
 	switch {
 	case isFamiliar && familiar == KwElse:
 		// elif ve elsif başka dillerin "değilse eğer"idir: TR'de iki sözcüktür.

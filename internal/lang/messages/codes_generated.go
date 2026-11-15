@@ -1507,6 +1507,8 @@ const (
 	H6994 Code = 6994 // Uyarı ({file, select, main {satır {line}} other {{file}, satır {line}}}): türevsiz kipte 16 bitlik ({dtype}) bir parametreye bileşik atama ({op}=) yapılıyor (15.34): parametrenin hassasiyetinden küçük güncellemeler sessizce yutulur. float32 bir ana kopya tutun, güncellemeyi onda yapın ve parametreye yazın: `p[0..p.{#shape}[0]] = ana`. Bu uyarı her yer için bir kez gösterilir.
 	H6995 Code = 6995 // {fn}: {order}. tensör ({shape}) bir parametre değil: türev izlemek için hiç kurulmadı (15.33, 15.34), bu yüzden sessizce eğitilmeden kalırdı. Onu {example} ile kurun ya da önce `.{#requires_grad} = {#true}` atayın
 	H6996 Code = 6996 // {@pretrained_model} klasör alır; GGUF dosyası başka adla yüklenir: `{#pretrained_gguf}("{path}")`
+	H6997 Code = 6997 // "sabit" önbellekte {@capacity} verilmeli: verilmezse modelin bütün bağlamı ({context} konum) ayrılırdı; istemle üretimin toplamını verin, örneğin `model.{#build_cache}({#capacity}: 1024)`
+	H6998 Code = 6998 // {@cache_buffer} kitaplığın iç yerleşiğidir, yalnız `tr/layers` çağırır: önbelleği `model.{#build_cache}({#capacity}: 1024)` ile kurun
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
