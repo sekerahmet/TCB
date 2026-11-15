@@ -64,30 +64,30 @@ TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String,
 # kur: kur.tr'nin bütün işi; çıktı satırlarını verir (S3'ün biçimi, satırdaki değerler ASCII). `yaz` yoksa ayar
 # dosyasına dokunulmaz.
 TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, toplam: TR_Int, bağlam_verilen: TR_Int?,
-        yaz: TR_Bool) -> TR_List[TR_String] {
-    TR_var k = katalog_oku(katalog_yolu)
-    TR_var yol = ayar_yolu(ayar_verilen, yer)
-    TR_var a = ayar_oku(yol, k)
-    TR_var bağlam = bağlam_belirle(k, bağlam_verilen, a)
-    TR_var l = uygunluk(k, a, toplam, bağlam)
-    TR_var satırlar = ["MAKINE toplam_bayt=\(toplam) kaynak=elle baglam=\(bağlam)"]
-    TR_for u TR_in l {
-        TR_if u.uyum == "too_long" {
-            satırlar.TR_append("UYGUNLUK \(u.kimlik) too_long baglam_siniri=\(u.sınır)")
-            TR_continue
+    yaz: TR_Bool) -> TR_List[TR_String] {
+        TR_var k = katalog_oku(katalog_yolu)
+        TR_var yol = ayar_yolu(ayar_verilen, yer)
+        TR_var a = ayar_oku(yol, k)
+        TR_var bağlam = bağlam_belirle(k, bağlam_verilen, a)
+        TR_var l = uygunluk(k, a, toplam, bağlam)
+        TR_var satırlar = ["MAKINE toplam_bayt=\(toplam) kaynak=elle baglam=\(bağlam)"]
+        TR_for u TR_in l {
+            TR_if u.uyum == "too_long" {
+                satırlar.TR_append("UYGUNLUK \(u.kimlik) too_long baglam_siniri=\(u.sınır)")
+                TR_continue
+            }
+            TR_var ölçü = TR_if u.ölçülü { "olculdu" } TR_else { "hesap" }
+            satırlar.TR_append("UYGUNLUK \(u.kimlik) \(u.uyum) gereken_bayt=\(u.gereken) esik_bayt=\(u.eşik) olcu=\(ölçü)")
         }
-        TR_var ölçü = TR_if u.ölçülü { "olculdu" } TR_else { "hesap" }
-        satırlar.TR_append("UYGUNLUK \(u.kimlik) \(u.uyum) gereken_bayt=\(u.gereken) esik_bayt=\(u.eşik) olcu=\(ölçü)")
+        TR_var ö = öneri(l)
+        TR_var sıkı = ""
+        TR_for u TR_in l {
+            TR_if u.kimlik == ö TR_and u.uyum == "tight" { sıkı = " fit=tight" }
+        }
+        satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)\(sıkı)" })
+        TR_if yaz TR_and ö != "" {
+            ayar_yaz(yol, k, a, ö, toplam, bağlam)
+            satırlar.TR_append("AYAR_YAZILDI \(yol)")
+        }
+        TR_return satırlar
     }
-    TR_var ö = öneri(l)
-    TR_var sıkı = ""
-    TR_for u TR_in l {
-        TR_if u.kimlik == ö TR_and u.uyum == "tight" { sıkı = " fit=tight" }
-    }
-    satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)\(sıkı)" })
-    TR_if yaz TR_and ö != "" {
-        ayar_yaz(yol, k, a, ö, toplam, bağlam)
-        satırlar.TR_append("AYAR_YAZILDI \(yol)")
-    }
-    TR_return satırlar
-}

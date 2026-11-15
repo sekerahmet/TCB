@@ -251,9 +251,9 @@ TR_test "sayfa, modüller, dil dosyaları ve başka yol: CSP, önbelleksiz, list
     TR_assert_equal("text/javascript; charset=utf-8", d.TR_headers["Content-Type"])
     TR_assert_equal("no-store", d.TR_headers["Cache-Control"])
     TR_for yol TR_in ["/lang/xx.js", "/index.html", "/contract.md", "/ekran.tr", "/lang/", "/command", "/lang/../ekran.tr",
-            "/js/xx.js", "/js/", "/js/../ekran.tr", "/js/main", "/lang/main.js", "/js/en.js"] {
-        TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_path: yol)).TR_status)
-    }
+        "/js/xx.js", "/js/", "/js/../ekran.tr", "/js/main", "/lang/main.js", "/js/en.js"] {
+            TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_path: yol)).TR_status)
+        }
     TR_assert_equal(404, ekran_cevabı(e, TR_Request(TR_method: "POST", TR_path: "/")).TR_status)
 }
 
@@ -373,7 +373,7 @@ TR_test "katlama: son catalog görüntüde kalır; devices görüntüye girmez" 
 TR_func _kur_yok(t: Takım) -> Asistan { TR_throw "sınamada model yüklenmez" }
 TR_func _mikrofon_yok(b: TR_Int) -> TR_Process { TR_throw "sınamada mikrofon yok" }
 TR_func _tur_yok(a: Asistan, k: TR_Tensor?, s: TR_String?, t0: TR_Int, b: TR_Bool, g: TR_Int, i: () -> TR_NoneType,
-        kd: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı { TR_return ÇalmaAralığı() }
+    kd: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı { TR_return ÇalmaAralığı() }
 
 # _oturum: depodaki katalogla, geçici klasördeki ayar dosyasıyla bir oturum; gönderilen olaylar `e.giden`'de.
 TR_func _oturum() -> Oturum {

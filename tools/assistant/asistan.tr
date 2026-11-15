@@ -58,7 +58,7 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
         "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
-        "aygıt": "canlı kipte mikrofonun dshow adı; ekranlı kipte ayarın microphone'u varsa o kullanılır","sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
+        "aygıt": "canlı kipte mikrofonun dshow adı; ekranlı kipte ayarın microphone'u varsa o kullanılır", "sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
         "ffmpeg": "ffmpeg programı: PATH'teki ad ya da dosyanın yolu", "çalıcı": "çalma komutu (program PATH'teki ad ya da dosyanın yolu); WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
         "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı, 0'dan büyük; dolacaksa yeni konuşma başlar; verilmezse ekranlı kipte ayarın context'i, öbür kiplerde 8192",
         "önbelleksiz": "her tur bütün geçmişi baştan okur (önbelleğin sınaması)", "kimlik_dosyası": "her turun üretilen kimlikleri, en iyi iki logitin farkı ve her kimliğin seçildiği an (turun başından ms; JSON satırları)",
@@ -426,37 +426,37 @@ TR_func tarayıcıyı_aç(adres: TR_String) {
 # Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı. Turun sonunda deneme kaydına ve konuşma kaydına
 # (`kayda`, oturum.tr) yazılır.
 TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, sonrası: TR_Bool, geride: TR_Int, işle: () -> TR_NoneType,
-        kayda: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı {
-    TR_var z = a.z
-    TR_var t = tur_aç(z, kesit, sonrası, geride)
-    TR_var uzunluk = z.geçmiş.TR_length
-    TR_var klasör = TR_temp_dir()
-    TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
-    TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
-    TR_var konuşma = Konuşma(hazırla: (s, i) => wav_yaz(klasör, s, i), t: t, t0: t0,
-        çal: (yol) => wav_çal(yol, (y) => { program_koş(çalıcı, çalıcı_argümanları(y)) }))
-    TR_var aralık = tur_yürüt(e, TR_if söz == TR_none { "voice" } TR_else { "text" }, TurUçları(
-        iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y),
-        bitti: () => {
-            TR_if t.yazı_ms >= 0 TR_and z.tur == t.sıra {
-                tur_ölç(t)
-                olcu_yaz(t)
-            }
-        },
-        geri_al: () => geri_al(z, t, uzunluk),
-        ölçüler: () => tur_ölçüleri(t),
-        çalıyor: () => t.çalma_başı >= 0,
-        aralık: () => ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu),
-        işle: işle,
-        bitiş: (neden, kod) => {
-            TR_var kaynak = TR_if söz == TR_none { "ses" } TR_else { "metin" }
-            TR_var son = kayıt_sonu(neden, z.tur == t.sıra)
-            deneme_yaz(t, kaynak, kesit, t0, son, kod)
-            kayda(t, kaynak, t0, son, kod)
+    kayda: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı {
+        TR_var z = a.z
+        TR_var t = tur_aç(z, kesit, sonrası, geride)
+        TR_var uzunluk = z.geçmiş.TR_length
+        TR_var klasör = TR_temp_dir()
+        TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
+        TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
+        TR_var konuşma = Konuşma(hazırla: (s, i) => wav_yaz(klasör, s, i), t: t, t0: t0,
+            çal: (yol) => wav_çal(yol, (y) => { program_koş(çalıcı, çalıcı_argümanları(y)) }))
+        TR_var aralık = tur_yürüt(e, TR_if söz == TR_none { "voice" } TR_else { "text" }, TurUçları(
+            iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y),
+            bitti: () => {
+                TR_if t.yazı_ms >= 0 TR_and z.tur == t.sıra {
+                    tur_ölç(t)
+                    olcu_yaz(t)
+                }
+            },
+            geri_al: () => geri_al(z, t, uzunluk),
+            ölçüler: () => tur_ölçüleri(t),
+            çalıyor: () => t.çalma_başı >= 0,
+            aralık: () => ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu),
+            işle: işle,
+            bitiş: (neden, kod) => {
+                TR_var kaynak = TR_if söz == TR_none { "ses" } TR_else { "metin" }
+                TR_var son = kayıt_sonu(neden, z.tur == t.sıra)
+                deneme_yaz(t, kaynak, kesit, t0, son, kod)
+                kayda(t, kaynak, t0, son, kod)
         }))
-    kimlikleri_yaz(z)
-    TR_return aralık
-}
+        kimlikleri_yaz(z)
+        TR_return aralık
+    }
 
 # tur_ölçüleri: `metrics`'in verisi; bilinmeyen ölçü yazılmaz (belleği okuyan yerleşik yok: `memory_bytes` yok).
 TR_func tur_ölçüleri(t: Tur) -> TR_JSON {

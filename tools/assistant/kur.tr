@@ -21,6 +21,6 @@ TR_var bağlam: TR_Int? = TR_none
 TR_if seç["bağlam"] != TR_none { bağlam = bağlam_oku(TR_String(seç["bağlam"])) }
 
 TR_for satır TR_in kur(TR_String(seç["katalog"]), TR_String(seç["ayar"]), TR_env("LOCALAPPDATA"), TR_Int(seç["toplam_bellek"]),
-        bağlam, TR_Bool(seç["ayarı_yaz"])) {
-    TR_print(satır)
-}
+    bağlam, TR_Bool(seç["ayarı_yaz"])) {
+        TR_print(satır)
+    }

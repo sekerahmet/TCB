@@ -19,13 +19,13 @@ TR_test "deneme klasörü açılmış tam yol olmalı; deponun, çalışma ağac
         TR_assert(TR_String(deneme_klasörü_hatası(v)).TR_contains("git deposunun ya da çalışma ağacının"))
     }
     TR_for v TR_in ["TR_deneme/20261110-1630", "%USERPROFILE%\\TR_deneme", "$env:USERPROFILE\\TR_deneme", ağaçta, depoda, buradaki,
-            "C:/Users/a/OneDrive/Masaüstü/d", "G:/My Drive/d", "G:/Drive'ım/d", "G:\\Drive’ım\\d", "C:/Users/a/Dropbox/d",
-            "C:/Users/a/iCloudDrive/d"] {
-        TR_var h = deneme_klasörü_hatası(v)
-        TR_assert(h != TR_none)
-        # İleti doğru yazımı verir: PowerShell'de açılan tam yol.
-        TR_assert(TR_String(h).TR_contains("$env:USERPROFILE\\TR_deneme\\"))
-    }
+        "C:/Users/a/OneDrive/Masaüstü/d", "G:/My Drive/d", "G:/Drive'ım/d", "G:\\Drive’ım\\d", "C:/Users/a/Dropbox/d",
+        "C:/Users/a/iCloudDrive/d"] {
+            TR_var h = deneme_klasörü_hatası(v)
+            TR_assert(h != TR_none)
+            # İleti doğru yazımı verir: PowerShell'de açılan tam yol.
+            TR_assert(TR_String(h).TR_contains("$env:USERPROFILE\\TR_deneme\\"))
+        }
 }
 
 TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her turdan sonra; belirteç girmez" {
@@ -58,9 +58,9 @@ TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her 
     TR_assert_equal("gpu", TR_String(satırlar[0]["cihaz"]))
     TR_var s1 = satırlar[1]
     TR_for a TR_in ["kayit", "tur", "saat", "kaynak", "son", "kesit_basi_ms", "kesit_sonu_ms", "soz_ms", "wav", "duyulan", "giden",
-            "cevap", "dusunce", "seslendirilen", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn", "nicemli"] {
-        TR_assert(s1.TR_keys().TR_contains(a))
-    }
+        "cevap", "dusunce", "seslendirilen", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn", "nicemli"] {
+            TR_assert(s1.TR_keys().TR_contains(a))
+        }
     TR_assert(TR_not s1.TR_keys().TR_contains("hata_kodu"))
     TR_assert_equal(4960, TR_Int(s1["kesit_sonu_ms"])) # 6000 - 40 - 1000
     TR_assert_equal(4460, TR_Int(s1["kesit_basi_ms"]))
