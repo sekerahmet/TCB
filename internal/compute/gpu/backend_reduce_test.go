@@ -144,3 +144,102 @@ func TestMax(t *testing.T) {
 		t.Fatalf("GPU'da sıfırların en büyük 2'si %v, beklenen [0 2]", ti.Data())
 	}
 }
+
+// argmaxRun x'in ax eksenindeki en büyük indeksini, değerinin bitlerini ve gradyanının
+// bitlerini verir (geri yayılımın tohumu sabit rastgele ağırlıklar).
+func argmaxRun(dev tensor.Device, v []float32, sh []int, ax int) (string, []uint32, []uint32) {
+	x := tensor.NewOn(dev, v, sh...).SetRequiresGrad(true)
+	idx := fmt.Sprint(x.ArgMax(ax))
+	m := x.Max(ax, false)
+	w := tensor.NewOn(dev, random(rand.New(rand.NewSource(99)), m.Numel(), 1), m.Shape()...)
+	tensor.Mul(m, w).SumAll().Backward()
+	bitsOf := func(f []float32) []uint32 {
+		b := make([]uint32, len(f))
+		for i, e := range f {
+			b[i] = math.Float32bits(e)
+		}
+		return b
+	}
+	return idx, bitsOf(m.Data()), bitsOf(x.Grad().Data())
+}
+
+// TestArgMaxBlockMatchesCPU az çıktılı uzun eksenin blok yolunu (argmaxBlockKernel)
+// CPU'yla ve aynı kartta eski yolla (çıktı başına iş parçacığı, argmaxBlockMaxOut = 0) bit bit
+// karşılaştırır: en büyük indeks (TR_argmax), değer (TR_max, NaN'ın yükü dahil) ve gradyanı.
+// K = 1 ve uzun eksen (Whisper'ın sözlüğü), büyük K ve kısa eksen, adımlı eksen; rastgele,
+// eşitler, ayrı yüklü NaN'lar, ±0 ve hepsi −∞.
+func TestArgMaxBlockMatchesCPU(t *testing.T) {
+	skipUnderRace(t)
+	rng := rand.New(rand.NewSource(21))
+	nanA, nanB := math.Float32frombits(0x7FC00001), math.Float32frombits(0xFFC00002)
+	n0, ninf := float32(math.Copysign(0, -1)), float32(math.Inf(-1))
+	cases := []struct {
+		ad   string
+		sh   []int
+		fill func(v []float32)
+	}{
+		{"rastgele", []int{3000}, nil},
+		{"eşitler", []int{2, 700}, func(v []float32) {
+			for i := range v {
+				v[i] = float32(rng.Intn(3))
+			}
+		}},
+		{"NaN'lar", []int{3, 500}, func(v []float32) { v[37], v[400], v[520], v[900], v[1499] = nanB, nanA, nanA, nanB, nanA }},
+		{"sıfırlar", []int{4, 300}, func(v []float32) {
+			for i := range v {
+				v[i] = n0
+			}
+			v[350], v[351], v[999] = 0, 0, 0
+		}},
+		{"hepsi −∞", []int{2, 256}, func(v []float32) {
+			for i := range v {
+				v[i] = ninf
+			}
+		}},
+		{"K = 1, uzun eksen", []int{51865}, nil},
+		{"K büyük, kısa eksen", []int{1200, 80}, nil},
+		{"adımlı eksen", []int{700, 3}, nil},
+	}
+	for _, c := range cases {
+		v := random(rng, tensor.NumelOf(c.sh), 1)
+		if c.fill != nil {
+			c.fill(v)
+		}
+		for ax := range c.sh {
+			ad := fmt.Sprintf("%s %v eksen %d", c.ad, c.sh, ax)
+			ci, cv, cg := argmaxRun(tensor.CPU, v, c.sh, ax)
+			gi, gv, gg := argmaxRun(gpuDevice, v, c.sh, ax)
+			old := argmaxBlockMaxOut
+			argmaxBlockMaxOut = 0
+			oi, ov, og := argmaxRun(gpuDevice, v, c.sh, ax)
+			argmaxBlockMaxOut = old
+			if gi != ci || gi != oi {
+				t.Fatalf("%s: en büyük indeks GPU %s, eski yol %s, CPU %s", ad, gi, oi, ci)
+			}
+			for _, s := range []struct {
+				ad         string
+				g, eski, c []uint32
+			}{{"değer", gv, ov, cv}, {"gradyan", gg, og, cg}} {
+				if fmt.Sprint(s.g) != fmt.Sprint(s.eski) {
+					t.Fatalf("%s: %s bitleri blok yolunda %x, eski yolda %x", ad, s.ad, s.g, s.eski)
+				}
+				if fmt.Sprint(s.g) != fmt.Sprint(s.c) {
+					t.Fatalf("%s: %s bitleri GPU'da %x, CPU'da %x", ad, s.ad, s.g, s.c)
+				}
+			}
+		}
+	}
+	// Blok yolu üç kipte de gerçekten seçildi: çekirdekleri bu koşuda derlendi.
+	built := map[int]bool{}
+	ptxSeen.Lock()
+	for key := range ptxSeen.m {
+		var nk, mode2, B int
+		if n, _ := fmt.Sscanf(key, "argmax_blok:%d:%d:%d", &nk, &mode2, &B); n == 3 {
+			built[mode2] = true
+		}
+	}
+	ptxSeen.Unlock()
+	if !built[0] || !built[1] || !built[2] {
+		t.Fatalf("blok yolu her kipte seçilmedi: derlenen kipler %v", built)
+	}
+}

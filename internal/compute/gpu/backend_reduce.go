@@ -57,15 +57,38 @@ func (g *backend) argmax(mode2 int, out, gd *storage, x tensor.View, axis int, g
 		sg = gxSt[axis]
 	}
 	meta := append(append(append(append([]int{}, sh...), st[0]...), st[1]...), L, x.Strides[axis], sg)
-	c := g.takeKernel(fmt.Sprintf("argmax:%d:%d", len(sh), mode2), argmaxKernel(len(sh), mode2))
 	p := g.param().readV(x).write(out, 0)
 	if gd != nil {
 		p.read(gd, 0)
 	} else {
 		p.empty()
 	}
+	p.u32(K).arr(len(meta), meta...)
+	if B := argmaxBlocks(K, L, sh, st[0]); B > 0 {
+		c := g.takeKernel(fmt.Sprintf("argmax_blok:%d:%d:%d", len(sh), mode2, B), argmaxBlockKernel(len(sh), mode2, B))
+		g.launch(c, [3]uint32{uint32(K), 1, 1}, [3]uint32{uint32(B), 1, 1}, p)
+		return
+	}
+	c := g.takeKernel(fmt.Sprintf("argmax:%d:%d", len(sh), mode2), argmaxKernel(len(sh), mode2))
 	iz, bl := plain(K, sameBlock)
-	g.launch(c, iz, bl, p.u32(K).arr(len(meta), meta...))
+	g.launch(c, iz, bl, p)
+}
+
+// argmaxBlockMaxOut blok yolunun (argmaxBlockKernel) en çok çıktı sayısı; çok çıktılı
+// argmax'ta çıktı başına iş parçacığı kartı zaten doldurur. Sınamalar eski yolu denemek için
+// 0 yapar.
+var argmaxBlockMaxOut = 4096
+
+// argmaxBlocks argmax'ın blok yolunu seçer ve blok boyunu verir (0: çıktı başına iş
+// parçacığı). Kural toplamanınkidir (reduce): eksen en az 64 elemanlı ve çıktılar çok sayıda
+// bitişik sütun değil (korunan iç adım 1 ve K ≥ 256 iken iş parçacığı başına çıktı okumaları
+// birleştirir); ek olarak K ≤ argmaxBlockMaxOut.
+func argmaxBlocks(K, L int, sh, stX []int) int {
+	col := len(sh) > 0 && stX[len(sh)-1] == 1 && K >= 256
+	if K > argmaxBlockMaxOut || L < 64 || col {
+		return 0
+	}
+	return powerOfTwo(L, 32, 256)
 }
 
 func (g *backend) Max(out tensor.Storage, x tensor.View, axis int) {

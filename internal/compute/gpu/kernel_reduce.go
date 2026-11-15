@@ -121,24 +121,30 @@ func (k *emitter) parseBase(i reg, nd, nOperand, base2 int, meta string) []reg {
 // paylaşımlı bellek adresi, tid iş parçacığı numarasıdır. Sonda engel vardır: paylaşımlı
 // bellek yeniden kullanılabilir.
 func (k *emitter) blockReduce(v, sm, tid reg, B int, join func(a, b reg) reg) reg {
+	return k.blockReduceAs("f32", 4, k.f, v, sm, tid, B, join)
+}
+
+// blockReduceAs blockReduce'un türlü biçimi: değerler typ türünde (f32, u64), size baytlık;
+// fresh o türün yeni yazmacını verir. sm en az size·B bayttır.
+func (k *emitter) blockReduceAs(typ string, size int, fresh func() reg, v, sm, tid reg, B int, join func(a, b reg) reg) reg {
 	addr := k.r()
-	k.e("mad.lo.s32", addr, tid, 4, sm)
-	k.e("st.shared.f32", mem(addr, 0), v)
+	k.e("mad.lo.s32", addr, tid, size, sm)
+	k.e("st.shared."+typ, mem(addr, 0), v)
 	k.barrier()
 	for s := B / 2; s > 0; s /= 2 {
 		skip := k.label()
 		p := k.p()
 		k.e("setp.ge.u32", p, tid, s)
 		k.jumpIf(p, skip)
-		a, b := k.f(), k.f()
-		k.e("ld.shared.f32", a, mem(addr, 0))
-		k.e("ld.shared.f32", b, mem(addr, 4*s))
-		k.e("st.shared.f32", mem(addr, 0), join(a, b))
+		a, b := fresh(), fresh()
+		k.e("ld.shared."+typ, a, mem(addr, 0))
+		k.e("ld.shared."+typ, b, mem(addr, size*s))
+		k.e("st.shared."+typ, mem(addr, 0), join(a, b))
 		k.put(skip)
 		k.barrier()
 	}
-	r := k.f()
-	k.e("ld.shared.f32", r, mem(sm, 0))
+	r := fresh()
+	k.e("ld.shared."+typ, r, mem(sm, 0))
 	k.barrier()
 	return r
 }
@@ -302,7 +308,8 @@ func (k *emitter) storeReduced(a reduceConfig, ha, acc, scaleF reg) {
 // (NaN her sayıdan büyük sayılır, ilk NaN kazanır; −0.0 0.0'dan küçüktür: CPU argmaxCPU ile
 // aynı kural). kip:
 // 0 değer yazar, 1 indeksi (32 bitlik tam sayı) yazar, 2 gradyanı (gx[konum] += g[j])
-// ekler. Çıktı başına bir iş parçacığı ekseni sırayla gezer.
+// ekler. Çıktı başına bir iş parçacığı ekseni sırayla gezer; az çıktılı uzun eksende blok
+// yolu argmaxBlockKernel'dir (seçim argmaxBlocks).
 // Meta: korunan eksenler için şekil, x adımı, gx adımı; ardından eksen boyu, x adımı,
 // gx adımı.
 func argmaxKernel(nk, mode2 int) func() *emitter {
@@ -347,21 +354,87 @@ func argmaxKernel(nk, mode2 int) func() *emitter {
 			k.e("add.s32", ofs, ofs, sx)
 			k.e("add.s32", d, d, 1)
 		})
-		switch mode2 {
-		case 0:
-			k.store(tensor.Float32, k.address(out, j, 4), best)
-		case 1:
-			k.e("st.global.u32", mem(k.address(out, j, 4), 0), bi)
-		default:
-			sg := k.readArr("meta", 3*nk+2)
+		k.argmaxOutput(mode2, nk, out, pg, j, kofs[1], bi, best)
+		k.put(last)
+		return k
+	}
+}
+
+// argmaxOutput argmax çekirdeklerinin çıktısı: kip 0 değeri (best), 1 indeksi (bi) yazar, 2
+// gx[bi·gx adımı + gofs] += g[j] ekler.
+func (k *emitter) argmaxOutput(mode2, nk int, out, pg, j, gofs, bi, best reg) {
+	switch mode2 {
+	case 0:
+		k.store(tensor.Float32, k.address(out, j, 4), best)
+	case 1:
+		k.e("st.global.u32", mem(k.address(out, j, 4), 0), bi)
+	default:
+		sg := k.readArr("meta", 3*nk+2)
+		o := k.r()
+		k.e("mad.lo.s32", o, bi, sg, gofs)
+		ha := k.addressS(out, o, 4)
+		gv := k.load(tensor.Float32, k.address(pg, j, 4))
+		old := k.load(tensor.Float32, ha)
+		k.e("add.rn.f32", old, old, gv)
+		k.store(tensor.Float32, ha, old)
+	}
+}
+
+// argmaxBlockKernel argmaxKernel'in az çıktılı, uzun eksenli biçimi: çıktı başına B iş
+// parçacıklı bir blok (B ikinin kuvveti). İş parçacığı eksenin tid, tid+B, ... elemanlarını
+// gezer ve 64 bitlik anahtarların en büyüğünü tutar: üst 32 bit değerin sıra anahtarı
+// (orderKeyPTX: NaN en büyük ve NaN'lar birbirine eşit, −0.0 0.0'dan küçük), alt 32 bit ^d
+// (eşit değerde küçük indeks büyük anahtar). Blok içi birleştirme en büyük anahtarı seçer.
+// Anahtarlar tekil olduğundan sonuç birleştirmenin sırasına bağlı değildir ve argmaxKernel'in
+// seçtiği ilk en büyük elemandır. Kip 0'da yazılan değer seçilen elemanın kendisidir (NaN'ın
+// yükü korunur). Parametreler ve meta argmaxKernel'inkilerdir.
+func argmaxBlockKernel(nk, mode2, B int) func() *emitter {
+	return func() *emitter {
+		k := newEmitter(fmt.Sprintf("argmax_blok_%d_%d_%d", nk, mode2, B))
+		px := k.pointer("x")
+		out := k.written("cikti")
+		pg := k.pointer("g")
+		k.u32p("k")
+		k.arr("meta", 3*nk+3)
+		sm := k.shared("sm", 8*B)
+		j, tid := k.special("%ctaid.x"), k.special("%tid.x")
+		kofs := k.parseBase(j, nk, 2, 0, "meta")
+		L := k.readArr("meta", 3*nk)
+		sx := k.readArr("meta", 3*nk+1)
+		best := k.rd()
+		k.e("cvt.u64.u32", best, k.whole(0))
+		d := k.r()
+		k.e("mov.u32", d, tid)
+		ofs, step := k.r(), k.r()
+		k.e("mad.lo.s32", ofs, d, sx, kofs[0])
+		k.e("mul.lo.s32", step, sx, B)
+		k.whileLess("u32", d, L, func() {
+			v := k.load(tensor.Float32, k.addressS(px, ofs, 4))
+			nd := k.r()
+			k.e("not.b32", nd, d)
+			k.e("max.u64", best, best, k.orderKeyPTX(v, nd, false))
+			k.e("add.s32", ofs, ofs, step)
+			k.e("add.s32", d, d, B)
+		})
+		best = k.blockReduceAs("u64", 8, k.rd, best, sm, tid, B, func(a, b reg) reg {
+			r := k.rd()
+			k.e("max.u64", r, a, b)
+			return r
+		})
+		last := k.label()
+		p0 := k.p()
+		k.e("setp.ne.u32", p0, tid, 0)
+		k.jumpIf(p0, last)
+		bi := k.r()
+		k.e("cvt.u32.u64", bi, best)
+		k.e("not.b32", bi, bi)
+		var v reg
+		if mode2 == 0 {
 			o := k.r()
-			k.e("mad.lo.s32", o, bi, sg, kofs[1])
-			ha := k.addressS(out, o, 4)
-			gv := k.load(tensor.Float32, k.address(pg, j, 4))
-			old := k.load(tensor.Float32, ha)
-			k.e("add.rn.f32", old, old, gv)
-			k.store(tensor.Float32, ha, old)
+			k.e("mad.lo.s32", o, bi, sx, kofs[0])
+			v = k.load(tensor.Float32, k.addressS(px, o, 4))
 		}
+		k.argmaxOutput(mode2, nk, out, pg, j, kofs[1], bi, v)
 		k.put(last)
 		return k
 	}
