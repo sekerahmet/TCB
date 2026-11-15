@@ -66,6 +66,8 @@ func orderKey(v float32, descending bool) uint32 {
 
 // f32Sort her (dış, iç) satırını (anahtar, indeks) çiftlerine göre sıralar; anahtarlar
 // çiftler arasında tekil olduğu için sıralama kararlıdır (eşitlerde küçük indeks önce).
+// Küçük k'da (k ≤ smallTopK ve k < eksen) satır sıralanmaz, selectSmallest seçer; sonuç
+// tam sıralamanın ilk k'sıyla bayt bayt aynıdır.
 func (cpuBackend) f32Sort(vals, idx Storage, x View, axis, k int, desc bool) {
 	xd := gatherCPU(x)
 	outer, dim, inner := AxisOrder(x.Shape, axis)
@@ -73,16 +75,24 @@ func (cpuBackend) f32Sort(vals, idx Storage, x View, axis, k int, desc bool) {
 	if outer*inner == 0 || k == 0 {
 		return
 	}
-	cost := max(1, dim*bitsLen(dim))
+	small := k <= smallTopK && k < dim
+	cost, held := max(1, dim*bitsLen(dim)), dim
+	if small {
+		cost, held = dim, k
+	}
 	parallelFor(outer*inner, cost, func(lo, hi int) {
-		double := make([]uint64, dim)
+		double := make([]uint64, held)
 		for r := lo; r < hi; r++ {
 			o, i := r/inner, r%inner
 			begin := o*dim*inner + i
-			for d := range double {
-				double[d] = uint64(orderKey(xd[begin+d*inner], desc))<<32 | uint64(d)
+			if small {
+				selectSmallest(double, xd, begin, dim, inner, desc)
+			} else {
+				for d := range double {
+					double[d] = uint64(orderKey(xd[begin+d*inner], desc))<<32 | uint64(d)
+				}
+				slices.Sort(double)
 			}
-			slices.Sort(double)
 			cb := o*k*inner + i
 			for j, c := range double[:k] {
 				d := int(uint32(c))
@@ -93,6 +103,38 @@ func (cpuBackend) f32Sort(vals, idx Storage, x View, axis, k int, desc bool) {
 			}
 		}
 	})
+}
+
+// smallTopK sıralamasız seçimin (selectSmallest) en büyük k'sı; k bundan büyükse ya da
+// eksene eşitse satır bütünüyle sıralanır. TR_argsort'un k'sı eksendir, hep sıralar.
+// Testler 0'a çekip eski yolu aynı girdide koşar.
+var smallTopK = 16
+
+// selectSmallest satırın (begin'den inner adımla dim eleman) en küçük len(list) anahtarını
+// artan sırayla list'e yazar. Anahtar f32Sort'unkidir: orderKey << 32 | indeks. Satır bir
+// kez gezilir; liste son elemanından küçük anahtar gelince sokma ile güncellenir.
+// Anahtarlar satırda tekil olduğundan sonuç gezme sırasına bağlı değildir ve tam
+// sıralamanın ilk len(list) anahtarıdır.
+func selectSmallest(list []uint64, xd []float32, begin, dim, inner int, desc bool) {
+	n := len(list)
+	for d := range list {
+		list[d] = uint64(orderKey(xd[begin+d*inner], desc))<<32 | uint64(d)
+	}
+	slices.Sort(list)
+	last := list[n-1]
+	for d := n; d < dim; d++ {
+		c := uint64(orderKey(xd[begin+d*inner], desc))<<32 | uint64(d)
+		if c >= last {
+			continue
+		}
+		j := n - 1
+		for j > 0 && list[j-1] > c {
+			list[j] = list[j-1]
+			j--
+		}
+		list[j] = c
+		last = list[n-1]
+	}
 }
 
 // bitsLen n'nin ikili uzunluğu (sıralama maliyeti tahmini için).

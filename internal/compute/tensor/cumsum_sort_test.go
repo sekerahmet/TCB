@@ -163,6 +163,79 @@ func TestTopKGrad(t *testing.T) {
 	}
 }
 
+// topKBits TopK'nın değerlerinin ve indekslerinin bitleri (NaN yükü dahil).
+func topKBits(x *Tensor, k, axis int) []uint32 {
+	vals, idx := x.TopK(k, axis)
+	var b []uint32
+	for _, v := range append(vals.Data(), idx.Data()...) {
+		b = append(b, math.Float32bits(v))
+	}
+	return b
+}
+
+// TestTopKSmallKMatchesSort: k ≤ smallTopK ve k < eksen olduğunda TR_topk sıralamadan
+// seçer (R4 Dilim D); sonuç aynı girdide tam sıralamanınkiyle bayt bayt aynıdır: eski yol
+// (smallTopK = 0), k = 17'nin (tam sıralama) ilk k'sı ve sortRef. Girdide eşitler, ±0,
+// ±Inf ve ayrı yüklü NaN'lar var; son eksen ve iç eksen (iç boy > 1); eksen k'ya yakın ve
+// 151 936 (dil modelinin sözlüğü).
+func TestTopKSmallKMatchesSort(t *testing.T) {
+	rng := rand.New(rand.NewSource(4))
+	special := []float32{
+		math.Float32frombits(0x7fc00001), math.Float32frombits(0xffc00002), math.Float32frombits(0x7f800003),
+		float32(math.Copysign(0, -1)), 0, float32(math.Inf(1)), float32(math.Inf(-1)),
+	}
+	cases := []struct {
+		shape []int
+		axis  int
+	}{{[]int{3, 1000}, 1}, {[]int{1000, 3}, 0}, {[]int{2, 50, 3}, 1}, {[]int{4, 17}, 1}, {[]int{17, 2}, 0},
+		{[]int{5, 2}, 1}, {[]int{1, 151936}, 1}}
+	for _, c := range cases {
+		data := make([]float32, NumelOf(c.shape))
+		for i := range data {
+			if rng.Intn(8) == 0 {
+				data[i] = special[rng.Intn(len(special))]
+			} else {
+				data[i] = float32(rng.Intn(7)) - 3 // bol eşitlik
+			}
+		}
+		x := New(data, c.shape...)
+		dim := c.shape[c.axis]
+		full := map[int][]uint32{}
+		saved := smallTopK
+		smallTopK = 0
+		for _, k := range []int{1, 2, 16} {
+			if k <= dim {
+				full[k] = topKBits(x, k, c.axis)
+			}
+		}
+		smallTopK = saved
+		desc := sortRef(data, c.shape, c.axis, true)
+		for _, k := range []int{1, 2, 16} {
+			if k > dim {
+				continue
+			}
+			got := topKBits(x, k, c.axis)
+			if !slices.Equal(got, full[k]) {
+				t.Fatalf("%v eksen %d k %d: seçim tam sıralamadan farklı", c.shape, c.axis, k)
+			}
+			_, idx := x.TopK(k, c.axis)
+			nanSame(t, "topk indeks sortRef", idx.Data(), New(desc, c.shape...).Slice(c.axis, 0, k).Contiguous().Data())
+			if k == 16 && dim >= 17 {
+				// k = 17 tam sıralar; ilk 16'sı k = 16'nın seçimidir.
+				v17, i17 := x.TopK(17, c.axis)
+				vals, ids := v17.Slice(c.axis, 0, 16).Contiguous(), i17.Slice(c.axis, 0, 16).Contiguous()
+				var want []uint32
+				for _, v := range append(vals.Data(), ids.Data()...) {
+					want = append(want, math.Float32bits(v))
+				}
+				if !slices.Equal(got, want) {
+					t.Fatalf("%v eksen %d: k = 16, k = 17'nin ilk 16'sından farklı", c.shape, c.axis)
+				}
+			}
+		}
+	}
+}
+
 func TestSortErrors(t *testing.T) {
 	x := New([]float32{1, 2, 3}, 3)
 	panicCode(t, "k büyük", messages.H3027, func() { x.TopK(4, 0) })
