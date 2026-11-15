@@ -12,49 +12,11 @@ import (
 	"unicode/utf8"
 )
 
-var measurementFiles = map[string]string{
-	"p/p.go": "package p\n\nfunc Work() int { return 1 }\n\nfunc Wrapped() int { return Work() }\n",
-	"p/p_test.go": `package p
-
-import "testing"
-
-func TestWork(t *testing.T) { _ = Work() }
-
-func BenchmarkWork(b *testing.B) { _ = Work() }
-
-func BenchmarkWrapped(b *testing.B) { _ = Wrapped() }
-`,
-}
-
-// Kural: `tests-for` ölçümleri (Benchmark* ve tools/bench) testlerin arasında değil, "measurements, not tests" başlığı
-// altında verir; doğrudan ve dolaylı ölçüm ikisi de oraya gider, testler başlığın üstünde kalır.
-func TestTestsForKeepsMeasurementsApartFromTests(t *testing.T) {
-	root := auditModule(t, measurementFiles)
-	var out, errb strings.Builder
-	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
-		t.Fatalf("build: %d %s", code, errb.String())
-	}
-	out.Reset()
-	if code := run([]string{"tests-for", "--list", "p.Work", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
-		t.Fatalf("tests-for: %d %s", code, errb.String())
-	}
-	got := out.String()
-	head, measured, found := strings.Cut(got, "measurements, not tests")
-	if !found {
-		t.Fatalf("no measurements section:\n%s", got)
-	}
-	if !strings.Contains(head, "p.TestWork") || strings.Contains(head, "Benchmark") {
-		t.Errorf("tests above the heading, benchmarks never:\n%s", got)
-	}
-	if !strings.Contains(measured, "p.BenchmarkWork") || !strings.Contains(measured, "p.BenchmarkWrapped") || strings.Contains(measured, "TestWork") {
-		t.Errorf("both benchmarks (direct and through Wrapped) under the heading:\n%s", got)
-	}
-}
-
 // Kural: tests-for çıkarımla bulunan testleri kanıt gücüne göre verir: kısa zincir ve aynı paket önce; zincir sınırının
 // yarısından uzun zincirle bulunanlar en sonda "weak evidence" başlığı altında. Ad kodu üzerinden bir adımda bulunan
 // aynı paket testi, sekiz adımlık bir zincirle bulunan başka paket testinden önce gelir.
 func TestTestsForOrdersInferredTestsByEvidence(t *testing.T) {
+	t.Parallel()
 	g := &Graph{Nodes: []Node{
 		{ID: "target", Kind: kindFunc, Name: "p.target", File: "p/x.go"},
 		{ID: "name:TR_mem_update", Kind: kindName, Name: "TR_mem_update", Detail: "güncelle"},
@@ -89,6 +51,7 @@ func TestTestsForOrdersInferredTestsByEvidence(t *testing.T) {
 // değil, "tests that use it as a function value" grubunda gelir: kullanan test kendisi, tablo ise onu okuyan test (bağımsız
 // denetim Y2). Test dosyasında hiç geçmeyen işlev testsiz kalır.
 func TestTestsForFindsTestsThatUseAFunctionAsAValue(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p/p.go": "package p\n\nfunc Square(x int) int { return x * x }\n\nfunc Cube(x int) int { return x * x * x }\n\nfunc Unused(x int) int { return x }\n",
 		"p/p_test.go": `package p
@@ -134,6 +97,7 @@ func TestPowerValue(t *testing.T) {
 // Kural: `tests-for <Go dosyası>` dosyadaki bildirimlerin testlerinin birleşimini verir (`changed`'in toplamasıyla) ve
 // onların koruduğu kuralları; "bir dosyaya dokunmadan önce tests-for <dosya>" kuralı Go dosyasında boş dönmez.
 func TestTestsForAGoFileListsTheTestsOfItsDeclarations(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, measurementFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
@@ -152,6 +116,7 @@ func TestTestsForAGoFileListsTheTestsOfItsDeclarations(t *testing.T) {
 // Kural: bir test dosyasının bildirdiği testler (ölçümler hariç) "this file's tests" grubundadır: yalnız dosyadaki bir
 // yardımcıyı çağıranlar değil; yardımcısız test dosyası "none found" demez (eksikler listesi, ince ayar: type_names_test.go).
 func TestTestsForATestFileListsItsOwnTests(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, measurementFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
@@ -173,6 +138,7 @@ func TestTestsForATestFileListsItsOwnTests(t *testing.T) {
 // ya da hedefin ürettiği iletiyi bekliyor), sonra onu yalnızca kullanan doğrudan testler, sonra zincirler; her test bir
 // kez, en güçlü kanıtının grubunda (deneme 8 S1: çok kullanılan bir adda onu sınayan testler en dipte kalıyordu).
 func TestTestsForPutsTheTestsAboutItFirst(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p/p.go": "package p\n\nfunc Area(x int) int { return x * x }\n",
 		"p/p_test.go": `package p
@@ -204,6 +170,7 @@ func TestAreaOfSquare(t *testing.T) { _ = Area(3) }
 // Kural: Go testinin adı hedefi paketsiz kısa adının sözcüklerinde anar (`TestTensorData` Data'yı anar,
 // `dataset_test.TestReaderState` anmaz); TR testinde modül adı sayılmaz (bağımsız denetim grup 6, S1).
 func TestTestNamesNameATargetByWord(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct {
 		test, name string
 		want       bool
@@ -230,6 +197,7 @@ func TestTestNamesNameATargetByWord(t *testing.T) {
 // Kural: işlev adı yuvalı ({fn}) iletiyi bekleyen TR satırı, yuvada hedefin adı duruyorsa hedefi bekler: `metin.böl()`ün
 // iletisini bekleyen satır `metin`i beklemez (bağımsız denetim grup 6, S1).
 func TestMessageSlotMustHoldTheTarget(t *testing.T) {
+	t.Parallel()
 	const tpl = "{fn}() '{param}' adında bir parametre almaz"
 	for _, c := range []struct {
 		line  string
@@ -252,6 +220,7 @@ func TestMessageSlotMustHoldTheTarget(t *testing.T) {
 // Kural: hedefin ürettiği ileti yalnızca hedefin (ve çağırdıklarının) ürettiği iletidir; başka işlevlerin de ürettiği
 // sarmalayıcı ileti (`{fn}: {error}`) onu bekleyen testi hedefin "about" grubuna koymaz (bağımsız denetim grup 6, S1).
 func TestOnlyOwnMessagesMakeATestAboutTheTarget(t *testing.T) {
+	t.Parallel()
 	g := &Graph{Nodes: []Node{
 		{ID: "go:p.save", Kind: kindFunc, Name: "p.save", File: "p/p.go"},
 		{ID: "go:p.load", Kind: kindFunc, Name: "p.load", File: "p/p.go"},
@@ -276,6 +245,7 @@ func TestOnlyOwnMessagesMakeATestAboutTheTarget(t *testing.T) {
 // belgede `codes.Name`) onu konu edinir; yalnızca yaygın kısa adı (Name) taşıyan test konu edinmez, aynı paketteki
 // test kısa adla da edinir (bağımsız denetim grup 7: codes.Name için 17 başka paket testi "about" sayılıyordu).
 func TestOtherPackageTestsNameATargetWithItsQualifier(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"codes/codes.go":      "package codes\n\nfunc Name() string { return \"x\" }\n",
 		"codes/codes_test.go": "package codes\n\nimport \"testing\"\n\nfunc TestNameIsSet(t *testing.T) { _ = Name() }\n",
@@ -315,6 +285,7 @@ func TestTable(t *testing.T) { _ = codes.Name() }
 // stats_test.go, context_test.go "none found" diyordu; language_test.go'nun kendi testleri ilk sıralarda değildi) bu
 // sınıftandır.
 func TestEveryTestFileListsEveryTestItDeclares(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	checked := 0
@@ -354,6 +325,7 @@ func TestEveryTestFileListsEveryTestItDeclares(t *testing.T) {
 // okunur (eksikler listesi, ana oturum 2026-10-26: `tests-for internal/stdlib/dataset/state.go` dış paketteki
 // state_test.go'nun testlerini bu grupta vermiyordu; aynı paketteki stats.go'nun testleri de yalnız "direct" idi).
 func TestASourceFileListsItsTestFilesTestsFirst(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	checked, external := 0, 0
@@ -417,6 +389,7 @@ func declaresTest(name string) bool {
 // `useExpr` üzerinden `leafBox.exprStep`); bileşik değerdeki işlev değeri, değişkene atanıp sonra geçirilen işlev/metot
 // değeri ve arayüz metot değeri/ifadesi zincire girmez (eksikler listesi, DENETİM 79, 285 ve 293).
 func TestTestsForFollowsPackageFunctionPassedAsCallArgument(t *testing.T) {
+	t.Parallel()
 	ix := newIndex(fixture(t))
 	for _, c := range []struct {
 		id   string

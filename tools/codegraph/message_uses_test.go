@@ -23,6 +23,7 @@ var messageCodeName = regexp.MustCompile(`^H\d{4}$`)
 // sonu etiketi (`# ERROR H1026`, `# WARNING H1012`, `# RUN-ERROR H2478`). Her biri için, kullanımın bulunduğu dosyadaki
 // bir düğümden o kodun ileti düğümüne `uses_message` kenarı olmalıdır.
 func TestEveryMessageCodeUseIsAnEdge(t *testing.T) {
+	t.Parallel()
 	root, m, g := repoGraph(t)
 	want := map[string]bool{} // "kod dosya"
 	for _, u := range m.Units {
@@ -93,6 +94,7 @@ func TestEveryMessageCodeUseIsAnEdge(t *testing.T) {
 // üreten dosyanın testidir (başka dosyanın da ürettiği ortak ileti onun değildir) ve koşu satırıyla `changed --go-tests`
 // seçimine `TestNegativeFixtures` girer.
 func TestNegativeFixtureLabelsAndTestsForProducerOnly(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	negDir := filepath.Join(dir, "tests", "negative")
 	if err := os.MkdirAll(negDir, 0o755); err != nil {
@@ -171,6 +173,7 @@ func TestNegativeFixtureLabelsAndTestsForProducerOnly(t *testing.T) {
 // Test bloğundaki bir metin sabiti bir iletinin şablonunun sabit parçalarını sırayla taşıyorsa test o koda bağlanır
 // (`uses_message`, çıkarım): tests-for H2418 o testi verir.
 func TestATRTestExpectingAMessageTextUsesTheMessage(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	for _, c := range []struct{ code, file, title string }{
 		{"H2418", "tests/yapilar_test.tr", "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır"},

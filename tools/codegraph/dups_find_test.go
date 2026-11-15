@@ -6,6 +6,7 @@ import "testing"
 // yöntemler tek bir bölgeye birleşmez ve komşu çok satırlık yöntemin başlığına taşan eşleşme
 // o yöntemin kapanış satırına uzamaz.
 func TestDupsRegionStaysWithinMethodAndSplitsOneLiners(t *testing.T) {
+	t.Parallel()
 	const fileA = `package p
 
 type Box struct{ v []float64 }

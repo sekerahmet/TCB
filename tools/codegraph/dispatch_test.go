@@ -10,6 +10,7 @@ import (
 // compiler.interpolation üzerinden) değeri metne çeviren valueText'e ve Value.Inspect'e gider (deneme 9 H1, deneme 10,
 // değer dili tasarımı 3. tur). Bir dal tanınmazsa test düşer.
 func TestDispatchTableIsReadFromTheInterpreter(t *testing.T) {
+	t.Parallel()
 	_, m, _ := repoGraph(t)
 	d := readDispatch(m)
 	const interp, ml = "go:func:github.com/sekerahmet/TCB/internal/lang/interp.", "go:func:github.com/sekerahmet/TCB/internal/stdlib/ml."
@@ -47,6 +48,7 @@ func TestDispatchTableIsReadFromTheInterpreter(t *testing.T) {
 // ve işleç kullandığı için, aksi hâlde yorumlayıcının her işlevi binlerce TR testiyle "sınanmış" görünürdü
 // (kod-grafigi-40 onayı, 3. madde).
 func TestImplementedByJoinsTheChainOnlyFromMeasurements(t *testing.T) {
+	t.Parallel()
 	to := "go:func:example.com/x/interp.VM.callPrepared"
 	if !reachEdge(edgeImplementedBy, inferred, "tr:func:tools/bench/tr/fib.tr:fib", to, "") {
 		t.Error("a bench program reaches the interpreter")
@@ -101,6 +103,7 @@ func (c *compiler) deeper() code { return func() int { return implC() } }
 // metodu (kendi AST switch'i olan expression) yapıların hepsini dağıttığı için o yapının uygulaması sayılmaz
 // (değer dili adım 1-2: yerleştirme compiler.interpolation'a taşınınca Value.Inspect bağı kopmuştu).
 func TestConstructLinksFollowCompileHelpers(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, helperDispatchFiles)
 	m, err := load(root)
 	if err != nil {

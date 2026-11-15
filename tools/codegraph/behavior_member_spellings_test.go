@@ -144,6 +144,7 @@ func mapKeysBool(m map[string]string) map[string]bool {
 // sorulur; spec: dil tanımı düğümleri dışındaki adaylarda iki araç birebir aynı cevabı (durum, çıkış, aday kimlikleri,
 // etiket kodları) verir ve bütün cevaplar testdata/member_spellings.txt altın dosyasıyla eşleşir.
 func TestDottedMemberSpellingsGolden(t *testing.T) {
+	t.Parallel()
 	repoRule(t) // deponun .tr, .go ve .md dosyalarını okur: onlara dokunan her dosyanın seçiminde kalır (TCB 15:02)
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -220,6 +221,7 @@ func TestDottedMemberSpellingsGolden(t *testing.T) {
 // ve günlüğe yazılır; fark kalanlar: var olan yazımın değişen cevabı, kalkan yazım, yeni yazımın `ok` olmayan cevabı.
 // Kabul edilenlerin sayısı ve ilk beşi günlük satırındadır.
 func TestGoldenDiffAcceptsOnlyNewOkSpellings(t *testing.T) {
+	t.Parallel()
 	// Örnek yazımlar kaynakta `~` ile yazılır: bu dosya da depodaki yazımların taramasına girer.
 	sp := func(s string) string { return strings.ReplaceAll(s, "~", ".") }
 	want := "# başlık\n" +

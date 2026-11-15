@@ -107,6 +107,7 @@ var pinnedNumber = regexp.MustCompile(`\.(go|tr|md|json):\d|\(\d+\)|\b\d+ (read|
 // hesaplanır, sayı yerine grubun bir öğesi sınanır (`group: başlık => öğe`). Dosyaya üstten satır ya da gruba yeni test
 // eklenince doğru cevap kırılmaz (üç kez yanlış "kaldı" verdi).
 func TestPlanningQuestionsPinNoLineOrCount(t *testing.T) {
+	t.Parallel()
 	data, err := os.ReadFile(filepath.Join("testdata", "planning_questions.txt"))
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +150,7 @@ func splitArgs(s string) []string {
 
 // queryCommands grafiği okuyan codegraph komutlarıdır; sınav onları yüklenmiş grafikle çalıştırır (runQueryOn).
 var queryCommands = map[string]bool{"query": true, "path": true, "who-uses": true, "tests-for": true,
-	"callees": true, "calls-into": true, "fields": true, "captures": true, "changed": true}
+	"callees": true, "calls-into": true, "fields": true, "changed": true}
 
 // historyCommands git geçmişini okuyan komutlardır; sığ klonda (CI) cevapları yoktur, sınav onları atlar.
 var historyCommands = map[string]bool{"changed": true, "deleted": true}
@@ -353,6 +354,7 @@ func firstOr(items []string) string {
 // kör nokta (tür kullanımı, arayüz uygulaması, TR testleri, belge yorumu, madde atıfı ...) geri gelirse bu test düşer ve
 // hangi denemenin hangi sorusu olduğunu söyler. -short ile de koşar (tam denetim -short'tur).
 func TestPlanningQuestionsAreAnswered(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	records := parseExam(t, filepath.Join("testdata", "planning_questions.txt"))
 	idx, err := repoIndex(root)
@@ -476,6 +478,7 @@ func indentOutput(out string) string {
 // .gitignore'lu bir klasörde yazılmış .tr (geliştiricinin denemesi) karşılaştırmayı değiştirmez. Fikstürde `kenar`
 // iki bildirimdir (alan ve kurucu parametresi); scratch/ altına aynı adlı bir işlev eklenir.
 func TestToolComparisonsIgnoreUntrackedFiles(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, ".gitignore", "scratch/\n")
 	testkit.WriteFile(t, root, "scratch/deneme.tr", "TR_func kenar(kenar: TR_Int) -> TR_Int {\n    TR_return kenar\n}\n")

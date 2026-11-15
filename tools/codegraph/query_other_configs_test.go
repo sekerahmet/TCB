@@ -14,6 +14,7 @@ import (
 // içe aktarıyorsa, niteleyicisiyle (`shape.Describe`, takma adla `sh.Describe`). gaps'in örneği: Linux'ta impact.load
 // (tools/impact'in dışa kapalı işlevi) sysmem'in memory_windows.go'sundaki `load` alanıyla eşleşiyordu.
 func TestOtherConfigMentionsKeepPackageBounds(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)
 	testkit.WriteFile(t, root, "shape/leaf_plan9.go", `//go:build plan9

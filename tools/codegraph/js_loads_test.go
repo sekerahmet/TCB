@@ -30,6 +30,7 @@ func TestRunsJS(t *testing.T) { _ = filepath.Join("ui", "test", "view_test.js") 
 // koşar, o view.js'yi, view.js helper.js'yi yükler; "via" testin koştuğu dosyadır (TCB 2026-10-25, 4. madde:
 // eklentinin kodlu görünüm modülü için tests-for eklentinin testlerini görmüyordu).
 func TestTestsForAJavaScriptFileFollowsTheFilesThatLoadIt(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, jsLoadFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -67,6 +68,7 @@ func TestTestsForAJavaScriptFileFollowsTheFilesThatLoadIt(t *testing.T) {
 // 'x.json')`. Bütün parçaları metin olan her biçim `loads` kenarıdır; dosyayı okuyan JS testini koşan Go testi tests-for'da
 // görünür (eksikler listesi, ana oturum 2026-10-26: `tests-for editors/vscode/l10n/bundle.l10n.tr.json` test yok diyordu).
 func TestAJavaScriptTestReadsAFileThroughADirectoryConstantOrAHelper(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{}
 	for k, v := range jsLoadFiles {
 		files[k] = v
@@ -109,6 +111,7 @@ func TestAJavaScriptTestReadsAFileThroughADirectoryConstantOrAHelper(t *testing.
 // düğümün gerçek kimliğine (`tr:file:...`, `doc:...`, `file:...`) `loads` kenarı çeker; bilinmeyen değişkenle kurulan
 // `os.path.join(tmp, "model.tr")` ve dış paket `import json` bağ kurmaz (Madde 1, DENETİM 510 N4).
 func TestPythonRelativeLoadsAndTrackedTargetNodeIDs(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"examples/tr/fixture_model.tr":         "# TR 4\nTR_print(1)\n",
 		"docs/fixture_note.md":                 "# Note\n",

@@ -201,6 +201,7 @@ func literal(e ast.Expr) (string, bool) {
 // adlar dahil) onu yazan testten bir tests kenarı alır: alt süreçte koşan TR metni de onu yazan testin sınadığı adlardır.
 // Betikler codegraph'tan bağımsız bulunur (e2eWrittenScripts); taramanın boş kalmaması için en az birkaç betik vardır.
 func TestEveryScriptAnE2ETestWritesLinksToItsNameCodes(t *testing.T) {
+	t.Parallel()
 	root, m, g := repoGraph(t)
 	library := os.DirFS(filepath.Join(root, "lib"))
 	scripts := e2eWrittenScripts(t, root)
@@ -256,6 +257,7 @@ func TestRunInProcess(t *testing.T) { lexer.New(strings.ReplaceAll(program, "{zi
 // (assistant_test.TestChainDeviceTransitions → ml.defaultDeviceBuiltin). Süreç içinde koşulan metnin kenarı işaretsizdir;
 // onun bağı inTestBinary süzgecinden geçer (TestNameCodeTestsMustLinkTheFunctionsPackage).
 func TestATRProgramRunByTheTrlangBinaryReachesItsBuiltins(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, trlangRunFiles))
 	if err != nil {
 		t.Fatal(err)

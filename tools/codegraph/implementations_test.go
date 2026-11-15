@@ -57,6 +57,7 @@ func TestBackendOp(t *testing.T) { _ = SoftmaxOp(1) }
 // uygulamaya kadar sürer ve `tests-for` uygulamanın testlerini arayüz çağrısının testlerinden bulur. Kural tek yerde
 // (moduleImplementations) durur; dead-methods aynısını kullanır.
 func TestInterfaceMethodsDispatchToTheirImplementations(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, dispatchFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -170,6 +171,7 @@ func dispatchMisses(t *testing.T, m *module, g *Graph) (misses []string, promote
 // yöntem kümesine karşı tutarlıdır; yükseltilen kenarlar silinince tutarlılık testi düşer (mutasyon); dead-methods
 // yükseltilen yöntemi "unreferenced" saymaz (TCB sağlık taraması P1: tensor.VersionCounter.Hold).
 func TestPromotedMethodsSatisfyInterfacesInDispatchAndDeadMethods(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, promotedFiles)
 	m, err := load(root)
 	if err != nil {
@@ -199,6 +201,7 @@ func TestPromotedMethodsSatisfyInterfacesInDispatchAndDeadMethods(t *testing.T) 
 // Kural: deponun grafiği de go/types'ın yöntem kümesiyle tutarlıdır (yükseltilen yöntemler dahil). Modül ve grafik
 // planlama sınavıyla paylaşılır (repoGraph); -short'ta da koşar.
 func TestDispatchesMatchMethodSetsOnTheRepository(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t) // sınavla paylaşılan yükleme: -short'ta da koşar (S7)
 	if misses, promoted := dispatchMisses(t, m, g); len(misses) != 0 || promoted == 0 {
 		t.Errorf("promoted %d; missing dispatches_to (%d): %v", promoted, len(misses), misses)
@@ -239,6 +242,7 @@ func TestLoadPkg(t *testing.T) { _ = LoadPkg() }
 // veriliyorsa yalnız arayüzün yöntem kümesindeki metotları teste bağlanır; değeri arayüz yerine verilmeyen (ya da yalnız
 // return / açık dönüşümde geçen) ikinci bir tip bağlanmaz.
 func TestExternalInterfaceFieldLinksOnlyImplementedMethodsToTests(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, externalIfaceFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {

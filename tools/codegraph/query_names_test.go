@@ -14,6 +14,7 @@ import (
 // uygulaması o çiftin değeridir, aynı satırdaki öbür çiftlerinki değil (keyedImplementations, implementationsAt). Çiftler
 // go/types'tan bulunur, grafiğe bakılmadan; kodun kullanıldığı her satırda sorgu yalnız o işlevi adlandırır.
 func TestAKeyedNameCodeIsImplementedByItsPairsValue(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t)
 	ix := newIndex(g)
 	checked := 0
@@ -130,6 +131,7 @@ func fnBody() { _ = codes.FnD }
 // korunur; iki ayrı kod, iki işlev (`unit(v, codes.X, (*T).M, f)` biçimi: metot ifadesi ve işlev aynı çağrıda) ya da test
 // dosyasındaki çağrı bağlanmaz; modül dışı işlev (`math.Floor` gibi) eşleşmede sayılmaz ve düğüm almaz (DENETİM 285, 286 ve 293).
 func TestAdjacentNameCodeInCallIsImplementedByArgumentCallable(t *testing.T) {
+	t.Parallel()
 	checkNameImplModule(t, `package app
 
 import (
@@ -210,6 +212,7 @@ func TestHelperDoesNotImplement(t *testing.T) { reg(codes.FnB, testHelper) }
 // alan (`{codes.X, wrap(f)}`), iki kodlu/iki işlevli (`(*T).M` ve `f`) satır ve test dosyası bağlanmaz; modül dışı işlev
 // (`math.Floor`) eşleşmede sayılmaz ve düğüm almaz (Adım 2b ve 2f).
 func TestTableRowNameCodeIsImplementedByRowCallable(t *testing.T) {
+	t.Parallel()
 	mustEdge(t, fixture(t), fixturePkg+"runIf", "name:TR_kw_if", edgeUsesName, inferred)
 	checkNameImplModule(t, `package app
 

@@ -46,6 +46,7 @@ func helperNobodyCalls() string { return "tools/run.tr" }
 // dosya ya da belgeye INFERRED `tests` kenarı verir; yol bir yardımcıdaysa onu çağıran test bağlanır; tek
 // başına joker kalıbı (sınama verisi), çıplak dosya adı ve hiçbir testin çağırmadığı yardımcı bağlanmaz.
 func TestGoTestsLinkToTheRepositoryFilesTheyUse(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, testPathFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -123,6 +124,7 @@ func TestNoComment(t *testing.T) { _ = reporoot.Path("lib/a.tr") }
 // Kural: tests-for her Go testinin altına koruduğu kuralın ilk satırını yazar: önce testin doc yorumu, yoksa test
 // dosyasının baş yorumu (içe aktarmalardan sonraki ilk // bloğu); yorumsuz testte not yoktur.
 func TestTestsForShowsTheRuleLineOfEachGoTest(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, testNoteFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
@@ -190,6 +192,7 @@ func TestLooksOneUp(t *testing.T) { _ = codes.Name(0) }
 // dosyadaki bütün girdileri gezen test (range) ayrıca `walks` alır, tek girdiye bakan almaz. Ad ve ileti kodları
 // tanımlandıkları dosyadan `contains` alır; `tests-for <kod>` kodun dosyasını gezen testi kural satırıyla gösterir.
 func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, embedFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -266,6 +269,7 @@ func TestHeader(t *testing.T) {}
 // bakıldığını söyler (TCB 2026-10-25, 1. ve 2. madde: tam denetim betiğinin yolu belirsizdi, geliştirici
 // belgesini anan testler görünmüyordu).
 func TestTestsForAFileListsItsReadersCitersAndRuleGuards(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, fileTestFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -323,6 +327,7 @@ func TestTestsForAFileListsItsReadersCitersAndRuleGuards(t *testing.T) {
 // Kural: git'in izlemediği bir dosyanın yolu ad aramasına düşmez (yolu metninde anan bildirimler "belirsiz" diye
 // gelmez); cevap grafiğin ona hiç bakmadığını söyler ve "bulunamadı" çıkış koduyla biter.
 func TestTestsForAnUntrackedFileSaysNothingWasSearched(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	testkit.WriteFile(t, root, "notes/draft.sh", "echo shape.Describe\n")
@@ -373,6 +378,7 @@ func TestFixture(t *testing.T) { _ = []string{"README.md", "a.tr"} }
 // klasördeki aynı adlı belge bağlanmaz (TCB 2026-10-25, 2. madde: belge testlerinin listesi kök belgesini ve docs
 // belgelerini okuyordu, tests-for "no tests found" diyordu).
 func TestRootRelativePathsLinkFromTheRootOnly(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, rootPathFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -397,6 +403,7 @@ func TestRootRelativePathsLinkFromTheRootOnly(t *testing.T) {
 // değişkeni kullanan her test o dosyanın testidir (inits_var zincire ters yönde girer, initReader). Değişkenler ve onları
 // kullanan testler go/types'tan bulunur, grafiğe bakılmadan; grafikte her birinden dosyaya bir tests kenarı olmalı.
 func TestEveryVariableAnInitFillsFromAnEmbeddedFileLinksItsReaders(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t)
 	embedded := map[string][]string{} // gömülü değişken -> dosya düğümleri
 	for _, e := range g.Edges {
@@ -476,6 +483,7 @@ func TestEveryVariableAnInitFillsFromAnEmbeddedFileLinksItsReaders(t *testing.T)
 // Kural: gövdesinde `reporoot.Path(sabit + parametre)` kuran tek düzey Go yardımcısı, sabit dize argümanıyla çağrıldığında
 // kurulan veri dosyasını çağıran teste bağlar; değişken ya da çok düzeyli parametre zinciri bağlanmaz.
 func TestHelperParamConcatenationLinksConstantArgToDataFile(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"ext/sample.nls.json":       `{"k": "v"}`,
 		"ext/other.json":            `{"k": "v"}`,
@@ -526,6 +534,7 @@ func TestTwoLevelOrVar(t *testing.T) {
 // Kural: iki `//` satırına bölünen yol (`// ... docs/` ve alt satırda `// README.md`) birleşik yoldur; alt satırın başındaki
 // kuyruk çıplak dosya adı sayılıp yorumun klasöründen çözülmez (gaps, "Yorumda satır sonunda bölünen yolun kuyruğu").
 func TestACommentPathSplitAcrossLinesCitesTheJoinedPath(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"docs/README.md": "# docs\n",
 		"app/README.md":  "# app\n",

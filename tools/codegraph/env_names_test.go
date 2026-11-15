@@ -52,6 +52,7 @@ func hook(t *testing.T) { t.Setenv("TR_CPU_AVX2", "0") }
 // `uses_env` kenarıyla bağlanır; sabit adlar çözülür, başka değişkenler bağlanmaz. Bir ileti şablonu env adı
 // taşıyorsa ileti koda `uses_name` kenarıyla bağlanır (her dilin kendi adı); who-uses ve query bunları gösterir.
 func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, envFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -183,6 +184,7 @@ func run(t *testing.T, env []string) { _ = env }
 // da test dosyasındaki yardımcısı) o değişkenin ad kodunu sınar: `tests` kenarı; yalnızca okuyan test sınamaz (değer
 // dili 3. tur: tests-for TR_env_LANG TR_LANG'i koyan e2e testlerini göstermiyordu).
 func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, envSetFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -208,6 +210,7 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 // yalnızca testlerin çağırdığı bir yardımcı üzerinden): değişkenin etkisi sınanır, yalnızca okunması değil. Yeni bir
 // ortam değişkeni koyan testi olmadan eklenirse bu test düşer; istisna listesi yoktur (değer dili 3. tur).
 func TestEveryEnvironmentVariableIsSetByATest(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	root, _, g := repoGraph(t)
 	codes := map[string]bool{}

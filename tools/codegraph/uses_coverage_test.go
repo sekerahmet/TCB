@@ -380,6 +380,7 @@ func Make() (a.Result, error) { return a.Make(a.T{}) }
 // Kural: küçük bir modülde (tür dönüş tipinde, alan tipinde, tür kısıtında, gömülü alanda, diğer pakette kullanım)
 // grafik go/types'ın gördüğü her kullanımı örter.
 func TestUseCoverageOnADiverseModule(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, useCoverageFiles)
 	misses, checked := useCoverageMisses(t, root, func(string) bool { return true })
 	if checked < 30 {
@@ -393,6 +394,7 @@ func TestUseCoverageOnADiverseModule(t *testing.T) {
 // Kural: aynı örtme tutarlılığı bu deponun kendisinde de geçerlidir (gpu.MemorySample örneği buradan çıktı). Modül ve
 // grafik planlama sınavıyla paylaşılır (repoGraph); -short'ta, yani tam denetimde de koşar.
 func TestUseCoverageOnTheRepository(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t) // sınavla paylaşılan yükleme: -short'ta da koşar (S7)
 	all := func(string) bool { return true }
 	uses, checked := expectedUses(m, all, fieldsByDecl(g))
@@ -407,6 +409,7 @@ func TestUseCoverageOnTheRepository(t *testing.T) {
 // bütün kenarları yok ama aynı dosyada başka işlev aynı hedefleri kullanıyor (S2: eski test dosya düzeyindeydi), çağrı
 // `uses` diye yazılmış, gerçek olmayan bir kenar eklenmiş (ters yön).
 func TestUseCoverageCatchesABrokenGraph(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, useCoverageFiles)
 	m, err := load(root)
 	if err != nil {
@@ -454,6 +457,7 @@ func TestUseCoverageCatchesABrokenGraph(t *testing.T) {
 // Kural: işlev içinde tanımlanan tip ve arayüz metotları ayrı düğüm alır; aynı adlı yerel tipler birbirini ezmez,
 // `query` ve `who-uses` hem tipi hem metot çağrısını gösterir.
 func TestFunctionScopedTypeAndMethodsHaveNodesAndUses(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"p/p_test.go": `package p
 

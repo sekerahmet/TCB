@@ -95,9 +95,7 @@ codegraph who-uses H4002 | not: no uses | contains: internal/compute/gpu/cuda_ot
 codegraph query gpu.runExitHandlers | contains: internal/compute/gpu/cuda_linux.go | contains: internal/compute/gpu/cuda_windows.go | src: bağımsız denetim Y4, 2026-10-24
 
 # Sağlık taraması: gömülü alandan yükseltilen metot (P1) ve ürün sürüm numarası (P2) (2026-10-24)
-codegraph dead-methods --in internal/compute/tensor | not: VersionCounter | src: sağlık taraması P1, 2026-10-24
-codegraph dead-methods | not: pcgSource.Uint64 | not: TensorValue.SetMember | contains: dataload.Batch.U16 | src: codegraph uygulaması K4, 2026-11-13 (rand.New'e verilen tipin metotları canlı; başka işlevde düz çağrılan metot gölgede değil; gerçek bir aday kalır, gaps.md:72-73)
-codegraph dead-methods | not: TensorValue.CopiesAssigned | contains: cpuBackend.FillRaw | src: codegraph dilim 5, 2026-11-14 (işaret arayüzü; değeri bağlanan iddia işaret değil)
+codegraph dead-methods | not: VersionCounter | not: pcgSource.Uint64 | not: TensorValue.SetMember | contains: dataload.Batch.U16 | not: TensorValue.CopiesAssigned | contains: cpuBackend.FillRaw | src: sağlık taraması P1, 2026-10-24 (gömülü alandan yükseltilen metot); codegraph uygulaması K4, 2026-11-13 (rand.New'e verilen tipin metotları canlı; başka işlevde düz çağrılan metot gölgede değil; gerçek bir aday kalır, gaps.md:72-73); codegraph dilim 5, 2026-11-14 (işaret arayüzü; değeri bağlanan iddia işaret değil); üç soru tek taramada, codegraph 7 Dilim C K2 (her soru bütün modülü tiplerle yüklüyordu)
 codegraph query tensor.Storage.Hold | group: dispatches_to => tensor.VersionCounter.Hold | src: sağlık taraması P1, 2026-10-24
 codegraph spec-refs | contains: 0 note(s) | not: no item 2.14 | src: sağlık taraması P2, 2026-10-24
 trlang index tested_by swiglu_kapısı | contains: lib/layers_test.tr | src: DENETİM doğrulaması T3 (iki aracın sınayan kümesi), 2026-10-24
@@ -294,8 +292,8 @@ codegraph changed --root untracked --go-tests HEAD | contains: untracked: shape/
 
 # Deneme: gaps.md'nin gözden geçirmesi (2026-11-09): yan oturumların istediği ama var olan sorular
 codegraph who-uses gilSince --mode write | contains: interp.VM.gilSince [field] | contains: interp.VM.acquireGIL | not: interp.VM.clockExpired | src: gaps gözden geçirmesi, 2026-11-09 (D1'in "alanı kim yazıyor" isteği; alan vmShared'den VM'e taşınmıştı; clockExpired yalnız okur, DENETİM 349)
-codegraph package-state --in internal/compute/tensor | contains: @{internal/compute/tensor/cpu_matmul.go#packPoolB = }  written by gemmPart (address taken), quantGemm (address taken) | src: gaps gözden geçirmesi, 2026-11-09 (H1'in "havuzu başka kim kullanıyor" isteği; yazanlar packPoolB'nin satırında, DENETİM 349)
-codegraph captures tensor.quantGemmPanels | group: func literal@ => dt tensor.DType | src: gaps gözden geçirmesi, 2026-11-09 (captures'ın var olduğu: Go işlev değişmezinin yakaladıkları; T1'in .tr fonksiyonları için isteği açık, DENETİM 348, 349)
+codegraph query packPoolB | group: <- writes_var => tensor.gemmPart | group: <- writes_var => tensor.quantGemm | src: gaps gözden geçirmesi, 2026-11-09 (H1'in "havuzu başka kim kullanıyor" isteği; DENETİM 349); package-state emekli, aynı soruyu query'nin writes_var satırı cevaplar (codegraph 7 Dilim C, K3)
+# captures tensor.quantGemmPanels sorusu silindi: komut emekli; yönlendirmeyi TestRetiredCommandsNameTheirReplacement sınar (codegraph 7 Dilim C, DENETİM 776 Ş1)
 
 # Deneme: codegraph A2 (2026-11-09): yanlış eşleşmeler, koşu satırı, ince ayarlar
 codegraph who-uses dataload.mmapFile | contains: dataload.mmapFile [func] at internal/compute/dataload/mmap_other.go | src: codegraph A2 madde 1, 2026-11-09 (dışa kapalı adın kendi paketindeki başka işletim sistemi tanımı eşleşir, DENETİM 358 Ş1)

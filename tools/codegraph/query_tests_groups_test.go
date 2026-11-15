@@ -9,6 +9,7 @@ import (
 // dışındaysa (paket düzeyi değişken ya da yardımcı işlev), `edgeLine` testin kendi `dosya:satır` yerini yazar;
 // kendi gövdesindeki doğrudan okuma satırı, işlev hedefli sorgular (`kindFunc`) ve `splitSharedSites` ayrımı korunur.
 func TestFileTestEdgeShowsTestDeclarationWhenSiteIsOutsideBody(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p/p.go":          "package p\n\nfunc Target() int { return 1 }\n",
 		"p/sub/data.txt":  "ok\n",
@@ -131,6 +132,7 @@ func TestCallsTargetViaHelper(t *testing.T) {
 // yer alır); `Benchmark*` işlevleri (`tools/bench/*_test.go` içindekiler dahil) ve `tools/bench/` altındaki test dışı
 // kodlar (`run.py`, `tools/bench/tr/*.tr`) ölçüm olarak kalır (Madde 1).
 func TestToolsBenchTestFilesCountAsTestsWhileBenchmarksStayMeasurements(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"pkg/p.go":                   "package pkg\n\nfunc Target() int { return 1 }\n",
 		"tools/bench/fixture_run.py": "print(1)\n",
@@ -201,5 +203,45 @@ func BenchmarkRunPy(b *testing.B) {
 	}
 	if strings.Contains(repoRunOut, "<- measurements, not tests") {
 		t.Errorf("repo tests-for tools/bench/run.py must not classify TestRunPy* as measurements:\n%s", repoRunOut)
+	}
+}
+
+var measurementFiles = map[string]string{
+	"p/p.go": "package p\n\nfunc Work() int { return 1 }\n\nfunc Wrapped() int { return Work() }\n",
+	"p/p_test.go": `package p
+
+import "testing"
+
+func TestWork(t *testing.T) { _ = Work() }
+
+func BenchmarkWork(b *testing.B) { _ = Work() }
+
+func BenchmarkWrapped(b *testing.B) { _ = Wrapped() }
+`,
+}
+
+// Kural: `tests-for` ölçümleri (Benchmark* ve tools/bench) testlerin arasında değil, "measurements, not tests" başlığı
+// altında verir; doğrudan ve dolaylı ölçüm ikisi de oraya gider, testler başlığın üstünde kalır.
+func TestTestsForKeepsMeasurementsApartFromTests(t *testing.T) {
+	t.Parallel()
+	root := auditModule(t, measurementFiles)
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"tests-for", "--list", "p.Work", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for: %d %s", code, errb.String())
+	}
+	got := out.String()
+	head, measured, found := strings.Cut(got, "measurements, not tests")
+	if !found {
+		t.Fatalf("no measurements section:\n%s", got)
+	}
+	if !strings.Contains(head, "p.TestWork") || strings.Contains(head, "Benchmark") {
+		t.Errorf("tests above the heading, benchmarks never:\n%s", got)
+	}
+	if !strings.Contains(measured, "p.BenchmarkWork") || !strings.Contains(measured, "p.BenchmarkWrapped") || strings.Contains(measured, "TestWork") {
+		t.Errorf("both benchmarks (direct and through Wrapped) under the heading:\n%s", got)
 	}
 }

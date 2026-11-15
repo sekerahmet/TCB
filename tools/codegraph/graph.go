@@ -27,7 +27,9 @@ const schemaVersion = 1
 // kenarı Via "trlang" taşır (codegraph dilim 6, D6-4 (a)). 103: kol kenarı (linkCaseTests) Via "case" taşır (D6-4 (b)).
 // 104: paket klasörünü ReadDir(".") ile listeleyen test bir taramadır (scan düğümü; D6-4 (c)).
 // 105: tensör paketinin tip sorgusu kuralı çekirdek gövdesi taramasını (TestKernelBodiesCallNoGate) da sayar (DIL UZMANI iş 7).
-const extractorRevision = 105
+// 106: func literal düğümü yakaladığı değişkenleri (captured) taşımaz; okuyan tek komut captures emekli oldu (codegraph 7
+// Dilim C, K3).
+const extractorRevision = 106
 
 // Düğüm türleri.
 const (
@@ -108,8 +110,6 @@ type Node struct {
 	Params []string `json:"params,omitempty"`
 	// Aliases düğümün başka adlarıdır (ad kodunun dildeki adları: sorguda ad gibi çözülür).
 	Aliases []string `json:"aliases,omitempty"`
-	// Captured bir func literal'in dış kapsamdan yakaladığı değişkenlerdir ("ad tip").
-	Captured []string `json:"captured,omitempty"`
 	// Skip bir testin başındaki atlama koşuludur (kaynak metni; test_skips.go): yalnızca bu koşul yanlışken koşar.
 	Skip string `json:"skip,omitempty"`
 	// NoteCode ve Note belirsiz üye sorgusunun adayındaki yorum etiketinin ileti kodu ("H8877", "H8878") ve metnidir (yalnız sorgu cevabında).

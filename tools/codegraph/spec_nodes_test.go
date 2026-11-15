@@ -31,6 +31,7 @@ func TestWritingLanguage(t *testing.T) { Compile() }
 // ya da dosya) maddeye `refs_spec` kenarıdır; atıf yapan bir test (Go ya da adı numarayla başlayan TR test bloğu) maddeyi
 // sınar. `who-uses 17.7` etki listesini, `tests-for 17.7` testleri verir.
 func TestSpecItemsAreNodesWithReferenceEdges(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, specNodeFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -59,6 +60,7 @@ func TestSpecItemsAreNodesWithReferenceEdges(t *testing.T) {
 // üye yazımı ise maddenin gövdesinde (kod bloğu dahil) geçse bile alıcısından bağımsız olarak en öncelikli spec:
 // maddesine çözülür.
 func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
+	t.Parallel()
 	detachX := "x." + "TR_detach"
 	detachY := "y." + "TR_detach"
 	streamP := "p." + "TR_decode_stream"

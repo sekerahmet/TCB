@@ -16,6 +16,7 @@ import (
 // internal/stdlib'in her işlevi (eksikler listesi, kritik, ana oturum 2026-10-26: `tests-for TR_fn_sum` H6126'yı bekleyen testi
 // ilk grupta veriyordu; H6126'yı yalnız ml.matmulDType üretir ve toplam'dan oraya yol yok).
 func TestAnExpectedMessageIsTheTargetsOwn(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g) // kök yok: TR testinin satırını okuyan yedek yol kapalı, yalnız kenarla bekleme sınanır
 	var candidates []*Node

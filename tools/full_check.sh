@@ -75,6 +75,7 @@ modes="dagitim go-esleri"
 base_override=""
 stop_first=""
 mode_flags=0
+commit_flag=""
 for arg in "$@"; do
 	case "$arg" in --hizli | --kip=*) mode_flags=$((mode_flags + 1)) ;; esac
 	case "$arg" in
@@ -87,7 +88,7 @@ for arg in "$@"; do
 	--kip=uzun) modes=uzun ;;
 	--kip=zorlama) modes=zorlama ;;
 	--kip=on) modes=on ;;
-	--kip=commit) modes=commit ;;
+	--kip=commit) modes=commit commit_flag=1 ;;
 	*)
 		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on|commit] [--taban=<commit>] [--ilk-kalanda-dur])" >&2
 		exit 2
@@ -95,8 +96,10 @@ for arg in "$@"; do
 	esac
 done
 # Son kip bayrağı kazanır; --kip=commit başka bir kiple gelirse bu makinede ağır bir kip koşardı (ağır koşu
-# kancası yalnız --kip=commit'i geçirir; DENETİM 383 Ş3).
-if [ "$modes" = commit ] || printf '%s\n' "$@" | grep -qx -- '--kip=commit'; then
+# kancası yalnız --kip=commit'i geçirir; DENETİM 383 Ş3). Bayrak döngüde işaretlenir, boruyla aranmaz:
+# pipefail altında `printf | grep -q` grep erken çıkınca printf'in SIGPIPE'ıyla düşer ve koruma sessizce
+# atlanırdı (G4, 2026-11-15, codegraph 7c birleşmesi).
+if [ -n "$commit_flag" ]; then
 	if [ "$mode_flags" -ne 1 ]; then
 		echo "--kip=commit başka bir kip bayrağıyla birlikte verilemez (--hizli, --kip=...)" >&2
 		exit 2

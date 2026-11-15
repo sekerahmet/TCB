@@ -85,7 +85,6 @@ go run ./tools/codegraph tests-for interp.VM.Run --list # sınayan testler ve ko
 go run ./tools/codegraph query zaman_ms         # yerleşik adı → kod → Go kaydı/uygulaması → belge başlığı
 go run ./tools/codegraph calls-into tensor --in internal/stdlib # tensör işlevlerinden ≥2 tanesini çağıranlar
 go run ./tools/codegraph who-uses tensor.Tensor.shape --mode write # alanın yazıldığı yerler (tipe göre, kapanışlar işaretli; --mode read okumalar)
-go run ./tools/codegraph captures binaryKind --type Tensor # func literal'lerin yakaladığı değişkenler
 go run ./tools/codegraph callees ml.New        # bir işlevin çağırdıkları, pakete göre
 go run ./tools/codegraph who-uses H3096 --by-package # kullanıcılar pakete göre
 go run ./tools/codegraph changed claude/dal      # dalın dokunduğu düğümler, testleri, aynı yere dokunan öbür claude/ dalları

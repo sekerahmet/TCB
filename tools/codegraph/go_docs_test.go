@@ -53,6 +53,7 @@ func Plain() {}
 // yorumunun ilk paragrafını (en çok 3 satır) taşır, yoksa satır sonu yorumunu; `query` onu "doc:" satırında yazar.
 // Yönergeler (//go:noinline) yorum değildir.
 func TestQueryShowsGoDocComments(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{"p/p.go": docSource})
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {

@@ -13,6 +13,7 @@ import (
 // dosyasında dar `run:` satırında (doğrudan test), öbür dosyalarda yalnız gruplarda (codegraph 7 A1: koşucular uzaktır,
 // commit öncesi denetim koşar); bayrağı kapalı ya da denetleyiciye varmayan alt komutla çağrılan testler seçilmez.
 func TestCheckerRunnerTestsLinkAndStayInTheAnswer(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"internal/lang/checker/checker.go": `package checker
 
@@ -153,6 +154,7 @@ func TestSubprocessFmt(t *testing.T) { _ = exec.Command("cli", "fmt", "doc.md") 
 // `internal/stdlib/ml`'in `TestTensorIsNotACondition`'ı) dar satırda değildir; seçimdedir ve kalan sayısına girer: commit
 // öncesi denetim ve G4 koşar (codegraph 7 A1–A3; checker.go'nun başka paketlerde 175 doğrudan testi var, sınırı aşıyor).
 func TestRepoCheckerRunnersAreLeftToTheCommitCheck(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	file := ix.byID["go:file:internal/lang/checker/checker.go"]
