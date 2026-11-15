@@ -16,6 +16,7 @@ import (
 )
 
 func TestWholeListWalkersCoverReceiverMethodsAndDictionaryLookups(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"dict/dict.json": `{"TR_fn_print": "print"}`,
 		"dict/dict_generated.go": `package dict
@@ -106,6 +107,7 @@ func TestSingleLookupOnly(t *testing.T) {
 }
 
 func TestChangedGoTestsSelectsScansAndListWalkers(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, scanFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +124,7 @@ func TestChangedGoTestsSelectsScansAndListWalkers(t *testing.T) {
 // Kural (DENETİM istek 79, Madde 1): kod listesini Go API'siyle gezen ya da .tr dosyalarını tarayan her Go testi ilgili
 // dosyanın tests-for çıktısında görünür ve changed --go-tests seçiminde yer alır.
 func TestCodeListAndTRFileWalkersAreInTestsForAndChangedGoTests(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	tracked, ok := codeindex.GitTracked(root)
 	if !ok {

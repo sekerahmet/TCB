@@ -51,8 +51,6 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | a node and its neighbours, or which declaration contains a grep hit | `query <name>` or `query <file>:<line>`; many hits: `grep -n ... \| codegraph query -` | agent rules |
 | who reads or writes this field | `who-uses <Type.field> --mode write` (or `read`) | agent rules |
 | which fields a type has and how often each is read and written | `fields <Type>` | none |
-| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) | none |
-| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) | none |
 | what this function calls | `callees <function>` | agent rules |
 | which functions call into this package the most | `calls-into <pkg> --min N --in DIR` | none |
 | who uses this | `who-uses <name>` | agent rules |
@@ -60,13 +58,12 @@ Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the 
 | when and in which commit this file or function changed | `query <name>` for its file, then git: `git log -L ':^func <name>(:<file>' -s --oneline` (a method: `':^func (.*) <name>(:<file>'`, a type: `':^type <name> :<file>'`), `git log --follow --oneline -- <file>` | agent rules |
 | which message or name codes existed once and are gone | `deleted` | none |
 | functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers | none |
-| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) | none |
+| methods with no caller (deadcode cannot see these) | `dead-methods --in DIR` (candidates, not decisions) | weekly count |
 | is there a function like this one | `similar <function>` | agent rules |
 | which code in a folder is repeated | `dups --in <folder>` | gate, agent rules |
-| tests with a wall-clock ceiling | `time-ceilings --in DIR` | none |
 | broken references to language-definition items | `spec-refs` | gate |
 
-The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `agent rules` (the agents' rules tell them to run it), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
+The flow column says what asks for the command: `gate` (`tools/full_check.sh` runs it), `hook` (`tools/edithook` runs it after an edit), `agent rules` (the agents' rules tell them to run it), `weekly count` (the codegraph expert runs it every week and reports new candidates), `none`; several are joined with commas. `TestCommandTableFlowsMatchTheGateAndHook` checks `gate` and `hook` against the calls in those files.
 
 ## Staying fresh
 
@@ -277,10 +274,9 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
   the name resolves only to a field: a name that matches no field is not found (exit 4).
 - `fields <Type>`: a table of the type's fields with read and write counts.
 - Every `func literal` is a `closure` node (`outer > func literal@Lnn`, `contains` from the
-  function or the enclosing literal) carrying `captured`: the local variables and parameters it
-  takes from the enclosing scopes with their types (`out *tensor.Tensor`), `(assigned)` when the
-  literal assigns them. `captures <func> [--type T]` lists them for every literal in a function
-  (nested ones too), `--type Tensor` keeps variables whose type contains the text.
+  function or the enclosing literal). The node no longer carries the variables it captures: the one
+  command that read them, `captures`, was retired in codegraph 7 Dilim C (its request was about `.tr`
+  functions, which it never answered); read the function, `query <function>` gives its file and line.
 
 ## TR sources
 
@@ -493,16 +489,17 @@ although they are rarely worth merging: judge each candidate. On this repository
 trees and a language-independent reader): a `trlang index kopya` subcommand over the `codeindex`
 parser output with the same node sequence; see the hand-over note for the proposal.
 
-## Audits (`dead-methods`, `package-state`, `time-ceilings`, `spec-refs`)
+## Audits (`dead-methods`, `spec-refs`)
 
-Four audits that were once done by hand (item 7 of Evre 4 in the old roadmap, `docs/archive/roadmap-2026-10-27.md`). They read the sources directly
+Two audits that were once done by hand (item 7 of Evre 4 in the old roadmap, `docs/archive/roadmap-2026-10-27.md`). They read the sources directly
 (type-checked with `goload`, or plain text for `spec-refs`), need no graph, and print **lists to
-review, not decisions**. All take `--in DIR` (only results under a path), `--json`, `--limit N`.
+review, not decisions**. All take `--in DIR` (only results under a path), `--json`, `--limit N`. Two more,
+`package-state` and `time-ceilings`, were retired in codegraph 7 Dilim C: `query <variable>` gives a variable's
+writers by the same rule (`writes_var`), and one `git grep` finds 36 of the 37 ceilings; the commands print the
+replacement and exit 2.
 
 ```sh
 go run ./tools/codegraph dead-methods     # methods nobody calls
-go run ./tools/codegraph package-state    # process-wide mutable package variables
-go run ./tools/codegraph time-ceilings    # tests with a wall-clock ceiling
 go run ./tools/codegraph spec-refs        # language-definition references: missing items, suffixes
 go run ./tools/codegraph spec-refs --list # every reference with the heading it points to
 ```
@@ -524,14 +521,6 @@ go run ./tools/codegraph spec-refs --list # every reference with the heading it 
   use), so deleting the method silently sends the program down the other branch (`ml.TensorValue.CopiesAssigned`).
   An assertion that binds the value (`r, ok := x.(I)`) is no marker: if the bound value's method is never called the
   method may really be dead (`cpuBackend.FillRaw`). Only non-test files count (`audit_markers.go`).
-- **`package-state`** lists package variables that are written after their declaration, per
-  package: `mutable`, `test-hook` (written only by tests), `address-taken`, and `synchronized`
-  (`sync.Mutex`/`Once`, `sync/atomic` types) separately. Tables that are only read after `init`
-  are counted but not listed.
-- **`time-ceilings`** lists the places in `_test.go` files where `time.Since`/`time.Until`/
-  `Time.Sub` (or a variable holding one of them) is compared with a constant. Rule
-  (internal/README.md): duration tests look at growth (`testkit.ScalesLinearly`), not at a ceiling;
-  a ceiling is allowed only for a wait that must end early, at half the distinguishing time.
 - **`spec-refs`** scans docs/, `tests/*.tr`, Go comments, `lib/` and `examples/` (tracked files)
   for references to language-definition items: `**N.M**`, `**N.M–K.L**`, `dil tanımı N.M`,
   `§N.M`, `[N.M](…spec/…)` (errors) and bare numbers in parentheses inside `docs/spec` (notes).
@@ -674,9 +663,9 @@ there honestly: `TR_fn_time_ms`, `TR_arg_weight:`, `TR_arg_bias:`). A stale exce
 
 `query codes.active` used to give its 16 users under one `uses`; "who writes it" had no answer. The rule of
 what a write is lives in one function, `writeTargets` (`var_access.go`): assignment, op-assignment, `++`/`--`,
-`range` assignment, `&x`, `delete`/`clear`, `sync/atomic`. The graph extractor and the `package-state` audit both
-call it, so there is no second rule: `TestPackageStateAndGraphAgreeOnWriters` pins that `package-state`'s writers
-(init and initializers aside) are exactly the `writes_var` sites. Compared with the field rule (`reads_field`/
+`range` assignment, `&x`, `delete`/`clear`, `sync/atomic`. The graph extractor calls it (the retired `package-state`
+audit was its second caller); `TestGraphWritesVarSitesAreExactlyTheWrites` pins the `writes_var` sites of a fixture,
+init and initializers aside. Compared with the field rule (`reads_field`/
 `writes_field`) the same modes apply, and an initializer or an `init` write is its own group because it runs
 once, before anything reads: that is the part "who sets it up" and "who changes it while running" must not mix.
 
@@ -790,7 +779,11 @@ dictionaries, a README with rules, a doc with links, a broken link). Tests that 
 a temporary git repository take several seconds each, so they call `slowFixture` and are skipped
 by `-short`: `go test -short ./tools/codegraph` takes about 150 s, the full run about 260 s (2026-10-26, Windows; the
 repository graph is built once per run and shared, `repoGraph`). The full check (`tools/full_check.sh`) runs Go tests
-with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
+with `-short`; the skipped ones run in the `--kip=uzun` mode (CI). The tests run in parallel: every top-level test
+calls `t.Parallel()` first, except a test that sets the environment or the working directory (`Setenv`, `Unsetenv`,
+`Chdir`), itself or through a helper; Go would stop it (`TestCodegraphTestsRunInParallel`). On 2026-11-15, on G4, the
+package took 154.7 s in one process and 53.9 s with its tests spread over four (the longest test, the planning exam,
+44.8 s alone).
 
 - `extractor_digest_test.go`: `testdata/extractor_digest.txt` records the extractor revision and a
   digest of the extractor sources (comments and formatting do not count). If the code changes,
@@ -807,7 +800,9 @@ with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
   stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
   scan `deleted` reads.
 - `changed_distance_test.go`: `changed --go-tests --by-distance` gives the plain form's tests, near before far.
-- `main_test.go`: the help text and the retired commands (`explain`, `history`) naming their replacement.
+- `main_test.go`: the help text, the retired commands (`explain`, `history`, `package-state`, `time-ceilings`, `captures`) naming their
+  replacement, and every test
+  of the package calling `t.Parallel()` first.
 - `behavior_member_spellings_test.go`: the golden file `testdata/member_spellings.txt`, every `<receiver>.TR_<name>`
   spelling in the tracked `.tr`, `.go` and `.md` files with the answer of both tools (codegraph and `trlang index`),
   which must agree. A spelling not in the golden file yet whose answer is `ok` does not fail the test: it is logged as

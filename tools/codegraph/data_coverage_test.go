@@ -67,6 +67,7 @@ func trackedSet(root string) (map[string]bool, bool) {
 }
 
 func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	root, _, g := repoGraph(t) // sınavla paylaşılan yükleme
 	tracked, ok := trackedSet(root)
@@ -167,6 +168,7 @@ func underAnyName(file, name string) bool {
 // tests-for <dosya> sorar; belirsiz cevap yanlış bir "yok" demektir (TCB 2026-10-25, 1. madde: tam denetim
 // betiği ve `.gitignore` için tests-for belirsizdi). İstisna listesi yoktur.
 func TestEveryTrackedFileIsANode(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	files, ok := codeindex.GitTracked(root)
 	if !ok {

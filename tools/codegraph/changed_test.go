@@ -36,6 +36,7 @@ func branchFixture(t *testing.T) string {
 }
 
 func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
+	t.Parallel()
 	root := branchFixture(t)
 	graph := buildInto(t, root)
 	code, out, errOut := commandIn("changed", root, graph, "claude/a")
@@ -64,6 +65,7 @@ func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
 // veri dosyası (grafiğin ayrıştırmadığı bir .txt) değişse de onu okuyan test seçilir. Ön denetim eskiden yalnız .go
 // dosyası değişen paketleri koşuyordu: planning_questions.txt kırıkken codegraph sınavı koşmadan "geçti" dedi.
 func TestChangedGoTestsSelectsTheTestsOfAChangedDataFile(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, "data/cases.txt", "a\n")
 	testkit.WriteFile(t, root, "shape/cases_test.go", "package shape\n\nimport (\n\t\"os\"\n\t\"path/filepath\"\n\t\"testing\"\n)\n\n"+
@@ -88,6 +90,7 @@ func TestChangedGoTestsSelectsTheTestsOfAChangedDataFile(t *testing.T) {
 }
 
 func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := branchFixture(t)
 	gitMust(t, root, "checkout", "-q", "claude/a")
@@ -100,6 +103,7 @@ func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
 }
 
 func TestChangedAcceptsRangeAndRejectsUnknownRef(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := branchFixture(t)
 	graph := buildInto(t, root)
@@ -117,6 +121,7 @@ func TestChangedAcceptsRangeAndRejectsUnknownRef(t *testing.T) {
 // satırlar onu kaydırmaz. Commit'ten önce koşan denetim (ön denetim, `dups --changed main`) aksi halde o anki kopyayı ve
 // testleri kaçırırdı (MEKANİK 2026-10-25, DENETİM 2026-10-26).
 func TestChangedSeesTheWorkingTree(t *testing.T) {
+	t.Parallel()
 	root := branchFixture(t)
 	gitMust(t, root, "checkout", "-q", "claude/a")
 	shape := filepath.Join(root, "shape", "shape.go")
@@ -179,6 +184,7 @@ func TestChangedSeesTheWorkingTree(t *testing.T) {
 }
 
 func TestParseDiff(t *testing.T) {
+	t.Parallel()
 	diff := "diff --git a/x.go b/x.go\nindex 1..2 100644\n--- a/x.go\n+++ b/x.go\n@@ -3,2 +3 @@ func f() {\n-a\n-b\n+c\n@@ -10,0 +10,2 @@\n+d\n+e\n"
 	hs := parseDiff(diff)
 	if len(hs) != 2 || hs[0].file != "x.go" || hs[0].oldStart != 3 || hs[0].oldCount != 2 || hs[0].newCount != 1 ||
@@ -195,6 +201,7 @@ func TestParseDiff(t *testing.T) {
 // adı değişen dosya "mapped to no node"a düşmez, bugünkü düğümlerine ve testlerine bağlanır; yeniden adlandırılan
 // Go dosyasındaki dokunulmamış kopya dalın yeni tekrarı sayılmaz.
 func TestChangedAndDupsChangedFollowRenames(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	replaceIn(t, filepath.Join(root, "lib", "geo.tr"), "TR_print(k.alan())", "TR_print(k.alan()) # iz")
 	commitAll(t, root, "edit-geo")
@@ -246,6 +253,7 @@ func TestChangedAndDupsChangedFollowRenames(t *testing.T) {
 // Eski bir sürümün kurduğu grafik (düğümlerde son satır yok) imzası aynı olsa da yeniden
 // kurulur: aksi halde hunk'lar yalnızca bildirim satırına denk gelen düğümlere eşlenirdi.
 func TestChangedRebuildsGraphFromOlderExtractor(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := branchFixture(t)
 	graph := buildInto(t, root)
@@ -275,6 +283,7 @@ func TestChangedRebuildsGraphFromOlderExtractor(t *testing.T) {
 // başlık etiketi izlenmeyen dosya sayısını söyler; aynı fikstürde `changed` yeni dosyanın işlevini değişen düğüm
 // olarak bir kez sayar (changeHunks değişmediği için hunk sayısı 0, değişen kod sayısı 1 kalır).
 func TestDupsChangedAndChangedSeeUntrackedGoFile(t *testing.T) {
+	t.Parallel()
 	root := branchWithCopy(t)
 	gitMust(t, root, "checkout", "-q", "main")
 	testkit.WriteFile(t, root, "go.mod", "module example.com/dup\n\ngo 1.25\n")
@@ -304,6 +313,7 @@ func TestDupsChangedAndChangedSeeUntrackedGoFile(t *testing.T) {
 // Kural: `changed --go-tests <c>` komutunda `<c>` ana dalın (`main`) atasıysa ve fark boşsa çıktı sessizce boş
 // kalmaz; `<c>`'nin `main`'in atası olduğunu ve tek commit'in değişikliği için `<c>~1..<c>` yazılacağını söyler.
 func TestChangedGoTestsAncestorCommitExplainsRange(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	replaceIn(t, filepath.Join(root, "shape", "shape.go"), "return s.Side * s.Side", "return s.Side * s.Side * 1")
 	commitAll(t, root, "second-on-main")
@@ -326,6 +336,7 @@ func TestChangedGoTestsAncestorCommitExplainsRange(t *testing.T) {
 // Kural: `tools/bench/` altındaki bir betik değiştiğinde `changed --go-tests` o betiği çalıştıran ya da okuyan
 // `tools/bench Test*` birim testlerini seçer; `Benchmark*` işlevlerini seçmez (Madde 1, DENETİM 510 Ş3).
 func TestChangedGoTestsSelectsToolsBenchUnitTestsAndSkipsBenchmarks(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, "tools/bench/fixture_gate.py", "print(1)\n")
 	testkit.WriteFile(t, root, "tools/bench/fixture_gate_test.go", "package bench\n\nimport (\n\t\"os/exec\"\n\t\"path/filepath\"\n\t\"testing\"\n)\n\n"+

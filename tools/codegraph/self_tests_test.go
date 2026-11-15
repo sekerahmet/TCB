@@ -22,6 +22,7 @@ func (ix *index) selfTestsOf(n *Node) []goTest {
 // (changed --go-tests --without-codegraph-self-tests) girmez, sayıları S3 ile yazılır; depo kuralları (repoRule) girer.
 // İki klasörün içindeki dosyada hepsi seçimde kalır; bayraksız changed --go-tests (ön denetim) hiçbirini çıkarmaz.
 func TestCodegraphSelfTestsStayOutOfOtherFilesSelections(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root

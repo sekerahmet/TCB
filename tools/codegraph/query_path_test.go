@@ -24,6 +24,7 @@ func B(t T) { t.Soft() }
 // kullanıyor" bir çağrı yolu değildir. `--undirected` yönü yok sayar ama tür, paket ve dosya düğümlerinden geçmez;
 // `--through-hubs` onlardan da geçer ve işaretler.
 func TestPathAnswersDirectedAndNeverSilentlyThroughATypeHub(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, pathFiles)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {

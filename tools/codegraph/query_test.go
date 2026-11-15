@@ -11,6 +11,7 @@ import (
 )
 
 func TestQueryShowsNeighbours(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "query", "shape.Describe")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -20,6 +21,7 @@ func TestQueryShowsNeighbours(t *testing.T) {
 }
 
 func TestQueryAmbiguousListsCandidates(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "query", "Code")
 	if code != exitAmbiguous {
 		t.Fatalf("exit %d, want %d", code, exitAmbiguous)
@@ -28,6 +30,7 @@ func TestQueryAmbiguousListsCandidates(t *testing.T) {
 }
 
 func TestQueryQualifiedNameDisambiguates(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "query", "internal/lang/codes.Code")
 	if code != exitOK || !strings.Contains(out, "codes.Code [type]") {
 		t.Errorf("exit %d:\n%s", code, out)
@@ -35,6 +38,7 @@ func TestQueryQualifiedNameDisambiguates(t *testing.T) {
 }
 
 func TestQueryNotFound(t *testing.T) {
+	t.Parallel()
 	code, out, errOut := cli(t, "query", "Zzzzz")
 	if code != exitNotFound || out != "" {
 		t.Errorf("exit %d, stdout %q", code, out)
@@ -43,6 +47,7 @@ func TestQueryNotFound(t *testing.T) {
 }
 
 func TestFlagsMayFollowNames(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "query", "shape.Describe", "--limit", "1")
 	if code != exitOK || !strings.Contains(out, "shape.Describe") {
 		t.Errorf("exit %d:\n%s", code, out)
@@ -50,6 +55,7 @@ func TestFlagsMayFollowNames(t *testing.T) {
 }
 
 func TestWhoUsesMessage(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "who-uses", "H0001")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -62,6 +68,7 @@ func TestWhoUsesMessage(t *testing.T) {
 }
 
 func TestTestsFor(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "tests-for", "--list", "shape.Describe")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -77,6 +84,7 @@ func TestTestsFor(t *testing.T) {
 }
 
 func TestPath(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "path", "shape.Twice", "H0001")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -96,6 +104,7 @@ func TestPath(t *testing.T) {
 }
 
 func TestUsageErrors(t *testing.T) {
+	t.Parallel()
 	var so, se bytes.Buffer
 	if code := run(nil, &so, &se); code != exitUsage {
 		t.Errorf("no args: exit %d", code)
@@ -111,6 +120,7 @@ func TestUsageErrors(t *testing.T) {
 // Kural: graf dosyası henüz yokken (taze klon) sorgu komutları grafı kendisi kurar ve soruyu cevaplar;
 // yalnız `--no-rebuild` verildiğinde eksik graf hata verir.
 func TestMissingGraphFile(t *testing.T) {
+	t.Parallel()
 	var so, se bytes.Buffer
 	code := run([]string{"query", "--no-rebuild", "--graph", filepath.Join(t.TempDir(), "none.json"), "x"}, &so, &se)
 	if code != exitFail || !strings.Contains(se.String(), "run `go run ./tools/codegraph build`") {
@@ -145,6 +155,7 @@ func TestMissingGraphFile(t *testing.T) {
 }
 
 func TestBuildCommandWritesGraph(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	out := filepath.Join(t.TempDir(), "sub", "graph.json")
 	var so, se bytes.Buffer
@@ -160,6 +171,7 @@ func TestBuildCommandWritesGraph(t *testing.T) {
 }
 
 func TestTestsForIndirect(t *testing.T) {
+	t.Parallel()
 	// Report → Twice → Describe: TestReport sınar Describe'ı üç adım uzaktan.
 	_, out, _ := cli(t, "tests-for", "--list", "shape.Describe")
 	testkit.MustContain(t, out, "shape.TestDescribe", "tests, indirect", "shape.TestReport", "3 steps via shape.Twice", "[INFERRED]")
@@ -178,6 +190,7 @@ func TestTestsForIndirect(t *testing.T) {
 // Kural: test ile hedef arasındaki zincir tek kurala bağlıdır (test_reach.go): en çok testMaxSteps adım ve en çok
 // testMaxHops paket sınırı. Sınırın içi bulunur, bir adım ya da bir sınır ötesi bulunmaz.
 func TestIndirectChainIsLimitedByOneRule(t *testing.T) {
+	t.Parallel()
 	chain := func(n int, dirOf func(i int) string) *index {
 		g := &Graph{Nodes: []Node{{ID: "t", Kind: kindFunc, Name: "p.TestX", File: "p_test.go"}}}
 		prev := "t"
@@ -212,6 +225,7 @@ func TestIndirectChainIsLimitedByOneRule(t *testing.T) {
 }
 
 func TestTextQueries(t *testing.T) {
+	t.Parallel()
 	// ileti metninin başı/alt dizesi tek düğüme uyar
 	code, out, _ := cli(t, "query", "first message")
 	if code != exitOK || !strings.HasPrefix(out, "H0001 [message]") {
@@ -239,6 +253,7 @@ func TestTextQueries(t *testing.T) {
 }
 
 func TestWhoUsesGoConstants(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "who-uses", "shape.Sides")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -259,6 +274,7 @@ func TestWhoUsesGoConstants(t *testing.T) {
 }
 
 func TestCalleesAndCallsInto(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "callees", "shape.Both")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -288,6 +304,7 @@ func TestCalleesAndCallsInto(t *testing.T) {
 }
 
 func TestDidYouMean(t *testing.T) {
+	t.Parallel()
 	code, out, errOut := cli(t, "query", "shape.Descrbe")
 	if code != exitNotFound || out != "" {
 		t.Fatalf("exit %d, stdout %q", code, out)
@@ -301,6 +318,7 @@ func TestDidYouMean(t *testing.T) {
 }
 
 func TestNameCodeChain(t *testing.T) {
+	t.Parallel()
 	// Dildeki ad (Türkçe de İngilizce de) kodun düğümüne çözülür ve zincir yazılır.
 	for _, q := range []string{"eger", "if"} {
 		code, out, _ := cli(t, "query", q)
@@ -313,6 +331,7 @@ func TestNameCodeChain(t *testing.T) {
 }
 
 func TestWhoUsesByPackage(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "who-uses", "messages.H0001", "--by-package")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
@@ -331,6 +350,7 @@ func TestWhoUsesByPackage(t *testing.T) {
 // Kural: tür düğümünde alanlar metotlardan ayrı bir grupta ve sınırdan bağımsız hep gösterilir; metotlar ayrı grupta
 // sınırlı kalır (yapının biçimi bilinecek ilk şeydir, 34 metodun altında kaybolmamalı).
 func TestQueryShowsFieldsApartFromMethodsRegardlessOfTheLimit(t *testing.T) {
+	t.Parallel()
 	var src strings.Builder
 	src.WriteString("package p\n\ntype C struct {\n\t// root genel kapsamdır.\n\troot int\n\tsource *C\n}\n\n")
 	for i := 0; i < 20; i++ {
@@ -358,6 +378,7 @@ func TestQueryShowsFieldsApartFromMethodsRegardlessOfTheLimit(t *testing.T) {
 // Kural: metin aramasında önce bütün sözcük eşleşir (Türkçe harf katlamasıyla, sözcük sınırında): "ölü" "bölüm"ün içinde
 // değil, "ölü kod"da bulunur; "ışık" "IŞIK"ı bulur; alt çizgi sözcüğün parçasıdır.
 func TestHasWordMatchesWholeTurkishWords(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct {
 		text, q string
 		want    bool
@@ -379,6 +400,7 @@ func TestHasWordMatchesWholeTurkishWords(t *testing.T) {
 // Kural: "did you mean" en yakın altı öneriyi yazar, kalanını öbür çıktılar gibi "... N more" ile bildirir; --all
 // hepsini yazar (bağımsız denetim O3: liste sessizce altıda kesiliyordu).
 func TestSuggestionsSayHowManyMore(t *testing.T) {
+	t.Parallel()
 	g := &Graph{}
 	for i := 1; i <= 8; i++ {
 		g.Nodes = append(g.Nodes, Node{ID: fmt.Sprintf("n%d", i), Kind: kindFunc, Name: fmt.Sprintf("p.Abcdef%d", i)})
@@ -399,6 +421,7 @@ func TestSuggestionsSayHowManyMore(t *testing.T) {
 // değişmez, belirsizlik çıkmaz); büyük harfli sorgu harfi seçmiştir (bağımsız denetim grup 7: `query identifier`
 // ast.Identifier'ı hiç anmıyordu, yanlış bir "yok").
 func TestOtherCaseMatchesAreMentioned(t *testing.T) {
+	t.Parallel()
 	ix := newIndex(&Graph{Nodes: []Node{
 		{ID: "go:func:m/interp.identifier", Kind: kindFunc, Name: "interp.identifier"},
 		{ID: "go:type:m/ast.Identifier", Kind: kindType, Name: "ast.Identifier"},
@@ -418,6 +441,7 @@ func TestOtherCaseMatchesAreMentioned(t *testing.T) {
 // varsayılanda listelenmez; --all özetin sayısı kadar bildirimi listeler (özet bilgi kaybetmez). Depodaki köprü alan her
 // Go işlevinde: interp.memberKeys'te 1175 TR bildirimi tek Go çağıranını boğuyordu.
 func TestWhoUsesSummarizesTheConstructBridge(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	checked := 0
@@ -456,26 +480,24 @@ func TestWhoUsesSummarizesTheConstructBridge(t *testing.T) {
 	testkit.MustContain(t, out.String(), "<- calls", "interp.compiler.member", "via MemberExpression")
 }
 
-// Kural (DENETİM istek 58 Ş1): aday etiketi Node.Captured alanında değil ayrı Note alanındadır; kapanış (closure)
-// düğümünde de etiket kaybolmaz.
+// Kural (DENETİM istek 58 Ş1): aday etiketi ayrı Note alanındadır; kapanış (closure) düğümünde de etiket kaybolmaz.
+// (Yakalanan değişkenler ayrı bir alandaydı; captures emekli olunca, codegraph 7 Dilim C K3, alan da gitti.)
 func TestDescribeShowsCandidateNoteEvenOnAClosure(t *testing.T) {
+	t.Parallel()
 	got := describe(&Node{
-		Name:     "pkg.fn$1",
-		Kind:     kindClosure,
-		File:     "pkg/a.go",
-		Line:     10,
-		Captured: []string{"x int"},
-		Note:     "[if `f` is a value: `x.TR_map`]",
+		Name: "pkg.fn$1",
+		Kind: kindClosure,
+		File: "pkg/a.go",
+		Line: 10,
+		Note: "[if `f` is a value: `x.TR_map`]",
 	})
 	testkit.MustContain(t, got, "[if `f` is a value: `x.TR_map`]")
-	if strings.Contains(got, "x int") {
-		t.Errorf("describe printed closure captures as a note: %q", got)
-	}
 }
 
 // Kural (DENETİM istek 58 K2, Ş2): TR'de karşılığı olmayan noktalı üye yazımı yalnız dil tanımı (spec:) düğümüne
 // inebilir; Go, belge ya da başlık düğümlerine inmez.
 func TestUnresolvedMemberSpellingKeepsOnlySpecCandidates(t *testing.T) {
+	t.Parallel()
 	narrow := "t." + "TR_narrow"
 	ix := newIndex(&Graph{
 		Module: "example.com/m",

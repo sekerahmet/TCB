@@ -13,6 +13,7 @@ import (
 // doğrudan testler ve en çok 2 adımlık zincirler. Uzak: 3 adım ve ötesi. Commit öncesi denetim yakınları önce koşar;
 // alfabetik sırada değişen paketin 0,03 sn'lik testi kipin 120 sn'sine sığmamıştı (Dilim A, commit 1).
 func TestChangedGoTestsByDistanceMarksNearAndFar(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, "chain/chain.go", "package chain\n\n"+
 		"func Top() int { return Mid() }\n\nfunc Mid() int { return Low() }\n\nfunc Low() int { return Leaf() }\n\n"+

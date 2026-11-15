@@ -11,6 +11,7 @@ import (
 // yazar. TestMain'de derleyen paketin bütün testleri, bir yardımcıda derleyen paketin o yardımcıya varan testleri
 // sayılır; derlenmeyen paketin işlevi testsiz kalır (bağımsız denetim Y5).
 func TestTestsForCountsSubprocessTestsOfABuiltPackage(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"app/main.go": "package main\n\nimport \"example.com/audit/lib\"\n\nfunc main() { greet(); lib.Helper() }\n\nfunc greet() {}\n\nfunc farewell() {}\n",
 		"app/main_test.go": `package main
@@ -77,6 +78,7 @@ func TestOther(t *testing.T) {}
 // Kural: `untested` test dışı Go işlevlerini ve metotlarını `tests-for`'un yedi koluna (`tested`, `subprocess`, `rule`,
 // `measured`, `weak`, `exam`, `untested`) göre gruplar; kapanışları ve test dosyalarını dışarıda bırakır.
 func TestUntestedGroupsFunctionsByBranch(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"app/main.go": "package main\n\nimport \"example.com/audit/lib\"\n\nfunc main() { greet(); lib.Helper() }\n\nfunc greet() { _ = func() {} }\n\nfunc farewell() {}\n",
 		"app/main_test.go": `package main

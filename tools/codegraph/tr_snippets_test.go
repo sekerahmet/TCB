@@ -123,6 +123,7 @@ func TestNotATRFile(t *testing.T) { writeFile(t, t.TempDir(), "notlar.txt", "kn.
 // adıyla sabitlenmeden: çağrı zincirinden bulunur; Sprintf kalıbı, sabit, yerel değişken, eklenen parçalar dahil) testten
 // kullandığı ad kodlarına `tests` kenarı çekilir; TR'ye gitmeyen bir yardımcıya verilen dize çekmez.
 func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, snippetFiles))
 	if err != nil {
 		t.Fatal(err)

@@ -16,6 +16,7 @@ import (
 // başvurduğu bildirim; Markdown'da başlık bölümü. `query -` grep satırlarına içeren düğümü yazar (eksikler listesi:
 // grep'in bulduğu yer grafiğe sorulamıyordu, içeren işlev elle aranıyordu).
 func TestALineIsAnsweredByTheDeclarationThatContainsIt(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	g, err := readGraph(buildInto(t, root))
 	if err != nil {
@@ -70,6 +71,7 @@ func TestALineIsAnsweredByTheDeclarationThatContainsIt(t *testing.T) {
 // literal'in satırı o işleve çözülür; iki üst düzey bildirim arasındaki boş satır dosyaya. Beklenen go/ast'nin içeren
 // bildirimidir (çıkarıcıdan bağımsız); rastgele satır değil, her koşuda aynı sınırlar sınanır.
 func TestEveryFunctionBoundaryLocatesItsFunction(t *testing.T) {
+	t.Parallel()
 	root, m, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root

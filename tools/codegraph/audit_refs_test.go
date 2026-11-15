@@ -15,6 +15,7 @@ var refsFiles = map[string]string{
 // Kural: spec-refs olmayan maddeye atıfı hata sayar (çıkış 1), ses uyumu bozuk eki bildirir; geçerli
 // atıflar --list'te hedef başlığıyla görünür.
 func TestSpecRefsReportsMissingItemsAndSuffixesAndListsTargets(t *testing.T) {
+	t.Parallel()
 	dir := auditModule(t, refsFiles)
 	var out, errb bytes.Buffer
 	if code := run([]string{"spec-refs", "--root", dir}, &out, &errb); code != exitFail {
@@ -45,6 +46,7 @@ func TestSpecRefsReportsMissingItemsAndSuffixesAndListsTargets(t *testing.T) {
 
 // Kural: temiz bir depoda spec-refs çıkış 0 verir.
 func TestSpecRefsPassesOnCleanReferences(t *testing.T) {
+	t.Parallel()
 	dir := auditModule(t, map[string]string{
 		"docs/spec/15_x.md": refsFiles["docs/spec/15_x.md"],
 		"docs/guide.md":     "dil tanımı 15.9'daki ve **15.3**'te.\n",

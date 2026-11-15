@@ -43,6 +43,7 @@ var commonNameFiles = map[string]string{
 // Kural: dil dosyasında adı yazılmayan kodun adı definitions.json'daki ortak addır (tek kaynak): ad kodu düğümünün adı
 // ve açıklaması ortak ad, `query <ortak ad>` kimliği bulur, ortak adlı ortam değişkeni koduna bağlanır.
 func TestACommonNameComesFromTheDefinitions(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, commonNameFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -68,6 +69,7 @@ func TestACommonNameComesFromTheDefinitions(t *testing.T) {
 // her dildeki adı koduna bağlanır. Örnekle değil, bütün kodlarla: adı başka bir kaynaktan (ortak ad) gelen bir kod
 // okuyucu tarafından kaçırılırsa düşer.
 func TestEveryNameCodeNodeHasTheNameOfTheCodesPackage(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	en, err := codes.LoadLanguage("en")
@@ -105,6 +107,7 @@ func TestEveryNameCodeNodeHasTheNameOfTheCodesPackage(t *testing.T) {
 // görünüyordu. Okumalar codegraph'tan bağımsız, modülün tipleriyle bulunur; aynı satırda kodun başka bir kullanımı
 // yoksa o satırda uses_name kenarı olmamalı, reads_name olmalı.
 func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
+	t.Parallel()
 	root, m, g := repoGraph(t)
 	keys := codeConstKeys(root)
 	type site struct {
@@ -177,6 +180,7 @@ func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
 // çözülür; var olan bir tipin ya da modülün olmayan üyesi yerleşiğe düşmez, "bulunamadı" kalır; noktalı üye yazımı metin
 // aramasına düşüp belge ya da yorum adaylarıyla belirsiz dönmez.
 func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	idx, err := repoIndex(root)
@@ -300,6 +304,7 @@ var memberSpellingExceptions = map[string]string{
 // başlamayan her `<alıcı>.TR_<üye>` yazımı (büyük harfli alıcılar dahil) iki araçta da (codegraph ve trlang index) bulunur
 // ya da aynı aday kümesini verir; gerçekten tanımı olmayan negatif fikstür yazımları gerekçeli istisna listesindedir.
 func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	idx, err := repoIndex(root)
@@ -388,6 +393,7 @@ func addRepoMemberSpellings(s string, seen map[string]bool) {
 }
 
 func TestMemberSpellingExtractorsSkipLeadingEscape(t *testing.T) {
+	t.Parallel()
 	src := `code := "TR_var x = [1]\nx.TR_length\n.TR_sort"`
 	for name, fn := range map[string]func(string, map[string]bool){
 		"trFiles":   addTRFileMemberSpellings,

@@ -74,6 +74,7 @@ func testsForText(t *testing.T, ix *index, target string) string {
 // Kural: 18.16 tekil dosya okuyucuları, TR_Dataset (dosya ve klasör) ve _test.tr yorumlarındaki yollar
 // doğru hedef düğümlere bağlanır; 13.1a sırası önce çalışma köküne, yoksa modül klasörüne bakar.
 func TestTRSingleAndDatasetReadersAndCites(t *testing.T) {
+	t.Parallel()
 	src := "# TR 4\n" +
 		"# Üst yorum: fx_doc/KURALLAR.md ve YEREL.md\n" +
 		"TR_const _KÖK = \"fx_root\"\n" +
@@ -139,6 +140,7 @@ func TestTRSingleAndDatasetReadersAndCites(t *testing.T) {
 // Kural (514 N1, 518 N1, TCB 22:28): hazır model ve sohbet ailesi yükleyicileri config.json içindeki model_type
 // ile tokenizer_config.json kapısına bakar; kapı geçmezse ağırlık ve aile dosyalarına yanlış bağ kurulmaz.
 func TestTRModelAndChatFamilyFolderLoaders(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{
 		"tests/yukleyici_test.tr": "# TR 4\n" +
 			"TR_test \"model mimarileri\" {\n" +
@@ -218,6 +220,7 @@ func TestTRModelAndChatFamilyFolderLoaders(t *testing.T) {
 // Kural (514 N1, 518 N2, 521 N1, TCB 22:28): tr_paths.go yükleyici tablosu lib/vits.tr, lib/whisper.tr,
 // lib/pretrained.tr ve lib/model_family.tr dosyalarının bütünüyle iki yönlü eşleşir (satır aralığı yok).
 func TestTRLoaderTableMatchesLibrarySources(t *testing.T) {
+	t.Parallel()
 	if missing, extra := diffStringSets([]string{"a", "b"}, []string{"b", "c"}); len(missing) != 1 || len(extra) != 1 {
 		t.Fatalf("diffStringSets broken: %v %v", missing, extra)
 	}
@@ -376,6 +379,7 @@ func assertSameSet(t *testing.T, label string, inTable, inLib []string) {
 // Kural (Ş2, N2, 514 N2, 18.16, 560 Ş1b): 9. adım, çağrılmayan yardımcı, döngü, modül sınırı,
 // başlıksız/view/bozuk dosyalar, TR_list_dir, 18.16 yazıcıları ve tekil okuyucuya verilen klasörler bağ kurmaz.
 func TestTRHelperLimitsSkippedFilesAnd1816Negatives(t *testing.T) {
+	t.Parallel()
 	chain := "# TR 4\n" +
 		"TR_import \"./diger\"\n" +
 		"TR_func f9() { TR_read_file(\"fx_neg/dokuz.txt\") }\n" +
@@ -464,6 +468,7 @@ func assertNoTestEdgesTo(t *testing.T, g *Graph, prefix string, names ...string)
 
 // Kural: gerçek depo grafiğinde Madde 2 olumlu/olumsuz beklentileri (llama3_chat, hf_tiny, vits_tiny) tutar.
 func TestTRPathsInRepositoryGraph(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 

@@ -16,6 +16,7 @@ import (
 // (eksikler listesi, ana oturum 2026-10-26: card_check.sh ve full_check.sh görünmüyordu). Betikler ve adlar
 // codegraph'ın çıkarıcısından bağımsız, git'in listesinden ve düz metin taramasıyla bulunur.
 func TestEveryCodedEnvironmentVariableInAScriptIsAnEdge(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	env := envCodes(root)
 	rels, ok := codeindex.GitTracked(root)

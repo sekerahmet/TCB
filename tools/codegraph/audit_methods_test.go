@@ -80,6 +80,7 @@ func Use(r Runner) { X{}.Live(); r.Go() }
 // Arayüz denetimiyle tutulan ölü yol: TensorValue.Operator olayının küçük modeli. Arayüz üzerinden
 // çağrılan, doğrudan çağrılan ve dış sözleşme adlı metotlar listelenmez.
 func TestDeadMethodsFindsInterfaceKeptMethods(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p.go":      hooksSource,
 		"p_test.go": "package p\n\nimport \"testing\"\n\nfunc TestW(t *testing.T) { W{}.OnlyTest() }\n",
@@ -206,6 +207,7 @@ func Use(c chan rand.Source, l []rand.Source) (rand.Source, holder, []rand.Sourc
 // dışa açık bütün metotları canlıdır, arayüzde olmayanlar da (math/rand Uint64'e Source64 iddiasıyla ulaşır). any'ye,
 // error'a ve boş tanımlayıcıya (`var _ rand.Source = T{}`, derleme denetimi) verilen tipin metodu aday kalır.
 func TestDeadMethodsCountsAnExternalInterfaceConversion(t *testing.T) {
+	t.Parallel()
 	got := deadKinds(t, auditModule(t, map[string]string{"p.go": conversionsSource}))
 	for _, ty := range []string{"cArg", "cVar", "cAssign", "cReturn", "cField", "cSlice", "cMapKey", "cMapValue", "cConv", "cChan", "cAppend"} {
 		for _, m := range []string{"Int63", "Seed", "Extra"} {
@@ -273,6 +275,7 @@ func Run() int { return pick(S{}) + apply(R{}) + direct(R{}) + S{}.A() }
 `
 
 func TestDeadMethodsShadowStaysInItsStatement(t *testing.T) {
+	t.Parallel()
 	got := deadKinds(t, auditModule(t, map[string]string{"p.go": shadowSource}))
 	for _, live := range []string{"audit.S.B", "audit.R.Q"} {
 		if k, listed := got[live]; listed {
@@ -349,6 +352,7 @@ func Run() int { return apply(A{}) + apply(B{}) + apply(C{}) + apply(D{}) + appl
 // kolunda geçen arayüz bir işarettir; onu sağlayan metot hiç çağrılmasa da assertion-only listelenmez. Değeri
 // bağlanan iddia ve testteki iddia işaret değildir: onların metodu aday kalır.
 func TestDeadMethodsKeepsMarkerInterfaceMethods(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, map[string]string{
 		"p.go":      markersSource,
 		"p_test.go": "package p\n\nimport \"testing\"\n\nfunc TestF(t *testing.T) {\n\tif _, ok := any(F{}).(Tested); !ok {\n\t\tt.Fatal()\n\t}\n}\n",

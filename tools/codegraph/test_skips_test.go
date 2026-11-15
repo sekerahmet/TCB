@@ -141,6 +141,7 @@ func TestConditionInConstrainedFile(t *testing.T) {
 // tests-for her testin yanına yazar; listelenen testlerin hepsi koşula bağlıysa "CI'da hiçbiri koşmayabilir" notu çıkar,
 // koşulsuz bir test varsa çıkmaz (deneme 9 H2).
 func TestTestsForMarksTestsThatSkipUnderACondition(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, skipFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -190,6 +191,7 @@ func TestTestsForMarksTestsThatSkipUnderACondition(t *testing.T) {
 // deyimden sonraki atlama, döngüden sonra) kaçırmaz (bağımsız denetim grup 6, H2: sekiz doğrudan atlama kaçıyordu).
 // Bu denetim yolu değil yalnızca Skip çağrısının varlığını arar.
 func TestEveryRepositoryTestThatSkipsIsLabelled(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	_, m, g := repoGraph(t)
 	skips := map[string]string{}
@@ -263,6 +265,7 @@ func TestEveryRepositoryTestThatSkipsIsLabelled(t *testing.T) {
 // düşer ve okuyucunun TestMain'i de okuması gerekir (bağımsız denetim grup 6, H2; bugün depoda beş TestMain var, hiçbiri
 // böyle değil).
 func TestNoTestMainSkipsItsPackage(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	_, m, _ := repoGraph(t)
 	checked := 0

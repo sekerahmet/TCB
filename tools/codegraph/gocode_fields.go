@@ -162,59 +162,6 @@ func accessModes(modes map[ast.Expr]string, n ast.Node) {
 	}
 }
 
-// captured func literal'in dış kapsamdan yakaladığı yerel değişkenlerdir ("ad tip" satırları,
-// ilk kullanım sırasıyla; literal içinde atanıyorsa "(assigned)"). Paket düzeyi değişkenler ve
-// alanlar yakalama değildir.
-func (x *goExtractor) captured(info *types.Info, lit *ast.FuncLit) []string {
-	assigned := map[*types.Var]bool{}
-	ast.Inspect(lit.Body, func(n ast.Node) bool {
-		var targets []ast.Expr
-		switch n := n.(type) {
-		case *ast.AssignStmt:
-			if n.Tok != token.DEFINE {
-				targets = n.Lhs
-			}
-		case *ast.IncDecStmt:
-			targets = []ast.Expr{n.X}
-		case *ast.UnaryExpr:
-			if n.Op == token.AND {
-				targets = []ast.Expr{n.X}
-			}
-		}
-		for _, t := range targets {
-			if id, ok := peelIndex(t).(*ast.Ident); ok {
-				if v, ok := info.Uses[id].(*types.Var); ok {
-					assigned[v] = true
-				}
-			}
-		}
-		return true
-	})
-	seen := map[*types.Var]bool{}
-	var out []string
-	ast.Inspect(lit, func(n ast.Node) bool {
-		id, ok := n.(*ast.Ident)
-		if !ok {
-			return true
-		}
-		v, ok := info.Uses[id].(*types.Var)
-		if !ok || v.IsField() || v.Pkg() == nil || seen[v] || v.Parent() == v.Pkg().Scope() {
-			return true
-		}
-		if v.Pos() >= lit.Pos() && v.Pos() < lit.End() {
-			return true // literalin kendi parametresi ya da yereli
-		}
-		seen[v] = true
-		entry := v.Name() + " " + types.TypeString(v.Type(), func(p *types.Package) string { return p.Name() })
-		if assigned[v] {
-			entry += " (assigned)"
-		}
-		out = append(out, entry)
-		return true
-	})
-	return out
-}
-
 // closureNode func literal için düğüm ekler ve kapsayan işlev ya da literalden `contains`
 // kenarı çeker; düğümün kimliğini verir. stack, literalin kendisi dahil ata düğümlerdir.
 func (x *goExtractor) closureNode(fc *fileCtx, owner string, lit *ast.FuncLit, stack []ast.Node, closures map[*ast.FuncLit]string) string {
@@ -232,7 +179,7 @@ func (x *goExtractor) closureNode(fc *fileCtx, owner string, lit *ast.FuncLit, s
 	pos := x.m.Fset.Position(lit.Pos())
 	id := "go:closure:" + strings.TrimPrefix(owner, "go:") + "@" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
 	x.b.addNode(Node{ID: id, Kind: kindClosure, Name: fmt.Sprintf("%s > func literal@L%d", parentName, pos.Line),
-		File: fc.rel, Line: pos.Line, End: x.line(lit.End()), Detail: "func literal", Captured: x.captured(fc.u.Info, lit)})
+		File: fc.rel, Line: pos.Line, End: x.line(lit.End()), Detail: "func literal"})
 	x.b.addEdge(parent, id, edgeContains, extracted, fc.rel, pos.Line)
 	return id
 }

@@ -27,6 +27,7 @@ func runDeletedIn(root string, args ...string) (int, string, string) {
 }
 
 func TestDeletedListsCodesGoneFromTheDictionary(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	code, out, errOut := runDeletedIn(root)
 	if code != exitOK || !strings.Contains(out, "messages: 0 deleted codes") {
@@ -44,6 +45,7 @@ func TestDeletedListsCodesGoneFromTheDictionary(t *testing.T) {
 }
 
 func TestDeletedFlagsRedefinedCodes(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	dropH0002(t, root)
 	dir := filepath.Join(root, "internal", "lang", "messages")
@@ -54,6 +56,7 @@ func TestDeletedFlagsRedefinedCodes(t *testing.T) {
 }
 
 func TestDeletedRetiredJSON(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	dropH0002(t, root)
 	code, out, errOut := runDeletedIn(root, "--retired-json")
@@ -167,6 +170,7 @@ func deletingCommit(root string) (string, error) {
 // reddeder (tools/gen/msgconsts/main.go, checkRetired); bu test silinen her kodun orada olduğunu deponun kendi
 // geçmişiyle sınar. Geçici depoda her yolun iletisi izlenir: TestRetiredCheck* testleri.
 func TestEveryDeletedMessageCodeIsRetired(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	root := reporoot.Root()
 	out, err := gitOut(root, "rev-parse", "--is-shallow-repository")
@@ -220,6 +224,7 @@ func writeRetired(t *testing.T, root, content string) {
 
 // S1'in önerisi: deleted --retired-json'ın çıktısı eksik kodu kapatır.
 func TestRetiredCheckAsksForEachDeletedCode(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	if c := mustCheckRetired(t, root); c.missing != nil || c.again != nil || c.uncommitted != nil {
 		t.Fatalf("nothing is deleted yet: %+v", c)
@@ -237,6 +242,7 @@ func TestRetiredCheckAsksForEachDeletedCode(t *testing.T) {
 
 // S5'in önerisi: yeni iletiye yeni kod verilir, eski kod retired.json'a girer.
 func TestRetiredCheckRejectsAReusedCode(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	dropH0002(t, root)
 	dir := filepath.Join(root, "internal", "lang", "messages")
@@ -257,6 +263,7 @@ func TestRetiredCheckRejectsAReusedCode(t *testing.T) {
 // S6'nın önerisi: commit'e girmemiş silme; girdinin commit alanı dalda dalın adı, main'de ve dal dışında
 // "after <HEAD'in 8 karakteri>". Önerilen girdiler, gerekçe yazılınca, retired.json olarak geçerlidir.
 func TestRetiredCheckSeesAnUncommittedDeletion(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	dir := filepath.Join(root, "internal", "lang", "messages")
 	replaceIn(t, filepath.Join(dir, "tr.json"), ",\n\"H0002\": \"second message\"", "")

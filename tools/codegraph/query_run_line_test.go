@@ -30,6 +30,7 @@ func runPlanFiles(g *Graph) []*Node {
 // zayıf zincirle bulunan testler satırda yoktur. Satırın koştuğu ile kalan sayısı birlikte `changed --go-tests`'in seçimidir
 // (goTestSelection): kalanları commit öncesi denetim ve G4 koşar.
 func TestTheNarrowRunLineHasItsNearTestsAndNoFarOnes(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	files := runPlanFiles(g)
@@ -157,6 +158,7 @@ func runCovers(cmds []string) func(goTest) bool {
 // Kural: koşu satırı Windows komut satırını aşmaz: -run listesi commandLineLimit'i geçince ikinci komut paketleri
 // bütün olarak koşar (ön denetimin kuralı, tools/full_check.sh) ve bunu söyler.
 func TestTheRunLineStaysWithinTheCommandLine(t *testing.T) {
+	t.Parallel()
 	var names []string
 	for i := 0; len(strings.Join(names, "|")) <= commandLineLimit; i++ {
 		names = append(names, "TestAVeryLongNameThatKeepsTheListGrowing"+strings.Repeat("x", i%10))
@@ -178,6 +180,7 @@ func TestTheRunLineStaysWithinTheCommandLine(t *testing.T) {
 // listelenmez, gruplardadır; kısa cevapta --list'e gönderir. Kalan yoksa satır her testin koştuğunu söyler; ne komut ne kalan
 // varsa satır yazılmaz. Eski iki satır ("not run by these commands", "tests: N listed") tests-for'da yoktur.
 func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
+	t.Parallel()
 	two := []goTest{{"b", "TestX"}, {"c", "TestZ"}}
 	for _, c := range []struct {
 		p     runPlan
@@ -204,6 +207,7 @@ func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
 // on tanesi satıra girer. Hub satırı sayı satırından sonra gelir ve onun içini söyler (B6, DENETİM 750 N1): önce ve ayrı bir
 // sayı gibi yazılınca iki satır toplanabiliyordu.
 func TestTheNarrowRunLineLeavesHubTestsToTheCommitCheck(t *testing.T) {
+	t.Parallel()
 	var out strings.Builder
 	printRunPlan(&out, runPlan{pkg: "a", hub: 21, rest: make([]goTest, 30)})
 	if want := "  narrow: these lines run the near tests; 30 more are left to the commit check and G4 (among the groups below)\n" +
@@ -241,6 +245,7 @@ func untrackedGitFixture(t *testing.T) (string, string) {
 // izlenmediğini, depo taramalarının yalnız izlenen dosyaları gördüğünü ve `git add` gerektiğini aynı uyarıyla söyler;
 // izlenen dosyada (ya da dosya `git add` ile eklendikten sonra) bu uyarı çıkmaz.
 func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
+	t.Parallel()
 	root, graph := untrackedGitFixture(t)
 	wantWarn := "untracked: shape/untracked.go is not tracked by git; repository-wide checks do not see it (run `git add shape/untracked.go`)"
 
@@ -290,6 +295,7 @@ func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
 // satırda yoktur (codegraph 7 A1). Altın dosya testi satırdaysa (definitions.json'ı gezen) `-update` notu yazılır; testsiz
 // bir `.md` dosyasında `run:` satırı yoktur.
 func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
+	t.Parallel()
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
 	doc := ix.byID["doc:docs/status.md"]
@@ -334,6 +340,7 @@ func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
 // kalanlar sayılır (codegraph 7 A1–A3). Ağır paketleri -run'sız koşmaz; hiçbir testi ve taraması olmayan yalıtılmış
 // betikte boş `run:` basılmaz.
 func TestNonGoFileRunLineCoversDirectTestsWalkersAndScans(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root

@@ -77,6 +77,7 @@ func untrackedOrUnmeasured(root, rel string) string {
 // eşittir; codegraph'ın ölçmediği bir dosya da ölçtüğü fazladan bir dosya da düşer. Bir tarama tanıma eksiği boyut
 // satırını sessizce düşürmez, ölçü kayarsa "80/80" sessizce yanlışlaşmaz (DENETİM, birleşme denetimi: 1067/1067).
 func TestSizesMatchTheLayoutTest(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
@@ -141,6 +142,7 @@ func TestSizesMatchTheLayoutTest(t *testing.T) {
 // Kural: boyut satırında sınırı aşan önce, sonra sınıra oranca en yakın; istisnanın sınırı tavan + paydır ve satır
 // bunu söyler; %90 ve üstü "split before adding" der.
 func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
+	t.Parallel()
 	max, exc := layoutrules.FuncMax("internal/lang/interp/compiler_loop.go:compiler.inLoop")
 	if c := layoutrules.LongFuncs["internal/lang/interp/compiler_loop.go:compiler.inLoop"]; !exc || max != c+layoutrules.FixMargin(c) {
 		t.Fatalf("an exception's limit is its ceiling plus the fix margin: %d", max)
@@ -165,6 +167,7 @@ func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
 // Baş en çok 8 satırdır: dosya, üç koşu satırı, altın dosya, iki "not run" satırı (kalan Go testleri ve codegraph'ın
 // kendi testleri, S3; codegraph dilim 6, D6-3), boyut.
 func TestTheRunAndSizeLinesComeFirst(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
@@ -211,6 +214,7 @@ func brokenBuildFixture(t *testing.T, repoRoot string) string {
 // boyuyla gizlenmez. Dosya sözdizimi hatası yüzünden ayrıştırılamıyorsa boyut satırı fonksiyon boyunun bayat olduğunu
 // açıkça söyler.
 func TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxError(t *testing.T) {
+	t.Parallel()
 	repoRoot, _, g := repoGraph(t)
 	root := brokenBuildFixture(t, repoRoot)
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/sekerahmet/TCB\n\ngo 1.24\n"), 0o644); err != nil {
@@ -251,6 +255,7 @@ func TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxE
 // Kural: düzen testinin ölçmediği dosyanın iletisi git'in izlemediği yeni dosyada `git add` der, izlenen dosyada iki
 // aracın ayrıldığını söyler (gaps, "Yeni dosyada yerleşim testinin iletisi yanıltıcı").
 func TestAnUntrackedFileIsToldToBeAddedNotUnmeasured(t *testing.T) {
+	t.Parallel()
 	root, _ := untrackedGitFixture(t)
 	if got := untrackedOrUnmeasured(root, "shape/untracked.go"); !strings.Contains(got, "not tracked by git") || !strings.Contains(got, "git add shape/untracked.go") {
 		t.Errorf("untracked file: %s", got)

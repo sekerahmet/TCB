@@ -12,6 +12,7 @@ import (
 // ad/ileti kodu, belge ya da dosya yolu, en az iki parçalı nokta son eki dahil) yalnız TestPlanningQuestionsAreAnswered'dan
 // names_in_exam kenarı alır; düz tests kenarı kurulmaz, tests-for ayrı başlıkta gösterir.
 func TestEveryNodeTheExamNamesIsLinkedFromTheExam(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t)
 	ix := newIndex(g)
 	examID := "go:func:" + m.Path + "/tools/codegraph." + examTest
@@ -80,6 +81,7 @@ func TestEveryNodeTheExamNamesIsLinkedFromTheExam(t *testing.T) {
 // gösterir; anılmayan düğüm değişikliği ya da silinmesi göstermez; tests-for'da doğrudan testlere karışmaz; sınav dosyası
 // değişince sourceStamp değişir.
 func TestExamSelectionOnModifyRenameDeleteAndStamp(t *testing.T) {
+	t.Parallel()
 	root := gitFixture(t)
 	shapeFile := filepath.Join(root, "shape", "shape.go")
 	origShape := "\nfunc NamedInExam() int { return 1 }\nfunc (s Square) Perimeter() float64 { return 4 * s.Side }\nfunc UnnamedHelper() int { return 2 }\n"
@@ -157,6 +159,7 @@ func TestExamSelectionOnModifyRenameDeleteAndStamp(t *testing.T) {
 // (`codegraph path internal/stdlib/ml internal/compute/gpu` iki paketin yolunu yazar), ama sınav onları sınamaz (gaps,
 // "`examNodeKeys`'in süzgeci testsiz": tür süzgeci kaldırılınca iki koruyan test de geçiyordu).
 func TestExamLinksSkipHeadingsAndPackages(t *testing.T) {
+	t.Parallel()
 	for _, n := range []*Node{{Kind: kindHeading, Name: "Kurulum", File: "README.md"}, {Kind: kindPackage, Name: "internal/compute/gpu"}} {
 		if keys := examNodeKeys(n); keys != nil {
 			t.Errorf("a %s is not an exam key: %q", n.Kind, keys)
@@ -177,6 +180,7 @@ func TestExamLinksSkipHeadingsAndPackages(t *testing.T) {
 // Kural: silinen satırdaki sözcük karışık harfli mi diye bakılırken ilk harf rune olarak kesilir (gaps, "`çok` sınavı
 // seçiyor": `tok[1:]` bayt kesiyordu, ilk harfi ASCII dışı olan küçük harfli sözcük karışık harfli sayılıyordu).
 func TestADeletedLowercaseWordWithANonASCIIFirstLetterIsNoExamWord(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	testkit.WriteFile(t, root, examFile, "codegraph query çok fooBar | contains: x | src: fixture, 2026-11-09\n")
 	ix := newIndex(&Graph{})

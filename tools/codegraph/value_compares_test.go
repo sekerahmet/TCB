@@ -53,6 +53,7 @@ func hidden(name string) bool { return name == "." || name == "%" }
 // `query "%"` değeri eşit sabiti bulur (eksikler listesi, kritik 1: who-uses lexer.TokPercent yorumlayıcının `case "%"`'sini ve
 // denetleyicinin `case "+", ..., "%"`'sini göstermiyordu).
 func TestTextComparesUseTheConstantOfTheirValue(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, valueFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -89,6 +90,7 @@ func TestTextComparesUseTheConstantOfTheirValue(t *testing.T) {
 // `==`/`!=`'de metinle anan her işlev who-uses'ta görünür. Beklenen küme codegraph'tan bağımsız, sözdizimi ağacından
 // kurulur (go/types ve çıkarıcı kullanılmaz): sabitler token.go'nun değişmezlerinden, yerler işlev gövdelerinden.
 func TestEveryOperatorTheInterpreterOrCheckerNamesByTextIsListed(t *testing.T) {
+	t.Parallel()
 	_, m, g := repoGraph(t)
 	lexerPkg := g.Module + "/internal/lang/lexer"
 	byValue := map[string][]string{} // değer -> sabit kimlikleri

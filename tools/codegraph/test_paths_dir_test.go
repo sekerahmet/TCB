@@ -109,6 +109,7 @@ func TestTempDirJoinIgnored(t *testing.T) {
 // `reporoot.Path(dir, "<belge>")` ya da `**/<belge>` kalıbı) kapsamındaki belgelerin tests-for çıktısında görünür;
 // önek ya da test dosyası süzgeciyle daraltılan klasör listeleri kapsam dışına taşmaz; geçici klasör yolu bağlanmaz.
 func TestPerPackageDocumentReadsLinkToMatchingPackageDocs(t *testing.T) {
+	t.Parallel()
 	root := auditModule(t, perDirDocFiles)
 	g, err := buildGraph(root)
 	if err != nil {
@@ -149,6 +150,7 @@ func TestPerPackageDocumentReadsLinkToMatchingPackageDocs(t *testing.T) {
 }
 
 func TestRepoPackageReadmeListsTestFileMatchesSource(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root

@@ -209,6 +209,7 @@ func checkTypeQueryCoverage(m *module, g *Graph, rules []typeQueryRule, exclusio
 // listesinde (repoTypeQueryRules) ya da gerekçeli dışlamadadır (repoTypeQueryExclusions); listeden bir satır silinince
 // kapsam denetimi düşer; seçilen testler kapsamlarındaki her Go dosyasında (silinen dosya yolu dahil) seçilir.
 func TestRepositoryTypeLoadedTestsAreSelected(t *testing.T) {
+	t.Parallel()
 	root, m, g := repoGraph(t)
 	if errs := checkTypeQueryCoverage(m, g, repoTypeQueryRules, repoTypeQueryExclusions); len(errs) > 0 {
 		t.Fatalf("type-query coverage errors:\n  %s", strings.Join(errs, "\n  "))
@@ -372,6 +373,7 @@ func buildFixtureGraphWithRules(t *testing.T, root string, rules []typeQueryRule
 // tablo satırının tamamı ve kapsam içindeki diğer Go değişiklikleri tip yüklemeli audit testlerini seçer; t.TempDir()
 // yükleyen TestTempModuleIgnored seçilmez.
 func TestTypeQueryScopeSelectsEveryGoChange(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := gitFixture(t)
 	writeTypeQueryFixtureFiles(t, root)

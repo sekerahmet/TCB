@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/goload"
 )
 
-// Bu dosya denetim komutlarının (dead-methods, package-state, time-ceilings, spec-refs) ortak yanıdır:
+// Bu dosya denetim komutlarının (dead-methods, spec-refs) ortak yanıdır:
 // bayraklar, modül yükleme ve konum yardımcıları. Komutlar grafiği okumaz; kaynağı tip bilgisiyle
 // tarar ve yalnızca sonuç listeler. Karar vermezler: çıktı gözden geçirilecek adaylardır.
 

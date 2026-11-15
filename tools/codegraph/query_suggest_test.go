@@ -12,6 +12,7 @@ import (
 // önerir; çıkış 4 kalır (gaps, "Taşınan alanın eski tam adı öneri vermiyor": `fields interp.vmShared.gilSince` düz "not
 // found" veriyordu, alan interp.VM'e taşınmıştı). Başka paketin aynı adlı üyesi önerilmez.
 func TestAMovedMembersOldFullNameSuggestsItsNewPlace(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)
 	testkit.WriteFile(t, root, "paint/paint.go", "package paint\n\n// Brush has a field named like shape's.\ntype Brush struct{ n int }\n")

@@ -29,6 +29,7 @@ func siteAt(g *Graph, from, to, kind string, line int) *Site {
 }
 
 func TestFieldNodesAndAccessModes(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	for _, id := range []string{counterN, counterList, otherN} {
 		if !hasNode(g, id) {
@@ -59,6 +60,7 @@ func TestFieldNodesAndAccessModes(t *testing.T) {
 }
 
 func TestFieldsOfOtherTypesAreNotMixed(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	if siteAt(g, bumpID, counterN, edgeWritesField, 88) != nil {
 		t.Error("o.n = 9 belongs to Other.n, not Counter.n")
@@ -69,6 +71,7 @@ func TestFieldsOfOtherTypesAreNotMixed(t *testing.T) {
 }
 
 func TestClosureAccessesNameTheClosure(t *testing.T) {
+	t.Parallel()
 	g := fixture(t)
 	s := siteAt(g, bumpID, counterN, edgeReadsField, 94)
 	if s == nil || s.Closure == "" {
@@ -86,6 +89,7 @@ func TestClosureAccessesNameTheClosure(t *testing.T) {
 }
 
 func TestFieldsCommands(t *testing.T) {
+	t.Parallel()
 	code, out, _ := cli(t, "who-uses", "Counter.n")
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
@@ -102,22 +106,4 @@ func TestFieldsCommands(t *testing.T) {
 	}
 	_, out, _ = cli(t, "fields", "shape.Counter")
 	testkit.MustContain(t, out, "n [int]:", "list [[]int]: 0 reads, 1 writes", "next [*shape.Counter]: 0 reads, 0 writes")
-}
-
-func TestCaptures(t *testing.T) {
-	code, out, _ := cli(t, "captures", "shape.Bump")
-	if code != exitOK {
-		t.Fatalf("exit %d\n%s", code, out)
-	}
-	testkit.MustContain(t, out, "shape.Bump > func literal@L91", "c *shape.Counter", "x int", "sum int (assigned)")
-	if strings.Contains(out, "o *shape.Other") {
-		t.Errorf("o is not used in the closure:\n%s", out)
-	}
-	_, out, _ = cli(t, "captures", "shape.Bump", "--type", "Counter")
-	testkit.MustContain(t, out, "c *shape.Counter")
-	if strings.Contains(out, "x int") {
-		t.Errorf("--type filters the captured variables:\n%s", out)
-	}
-	_, out, _ = cli(t, "captures", "shape.Describe")
-	testkit.MustContain(t, out, "no func literals")
 }

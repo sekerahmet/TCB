@@ -9,6 +9,7 @@ import (
 // (iki dosyada iki satır: iki olay); aynı commit'te eklenip silinen (taşınan) satır olay değildir. deleted bu taramayı
 // okur (deletedCodes).
 func TestScanCodeHistoryMarksAddedAndRemoved(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := gitFixture(t)
 	tr := filepath.Join(root, "internal", "lang", "messages", "tr.json")

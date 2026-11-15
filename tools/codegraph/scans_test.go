@@ -116,6 +116,7 @@ func TestCopy(t *testing.T) {
 // geçici kopyayı gezen tarama sayılmaz (TCB 2026-10-25: internal.TestNoTurkishLiterals tam denetimde bir dosyada kaldı,
 // o dosyanın tests-for cevabı bu testi göstermemişti).
 func TestRepositoryScansApplyToEveryFileOfTheirPattern(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, scanFiles))
 	if err != nil {
 		t.Fatal(err)
@@ -163,6 +164,7 @@ func TestRepositoryScansApplyToEveryFileOfTheirPattern(t *testing.T) {
 // reporoot.Path, bunlarla atanmış yerel) ama tanınmayan çağrı ya da hiçbir dosyaya uymayan kalıp testi düşürür; yalnızca
 // klasör gezen çağrı (`!d.IsDir()` atlanır) dosya taraması değildir. İstisna listesi yoktur.
 func TestEveryRepositoryScanIsRecognized(t *testing.T) {
+	t.Parallel()
 	root, _, g := repoGraph(t)
 	tracked, ok := codeindex.GitTracked(root)
 	if !ok {
@@ -276,6 +278,7 @@ func rootedListings(t *testing.T, file string) []int {
 // bütün koşulan paketler ve Fuzz* hedefleri dışarıda). Yeni bir tarama testi ya da paketi diziye yazılmazsa ya da dizide
 // eskimiş ad kalırsa test düşer.
 func TestFullCheckRepoScansMatchesScanNodes(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	root, _, g := repoGraph(t)
 	data, err := os.ReadFile(filepath.Join(root, "tools/full_check.sh"))
@@ -418,6 +421,7 @@ func TestTemp(t *testing.T) { _, _ = os.ReadDir(t.TempDir()) }
 // dışı .go dosyalarını okuyor ama yeni dosyanın tests-for cevabında yoktu, G4'te düştü. Başka klasörün dosyası ve
 // geçici klasörün listelenmesi tarama değildir.
 func TestAPackageDirectoryReadIsAScan(t *testing.T) {
+	t.Parallel()
 	g, err := buildGraph(auditModule(t, packageDirFiles))
 	if err != nil {
 		t.Fatal(err)

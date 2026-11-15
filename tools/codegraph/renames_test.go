@@ -39,6 +39,7 @@ func renameIn(t *testing.T, root, old, new, also string) {
 // girmez, kodun geçmişi (followRenames) eski anahtarın geçmişiyle sürer (zincir de: print → write → output), eski
 // anahtar sorgusu bugünkü koda gider. Gerçekten silinen kod deleted'da kalır.
 func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
+	t.Parallel()
 	slowFixture(t)
 	root := gitFixture(t)
 	renameIn(t, root, "TR_fn_print", "TR_fn_write", "")
@@ -82,6 +83,7 @@ func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 // kendi geçmişiyle sınanır; yeni satırlar (bir kimliğin yeniden adlandırılması, kitaplık kodları)
 // aynı testten geçer.
 func TestEveryRenameInTheMappingKeepsItsHistory(t *testing.T) {
+	t.Parallel()
 	repoRule(t)
 	slowFixture(t)
 	root := reporoot.Root()

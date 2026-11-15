@@ -24,7 +24,6 @@ type queryOpts struct {
 	tests            bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
 	byPackage        bool   // who-uses: kullanıcıları pakete göre özetle
 	mode             string // who-uses (alan): yalnızca "read" ya da "write" erişimleri; verilince ad yalnız alana çözülür
-	typeFilter       string // captures: yakalanan değişkenin tipinde geçen metin
 	undirected       bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
 	throughHubs      bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
 	goTests          bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
@@ -33,7 +32,7 @@ type queryOpts struct {
 }
 
 // runQuery grafiği okuyan komutları çalıştırır: query, path, who-uses, tests-for, untested, changed, callees,
-// calls-into, fields, captures.
+// calls-into, fields.
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	return runQueryOn(nil, cmd, args, stdout, stderr)
 }
@@ -55,7 +54,6 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.IntVar(&o.min, "min", 2, "calls-into: at least this many distinct functions")
 	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
 	fs.StringVar(&o.mode, "mode", "", "who-uses on a field: only read or write accesses")
-	fs.StringVar(&o.typeFilter, "type", "", "captures: only variables whose type contains this text")
 	fs.BoolVar(&o.undirected, "undirected", false, "path: also look for a connection ignoring edge direction (never through a type, package or file)")
 	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
@@ -156,7 +154,7 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 		return ix.printLocations(o.stdin, o.stdout)
 	}
 	kinds := map[string][]string{
-		"calls-into": {kindPackage}, "captures": {kindFunc, kindMethod, kindClosure}, "fields": {kindField, kindType},
+		"calls-into": {kindPackage}, "fields": {kindField, kindType},
 	}[cmd]
 	if cmd == "who-uses" && o.mode != "" {
 		// --mode bir alanın okuma ya da yazmalarını sorar: ad yalnız alana çözülür. Yoksa harf katlaması onu aynı adlı bir
@@ -207,8 +205,6 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 			return exitUsage
 		}
 		ix.printFieldTable(nodes[0], o)
-	case "captures":
-		return ix.printCaptures(nodes[0], o)
 	case "callees":
 		return ix.printCallees(nodes[0], o)
 	case "calls-into":
