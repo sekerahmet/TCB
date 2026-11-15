@@ -339,6 +339,7 @@
   "TR_arg_max": { "name": "max" },
   "TR_arg_max_body_bytes": { "name": "max_body_bytes" },
   "TR_arg_max_concurrent": { "name": "max_concurrent" },
+  "TR_arg_max_file_bytes": { "name": "max_file_bytes" },
   "TR_arg_max_new_tokens": { "name": "max_new_tokens" },
   "TR_arg_max_speech": { "name": "max_speech" },
   "TR_arg_mel_scale": { "name": "mel_scale" },

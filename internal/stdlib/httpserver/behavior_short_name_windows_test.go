@@ -32,10 +32,10 @@ func TestFileShortNameIsRefused(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, short)); err != nil {
 		t.Fatalf("Windows kısa adla açmalı (yoksa test bir şey sınamıyor): %v", err)
 	}
-	if r := serveFile(os.ReadDir, root, "/"+short); r.status != 404 {
+	if r := serveOK(t, root, "/"+short); r.status != 404 {
 		t.Fatalf("kısa ad %q 404 almalı: %d", short, r.status)
 	}
-	if r := serveFile(os.ReadDir, root, "/uzun_dosya_adi.html"); r.status != 200 {
+	if r := serveOK(t, root, "/uzun_dosya_adi.html"); r.status != 200 {
 		t.Fatalf("uzun ad 200 almalı: %d", r.status)
 	}
 }

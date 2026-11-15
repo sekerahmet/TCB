@@ -1907,6 +1907,7 @@ const (
 	H7640 Code = 7640 // {fn}: `{#reduce}:` yeni görüntüyü {@JSON} olarak vermeli, {given} verdi: `{#reduce}: (g, olay) => {#JSON}({{"son": olay}})` yazın
 	H7641 Code = 7641 // {fn}: `{#reduce}:` aynı yayıncıya gönderemez, katlama sürerken yayıncı kendini beklerdi; olayı katlamanın dışında gönderin
 	H7642 Code = 7642 // Geçersiz istek başlığı
+	H7643 Code = 7643 // {fn}: {path|q} {size} bayt, en çok {limit} bayt olabilir: büyük dosya için sınırı çağrıya ekleyin: `{#max_file_bytes}: {size}`
 	H7645 Code = 7645 // {fn}: `Cookie` başlığının değeri geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); çerezi başka bir uygulama koymuş olabilir. Okumayı yakalayıp çerezsiz sürdürün: `{#var} c: {#String}? = {#none}; {#try} {{ c = istek.{#headers}.{#get}("Cookie") }} {#catch} h {{ }}`; kullanıcı tarayıcıda 127.0.0.1'in çerezlerini silebilir
 	H7660 Code = 7660 // {fn}: `{#tokenless_paths}:`'taki {path|q} tam bir yol değil: yol `/` ile başlar, sorgu, ters bölü, denetim karakteri ve `..` bileşeni taşımaz; her dosya adıyla yazılır: `{#tokenless_paths}: ["/", "/index.html"]`
 	H7661 Code = 7661 // {fn}: `{#tokenless_paths}:` yalnız belirteçli sunucuda anlamlıdır, belirteçsiz sunucuda her yol zaten açıktır; korumak için belirteç verin: `{#token}: {#secret_token}()`

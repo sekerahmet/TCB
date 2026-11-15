@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 795 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 184 fonksiyon, 13 sabit, 95 metot, 147 özellik, 199 adlı argüman.
+Toplam 796 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 184 fonksiyon, 13 sabit, 95 metot, 147 özellik, 200 adlı argüman.
 
 ## İçindekiler
 
@@ -2220,9 +2220,9 @@ tr: yazdır(birim_matris(3).listeye)
 
 #### `TR_file_response(...)` (`TR_fn_file_response`, `dosya_cevabı`)
 
-    dosya_cevabı(Metin | Yol, Metin) → HTTPCevabı
+    dosya_cevabı(Metin | Yol, Metin, en_çok_dosya_baytı: Tam = 1.048576e+06) → HTTPCevabı
 
-Kök klasördeki dosyayı HTTPCevabı olarak verir: yol isteğin yoludur, baştaki / atılır, dosya kökün içinde açılır. Kökten çıkan yol ve bağlantı, aygıt adı (CON, NUL ...), sonu nokta ya da boşluk olan ve : taşıyan bileşen, harf büyüklüğü klasördeki addan farklı yol, bulunmayan dosya ve klasör 404'tür; klasör listelenmez. Tür uzantıdan, sabit tabloyla bulunur.
+Kök klasördeki dosyayı HTTPCevabı olarak verir: yol isteğin yoludur, baştaki / atılır, dosya kökün içinde açılır. Kökten çıkan yol ve bağlantı, aygıt adı (CON, NUL ...), sonu nokta ya da boşluk olan ve : taşıyan bileşen, harf büyüklüğü klasördeki addan farklı yol, bulunmayan dosya ve klasör 404'tür; klasör listelenmez. Tür uzantıdan, sabit tabloyla bulunur; dosya en çok en_çok_dosya_baytı: bayttır (varsayılan 1 048 576), aşan dosya hatadır.
 
 ```tr
 TR_make_dir("ekran"); TR_write_file(TR_Path("ekran", "index.html"), "<p>merhaba</p>"); TR_var c = TR_file_response("ekran", "/index.html"); TR_print(c.TR_status, c.TR_headers["Content-Type"], TR_file_response("ekran", "/Index.html").TR_status)
@@ -5253,6 +5253,23 @@ tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; deği�
 ```
 
 Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`
+
+#### `TR_max_file_bytes:` (`TR_arg_max_file_bytes`, `en_çok_dosya_baytı`)
+
+Sunulacak dosyanın bayt sınırı (pozitif Tam, varsayılan 1 048 576); aşan dosya çalışma hatasıdır.
+
+```tr
+TR_make_dir("ekran"); TR_write_file(TR_Path("ekran", "a.txt"), "merhaba"); TR_print(TR_error_code { TR_file_response("ekran", "/a.txt", TR_max_file_bytes: 4) }, TR_file_response("ekran", "/a.txt", TR_max_file_bytes: 7).TR_status)
+```
+
+Görünümü:
+
+```text
+en: make_dir("ekran"); write_file(Path("ekran", "a.txt"), "merhaba"); print(error_code { file_response("ekran", "/a.txt", max_file_bytes: 4) }, file_response("ekran", "/a.txt", max_file_bytes: 7).status)
+tr: klasör_oluştur("ekran"); dosya_yaz(Yol("ekran", "a.txt"), "merhaba"); yazdır(hata_kodu { dosya_cevabı("ekran", "/a.txt", en_çok_dosya_baytı: 4) }, dosya_cevabı("ekran", "/a.txt", en_çok_dosya_baytı: 7).durum_kodu)
+```
+
+Kullananlar: `TR_file_response(...)` · İlişkili: `TR_file_response(...)`, `TR_max_body_bytes:`
 
 #### `TR_max_new_tokens:` (`TR_arg_max_new_tokens`, `en_fazla_yeni_parça`)
 

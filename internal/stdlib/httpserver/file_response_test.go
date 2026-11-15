@@ -10,6 +10,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
@@ -57,7 +58,7 @@ func TestFileResponseServesInsideTheRoot(t *testing.T) {
 		"/../gizli.txt": {404, ""},
 	}
 	for p, want := range cases {
-		r := serveFile(os.ReadDir, root, p)
+		r := serveOK(t, root, p)
 		got, _ := r.headers.get("Content-Type")
 		if r.status != want.code || want.code == 200 && got != want.ctype {
 			t.Fatalf("%s: %d %q, beklenen %d %q", p, r.status, got, want.code, want.ctype)
@@ -148,7 +149,7 @@ func TestFileLinksStayInsideTheRoot(t *testing.T) {
 	}
 	for p, want := range map[string]int{"/ic.js": 200, "/ic2.js": 200, "/dil/tr.js": 200, "/dil2/tr.js": 200, "/lang/k.js": 200,
 		"/dis.txt": 404, "/dis2.txt": 404, "/ust/gizli.txt": 404, "/ust2/gizli.txt": 404, "/ust2/ekran/app.js": 200} {
-		if r := serveFile(os.ReadDir, root, p); r.status != want {
+		if r := serveOK(t, root, p); r.status != want {
 			t.Fatalf("%s: %d, beklenen %d", p, r.status, want)
 		}
 	}
@@ -160,7 +161,7 @@ func TestFileLinkLoopIs404(t *testing.T) {
 	if err := os.Symlink("dongu", filepath.Join(root, "dongu")); err != nil {
 		t.Skipf("bağlantı kurulamadı (Windows'ta geliştirici kipi ya da yönetici gerekir; Linux'ta koşar): %v", err)
 	}
-	if r := serveFile(os.ReadDir, root, "/dongu"); r.status != 404 {
+	if r := serveOK(t, root, "/dongu"); r.status != 404 {
 		t.Fatalf("döngü: %d, beklenen 404", r.status)
 	}
 }
@@ -223,7 +224,7 @@ func TestFileJunctionsStayInsideTheRoot(t *testing.T) {
 	junction(t, filepath.Join(root, "dil"), filepath.Join(root, "lang"))
 	junction(t, filepath.Join(root, "ust"), filepath.Dir(outside))
 	for p, want := range map[string]int{"/dil/tr.js": 200, "/ust/gizli.txt": 404, "/ust/ekran/app.js": 200} {
-		if r := serveFile(os.ReadDir, root, p); r.status != want {
+		if r := serveOK(t, root, p); r.status != want {
 			t.Fatalf("%s: %d, beklenen %d", p, r.status, want)
 		}
 	}
@@ -257,7 +258,7 @@ func TestFileSwapAfterResolveIsRefused(t *testing.T) {
 		swapped = true
 	}
 	t.Cleanup(func() { afterResolve = nil })
-	r := serveFile(os.ReadDir, root, "/lang/tr.js")
+	r := serveOK(t, root, "/lang/tr.js")
 	if !swapped {
 		t.Skip("bağlantı kurulamadı; yarış denenemedi")
 	}
@@ -280,6 +281,58 @@ TR_var result = [c.TR_status, TR_String(c.TR_body), c.TR_headers["Content-Type"]
 	for _, code := range []string{`TR_file_response("` + r + `")`, `TR_file_response(1, "/a")`, `TR_file_response("` + r + `", 1)`} {
 		if o := trrun.Exec(t, code); o.Err == nil {
 			t.Fatalf("%s hata vermeli", code)
+		}
+	}
+}
+
+// serveOK serveFile'ı varsayılan sınırla çağırır; sınırın hatası bu testlerin konusu değildir.
+func serveOK(t *testing.T, root, p string) *Response {
+	t.Helper()
+	r, err := serveFile(os.ReadDir, root, p, defaultMaxFile)
+	if err != nil {
+		t.Fatalf("%s: %v", p, err)
+	}
+	return r
+}
+
+// TestFileResponseSizeLimit: dosya en çok TR_max_file_bytes: bayttır (28.3a): sınırdaki dosya 200, bir
+// bayt fazlası okunmadan H7643; varsayılan 1 048 576; sınır pozitif bir TR_Int'tir (H7628), bilinmeyen adlı
+// argüman çağrı hatasıdır. İletinin önerisi çağrıya eklenince dosya gelir.
+func TestFileResponseSizeLimit(t *testing.T) {
+	root := t.TempDir()
+	for name, size := range map[string]int{"on.txt": 10, "bos.txt": 0, "mib.bin": defaultMaxFile, "mib1.bin": defaultMaxFile + 1} {
+		if err := os.WriteFile(filepath.Join(root, name), make([]byte, size), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if r, err := serveFile(os.ReadDir, root, "/on.txt", 10); err != nil || r.status != 200 || len(r.body) != 10 {
+		t.Fatalf("sınırdaki dosya: %v %v", r, err)
+	}
+	if r, err := serveFile(os.ReadDir, root, "/on.txt", 9); r != nil || !messages.Has(err, messages.H7643) {
+		t.Fatalf("sınırı aşan dosya H7643 olmalı: %v %v", r, err)
+	}
+	if r, err := serveFile(os.ReadDir, root, "/yok.txt", 1); err != nil || r.status != 404 {
+		t.Fatalf("bulunmayan dosya sınırdan önce 404: %v %v", r, err)
+	}
+	r := filepath.ToSlash(root)
+	call := func(p, arg string) string { return `TR_file_response("` + r + `", "` + p + `"` + arg + `)` }
+	o := trrun.MustExec(t, `TR_var result = [`+call("/on.txt", ", TR_max_file_bytes: 10")+`.TR_status, `+
+		call("/bos.txt", ", TR_max_file_bytes: 1")+`.TR_status, `+call("/on.txt", ", TR_max_file_bytes: 4611686018427387904")+`.TR_status, `+
+		call("/mib.bin", "")+`.TR_status, TR_error_code { `+call("/mib1.bin", "")+` }, TR_error_code { `+call("/on.txt", ", TR_max_file_bytes: 9")+` }, `+
+		`TR_error_code { `+call("/on.txt", ", TR_max_file_bytes: 0")+` }, TR_error_code { `+call("/on.txt", ", TR_max_file_bytes: -1")+` }, `+
+		`TR_error_code { `+call("/on.txt", `, TR_max_file_bytes: "10"`)+` }]`)
+	if got := o.Value.Inspect(); got != `[200, 200, 200, 200, "H7643", "H7643", "H7628", "H7628", "H7628"]` {
+		t.Fatalf("sınır: %s", got)
+	}
+	if o := trrun.Exec(t, call("/on.txt", ", TR_max_body_bytes: 10")); o.Err == nil {
+		t.Fatal("bilinmeyen adlı argüman hata vermeli")
+	}
+	for _, lang := range []string{"tr", "en"} {
+		text := messages.TextIn(lang, messages.H7643, "f", "/on.txt", 10, 9)
+		i := strings.LastIndex(text, ": `")
+		hint, _, _ := strings.Cut(text[i+3:], "`")
+		if o := trrun.MustExec(t, `TR_var result = `+call("/on.txt", ", "+hint)+`.TR_status`); o.Value.Inspect() != "200" {
+			t.Fatalf("%s: öneri %q çalışmalı: %s", lang, hint, o.Value.Inspect())
 		}
 	}
 }

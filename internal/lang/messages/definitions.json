@@ -1902,6 +1902,7 @@
 "H7640": { "param": ["fn", "given"], "slots": {"reduce": "TR_arg_reduce", "JSON": "TR_type_JSON"} },
 "H7641": { "param": ["fn"], "slots": {"reduce": "TR_arg_reduce"} },
 "H7642": { "param": [] },
+"H7643": { "param": ["fn", "path", "size", "limit"], "slots": {"max_file_bytes": "TR_arg_max_file_bytes"} },
 "H7645": { "param": ["fn", "offset"], "slots": {"var": "TR_kw_var", "String": "TR_type_String", "none": "TR_kw_none", "try": "TR_kw_try", "catch": "TR_kw_catch", "headers": "TR_mem_headers", "get": "TR_mem_get"} },
 "H7660": { "param": ["fn", "path"], "slots": {"tokenless_paths": "TR_arg_tokenless_paths"} },
 "H7661": { "param": ["fn"], "slots": {"tokenless_paths": "TR_arg_tokenless_paths", "token": "TR_arg_token", "secret_token": "TR_fn_secret_token"} },

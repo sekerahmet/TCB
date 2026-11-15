@@ -1902,6 +1902,7 @@
 "H7640": "{fn}: `{#reduce}:` must give the new snapshot as {@JSON}, it gave {given}: write `{#reduce}: (g, event) => {#JSON}({{\"last\": event}})`",
 "H7641": "{fn}: `{#reduce}:` cannot send to the same broadcaster, the broadcaster would wait for itself while folding; send the event outside the fold",
 "H7642": "Invalid request header",
+"H7643": "{fn}: {path|q} is {size} bytes, at most {limit} bytes are allowed: for a large file add the limit to the call: `{#max_file_bytes}: {size}`",
 "H7645": "{fn}: the value of the `Cookie` header is not valid UTF-8 (the first invalid byte is at index {offset}); another application may have set the cookie. Catch the read and go on without the cookie: `{#var} c: {#String}? = {#none}; {#try} {{ c = request.{#headers}.{#get}(\"Cookie\") }} {#catch} h {{ }}`; the user can delete 127.0.0.1's cookies in the browser",
 "H7660": "{fn}: {path|q} in `{#tokenless_paths}:` is not an exact path: a path starts with `/` and carries no query, backslash, control character or `..` component; write each file by name: `{#tokenless_paths}: [\"/\", \"/index.html\"]`",
 "H7661": "{fn}: `{#tokenless_paths}:` means something only on a server with a token; without a token every path is open already; give a token to protect the others: `{#token}: {#secret_token}()`",
