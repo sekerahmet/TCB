@@ -131,7 +131,7 @@ adım 5000/5000 · kayıp 1,84 · 61 dk 3 sn sürdü
 
 **19.12** `TR_machine()` sürecin çalıştığı makinenin o anki görüntüsünü bir `TR_Machine` olarak verir:
 - `.TR_memory_total_bytes` (`TR_Int`): makinenin fiziksel belleği;
-- `.TR_memory_limit_bytes` (`TR_Int?`): sürece konmuş bellek sınırı (Linux'ta cgroup'un `memory.max`'ı, Windows'ta iş nesnesinin sınırı); sınır yoksa `TR_none`;
+- `.TR_memory_limit_bytes` (`TR_Int?`): sürece konmuş bellek sınırı (Linux'ta cgroup'un `memory.max`'ı, Windows'ta iş nesnesinin sınırı) ile 19.12a'nın tavanının küçüğü; ikisi de yoksa `TR_none`;
 - `.TR_memory_available_bytes` (`TR_Int`): şu an yeni işe verilebilecek bellek;
 - `.TR_usable_cpus` (`TR_Int`): bu sürecin kullanabildiği mantıksal çekirdek sayısı;
 - `.TR_cpu_features` (`TR_List[TR_String]`): işlemcinin ve işletim sisteminin birlikte desteklediği komut kümeleri, sabit tablodan, tablonun sırasıyla: x86_64'te `"sse4_2"`, `"avx"`, `"avx2"`, `"fma"`, `"f16c"`, `"avx512f"`; arm64'te `"neon"`;
@@ -153,4 +153,12 @@ TR_print(m.TR_os, m.TR_arch, m.TR_usable_cpus, bellek > 0)
 TR_if m.TR_os == "windows" { TR_print("Windows") }
 ```
 
-- *Test:* TR testi (`tests/surec_ve_kayit_test.tr`, 19.12); denetim `tests/negative/makine_yazimi.tr`; Go: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineOSTable`, `TestMachineCPUFeaturesTable`.
+- *Test:* TR testi (`tests/surec_ve_kayit_test.tr`, 19.12); denetim `tests/negative/makine_yazimi.tr`; Go: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineOSTable`, `TestMachineCPUFeaturesTable`; sınırla tavanın küçüğü (19.12a): gerekmez, henüz uygulanmadı.
+
+**19.12a** Bellek tavanı. Programı başlatan, sürecin belleğine bir tavan koyabilir: `TR_MEMORY_LIMIT` ortam değişkeni, değeri bayt cinsinden pozitif bir tam sayıdır (6 GiB için `TR_MEMORY_LIMIT=6442450944`). Program içinden tavan konmaz ve değiştirilmez: tavan, durdurmanın süresi gibi (1.8), makinenin ve başlatanın bilgisidir.
+- Tavan sürecin ana belleğini sayar: çöp toplayıcının öbeği ve öbek dışında tutulan bloklar (yüklenen ağırlıklar) birlikte. Kartın belleği sayılmaz.
+- Tavan yumuşaktır: aşılması hata değildir. Süreç tavana yaklaştıkça çöp toplayıcı sıklaşır; toplayıcının süreden aldığı pay bir eşiği geçince süreç kodlu bir uyarı verir, profil raporu da payı gösterir. Program yavaşlar ama sessiz kalmaz (15.49).
+- Değeri pozitif bir tam sayı olmayan `TR_MEMORY_LIMIT` (boş, birimli, ondalık, sıfır ya da eksi) kullanım hatasıdır: program başlamaz, çıkış kodu 2'dir (1.9).
+- Tavan süreç başınadır: ortamı alan alt süreç (21.6) aynı tavanı kendisi için alır; tavan iki sürecin toplamı değildir.
+- Çöp toplayıcının ayarı programın türüne göre gizlice seçilmez; programın tek bellek ayarı bu tavandır.
+- *Test:* gerekmez, henüz uygulanmadı.

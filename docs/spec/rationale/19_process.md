@@ -95,3 +95,19 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 
 - *Emsal:* psutil'in açık hatası "/proc/meminfo shows the information from the host and not the container" (#2100); sysinfo sınırı ayrı verir. `platform.machine()` "may differ in casing and naming conventions". Go 1.25+: `GOMAXPROCS` cgroup CPU sınırını izler, `NumCPU` izlemez.
 - *Gerekçe:* tek yazım (15.37'nin kalıbı); konteyner yanılgısı sessizdir.
+
+### 19.12a
+
+- *Emsal:*
+  - Go'nun bellek sınırı yumuşaktır ve öbek dışını saymaz: `GOMEMLIMIT` "sets a soft memory limit for the runtime", "excludes external memory sources" (go1.27.4, `src/runtime/extern.go`); sınır `syscall.Mmap` ile eşlenen belleği de saymaz, "because it is not managed by the Go runtime" (`src/runtime/debug/garbage.go`). Sınıra dayanan program durmaz, yavaşlar: "may cause the garbage collector to run nearly continuously. However, the application may still make progress." (aynı dosya).
+  - Go'nun toplama hedefi süreç genelinde tek değerdir: `SetGCPercent` "sets the garbage collection target percentage", başlangıç değeri "the value of the GOGC environment variable at startup, or 100" (aynı dosya).
+  - TR'de başlatanın bilgisi: durdurmanın süresi (1.8); ortam değişkeninin kimlikle yazımı `TR_LANG` ve `TR_JOB_DIR` (17.9, 19.11).
+- *Gerekçe:*
+  - **İlke.** `trlang` 2026-10-18'den beri, `GOGC` verilmemişse, hedefi Go'nun 100'ü yerine 200 seçiyordu (`71977920`); ölçü bir eğitim programının hızıydı. Uzun koşan bir sohbet programında öbek canlının üç katına çıktı: bir toplamadan önce 7 955 MiB, toplamadan sonra canlı 2 633 MiB (Dost, Ahmet'in dizüstü, 2026-11-15; DENETİM 771). Ayar ne programda ne çıktıda görünüyordu: ajan bu belleği okuyamazdı. Programın türüne göre seçilen gizli ayar yerine tek, görünür ve başlatanın verdiği bir ayar kalır.
+  - **Blok değil.** Yüksek hedefi açan bir blok 15.53a'nın "durum görev başınadır" sözünü tutamazdı: hedef süreç genelindedir ve görevler birbirinin arasına girer (10.2, 10.3); bloğun değeri öbür görevlere sızardı (DENETİM 772 Ş1).
+  - **Ana bellek.** Kullanıcı tavanı sürecin belleği diye okur. Hazır modelin ağırlıkları öbek dışındadır (Dost'un zincirinde öbek dışı 3 426 MiB, status'un H1 sabit bedel dökümü); yalnız öbeği sayan bir tavan sessizce aşılırdı: `GOMEMLIMIT=6GiB` ile tepe 9 554 MiB oldu. Kartın belleği ayrı bir kaynaktır, kartın sürücüsü yönetir.
+  - **Yumuşak.** Sert bir tavan (aşınca hata) programı rastgele bir ayırmada düşürür; Go'nun sınırı da yumuşaktır. Ama tavana dayanan program sessizce yavaşlar, bu 15.49'un "belirsiz durum hatadır ya da uyarıdır" sözüne aykırı olurdu: payı söyleyen kodlu uyarı bu yüzden. Eşiğin değeri ve ileti kodu uygulamanın tasarımında ölçüyle seçilir (kirli bir dizüstü koşusunda toplayıcının payı %22'ye çıktı, aynı programın tavansız koşusunda %2'ydi).
+  - **Birimsiz bayt.** Birim 19.12'nin `_bytes` üyeleriyle aynıdır. "6GB" ile "6GiB" arasındaki %7'lik fark sessiz olurdu; birimli yazım bu yüzden hatadır.
+  - **Okuma.** Program bütün sınırı tek üyeden okur: `.TR_memory_limit_bytes` sürece konmuş sınırla tavanın küçüğüdür. İki kaynak ayrı üyede dursaydı ajan birini unuturdu; 19.12'nin örneği zaten küçüğünü alıyor.
+  - **Alt süreç.** Ortam değişkeni alt sürece geçer (21.6). İki süreç birlikte tavanın iki katına çıkabilir; süreç başına tavan ortamın bilinen anlamıdır, toplamı paylaştırmak başlatanın işidir.
+  - **Hız.** Varsayılanın 100'e inmesinin eğitimdeki bedeli ölçülecek (100, 200 ve 100 + tavan; `examples/tr/36_karakter_modeli.tr`, `GOMAXPROCS=2`, eşli dönüşümlü 26 tur; H1). 200'ün ölçüsü bugünkü motordan eskidir (DENETİM 772 Ş2). Varsayılan bu ölçüyü beklemez: sıralı ölçütlerde ajanın hatasızlığı ve güvenilirlik hızdan önce gelir, sessiz bellek tuzağı da onlardandır.
