@@ -29,6 +29,10 @@
       <select id="languageSelect"></select>
     </span>
     <button class="btn btn-small" id="focusExit" type="button" data-i18n="button_focus_exit" hidden></button>
+    <button class="btn models-open" id="modelsOpen" type="button" aria-haspopup="dialog" aria-controls="modelsDialog" aria-expanded="false">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span data-i18n="models_open"></span>
+    </button>
     <button class="btn btn-icon gear" id="settingsOpen" type="button" aria-haspopup="dialog" aria-controls="settingsDialog" aria-expanded="false" hidden>
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.9 10.4 L21.9 13.6 L19.2 13.8 L18.3 15.8 L20.1 17.8 L17.8 20.1 L15.8 18.3 L13.8 19.2 L13.6 21.9 L10.4 21.9 L10.2 19.2 L8.2 18.3 L6.2 20.1 L3.9 17.8 L5.7 15.8 L4.8 13.8 L2.1 13.6 L2.1 10.4 L4.8 10.2 L5.7 8.2 L3.9 6.2 L6.2 3.9 L8.2 5.7 L10.2 4.8 L10.4 2.1 L13.6 2.1 L13.8 4.8 L15.8 5.7 L17.8 3.9 L20.1 6.2 L18.3 8.2 L19.2 10.2Z"/><circle cx="12" cy="12" r="3.2"/></svg>
       <span class="sr" data-i18n="settings_title"></span>
@@ -73,12 +77,23 @@
     </button>
   </div>
   <section class="setup" id="setupBox" hidden>
-    <h2 data-i18n="state_setup"></h2>
+    <h2 id="setupHeading"></h2>
+    <p class="setup-note" id="setupNote" hidden></p>
     <div class="field">
       <label for="speechLanguage" data-i18n="label_speech_language"></label>
       <select id="speechLanguage"></select>
     </div>
-    <button class="btn btn-primary" id="loadButton" type="button" data-i18n="button_load"></button>
+    <div class="setup-actions">
+      <button class="btn btn-primary" id="setupModels" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span data-i18n="setup_open_models"></span>
+      </button>
+      <button class="btn btn-primary" id="setupRetry" type="button" hidden>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
+        <span data-i18n="setup_retry"></span>
+      </button>
+      <button class="btn" id="setupOther" type="button" data-i18n="setup_other_model" hidden></button>
+    </div>
   </section>
   <section class="sheet" id="toolSheet" hidden>
     <h2 class="label" data-i18n="tools_title"></h2>
@@ -131,7 +146,13 @@
   </button>
   <div class="info box">
     <p><span class="label" data-i18n="label_connection"></span><span id="connText"></span></p>
-    <p><span class="label" data-i18n="label_model"></span><span id="modelText"></span></p>
+    <div class="team" id="teamBox">
+      <p class="label" data-i18n="team_title"></p>
+      <p class="team-line" id="teamChatLine"><span class="team-kind" data-i18n="kind_language_model"></span><span id="teamChat"></span></p>
+      <p class="team-line" id="teamTranscriberLine"><span class="team-kind" data-i18n="kind_transcriber"></span><span id="teamTranscriber"></span></p>
+      <p class="team-line" id="teamVoiceLine"><span class="team-kind" data-i18n="kind_voice"></span><span id="teamVoice"></span></p>
+      <p class="team-state" id="teamState"></p>
+    </div>
   </div>
 </aside>
 
@@ -157,20 +178,42 @@
           <textarea class="input" id="settingsSystemPrompt" rows="4"></textarea>
         </div>
       </section>
-      <section class="box" aria-labelledby="settingsGroupModel">
-        <h3 class="label" id="settingsGroupModel" data-i18n="settings_group_model"></h3>
+      <section class="box" aria-labelledby="settingsGroupModels">
+        <h3 class="label" id="settingsGroupModels" data-i18n="settings_group_models"></h3>
         <div class="field">
           <label for="settingsModel" data-i18n="settings_model"></label>
-          <div class="row-line">
-            <select id="settingsModel"></select>
-            <button class="btn btn-primary" id="settingsModelLoad" type="button" data-i18n="settings_model_load"></button>
-          </div>
+          <select id="settingsModel"></select>
+          <p class="hint" id="settingsModelNote" data-i18n="settings_models_change_note"></p>
+          <p class="hint" id="settingsModelNone" data-i18n="settings_models_none" hidden></p>
         </div>
-        <div class="downloads" id="settingsDownload"></div>
+        <div class="field">
+          <label for="settingsTranscriber" data-i18n="kind_transcriber"></label>
+          <select id="settingsTranscriber" disabled></select>
+          <p class="hint" data-i18n="settings_models_only_one"></p>
+        </div>
+        <div class="field">
+          <label for="settingsVoice" data-i18n="kind_voice"></label>
+          <select id="settingsVoice" disabled></select>
+          <p class="hint" data-i18n="settings_models_only_one"></p>
+        </div>
+        <div class="field">
+          <label for="settingsVad" data-i18n="kind_vad"></label>
+          <select id="settingsVad" disabled></select>
+          <p class="hint" data-i18n="settings_models_only_one"></p>
+        </div>
+        <div class="field">
+          <label for="settingsQuantized" data-i18n="settings_quantized"></label>
+          <select id="settingsQuantized">
+            <option value="auto" data-i18n="settings_quantized_auto"></option>
+            <option value="on" data-i18n="settings_quantized_on"></option>
+            <option value="off" data-i18n="settings_quantized_off"></option>
+          </select>
+        </div>
         <div class="field">
           <label for="settingsContext" data-i18n="settings_context"></label>
           <input class="input" id="settingsContext" type="number" min="1" step="1" inputmode="numeric">
         </div>
+        <button class="btn" id="settingsModels" type="button" data-i18n="setup_open_models"></button>
       </section>
       <section class="box" aria-labelledby="settingsGroupAudio">
         <h3 class="label" id="settingsGroupAudio" data-i18n="settings_group_audio"></h3>
@@ -198,13 +241,31 @@
   </div>
 </dialog>
 
+<dialog class="settings models" id="modelsDialog" aria-labelledby="modelsTitle">
+  <div class="settings-inner">
+    <div class="settings-head">
+      <h2 id="modelsTitle" data-i18n="models_title"></h2>
+      <button class="btn btn-icon" id="modelsClose" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        <span class="sr" data-i18n="settings_close"></span>
+      </button>
+    </div>
+    <div class="settings-body" id="modelsBody">
+      <p class="hint" id="modelsMachine" hidden></p>
+      <div class="models-groups" id="modelsGroups"></div>
+    </div>
+  </div>
+</dialog>
+
 <script src="js/screen_state.js"></script>
 <script src="js/rows.js"></script>
 <script src="js/approvals.js"></script>
 <script src="js/events.js"></script>
+<script src="js/mock_models.js"></script>
 <script src="js/mock.js"></script>
 <script src="js/transport.js"></script>
 <script src="js/view.js"></script>
+<script src="js/models.js"></script>
 <script src="js/main.js"></script>
 <script src="lang/en.js"></script>
 <script src="lang/tr.js"></script>

@@ -25,8 +25,9 @@ func openTag(t *testing.T, id string) string {
 // Ayarın her alanı dişlinin açtığı panelin içindedir; dişli paneli adıyla gösterir ve bir pencere açtığını söyler.
 func TestSettingsLiveBehindTheGear(t *testing.T) {
 	panel := block(t, "dialog", "settingsDialog")
-	for _, id := range []string{"settingsLanguage", "settingsSystemPrompt", "settingsModel", "settingsModelLoad",
-		"settingsContext", "settingsMicrophone", "devicesRefresh", "settingsRecording", "settingsClose"} {
+	for _, id := range []string{"settingsLanguage", "settingsSystemPrompt", "settingsModel", "settingsTranscriber",
+		"settingsVoice", "settingsVad", "settingsQuantized", "settingsModels", "settingsContext", "settingsMicrophone",
+		"devicesRefresh", "settingsRecording", "settingsClose"} {
 		if !strings.Contains(panel, `id="`+id+`"`) {
 			t.Errorf("%s is not inside the settings panel", id)
 		}
@@ -140,38 +141,120 @@ func TestPressedChipCarriesAMark(t *testing.T) {
 	}
 }
 
-// Kurulum kartının Yükle'si ayarın dil modelinin takımı kurulana kadar sönüktür (D, TCB 15:04): inerken basılan Yükle
-// `not_installed` alırdı. Koşul katalogdaki `installed`'dır (contract.md); bağlantı da gerekir. Katalog ve ayar gelince
-// kart yeniden çizilir; yoksa indirme bitince düğme sönük kalırdı. Durum satırı ve kurulu satır da aynı koşulu söyler.
-func TestSetupLoadWaitsForTheTeam(t *testing.T) {
-	code := script(t)
-	setup := capture(t, `(?s)function renderSetup\(\) \{(.*?)\n\}`, code)
-	for _, want := range []string{
-		`const ready = setupReady();`,
-		`load.disabled = !connected() || !ready;`,
-		`bind(heading, ready ? "state_setup_done" : "state_setup");`,
-		`note.hidden = !ready;`,
-	} {
-		if !strings.Contains(setup, want) {
-			t.Errorf("renderSetup has no %q: the card follows the team's install", want)
+// Yükle düğmesi yoktur (M tasarımı K6, K8; Ahmet'in M1 denemesi: "o butonun orda işi ne anlamadım"): Dost seçili takımı
+// kendisi hazırlar. Ayarlarda sohbet seçimi `settings_set language_model`'dir; sayfanın tek `model_load`'u kurulum
+// kartının Yeniden dene'sidir (düşen yüklemeden sonra). Sözlükte Yükle ve "Kurulum tamam" kalmaz.
+func TestSettingsHaveNoLoadButton(t *testing.T) {
+	html := markup(t)
+	for _, gone := range []string{`id="loadButton"`, `id="settingsModelLoad"`, `id="settingsDownload"`} {
+		if strings.Contains(html, gone) {
+			t.Errorf("the page still has %s", gone)
 		}
 	}
+	for code, table := range dictionary(t) {
+		for _, key := range []string{"button_load", "settings_model_load", "state_setup_done", "setup_done_note", "download_installed"} {
+			if _, ok := table[key]; ok {
+				t.Errorf("%s still has %s", code, key)
+			}
+		}
+	}
+	code := script(t)
+	view := readFile(t, moduleDir+"/view.js")
+	if n := strings.Count(view, `command("model_load"`); n != 1 || !strings.Contains(view, `byId("setupRetry").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));`) {
+		t.Errorf("view.js sends model_load %d times; want once, from the setup card's retry", n)
+	}
+	if !strings.Contains(code, `byId("settingsModel").addEventListener("change", () => setSetting("language_model",`) {
+		t.Error("choosing a chat model in the settings does not send settings_set language_model")
+	}
+	// Ayar ve katalog gelince kart, takım kutusu, durum satırı ve pencere yeniden çizilir.
 	for _, event := range []string{"settings", "catalog"} {
 		if body := capture(t, `(?s)on\("`+event+`", \(d\) => \{(.*?)\n\}\);`, code); !strings.Contains(body, "renderStatus();") {
 			t.Errorf("the %s event does not redraw the setup card and the state line:\n%s", event, body)
 		}
 	}
-	ready := capture(t, `(?s)function setupReady\(\) \{(.*?)\n\}`, code)
-	if !strings.Contains(ready, `e.id === model && e.installed`) {
-		t.Errorf("setupReady does not look at the catalog's installed:\n%s", ready)
+	status := capture(t, `(?s)function renderStatus\(\) \{(.*?)\n\}`, code)
+	for _, want := range []string{"renderTeam();", "renderSetup();", "renderSettings();", "renderModels();"} {
+		if !strings.Contains(status, want) {
+			t.Errorf("renderStatus does not call %s", want)
+		}
 	}
-	// Durum satırı kartla aynı koşulu kullanır, kurulu satır "Kurulu" der (DENETİM 787 N1).
-	ring := capture(t, `(?s)function renderRing\(\) \{(.*?)\n\}`, code)
-	if !strings.Contains(ring, `state === "setup" && setupReady() ? "state_setup_done"`) {
-		t.Errorf("renderRing does not say setup is complete when the team is installed:\n%s", ring)
+}
+
+// Modeller penceresi (K5): üst çubukta her zaman, dişlinin yanında bir düğme açar; kurulum kartından ve ayarlardan da
+// açılır. Gruplar sözleşmenin dört türüdür, her biri adı ve tek cümle açıklamasıyla, her dilde.
+func TestModelsDialogNamesEveryKind(t *testing.T) {
+	top := capture(t, `(?s)<div class="top-tools">(.*?)</div>`, markup(t))
+	open := capture(t, `(<button\b[^>]*\bid="modelsOpen"[^>]*>)`, top)
+	for _, want := range []string{`aria-controls="modelsDialog"`, `aria-haspopup="dialog"`} {
+		if !strings.Contains(open, want) {
+			t.Errorf("the models button has no %s: %s", want, open)
+		}
 	}
-	installed := capture(t, `(?s)\} else if \(entry\.installed\) \{(.*?)\n    \}`, capture(t, `(?s)function renderDownloads\(\) \{(.*?)\n\}`, code))
-	if !strings.Contains(installed, `"download_installed"`) {
-		t.Errorf("an installed row does not say download_installed:\n%s", installed)
+	if strings.Contains(open, "hidden") || strings.Index(top, `id="modelsOpen"`) > strings.Index(top, `id="settingsOpen"`) {
+		t.Errorf("the models button is not always shown before the gear: %s", open)
+	}
+	block(t, "dialog", "modelsDialog")
+	kinds := matches("`([a-z_]+)`", capture(t, "`kind` \\(([^)]*)\\)", section(t, "Olaylar")))
+	list := capture(t, `const MODEL_KINDS = \[(.*?)\];`, script(t))
+	for code, table := range dictionary(t) {
+		for _, kind := range kinds {
+			if table["kind_"+kind] == "" || table["kind_"+kind+"_note"] == "" {
+				t.Errorf("%s has no kind_%s or kind_%s_note", code, kind, kind)
+			}
+		}
+	}
+	for _, kind := range kinds {
+		if !strings.Contains(list, `"`+kind+`"`) {
+			t.Errorf("MODEL_KINDS has no %s", kind)
+		}
+	}
+	if len(kinds) != 4 {
+		t.Errorf("want the contract's four kinds, read %v", kinds)
+	}
+	code := script(t)
+	for _, want := range []string{"bind(el(\"h3\", \"label\"), `kind_${kind}`)", "bind(el(\"p\", \"kind-note\"), `kind_${kind}_note`)",
+		`byId("setupModels").addEventListener("click", openModels);`, `byId("settingsModels").addEventListener("click", openModels);`} {
+		if !strings.Contains(code, want) {
+			t.Errorf("the page has no %q", want)
+		}
+	}
+}
+
+// Nicemli etkinleştirmenin seçicisi (N2) ayarların "Kullanılan modeller" bölümündedir: üç değer, `settings_set`.
+func TestQuantizedSelectorIsInModels(t *testing.T) {
+	group := capture(t, `(?s)<section class="box" aria-labelledby="settingsGroupModels">(.*?)</section>`, markup(t))
+	selector := capture(t, `(?s)<select id="settingsQuantized">(.*?)</select>`, group)
+	for _, value := range []string{"auto", "on", "off"} {
+		if !strings.Contains(selector, `<option value="`+value+`" data-i18n="settings_quantized_`+value+`"></option>`) {
+			t.Errorf("the quantized selector has no %s option", value)
+		}
+	}
+	if !strings.Contains(script(t), `setSetting("quantized_activations",`) {
+		t.Error("the quantized selector does not send settings_set quantized_activations")
+	}
+}
+
+// Takım kutusu (K7) sağ panelde MODEL satırının yerindedir: sohbet, sesten yazıya, yazıdan sese ve durum. Yüklü takım
+// yokken (`setup`) yalnız "Model yok" der; "bilinmiyor" (`model_unknown`) hiçbir yerde kalmaz (defter 5 (c)).
+func TestTeamBoxNamesTheTeam(t *testing.T) {
+	box := capture(t, `(?s)<div class="team" id="teamBox">(.*?)\n    </div>`, block(t, "aside", "right"))
+	for _, id := range []string{"teamChat", "teamTranscriber", "teamVoice", "teamState"} {
+		if !strings.Contains(box, `id="`+id+`"`) {
+			t.Errorf("the team box has no %s", id)
+		}
+	}
+	if strings.Contains(markup(t), `id="modelText"`) || strings.Contains(markup(t), "label_model") {
+		t.Error("the panel still has the MODEL line")
+	}
+	for code, table := range dictionary(t) {
+		if _, ok := table["model_unknown"]; ok {
+			t.Errorf("%s still has model_unknown", code)
+		}
+	}
+	team := capture(t, `(?s)function renderTeam\(\) \{(.*?)\n\}`, script(t))
+	for _, want := range []string{`if (setup) bind(line, "state_setup_empty");`, `teamEntry("transcriber")`, `teamEntry("voice")`, `"team_preparing"`, `"team_ready"`} {
+		if !strings.Contains(team, want) {
+			t.Errorf("renderTeam has no %q", want)
+		}
 	}
 }

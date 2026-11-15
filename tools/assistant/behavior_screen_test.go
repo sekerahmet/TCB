@@ -24,7 +24,10 @@ const (
 	// styleLink sayfanın tek <link>'idir: stil satır içinde değil, sunucunun sunduğu dosyadadır (contract.md, "Sunulan dosyalar").
 	styleLink = `<link rel="stylesheet" href="css/screen.css">`
 
-	maxScreenBytes = 150 * 1024
+	// maxScreenBytes kazara gömülen büyük veriye (base64 model, görüntü) karşı korumadır, inceliğin ölçüsü değildir:
+	// okunurluğu dosya başına 600 satır tutar. Ahmet 2026-11-15 20:16: "bu ekran gelişecek o zaman 1 MB da olabilir"
+	// (TCB 20:16; önceki 150 KiB "ince ekran" ölçütüydü, M2'nin Modeller penceresi 169 096 baytta aştı).
+	maxScreenBytes = 1 << 20
 	testFileName   = "behavior_screen_test.go"
 )
 
@@ -128,6 +131,7 @@ func matches(pattern, text string) []string {
 	return out
 }
 
+// Ekranın bütünü (sayfa, stil, modüller, dil dosyaları) 1 MiB'ın altındadır: büyük veri gömülmemiştir (maxScreenBytes).
 func TestScreenStaysSmall(t *testing.T) {
 	n := len(page(t))
 	for _, name := range languageNames(t) {
@@ -369,7 +373,7 @@ func TestDictionaryLanguagesMatch(t *testing.T) {
 }
 
 // dynamicKeys koddaki anahtarların kurulduğu öneklerdir (`state_${state}`).
-var dynamicKeys = []string{"conn_", "state_", "result_", "error_", "scene_", "approval_closed_"}
+var dynamicKeys = []string{"conn_", "state_", "result_", "error_", "scene_", "approval_closed_", "kind_", "fit_"}
 
 func TestDictionaryKeysAreUsed(t *testing.T) {
 	code := script(t)
@@ -460,6 +464,12 @@ func TestEveryContractStateHasText(t *testing.T) {
 			}
 			if !strings.Contains(list, `"`+state+`"`) {
 				t.Errorf("STATES has no %s", state)
+			}
+		}
+		// Kurulumda sohbet modeli yokken "Model yok"; Konuş hazırlanırken, beklerken ve takım kurulu değilken (M tasarımı K9).
+		for _, key := range []string{"state_setup_empty", "mic_preparing", "mic_waits", "mic_download_first"} {
+			if table[key] == "" {
+				t.Errorf("%s has no %s", code, key)
 			}
 		}
 	}

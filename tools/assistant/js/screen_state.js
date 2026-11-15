@@ -161,15 +161,19 @@ const ui = {
   verifying: false, // `loading`'in `verifying`'i: açılışta model dosyaları denetleniyor
   conn: "connecting", // connecting, open, reconnecting, auth, forbidden, rejected, mismatch, pair_invalid, pair_used, lost
   connValues: /** @type {Record<string, unknown>} */ ({}),
-  model: "",
+  loadingModel: "", // `loading`'de yüklenen dil modelinin kimliği (`state`'in `model`'i)
+  loadFailed: "", // son yüklemenin düşen modeli (`model_load_failed`); başarılı yüklemeye kadar
+  micWaiting: false, // Konuş hazırlanırken basıldı: sunucu yükleme bitince dinler (contract.md, `mic_set`)
+  micHint: "", // kurulumda Konuş'un yazısı: sunucunun `not_installed`'ı "Önce modelleri indirin" der
   tools: /** @type {{name: string, irreversible: boolean}[]} */ ([]),
   activeTurn: "",
   lastId: /** @type {string|null} */ (null),
   heartbeatMs: 15000,
   metrics: /** @type {Record<string, unknown>} */ ({}),
   settings: /** @type {Record<string, unknown>} */ ({}),
-  catalog: /** @type {{id: string, name: string, installed: boolean}[]} */ ([]),
+  catalog: /** @type {any[]} */ ([]), // events.js'nin catalogEntries'i: katalogun bilinen türleri
   downloads: /** @type {Record<string, any>} */ ({}), // girdi başına son `download` olayı
+  samples: /** @type {Record<string, {at: number, done: number}[]>} */ ({}), // inen işin son 30 sn'si (models.js)
   confirmDelete: "", // Sil'in onayını soran satırın girdisi
   microphones: /** @type {string[]|null} */ (null), // `devices`'in listesi; gelmediyse null
   devicesAsked: false,

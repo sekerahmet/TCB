@@ -2,6 +2,7 @@ package assistant_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -143,41 +144,138 @@ func TestModulesShareNoTopLevelName(t *testing.T) {
 }
 
 // Ekran `catalog` olayında bilmediği alanı ve bilmediği `kind`'ı yok sayar (sözleşme, `catalog`; sonraki dilim alan ve
-// tür ekler); ayar sayfası yalnız kurulu modeli seçtirir. Kural js/events.js'in iki saf fonksiyonundadır
+// tür ekler): dört türü alanlarıyla okur, sayı olmayan boy `null`, bilinmeyen uyum boş, metin olmayan dil düşer. Ayarlar
+// yalnız takımı kurulu sohbet modelini seçtirir (kurulu ses seçilmez). Kural js/events.js'in iki saf fonksiyonundadır
 // (catalogEntries, loadableModels); test onları işaretlerin arasından alıp node ile koşar, node yoksa atlanır.
 func TestPageIgnoresUnknownCatalogFieldsAndKinds(t *testing.T) {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node bulunamadı; ekranın katalog kuralı koşulmadı")
-	}
-	_, rest, ok := strings.Cut(readFile(t, eventsModule), "// ---------- Katalog ----------")
-	block, _, found := strings.Cut(rest, "// ---------- Katalog sonu ----------")
-	if !ok || !found {
-		t.Fatalf("%s: catalog block not found", eventsModule)
-	}
-	data := `{"entries":[{"id":"a","kind":"language_model","name":"A","installed":true,"size_bytes":5,"license":{"name":"x"}},` +
-		`{"id":"b","kind":"language_model","name":"B","installed":false},{"id":"c","kind":"voice","name":"C","installed":true},` +
+	data := `{"entries":[{"id":"a","kind":"language_model","name":"A","installed":true,"downloaded":true,"bytes":5,` +
+		`"memory_bytes":7,"fit":"tight","size_bytes":5,"license":{"name":"x"}},` +
+		`{"id":"b","kind":"language_model","name":"B","installed":false,"bytes":"9"},` +
+		`{"id":"c","kind":"voice","name":"C","installed":true,"languages":["tr",3]},` +
 		`{"id":"d","kind":"image_model","name":"D","installed":true},{"kind":"language_model","name":"E"},"bozuk",null,` +
-		`{"id":"f","kind":"language_model","installed":"true"}],"extra":1}`
-	driver := block + "\nconst all = catalogEntries(JSON.parse(process.argv[2]));\n" +
-		"process.stdout.write(JSON.stringify({all, loadable: loadableModels(all)}));\n"
-	file := filepath.Join(t.TempDir(), "catalog.js")
-	if err := os.WriteFile(file, []byte(driver), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	output, err := exec.Command(node, file, data).CombinedOutput()
-	if err != nil {
-		t.Fatalf("node: %v\n%s", err, output)
-	}
+		`{"id":"f","kind":"language_model","installed":"true","fit":"huge"}],"extra":1}`
+	output := nodeBlock(t, eventsModule, "Katalog", "const all = catalogEntries(JSON.parse(process.argv[2]));\n"+
+		"process.stdout.write(JSON.stringify({all, loadable: loadableModels(all)}));\n", data)
 	var got struct{ All, Loadable []map[string]any }
 	if err := json.Unmarshal(output, &got); err != nil {
 		t.Fatalf("node output %q: %v", output, err)
 	}
-	want := `[{"id":"a","installed":true,"name":"A"},{"id":"b","installed":false,"name":"B"},{"id":"f","installed":false,"name":"f"}]`
+	a := `{"bytes":5,"downloaded":true,"fit":"tight","id":"a","installed":true,"kind":"language_model","languages":[],"memory_bytes":7,"name":"A"}`
+	want := `[` + a + `,` +
+		`{"bytes":null,"downloaded":false,"fit":"","id":"b","installed":false,"kind":"language_model","languages":[],"memory_bytes":null,"name":"B"},` +
+		`{"bytes":null,"downloaded":false,"fit":"","id":"c","installed":true,"kind":"voice","languages":["tr"],"memory_bytes":null,"name":"C"},` +
+		`{"bytes":null,"downloaded":false,"fit":"","id":"f","installed":false,"kind":"language_model","languages":[],"memory_bytes":null,"name":"f"}]`
 	if all, _ := json.Marshal(got.All); string(all) != want {
 		t.Errorf("catalogEntries: %s, want %s", all, want)
 	}
-	if loadable, _ := json.Marshal(got.Loadable); string(loadable) != `[{"id":"a","installed":true,"name":"A"}]` {
-		t.Errorf("loadableModels: %s, want only the installed model", loadable)
+	if loadable, _ := json.Marshal(got.Loadable); string(loadable) != `[`+a+`]` {
+		t.Errorf("loadableModels: %s, want only the installed chat model", loadable)
+	}
+}
+
+const modelsModule = "tools/assistant/js/models.js"
+
+// nodeBlock bir modülün "// ---------- <ad> ----------" ile "// ---------- <ad> sonu ----------" arasındaki saf kodunu,
+// sonuna sürücüyü ekleyip node ile koşar ve çıktısını verir; node yoksa test atlanır.
+func nodeBlock(t *testing.T, module, name, driver string, args ...string) []byte {
+	t.Helper()
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node bulunamadı; " + module + " " + name + " koşulmadı")
+	}
+	_, rest, ok := strings.Cut(readFile(t, module), "// ---------- "+name+" ----------")
+	block, _, found := strings.Cut(rest, "// ---------- "+name+" sonu ----------")
+	if !ok || !found {
+		t.Fatalf("%s: block %q not found", module, name)
+	}
+	file := filepath.Join(t.TempDir(), "block.js")
+	if err := os.WriteFile(file, []byte(block+"\n"+driver), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	output, err := exec.Command(node, append([]string{file}, args...)...).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, output)
+	}
+	return output
+}
+
+// Satır yalnız kendi girdisinin işini gösterir (M tasarımı, defter 5 (b); Ahmet'in M1 denemesi): sohbetin İndir'i
+// eksik İngilizce sesi indirirken iki sohbet satırı birden "iniyor" gösteriyordu. Ses kendi satırında iner; kendi
+// dosyaları inmiş, takımı kurulu olmayan sohbet satırları yüzdeyi kopyalamaz, inen parçanın adını söyler. Kendi dosyası
+// inen sohbet satırı kendi işini gösterir; başka bir dilin parçası sohbet satırını beklemeye almaz.
+func TestDownloadRowShowsOnlyItsOwnJob(t *testing.T) {
+	catalog := `[{"id":"qwen","kind":"language_model","name":"Qwen","downloaded":true,"installed":false,"languages":[]},` +
+		`{"id":"copy","kind":"language_model","name":"Copy","downloaded":true,"installed":false,"languages":[]},` +
+		`{"id":"whisper","kind":"transcriber","name":"Whisper","downloaded":true,"installed":true,"languages":["tr","en"]},` +
+		`{"id":"tts-tur","kind":"voice","name":"MMS-TTS tur","downloaded":true,"installed":true,"languages":["tr"]},` +
+		`{"id":"tts-eng","kind":"voice","name":"MMS-TTS eng","downloaded":false,"installed":false,"languages":["en"]},` +
+		`{"id":"vad","kind":"vad","name":"VAD","downloaded":true,"installed":true,"languages":[]}]`
+	cases := []struct{ name, downloads, catalog, want string }{
+		{"the English voice downloads for the chat models",
+			`{"tts-eng":{"job_id":"d2","entry_id":"tts-eng","state":"running"}}`, catalog,
+			`{"copy":"part MMS-TTS eng","qwen":"part MMS-TTS eng","tts-eng":"running","tts-tur":"downloaded","vad":"downloaded","whisper":"downloaded"}`},
+		{"the chat model's own file downloads first, the part waits in the queue",
+			`{"copy":{"job_id":"d1","entry_id":"copy","state":"running"},"tts-eng":{"job_id":"d2","entry_id":"tts-eng","state":"queued"}}`,
+			strings.Replace(catalog, `"name":"Copy","downloaded":true`, `"name":"Copy","downloaded":false`, 1),
+			`{"copy":"running","qwen":"part MMS-TTS eng","tts-eng":"queued","tts-tur":"downloaded","vad":"downloaded","whisper":"downloaded"}`},
+		{"a part of another language does not hold the chat rows",
+			`{"tts-tur":{"job_id":"d3","entry_id":"tts-tur","state":"running"}}`, catalog,
+			`{"copy":"downloaded","qwen":"downloaded","tts-eng":"absent","tts-tur":"running","vad":"downloaded","whisper":"downloaded"}`},
+	}
+	for _, c := range cases {
+		output := nodeBlock(t, modelsModule, "Satırın işi", "const catalog = JSON.parse(process.argv[2]);\n"+
+			"const downloads = JSON.parse(process.argv[3]);\nconst out = {};\n"+
+			"for (const e of catalog) { const s = rowStatus(e, catalog, downloads, \"en\"); out[e.id] = s.part ? `part ${s.part}` : s.kind; }\n"+
+			"process.stdout.write(JSON.stringify(out));\n", c.catalog, c.downloads)
+		var got map[string]string
+		if err := json.Unmarshal(output, &got); err != nil {
+			t.Fatalf("%s: node output %q: %v", c.name, output, err)
+		}
+		if all, _ := json.Marshal(got); string(all) != c.want {
+			t.Errorf("%s:\n got %s\nwant %s", c.name, all, c.want)
+		}
+	}
+	// Satırı çizen kod durumu yalnız rowStatus'tan alır; D'nin takımın işlerini toplayan rowJobs'u yoktur.
+	code := pageCode(t)
+	if !strings.Contains(code, "const status = rowStatus(entry, ui.catalog, ui.downloads, str(ui.settings.speech_language));") || strings.Contains(code, "rowJobs") {
+		t.Error("modelRow does not take the row's state from rowStatus alone")
+	}
+	if !strings.Contains(code, `note("model_part_downloading", { model: status.part })`) {
+		t.Error("a waiting chat row does not say model_part_downloading with the part's name")
+	}
+}
+
+// İnen satır yüzdenin yanında hızı (`download` olayının `bytes_per_second`'i) gösterir; son 30 sn'nin hızıyla kalan süre
+// 1 saati aşarsa ya da 30 sn'dir bayt gelmediyse "yavaş" uyarısı çıkar (M tasarımı K11; eşikler tahmindir). Pencere
+// 30 sn dolmadan karar verilmez. slowDownload saf fonksiyondur; test onu node ile koşar.
+func TestDownloadRowShowsSpeedAndSlow(t *testing.T) {
+	const now = 1_000_000
+	cases := []struct {
+		name, samples string
+		total         int
+		want          bool
+	}{
+		{"no samples", `[]`, 100, false},
+		{"the window is not full yet", `[{"at":990000,"done":0},{"at":999000,"done":0}]`, 100, false},
+		{"no bytes for 30 s", `[{"at":969000,"done":100},{"at":999000,"done":100}]`, 1000, true},
+		{"fast enough", `[{"at":969000,"done":0},{"at":999000,"done":30000000}]`, 60000000, false},
+		{"more than an hour left", `[{"at":969000,"done":0},{"at":999000,"done":1000000}]`, 10000000000, true},
+	}
+	for _, c := range cases {
+		output := nodeBlock(t, modelsModule, "Satırın işi", fmt.Sprintf("process.stdout.write(String(slowDownload(JSON.parse(process.argv[2]), %d, %d)));\n", c.total, now), c.samples)
+		if got := string(output); got != fmt.Sprint(c.want) {
+			t.Errorf("%s: slowDownload = %s, want %v", c.name, got, c.want)
+		}
+	}
+	code := pageCode(t)
+	for _, want := range []string{
+		`bind(el("span"), "download_speed", { speed_bytes: speed })`,
+		`const speed = num(status.job.bytes_per_second);`,
+		`slow = note("download_slow"`,
+		"noteSample(d);",
+	} {
+		if !strings.Contains(code, want) {
+			t.Errorf("the page has no %q: the running row shows its speed and the slow note", want)
+		}
 	}
 }
