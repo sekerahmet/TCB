@@ -293,7 +293,7 @@ TR_test "KVÖnbellek: önbellekli ileri önbelleksizle aynıdır (sabit ve büy�
     TR_no_grad {
         TR_var tam_logit = m.TR_forward([dizi])
         TR_for çeşit TR_in ["sabit", "büyüyen"] {
-            TR_var ö = m.TR_build_cache(TR_kind: çeşit)
+            TR_var ö = m.TR_build_cache(TR_kind: çeşit, TR_capacity: 12)
             TR_var ilk = m.TR_forward([dizi[0..4]], TR_cache: ö)
             TR_assert(en_büyük_mutlak_fark(ilk[0], tam_logit[0][0..4]) < 0.0001, "\(çeşit): başlangıç logitleri")
             TR_assert_equal(4, ö.TR_position)
@@ -310,7 +310,7 @@ TR_test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden 
     TR_var m = TR_GPT(20, TR_context: 12, TR_embed_dim: 16, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 6)
     TR_no_grad {
         TR_for çeşit TR_in ["sabit", "büyüyen"] {
-            TR_var ö = m.TR_build_cache(TR_kind: çeşit)
+            TR_var ö = m.TR_build_cache(TR_kind: çeşit, TR_capacity: 12)
             m.TR_forward([[1, 2, 3]], TR_cache: ö)
             TR_var a = m.TR_forward([[4]], TR_cache: ö)
             ö.TR_truncate(3)
