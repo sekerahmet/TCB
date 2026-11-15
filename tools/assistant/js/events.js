@@ -17,7 +17,6 @@ on("session", (d) => {
   }
   for (const card of lost.values()) removeCard(card);
   clearStream();
-  ui.model = str(d.model);
   ui.tools = (Array.isArray(d.tools) ? d.tools : []).map((tool) => ({ name: str(tool && tool.name), irreversible: Boolean(tool && tool.irreversible) }));
   ui.heartbeatMs = num(d.heartbeat_ms) ?? ui.heartbeatMs;
   ui.metrics = {};
@@ -31,8 +30,8 @@ on("session", (d) => {
   renderStatus();
 });
 
-// Ayar ve katalog kurulum kartını ve durum satırını da değiştirir: takımın kurulu olup olmadığı ikisinden hesaplanır
-// (view.js'nin setupReady'si).
+// Ayar ve katalog kurulum kartını, takım kutusunu, durum satırını ve Modeller penceresini de değiştirir: takım ikisinden
+// okunur (models.js'nin teamEntry'si).
 on("settings", (d) => {
   ui.settings = d;
   renderStatus();
@@ -40,13 +39,16 @@ on("settings", (d) => {
 
 on("catalog", (d) => {
   ui.catalog = catalogEntries(d);
+  ui.micHint = "";
   renderStatus();
 });
 
-// download: girdinin son indirme işi; satırı view.js'nin renderDownloads'ı kurar.
+// download: girdinin son indirme işi; satırını models.js'nin renderModels'ı, kurulum kartının yazısını renderSetup kurar.
 on("download", (d) => {
   if (typeof d.entry_id === "string") ui.downloads[d.entry_id] = d;
-  renderDownloads();
+  noteSample(d);
+  renderModels();
+  renderSetup();
 });
 
 on("devices", (d) => {
@@ -55,23 +57,45 @@ on("devices", (d) => {
 });
 
 // ---------- Katalog ----------
-// catalogEntries: `catalog` olayının dil modelleri (contract.md); bilinmeyen alan ve bilinmeyen `kind` yok sayılır.
-/** @param {any} data @returns {{id: string, name: string, installed: boolean}[]} */
+// catalogEntries: `catalog` olayının girdileri (contract.md), bilinen dört türden; bilinmeyen alan ve bilinmeyen `kind`
+// yok sayılır. Sayı olmayan boy ve bellek `null`, bilinmeyen uyum boş, metin olmayan dil düşer.
+/** @param {any} data */
 function catalogEntries(data) {
+  const kinds = ["language_model", "transcriber", "voice", "vad"];
+  const fits = ["fits", "tight", "too_large", "too_long"];
+  const count = (/** @type {unknown} */ v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const entries = data && Array.isArray(data.entries) ? data.entries : [];
   return entries
-    .filter((entry) => entry && entry.kind === "language_model" && typeof entry.id === "string" && entry.id !== "")
-    .map((entry) => ({ id: entry.id, name: typeof entry.name === "string" && entry.name !== "" ? entry.name : entry.id, installed: entry.installed === true }));
+    .filter((entry) => entry && kinds.includes(entry.kind) && typeof entry.id === "string" && entry.id !== "")
+    .map((entry) => ({
+      id: entry.id,
+      kind: entry.kind,
+      name: typeof entry.name === "string" && entry.name !== "" ? entry.name : entry.id,
+      installed: entry.installed === true,
+      downloaded: entry.downloaded === true,
+      bytes: count(entry.bytes),
+      memory_bytes: count(entry.memory_bytes),
+      fit: fits.includes(entry.fit) ? entry.fit : "",
+      languages: Array.isArray(entry.languages) ? entry.languages.filter((/** @type {unknown} */ l) => typeof l === "string") : [],
+    }));
 }
-// loadableModels: ayar sayfasının seçebildiği modeller: yalnız kurulu olanlar ("Yükle" kurulu olmayanı göstermez).
-/** @param {{id: string, name: string, installed: boolean}[]} entries */
+// loadableModels: ayarların seçebildiği sohbet modelleri: takımı kurulu dil modelleri (`settings_set language_model`
+// kurulu olmayanı `not_installed` ile reddeder).
+/** @param {any[]} entries */
 function loadableModels(entries) {
-  return entries.filter((entry) => entry.installed);
+  return entries.filter((entry) => entry.kind === "language_model" && entry.installed);
 }
 // ---------- Katalog sonu ----------
 
+// Konuş'un beklemesi yükleme bitince ya da düşünce biter (kurulumdan yüklemeye geçiş beklemeyi sürdürür); kurulum
+// yazısı kurulumdan çıkınca, düşen yükleme kurulumdan çıkınca (başarılı yüklemede) silinir.
 on("state", (d) => {
-  if (STATES.includes(d.state)) ui.state = d.state;
+  const next = STATES.includes(d.state) ? d.state : ui.state;
+  if (next !== "loading" && (ui.state === "loading" || next !== "setup")) ui.micWaiting = false;
+  if (next !== "setup") ui.micHint = "";
+  if (next !== "setup" && next !== "error") ui.loadFailed = "";
+  ui.state = next;
+  ui.loadingModel = next === "loading" ? str(d.model) : "";
   ui.mic = d.mic === true;
   ui.progress = num(d.progress);
   ui.verifying = d.verifying === true;
@@ -160,8 +184,13 @@ on("metrics", (d) => {
   renderMetrics();
 });
 
+// `model_load_failed` kurulum kartını "belleğe alınamadı"ya çevirir (snapshot'ta da gelir, sonraki başarılı yüklemeye kadar).
 on("error", (d) => {
   noteError(d);
+  if (d.code === "model_load_failed") {
+    ui.loadFailed = str(d.values && d.values.model) || str(ui.settings.language_model);
+    renderStatus();
+  }
   if (d.fatal === true) {
     ui.state = "error";
     renderStatus();

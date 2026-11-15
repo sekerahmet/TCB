@@ -127,44 +127,8 @@ function createMockTransport() {
 
   /** @param {string} state @param {any} [extra] */
   const setState = (state, extra) => emit("state", { state, mic: current.mic, ...(state === "loading" ? { verifying: false } : {}), ...extra });
-  /** @type {Record<string, unknown>} */
-  const mockSettings = { language_model: "mock-model", speech_language: "tr", system_prompt: { source: "catalog" }, context: 8192, device: "cpu", port: 47863, machine: { memory_bytes: 17179869184, memory_source: "option" } };
-  // Uydurma katalog: kurulu bir model, kurulu olmayan bir model ve bilinmeyen bir tür (ekran onu yok sayar).
-  const mockCatalog = { entries: [
-    { id: "mock-model", kind: "language_model", name: "mock-model", installed: true },
-    { id: "mock-model-large", kind: "language_model", name: "mock-model-large", installed: false },
-    { id: "mock-voice", kind: "voice", name: "mock-voice", installed: true },
-  ] };
-  const MOCK_CONTEXT_MAX = 40960;
-  // Sahte indirme (tek tık D): tek iş; sırada, 0,3 sn'de bir %25, denetleme, bitince girdi kurulu. Sürdürme kalan yüzdeden.
-  let mockJob = /** @type {any} */ (null);
-  let mockJobCount = 0;
-  /** @param {{id: string, installed: boolean}} entry */
-  function mockDownload(entry) {
-    const total = 2497280256;
-    const from = mockJob && mockJob.entry_id === entry.id ? mockJob.files[0].done_bytes : 0;
-    const job = mockJob = { job_id: `d${++mockJobCount}`, entry_id: entry.id, state: "queued", files: [{ name: `${entry.id}.gguf`, done_bytes: from, total_bytes: total }], bytes_per_second: 0, error: null };
-    emit("download", job);
-    const step = () => {
-      if (job.state === "cancelled") return;
-      const f = job.files[0];
-      job.state = f.done_bytes < total ? "running" : job.state === "verifying" ? "done" : "verifying";
-      if (job.state === "running") f.done_bytes = Math.min(total, f.done_bytes + total / 4);
-      emit("download", job);
-      if (job.state !== "done") return void setTimeout(step, 300);
-      entry.installed = true;
-      emit("catalog", mockCatalog);
-    };
-    setTimeout(step, 300);
-  }
-  /** @type {Record<string, (value: any) => boolean>} */
-  const mockSettingTypes = {
-    speech_language: (value) => typeof value === "string",
-    system_prompt: (value) => Boolean(value) && typeof value === "object" && (value.source === "catalog" || (value.source === "user" && typeof value.text === "string")),
-    context: (value) => Number.isInteger(value) && value > 0 && value <= MOCK_CONTEXT_MAX,
-    microphone: (value) => typeof value === "string" && value !== "",
-    recording: (value) => typeof value === "boolean",
-  };
+  // Katalog, ayar, indirme ve yükleme js/mock_models.js'te; durum ve tur buradadır.
+  const models = createMockModels({ emit, setState, state: () => current.state, setMic: (on) => { current.mic = on; }, turn: () => activeTurn });
 
   /** @param {string} source */
   function newTurn(source) {
@@ -290,15 +254,19 @@ function createMockTransport() {
   const scenes = {
     async setup(wait) {
       current.mic = false;
-      emit("catalog", mockCatalog);
-      emit("settings", mockSettings);
       setState("setup");
+      models.reset(true);
+      await wait(100);
+    },
+    async load_failed(wait) {
+      current.mic = false;
+      setState("setup");
+      models.failLoad();
       await wait(100);
     },
     async conversation(wait) {
       current.mic = true;
-      emit("catalog", mockCatalog);
-      emit("settings", mockSettings);
+      models.publish();
       setState("listening");
       await wait(500);
       newTurn("voice");
@@ -512,10 +480,6 @@ function createMockTransport() {
         if (encoder.encode(str(data.text)).length > 32768) return rejected("text_too_long", { limit_bytes: 32768 });
         play("reply", str(data.text));
         return accepted;
-      case "mic_set":
-        current.mic = data.on === true;
-        setState(current.mic ? "listening" : "idle");
-        return accepted;
       case "approval_answer":
         if (closedApprovals.has(data.approval_id)) return rejected("already_answered", { approval_id: data.approval_id });
         if (!open.has(data.approval_id)) return rejected("unknown_approval", { approval_id: data.approval_id });
@@ -524,47 +488,16 @@ function createMockTransport() {
       case "stop":
         stopAll();
         return accepted;
-      case "model_load":
-        if (activeTurn) return rejected("turn_busy", { turn_id: activeTurn });
-        if (!mockCatalog.entries.some((entry) => entry.id === str(data.entry_id) && entry.kind === "language_model")) return rejected("unknown_entry", { entry_id: str(data.entry_id) });
-        if (!mockCatalog.entries.some((entry) => entry.id === str(data.entry_id) && entry.installed)) return rejected("not_installed", { entry_id: str(data.entry_id) });
-        setState("loading", { model: str(data.entry_id) });
-        setTimeout(() => {
-          mockSettings.language_model = str(data.entry_id);
-          emit("settings", mockSettings);
-          setState("idle");
-        }, 400);
-        return accepted;
-      case "settings_set": {
-        const check = mockSettingTypes[str(data.key)];
-        if (!check) return rejected("setting_invalid", { key: str(data.key), reason: "unknown_key" });
-        if (!check(data.value)) return rejected("setting_invalid", { key: str(data.key), reason: "invalid_value" });
-        mockSettings[str(data.key)] = data.value;
-        emit("settings", mockSettings);
-        return accepted;
-      }
       case "devices_list":
         setTimeout(() => emit("devices", { microphones: ["mock-microphone"] }), 60);
         return accepted;
+      case "mic_set":
+      case "model_load":
+      case "settings_set":
       case "model_download":
-      case "model_delete": {
-        const entry = mockCatalog.entries.find((e) => e.id === str(data.entry_id) && e.kind === "language_model");
-        if (!entry) return rejected("unknown_entry", { entry_id: str(data.entry_id) });
-        if (mockJob && mockJob.entry_id === entry.id && ["queued", "running", "verifying"].includes(mockJob.state)) return rejected("download_busy", { entry_id: entry.id });
-        if (command.type === "model_download") {
-          if (!entry.installed) mockDownload(entry);
-          return accepted;
-        }
-        if (activeTurn && mockSettings.language_model === entry.id) return rejected("turn_busy", { turn_id: activeTurn });
-        entry.installed = false;
-        emit("catalog", mockCatalog);
-        if (mockSettings.language_model === entry.id) setState("setup");
-        return accepted;
-      }
+      case "model_delete":
       case "download_cancel":
-        if (!mockJob || mockJob.job_id !== str(data.job_id)) return rejected("unknown_job", { job_id: str(data.job_id) });
-        if (mockJob.state === "queued" || mockJob.state === "running") emit("download", Object.assign(mockJob, { state: "cancelled" }));
-        return accepted;
+        return models.answer(command, accepted, rejected);
       default:
         return rejected("unknown_command", { type: command.type });
     }

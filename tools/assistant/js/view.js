@@ -16,6 +16,12 @@ function stateKey() {
   return ui.state;
 }
 
+/** Yüklemenin yüzdesi dile göre ("%40"); bilinmiyorsa boş. */
+function progressText() {
+  return ui.progress === null ? "" : new Intl.NumberFormat(language, { style: "percent" }).format(ui.progress);
+}
+
+// Halka ve üst satır: kurulumda hiç sohbet modeli inmemişse "Model yok", inmişse "Hazır değil"; hazırlanırken yüzde.
 function renderRing() {
   const state = stateKey();
   byId("ring").dataset.state = state;
@@ -25,14 +31,14 @@ function renderRing() {
   arc.setAttribute("stroke-dasharray", ui.progress === null ? "25 75" : `${ui.progress * 100} 100`);
   const text = byId("stateText");
   const top = byId("topState");
+  const empty = !ui.catalog.some((e) => e.kind === "language_model" && e.downloaded);
   for (const node of [text, top]) {
     if (state === "loading" && ui.verifying) {
       bind(node, "state_loading_verifying");
     } else if (state === "loading" && ui.progress !== null) {
-      const percent = new Intl.NumberFormat(language, { style: "percent" }).format(ui.progress);
-      bind(node, "state_loading_progress", { percent });
+      bind(node, "state_loading_progress", { percent: progressText() });
     } else {
-      bind(node, state === "setup" && setupReady() ? "state_setup_done" : `state_${state}`);
+      bind(node, state === "setup" && empty ? "state_setup_empty" : `state_${state}`);
     }
   }
 }
@@ -51,15 +57,10 @@ function renderConnection() {
   byId("bannerMock").hidden = !mock;
   byId("tokenBox").hidden = ui.conn !== "auth";
   byId("pairRenew").hidden = mock !== null || !["pair_invalid", "lost"].includes(ui.conn);
-  const model = byId("modelText");
-  if (ui.model) {
-    delete model.dataset.i18n;
-    model.textContent = ui.model;
-  } else {
-    bind(model, "model_unknown");
-  }
 }
 
+// Konuş: hazırlanırken "Hazırlanıyor", hazırlanırken basıldıysa "Hazır olunca dinler"; kurulumda sunucu takımı kurulu
+// bulmadıysa "Önce modelleri indirin". Basılı görünüm yalnız `state`'in `mic`'inden gelir (contract.md).
 function renderControls() {
   const usable = connected();
   composer.disabled = !usable;
@@ -68,7 +69,10 @@ function renderControls() {
   const mic = byId("micButton");
   mic.disabled = !usable;
   mic.setAttribute("aria-pressed", String(ui.mic));
-  bind(byId("micValue"), ui.mic ? "toggle_on" : "toggle_off");
+  const value = byId("micValue");
+  if (ui.state === "loading") bind(value, ui.micWaiting ? "mic_waits" : "mic_preparing");
+  else if (ui.state === "setup" && ui.micHint !== "") bind(value, ui.micHint);
+  else bind(value, ui.mic ? "toggle_on" : "toggle_off");
   refreshCards();
 }
 
@@ -76,141 +80,51 @@ function renderStatus() {
   renderRing();
   renderConnection();
   renderControls();
+  renderTeam();
   renderSetup();
   renderSettings();
+  renderModels();
 }
 
-// Kurulum: `setup` durumunda konuşma dili, ayarın dil modelini yükleyen düğme ve dil modellerinin indirme satırları.
-// Takım kuruluysa başlık kurulumun bittiğini, alt yazı Yükle'yi söyler; yazının öğesi burada kurulur.
+// Takım kutusu (sağ panel): sohbet, yazıcı ve ses adlarıyla, altında durum. Yüklü takım yokken (`setup`) yalnız
+// "Model yok" der. Adlar ayar ve katalogdan gelir; hazırlanırken sohbet satırı yüklenen modeldir.
+function renderTeam() {
+  const setup = ui.state === "setup";
+  for (const id of ["teamChatLine", "teamTranscriberLine", "teamVoiceLine"]) byId(id).hidden = setup;
+  const chat = ui.loadingModel !== "" ? entryById(ui.loadingModel) : teamEntry("language_model");
+  const names = { teamChat: chat, teamTranscriber: teamEntry("transcriber"), teamVoice: teamEntry("voice") };
+  for (const [id, entry] of Object.entries(names)) byId(id).textContent = entry ? entry.name : "—";
+  // Bağlantı yokken durum bilinmez: halka gibi "Bağlantı yok" der, "Hazır" demez.
+  const state = stateKey();
+  const line = byId("teamState");
+  line.className = ["setup", "loading", "offline"].includes(state) ? "team-state" : state === "error" ? "team-state team-bad" : "team-state team-ok";
+  if (setup) bind(line, "state_setup_empty");
+  else if (state === "loading") bind(line, "team_preparing", { model: chat ? chat.name : "", percent: progressText() });
+  else bind(line, state === "error" || state === "offline" ? `state_${state}` : "team_ready");
+}
+
+// Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla).
+// Yükleme düştüyse "<ad> belleğe alınamadı", Yeniden dene (`model_load`) ve Başka model seç (ayarlar). Yükle yok.
 function renderSetup() {
   const box = byId("setupBox");
   box.hidden = ui.state !== "setup";
-  const ready = setupReady();
-  const heading = /** @type {HTMLElement} */ (box.querySelector("h2"));
-  bind(heading, ready ? "state_setup_done" : "state_setup");
-  let note = /** @type {HTMLElement|null} */ (box.querySelector(".setup-note"));
-  if (!note) heading.after(note = bind(el("p", "setup-note"), "setup_done_note"));
-  note.hidden = !ready;
-  const load = byId("loadButton");
-  load.disabled = !connected() || !ready;
+  const failed = ui.loadFailed !== "";
+  box.dataset.failed = String(failed);
+  const note = byId("setupNote");
+  const job = failed ? null : runningJob();
+  if (failed) bind(byId("setupHeading"), "setup_load_failed", { model: nameOf(ui.loadFailed) });
+  else bind(byId("setupHeading"), "setup_start");
+  if (failed) bind(note, "setup_load_failed_note");
+  else if (job) bind(note, "setup_downloading", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
+  note.hidden = !failed && !job;
+  byId("setupModels").hidden = failed;
+  byId("setupRetry").hidden = !failed;
+  byId("setupOther").hidden = !failed;
+  for (const id of ["setupModels", "setupRetry", "setupOther"]) byId(id).disabled = !connected();
   const speech = /** @type {HTMLSelectElement} */ (byId("speechLanguage"));
   const current = str(ui.settings.speech_language);
   if (current !== "") speech.value = current;
   speech.disabled = !connected();
-  renderDownloads();
-}
-
-// setupReady: ayarın dil modelinin takımı kurulu mu: katalogda girdisi `installed` (girdinin ve konuşma dilinin modelleri,
-// contract.md). Kurulum kartının Yükle'si ancak o zaman etkindir; inerken basılan Yükle `not_installed` alırdı.
-function setupReady() {
-  const model = str(ui.settings.language_model);
-  return model !== "" && ui.catalog.some((e) => e.id === model && e.installed);
-}
-
-// İndirme düğmelerinin simgeleri: renkten başka iz (F1b): İndir aşağı ok, Sürdür dönüş oku, Sil çöp kutusu.
-const DOWNLOAD_ICONS = {
-  download: "M12 4v11M7 10l5 5 5-5M5 20h14",
-  resume: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5",
-  delete: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3",
-};
-
-/** @param {string} d */
-function svgIcon(d) {
-  const ns = /** @type {Element} */ (document.querySelector("svg")).namespaceURI; // sayfanın SVG'lerinin ad alanı
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("class", "icon");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("aria-hidden", "true");
-  const path = document.createElementNS(ns, "path");
-  path.setAttribute("d", d);
-  svg.append(path);
-  return svg;
-}
-
-// renderDownloads: katalogun her dil modeli için bir satır (tek tık D): ad, durum yazısı, düğmeler. Düğmeler her satırda
-// sağa yaslı, adla dikey ortalı; kısa durum ("İndiriliyor %43") adın satırında, uzun yazı (hata, silme onayı) altında
-// tam genişlikte (`dl-long`). İndir ve Sürdür olumlu (`btn-go`), Sil tehlike (`btn-danger`) düğmesidir; Vazgeç sıradan.
-// Satır takımın işlerini gösterir: dil modelinin kendi işi ve konuşma modellerinin işleri (`rowJobs`); yüzde onların
-// toplamı, Vazgeç hepsini durdurur. Ayarlar paneli `setup`'ta gizli olduğundan kap orada kurulum kutusuna geçer: hiç
-// modeli olmayan kullanıcı ilk modeli oradan indirir.
-function renderDownloads() {
-  const box = byId("settingsDownload");
-  const anchor = ui.state === "setup" ? byId("loadButton") : /** @type {HTMLElement} */ (byId("settingsModel").closest(".field"));
-  if (box.previousElementSibling !== anchor) anchor.after(box);
-  const usable = connected();
-  /** @param {string} key @param {string} kind @param {() => void} act */
-  const button = (key, kind, act) => {
-    const b = /** @type {HTMLButtonElement} */ (el("button", kind === "delete" ? "btn btn-small btn-danger" : kind ? "btn btn-small btn-go" : "btn btn-small"));
-    b.type = "button";
-    b.disabled = !usable;
-    if (kind) b.append(svgIcon(DOWNLOAD_ICONS[/** @type {"download"|"resume"|"delete"} */ (kind)]));
-    b.append(bind(el("span"), key));
-    b.addEventListener("click", act);
-    return b;
-  };
-  /** @param {string} key @param {Record<string, unknown>} [values] @param {boolean} [long] */
-  const note = (key, values, long) => bind(el("span", long ? "card-note dl-long" : "card-note"), key, values);
-  // İndir ve Sürdür: biten ve duran işler unutulur, yüzde yeni işlerden hesaplanır.
-  const download = (/** @type {string} */ id) => () => {
-    for (const [key, job] of Object.entries(ui.downloads)) if (!ACTIVE_DOWNLOADS.includes(str(job.state))) delete ui.downloads[key];
-    command("model_download", { entry_id: id });
-  };
-  box.replaceChildren(...ui.catalog.map((entry) => {
-    const jobs = rowJobs(entry.id);
-    const active = jobs.filter((j) => ACTIVE_DOWNLOADS.includes(str(j.state)));
-    const stopped = jobs.find((j) => j.state === "failed" || j.state === "cancelled");
-    let status = el("span");
-    /** @type {HTMLElement[]} */
-    let actions = [];
-    if (ui.confirmDelete === entry.id) {
-      status = note("settings_model_delete_confirm", undefined, true);
-      actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = ""; command("model_delete", { entry_id: entry.id }); renderDownloads(); }),
-        button("download_cancel", "", () => { ui.confirmDelete = ""; renderDownloads(); })];
-    } else if (entry.installed) {
-      status = bind(el("span", "card-note dl-done"), "download_installed");
-      actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = entry.id; renderDownloads(); })];
-    } else if (active.length > 0) {
-      const states = active.map((j) => str(j.state));
-      const counted = jobs.filter((j) => j.state !== "failed" && j.state !== "cancelled");
-      status = states.includes("running") ? note("download_running", { percent: percentOf(counted) })
-        : states.includes("verifying") ? note("download_verifying") : note("download_queued");
-      const stoppable = active.filter((j) => j.state !== "verifying");
-      if (stoppable.length > 0) {
-        actions = [button("download_cancel", "", () => { for (const j of stoppable) command("download_cancel", { job_id: str(j.job_id) }); })];
-      }
-    } else if (stopped) {
-      const error = stopped.error || {};
-      status = stopped.state === "failed" ? note(`error_${str(error.code)}`, error.values || {}, true) : note("download_cancelled");
-      actions = [button("download_resume", "resume", download(entry.id))];
-    } else {
-      actions = [button("settings_model_download", "download", download(entry.id))];
-    }
-    const row = el("div", "dl-row");
-    const buttons = el("span", "dl-actions");
-    buttons.append(...actions);
-    row.append(el("span", "dl-name", entry.name), status, buttons);
-    return row;
-  }));
-}
-
-const ACTIVE_DOWNLOADS = ["queued", "running", "verifying"];
-
-// rowJobs: bir dil modelinin satırının işleri: kendi işi ve katalogda dil modeli olmayan girdilerin (konuşma modelleri)
-// işleri; `model_download` onları dil modeliyle birlikte sıraya koyar (contract.md).
-/** @param {string} id @returns {any[]} */
-function rowJobs(id) {
-  const models = new Set(ui.catalog.map((e) => e.id));
-  return Object.values(ui.downloads).filter((j) => j.entry_id === id || !models.has(str(j.entry_id)));
-}
-
-// percentOf: işlerin dosyalarının toplam yüzdesi, aşağı yuvarlanmış (`download_running`).
-/** @param {any[]} jobs */
-function percentOf(jobs) {
-  let done = 0, total = 0;
-  for (const job of jobs) {
-    for (const f of Array.isArray(job.files) ? job.files : []) { done += num(f.done_bytes) ?? 0; total += num(f.total_bytes) ?? 0; }
-  }
-  return total > 0 ? Math.floor((done * 100) / total) : 0;
 }
 
 /** @param {HTMLSelectElement} select @param {{value: string, text: string}[]} items @param {string} chosen */
@@ -223,10 +137,12 @@ function fillSelect(select, items, chosen) {
   if (items.some((item) => item.value === chosen)) select.value = chosen;
 }
 
-// Ayarlar: ayar dosyası varken (`settings` geldi), kurulum dışında. Değerler sunucudan gelir; her değişiklik bir
-// `settings_set`'tir, sunucu reddederse değer sunucununkine döner. Dil modeli yalnız kurulu girdilerden seçilir.
+// Ayarlar: ayar dosyası varken (`settings` geldi), kurulum dışında; yükleme düştüyse kurulumda da (kartın "Başka model
+// seç"i). Değerler sunucudan gelir; her değişiklik bir `settings_set`'tir, sunucu reddederse değer sunucununkine döner.
+// "Kullanılan modeller": yalnız sohbet seçilir, takımı kurulu girdilerden; seçim hemen geçerlidir (takım yeniden
+// hazırlanır), Yükle yok. Yazıcı, ses ve VAD bu dil için tek seçenekli sönük seçicidir.
 function renderSettings() {
-  const shown = Object.keys(ui.settings).length > 0 && ui.state !== "setup";
+  const shown = Object.keys(ui.settings).length > 0 && (ui.state !== "setup" || ui.loadFailed !== "");
   byId("settingsOpen").hidden = !shown;
   if (!shown && settingsDialog.open) {
     closeSettings();
@@ -239,12 +155,17 @@ function renderSettings() {
   speech.disabled = !usable;
   const installed = loadableModels(ui.catalog);
   const modelSelect = /** @type {HTMLSelectElement} */ (byId("settingsModel"));
-  fillSelect(modelSelect, installed.map((entry) => ({ value: entry.id, text: entry.name })), modelSelect.value || str(ui.settings.language_model));
+  fillSelect(modelSelect, installed.map((entry) => ({ value: entry.id, text: entry.name })), str(ui.settings.language_model));
   modelSelect.disabled = !usable || installed.length === 0;
-  const load = byId("settingsModelLoad");
-  load.hidden = installed.length === 0;
-  load.disabled = modelSelect.disabled;
-  renderDownloads();
+  byId("settingsModelNote").hidden = installed.length === 0;
+  byId("settingsModelNone").hidden = installed.length > 0;
+  for (const [kind, id] of [["transcriber", "settingsTranscriber"], ["voice", "settingsVoice"], ["vad", "settingsVad"]]) {
+    const entry = teamEntry(kind);
+    fillSelect(byId(id), entry ? [{ value: entry.id, text: entryLabel(entry) }] : [], entry ? entry.id : "");
+  }
+  const quantized = /** @type {HTMLSelectElement} */ (byId("settingsQuantized"));
+  quantized.value = str(ui.settings.quantized_activations) || "auto";
+  quantized.disabled = !usable;
   const context = /** @type {HTMLInputElement} */ (byId("settingsContext"));
   if (document.activeElement !== context) context.value = String(num(ui.settings.context) ?? "");
   context.disabled = !usable;
@@ -374,6 +295,21 @@ function settingsErrorNote(key, values) {
   line.hidden = false;
 }
 
+// Konuş: açıkken ya da beklerken basılırsa kapatır (bekleyen dinleme iptal). Hazırlanırken ya da kurulumda kabul
+// edilen açma bekler; sunucu takımı kurulu bulmazsa (`not_installed`) düğme "Önce modelleri indirin" der.
+async function micPressed() {
+  const on = !(ui.mic || ui.micWaiting);
+  if (!on) ui.micWaiting = false;
+  const reply = await sendCommand("mic_set", { on });
+  if (!reply.ok) {
+    noteError(reply.error);
+    ui.micHint = reply.error && reply.error.code === "not_installed" ? "mic_download_first" : "";
+  } else if (on && !ui.mic && (ui.state === "loading" || ui.state === "setup")) {
+    ui.micWaiting = true;
+  }
+  renderControls();
+}
+
 /** @param {boolean} on */
 function setFocusMode(on) {
   document.body.classList.toggle("focus", on);
@@ -387,14 +323,18 @@ function wire() {
     if (event.key === "Enter" && !event.isComposing) submit();
   });
   byId("stop").addEventListener("click", () => command("stop", {}));
-  byId("micButton").addEventListener("click", () => command("mic_set", { on: !ui.mic }));
-  byId("loadButton").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));
+  byId("micButton").addEventListener("click", micPressed);
+  byId("setupModels").addEventListener("click", openModels);
+  byId("setupRetry").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));
+  byId("setupOther").addEventListener("click", openSettings);
+  byId("settingsModels").addEventListener("click", openModels);
   byId("speechLanguage").addEventListener("change", () => {
     const value = /** @type {HTMLSelectElement} */ (byId("speechLanguage")).value;
     command("settings_set", { key: "speech_language", value });
   });
   byId("settingsLanguage").addEventListener("change", () => setSetting("speech_language", /** @type {HTMLSelectElement} */ (byId("settingsLanguage")).value));
-  byId("settingsModelLoad").addEventListener("click", () => command("model_load", { entry_id: /** @type {HTMLSelectElement} */ (byId("settingsModel")).value }));
+  byId("settingsModel").addEventListener("change", () => setSetting("language_model", /** @type {HTMLSelectElement} */ (byId("settingsModel")).value));
+  byId("settingsQuantized").addEventListener("change", () => setSetting("quantized_activations", /** @type {HTMLSelectElement} */ (byId("settingsQuantized")).value));
   byId("settingsContext").addEventListener("change", () => setSetting("context", Number(/** @type {HTMLInputElement} */ (byId("settingsContext")).value)));
   byId("settingsMicrophone").addEventListener("change", () => setSetting("microphone", /** @type {HTMLSelectElement} */ (byId("settingsMicrophone")).value));
   byId("devicesRefresh").addEventListener("click", () => command("devices_list", {}));
@@ -425,8 +365,9 @@ function wire() {
     byId("settingsError").hidden = true;
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !settingsDialog.open && document.body.classList.contains("focus")) setFocusMode(false);
+    if (event.key === "Escape" && !settingsDialog.open && !modelsDialog.open && document.body.classList.contains("focus")) setFocusMode(false);
   });
+  wireModels();
   const search = byId("search");
   search.addEventListener("input", () => {
     ui.filter = search.value.trim().toLocaleLowerCase(language);
