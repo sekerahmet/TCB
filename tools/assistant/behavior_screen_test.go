@@ -1,8 +1,6 @@
 package assistant_test
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -22,6 +20,9 @@ const (
 	contractPath = "tools/assistant/contract.md"
 	readmePath   = "tools/assistant/README.md"
 	languageDir  = "tools/assistant/lang"
+	stylePath    = "tools/assistant/css/screen.css"
+	// styleLink sayfanın tek <link>'idir: stil satır içinde değil, sunucunun sunduğu dosyadadır (contract.md, "Sunulan dosyalar").
+	styleLink = `<link rel="stylesheet" href="css/screen.css">`
 
 	maxScreenBytes = 150 * 1024
 	testFileName   = "behavior_screen_test.go"
@@ -51,14 +52,14 @@ func script(t *testing.T) string {
 }
 
 func style(t *testing.T) string {
-	return capture(t, `(?s)<style>(.*?)</style>`, readFile(t, screenPath))
+	return readFile(t, stylePath)
 }
 
-// markup betik ve stil dışındaki HTML'dir.
+// markup betik ve stil bağı dışındaki HTML'dir.
 func markup(t *testing.T) string {
 	t.Helper()
-	strip := regexp.MustCompile(`(?s)<script\b.*?</script>|<style>.*?</style>`)
-	return strip.ReplaceAllString(readFile(t, screenPath), "")
+	strip := regexp.MustCompile(`(?s)<script\b.*?</script>`)
+	return strings.Replace(strip.ReplaceAllString(readFile(t, screenPath), ""), styleLink, "", 1)
 }
 
 // languageFile bir dil dosyasının tek biçimidir: tek atama, sağında tek nesne.
@@ -189,26 +190,25 @@ func TestScreenHasNoExternalAddress(t *testing.T) {
 func TestScreenPolicy(t *testing.T) {
 	html := readFile(t, screenPath)
 	policy := capture(t, `<meta http-equiv="Content-Security-Policy" content="([^"]*)">`, html)
-	sum := func(body string) string {
-		digest := sha256.Sum256([]byte(body))
-		return "'sha256-" + base64.StdEncoding.EncodeToString(digest[:]) + "'"
-	}
 	for _, want := range []string{
 		"default-src 'none'",
 		"script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:;",
-		"style-src " + sum(style(t)),
+		"style-src http://127.0.0.1:*/css/ file:;",
 		"connect-src http://127.0.0.1:*",
 		"base-uri 'none'",
 		"form-action 'none'",
 	} {
 		if !strings.Contains(policy, want) {
-			t.Errorf("policy has no %q (a hash changes with every edit):\n%s", want, policy)
+			t.Errorf("policy has no %q:\n%s", want, policy)
 		}
 	}
 	for _, banned := range []string{"unsafe-inline", "unsafe-eval", "frame-ancestors"} {
 		if strings.Contains(policy, banned) {
 			t.Errorf("policy must not contain %s (frame-ancestors belongs in the response header)", banned)
 		}
+	}
+	if strings.Count(html, "<link") != 1 || !strings.Contains(html, styleLink) || strings.Contains(html, "<style") {
+		t.Errorf("want the style only as %s and no <style> element", styleLink)
 	}
 	if strings.Contains(markup(t), " style=") {
 		t.Errorf("%s has a style attribute: the policy blocks it", screenPath)

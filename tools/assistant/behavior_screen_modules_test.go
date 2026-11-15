@@ -49,9 +49,9 @@ func pageCode(t *testing.T) string {
 	return b.String()
 }
 
-// page sayfanın bütünüdür: index.html ve modüller.
+// page sayfanın bütünüdür: index.html, stili ve modüller.
 func page(t *testing.T) string {
-	return readFile(t, screenPath) + pageCode(t)
+	return readFile(t, screenPath) + style(t) + pageCode(t)
 }
 
 // Sayfanın <script src>'leri sözleşmenin listesidir: modüller o sırayla, sonra dil klasörünün dosyaları ve başka betik

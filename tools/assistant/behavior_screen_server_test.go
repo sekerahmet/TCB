@@ -253,6 +253,13 @@ func TestScreenServerEndToEnd(t *testing.T) {
 	if res := s.request(t, "GET", "/js/main.js", nil, ""); res.StatusCode != 200 || res.Header.Get("Content-Type") != "text/javascript; charset=utf-8" {
 		t.Fatalf("GET /js/main.js: %d %v", res.StatusCode, res.Header)
 	}
+	// Ekranın stili belirteçsizdir; `/css/` altında başka dosya sunulmaz (contract.md, "Sunulan dosyalar").
+	if res := s.request(t, "GET", "/css/screen.css", nil, ""); res.StatusCode != 200 || res.Header.Get("Content-Type") != "text/css; charset=utf-8" {
+		t.Fatalf("GET /css/screen.css: %d %v", res.StatusCode, res.Header)
+	}
+	if res := s.request(t, "GET", "/css/other.css", nil, ""); res.StatusCode != 401 {
+		t.Fatalf("GET /css/other.css (not the screen's style): %d", res.StatusCode)
+	}
 	// Listede olmayan modül belirteçsiz yollarda yoktur: belirteçsiz istek 401 (belirteçliyse 404, ekran_test.tr).
 	if res := s.request(t, "GET", "/js/ekran.js", nil, ""); res.StatusCode != 401 {
 		t.Fatalf("GET /js/ekran.js (not a module): %d", res.StatusCode)

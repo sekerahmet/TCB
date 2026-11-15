@@ -113,7 +113,7 @@ Güvenilmez metin ancak ikinci aşamadan sonra gelir; o ana kadar yüklenenler d
 
 ## Değiştirmek
 
-Stil değişince CSP etiketindeki özet de değişmelidir, yoksa tarayıcı stili uygulamaz. `TestScreenPolicy` düşerken beklenen özeti yazar: onu etikete kopyalayın. Özet, `<style>` ile `</style>` arasındaki baytların `sha256`'sının base64 yazımıdır; modüller ve dil dosyaları yollarıyla izinlidir (`script-src`).
+Stil `css/screen.css`'tedir: sayfanın politikası onu `/css/` yolundan ya da `file:`'dan kabul eder (`style-src`), modüller ve dil dosyaları da yollarıyla izinlidir (`script-src`). Sayfada `<style>` ve `style=` yoktur; stil değişince politika değişmez (`TestScreenPolicy`).
 
 Ekranda görünen ad yalnız `ASSISTANT_NAME` sabitindedir; dil dosyalarının cümleleri adı ekleriyle taşır, ad değişince onlar da değişir (`TestScreenNameIsOneConstant` gösterir).
 
