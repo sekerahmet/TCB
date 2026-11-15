@@ -266,11 +266,14 @@ TR_func ret(durum: TR_Int, kimlik: TR_String, kod: TR_String, değerler: TR_JSON
 }
 
 # komutları_işle: bekleyen komutları sırayla cevaplar (ana döngü). Aynı `command_id` yeniden gelirse iş yinelenmez,
-# ilk cevap döner; son 1024 kimlik tutulur.
+# ilk cevap döner; son 1024 kimlik tutulur. Kabul edilen ayar uygulanmadan (`ayar_istendi` boşalmadan) komut
+# kararlaştırılmaz: tek yuvalı `ayar_istendi` ezilmez, sonraki `settings_set` yeni ayara göre denetlenir (ör. dil, sonra
+# o dil için yazılmış sistem iletisi) ve ayardan sonra gelen `model_load` ayardan sonra etkili olur (son istek kazanır).
+# Bekçi döngünün başındadır: yükleme sürerken ayar uygulanmadan çağrılsa da komut almaz (oturum.tr, `istekleri_işle`).
 TR_func komutları_işle(e: Ekran) {
     TR_var eş = e.eşleme
     TR_if eş != TR_none { eşlemeleri_işle(eş) }
-    TR_for e.bekleyen.TR_length > 0 {
+    TR_for e.bekleyen.TR_length > 0 TR_and e.ayar_istendi == TR_none {
         TR_var k = e.bekleyen.TR_remove_at(0)
         TR_var önceki = e.cevaplar.TR_get(k.kimlik)
         TR_if önceki != TR_none {
@@ -282,9 +285,6 @@ TR_func komutları_işle(e: Ekran) {
         e.sıra.TR_append(k.kimlik)
         TR_if e.sıra.TR_length > _TUTULAN_KOMUT { e.cevaplar.TR_remove(e.sıra.TR_remove_at(0)) }
         k.cevap = c
-        # Kabul edilen ayar uygulanmadan sonraki komut kararlaştırılmaz: tek yuvalı `ayar_istendi` ezilmez ve sonraki
-        # `settings_set` yeni ayara göre denetlenir (ör. dil, sonra o dil için yazılmış sistem iletisi).
-        TR_if e.ayar_istendi != TR_none { TR_break }
     }
 }
 

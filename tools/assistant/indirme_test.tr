@@ -1,7 +1,8 @@
 # TR 4
 # İndirme yöneticisinin modelsiz sınaması (indirme.tr; tek tık D). Dosyalar 127.0.0.1'deki TR sunucusundan iner (28.11'in
 # tek http istisnası); adres katalogdan değil, `İndirici`'nin `adres`'inden gelir. Katalog elle kurulur: dosyalar birkaç
-# baytlık metin, sha256'ları içeriğinden.
+# baytlık metin, sha256'ları içeriğinden. Kurulu takım gerektiren oturum sınamaları da burada: yükleme sürerken gelen
+# ayar ve komutların sırası (DENETİM 802 Ş1; konuşma dili değişince kurulu listesi diskten yeniden hesaplanır).
 TR_import "katalog"
 TR_import "yuva"
 TR_import "indirme"
@@ -439,4 +440,81 @@ TR_test "indirme bitince takım yüklenir; ayarda olmayan dil modeli inince yük
     TR_assert(TR_Bool(_katalog_girdisi(p, "dm")["downloaded"]))
     d.s.TR_close()
     b.s.TR_close()
+}
+
+# _iki_modelli: `_ham_katalog` ve ikinci dil modeli `dm2` (ayarın dil modeli değişebilsin).
+TR_func _iki_modelli() -> TR_JSON {
+    TR_var kj = _ham_katalog()
+    TR_var l = [g TR_for g TR_in kj["entries"]]
+    l.TR_append(_girdi("dm2", "language_model", [_dosya("dm2", "dm2.gguf", "ikinci-dil-modeli")]))
+    TR_return TR_JSON({"entries": l, "languages": kj["languages"]})
+}
+
+# _yüklemedeki_oturum: iki dil modeli ve iki dilin modelleri kurulu, ayar dosyası `dm` ve `tr`; bir yükleme sürüyor
+# (ekran hazır değil). Konuşma dili değişince kurulu listesi diskten yeniden hesaplanır; takımlar gerçekten kuruludur.
+TR_func _yüklemedeki_oturum(d: Düzen) -> Oturum {
+    d.kj = _iki_modelli()
+    TR_var o = _oturum(d)
+    o.k = Katalog(girdiler: o.k.girdiler, diller: [Dil(kod: "tr", yazıcı: "yaz", ses: "ses-tr"), Dil(kod: "en", yazıcı: "yaz", ses: "ses-en")])
+    TR_for g TR_in ["dm", "dm2", "ses-en"] { TR_assert_equal("accepted", _karar(o, "model_download", TR_JSON({"entry_id": g}))) }
+    _indir_bitir(o)
+    TR_var yol = TR_String(TR_Path(d.klasör, "ayar.json"))
+    ayar_dosyasına_yaz(yol, TR_JSON({"v": 1, "language_model": "dm", "speech_language": "tr", "system_prompt": {"source": "catalog"},
+        "context": 8192, "device": "cpu", "port": 47863, "machine": {"memory_bytes": 17179869184, "memory_source": "option"}}))
+    o.ayar_dosyası = yol
+    o.ayar_verisi = TR_Dict(ayar_olayı(dosya_oku(yol, "ayar")))
+    o.kurulumu_yenile()
+    o.e.hazır = TR_false
+    o.e.yüklemede = TR_true
+    TR_return o
+}
+
+TR_func _ayar_komutu(kimlik: TR_String, anahtar: TR_String, değer: TR_String) -> Komut {
+    TR_return Komut(kimlik: kimlik, tür: "settings_set", veri: TR_JSON({"key": anahtar, "value": değer}))
+}
+
+TR_func _durumu(k: Komut) -> TR_String {
+    TR_var c = k.cevap
+    TR_return TR_if c == TR_none { "" } TR_else { TR_String(c["status"]) }
+}
+
+# Yükleme sürerken bloğun her bakışı yalnız `komutları_işle`'yi çağırır (oturum.tr, `takımı_yükle`); ayar yükleme
+# bitince ana döngüde uygulanır (`işle`'nin `istekleri_işle`'si). İki bakış, sonra yüklemenin sonu (DENETİM 802 Ş1).
+TR_test "yükleme sürerken settings_set language_model, sonra model_load: ayar uygulanır, sonra gelen model yüklenir (son istek kazanır)" {
+    TR_var d = _düzen()
+    TR_var o = _yüklemedeki_oturum(d)
+    TR_var a = _ayar_komutu("a", "language_model", "dm2")
+    TR_var b = Komut(kimlik: "b", tür: "model_load", veri: TR_JSON({"entry_id": "dm"}))
+    o.e.bekleyen = [a, b]
+    komutları_işle(o.e)
+    komutları_işle(o.e)
+    TR_assert_equal("accepted", _durumu(a))
+    TR_assert_equal("", _durumu(b), "ayar uygulanmadan model_load kararlaştırıldı")
+    o.e.yüklemede = TR_false
+    o.istekleri_işle()
+    TR_assert_equal("accepted", _durumu(b))
+    TR_assert_equal("dm2", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["language_model"]))
+    TR_assert_equal("dm", TR_String(o.e.yüklenecek))
+    d.s.TR_close()
+}
+
+TR_test "yükleme sürerken settings_set speech_language, sonra settings_set language_model: ikisi de uygulanır ve dosyada, yeni dilin takımı yüklenir" {
+    TR_var d = _düzen()
+    TR_var o = _yüklemedeki_oturum(d)
+    TR_var a = _ayar_komutu("a", "speech_language", "en")
+    TR_var b = _ayar_komutu("b", "language_model", "dm2")
+    o.e.bekleyen = [a, b]
+    komutları_işle(o.e)
+    komutları_işle(o.e)
+    TR_assert_equal("accepted", _durumu(a))
+    TR_assert_equal("", _durumu(b), "ilk ayar uygulanmadan ikincisi kararlaştırıldı")
+    o.e.yüklemede = TR_false
+    o.istekleri_işle()
+    TR_assert_equal("accepted", _durumu(b))
+    TR_var j = dosya_oku(o.ayar_dosyası, "ayar")
+    TR_assert_equal("en", TR_String(j["speech_language"]))
+    TR_assert_equal("dm2", TR_String(j["language_model"]))
+    TR_assert(o.etkin.konuşma_dili == "en" TR_and o.etkin.dil_modeli == "dm2")
+    TR_assert_equal("dm2", TR_String(o.e.yüklenecek))
+    d.s.TR_close()
 }

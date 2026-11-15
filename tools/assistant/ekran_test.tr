@@ -330,7 +330,7 @@ TR_test "settings_set: bağlam, mikrofon ve kayıt tur sürerken de kabul edilir
     TR_assert_equal("turn_busy", durum(tek(e, komut("settings_set", "l", "{\"key\": \"speech_language\", \"value\": \"tr\"}"))))
 }
 
-TR_test "kabul edilen settings_set uygulanmadan sonraki komut kararlaştırılmaz; devices_list ana döngüye kalır" {
+TR_test "kabul edilen settings_set uygulanmadan sonraki komut kararlaştırılmaz, yeniden çağrılsa da; devices_list ana döngüye kalır" {
     TR_var e = ekran()
     e.bağlam_sınırı = 40960
     TR_var a = Komut(kimlik: "a", tür: "settings_set", veri: TR_json_parse("{\"key\": \"context\", \"value\": 4096}"))
@@ -344,6 +344,15 @@ TR_test "kabul edilen settings_set uygulanmadan sonraki komut kararlaştırılma
     komutları_işle(e)
     TR_assert(b.cevap != TR_none)
     TR_assert_equal("recording", TR_String(e.ayar_istendi["key"]))
+    # Ayar uygulanmadan yeniden çağrılsa da komut almaz (yükleme bloğu böyle çağırır; DENETİM 802 Ş1).
+    TR_var c = Komut(kimlik: "c", tür: "devices_list", veri: TR_JSON({}))
+    e.bekleyen.TR_append(c)
+    komutları_işle(e)
+    TR_assert(c.cevap == TR_none TR_and e.bekleyen.TR_length == 1)
+    e.ayar_istendi = TR_none # ana döngü ayarı uyguladı
+    komutları_işle(e)
+    TR_assert(c.cevap != TR_none TR_and e.aygıtlar_istendi)
+    e.aygıtlar_istendi = TR_false
     TR_assert_equal("accepted", durum(tek(e, komut("devices_list", "d", "{}"))))
     TR_assert(e.aygıtlar_istendi)
 }

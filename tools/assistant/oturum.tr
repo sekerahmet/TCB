@@ -256,15 +256,8 @@ TR_struct Oturum {
     # Kabul edilen `model_load` burada koşar: mikrofon kapanır, takım yüklenir.
     TR_func işle() {
         TR_var e = TR_self.e
-        komutları_işle(e)
+        TR_self.istekleri_işle()
         TR_if TR_not e.mikrofon_istendi TR_and TR_self.mikrofon != TR_none { TR_self.kapat() }
-        # Ayar yüklemeden önce uygulanır: `settings_set language_model` `yüklenecek`'i kurar ve aynı bakışta gelmiş
-        # `model_load`'u ezer (son istek kazanır; ayardan sonraki komut ayar uygulanınca kararlaştırılır, ekran.tr).
-        TR_var istek = e.ayar_istendi
-        TR_if istek != TR_none {
-            e.ayar_istendi = TR_none
-            TR_self.ayarı_uygula(TR_String(istek["key"]), istek["value"])
-        }
         TR_var giriş = e.yüklenecek
         TR_if giriş != TR_none {
             e.yüklenecek = TR_none
@@ -277,6 +270,9 @@ TR_struct Oturum {
                 TR_var t = c.takım
                 TR_if t != TR_none TR_and TR_self.takımı_yükle(t) { TR_self.yüklemeyi_yaz(giriş) }
                 TR_if t == TR_none { e.mikrofon_istendi = TR_false }
+                # Yükleme sürerken bir ayarın arkasında bekleyen komutlar (ekran.tr, `komutları_işle`) mikrofon açılmadan
+                # işlenir: ör. `mic_set {on:false}` dinlemeyi açılmadan iptal eder.
+                TR_self.istekleri_işle()
             }
         }
         TR_if e.aygıtlar_istendi {
@@ -289,6 +285,21 @@ TR_struct Oturum {
             TR_self.modeli_sil(silinecek)
         }
         TR_self.indirme_adımı()
+    }
+
+    # istekleri_işle: bekleyen komutlar ve kabul edilen ayarlar geliş sırasıyla. Ayar bekliyorken `komutları_işle` komut
+    # almaz; ayar uygulanınca sonrakiler kararlaştırılır. Böylece ayar yüklemeden önce uygulanır, ayardan sonra gelen
+    # `model_load` onu ezer, ondan önce geleni ayar ezer (son istek kazanır) ve iki `settings_set`'in ikisi de uygulanır.
+    TR_func istekleri_işle() {
+        TR_var e = TR_self.e
+        komutları_işle(e)
+        TR_for {
+            TR_var istek = e.ayar_istendi
+            TR_if istek == TR_none { TR_break }
+            e.ayar_istendi = TR_none
+            TR_self.ayarı_uygula(TR_String(istek["key"]), istek["value"])
+            komutları_işle(e)
+        }
     }
 
     TR_func indirme_adımı() {
