@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -114,46 +115,29 @@ func TestPackageVariablesSeparateReadsFromWrites(t *testing.T) {
 	}
 }
 
-// Kural: `package-state` ve grafik "yazma nedir" kuralını paylaşır (writeTargets): package-state'in yazanları (init ve
-// başlatıcı hariç) grafikteki `writes_var` erişim yerleriyle birebir aynıdır, hiçbiri fazla ya da eksik değildir.
-func TestPackageStateAndGraphAgreeOnWriters(t *testing.T) {
+// Kural: fikstürdeki paket değişkeni yazımlarının hepsi ve yalnız onlar `writes_var` erişim yeridir (writeTargets'in
+// kuralı: atama, işlemli atama, ++, öğe yazımı, delete, adres alma, sync/atomic, başka paketten nitelikli yazım); init
+// ve başlatıcı yazımı sayılmaz. Eskiden package-state denetimi aynı kuralın ikinci kullanıcısıydı, iki taraf
+// karşılaştırılırdı; denetim emekli olunca (codegraph 7 Dilim C, K3) küme burada sabitlenir.
+func TestGraphWritesVarSitesAreExactlyTheWrites(t *testing.T) {
 	t.Parallel()
-	root := auditModule(t, varAccessFiles)
-	g, err := buildGraph(root)
+	g, err := buildGraph(auditModule(t, varAccessFiles))
 	if err != nil {
 		t.Fatal(err)
 	}
-	fromGraph := map[string]bool{}
+	var got []string
 	for _, e := range g.Edges {
 		if e.Kind != edgeWritesVar {
 			continue
 		}
 		for _, s := range e.Sites {
-			fromGraph[fmt.Sprintf("%s@%s:%d", e.To[strings.LastIndex(e.To, ".")+1:], s.File, s.Line)] = true
+			got = append(got, fmt.Sprintf("%s@%s:%d", e.To[strings.LastIndex(e.To, ".")+1:], s.File, s.Line))
 		}
 	}
-	m, err := load(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	vars, _ := findPackageState(m)
-	fromAudit := map[string]bool{}
-	for _, sv := range vars {
-		for _, w := range sv.Writers {
-			fromAudit[fmt.Sprintf("%s@%s:%d", sv.Name, w.File, w.Line)] = true
-		}
-	}
-	if len(fromAudit) < 6 {
-		t.Fatalf("package-state found only %d writes: %v", len(fromAudit), fromAudit)
-	}
-	for k := range fromAudit {
-		if !fromGraph[k] {
-			t.Errorf("package-state writer %s is not a writes_var site", k)
-		}
-	}
-	for k := range fromGraph {
-		if !fromAudit[k] {
-			t.Errorf("writes_var site %s is not a package-state writer", k)
-		}
+	sort.Strings(got)
+	want := []string{"Exported@b/b.go:5", "cfg@a/a.go:35", "counter@a/a.go:19", "counter@a/a.go:22", "counter@a/a.go:23",
+		"counter@a/a.go:33", "n@a/a.go:31", "table@a/a.go:27", "table@a/a.go:28"}
+	if !slices.Equal(got, want) {
+		t.Errorf("writes_var sites\n  %s\nwant\n  %s", strings.Join(got, " "), strings.Join(want, " "))
 	}
 }

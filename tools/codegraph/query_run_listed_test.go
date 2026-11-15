@@ -130,7 +130,8 @@ func TestGoFileRunLineRunsListedTRTestsOnlyWhenPresent(t *testing.T) {
 		t.Errorf("stream.go must produce `run: go run ./cmd/trlang test tests/http_sunucusu_test.tr`:\n%s", out.String())
 	}
 
-	// N3 sıra kuralı: lib/audio.tr'de ilk hedef lib/audio_test.tr olmalı (planning_questions.txt:306).
+	// N3 sıra kuralı: lib/audio.tr'de ilk hedef lib/audio_test.tr olmalı (planning_questions.txt'in `tests-for lib/audio.tr`
+	// sorusu; satır numarası anılmaz, sınav değiştikçe kayıyordu).
 	out.Reset()
 	ix.printTestsFor(&out, ix.byID[trFileID("lib/audio.tr")], defaultLimit)
 	if !strings.Contains(out.String(), "run: go run ./cmd/trlang test lib/audio_test.tr") {

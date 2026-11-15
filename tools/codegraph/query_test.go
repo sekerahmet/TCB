@@ -480,22 +480,18 @@ func TestWhoUsesSummarizesTheConstructBridge(t *testing.T) {
 	testkit.MustContain(t, out.String(), "<- calls", "interp.compiler.member", "via MemberExpression")
 }
 
-// Kural (DENETİM istek 58 Ş1): aday etiketi Node.Captured alanında değil ayrı Note alanındadır; kapanış (closure)
-// düğümünde de etiket kaybolmaz.
+// Kural (DENETİM istek 58 Ş1): aday etiketi ayrı Note alanındadır; kapanış (closure) düğümünde de etiket kaybolmaz.
+// (Yakalanan değişkenler ayrı bir alandaydı; captures emekli olunca, codegraph 7 Dilim C K3, alan da gitti.)
 func TestDescribeShowsCandidateNoteEvenOnAClosure(t *testing.T) {
 	t.Parallel()
 	got := describe(&Node{
-		Name:     "pkg.fn$1",
-		Kind:     kindClosure,
-		File:     "pkg/a.go",
-		Line:     10,
-		Captured: []string{"x int"},
-		Note:     "[if `f` is a value: `x.TR_map`]",
+		Name: "pkg.fn$1",
+		Kind: kindClosure,
+		File: "pkg/a.go",
+		Line: 10,
+		Note: "[if `f` is a value: `x.TR_map`]",
 	})
 	testkit.MustContain(t, got, "[if `f` is a value: `x.TR_map`]")
-	if strings.Contains(got, "x int") {
-		t.Errorf("describe printed closure captures as a note: %q", got)
-	}
 }
 
 // Kural (DENETİM istek 58 K2, Ş2): TR'de karşılığı olmayan noktalı üye yazımı yalnız dil tanımı (spec:) düğümüne

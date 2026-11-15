@@ -150,7 +150,7 @@ func splitArgs(s string) []string {
 
 // queryCommands grafiği okuyan codegraph komutlarıdır; sınav onları yüklenmiş grafikle çalıştırır (runQueryOn).
 var queryCommands = map[string]bool{"query": true, "path": true, "who-uses": true, "tests-for": true,
-	"callees": true, "calls-into": true, "fields": true, "captures": true, "changed": true}
+	"callees": true, "calls-into": true, "fields": true, "changed": true}
 
 // historyCommands git geçmişini okuyan komutlardır; sığ klonda (CI) cevapları yoktur, sınav onları atlar.
 var historyCommands = map[string]bool{"changed": true, "deleted": true}

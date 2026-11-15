@@ -150,8 +150,10 @@ func readmeCommandRows(t *testing.T, doc string) []commandRow {
 	return cells
 }
 
-// flowValues soru-komut tablosunun flow sütununun değerleridir (README.md'de tablonun altındaki cümle).
-var flowValues = map[string]bool{"gate": true, "hook": true, "agent rules": true, "none": true}
+// flowValues soru-komut tablosunun flow sütununun değerleridir (README.md'de tablonun altındaki cümle). `weekly count`
+// uzmanın haftalık sayımıdır: dead-methods'u koşar, test dışı yeni adayları TCB paketin sahibine verir (codegraph 7
+// Dilim C, K4).
+var flowValues = map[string]bool{"gate": true, "hook": true, "agent rules": true, "weekly count": true, "none": true}
 
 // Kural (codegraph dilim 5): tablonun flow sütunu her komutun hangi akışa bağlı olduğunu söyler ve değerleri kümededir.
 // gate ve hook iki yönlü sınanır: satır gate diyorsa tools/full_check.sh komutu `go run ./tools/edithook codegraph

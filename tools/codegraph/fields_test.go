@@ -107,22 +107,3 @@ func TestFieldsCommands(t *testing.T) {
 	_, out, _ = cli(t, "fields", "shape.Counter")
 	testkit.MustContain(t, out, "n [int]:", "list [[]int]: 0 reads, 1 writes", "next [*shape.Counter]: 0 reads, 0 writes")
 }
-
-func TestCaptures(t *testing.T) {
-	t.Parallel()
-	code, out, _ := cli(t, "captures", "shape.Bump")
-	if code != exitOK {
-		t.Fatalf("exit %d\n%s", code, out)
-	}
-	testkit.MustContain(t, out, "shape.Bump > func literal@L91", "c *shape.Counter", "x int", "sum int (assigned)")
-	if strings.Contains(out, "o *shape.Other") {
-		t.Errorf("o is not used in the closure:\n%s", out)
-	}
-	_, out, _ = cli(t, "captures", "shape.Bump", "--type", "Counter")
-	testkit.MustContain(t, out, "c *shape.Counter")
-	if strings.Contains(out, "x int") {
-		t.Errorf("--type filters the captured variables:\n%s", out)
-	}
-	_, out, _ = cli(t, "captures", "shape.Describe")
-	testkit.MustContain(t, out, "no func literals")
-}

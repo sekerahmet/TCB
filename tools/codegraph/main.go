@@ -46,7 +46,6 @@ const usage = `usage: codegraph <command> [flags] [args]
   tests-for <name> [--list|--all]   tests that exercise a function, type, file or package: the run: and size: lines and how many tests are listed; --list (or --limit N) the first page of each group, --all every test
   untested [--in DIR] [--json]   non-test Go functions and methods grouped by the seven branches of tests-for
   fields <Type>              the table of a type's fields with read and write counts (one field: who-uses <Type.field> --mode read|write)
-  captures <func> [--type T]  the variables its func literals capture, with types
   callees <func> [--in PKG]  the functions it calls, by package
   calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package
   deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
@@ -54,8 +53,6 @@ const usage = `usage: codegraph <command> [flags] [args]
   dups [--min N] [--in DIR] [--changed branch|range] [--json]   duplicate-code candidates in the Go sources (token-sequence clones of at least N syntax-tree nodes, default 100); --changed keeps those that touch what a branch changed; deliberate exceptions are listed by --list-exclusions
   similar <func> [--json]    the functions most like this one, with a similarity score
   dead-methods [--in DIR] [--json]   methods with no caller: unreferenced, kept alive only by an interface-satisfaction assertion (assertion-only), shadowed by an earlier interface check, or used only by tests
-  package-state [--in DIR] [--json]  package variables written outside their declaration (process-wide mutable state): mutable, test-hook, address-taken, synchronized
-  time-ceilings [--in DIR] [--json]  tests that compare an elapsed duration with a constant ceiling (file:line, constant, test name)
   spec-refs [--list] [--in DIR] [--json]   references to language-definition items (**N.M**, §N.M, the "dil tan…" form): a missing item is an error (exit 1), suffix vowel harmony after N.M is checked; --list prints each reference with the heading it points to
 
 query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --list, --by-package, --min N, --in X, --tests, --base B, --by-distance, --root DIR (default: the repository root above the current directory), --no-rebuild
@@ -75,16 +72,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
-	case "query", "path", "who-uses", "tests-for", "untested", "changed", "callees", "calls-into", "fields", "captures":
+	case "query", "path", "who-uses", "tests-for", "untested", "changed", "callees", "calls-into", "fields":
 		return runQuery(args[0], args[1:], stdout, stderr)
-	case "explain", "history":
+	case "explain", "history", "package-state", "time-ceilings", "captures":
 		return runRetired(args[0], args[1:], stderr)
 	case "spec-refs":
 		return runSpecRefs(args[1:], stdout, stderr)
-	case "time-ceilings":
-		return runTimeCeilings(args[1:], stdout, stderr)
-	case "package-state":
-		return runPackageState(args[1:], stdout, stderr)
 	case "dead-methods":
 		return runDeadMethods(args[1:], stdout, stderr)
 	case "deleted":
@@ -228,11 +221,22 @@ func countList(m map[string]int) string {
 // (`-L :Mask:internal/lang/interp/output.go` metodun değil SecretMask sabitinin geçmişini veriyordu).
 const historyGone = `codegraph: "history" is gone; git answers it. The file of a name: go run ./tools/codegraph query <name>. Then: git log -L ':^func <name>(:<file>' -s --oneline for a function, git log -L ':^func (.*) <name>(:<file>' -s --oneline for a method, git log -L ':^type <name> :<file>' -s --oneline for a type, git log --follow --oneline -- <file> for a file, git log -S'<code>' --oneline -- internal/lang/messages/definitions.json internal/lang/codes/definitions.json for a code (renames are not followed)`
 
-// runRetired emekliye ayrılan komutların (explain, history) yerine geçen yolu yazar; çıkış 2 (K6). explain query'nin
-// öbür adıydı: aynı argümanlarla query satırı verilir.
+// retiredGone emekliye ayrılan komutların yerini söyleyen iletilerdir. package-state, time-ceilings ve captures
+// codegraph 7 Dilim C'de (K3) gitti: package-state'in yazanlarını grafın writes_var kenarı aynı kuralla veriyor
+// (writeTargets), time-ceilings'in 37 yerinin 36'sını tek git grep buluyor, captures'ın yazılma nedeni olan istek
+// .tr içindi ve komut onu hiç cevaplamadı (tasarım codegraph-7c-tasarim.md 2cf336d6).
+var retiredGone = map[string]string{
+	"history":       historyGone,
+	"package-state": `codegraph: "package-state" is gone; query answers it: go run ./tools/codegraph query <variable> lists who writes it (<- writes_var) and reads it, query <function> the package variables it writes and reads (-> writes_var, -> reads_var), query <file> --all the variables a file declares ([var])`,
+	"time-ceilings": `codegraph: "time-ceilings" is gone; git answers it: git grep -n -E '(>|<|>=|<=) *([0-9_]+ *\* *)?time\.(Second|Millisecond|Minute)' -- '*_test.go' (a ceiling kept in a named constant is found by that constant's name). The rule for tests that measure time is in internal/README.md.`,
+	"captures":      `codegraph: "captures" is gone: read the function; go run ./tools/codegraph query <function> gives its file and line`,
+}
+
+// runRetired emekliye ayrılan komutların yerine geçen yolu yazar; çıkış 2 (K6). explain query'nin öbür adıydı: aynı
+// argümanlarla query satırı verilir; öbürleri retiredGone'daki iletiyi yazar.
 func runRetired(cmd string, args []string, stderr io.Writer) int {
-	if cmd == "history" {
-		fmt.Fprintln(stderr, historyGone)
+	if msg, ok := retiredGone[cmd]; ok {
+		fmt.Fprintln(stderr, msg)
 		return exitUsage
 	}
 	rest := strings.Join(args, " ")

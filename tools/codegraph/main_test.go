@@ -103,6 +103,40 @@ func TestRetiredCommandsNameTheirReplacement(t *testing.T) {
 			}
 		}
 	}
+	checkRetiredAudits(t)
+}
+
+// checkRetiredAudits codegraph 7 Dilim C'de (K3) emekli olan üç komutun iletisini ve iletinin önerdiği yolu sınar:
+// package-state'in yerine query'nin writes_var satırı, time-ceilings'in yerine git grep deseni, captures'ın yerine
+// işlevin dosya:satır'ını veren query. Her komut çıkış 2 verir ve stdout'a yazmaz.
+func checkRetiredAudits(t *testing.T) {
+	t.Helper()
+	for _, cmd := range []string{"package-state", "time-ceilings", "captures"} {
+		var out, errOut strings.Builder
+		if code := run([]string{cmd, "x"}, &out, &errOut); code != exitUsage || out.Len() != 0 || errOut.String() != retiredGone[cmd]+"\n" {
+			t.Errorf("%s: exit %d, stdout %q, stderr %q", cmd, code, out.String(), errOut.String())
+		}
+	}
+	root := auditModule(t, varAccessFiles)
+	var out, errOut strings.Builder
+	if code := run([]string{"query", "a.counter", "--root", root, "--graph", filepath.Join(t.TempDir(), "g.json")}, &out, &errOut); code != exitOK ||
+		!strings.Contains(out.String(), "<- writes_var") || !strings.Contains(out.String(), "a.Set [func]") {
+		t.Errorf("package-state's replacement (query <variable>): exit %d\n%s%s", code, out.String(), errOut.String())
+	}
+	re := regexp.MustCompile(`git grep -n -E '([^']+)'`).FindStringSubmatch(retiredGone["time-ceilings"])
+	if re == nil {
+		t.Fatalf("time-ceilings: no git grep pattern in %q", retiredGone["time-ceilings"])
+	}
+	ceiling := regexp.MustCompile(re[1])
+	for line, want := range map[string]bool{"if d > 1500*time.Millisecond {": true, "if time.Since(start) > time.Second {": true,
+		"if elapsed > 10 * time.Second {": true, "time.Sleep(10 * time.Millisecond)": false} {
+		if ceiling.MatchString(line) != want {
+			t.Errorf("time-ceilings' pattern on %q: %v, want %v", line, !want, want)
+		}
+	}
+	if code, got, _ := cli(t, "query", "shape.Bump"); code != exitOK || !strings.Contains(got, "shape.Bump [func] shape/shape.go:82") {
+		t.Errorf("captures' replacement (query <function>): exit %d\n%s", code, got)
+	}
 }
 
 // Kural: paketin üst testleri ilk satırda t.Parallel() çağırır; paket G4'te tek süreçte 154,7 sn sürüyordu, en uzun
