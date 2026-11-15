@@ -6,7 +6,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
@@ -154,4 +157,109 @@ func partSize(target string) int64 {
 func exists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
+}
+
+// shortTimes evre sürelerini, tavanı ve adres başına en kısa denemeyi test için kısaltır.
+func shortTimes(t *testing.T, connect, header, idle, first time.Duration) {
+	oc, oh, oi, of, om := connectTimeout, headerTimeout, idleTimeout, firstHeaderTimeout, minAttempt
+	connectTimeout, headerTimeout, idleTimeout, firstHeaderTimeout, minAttempt = connect, header, idle, first, 20*time.Millisecond
+	t.Cleanup(func() {
+		connectTimeout, headerTimeout, idleTimeout, firstHeaderTimeout, minAttempt = oc, oh, oi, of, om
+	})
+}
+
+// tlsServer network'te (tcp ya da tcp6) bir httptest TLS sunucusu açar ve kökünü testRoots'a koyar;
+// cs verilirse bağlantıların durumunu izler.
+func tlsServer(t *testing.T, network, addr string, h http.HandlerFunc, cs func(net.Conn, http.ConnState)) *httptest.Server {
+	t.Helper()
+	l, err := net.Listen(network, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := httptest.NewUnstartedServer(h)
+	s.Listener.Close()
+	s.Listener = l
+	s.Config.ConnState = cs
+	s.StartTLS()
+	t.Cleanup(s.Close)
+	testRoots = s.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs
+	t.Cleanup(func() { testRoots = nil })
+	return s
+}
+
+// silentListener TCP'yi kabul eder, hiç yazmaz (TLS el sıkışmasında ya da CONNECT'te asılan uç).
+func silentListener(t *testing.T, network, addr string) string {
+	t.Helper()
+	l, err := net.Listen(network, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	var mu sync.Mutex
+	var conns []net.Conn
+	t.Cleanup(func() {
+		mu.Lock()
+		defer mu.Unlock()
+		for _, c := range conns {
+			c.Close()
+		}
+	})
+	go func() {
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			conns = append(conns, c)
+			mu.Unlock()
+		}
+	}()
+	return l.Addr().String()
+}
+
+// tunnelProxy CONNECT'e 200 verip hedefe tünel kuran bir vekildir; adresini verir.
+func tunnelProxy(t *testing.T) string {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	go func() {
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer c.Close()
+				br := bufio.NewReader(c)
+				req, err := http.ReadRequest(br)
+				if err != nil || req.Method != http.MethodConnect {
+					return
+				}
+				up, err := net.Dial("tcp", req.Host)
+				if err != nil {
+					return
+				}
+				defer up.Close()
+				c.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+				go io.Copy(up, br)
+				io.Copy(c, up)
+			}()
+		}
+	}()
+	return "http://" + l.Addr().String()
+}
+
+// timeoutArgs H7716'nın konağını ve evresini verir; hata H7716 değilse ok false.
+func timeoutArgs(err error) (host, stage string, ok bool) {
+	var e *messages.Error
+	if !errors.As(err, &e) || e.Code != messages.H7716 || len(e.Args) != 3 {
+		return "", "", false
+	}
+	host, _ = e.Args[1].(string)
+	stage, _ = e.Args[2].(string)
+	return host, stage, true
 }

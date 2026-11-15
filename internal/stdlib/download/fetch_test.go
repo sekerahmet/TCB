@@ -1,12 +1,15 @@
 package download
 
 import (
+	"context"
 	"crypto/sha256"
 	"hash"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -207,4 +210,205 @@ func TestDownloadCloseDelimitedBodyNeedsSizeOrHash(t *testing.T) {
 		t.Errorf("H7739'da hedef olmamalı, .part kalmalı: %d", partSize(dir+"/c"))
 	}
 	mustRun(t, dl(closeEnd, dir+"/d", "TR_none", "10"))
+}
+
+// blockingResolver bağlamı bitene kadar dönmez (cevap vermeyen DNS).
+type blockingResolver struct{}
+
+func (blockingResolver) LookupIPAddr(ctx context.Context, _ string) ([]net.IPAddr, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+// stallHeader cevap vermeyen işleyicidir: TLS biter, ilk üstbilgi gelmez.
+func stallHeader(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }
+
+// TestDownloadNameResolutionTimeout: dönmeyen ad çözümü bağlanmanın süresinde H7716 (evre dns) olur
+// (28.10).
+func TestDownloadNameResolutionTimeout(t *testing.T) {
+	shortTimes(t, 300*time.Millisecond, time.Second, time.Second, 10*time.Second)
+	old := resolver
+	resolver = blockingResolver{}
+	t.Cleanup(func() { resolver = old })
+	start := time.Now()
+	err := wantCode(t, dl("https://raw.example.test/f", slash(t.TempDir())+"/a", "TR_none", "TR_none"), messages.H7716)
+	if host, stage, _ := timeoutArgs(err); host != "raw.example.test" || stage != stageDNS {
+		t.Errorf("konak %q, evre %q; beklenen raw.example.test, dns", host, stage)
+	}
+	if !strings.Contains(err.Error(), "adı 30 saniyede çözülmedi") {
+		t.Errorf("ileti evreyi söylemeli: %v", err)
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Errorf("ad çözümü süresinde kesilmeli: %v", d)
+	}
+}
+
+// TestDownloadTimeoutNamesTheStage: her evre kendi süresinde H7716 olur ve ileti evreyi adıyla söyler:
+// CONNECT'e cevap vermeyen vekil connect, TLS'te ve ilk üstbilgide asılan sunucu IPv4'te ve IPv6'da
+// tls ve header (28.10).
+func TestDownloadTimeoutNamesTheStage(t *testing.T) {
+	shortTimes(t, 300*time.Millisecond, 300*time.Millisecond, time.Second, 10*time.Second)
+	head4 := tlsServer(t, "tcp", "127.0.0.1:0", stallHeader, nil)
+	head6 := tlsServer(t, "tcp6", "[::1]:0", stallHeader, nil)
+	cases := []struct{ name, url, proxy, stage, text string }{
+		{"vekil", "https://[::1]:9/f", "http://" + silentListener(t, "tcp", "127.0.0.1:0"), stageConnect, "ile bağlantı 30 saniyede kurulmadı"},
+		{"tls-v4", "https://" + silentListener(t, "tcp", "127.0.0.1:0") + "/f", "", stageTLS, "ile TLS el sıkışması 30 saniyede bitmedi"},
+		{"tls-v6", "https://" + silentListener(t, "tcp6", "[::1]:0") + "/f", "", stageTLS, "ile TLS el sıkışması 30 saniyede bitmedi"},
+		{"header-v4", head4.URL + "/f", "", stageHeader, "ilk üstbilgiyi 30 saniyede göndermedi"},
+		{"header-v6", head6.URL + "/f", "", stageHeader, "ilk üstbilgiyi 30 saniyede göndermedi"},
+	}
+	dir := slash(t.TempDir())
+	for _, c := range cases {
+		var extra []string
+		if c.proxy != "" {
+			extra = append(extra, "TR_proxy: "+q(c.proxy))
+		}
+		start := time.Now()
+		_, err := run(t, dl(c.url, dir+"/"+c.name, "TR_none", "TR_none", extra...))
+		_, stage, ok := timeoutArgs(err)
+		if !ok || stage != c.stage || !strings.Contains(err.Error(), c.text) {
+			t.Errorf("%s: H7716 %s bekleniyordu (%q), gelen evre %q: %v", c.name, c.stage, c.text, stage, err)
+		}
+		if d := time.Since(start); d > 3*time.Second {
+			t.Errorf("%s: evre kendi süresinde kesilmeli: %v", c.name, d)
+		}
+	}
+}
+
+// TestDownloadTimeoutNamesTheFailingHost: yönlendirilen ikinci sunucu üstbilgide asılırsa ileti onun
+// konağını yazar, ilk adresinkini değil.
+func TestDownloadTimeoutNamesTheFailingHost(t *testing.T) {
+	shortTimes(t, time.Second, 300*time.Millisecond, time.Second, 10*time.Second)
+	second := tlsServer(t, "tcp", "127.0.0.1:0", stallHeader, nil)
+	first := tlsServer(t, "tcp", "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, second.URL+"/f", http.StatusFound)
+	}, nil)
+	err := wantCode(t, dl(first.URL+"/f", slash(t.TempDir())+"/a", "TR_none", "TR_none"), messages.H7716)
+	want := strings.TrimPrefix(second.URL, "https://")
+	if host, stage, _ := timeoutArgs(err); host != want || stage != stageHeader {
+		t.Errorf("konak %q, evre %q; beklenen %q, header", host, stage, want)
+	}
+}
+
+// TestDownloadRedirectChainCap: her adımı kendi süresinin içinde kalan ama toplamı tavanı aşan
+// yönlendirme zinciri H7716'nın total dalıdır; konak tavan dolarken süren isteğinkidir (28.10).
+func TestDownloadRedirectChainCap(t *testing.T) {
+	shortTimes(t, time.Second, time.Second, time.Second, 600*time.Millisecond)
+	second := tlsServer(t, "tcp", "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(400 * time.Millisecond):
+		case <-r.Context().Done():
+			return
+		}
+		w.Write([]byte("son"))
+	}, nil)
+	first := tlsServer(t, "tcp", "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(400 * time.Millisecond)
+		http.Redirect(w, r, second.URL+"/f", http.StatusFound)
+	}, nil)
+	err := wantCode(t, dl(first.URL+"/f", slash(t.TempDir())+"/a", "TR_none", "TR_none"), messages.H7716)
+	want := strings.TrimPrefix(second.URL, "https://")
+	if host, stage, _ := timeoutArgs(err); host != want || stage != stageTotal {
+		t.Errorf("konak %q, evre %q; beklenen %q, total", host, stage, want)
+	}
+	if !strings.Contains(err.Error(), "için yönlendirmeler dahil ilk üstbilgi 120 saniyede alınmadı") {
+		t.Errorf("ileti tavanı söylemeli: %v", err)
+	}
+}
+
+// TestDownloadCapSparesTheBody: tavan ilk üstbilgi gelince kalkar; gövde tavandan uzun sürse de
+// (hareketsizlik süresinin içinde) indirme biter (28.10: gövdeye toplam sınır yok).
+func TestDownloadCapSparesTheBody(t *testing.T) {
+	shortTimes(t, time.Second, time.Second, time.Second, 300*time.Millisecond)
+	body := []byte(strings.Repeat("g", 5*1024))
+	s := tlsServer(t, "tcp", "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		for i := range 5 {
+			w.Write(body[i*1024 : (i+1)*1024])
+			w.(http.Flusher).Flush()
+			time.Sleep(150 * time.Millisecond)
+		}
+	}, nil)
+	dir := slash(t.TempDir())
+	start := time.Now()
+	mustRun(t, dl(s.URL+"/f", dir+"/a", q(sum(body)), strconv.Itoa(len(body))))
+	if d := time.Since(start); d < 600*time.Millisecond {
+		t.Fatalf("gövde tavandan uzun sürmeliydi: %v", d)
+	}
+	if got, _ := os.ReadFile(dir + "/a"); string(got) != string(body) {
+		t.Errorf("dosya tam inmeli: %d bayt", len(got))
+	}
+}
+
+// TestDownloadCapRaceCountsAsTotal: tavanın zamanlayıcısı Do'nun dönüşüyle yarışıp çoktan koştuysa
+// istek tavana takılmış sayılır: H7716 total, gövde okunmaz (DENETİM 795 N1).
+func TestDownloadCapRaceCountsAsTotal(t *testing.T) {
+	shortTimes(t, time.Second, time.Second, time.Second, 100*time.Millisecond)
+	old := afterDo
+	afterDo = func() { time.Sleep(300 * time.Millisecond) }
+	t.Cleanup(func() { afterDo = old })
+	body := []byte("tam")
+	s := tlsServer(t, "tcp", "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) { w.Write(body) }, nil)
+	dir := slash(t.TempDir())
+	err := wantCode(t, dl(s.URL+"/f", dir+"/a", q(sum(body)), "3"), messages.H7716)
+	if _, stage, _ := timeoutArgs(err); stage != stageTotal {
+		t.Errorf("evre %q, beklenen total", stage)
+	}
+	if exists(dir+"/a") || partSize(dir+"/a") > 0 {
+		t.Errorf("gövde okunmamalı: hedef %v, .part %d", exists(dir+"/a"), partSize(dir+"/a"))
+	}
+}
+
+// TestDownloadCancelIsNotATimeout: ilk üstbilgi beklenirken görevin iptali H2920, TR_wait'in süre
+// sınırı H2921'dir; ikisi de H7716 değildir (10.9, 10.7).
+func TestDownloadCancelIsNotATimeout(t *testing.T) {
+	shortTimes(t, time.Second, 5*time.Second, time.Second, 10*time.Second)
+	s := tlsServer(t, "tcp", "127.0.0.1:0", stallHeader, nil)
+	dir := slash(t.TempDir())
+	cancelled := "TR_var g = TR_async { " + dl(s.URL+"/f", dir+"/a", "TR_none", "TR_none") + " }\nTR_sleep(0.2)\ng.TR_cancel()\ng.TR_wait()"
+	err := wantCode(t, cancelled, messages.H2920)
+	if messages.Has(err, messages.H7716) {
+		t.Errorf("iptal süre hatası olmamalı: %v", err)
+	}
+	limited := "TR_var g = TR_async { " + dl(s.URL+"/f", dir+"/b", "TR_none", "TR_none") + " }\ng.TR_wait(TR_timeout: 0.2)"
+	if err := wantCode(t, limited, messages.H2921); messages.Has(err, messages.H7716) {
+		t.Errorf("süre sınırı H7716 olmamalı: %v", err)
+	}
+}
+
+// TestDownloadClosesIdleConnections: indirme bitince bağlantı boşta kalmaz, kapanır (her indirme kendi
+// taşıyıcısını kurar; CloseIdleConnections).
+func TestDownloadClosesIdleConnections(t *testing.T) {
+	var mu sync.Mutex
+	states := map[net.Conn]http.ConnState{}
+	body := []byte("bağlantı")
+	s := tlsServer(t, "tcp", "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) { w.Write(body) },
+		func(c net.Conn, st http.ConnState) {
+			mu.Lock()
+			states[c] = st
+			mu.Unlock()
+		})
+	dir := slash(t.TempDir())
+	for i := range 3 {
+		mustRun(t, dl(s.URL+"/f", dir+"/"+strconv.Itoa(i), q(sum(body)), strconv.Itoa(len(body))))
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		mu.Lock()
+		open := 0
+		for _, st := range states {
+			if st != http.StateClosed {
+				open++
+			}
+		}
+		n := len(states)
+		mu.Unlock()
+		if n == 3 && open == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("3 bağlantının hepsi kapanmalı: %d bağlantı, %d açık", n, open)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 }
