@@ -32,7 +32,7 @@ function renderRing() {
       const percent = new Intl.NumberFormat(language, { style: "percent" }).format(ui.progress);
       bind(node, "state_loading_progress", { percent });
     } else {
-      bind(node, `state_${state}`);
+      bind(node, state === "setup" && setupReady() ? "state_setup_done" : `state_${state}`);
     }
   }
 }
@@ -81,16 +81,30 @@ function renderStatus() {
 }
 
 // Kurulum: `setup` durumunda konuşma dili, ayarın dil modelini yükleyen düğme ve dil modellerinin indirme satırları.
+// Takım kuruluysa başlık kurulumun bittiğini, alt yazı Yükle'yi söyler; yazının öğesi burada kurulur.
 function renderSetup() {
-  byId("setupBox").hidden = ui.state !== "setup";
-  const model = str(ui.settings.language_model);
+  const box = byId("setupBox");
+  box.hidden = ui.state !== "setup";
+  const ready = setupReady();
+  const heading = /** @type {HTMLElement} */ (box.querySelector("h2"));
+  bind(heading, ready ? "state_setup_done" : "state_setup");
+  let note = /** @type {HTMLElement|null} */ (box.querySelector(".setup-note"));
+  if (!note) heading.after(note = bind(el("p", "setup-note"), "setup_done_note"));
+  note.hidden = !ready;
   const load = byId("loadButton");
-  load.disabled = !connected() || model === "";
+  load.disabled = !connected() || !ready;
   const speech = /** @type {HTMLSelectElement} */ (byId("speechLanguage"));
   const current = str(ui.settings.speech_language);
   if (current !== "") speech.value = current;
   speech.disabled = !connected();
   renderDownloads();
+}
+
+// setupReady: ayarın dil modelinin takımı kurulu mu: katalogda girdisi `installed` (girdinin ve konuşma dilinin modelleri,
+// contract.md). Kurulum kartının Yükle'si ancak o zaman etkindir; inerken basılan Yükle `not_installed` alırdı.
+function setupReady() {
+  const model = str(ui.settings.language_model);
+  return model !== "" && ui.catalog.some((e) => e.id === model && e.installed);
 }
 
 // İndirme düğmelerinin simgeleri: renkten başka iz (F1b): İndir aşağı ok, Sürdür dönüş oku, Sil çöp kutusu.
@@ -153,6 +167,7 @@ function renderDownloads() {
       actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = ""; command("model_delete", { entry_id: entry.id }); renderDownloads(); }),
         button("download_cancel", "", () => { ui.confirmDelete = ""; renderDownloads(); })];
     } else if (entry.installed) {
+      status = bind(el("span", "card-note dl-done"), "download_installed");
       actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = entry.id; renderDownloads(); })];
     } else if (active.length > 0) {
       const states = active.map((j) => str(j.state));

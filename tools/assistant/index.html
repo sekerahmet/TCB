@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:; style-src 'sha256-l7lYHU8Z/sy5E8ovgCxPkAo96fBJcR3Ly3P5sBKmpFQ='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ http://127.0.0.1:*/js/ file:; style-src 'sha256-HEfZVQV3/dIfmsg214mNOd7bM37CUlQDao8NWwWMvGY='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -112,7 +112,7 @@ select { padding: 5px 8px; font-size: 13px; color: var(--text); max-width: 200px
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(94, 230, 208, .10), rgba(76, 196, 240, .05));
 }
-.setup h2 { flex-basis: 100%; margin: 0; font-size: 16px; color: var(--accent); }
+.setup h2 { flex-basis: 100%; margin: 0; font-size: 16px; color: var(--accent); } .setup-note { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--muted); }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 .field select, .field .input { max-width: none; font-size: 14px; color: var(--text); }
 .sheet { max-height: 34%; overflow-y: auto; padding: 12px 14px; border-block-end: 1px solid var(--line); background: var(--raised); }
@@ -329,7 +329,7 @@ select { padding: 5px 8px; font-size: 13px; color: var(--text); max-width: 200px
 .settings-body .label { margin: 0; }
 .row-line { display: flex; gap: 8px; }
 .row-line select { flex: 1 1 auto; min-width: 0; }
-.downloads { display: grid; gap: 8px; margin-block: 4px 12px; } .downloads:empty { display: none; } .setup .downloads { flex-basis: 100%; margin: 0; } .dl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 10px; } .dl-name { grid-area: 1 / 1; overflow-wrap: anywhere; } .dl-row .card-note { grid-area: 1 / 2; margin: 0; text-align: end; } .dl-row .dl-long { grid-area: 2 / 1 / 3 / 4; text-align: start; } .dl-actions { grid-area: 1 / 3; display: flex; gap: 6px; justify-content: flex-end; } #setupBox:not([hidden]) ~ .stream-empty { display: none; }
+.downloads { display: grid; gap: 8px; margin-block: 4px 12px; } .downloads:empty { display: none; } .setup .downloads { flex-basis: 100%; margin: 0; } .dl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 10px; } .dl-name { grid-area: 1 / 1; overflow-wrap: anywhere; } .dl-row .card-note { grid-area: 1 / 2; margin: 0; text-align: end; } .dl-row .dl-long { grid-area: 2 / 1 / 3 / 4; text-align: start; } .dl-actions { grid-area: 1 / 3; display: flex; gap: 6px; justify-content: flex-end; } #setupBox:not([hidden]) ~ .stream-empty { display: none; } .dl-row .dl-done { color: var(--accent); }
 .btn-go { border-color: var(--accent); background: rgba(94, 230, 208, .12); color: var(--accent); font-weight: 600; } .btn-go:hover:not(:disabled) { border-color: var(--accent); background: rgba(94, 230, 208, .22); } .btn-danger { border-color: var(--danger); background: rgba(255, 145, 132, .12); color: var(--danger); font-weight: 600; } .btn-danger:hover:not(:disabled) { border-color: var(--danger); background: rgba(255, 145, 132, .22); }
 .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
 .hint { margin: 0; font-size: 13px; color: var(--muted); }

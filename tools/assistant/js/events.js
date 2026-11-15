@@ -31,15 +31,16 @@ on("session", (d) => {
   renderStatus();
 });
 
+// Ayar ve katalog kurulum kartını ve durum satırını da değiştirir: takımın kurulu olup olmadığı ikisinden hesaplanır
+// (view.js'nin setupReady'si).
 on("settings", (d) => {
   ui.settings = d;
-  renderSetup();
-  renderSettings();
+  renderStatus();
 });
 
 on("catalog", (d) => {
   ui.catalog = catalogEntries(d);
-  renderSettings();
+  renderStatus();
 });
 
 // download: girdinin son indirme işi; satırı view.js'nin renderDownloads'ı kurar.
