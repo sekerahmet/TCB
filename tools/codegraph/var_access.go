@@ -9,8 +9,8 @@ import (
 
 // Paket düzeyi değişkenlerin okunma ve yazılma kuralı TEK yerdedir: writeTargets bir düğümün yazdığı ifadeleri
 // verir (atama, işlemli atama, ++/--, range ataması, adresinin alınması, delete/clear, sync/atomic çağrısı).
-// Hem grafik çıkarıcısı (`reads_var`/`writes_var`/`inits_var` kenarları) hem `package-state` denetimi bunu
-// kullanır; iki yerde ayrı bir "yazma nedir" kuralı kalmaz. Yapı alanlarının kuralı (accessModes) aynı atama
+// Bunu grafik çıkarıcısı (`reads_var`/`writes_var`/`inits_var` kenarları) kullanır; emekli `package-state`
+// denetimi ikinci kullanıcısıydı. "Yazma nedir" kuralı tek yerde kalır. Yapı alanlarının kuralı (accessModes) aynı atama
 // biçimlerini seçici düğümleri için işaretler; değişken tarafı kök tanımlayıcıya iner.
 
 // writeTarget bir düğümün yazdığı bir ifadedir.
