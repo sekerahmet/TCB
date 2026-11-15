@@ -8,7 +8,7 @@ TR_import "tr/audio"
 TR_import "tr/chat"
 TR_import "tr/pretrained"
 TR_import "tr/vad"
-TR_import "nicemli" # nicemli_hatasını_at (ısıt)
+TR_import "nicemli" # nicemli_hatasını_at, NicemliSeçim (ısıt)
 
 TR_const _ÇERÇEVE = 512
 TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
@@ -47,6 +47,7 @@ TR_struct Tur {
     üretilen: TR_Int = 0
     yeni_konuşma: TR_Int = 0
     söylenen_fark: TR_Int = 0 # söylenen cümleler cevabın içeriğinin cümleleri değilse 1
+    nicemli: TR_Bool = TR_false # turun zincirinin çözülmüş nicemli etkinleştirmesi (kaydın tur satırı, `nicemli`)
     duyulan: TR_String = "" # Whisper'ın metni (metin turunda yazılan)
     giden: TR_String = "" # dil modeline giden kullanıcı iletisi
     cevap: TR_String = "" # cevabın içeriği; durdurulan turda o ana kadar çözülen metin
@@ -66,7 +67,8 @@ TR_struct Zincir {
     en_çok: TR_Int
     bağlam: TR_Int
     önbelleksiz: TR_Bool
-    nicemli: TR_Bool = TR_false # --nicemli_etkinleştirme: çağrılar `TR_quantized_activations` bloğunda da (model_çağrısı)
+    nicemli: TR_Bool = TR_false # çözülmüş nicemli etkinleştirme: çağrılar `TR_quantized_activations` bloğunda da (model_çağrısı)
+    seçim: NicemliSeçim? = TR_none # nicemli'nin geldiği seçim, yalnız ısıtmanın hata metni için; yoksa komut satırından açık
     geçmiş: TR_List[TR_ChatMessage] = []
     önbellek: TR_KVCache? = TR_none
     okunan: TR_List[TR_Int] = [] # önbellekteki kimlikler
@@ -113,7 +115,7 @@ TR_func ısıt(z: Zincir) {
         ö.TR_truncate(0)
         TR_no_grad { istem_oku(z, kimlikler, ö) } # üretimin istem okumasının aynısı; logit atılır
     } TR_catch e {
-        TR_if z.nicemli { nicemli_hatasını_at(e) }
+        TR_if z.nicemli { nicemli_hatasını_at(e, z.seçim ?? NicemliSeçim(değer: "açık", kaynak: "komut")) }
         TR_print("ISITMA HATASI:", e)
         ö.TR_truncate(0)
         TR_return

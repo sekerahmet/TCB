@@ -481,6 +481,18 @@ TR_test "devices ve catalog: liste okunamazsa devices_unavailable; katalogda yal
     TR_assert(TR_Bool(TR_List(_son(o.e)["data"]["entries"])[0]["installed"]))
 }
 
+# Ekranlı kipte model oturum içinde yeniden yüklenebilir (DENETİM 774 Ş1): her yükleme kendi zincirini kurar, turun
+# Tur'u o zincirin çözülmüş hâlini alır (asistan.tr tur_aç; behavior_chain_test.go TestTurnCarriesItsChainsQuant).
+TR_test "kayıt: iki yüklemeli oturumda her tur satırı kendi yüklemesinin nicemli hâlini taşır" {
+    TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "kayit", "n"))
+    TR_var k = Kayıt(klasör: klasör, başlık: TR_JSON({"oturum": "n", "nicemli_seçimi": "otomatik"}))
+    k.yaz(TR_true, TR_true, Tur(sıra: 1, söz_ms: 0, nicemli: TR_true), "metin", 0, "tamam", "") # q4_k model
+    k.yaz(TR_true, TR_true, Tur(sıra: 1, söz_ms: 0, nicemli: TR_false), "metin", 0, "tamam", "") # ikinci yükleme: q8 model
+    TR_var satırlar = TR_read_file(TR_Path(klasör, "turlar.jsonl")).TR_lines()
+    TR_assert_equal("otomatik", TR_String(TR_json_parse(satırlar[0])["nicemli_seçimi"]))
+    TR_assert_equal(["açık", "kapalı"], [TR_String(TR_json_parse(satırlar[i])["nicemli"]) TR_for i TR_in [1, 2]])
+}
+
 TR_test "kayıt: tur başında ve sonunda açıksa yazılır, klasör ilk satırda kurulur, WAV yok; klasörün adı açılışın TSS saati" {
     TR_assert_equal(TR_String(TR_Path("D", "kayit", "20261112-190005")), kayıt_klasörü("D", 1794499205000))
     TR_var klasör = TR_String(TR_Path(TR_temp_dir(), "kayit", "x"))

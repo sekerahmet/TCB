@@ -28,13 +28,14 @@ TR_var çerçeve = çerçeve_örnekleri(TR_Bytes([0, 128, 255, 127, 1, 0, 0, 0])
 TR_print("C1", çerçeve.TR_device, çerçeve.TR_dtype, çerçeve[0].TR_item(), çerçeve[2].TR_item(), çerçeve[3].TR_item())
 TR_print("ÜST", çerçeve[1].TR_item() < 1.0, çerçeve[1].TR_item() > 0.9999)
 TR_print("G2", kesit_cihazda(işlemcide(TR_zeros([1024]))).TR_device)
-TR_print("NİCEMLİ", nicemli_hatası(TR_default_device()) == TR_none)
+TR_var açık = NicemliSeçim(değer: "açık", kaynak: "komut")
+TR_print("NİCEMLİ", nicemli_hatası(TR_default_device(), açık) == TR_none)
 TR_if TR_default_device() == "cpu" { TR_print("NİCEMLİ_KART atlandı") } TR_else {
     TR_var w = TR_zeros([3, 256], TR_dtype: "q4_k")
     TR_var ileti = ""
     TR_var neden = ""
     TR_try {
-        TR_try { TR_quantized_activations { TR_ones([2, 256]) @ w.TR_transpose() } } TR_catch e { nicemli_hatasını_at(e) }
+        TR_try { TR_quantized_activations { TR_ones([2, 256]) @ w.TR_transpose() } } TR_catch e { nicemli_hatasını_at(e, açık) }
     } TR_catch h {
         ileti = TR_String(h.TR_value)
         neden = TR_String(h.TR_cause.TR_code)
@@ -87,9 +88,11 @@ func TestChainDeviceTransitions(t *testing.T) {
 }
 
 // asistan.tr'nin --cihaz'ı (T1 tasarımının G7'si, dilim 4b): varsayılan cihaz modellerden ve yan etkilerden önce kurulur.
-// Program modelsiz koşar (yolları olmayan dosyalar): nicemli denetimi seçilen cihazı görür (kartta durur, işlemcide
-// parçalayıcının yükleme hatasına varır); geçersiz ya da kullanılamayan cihaz deneme klasörü kurulmadan durur; ekranlı
-// kipte cpu dışındaki cihaz sunucu açılmadan hatadır. Kart benzeticide (TR_GPU_SIM) tek kart vardır: gpu:7 hiçbir
+// Program modelsiz koşar (yolları olmayan dosyalar): açık nicemli seçimin denetimi seçilen cihazı görür (kartta durur,
+// işlemcide parçalayıcının yükleme hatasına varır), otomatik kartta da durmaz; seçimin yanlış değeri doğrusunu önerir
+// (true ve on açık, false ve off kapalı, auto otomatik), değersiz bayrak dilin kullanım hatasıdır (DENETİM 774 N1);
+// geçersiz ya da kullanılamayan cihaz deneme klasörü kurulmadan durur; ekranlı kipte cpu dışındaki cihaz sunucu
+// açılmadan hatadır. Kart benzeticide (TR_GPU_SIM) tek kart vardır: gpu:7 hiçbir
 // makinede yoktur.
 func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
 	program := reporoot.Path(chainProgram)
@@ -101,9 +104,17 @@ func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
 		want, not string
 		record    bool
 	}{
-		{"gpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "gpu"}, "dil modelinin cihazı gpu:0", "yüklenemedi", false},
-		{"cpu, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "--cihaz", "cpu"}, "yüklenemedi", "dil modelinin cihazı", false},
-		{"seçeneksiz, nicemli", []string{"--kip", "dosya", "--nicemli_etkinleştirme"}, "yüklenemedi", "dil modelinin cihazı", false},
+		{"gpu, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık", "--cihaz", "gpu"}, "dil modelinin cihazı gpu:0", "yüklenemedi", false},
+		{"cpu, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık", "--cihaz", "cpu"}, "yüklenemedi", "dil modelinin cihazı", false},
+		{"seçeneksiz, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık"}, "yüklenemedi", "dil modelinin cihazı", false},
+		{"gpu, nicemli otomatik", []string{"--kip", "dosya", "--cihaz", "gpu"}, "yüklenemedi", "dil modelinin cihazı", false},
+		{"nicemli true", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "true"}, "--nicemli_etkinleştirme otomatik, açık ya da kapalı olur, true verildi. Örnek: --nicemli_etkinleştirme açık", "yüklenemedi", false},
+		{"nicemli on", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "on"}, "on verildi. Örnek: --nicemli_etkinleştirme açık", "yüklenemedi", false},
+		{"nicemli false", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "false"}, "false verildi. Örnek: --nicemli_etkinleştirme kapalı", "yüklenemedi", false},
+		{"nicemli off", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "off"}, "off verildi. Örnek: --nicemli_etkinleştirme kapalı", "yüklenemedi", false},
+		{"nicemli auto", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "auto"}, "auto verildi. Örnek: --nicemli_etkinleştirme otomatik", "yüklenemedi", false},
+		{"nicemli boş", []string{"--kip", "dosya", "--nicemli_etkinleştirme", ""}, " verildi. Örnek: --nicemli_etkinleştirme açık", "yüklenemedi", false},
+		{"nicemli değersiz", []string{"--kip", "dosya", "--cihaz", "cpu", "--nicemli_etkinleştirme"}, "bir değer bekler", "yüklenemedi", false},
 		{"kart", []string{"--kip", "dosya", "--cihaz", "kart"}, `bilinmeyen cihaz "kart"`, "DENEME", true},
 		{"boş ad", []string{"--kip", "dosya", "--cihaz", ""}, `bilinmeyen cihaz ""`, "DENEME", true},
 		{"gpu:7", []string{"--kip", "dosya", "--cihaz", "gpu:7"}, "gpu:7 cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: cpu, gpu:0", "DENEME", true},

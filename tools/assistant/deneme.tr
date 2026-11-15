@@ -4,9 +4,10 @@
 # `bekleme_ms` sözün sonundan, öbürleri `t0`'dan (VAD'ın kararı, sözün sonu + 608 ms); metin turunda VAD yoktur,
 # `bekleme_ms` 608 fazladır. Kayıt kullanıcının sesidir: klasör bir deponun ve bulut klasörlerinin dışında olur.
 TR_import "zincir"
+TR_import "nicemli" # nicemli_hâli (tur satırı)
 
 TR_const _SAAT_FARKI_SN = 10800 # TSS, UTC+3
-TR_const _DENEME_BAŞLIĞI = ["kip", "dil_modeli", "whisper", "vad", "ses_modeli", "en_çok_tur", "ekran", "nicemli_etkinleştirme", "cihaz"]
+TR_const _DENEME_BAŞLIĞI = ["kip", "dil_modeli", "whisper", "vad", "ses_modeli", "en_çok_tur", "ekran", "nicemli_seçimi", "cihaz"]
 TR_const _DENEME_SÜRELERİ = ["bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms"]
 # Eşitlenen bulut klasörlerinin adları, küçük harfle: OneDrive, Google Drive (İngilizce ve Türkçe adı, düz ve kıvrık
 # kesmeyle), Dropbox, iCloud Drive.
@@ -112,6 +113,7 @@ TR_struct Deneme {
         TR_var süreler = [t.bekleme_ms, t.yazı_ms, t.ilk_parça_ms, t.çalma_ms, t.cevap_ms, t.geride_ms]
         TR_for i TR_in 0.._DENEME_SÜRELERİ.TR_length { d[_DENEME_SÜRELERİ[i]] = TR_JSON(süreler[i]) }
         d["token_sn"] = TR_JSON(token_hızı(t))
+        d["nicemli"] = TR_JSON(nicemli_hâli(t.nicemli)) # turun modelinin çözülmüş hâli (ekranlı kipte model değişebilir)
         TR_var satır = TR_JSON(d)
         TR_self.satırlar += TR_json_string(satır) + "\n"
         TR_write_file(TR_Path(TR_self.klasör, "turlar.jsonl"), TR_self.satırlar)
