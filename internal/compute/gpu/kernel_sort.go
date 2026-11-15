@@ -410,6 +410,117 @@ func sortOutputKernel(valued bool) func() *emitter {
 	}
 }
 
+// ----------------------------------------------------------------------------
+// Küçük k seçimi (TR_topk, k ≤ topKList)
+// ----------------------------------------------------------------------------
+//
+// Tam sıralamasız seçim: anahtar tam sıralamanınkidir (orderKeyPTX: değer anahtarı << 32 | d),
+// anahtarlar tekildir; en küçük k anahtar ve onların artan sırası tam sıralamanın ilk k'sıyla
+// bit bit aynıdır, seçimin ve birleştirmenin sırası sonucu değiştirmez. Her iş parçacığı en
+// küçük topKList anahtarı artan sırayla yazmaçlarda tutar (k ne olursa olsun topKList: en
+// küçük topKList anahtar en küçük k'yı içerir). İki başlatma:
+//   - aday (topKCandKernel): ızgara (satır, parça); blok satırın bir parçasının en küçük
+//     topKList anahtarını aday tamponuna yazar;
+//   - birleştirme (topKMergeKernel): satır başına bir blok, satırın adaylarından en küçük k
+//     anahtarın indeksini (ve değerini) writeOutput ile yazar.
+//
+// Listenin yardımcıları (topKEmpty, topKInsert, topKBlockMerge) kernel_reduce.go'da, blok içi
+// indirgemenin yanındadır.
+
+// topKList küçük k seçiminde iş parçacığı başına tutulan anahtar sayısı (k'nın üst sınırı).
+const topKList = 16
+
+// topKCandKernel küçük k seçiminin aday aşaması: blok (satır, c) satırın [c·parça,
+// (c+1)·parça) aralığının en küçük topKList anahtarını aday[(satır·C + c)·topKList ...]'ya
+// yazar (C ızgaranın y boyu).
+func topKCandKernel(B int, descending bool) func() *emitter {
+	return func() *emitter {
+		k := newEmitter(fmt.Sprintf("enbuyuk_aday_%d_%v", B, descending))
+		x := k.pointer("x")
+		cand := k.written("aday")
+		L := k.u32p("l")
+		ic := k.u32p("ic")
+		part := k.u32p("parca")
+		sm := k.shared("sm", 8*topKList*B)
+		row, tid := k.special("%ctaid.x"), k.special("%tid.x")
+		_, _, base2 := k.rowBase(row, L, ic)
+		d := k.r()
+		k.e("mov.u32", d, tid)
+		c, end := k.partRange(d, part, L)
+		list := k.topKEmpty()
+		k.whileLess("u32", d, end, func() {
+			j := k.r()
+			k.e("mad.lo.s32", j, d, ic, base2)
+			v := k.load(tensor.Float32, k.address(x, j, 4))
+			k.topKInsert(list, k.orderKeyPTX(v, d, descending))
+			k.e("add.s32", d, d, B)
+		})
+		k.topKBlockMerge(list, sm, tid, B)
+		last := k.label()
+		p := k.p()
+		k.e("setp.ne.u32", p, tid, 0)
+		k.jumpIf(p, last)
+		o := k.r()
+		k.e("mad.lo.s32", o, row, k.special("%nctaid.y"), c)
+		k.e("mul.lo.s32", o, o, topKList)
+		a := k.address(cand, o, 8)
+		for i, r := range list {
+			k.e("st.global.u64", mem(a, 8*i), r)
+		}
+		k.put(last)
+		return k
+	}
+}
+
+// topKMergeKernel küçük k seçiminin birleştirme aşaması: satır başına bir blok satırın n
+// adayından (aday[satır·n ...]) en küçük k anahtarın indeksini (ve değerini) yazar.
+func topKMergeKernel(B int, valued bool) func() *emitter {
+	return func() *emitter {
+		k := newEmitter(fmt.Sprintf("enbuyuk_birlestir_%d_%v", B, valued))
+		cand := k.pointer("aday")
+		x := k.pointer("x")
+		idx := k.written("idx")
+		var vals reg
+		if valued {
+			vals = k.written("vals")
+		}
+		n := k.u32p("n")
+		L := k.u32p("l")
+		ic := k.u32p("ic")
+		kCount := k.u32p("k")
+		sm := k.shared("sm", 8*topKList*B)
+		row, tid := k.special("%ctaid.x"), k.special("%tid.x")
+		o, i, base2 := k.rowBase(row, L, ic)
+		first := k.r()
+		k.e("mul.lo.s32", first, row, n)
+		e := k.r()
+		k.e("mov.u32", e, tid)
+		list := k.topKEmpty()
+		k.whileLess("u32", e, n, func() {
+			g := k.r()
+			k.e("add.s32", g, first, e)
+			c := k.rd()
+			k.e("ld.global.u64", c, mem(k.address(cand, g, 8), 0))
+			k.topKInsert(list, c)
+			k.e("add.s32", e, e, B)
+		})
+		k.topKBlockMerge(list, sm, tid, B)
+		last := k.label()
+		p := k.p()
+		k.e("setp.ne.u32", p, tid, 0)
+		k.jumpIf(p, last)
+		for t, r := range list {
+			tr := k.whole(t)
+			done := k.p()
+			k.e("setp.ge.u32", done, tr, kCount)
+			k.jumpIf(done, last)
+			k.writeOutput(r, tr, o, i, kCount, ic, base2, x, idx, vals, valued)
+		}
+		k.put(last)
+		return k
+	}
+}
+
 // sumBackwardKernel gx[(o·L + idx)·iç + i] += g[(o·k + j)·iç + i] (iş parçacığı başına bir
 // g elemanı; bir satırdaki indeksler tekil olduğundan yazmalar çakışmaz).
 func sumBackwardKernel() *emitter {

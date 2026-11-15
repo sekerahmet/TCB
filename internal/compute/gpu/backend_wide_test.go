@@ -238,6 +238,71 @@ func TestSortGlobalMemory(t *testing.T) {
 	sortCompare(t, [][]int{{17}, {3, 40}, {50, 2}})
 }
 
+// topKBits x'in ax eksenindeki en büyük k elemanının değer ve indeks bitleri; m > 0 ise
+// m'lik sonucun her satırının ilk k'sı (k = m'nin ilk k'sı karşılaştırması için).
+func topKBits(x *tensor.Tensor, k, m, ax int) (vals, idx []uint32) {
+	n := k
+	if m > 0 {
+		n = m
+	}
+	v, i := x.TopK(n, ax)
+	outer, _, ic := tensor.AxisOrder(x.Shape(), ax)
+	vd, id := v.Data(), i.Data()
+	for o := 0; o < outer; o++ {
+		for j := 0; j < k; j++ {
+			for c := 0; c < ic; c++ {
+				at := (o*n+j)*ic + c
+				vals, idx = append(vals, math.Float32bits(vd[at])), append(idx, math.Float32bits(id[at]))
+			}
+		}
+	}
+	return vals, idx
+}
+
+// TestTopKSmallKMatchesSort küçük k'nın tam sıralamasız seçimini (topKSelect) bit bit
+// karşılaştırır: aynı girdide k = 16'nın (ve 1, 2'nin) sonucu k = 17'nin (tam sıralama) ilk
+// k'sıyla, aynı k'da eski yolla (smallTopK = 0) ve CPU'yla. Eksen 4 096'nın altında (ortak
+// bellek sıralaması) ve üstünde (genel bellek sıralaması), adımlı eksen; eşitler, ±0, −∞ ve
+// ayrı yüklü NaN'lar.
+func TestTopKSmallKMatchesSort(t *testing.T) {
+	skipUnderRace(t)
+	rng := rand.New(rand.NewSource(23))
+	nanA, nanB := math.Float32frombits(0x7FC00001), math.Float32frombits(0xFFC00002)
+	for _, c := range []struct {
+		sh []int
+		ax int
+	}{{[]int{3, 1000}, 1}, {[]int{1000, 3}, 0}, {[]int{5000}, 0}} {
+		v := sortData(rng, tensor.NumelOf(c.sh))
+		v[10], v[20], v[30], v[40] = nanA, nanB, float32(math.Copysign(0, -1)), 0
+		g := tensor.NewOn(gpuDevice, v, c.sh...)
+		cpu := tensor.NewOn(tensor.CPU, v, c.sh...)
+		for _, k := range []int{1, 2, 16} {
+			ad := fmt.Sprintf("%v eksen %d, k = %d", c.sh, c.ax, k)
+			gv, gi := topKBits(g, k, 0, c.ax)
+			sv, si := topKBits(g, k, 17, c.ax)
+			old := smallTopK
+			smallTopK = 0
+			ov, oi := topKBits(g, k, 0, c.ax)
+			smallTopK = old
+			cv, ci := topKBits(cpu, k, 0, c.ax)
+			for _, w := range []struct {
+				ad     string
+				vv, ii []uint32
+			}{{"k = 17'nin ilk k'sı", sv, si}, {"eski yol", ov, oi}, {"CPU", cv, ci}} {
+				if fmt.Sprint(gv) != fmt.Sprint(w.vv) || fmt.Sprint(gi) != fmt.Sprint(w.ii) {
+					t.Fatalf("%s: seçim %s ile bit bit aynı değil:\n değer %x\n %x\n indeks %x\n %x", ad, w.ad, gv, w.vv, gi, w.ii)
+				}
+			}
+		}
+	}
+	ptxSeen.Lock()
+	_, ok := ptxSeen.m["enbuyuk_aday:128:true"]
+	ptxSeen.Unlock()
+	if !ok {
+		t.Fatal("enbuyuk_aday:128:true derlenmedi: tam sıralamasız seçim koşmadı")
+	}
+}
+
 // TestWide16BitDeterministic 16 bitlik depolamada float32'ye açılıp hesaplanır; aynı
 // girdi aynı bitleri verir.
 func TestWide16BitDeterministic(t *testing.T) {

@@ -221,6 +221,11 @@ func (g *backend) Sort(vals, idx tensor.Storage, x tensor.View, axis, kCount int
 		P = 1
 	}
 	valued := v != nil
+	if kCount <= smallTopK && kCount < L {
+		g.topKSelect(v, id, xv, row, L, ic, kCount, desc)
+		lastV()
+		return
+	}
 	if P <= sharedSortLimit {
 		k := g.takeKernel(fmt.Sprintf("sirala_ortak:%d:%v:%v", P, desc, valued), sortSharedKernel(P, desc, valued))
 		p := g.param().readV(xv).write(id, 0)
@@ -234,6 +239,32 @@ func (g *backend) Sort(vals, idx tensor.Storage, x tensor.View, axis, kCount int
 	}
 	g.sortGlobal(v, id, xv, row, L, ic, kCount, P, desc)
 	lastV()
+}
+
+// smallTopK tam sıralamasız seçimin (topKSelect) en büyük k'sı; k bundan büyükse ya da
+// eksenin tamamıysa tam sıralama koşar. Sınamalar eski yolu denemek için 0 yapar.
+var smallTopK = topKList
+
+// topKSelect küçük k'yı tam sıralamasız seçer (kernel_sort.go, "Küçük k seçimi"): aday
+// aşaması satırı parçalara böler (blok başına ~2 048 eleman, iş parçacığı başına ~16),
+// birleştirme satır başına bir blokla k'yı yazar; iki başlatma.
+func (g *backend) topKSelect(v, id *storage, xv tensor.View, row, L, ic, kCount int, desc bool) {
+	const B, part0 = 128, 2048
+	C := min((L+part0-1)/part0, 65535)
+	part := (L + C - 1) / C
+	checkSize(row * C * topKList)
+	buf := g.allocate(2*row*C*topKList, tensor.Float32, false) // 64 bitlik anahtarlar
+	defer g.release(buf)
+	ka := g.takeKernel(fmt.Sprintf("enbuyuk_aday:%d:%v", B, desc), topKCandKernel(B, desc))
+	g.launch(ka, [3]uint32{uint32(row), uint32(C), 1}, [3]uint32{B, 1, 1},
+		g.param().readV(xv).write(buf, 0).u32(L).u32(ic).u32(part))
+	valued := v != nil
+	kb := g.takeKernel(fmt.Sprintf("enbuyuk_birlestir:%d:%v", B, valued), topKMergeKernel(B, valued))
+	p := g.param().read(buf, 0).readV(xv).write(id, 0)
+	if valued {
+		p.write(v, 0)
+	}
+	g.launch(kb, [3]uint32{uint32(row), 1, 1}, [3]uint32{B, 1, 1}, p.u32(C*topKList).u32(L).u32(ic).u32(kCount))
 }
 
 // sortGlobal P > ortakSiralamaSiniri satırları genel bellekteki anahtar tamponunda her
