@@ -42,6 +42,12 @@ on("catalog", (d) => {
   renderSettings();
 });
 
+// download: girdinin son indirme işi; satırı view.js'nin renderDownloads'ı kurar.
+on("download", (d) => {
+  if (typeof d.entry_id === "string") ui.downloads[d.entry_id] = d;
+  renderDownloads();
+});
+
 on("devices", (d) => {
   ui.microphones = (Array.isArray(d.microphones) ? d.microphones : []).filter((name) => typeof name === "string" && name !== "");
   renderSettings();
@@ -67,6 +73,7 @@ on("state", (d) => {
   if (STATES.includes(d.state)) ui.state = d.state;
   ui.mic = d.mic === true;
   ui.progress = num(d.progress);
+  ui.verifying = d.verifying === true;
   renderStatus();
 });
 

@@ -67,6 +67,9 @@ TR_struct Ekran {
     kayıt: TR_Bool = TR_false # sınama: gönderilen olaylar `giden`'e de yazılır
     eşleme: Eşleme? = TR_none # `--tarayıcıyla_eşle` ile: `/pair` ve `/pair/renew` (esleme.tr)
     giden: TR_List[TR_JSON] = []
+    # indirme: `model_download`, `download_cancel` ve `model_delete`'in kararı; oturum.tr kurar (indirme.tr). Katalogsuz
+    # (`--dil_modeli`) açılışta girdi yoktur: `unknown_entry`, `unknown_job`.
+    indirme: (Komut) -> TR_JSON = indirmesiz
 
     TR_func gönder(tür: TR_String, veri: TR_JSON) {
         TR_var olay = TR_JSON({"v": _SÜRÜM, "type": tür, "data": veri})
@@ -74,13 +77,21 @@ TR_struct Ekran {
         TR_if TR_self.kayıt { TR_self.giden.TR_append(olay) }
     }
 
-    TR_func durum(durum: TR_String) { TR_self.gönder("state", TR_JSON({"state": durum, "mic": TR_self.mic})) }
+    # durum: `state` olayı; `loading` her zaman `verifying` taşır (false; açılış karmasında `doğrulanıyor`).
+    TR_func durum(durum: TR_String) {
+        TR_var d: TR_Dict[TR_String, TR_JSON] = {"state": TR_JSON(durum), "mic": TR_JSON(TR_self.mic)}
+        TR_if durum == "loading" { d["verifying"] = TR_JSON(TR_false) }
+        TR_self.gönder("state", TR_JSON(d))
+    }
+
+    # doğrulanıyor: açılışta kaydı olmayan modellerin dosyaları karılırken `loading`, `verifying: true` (yuva.tr, `kurulu`).
+    TR_func doğrulanıyor() { TR_self.gönder("state", TR_JSON({"state": "loading", "mic": TR_self.mic, "verifying": TR_true})) }
 
     TR_func boşta() { TR_self.durum(TR_if TR_self.mic { "listening" } TR_else { "idle" }) }
 
     # yükleniyor: `loading` durumu, yüklenen dil modelinin katalog kimliğiyle (komut satırından verilen yolda kimlik yok).
     TR_func yükleniyor(giriş: TR_String) {
-        TR_var d: TR_Dict[TR_String, TR_JSON] = {"state": TR_JSON("loading"), "mic": TR_JSON(TR_self.mic)}
+        TR_var d: TR_Dict[TR_String, TR_JSON] = {"state": TR_JSON("loading"), "mic": TR_JSON(TR_self.mic), "verifying": TR_JSON(TR_false)}
         TR_if giriş != "" { d["model"] = TR_JSON(giriş) }
         TR_self.gönder("state", TR_JSON(d))
     }
@@ -121,7 +132,8 @@ TR_func sayfanın_betikleri(kök: TR_String, klasör: TR_String) -> TR_List[TR_S
 # ---------- Katlama (28.7) ----------
 
 # katla: bir olayı görüntünün `snapshot`'ına sözleşmenin sıkıştırma kuralıyla işler ("session"): son `state` başta,
-# son `metrics` sonda, son `settings` ve son `catalog` tutulur, bir konuşma parçası tek `turn_text`, kapanan onay düşer. Yeni tur açılırken görüntü bütçeyi
+# son `metrics` sonda, son `settings` ve son `catalog` tutulur, her indirme işinin son `download`'u iş bitene kadar,
+# bir konuşma parçası tek `turn_text`, kapanan onay düşer. Yeni tur açılırken görüntü bütçeyi
 # aşıyorsa eski turlar düşer; açık onay düşmez. Zarf (`v`, `type`) başlangıç değerindedir.
 TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
     TR_var tür = TR_String(olay["type"])
@@ -135,6 +147,12 @@ TR_func katla(g: TR_JSON, olay: TR_JSON) -> TR_JSON {
             TR_if ["idle", "listening"].TR_contains(TR_String(veri["state"])) { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != "error"] }
         }
         "settings", "catalog" => { l = [x TR_for x TR_in l TR_if TR_String(x["type"]) != tür] + [giriş] }
+        "download" => {
+            # Görüntü sıradaki ve süren işleri taşır: işin son olayı; biten iş düşer.
+            TR_var iş = TR_String(veri["job_id"])
+            l = [x TR_for x TR_in l TR_if TR_not (TR_String(x["type"]) == "download" TR_and TR_String(x["data"]["job_id"]) == iş)]
+            TR_if ["queued", "running", "verifying"].TR_contains(TR_String(veri["state"])) { l = araya(l, giriş) }
+        }
         "error" => {
             # Yüklemenin hatası görüntüye girer: yarıda kalan yüklemenin işareti ekran bağlanmadan okunur (yuva.tr).
             # Sonraki başarılı yüklemeyle (`idle`, `listening`) düşer; öbür hatalar görüntüye girmez.
@@ -266,7 +284,8 @@ TR_func komutları_işle(e: Ekran) {
 }
 
 # karar: bir komutun cevabı ve etkisi. Etkiyi ana döngü uygular: metin turu (`metin`), mikrofon (`mikrofon_istendi`),
-# durdurma (`durdur`), yükleme (`yüklenecek`), ayar (`ayar_istendi`), mikrofonların listesi (`aygıtlar_istendi`).
+# durdurma (`durdur`), yükleme (`yüklenecek`), ayar (`ayar_istendi`), mikrofonların listesi (`aygıtlar_istendi`);
+# indirme komutları oturumundur (`indirme`).
 TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
     TR_match k.tür {
         "send_text" => {
@@ -292,9 +311,16 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
         }
         "settings_set" => { TR_return ayar_kararı(e, k) }
         "devices_list" => { e.aygıtlar_istendi = TR_true }
+        "model_download", "download_cancel", "model_delete" => { TR_return e.indirme(k) }
         _ => { TR_return red(k.kimlik, "unknown_command", TR_JSON({"type": k.tür})) }
     }
     TR_return kabul(k.kimlik)
+}
+
+# indirmesiz: katalogsuz açılışta indirme komutlarının cevabı.
+TR_func indirmesiz(k: Komut) -> TR_JSON {
+    TR_if k.tür == "download_cancel" { TR_return red(k.kimlik, "unknown_job", TR_JSON({"job_id": k.veri["job_id"]})) }
+    TR_return red(k.kimlik, "unknown_entry", TR_JSON({"entry_id": k.veri["entry_id"]}))
 }
 
 # ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın

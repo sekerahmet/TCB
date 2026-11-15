@@ -1,0 +1,330 @@
+# TR 4
+# Dost'un ekranlı kipinin indirme yöneticisi (tek tık D; contract.md, `download`, `model_download`, `download_cancel`,
+# `model_delete`). oturum.tr kurar ve ana döngüden sürer (`adım`); indirme_test.tr 127.0.0.1'deki TR sunucusuyla,
+# modelsiz sınar.
+# - Bir girdinin dosyaları `<Dost>/indirme/<kimlik>/<target>`'a iner (`.part` yanında, 28.10). Hepsi inince kayıt
+#   silinir, dosyalar `modeller/<kimlik>/`'e taşınır, kayıt yeniden yazılır (yuva.tr, `kayıt_yaz`): yarıda kalan taşıma
+#   kurulu bırakmaz; `indirme/`'de kalan tam dosya sonraki işte karılır, tutarsa kullanılır.
+# - Adres yalnız katalogdan kurulur (`katalog_adresi`); her dosya katalogun sha256'sı ve boyuyla iner. Yönlendirme
+#   28.11'in kurallarıyla izlenir (her adımda `https`, yerel adres yasağı): izin ilk adreste.
+# - Aynı anda tek iş, ayrı bir görevde koşar. Görev yalnız işin `alınan`'ını ve `durum`'unu yazar; olayları ana döngü
+#   gönderir: durum değişince hemen, ilerlemede iş başına en çok saniyede bir.
+TR_import "yuva"
+
+TR_const _OLAY_ARALIĞI_MS = 1000
+TR_const _İPTAL = "H2920"
+# Ağın, sunucunun ve sürenin kodları (28.10, 28.11): `download_failed`.
+TR_const _AĞ_KODLARI = ["H7709", "H7710", "H7711", "H7712", "H7713", "H7714", "H7715", "H7716", "H7717", "H7718", "H7720", "H7738", "H7739"]
+
+# İş: bir girdinin indirme işi. `girdi` katalog dosyasının girdisidir; `alınan` her dosyanın (`target`) inen baytı.
+TR_struct İş {
+    kimlik: TR_String
+    girdi: TR_JSON
+    durum: TR_String = "queued"
+    alınan: TR_Dict[TR_String, TR_Int] = {}
+    hata: TR_JSON? = TR_none
+    iptal: TR_Bool = TR_false
+    gönderilen: TR_String = "" # son olayın durumu
+    olay_ms: TR_Int = -1 # son ilerleme olayının anı
+    olay_baytı: TR_Int = 0 # o olaydaki toplam bayt
+    hız: TR_Int = 0
+
+    TR_func girdi_kimliği() -> TR_String { TR_return TR_String(TR_self.girdi["id"]) }
+
+    TR_func toplam() -> TR_Int {
+        TR_var n = 0
+        TR_for ad, b TR_in TR_self.alınan { n += b }
+        TR_return n
+    }
+
+    # olay: `download` olayının verisi.
+    TR_func olay() -> TR_JSON {
+        TR_var dosyalar: TR_List[TR_JSON] = []
+        TR_for f TR_in TR_self.girdi["source"]["files"] {
+            TR_var t = TR_String(f["target"])
+            dosyalar.TR_append(TR_JSON({"name": t, "done_bytes": TR_self.alınan.TR_get(t) ?? 0, "total_bytes": f["bytes"]}))
+        }
+        TR_var hata = TR_self.hata
+        TR_return TR_JSON({"job_id": TR_self.kimlik, "entry_id": TR_self.girdi_kimliği(), "state": TR_self.durum, "files": dosyalar,
+            "bytes_per_second": TR_if TR_self.durum == "running" { TR_self.hız } TR_else { 0 }, "error": hata ?? TR_JSON(TR_none)})
+    }
+}
+
+# İndirici: sıradaki işler, süren iş ve onun görevi, bu oturumda biten işler (`download_cancel`'ın cevabı). Alanlarını
+# yalnız ana döngü yazar. `bitti` bir girdi kurulunca çağrılır (oturum kurulu listesini yeniler, `catalog` gönderir);
+# `adres` dosyanın adresidir, sınamada 127.0.0.1'deki sunucuya gider.
+TR_struct İndirici {
+    kj: TR_JSON
+    klasör: TR_String # Dost klasörü
+    gönder: (TR_String, TR_JSON) -> TR_NoneType
+    bitti: () -> TR_NoneType
+    adres: (TR_JSON, TR_JSON) -> TR_String = katalog_adresi
+    sayaç: TR_Int = 0
+    sıra: TR_List[İş] = []
+    süren: İş? = TR_none
+    görev: TR_Task[TR_JSON]? = TR_none
+    bitenler: TR_Dict[TR_String, TR_String] = {}
+
+    # sürüyor_mu: girdinin işi sırada ya da sürüyor mu.
+    TR_func sürüyor_mu(kimlik: TR_String) -> TR_Bool {
+        TR_var s = TR_self.süren
+        TR_if s != TR_none TR_and s.girdi_kimliği() == kimlik { TR_return TR_true }
+        TR_for i TR_in TR_self.sıra {
+            TR_if i.girdi_kimliği() == kimlik { TR_return TR_true }
+        }
+        TR_return TR_false
+    }
+
+    # kuyruğa: girdileri sıraya koyar, her girdi bir iş; `queued` olayı hemen gider.
+    TR_func kuyruğa(kimlikler: TR_List[TR_String]) {
+        TR_for kimlik TR_in kimlikler {
+            TR_var g = girdi_ham(TR_self.kj, kimlik)
+            TR_if g == TR_none { TR_continue }
+            TR_self.sayaç += 1
+            TR_var iş = İş(kimlik: "d\(TR_self.sayaç)", girdi: g)
+            TR_self.sıra.TR_append(iş)
+            TR_self.olayı_gönder(iş)
+        }
+    }
+
+    # durdur: `download_cancel`. Sıradaki iş kalkar (`cancelled`), süren işin görevi iptal edilir (`.part` kalır, 28.10;
+    # durum `adım`'da yazılır). Bu oturumda bitmiş iş "bitmiş", hiç olmamış iş "yok" verir.
+    TR_func durdur(iş_kimliği: TR_String) -> TR_String {
+        TR_var s = TR_self.süren
+        TR_if s != TR_none TR_and s.kimlik == iş_kimliği {
+            s.iptal = TR_true
+            TR_var g = TR_self.görev
+            TR_if g != TR_none { g.TR_cancel() }
+            TR_return "durdu"
+        }
+        TR_for i TR_in 0..TR_self.sıra.TR_length {
+            TR_var iş = TR_self.sıra[i]
+            TR_if iş.kimlik == iş_kimliği {
+                TR_self.sıra.TR_remove_at(i)
+                iş.durum = "cancelled"
+                TR_self.bitenler[iş.kimlik] = iş.durum
+                TR_self.olayı_gönder(iş)
+                TR_return "durdu"
+            }
+        }
+        TR_return TR_if TR_self.bitenler.TR_contains(iş_kimliği) { "bitmiş" } TR_else { "yok" }
+    }
+
+    TR_func olayı_gönder(iş: İş) {
+        iş.gönderilen = iş.durum
+        TR_self.gönder("download", iş.olay())
+    }
+
+    # adım: ana döngünün her bakışında: biten görevin sonucunu yazar, süren işin ilerlemesini gönderir, boşsa sıradaki
+    # işi başlatır.
+    TR_func adım() {
+        TR_var s = TR_self.süren
+        TR_if s != TR_none {
+            TR_var g = TR_self.görev
+            TR_if g != TR_none TR_and g.TR_done() {
+                TR_self.bitir(s, g)
+            } TR_else {
+                TR_self.ilerleme(s)
+                TR_return
+            }
+        }
+        TR_if TR_self.sıra.TR_length == 0 { TR_return }
+        TR_var iş = TR_self.sıra.TR_remove_at(0)
+        TR_self.süren = iş
+        TR_self.görev = TR_async _indir(TR_self.klasör, TR_self.adres, iş)
+    }
+
+    TR_func ilerleme(iş: İş) {
+        TR_var ş = şimdi_ms()
+        TR_if iş.durum != iş.gönderilen {
+            iş.olay_ms = ş
+            iş.olay_baytı = iş.toplam()
+            TR_self.olayı_gönder(iş)
+            TR_return
+        }
+        TR_if iş.durum != "running" TR_or ş - iş.olay_ms < _OLAY_ARALIĞI_MS { TR_return }
+        TR_var n = iş.toplam()
+        iş.hız = (n - iş.olay_baytı) * 1000 // (ş - iş.olay_ms)
+        iş.olay_ms = ş
+        iş.olay_baytı = n
+        TR_self.olayı_gönder(iş)
+    }
+
+    # bitir: görevin sonucu: boş nesne `done` (girdi kuruldu), kodlu nesne `failed`; iptal `cancelled`; görevin
+    # yakalanmayan hatası Dost'un yanlışıdır: `failed`, `internal`.
+    TR_func bitir(iş: İş, g: TR_Task[TR_JSON]) {
+        TR_self.süren = TR_none
+        TR_self.görev = TR_none
+        TR_try {
+            TR_var sonuç = g.TR_wait()
+            iş.durum = TR_if sonuç.TR_get("code") == TR_none { "done" } TR_else { "failed" }
+            TR_if iş.durum == "failed" { iş.hata = sonuç }
+        } TR_catch h {
+            TR_if iş.iptal TR_and h.TR_code == _İPTAL {
+                iş.durum = "cancelled"
+            } TR_else {
+                TR_print("İNDİRME HATASI:", h)
+                iş.durum = "failed"
+                iş.hata = _kod("internal", TR_JSON({}))
+            }
+        }
+        TR_self.bitenler[iş.kimlik] = iş.durum
+        TR_self.olayı_gönder(iş)
+        TR_if iş.durum == "done" { TR_self.bitti() }
+    }
+
+    # işler: süren ve sıradaki işler, sırasıyla (sınama; yeni bağlanan ekranın görüntüsü katlamadan gelir, ekran.tr).
+    TR_func işler() -> TR_List[İş] {
+        TR_var s = TR_self.süren
+        TR_return TR_if s == TR_none { TR_self.sıra } TR_else { [s] + TR_self.sıra }
+    }
+}
+
+TR_func şimdi_ms() -> TR_Int { TR_return TR_time_ms() }
+
+TR_func _kod(kod: TR_String, değerler: TR_JSON) -> TR_JSON { TR_return TR_JSON({"code": kod, "values": değerler}) }
+
+# girdi_ham: katalog dosyasının bir girdisi; yoksa TR_none.
+TR_func girdi_ham(kj: TR_JSON, kimlik: TR_String) -> TR_JSON? {
+    TR_for g TR_in kj["entries"] {
+        TR_if TR_String(g["id"]) == kimlik { TR_return g }
+    }
+    TR_return TR_none
+}
+
+# katalog_adresi: dosyanın adresi, yalnız katalogdan: `huggingface` ya da `github` (katalog.tr başka konağı reddeder).
+TR_func katalog_adresi(g: TR_JSON, f: TR_JSON) -> TR_String {
+    TR_var s = g["source"]
+    TR_var yer = "\(TR_String(s["repo"]))/\(TR_String(s["revision"]))/\(TR_String(f["path"]))"
+    TR_if TR_String(s["host"]) == "github" { TR_return "https://raw.githubusercontent.com/\(yer)" }
+    TR_return "https://huggingface.co/\(TR_String(s["repo"]))/resolve/\(TR_String(s["revision"]))/\(TR_String(f["path"]))"
+}
+
+# yol_parçası_mı: tek yol parçası: boş, `.`, `..` değil, ayırıcı taşımıyor (DENETİM 768 N4). Katalogun `id`'si ve
+# `target`'ı taşınan ve silinen yollara girer; başka parça Dost klasörünün dışına yazdırırdı.
+TR_func yol_parçası_mı(x: TR_String) -> TR_Bool {
+    TR_return x != "" TR_and x != "." TR_and x != ".." TR_and TR_Path(x).TR_name == x
+}
+
+TR_func _yollar_doğru(g: TR_JSON) -> TR_Bool {
+    TR_if TR_not yol_parçası_mı(TR_String(g["id"])) { TR_return TR_false }
+    TR_for f TR_in g["source"]["files"] {
+        TR_if TR_not yol_parçası_mı(TR_String(f["target"])) { TR_return TR_false }
+    }
+    TR_return TR_true
+}
+
+TR_func ara_klasör(klasör: TR_String, kimlik: TR_String) -> TR_Path { TR_return TR_Path(klasör, "indirme", kimlik) }
+
+# _indir: işin görevi. Ara klasörü kurar, yeri denetler, her dosyayı indirir, sonra taşır ve kaydı yazar. Beklenen
+# hatalar kodlu nesne olarak döner (`_hata`); başarıda boş nesne.
+TR_func _indir(klasör: TR_String, adres: (TR_JSON, TR_JSON) -> TR_String, iş: İş) -> TR_JSON {
+    TR_var g = iş.girdi
+    TR_var kimlik = iş.girdi_kimliği()
+    TR_if TR_not _yollar_doğru(g) { TR_return _kod("internal", TR_JSON({})) }
+    TR_var ara = ara_klasör(klasör, kimlik)
+    TR_make_dir(ara)
+    TR_var hazır = _hazırlar(g, ara, iş)
+    TR_var gereken = _gereken(g, iş)
+    TR_var boş = ara.TR_disk_available_bytes
+    TR_if gereken > boş { TR_return _kod("disk_full", TR_JSON({"needed_bytes": gereken, "free_bytes": boş})) }
+    iş.durum = "running"
+    TR_for f TR_in g["source"]["files"] {
+        TR_var t = TR_String(f["target"])
+        TR_if hazır.TR_contains(t) { TR_continue }
+        TR_try {
+            TR_download(adres(g, f), TR_Path(ara, t), TR_sha256: TR_String(f["sha256"]), TR_size: TR_Int(f["bytes"]),
+                TR_on_progress: (alınan, toplam) => { iş.alınan[t] = alınan })
+        } TR_catch h {
+            TR_return hata_karşılığı(h.TR_code ?? "", kimlik, f, ara, _gereken(g, iş))
+        }
+        iş.alınan[t] = TR_Int(f["bytes"])
+    }
+    iş.durum = "verifying"
+    taşı(klasör, g)
+    TR_return TR_JSON({})
+}
+
+# _hazırlar: ara klasörde duran tam dosyalar (yarıda kalan taşıma): katalogla tutan kullanılır, tutmayan silinir.
+# Her dosyanın başlangıç baytı `alınan`'a yazılır (`.part`'takiler dahil). Tutan dosyaların adlarını verir.
+TR_func _hazırlar(g: TR_JSON, ara: TR_Path, iş: İş) -> TR_List[TR_String] {
+    TR_var hazır: TR_List[TR_String] = []
+    TR_for f TR_in g["source"]["files"] {
+        TR_var t = TR_String(f["target"])
+        TR_var n = TR_Int(f["bytes"])
+        TR_var son = TR_Path(ara, t)
+        TR_if son.TR_is_file {
+            TR_if son.TR_size == n TR_and TR_sha256_file(son) == TR_String(f["sha256"]) {
+                hazır.TR_append(t)
+                iş.alınan[t] = n
+                TR_continue
+            }
+            TR_remove(son)
+        }
+        TR_var part = TR_Path(ara, "\(t).part")
+        iş.alınan[t] = TR_if part.TR_is_file { TR_min(part.TR_size, n) } TR_else { 0 }
+    }
+    TR_return hazır
+}
+
+# _gereken: işin daha inecek baytı: katalog boyundan inmiş olanın çıkarılması.
+TR_func _gereken(g: TR_JSON, iş: İş) -> TR_Int {
+    TR_var n = 0
+    TR_for f TR_in g["source"]["files"] { n += TR_Int(f["bytes"]) - (iş.alınan.TR_get(TR_String(f["target"])) ?? 0) }
+    TR_return n
+}
+
+# hata_karşılığı: `TR_download`'un kodunun sözleşmedeki karşılığı (tasarım §4); `gereken` işin daha inecek baytı.
+# Diske yazılamadıysa (H7728) yer yeniden ölçülür: yetmiyorsa `disk_full`, yetiyorsa `download_failed`.
+TR_func hata_karşılığı(kod: TR_String, kimlik: TR_String, f: TR_JSON, ara: TR_Path, gereken: TR_Int) -> TR_JSON {
+    TR_var dosya = TR_String(f["target"])
+    TR_if kod == "H7721" { TR_return _kod("checksum_mismatch", TR_JSON({"file": dosya})) }
+    TR_if kod == "H7719" { TR_return _kod("size_exceeded", TR_JSON({"file": dosya, "limit_bytes": f["bytes"]})) }
+    TR_if kod == "H7722" { TR_return _kod("download_busy", TR_JSON({"entry_id": kimlik})) }
+    TR_if kod == "H7728" {
+        TR_var boş = ara.TR_disk_available_bytes
+        TR_if gereken > boş { TR_return _kod("disk_full", TR_JSON({"needed_bytes": gereken, "free_bytes": boş})) }
+        TR_return _kod("download_failed", TR_JSON({"entry_id": kimlik}))
+    }
+    TR_if _AĞ_KODLARI.TR_contains(kod) { TR_return _kod("download_failed", TR_JSON({"entry_id": kimlik})) }
+    TR_print("İNDİRME HATASI:", kimlik, kod)
+    TR_return _kod("internal", TR_JSON({}))
+}
+
+# taşı: ara klasördeki tam dosyaları kurar: önce kayıt silinir, sonra her dosya `modeller/<kimlik>/`'e taşınır, sonra
+# kayıt yazılır; boş kalan ara klasör silinir. Kayıt önce gittiği için yarıda kalan taşıma kurulu bırakmaz.
+TR_func taşı(klasör: TR_String, g: TR_JSON) {
+    TR_var kimlik = TR_String(g["id"])
+    TR_var kayıt = TR_Path(kayıt_yolu(klasör, kimlik))
+    TR_if kayıt.TR_exists { TR_remove(kayıt) }
+    TR_var hedef = TR_make_dir(girdi_klasörü(klasör, kimlik))
+    TR_var ara = ara_klasör(klasör, kimlik)
+    TR_for f TR_in g["source"]["files"] {
+        TR_var t = TR_String(f["target"])
+        TR_move(TR_Path(ara, t), TR_Path(hedef, t), TR_overwrite: TR_true)
+    }
+    kayıt_yaz(g, klasör)
+    TR_if TR_list_dir(ara).TR_length == 0 { TR_remove(ara) }
+}
+
+# sil: girdinin kurulu dosyalarını siler (`model_delete`): önce kayıt, sonra katalogdaki dosyalar, sonra ara klasördeki
+# `.part`'lar ve tam dosyalar; boş kalan iki klasör silinir. `id` ya da `target` tek yol parçası değilse diske dokunmaz,
+# TR_false (`internal`).
+TR_func sil(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Bool {
+    TR_var g = girdi_ham(kj, kimlik)
+    TR_if g == TR_none TR_or TR_not _yollar_doğru(g) { TR_return TR_false }
+    TR_var kayıt = TR_Path(kayıt_yolu(klasör, kimlik))
+    TR_if kayıt.TR_exists { TR_remove(kayıt) }
+    TR_var yer = TR_Path(girdi_klasörü(klasör, kimlik))
+    TR_var ara = ara_klasör(klasör, kimlik)
+    TR_for f TR_in g["source"]["files"] {
+        TR_var t = TR_String(f["target"])
+        TR_for p TR_in [TR_Path(yer, t), TR_Path(ara, t), TR_Path(ara, "\(t).part")] {
+            TR_if p.TR_is_file { TR_remove(p) }
+        }
+    }
+    TR_for k TR_in [yer, ara] {
+        TR_if k.TR_is_dir TR_and TR_list_dir(k).TR_length == 0 { TR_remove(k) }
+    }
+    TR_return TR_true
+}

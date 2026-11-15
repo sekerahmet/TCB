@@ -33,6 +33,7 @@ TR_import "katalog"
 TR_import "ayarlar"
 TR_import "yuva"
 TR_import "oturum"
+TR_import "indirme"
 TR_import "esleme"
 
 TR_const _HIZ = 16000
@@ -328,8 +329,9 @@ TR_func canlı_kip(a: Asistan) {
 # yuvaya yüklenir (yuva.tr): ayar dosyası ya da kurulu takım yoksa ekran `setup` görür ve `model_load`'u bekler;
 # yükleme sürerken `loading`, metin turu `not_ready` alır; önceki yükleme yarıda kaldıysa (işaret) önce
 # `model_load_failed`. Model her kullanımda yuvanın alanından okunur (`yüklü`). Mikrofon kapalı başlar.
-# Açılıştan sonra oturum kurulur (oturum.tr): yuva, komutlar, mikrofon ve dinleme onun işidir. Cevaplanan tur
-# sayısını verir.
+# Açılıştan sonra oturum kurulur (oturum.tr): yuva, komutlar, mikrofon ve dinleme onun işidir; katalogla açılışta
+# indirme yöneticisi de (indirme.tr). Kurulu sayılmak kayıtla olur; kaydı olmayan girdinin dosyaları açılışta bir kez
+# karılır (yuva.tr, `kurulu`). Cevaplanan tur sayısını verir.
 TR_func ekranlı_kip() -> TR_Int {
     TR_var dosya = _gerekli("belirteç_dosyası")
     TR_var elle = TR_String(ayar["dil_modeli"]) != ""
@@ -364,6 +366,7 @@ TR_func ekranlı_kip() -> TR_Int {
         bağlam = bağlam_belirle(k, bağlam_verilen, a_ayar)
     }
     TR_var etkin = takım_ayarı(k, a_ayar)
+    TR_if TR_not elle TR_and karılacak_var(kj, klasör) { e.doğrulanıyor() }
     e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
     TR_for g TR_in k.girdiler {
         TR_if g.tür == "language_model" TR_and g.bağlam_sınırı > e.bağlam_sınırı { e.bağlam_sınırı = g.bağlam_sınırı }
@@ -377,6 +380,10 @@ TR_func ekranlı_kip() -> TR_Int {
         kayıt: Kayıt(klasör: kayıt_klasörü(klasör, TR_time_ms()), başlık: deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]),
             "ekran": TR_String(ayar["ekran"])})))
     TR_defer { o.bırak() }
+    TR_if TR_not elle {
+        o.indirici = İndirici(kj: kj, klasör: klasör, gönder: e.gönder, bitti: o.kurulumu_yenile)
+        e.indirme = o.indirme_kararı
+    }
     o.kataloğu_gönder()
     o.ayarı_gönder()
     TR_if elle {

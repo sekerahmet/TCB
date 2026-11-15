@@ -26,7 +26,9 @@ function renderRing() {
   const text = byId("stateText");
   const top = byId("topState");
   for (const node of [text, top]) {
-    if (state === "loading" && ui.progress !== null) {
+    if (state === "loading" && ui.verifying) {
+      bind(node, "state_loading_verifying");
+    } else if (state === "loading" && ui.progress !== null) {
       const percent = new Intl.NumberFormat(language, { style: "percent" }).format(ui.progress);
       bind(node, "state_loading_progress", { percent });
     } else {
@@ -78,7 +80,7 @@ function renderStatus() {
   renderSettings();
 }
 
-// Kurulum: `setup` durumunda konuşma dili ve ayarın dil modelini yükleyen düğme (indirme ve katalog sonraki dilimde).
+// Kurulum: `setup` durumunda konuşma dili, ayarın dil modelini yükleyen düğme ve dil modellerinin indirme satırları.
 function renderSetup() {
   byId("setupBox").hidden = ui.state !== "setup";
   const model = str(ui.settings.language_model);
@@ -88,6 +90,89 @@ function renderSetup() {
   const current = str(ui.settings.speech_language);
   if (current !== "") speech.value = current;
   speech.disabled = !connected();
+  renderDownloads();
+}
+
+// İndirme düğmelerinin simgeleri: renkten başka iz (F1b): İndir aşağı ok, Sürdür dönüş oku, Sil çöp kutusu.
+const DOWNLOAD_ICONS = {
+  download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  resume: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5",
+  delete: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3",
+};
+
+/** @param {string} d */
+function svgIcon(d) {
+  const ns = /** @type {Element} */ (document.querySelector("svg")).namespaceURI; // sayfanın SVG'lerinin ad alanı
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", d);
+  svg.append(path);
+  return svg;
+}
+
+// renderDownloads: katalogun her dil modeli için bir satır (tek tık D): ad, durum yazısı, düğmeler. Düğmeler her satırda
+// sağa yaslı, adla dikey ortalı; kısa durum ("İndiriliyor %43") adın satırında, uzun yazı (hata, silme onayı) altında
+// tam genişlikte (`dl-long`). İndir ve Sürdür olumlu (`btn-go`), Sil tehlike (`btn-danger`) düğmesidir; Vazgeç sıradan. Ayarlar paneli `setup`'ta gizli olduğundan kap orada kurulum
+// kutusuna geçer: hiç modeli olmayan kullanıcı ilk modeli oradan indirir.
+function renderDownloads() {
+  const box = byId("settingsDownload");
+  const anchor = ui.state === "setup" ? byId("loadButton") : /** @type {HTMLElement} */ (byId("settingsModel").closest(".field"));
+  if (box.previousElementSibling !== anchor) anchor.after(box);
+  const usable = connected();
+  /** @param {string} key @param {string} kind @param {() => void} act */
+  const button = (key, kind, act) => {
+    const b = /** @type {HTMLButtonElement} */ (el("button", kind === "delete" ? "btn btn-small btn-danger" : kind ? "btn btn-small btn-go" : "btn btn-small"));
+    b.type = "button";
+    b.disabled = !usable;
+    if (kind) b.append(svgIcon(DOWNLOAD_ICONS[/** @type {"download"|"resume"|"delete"} */ (kind)]));
+    b.append(bind(el("span"), key));
+    b.addEventListener("click", act);
+    return b;
+  };
+  /** @param {string} key @param {Record<string, unknown>} [values] @param {boolean} [long] */
+  const note = (key, values, long) => bind(el("span", long ? "card-note dl-long" : "card-note"), key, values);
+  const download = (/** @type {string} */ id) => () => command("model_download", { entry_id: id });
+  box.replaceChildren(...ui.catalog.map((entry) => {
+    const job = ui.downloads[entry.id];
+    const state = job ? str(job.state) : "";
+    let status = el("span");
+    /** @type {HTMLElement[]} */
+    let actions = [];
+    if (ui.confirmDelete === entry.id) {
+      status = note("settings_model_delete_confirm", undefined, true);
+      actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = ""; command("model_delete", { entry_id: entry.id }); renderDownloads(); }),
+        button("download_cancel", "", () => { ui.confirmDelete = ""; renderDownloads(); })];
+    } else if (state === "queued" || state === "running") {
+      status = state === "queued" ? note("download_queued") : note("download_running", { percent: percentOf(job) });
+      actions = [button("download_cancel", "", () => command("download_cancel", { job_id: str(job.job_id) }))];
+    } else if (state === "verifying") {
+      status = note("download_verifying");
+    } else if (entry.installed) {
+      actions = [button("settings_model_delete", "delete", () => { ui.confirmDelete = entry.id; renderDownloads(); })];
+    } else if (state === "failed" || state === "cancelled") {
+      const error = job.error || {};
+      status = state === "failed" ? note(`error_${str(error.code)}`, error.values || {}, true) : note("download_cancelled");
+      actions = [button("download_resume", "resume", download(entry.id))];
+    } else {
+      actions = [button("settings_model_download", "download", download(entry.id))];
+    }
+    const row = el("div", "dl-row");
+    const buttons = el("span", "dl-actions");
+    buttons.append(...actions);
+    row.append(el("span", "dl-name", entry.name), status, buttons);
+    return row;
+  }));
+}
+
+// percentOf: işin dosyalarının toplam yüzdesi, aşağı yuvarlanmış (`download_running`).
+/** @param {any} job */
+function percentOf(job) {
+  let done = 0, total = 0;
+  for (const f of Array.isArray(job.files) ? job.files : []) { done += num(f.done_bytes) ?? 0; total += num(f.total_bytes) ?? 0; }
+  return total > 0 ? Math.floor((done * 100) / total) : 0;
 }
 
 /** @param {HTMLSelectElement} select @param {{value: string, text: string}[]} items @param {string} chosen */
@@ -121,6 +206,7 @@ function renderSettings() {
   const load = byId("settingsModelLoad");
   load.hidden = installed.length === 0;
   load.disabled = modelSelect.disabled;
+  renderDownloads();
   const context = /** @type {HTMLInputElement} */ (byId("settingsContext"));
   if (document.activeElement !== context) context.value = String(num(ui.settings.context) ?? "");
   context.disabled = !usable;

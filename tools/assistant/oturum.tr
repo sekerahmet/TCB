@@ -10,6 +10,7 @@ TR_import "ayarlar"
 TR_import "yuva"
 TR_import "zincir"
 TR_import "deneme"
+TR_import "indirme"
 
 TR_const _TSS_MS = 10800000 # UTC+3
 
@@ -80,6 +81,8 @@ TR_struct Oturum {
     başlangıç: TR_Int = -1 # sahte mikrofonun WAV'ı ilk açılıştan bu yana geçen süreden açılır
     mikrofon: TR_Process? = TR_none
     dinlemede: TR_Bool = TR_false
+    indirici: İndirici? = TR_none # katalogla açılışta (asistan.tr); `--dil_modeli`'yle yok
+    silinecek: TR_String? = TR_none # kabul edilmiş `model_delete`; ana döngü siler (`modeli_sil`)
 
     TR_func cevaplanan() -> TR_Int {
         TR_var a = TR_self.yüklü.a
@@ -159,6 +162,7 @@ TR_struct Oturum {
             TR_self.yüklü.a = a
         }) {
             komutları_işle(TR_self.e)
+            TR_self.indirme_adımı()
             TR_sleep(0.05)
         }
         TR_if hata == TR_none {
@@ -263,6 +267,81 @@ TR_struct Oturum {
             e.aygıtlar_istendi = TR_false
             TR_self.mikrofonları_gönder()
         }
+        TR_var silinecek = TR_self.silinecek
+        TR_if silinecek != TR_none {
+            TR_self.silinecek = TR_none
+            TR_self.modeli_sil(silinecek)
+        }
+        TR_self.indirme_adımı()
+    }
+
+    TR_func indirme_adımı() {
+        TR_var ind = TR_self.indirici
+        TR_if ind != TR_none { ind.adım() }
+    }
+
+    # indirme_kararı: `model_download`, `download_cancel` ve `model_delete`'in cevabı (ekran.tr, `karar`; ana döngüde).
+    # İndirme dil modelini ve konuşma dilinin kurulu olmayan, sırada olmayan modellerini sıraya koyar. Silme yüklü modelde
+    # tur sürerken `turn_busy`; kabul edilen silmeyi ana döngü yapar (`işle`).
+    TR_func indirme_kararı(k: Komut) -> TR_JSON {
+        TR_var ind = TR_self.indirici
+        TR_if ind == TR_none { TR_return indirmesiz(k) }
+        TR_if k.tür == "download_cancel" {
+            TR_var iş = TR_String(k.veri["job_id"])
+            TR_if ind.durdur(iş) == "yok" { TR_return red(k.kimlik, "unknown_job", TR_JSON({"job_id": iş})) }
+            TR_return kabul(k.kimlik)
+        }
+        TR_var e = TR_self.e
+        TR_var giriş = TR_String(k.veri["entry_id"])
+        TR_if TR_not e.yüklenebilir.TR_contains(giriş) { TR_return red(k.kimlik, "unknown_entry", TR_JSON({"entry_id": giriş})) }
+        TR_if ind.sürüyor_mu(giriş) { TR_return red(k.kimlik, "download_busy", TR_JSON({"entry_id": giriş})) }
+        TR_if k.tür == "model_delete" {
+            TR_var t = TR_self.y.takım
+            TR_if t != TR_none TR_and t.giriş == giriş {
+                TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
+                TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
+            }
+            TR_self.silinecek = giriş
+            TR_return kabul(k.kimlik)
+        }
+        ind.kuyruğa([x TR_for x TR_in takım_girdileri(TR_self.k, TR_self.kj, giriş, TR_self.etkin.konuşma_dili)
+            TR_if x != "" TR_and TR_not ind.sürüyor_mu(x) TR_and TR_not kurulu(TR_self.kj, TR_self.klasör, x)])
+        TR_return kabul(k.kimlik)
+    }
+
+    # modeli_sil: kabul edilen `model_delete` (DENETİM 768 Ş1 (a)). Yüklü modelse önce bırakılır: mikrofon kapanır, yuva
+    # boşalır, durum `setup`. Sonra dosyalar silinir (indirme.tr, `sil`); silinemezse `internal`. Kurulu listesi ve
+    # `catalog` yenilenir.
+    TR_func modeli_sil(giriş: TR_String) {
+        TR_var t = TR_self.y.takım
+        TR_var yükte = t != TR_none TR_and t.giriş == giriş
+        TR_if yükte {
+            TR_self.e.mikrofon_istendi = TR_false
+            TR_self.kapat()
+            TR_self.önceki_turlar = TR_self.cevaplanan()
+            TR_self.yüklü.a = TR_none
+            TR_self.yüklü.kesici = TR_none
+            TR_self.yüklü.algılayıcı = TR_none
+            TR_self.y.takım = TR_none
+            TR_self.e.hazır = TR_false
+        }
+        TR_var silindi = TR_false
+        TR_try {
+            silindi = sil(TR_self.kj, TR_self.klasör, giriş)
+        } TR_catch h {
+            TR_print("SİLME HATASI:", h)
+        }
+        TR_if TR_not silindi { TR_self.e.gönder("error", TR_JSON({"code": "internal", "values": {}, "fatal": TR_false})) }
+        TR_self.kurulumu_yenile()
+        TR_if yükte { TR_self.e.durum("setup") }
+    }
+
+    # kurulumu_yenile: bir girdi kurulunca ya da silinince: `model_load` ve dil değişiminin cevapları yeniden hesaplanır,
+    # `catalog` gider.
+    TR_func kurulumu_yenile() {
+        TR_self.e.dil_cevabı = dil_cevapları(TR_self.kj, TR_self.klasör, TR_self.etkin)
+        TR_self.e.yüklenebilir = yüklenebilirler(TR_self.k, TR_self.kj, TR_self.klasör, TR_self.etkin)
+        TR_self.kataloğu_gönder()
     }
 
     # yüklemeyi_yaz: kullanıcının başarılı `model_load`'u ayarın dil modelini dosyaya yazar (açılıştaki kendiliğinden

@@ -89,6 +89,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 - `mic`: mikrofon gerçekten açık mı. Ekran düğmeyi yalnız bu alana göre çizer, komutu gönderdiği an değil.
 - `progress`: yalnız `loading`'de, 0 ile 1 arası; bilinmiyorsa yok.
 - `model`: yalnız `loading`'de, yüklenen dil modelinin katalog kimliği.
+- `verifying`: `loading`'de her zaman: `true` açılışta kaydı olmayan modellerin dosyaları denetlenirken (sha256), öbür hâlde `false`.
 
 ### `turn_start`
 
@@ -199,13 +200,21 @@ Ayarın hepsi (`ayar.json`'un alanları, `v` dışında) ve ayarın hesaplandı�
 
 `devices_list`'in cevabıdır. Liste ffmpeg'in aygıt listesinden gelir; boş olabilir.
 
+### `download`
+
+```json
+{"v":2,"type":"download","data":{"job_id":"d1","entry_id":"qwen3-4b-q4km","state":"running","files":[{"name":"Qwen3-4B-Q4_K_M.gguf","done_bytes":1048576,"total_bytes":2497280256}],"bytes_per_second":5242880,"error":null}}
+```
+
+Bir indirme işi: her girdi bir iş. `state`: `queued`, `running`, `verifying`, `done`, `failed`, `cancelled`. Durum değişince hemen, ilerlemede iş başına en çok saniyede bir gelir; `snapshot` sıradaki ve süren işleri taşır. `failed`'da `error` bir hatadır (`{"code", "values"}`, aşağıdaki kodlar), öbür durumlarda `null`. Durdurulan ya da düşen iş geçici dosyasını bırakır; aynı girdinin yeni `model_download`'u kaldığı yerden sürer.
+
 ### `catalog`
 
 ```json
 {"v":2,"type":"catalog","data":{"entries":[{"id":"qwen3-4b-q4km","kind":"language_model","name":"Qwen3 4B Q4_K_M","installed":true}]}}
 ```
 
-Katalogun dil modelleri: her girdinin `id`'si, `kind`'ı, adı (`name`) ve `installed`'ı. `installed` `true` ise `model_load` girdiyi kabul eder: girdinin ve konuşma dilinin modelleri kurulu. Bu sürümde yalnız `language_model` girdileri gelir; ekran bilmediği alanı ve bilmediği `kind`'ı yok sayar. `snapshot`'ta ve açılışta gelir; Dost modelsiz (`--dil_modeli`'yle) açıldıysa gelmez.
+Katalogun dil modelleri: her girdinin `id`'si, `kind`'ı, adı (`name`) ve `installed`'ı. `installed` `true` ise `model_load` girdiyi kabul eder: girdinin ve konuşma dilinin modelleri kurulu. Bu sürümde yalnız `language_model` girdileri gelir; ekran bilmediği alanı ve bilmediği `kind`'ı yok sayar. `snapshot`'ta, açılışta ve bir girdi kurulunca ya da silinince gelir; Dost modelsiz (`--dil_modeli`'yle) açıldıysa gelmez. `installed` indirmenin kaydıyla (`modeller/<id>/kurulu.json`) hesaplanır: kayıttaki her dosyanın sha256'sı ve boyu katalogdakine eşit olmalı; diskte dosyanın bulunması yetmez.
 
 ### `heartbeat`
 
@@ -244,8 +253,13 @@ Cevap her zaman JSON:
 | `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy`. Yüklenince ayarın dil modelini ayar dosyasına yazar (dosya varsa; Dost'un açılışta kendiliğinden başlattığı yükleme yazmaz); yazma düşerse model yüklü kalır, ayar değişmez, `settings_write_failed` |
 | `settings_set` | `{"key":"...","value":...}` | Listedeki bir ayarı değiştirir ve ayar dosyasına yazar; listede olmayan `setting_invalid`; dosya yazılamazsa değişiklik geri alınır, `settings_write_failed` |
 | `devices_list` | `{}` | Mikrofonların listesini ister; cevap `devices` olayıdır, liste okunamazsa `devices_unavailable` |
+| `model_download` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin kurulu olmayan modellerini indirme sırasına koyar, her girdi bir iş; sonuç `download` olaylarıyla gelir. Aynı girdinin işi sürüyorsa `download_busy` |
+| `download_cancel` | `{"job_id":"..."}` | İşi durdurur; geçici dosya kalır. Bu oturumda bitmiş iş için bir şey yapmaz (`accepted`); bu oturumda olmamış iş `unknown_job` |
+| `model_delete` | `{"entry_id":"..."}` | Dil modelinin kurulu dosyalarını siler; konuşma dilinin modelleri kalır. Yüklü modeli önce bırakır, durum `setup` olur; tur sürüyorsa `turn_busy`, işi süren `download_busy` |
 
 `settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `context` ve `microphone` bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
+
+İndirme, silme ve yükleme yalnız `POST /command`'dan gelir. Modelin araçları bu yolu görmez. İndirme adresi yalnız katalogdan kurulur (`huggingface`, `github`); her dosya katalogdaki sha256 ve boyla iner.
 
 Araçlar, arama ve odak ekranın yerel görünümleridir, komut göndermez: araç listesi `session`'dan gelir, arama ekrandaki satırlarda yapılır.
 
@@ -271,6 +285,12 @@ Sunucudan gelenler:
 | `out_of_memory` | `needed_bytes` | Bellek yetmedi |
 | `unknown_entry` | `entry_id` | Katalogda yok |
 | `not_installed` | `entry_id` | Yüklenecek dosyalar yok |
+| `download_failed` | `entry_id` | İndirme ağ, sunucu ya da süre yüzünden durdu |
+| `download_busy` | `entry_id` | Aynı girdinin işi sırada ya da sürüyor |
+| `checksum_mismatch` | `file` | İnen dosyanın sha256'sı katalogdakinden farklı; dosya atıldı |
+| `size_exceeded` | `file`, `limit_bytes` | Sunucu katalogdaki boydan fazlasını gönderdi; indirme durdu |
+| `disk_full` | `needed_bytes`, `free_bytes` | Yer yetmedi |
+| `unknown_job` | `job_id` | Bu oturumda böyle bir indirme işi olmadı |
 | `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` üç değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü ya da aralığı anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış) |
 | `unknown_language` | `language` | Whisper bu dili tanımıyor ya da katalogda bu dilin modelleri yok |
 | `devices_unavailable` | | Mikrofonların listesi okunamadı |
