@@ -165,19 +165,23 @@ func TestChainQuantChecksOrder(t *testing.T) {
 }
 
 // Otomatik nicemlinin kararı nicemli.tr'nin elle tutulan katman listesine dayanır (dilim N, DENETİM 774 N3): modelin
-// her TR_Linear alanı (lib/layers.tr'deki dikkat, ileri katman, PLE ve GPT yapıları) listede okunur. Liste bir
+// her TR_Linear alanı (lib/layers.tr'deki dikkat, ileri katman, PLE ve GPT yapıları) listede kendi yapısının
+// değişkeniyle okunur: TR_gate_proj hem TR_SwiGLU'da hem TR_PLEBlock'ta, ikisi ayrı aranır (DENETİM 794 N1). Liste bir
 // çarpımı kaçırırsa otomatik q8 bir izdüşümü görmez, açar ve ısıtmanın H6723'ü Dost'un hatası olarak çıkar (N-S3b).
 func TestQuantListCoversEveryLinear(t *testing.T) {
 	layers := readFile(t, "lib/layers.tr")
 	list := body(t, quantModule, readFile(t, quantModule), "TR_func _çarpım_türleri(")
 	field := regexp.MustCompile(`(?m)^    (TR_[a-z_]+): TR_Linear\??\s*(?:=|$|#)`)
+	// Yapının listedeki değişkeni: d dikkat, f ileri katman, b.TR_ple bloğun PLE'si, m.TR_ple_context ve m modelin kendisi.
+	owner := map[string]string{"TR_CausalAttention": "d.", "TR_SwiGLU": "f.", "TR_PLEContext": "m.TR_ple_context.",
+		"TR_PLEBlock": "b.TR_ple.", "TR_TransformerBlock": "b.", "TR_GPT": "m."}
 	seen := 0
 	for _, name := range []string{"TR_CausalAttention", "TR_SwiGLU", "TR_PLEContext", "TR_PLEBlock", "TR_TransformerBlock", "TR_GPT"} {
 		block := capture(t, `(?s)\nTR_struct `+name+` \{\n(.*?)\n    TR_func `, layers)
 		for _, m := range field.FindAllStringSubmatch(block, -1) {
 			seen++
-			if !strings.Contains(list, "."+m[1]) {
-				t.Errorf("%s _çarpım_türleri: %s.%s (lib/layers.tr) listede yok", quantModule, name, m[1])
+			if !strings.Contains(list, owner[name]+m[1]) {
+				t.Errorf("%s _çarpım_türleri: %s.%s (lib/layers.tr) listede %s%s olarak yok", quantModule, name, m[1], owner[name], m[1])
 			}
 		}
 	}

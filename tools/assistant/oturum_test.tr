@@ -1,0 +1,225 @@
+# TR 4
+# Ekranlı kipin oturumunun modelsiz sınaması (oturum.tr): ayarın dosyaya yazılması ve yazma hatası, `catalog` ve `devices`,
+# kullanıcının yüklemesi, `settings_set`'in dil modeli ve nicemli anahtarları, son istek kazanır, kurulumda `mic_set` ve
+# yüklemenin düşmesi. Yükleyen, mikrofon ve tur sahtedir; indirme komutları ve silme indirme_test.tr'de.
+TR_import "ekran"
+TR_import "screen_helpers"
+TR_import "katalog"
+TR_import "ayarlar"
+TR_import "yuva"
+TR_import "zincir"
+TR_import "oturum"
+
+# Oturumun ayar işleri modelsiz sınanır: yükleyen, mikrofon ve tur hiç çağrılmaz.
+TR_func _kur_yok(t: Takım) -> Asistan { TR_throw "sınamada model yüklenmez" }
+TR_func _mikrofon_yok(b: TR_Int) -> TR_Process { TR_throw "sınamada mikrofon yok" }
+TR_func _tur_yok(a: Asistan, k: TR_Tensor?, s: TR_String?, t0: TR_Int, b: TR_Bool, g: TR_Int, i: () -> TR_NoneType,
+    kd: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı { TR_return ÇalmaAralığı() }
+
+# _oturum: depodaki katalogla, geçici klasördeki ayar dosyasıyla bir oturum; gönderilen olaylar `e.giden`'de.
+TR_func _oturum() -> Oturum {
+    TR_var k = katalog_oku("tools/assistant/katalog.json")
+    TR_var kj = dosya_oku("tools/assistant/katalog.json", "katalog")
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "Dost", "ayar.json"))
+    ayar_dosyasına_yaz(yol, TR_JSON({"v": 1, "language_model": "qwen3-4b-q4km", "speech_language": "tr", "system_prompt": {"source": "catalog"},
+        "context": 8192, "device": "cpu", "port": 47863, "machine": {"memory_bytes": 17179869184, "memory_source": "option"}}))
+    TR_var e = ekran()
+    e.kayıt = TR_true
+    TR_return Oturum(e: e, k: k, kj: kj, klasör: dost_klasörü(yol), etkin: ayar_denetle(yol, dosya_oku(yol, "ayar"), k),
+        ayar_verisi: TR_Dict(ayar_olayı(dosya_oku(yol, "ayar"))), y: Yuva(), yüklü: Yüklü(), en_çok_tur: 0, kuyruk_ms: 0,
+        çerçeve_bayt: 1024, açılış: 0, kur: _kur_yok, mikrofon_aç: _mikrofon_yok, tur: _tur_yok, ayar_dosyası: yol)
+}
+
+TR_func _son(e: Ekran) -> TR_JSON { TR_return e.giden[e.giden.TR_length - 1] }
+
+TR_test "ayarı_uygula: değişiklik settings'ten önce dosyaya yazılır; bağlam ve mikrofon yalnız dosyada, kayıt hemen; yazma düşerse hiçbir şey değişmez" {
+    TR_var o = _oturum()
+    o.ayarı_uygula("context", TR_JSON(4096))
+    TR_assert_equal(4096, TR_Int(dosya_oku(o.ayar_dosyası, "ayar")["context"]))
+    TR_assert_equal("settings", TR_String(_son(o.e)["type"]))
+    TR_assert_equal(4096, TR_Int(_son(o.e)["data"]["context"]))
+    TR_assert_equal(8192, o.etkin.bağlam)
+    o.ayarı_uygula("microphone", TR_JSON("Mikrofon (X)"))
+    TR_assert_equal("Mikrofon (X)", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["microphone"]))
+    TR_assert_equal("", o.etkin.mikrofon)
+    o.ayarı_uygula("recording", TR_JSON(TR_true))
+    TR_assert(o.etkin.kayıt TR_and TR_Bool(dosya_oku(o.ayar_dosyası, "ayar")["recording"]))
+    o.ayarı_uygula("speech_language", TR_JSON("en"))
+    TR_assert_equal("en", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["speech_language"]))
+    TR_assert_equal("en", o.etkin.konuşma_dili)
+    TR_var önce = TR_read_file(o.ayar_dosyası)
+    TR_var olaylar = o.e.giden.TR_length
+    TR_make_dir("\(o.ayar_dosyası).tmp")
+    o.ayarı_uygula("speech_language", TR_JSON("tr"))
+    TR_assert_equal(olaylar + 1, o.e.giden.TR_length)
+    TR_var h = _son(o.e)["data"]
+    TR_assert_equal("settings_write_failed", TR_String(h["code"]))
+    TR_assert_equal("settings_set", TR_String(h["values"]["command"]))
+    TR_assert_equal(o.ayar_dosyası, TR_String(h["values"]["path"]))
+    # İleti ayarın konuşma dilinde: şimdi İngilizce.
+    TR_assert(TR_String(h["values"]["message"]).TR_contains("folder"))
+    TR_assert_equal(önce, TR_read_file(o.ayar_dosyası))
+    TR_assert_equal("en", o.etkin.konuşma_dili)
+    TR_assert_equal("en", TR_String(o.ayar_verisi["speech_language"]))
+}
+
+TR_test "aynı turda iki settings_set: hiçbiri kaybolmaz, sırayla uygulanır, iki settings olayı gelir" {
+    TR_var o = _oturum()
+    o.e.bağlam_sınırı = 40960
+    TR_var a = Komut(kimlik: "a", tür: "settings_set", veri: TR_json_parse("{\"key\": \"context\", \"value\": 4096}"))
+    TR_var b = Komut(kimlik: "b", tür: "settings_set", veri: TR_json_parse("{\"key\": \"recording\", \"value\": true}"))
+    o.e.bekleyen = [a, b]
+    TR_var önce = o.e.giden.TR_length
+    o.işle()
+    o.işle()
+    TR_assert(a.cevap != TR_none TR_and b.cevap != TR_none)
+    TR_var gelenler = [x TR_for x TR_in o.e.giden[önce..o.e.giden.TR_length] TR_if TR_String(x["type"]) == "settings"]
+    TR_assert_equal(2, gelenler.TR_length)
+    TR_assert_equal(4096, TR_Int(gelenler[0]["data"]["context"]))
+    TR_assert(TR_Bool(gelenler[1]["data"]["recording"]) TR_and TR_Int(gelenler[1]["data"]["context"]) == 4096)
+    TR_var j = dosya_oku(o.ayar_dosyası, "ayar")
+    TR_assert(TR_Int(j["context"]) == 4096 TR_and TR_Bool(j["recording"]))
+}
+
+TR_test "kullanıcının yüklemesi ayarın dil modelini yazar; ayardaki model yeniden yazılmaz; yazılamazsa model_load'la settings_write_failed, ayar eski; ayar dosyası yoksa yazılmaz" {
+    TR_var o = _oturum()
+    o.etkin.dil_modeli = "önceki"
+    o.yüklemeyi_yaz("qwen3-4b-q4km")
+    TR_assert_equal("settings", TR_String(_son(o.e)["type"]))
+    TR_assert_equal("qwen3-4b-q4km", o.e.dil_modeli)
+    TR_var önce = o.e.giden.TR_length
+    o.yüklemeyi_yaz("qwen3-4b-q4km") # settings_set language_model'in yüklemesi: dosya zaten yazıldı
+    TR_assert_equal(önce, o.e.giden.TR_length)
+    TR_make_dir("\(o.ayar_dosyası).tmp")
+    o.etkin.dil_modeli = "önceki"
+    o.yüklemeyi_yaz("qwen3-4b-q4km")
+    TR_var h = _son(o.e)["data"]
+    TR_assert_equal("settings_write_failed", TR_String(h["code"]))
+    TR_assert_equal("model_load", TR_String(h["values"]["command"]))
+    TR_assert_equal("önceki", o.etkin.dil_modeli)
+    TR_var y = _oturum()
+    y.ayar_verisi = TR_none
+    TR_remove(y.ayar_dosyası)
+    TR_var olaylar = y.e.giden.TR_length
+    y.ayarı_uygula("context", TR_JSON(4096))
+    y.yüklemeyi_yaz("qwen3-4b-q4km")
+    TR_assert_equal(olaylar, y.e.giden.TR_length)
+    TR_assert(TR_not TR_Path(y.ayar_dosyası).TR_exists)
+}
+
+TR_test "devices ve catalog: liste okunamazsa devices_unavailable; katalog her türü taşır; memory_bytes gereken'den; installed dil modelinde model_load'un cevabından" {
+    TR_var o = _oturum()
+    o.aygıtlar = () => ["Mikrofon (X)"]
+    o.mikrofonları_gönder()
+    TR_assert_equal(["Mikrofon (X)"], [TR_String(m) TR_for m TR_in _son(o.e)["data"]["microphones"]])
+    o.aygıtlar = () => TR_none
+    o.mikrofonları_gönder()
+    TR_assert_equal("devices_unavailable", TR_String(_son(o.e)["data"]["code"]))
+    o.e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({"code": "not_installed", "values": {"entry_id": "qwen3-4b-q4km"}})}
+    o.kataloğu_gönder()
+    TR_var g = _son(o.e)
+    TR_assert_equal("catalog", TR_String(g["type"]))
+    TR_var l = TR_List(g["data"]["entries"])
+    TR_assert_equal([TR_String(x["id"]) TR_for x TR_in o.kj["entries"]], [TR_String(x["id"]) TR_for x TR_in l])
+    TR_assert_equal("{\"id\":\"qwen3-4b-q4km\",\"kind\":\"language_model\",\"name\":\"Qwen3 4B Q4_K_M\",\"installed\":false,\"downloaded\":false,\"bytes\":2497280256",
+        TR_json_string(l[0]).TR_split(",\"memory_bytes\"")[0])
+    # Bellek ve uyum katalogun hesabından (DENETİM 792 N1): sayı sabit yazılmaz, H1'in ölçüsü değişince test yine tutar.
+    TR_var dm = girdi_bul(o.k, "qwen3-4b-q4km")
+    TR_assert(dm != TR_none)
+    TR_if dm != TR_none { TR_assert_equal(gereken(dm, 8192, küçükler(o.k, o.etkin)), TR_Int(l[0]["memory_bytes"])) }
+    TR_assert_equal(uygunluk(o.k, o.etkin, 17179869184, 8192)[0].uyum, TR_String(l[0]["fit"]))
+    TR_var yazıcı = [x TR_for x TR_in l TR_if TR_String(x["kind"]) == "transcriber"][0]
+    TR_assert_equal(["tr", "en"], [TR_String(d) TR_for d TR_in yazıcı["languages"]])
+    TR_assert_equal(küçük_bellek(o.k, TR_String(yazıcı["id"])), TR_Int(yazıcı["memory_bytes"]))
+    TR_var algılayıcı = [x TR_for x TR_in l TR_if TR_String(x["kind"]) == "vad"][0] # `vad` adı lib/vad.tr'yi gölgelerdi
+    TR_assert(algılayıcı.TR_get("languages") == TR_none TR_and algılayıcı.TR_get("fit") == TR_none)
+    o.e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({})}
+    o.kataloğu_gönder()
+    TR_assert(TR_Bool(TR_List(_son(o.e)["data"]["entries"])[0]["installed"]))
+}
+
+TR_test "settings_set language_model: tur sürerken turn_busy; katalogda yoksa invalid_value; takımı kurulu değilse not_installed, ayar yazılmaz; kuruluysa yazılır ve yüklenecek olur" {
+    TR_var o = _oturum()
+    TR_var ayar = (v: TR_String) => TR_json_string(karar(o.e, Komut(kimlik: "k-\(v)", tür: "settings_set", veri: TR_JSON({"key": "language_model", "value": v}))))
+    o.e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({"code": "not_installed", "values": {"entry_id": "whisper-small"}})}
+    TR_assert(ayar("qwen3-4b-q4km").TR_contains("\"reason\":\"not_installed\""))
+    TR_assert(o.e.ayar_istendi == TR_none)
+    TR_assert(ayar("yok").TR_contains("\"reason\":\"invalid_value\""))
+    o.e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({})}
+    o.e.tur = "t-1"
+    TR_assert(TR_json_string(karar(o.e, Komut(kimlik: "t", tür: "settings_set", veri: TR_JSON({"key": "language_model", "value": "qwen3-4b-q4km"})))).TR_contains("turn_busy"))
+    o.e.tur = ""
+    TR_assert(ayar("qwen3-4b-q4km").TR_contains("accepted"))
+    o.e.ayar_istendi = TR_none
+    o.ayarı_uygula("language_model", TR_JSON("qwen3-4b-q4km"))
+    TR_assert_equal("qwen3-4b-q4km", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["language_model"]))
+    TR_assert_equal("qwen3-4b-q4km", TR_String(o.e.yüklenecek))
+    TR_assert_equal("settings", TR_String(_son(o.e)["type"]))
+}
+
+TR_test "son istek kazanır: yükleme sürerken iki settings_set ve bir model_load, yalnız sonuncusu yüklenir; yükleme sürerken speech_language değişirse yeni dilin takımı yüklenir" {
+    TR_var o = _oturum()
+    o.e.yüklemede = TR_true
+    o.e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({}), "başka": TR_JSON({})}
+    TR_var yükle = (g: TR_String) => TR_json_string(karar(o.e, Komut(kimlik: "y-\(g)", tür: "model_load", veri: TR_JSON({"entry_id": g}))))
+    TR_assert(yükle("başka").TR_contains("accepted"))
+    TR_assert_equal("başka", TR_String(o.e.yüklenecek))
+    o.ayarı_uygula("language_model", TR_JSON("qwen3-4b-q4km")) # ayar yüklemeden önce uygulanır (oturum.tr, işle)
+    o.ayarı_uygula("language_model", TR_JSON("qwen3-4b-q4km"))
+    TR_assert_equal("qwen3-4b-q4km", TR_String(o.e.yüklenecek))
+    TR_assert(yükle("başka").TR_contains("accepted"))
+    TR_assert_equal("başka", TR_String(o.e.yüklenecek))
+    o.ayarı_uygula("speech_language", TR_JSON("en"))
+    TR_assert_equal("en", o.etkin.konuşma_dili) # bekleyen yükleme takımı yeni dille kurar (takım_kur, etkin)
+    TR_assert_equal("başka", TR_String(o.e.yüklenecek))
+}
+
+TR_test "mic_set kurulumda: takımı kurulu değilse not_installed; kuruluysa yükletir ve hazır olunca dinler; off bekleyen dinlemeyi iptal eder, yükleme sürer; yüklenirken yalnız istek" {
+    TR_var o = _oturum()
+    TR_var e = o.e
+    e.hazır = TR_false # kurulum: model yüklü değil (ekran() hazır kurar)
+    e.dil_modeli = "qwen3-4b-q4km"
+    TR_var mik = (açık: TR_Bool) => TR_json_string(karar(e, Komut(kimlik: "m-\(açık)-\(e.giden.TR_length)", tür: "mic_set", veri: TR_JSON({"on": açık}))))
+    e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({"code": "not_installed", "values": {"entry_id": "whisper-small"}})}
+    TR_var r = mik(TR_true)
+    TR_assert(r.TR_contains("not_installed") TR_and r.TR_contains("whisper-small"), r)
+    TR_assert(TR_not e.mikrofon_istendi TR_and e.yüklenecek == TR_none)
+    e.yüklenebilir = {"qwen3-4b-q4km": TR_JSON({})}
+    TR_assert(mik(TR_true).TR_contains("accepted"))
+    TR_assert(e.mikrofon_istendi TR_and e.yükleyip_dinle)
+    TR_assert_equal("qwen3-4b-q4km", TR_String(e.yüklenecek))
+    TR_assert(mik(TR_false).TR_contains("accepted"))
+    TR_assert(TR_not e.mikrofon_istendi TR_and TR_not e.yükleyip_dinle)
+    TR_assert_equal("qwen3-4b-q4km", TR_String(e.yüklenecek)) # yükleme sürer
+    e.yüklenecek = TR_none
+    e.yüklemede = TR_true
+    TR_assert(mik(TR_true).TR_contains("accepted"))
+    TR_assert(e.mikrofon_istendi TR_and TR_not e.yükleyip_dinle TR_and e.yüklenecek == TR_none)
+}
+
+TR_test "mic_set: yükleme düşerse bayrak iner ve model_load_failed gelir; yükleme bitince yüklemede değil" {
+    TR_var o = _oturum()
+    o.kur = (t: Takım) => { TR_throw "model okunamadı" }
+    o.e.mikrofon_istendi = TR_true
+    TR_var t = Takım(giriş: "qwen3-4b-q4km", dil_modeli: "yok.gguf", yazıcı: "yok", vad: "yok", ses: "yok", dil: "tr", sistem: "")
+    TR_assert(TR_not o.takımı_yükle(t))
+    TR_assert(TR_not o.e.mikrofon_istendi)
+    TR_assert(TR_not o.e.yüklemede)
+    TR_var hatalar = [x TR_for x TR_in o.e.giden TR_if TR_String(x["type"]) == "error"]
+    TR_assert_equal("model_load_failed", TR_String(hatalar[hatalar.TR_length - 1]["data"]["code"]))
+    TR_assert_equal("setup", TR_String(_son(o.e)["data"]["state"]))
+}
+
+TR_test "settings_set quantized_activations: tur sürerken de kabul, yalnız dosyaya yazılır; auto, on, off dışı invalid_value" {
+    TR_var o = _oturum()
+    o.e.tur = "t-1"
+    TR_var c = karar(o.e, Komut(kimlik: "q", tür: "settings_set", veri: TR_JSON({"key": "quantized_activations", "value": "off"})))
+    TR_assert_equal("accepted", TR_String(c["status"]))
+    o.e.ayar_istendi = TR_none
+    TR_var y = karar(o.e, Komut(kimlik: "q2", tür: "settings_set", veri: TR_JSON({"key": "quantized_activations", "value": "evet"})))
+    TR_assert(TR_json_string(y).TR_contains("invalid_value"))
+    o.ayarı_uygula("quantized_activations", TR_JSON("off"))
+    TR_assert_equal("off", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["quantized_activations"]))
+    TR_assert(o.etkin.nicemli == TR_none) # bir sonraki açılışta geçerli
+    TR_assert_equal("off", TR_String(_son(o.e)["data"]["quantized_activations"]))
+}

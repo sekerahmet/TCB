@@ -58,6 +58,12 @@ TR_struct Ayar {
     nicemli: TR_String? = TR_none # ayarın `quantized_activations`'ı (auto, on, off); yoksa TR_none (nicemli.tr, nicemli_seç)
 }
 
+# ayar_kopyası: ayarın bütün alanlarıyla kopyası (oturum.tr bir alanı değiştirip etkin ayarı yeniler; alan düşmez).
+TR_func ayar_kopyası(a: Ayar) -> Ayar {
+    TR_return Ayar(dil_modeli: a.dil_modeli, konuşma_dili: a.konuşma_dili, sistem: a.sistem, bağlam: a.bağlam, kapı: a.kapı,
+        mikrofon: a.mikrofon, kayıt: a.kayıt, nicemli: a.nicemli)
+}
+
 # Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`; bağlam modelin
 # sınırını aşınca `too_long`, gereken hesaplanmaz).
 TR_struct Uygunluk {
@@ -461,6 +467,9 @@ TR_func _küçük_bellek(k: Katalog, kimlik: TR_String) -> Bellek {
     }
     TR_return Bellek(bayt: en, ölçülü: TR_true)
 }
+
+# küçük_bellek: küçük modelin çalışırken gereken belleği (`catalog`'un `memory_bytes`'ı; yuva.tr, katalog_olayı).
+TR_func küçük_bellek(k: Katalog, kimlik: TR_String) -> TR_Int { TR_return _küçük_bellek(k, kimlik).bayt }
 
 # küçükler: dil modeline eklenen takım: `vad` girdisi, dilin `transcriber`'ı ve `voice`'u (TCB, defter 53). Dil
 # ayarın `speech_language`'ıdır; ayar yoksa dillerin en büyük toplamı.

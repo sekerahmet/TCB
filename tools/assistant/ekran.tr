@@ -24,7 +24,7 @@ TR_const _TUR_BAKIŞI = 0.02 # tur sürerken ana döngünün komutlara bakışı
 TR_const _ETİKETLER = ["<think>", "</think>", "<tool_call>", "</tool_call>"]
 # `settings_set`'in anahtarları: dil ve sistem iletisi hemen; bağlam ve mikrofon bir sonraki açılışta; kayıt kapatılınca
 # hemen, açılınca bir sonraki turdan (tasarım, Aç28).
-TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording"]
+TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording", "language_model", "quantized_activations"]
 
 # Komut: işleyicinin bıraktığı, ana döngünün cevapladığı komut.
 TR_struct Komut {
@@ -50,6 +50,11 @@ TR_struct Ekran {
     # değerleri. `yüklenecek`: kabul edilmiş, ana döngünün yükleyeceği dil modeli.
     yüklenebilir: TR_Dict[TR_String, TR_JSON] = {}
     yüklenecek: TR_String? = TR_none
+    # dil_modeli: ayarın dil modeli (oturum günceller). `yüklemede`: takım yüklenirken. `yükleyip_dinle`: kurulumda gelen
+    # `mic_set {on: true}`: ana döngü takımı yükler, hazır olunca dinler (TCB 15:47, a2).
+    dil_modeli: TR_String = ""
+    yüklemede: TR_Bool = TR_false
+    yükleyip_dinle: TR_Bool = TR_false
     # dil_cevabı: her konuşma dilinin `settings_set` cevabı (yuva.tr, `dil_cevapları`); `konuşma_dili` ayarın dili;
     # `ayar_istendi`: kabul edilmiş, ana döngünün uygulayacağı `{key, value}`.
     dil_cevabı: TR_Dict[TR_String, TR_JSON] = {}
@@ -261,11 +266,14 @@ TR_func ret(durum: TR_Int, kimlik: TR_String, kod: TR_String, değerler: TR_JSON
 }
 
 # komutları_işle: bekleyen komutları sırayla cevaplar (ana döngü). Aynı `command_id` yeniden gelirse iş yinelenmez,
-# ilk cevap döner; son 1024 kimlik tutulur.
+# ilk cevap döner; son 1024 kimlik tutulur. Kabul edilen ayar uygulanmadan (`ayar_istendi` boşalmadan) komut
+# kararlaştırılmaz: tek yuvalı `ayar_istendi` ezilmez, sonraki `settings_set` yeni ayara göre denetlenir (ör. dil, sonra
+# o dil için yazılmış sistem iletisi) ve ayardan sonra gelen `model_load` ayardan sonra etkili olur (son istek kazanır).
+# Bekçi döngünün başındadır: yükleme sürerken ayar uygulanmadan çağrılsa da komut almaz (oturum.tr, `istekleri_işle`).
 TR_func komutları_işle(e: Ekran) {
     TR_var eş = e.eşleme
     TR_if eş != TR_none { eşlemeleri_işle(eş) }
-    TR_for e.bekleyen.TR_length > 0 {
+    TR_for e.bekleyen.TR_length > 0 TR_and e.ayar_istendi == TR_none {
         TR_var k = e.bekleyen.TR_remove_at(0)
         TR_var önceki = e.cevaplar.TR_get(k.kimlik)
         TR_if önceki != TR_none {
@@ -277,9 +285,6 @@ TR_func komutları_işle(e: Ekran) {
         e.sıra.TR_append(k.kimlik)
         TR_if e.sıra.TR_length > _TUTULAN_KOMUT { e.cevaplar.TR_remove(e.sıra.TR_remove_at(0)) }
         k.cevap = c
-        # Kabul edilen ayar uygulanmadan sonraki komut kararlaştırılmaz: tek yuvalı `ayar_istendi` ezilmez ve sonraki
-        # `settings_set` yeni ayara göre denetlenir (ör. dil, sonra o dil için yazılmış sistem iletisi).
-        TR_if e.ayar_istendi != TR_none { TR_break }
     }
 }
 
@@ -297,7 +302,7 @@ TR_func karar(e: Ekran, k: Komut) -> TR_JSON {
             e.metin_turu = e.yeni_tur()
             e.metin = m
         }
-        "mic_set" => { e.mikrofon_istendi = TR_Bool(k.veri["on"]) }
+        "mic_set" => { TR_return mikrofon_kararı(e, k) }
         "stop" => { TR_if e.tur != "" { e.durdur = TR_true } }
         "approval_answer" => { TR_return red(k.kimlik, "unknown_approval", TR_JSON({"approval_id": k.veri["approval_id"]})) }
         "model_load" => {
@@ -323,10 +328,30 @@ TR_func indirmesiz(k: Komut) -> TR_JSON {
     TR_return red(k.kimlik, "unknown_entry", TR_JSON({"entry_id": k.veri["entry_id"]}))
 }
 
+# mikrofon_kararı: `mic_set`. Model yüklü ya da yükleniyorsa yalnız istek (yükleme bitince `ara` açar). Kurulumda
+# (yüklü değil, yüklenmiyor) `on: true` ayarın dil modelinin takımını yükletir ve hazır olunca dinler; takımı kurulu
+# değilse `not_installed`. `on: false` bekleyen dinlemeyi iptal eder, yükleme sürer (contract.md, `mic_set`).
+TR_func mikrofon_kararı(e: Ekran, k: Komut) -> TR_JSON {
+    TR_var açık = TR_Bool(k.veri["on"])
+    TR_if TR_not açık { e.yükleyip_dinle = TR_false }
+    TR_if açık TR_and TR_not e.hazır TR_and TR_not e.yüklemede TR_and e.dil_modeli != "" {
+        TR_if e.yüklenecek == TR_none {
+            TR_var d = e.yüklenebilir.TR_get(e.dil_modeli)
+            TR_if d == TR_none { TR_return red(k.kimlik, "not_installed", TR_JSON({"entry_id": e.dil_modeli})) }
+            TR_if d.TR_get("code") != TR_none { TR_return red(k.kimlik, TR_String(d["code"]), d["values"]) }
+            e.yüklenecek = e.dil_modeli
+        }
+        e.yükleyip_dinle = TR_true
+    }
+    e.mikrofon_istendi = açık
+    TR_return kabul(k.kimlik)
+}
+
 # ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın
-# istediği değilse `invalid_value` (`setting_invalid`). Bağlam, mikrofon ve kayıt tur sürerken de kabul edilir (modele
-# dokunmazlar). Dilde ve sistem iletisinde tur sürüyorsa `turn_busy`; dil katalogda yoksa `unknown_language`; öbür
-# retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular (oturum.tr, `ayarı_uygula`).
+# istediği değilse `invalid_value` (`setting_invalid`). Bağlam, mikrofon, kayıt ve nicemli seçim tur sürerken de kabul
+# edilir (modele dokunmazlar). Dilde, sistem iletisinde ve dil modelinde tur sürüyorsa `turn_busy`; dil katalogda yoksa
+# `unknown_language`; dil modeli katalogda yoksa `invalid_value`, takımı kurulu değilse `not_installed` (ayar yazılmaz);
+# öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana döngü uygular (oturum.tr, `ayarı_uygula`).
 TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_var anahtar = TR_String(k.veri["key"])
     TR_if TR_not _AYARLAR.TR_contains(anahtar) {
@@ -337,13 +362,17 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_if değer == TR_none TR_or TR_not ayar_değeri_mi(anahtar, değer) { TR_return geçersiz }
     # Dil modellerinin en büyük bağlam sınırını aşan bağlam yazılmaz: Dost bir sonraki açılışta H8174 ile açılmazdı.
     TR_if anahtar == "context" TR_and e.bağlam_sınırı > 0 TR_and TR_Int(değer) > e.bağlam_sınırı { TR_return geçersiz }
-    TR_if ["context", "microphone", "recording"].TR_contains(anahtar) {
+    TR_if ["context", "microphone", "recording", "quantized_activations"].TR_contains(anahtar) {
         e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
         TR_return kabul(k.kimlik)
     }
     TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
     TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
-    TR_if anahtar == "speech_language" {
+    TR_if anahtar == "language_model" {
+        TR_var c = e.yüklenebilir.TR_get(TR_String(değer))
+        TR_if c == TR_none { TR_return geçersiz }
+        TR_if c.TR_get("code") != TR_none { TR_return red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "not_installed"})) }
+    } TR_else TR_if anahtar == "speech_language" {
         TR_var kod = TR_String(değer)
         TR_var c = e.dil_cevabı.TR_get(kod)
         TR_if c == TR_none { TR_return red(k.kimlik, "unknown_language", TR_JSON({"language": kod})) }
@@ -355,12 +384,14 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_return kabul(k.kimlik)
 }
 
-# ayar_değeri_mi: değerin türü anahtarın istediği mi: dil metin, sistem iletisi `sistem_iletisi_mi`, bağlam 0'dan büyük
+# ayar_değeri_mi: değerin türü anahtarın istediği mi: dil ve dil modeli metin, nicemli seçim auto, on ya da off, sistem
+# iletisi `sistem_iletisi_mi`, bağlam 0'dan büyük
 # tam sayı, mikrofon boş olmayan metin, kayıt true/false.
 TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
     TR_var t = TR_Type(değer)
     TR_match anahtar {
-        "speech_language" => { TR_return t == TR_String }
+        "speech_language", "language_model" => { TR_return t == TR_String }
+        "quantized_activations" => { TR_return t == TR_String TR_and ["auto", "on", "off"].TR_contains(TR_String(değer)) }
         "system_prompt" => { TR_return sistem_iletisi_mi(değer) }
         "context" => { TR_return t == TR_Int TR_and TR_Int(değer) > 0 }
         "microphone" => { TR_return t == TR_String TR_and TR_String(değer) != "" }

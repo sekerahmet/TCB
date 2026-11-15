@@ -48,6 +48,8 @@ TR_func sahte_iş(y: Yazıcı, söz: TR_String) -> TR_String? {
 TR_var sayı = 0
 TR_func bakış() {
     komutları_işle(e)
+    # Sahte zincirde ayar uygulanmaz; kabul edilen ayar atılır, yoksa sonraki komutlar beklerdi (ekran.tr, komutları_işle).
+    e.ayar_istendi = TR_none
     TR_if e.mic != e.mikrofon_istendi {
         e.mic = e.mikrofon_istendi
         TR_if e.tur == "" { e.boşta() }

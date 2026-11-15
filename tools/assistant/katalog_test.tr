@@ -12,39 +12,39 @@ TR_func _örnek_katalog() -> TR_String {
     TR_var h = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     TR_var g: TR_JSON = {"v": 1, "entries": [
         {"id": "qwen3-4b-q4km", "kind": "language_model", "family": "qwen3", "context_max": 40960, "name": "Qwen3 4B Q4_K_M",
-         "source": {"host": "huggingface", "repo": "Qwen/Qwen3-4B-GGUF", "revision": r,
-                    "files": [{"path": "Qwen3-4B-Q4_K_M.gguf", "bytes": 2497280256, "sha256": h, "target": "Qwen3-4B-Q4_K_M.gguf"}]},
-         "license": {"name": "Apache-2.0", "url": "https://example.org/l", "gated": TR_false},
-         "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-         "memory": {"weights_bytes": 2497280256, "kv": {"layers": 36, "kv_heads": 8, "head_dim": 128},
-                    "measured": [{"context": 8192, "private_bytes": 5000000000, "measured_on": "sınama"}]}},
+            "source": {"host": "huggingface", "repo": "Qwen/Qwen3-4B-GGUF", "revision": r,
+                "files": [{"path": "Qwen3-4B-Q4_K_M.gguf", "bytes": 2497280256, "sha256": h, "target": "Qwen3-4B-Q4_K_M.gguf"}]},
+            "license": {"name": "Apache-2.0", "url": "https://example.org/l", "gated": TR_false},
+            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
+            "memory": {"weights_bytes": 2497280256, "kv": {"layers": 36, "kv_heads": 8, "head_dim": 128},
+                "measured": [{"context": 8192, "private_bytes": 5000000000, "measured_on": "sınama"}]}},
         {"id": "whisper-small", "kind": "transcriber", "name": "Whisper small",
-         "source": {"host": "huggingface", "repo": "openai/whisper-small", "revision": r,
-                    "files": [{"path": "model.safetensors", "bytes": 1000, "sha256": h, "target": "model.safetensors"}]},
-         "license": {"name": "MIT", "url": "https://example.org/l", "gated": TR_false},
-         "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-         "memory": {"weights_bytes": 1000, "measured": [{"context": 0, "private_bytes": 600000000, "measured_on": "sınama"}]}},
+            "source": {"host": "huggingface", "repo": "openai/whisper-small", "revision": r,
+                "files": [{"path": "model.safetensors", "bytes": 1000, "sha256": h, "target": "model.safetensors"}]},
+            "license": {"name": "MIT", "url": "https://example.org/l", "gated": TR_false},
+            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
+            "memory": {"weights_bytes": 1000, "measured": [{"context": 0, "private_bytes": 600000000, "measured_on": "sınama"}]}},
         {"id": "silero-vad-16k", "kind": "vad", "name": "Silero VAD 16 kHz",
-         "source": {"host": "github", "repo": "snakers4/silero-vad", "revision": r,
-                    "files": [{"path": "silero_vad_16k.safetensors", "bytes": 100, "sha256": h, "target": "silero_vad_16k.safetensors"}]},
-         "license": {"name": "MIT", "url": "https://example.org/l", "gated": TR_false},
-         "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-         "memory": {"weights_bytes": 100, "measured": [{"context": 0, "private_bytes": 10000000, "measured_on": "sınama"}]}},
+            "source": {"host": "github", "repo": "snakers4/silero-vad", "revision": r,
+                "files": [{"path": "silero_vad_16k.safetensors", "bytes": 100, "sha256": h, "target": "silero_vad_16k.safetensors"}]},
+            "license": {"name": "MIT", "url": "https://example.org/l", "gated": TR_false},
+            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
+            "memory": {"weights_bytes": 100, "measured": [{"context": 0, "private_bytes": 10000000, "measured_on": "sınama"}]}},
         {"id": "mms-tts-tur", "kind": "voice", "name": "MMS-TTS tur",
-         "source": {"host": "huggingface", "repo": "facebook/mms-tts-tur", "revision": r,
-                    "files": [{"path": "model.safetensors", "bytes": 200, "sha256": h, "target": "model.safetensors"}]},
-         "license": {"name": "CC-BY-NC-4.0", "url": "https://example.org/l", "gated": TR_false},
-         "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-         "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 300000000, "measured_on": "sınama"}]}},
+            "source": {"host": "huggingface", "repo": "facebook/mms-tts-tur", "revision": r,
+                "files": [{"path": "model.safetensors", "bytes": 200, "sha256": h, "target": "model.safetensors"}]},
+            "license": {"name": "CC-BY-NC-4.0", "url": "https://example.org/l", "gated": TR_false},
+            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
+            "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 300000000, "measured_on": "sınama"}]}},
         {"id": "mms-tts-eng", "kind": "voice", "name": "MMS-TTS eng",
-         "source": {"host": "huggingface", "repo": "facebook/mms-tts-eng", "revision": r,
-                    "files": [{"path": "model.safetensors", "bytes": 200, "sha256": h, "target": "model.safetensors"}]},
-         "license": {"name": "CC-BY-NC-4.0", "url": "https://example.org/l", "gated": TR_false},
-         "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-         "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 400000000, "measured_on": "sınama"}]}}],
-      "languages": [
-        {"code": "tr", "whisper_language": "tr", "transcriber": "whisper-small", "voice": "mms-tts-tur", "system_prompt": "a"},
-        {"code": "en", "whisper_language": "en", "transcriber": "whisper-small", "voice": "mms-tts-eng", "system_prompt": "b"}]}
+            "source": {"host": "huggingface", "repo": "facebook/mms-tts-eng", "revision": r,
+                "files": [{"path": "model.safetensors", "bytes": 200, "sha256": h, "target": "model.safetensors"}]},
+            "license": {"name": "CC-BY-NC-4.0", "url": "https://example.org/l", "gated": TR_false},
+            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
+            "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 400000000, "measured_on": "sınama"}]}}],
+        "languages": [
+            {"code": "tr", "whisper_language": "tr", "transcriber": "whisper-small", "voice": "mms-tts-tur", "system_prompt": "a"},
+            {"code": "en", "whisper_language": "en", "transcriber": "whisper-small", "voice": "mms-tts-eng", "system_prompt": "b"}]}
     TR_return TR_json_string(g)
 }
 
@@ -316,6 +316,23 @@ TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca
     ayar_yaz(ayar, k, a, "qwen3-4b-q4km", 17179869184, 4096)
     TR_assert_equal(4096, TR_Int(TR_json_parse(TR_read_file(ayar))["context"]))
     TR_assert(TR_not TR_Path("\(ayar).tmp").TR_exists)
+}
+
+# kur.tr'nin yeniden koşusu kullanıcının isteğe bağlı seçimlerini öntanımlıya döndürmez (N'nin Bulgu 1'i, TCB 16:47).
+TR_test "ayar_yaz isteğe bağlı alanları korur: microphone, recording ve quantized_activations kalır; olmayan alan yazılmaz" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var yol = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true,\"quantized_activations\":\"off\""))
+    ayar_yaz(yol, k, ayar_oku(yol, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_var j = TR_json_parse(TR_read_file(yol))
+    TR_assert_equal(["Mikrofon (X)", "off"], [TR_String(j["microphone"]), TR_String(j["quantized_activations"])])
+    TR_assert(TR_Bool(j["recording"]))
+    TR_assert_equal(4096, TR_Int(j["context"]))
+    TR_var a = ayar_oku(yol, k)
+    TR_assert(a != TR_none TR_and a.nicemli == "off" TR_and a.kayıt TR_and a.mikrofon == "Mikrofon (X)")
+    TR_var sade = _dosya("ayar.json", _örnek_ayar())
+    ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_var js = TR_json_parse(TR_read_file(sade))
+    TR_assert(js.TR_get("microphone") == TR_none TR_and js.TR_get("recording") == TR_none TR_and js.TR_get("quantized_activations") == TR_none)
 }
 
 TR_test "depodaki katalog.json okunur ve tutarlıdır" {
