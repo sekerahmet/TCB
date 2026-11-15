@@ -149,6 +149,66 @@ func (k *emitter) blockReduceAs(typ string, size int, fresh func() reg, v, sm, t
 	return r
 }
 
+// topKEmpty dolgu anahtarlarıyla (her gerçek anahtardan büyük) dolu boş liste.
+func (k *emitter) topKEmpty() []reg {
+	all := k.r()
+	k.e("mov.u32", all, uint32(0xFFFFFFFF))
+	pad := k.pack(all, all)
+	list := make([]reg, topKList)
+	for i := range list {
+		list[i] = k.rd()
+		k.e("mov.b64", list[i], pad)
+	}
+	return list
+}
+
+// topKInsert c anahtarını artan sıralı listeye katar; listede en küçük topKList anahtar
+// kalır. c listenin sonundan küçük değilse liste değişmez.
+func (k *emitter) topKInsert(list []reg, c reg) {
+	skip := k.label()
+	p := k.p()
+	k.e("setp.ge.u64", p, c, list[len(list)-1])
+	k.jumpIf(p, skip)
+	moving := k.rd()
+	k.e("mov.b64", moving, c)
+	for _, r := range list {
+		small := k.rd()
+		k.e("min.u64", small, r, moving)
+		k.e("max.u64", moving, r, moving)
+		k.e("mov.b64", r, small)
+	}
+	k.put(skip)
+}
+
+// topKBlockMerge bloktaki iş parçacıklarının listelerini ağaç biçiminde (sabit sıra)
+// birleştirir: sonunda 0. iş parçacığının listesi bloğun en küçük topKList anahtarıdır. sm
+// 8·topKList·B bayt paylaşımlı bellek, B ikinin kuvveti.
+func (k *emitter) topKBlockMerge(list []reg, sm, tid reg, B int) {
+	base2 := k.r()
+	k.e("mad.lo.s32", base2, tid, 8*topKList, sm)
+	keep := func() {
+		for i, r := range list {
+			k.e("st.shared.u64", mem(base2, 8*i), r)
+		}
+	}
+	keep()
+	k.barrier()
+	for s := B / 2; s > 0; s /= 2 {
+		skip := k.label()
+		p := k.p()
+		k.e("setp.ge.u32", p, tid, s)
+		k.jumpIf(p, skip)
+		for i := 0; i < topKList; i++ {
+			c := k.rd()
+			k.e("ld.shared.u64", c, mem(base2, 8*(topKList*s+i)))
+			k.topKInsert(list, c)
+		}
+		keep()
+		k.put(skip)
+		k.barrier()
+	}
+}
+
 // partRange parçalı indirgemede ızgaranın y'sindeki parça s'nin aralığı: r'ye başını
 // ekler, sonunu (min(R, (s+1)·parça)) verir.
 func (k *emitter) partRange(r, part, R reg) (s, last reg) {
