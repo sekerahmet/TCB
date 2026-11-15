@@ -75,9 +75,11 @@ func (g *backend) argmax(mode2 int, out, gd *storage, x tensor.View, axis int, g
 }
 
 // argmaxBlockMaxOut blok yolunun (argmaxBlockKernel) en çok çıktı sayısı; çok çıktılı
-// argmax'ta çıktı başına iş parçacığı kartı zaten doldurur. Sınamalar eski yolu denemek için
-// 0 yapar.
-var argmaxBlockMaxOut = 4096
+// argmax'ta çıktı başına iş parçacığı kartı zaten doldurur. Değer kartta ölçüldü
+// (TestArgMaxBlockThreshold, G4 RTX PRO 6000, 2026-11-15): K ≤ 16 384'te blok yolu ölçülen her
+// eksende (256, 2 048, 16 384) hızlı, K = 65 536 ve eksen 256'da yavaş (0,0605'e karşı
+// 0,0799 ms). Sınamalar eski yolu denemek için 0 yapar.
+var argmaxBlockMaxOut = 16384
 
 // argmaxBlocks argmax'ın blok yolunu seçer ve blok boyunu verir (0: çıktı başına iş
 // parçacığı). Kural toplamanınkidir (reduce): eksen en az 64 elemanlı ve çıktılar çok sayıda
