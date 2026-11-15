@@ -688,8 +688,9 @@ TR_struct TR_GPT {
         TR_return TR_cross_entropy(TR_self.TR_forward(TR_token_ids), TR_targets)
     }
     # önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
-    # önbellek en_çok konum tutar (verilmezse bağlam).
+    # önbellek en_çok konum tutar ve en_çok verilmelidir (H6997); büyüyende verilmez.
     TR_func TR_build_cache(TR_kind: TR_String = "sabit", TR_capacity: TR_Int? = TR_none) -> TR_KVCache {
+        TR_if TR_kind == "sabit" TR_and TR_capacity == TR_none { TR_throw TR_Message("H6997", TR_self.TR_config["bağlam"]) }
         TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi

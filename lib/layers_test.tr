@@ -325,6 +325,21 @@ TR_test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden 
     }
 }
 
+TR_test "önbellek_kur: kapasitesiz sabit önbellek hatadır (H6997), büyüyen kapasitesiz kurulur; iletinin önerisi çalışır" {
+    TR_var m = TR_GPT(20, TR_context: 12, TR_embed_dim: 16, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 6)
+    TR_assert_equal("H6997", TR_error_code { m.TR_build_cache() })
+    TR_assert_equal("H6997", TR_error_code { m.TR_build_cache(TR_kind: "sabit") })
+    TR_assert_equal("H6907", TR_error_code { m.TR_build_cache(TR_capacity: 0) })
+    TR_assert_equal("H6907", TR_error_code { m.TR_build_cache(TR_capacity: -1) })
+    TR_var b = m.TR_build_cache(TR_kind: "büyüyen")
+    TR_var ö = m.TR_build_cache(TR_capacity: 1024) # iletinin önerdiği yazım
+    TR_no_grad {
+        m.TR_forward([[1, 2, 3]], TR_cache: b)
+        m.TR_forward([[1, 2, 3]], TR_cache: ö)
+    }
+    TR_assert_equal([3, 3], [b.TR_position, ö.TR_position])
+}
+
 # Tamponu 1 MiB'lık (blok eşiği) sabit önbellek işlemcide tek öbek dışı blokta durur (15.43);
 # logitleri önbelleksiz hesabınkiyle aynıdır.
 TR_test "KVÖnbellek: sabit önbelleğin tek tamponu önbelleksizle aynı logitleri verir" {

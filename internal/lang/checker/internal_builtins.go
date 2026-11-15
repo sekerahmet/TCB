@@ -1,7 +1,7 @@
 package checker
 
 import (
-	"path"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -28,7 +28,7 @@ func (d *nameChecker) internalUse(id *ast.Identifier, k *nameScope) bool {
 		code = named
 	}
 	module := code.InternalTo()
-	if module == "" || d.c.libraryFile == path.Base(module)+".tr" {
+	if module == "" || d.c.libraryFile == strings.TrimPrefix(module, "tr/")+".tr" {
 		return false
 	}
 	d.c.nameErrors = append(d.c.nameErrors, messages.AtRange(id.Token.Range(), messages.New(messages.H6998)))
