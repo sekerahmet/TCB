@@ -58,13 +58,13 @@ TR_struct İş {
 
 # İndirici: sıradaki işler, süren iş ve onun görevi, bu oturumda biten işler (`download_cancel`'ın cevabı). Alanlarını
 # yalnız ana döngü yazar. `bitti` bir girdi kurulunca çağrılır (oturum kurulu listesini yeniler, `catalog` gönderir);
-# `adres` dosyanın adresidir, sınamada 127.0.0.1'deki sunucuya gider.
+# `adres` dosyanın adresidir: asistan.tr `katalog_adresi`'ni verir, sınama 127.0.0.1'deki sunucuyu.
 TR_struct İndirici {
     kj: TR_JSON
     klasör: TR_String # Dost klasörü
     gönder: (TR_String, TR_JSON) -> TR_NoneType
     bitti: () -> TR_NoneType
-    adres: (TR_JSON, TR_JSON) -> TR_String = katalog_adresi
+    adres: (TR_JSON, TR_JSON) -> TR_String # dosyanın adresi: ekranlı kipte katalog_adresi, sınamada 127.0.0.1
     sayaç: TR_Int = 0
     sıra: TR_List[İş] = []
     süren: İş? = TR_none

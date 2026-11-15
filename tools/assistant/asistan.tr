@@ -381,7 +381,7 @@ TR_func ekranlı_kip() -> TR_Int {
             "ekran": TR_String(ayar["ekran"])})))
     TR_defer { o.bırak() }
     TR_if TR_not elle {
-        o.indirici = İndirici(kj: kj, klasör: klasör, gönder: e.gönder, bitti: o.kurulumu_yenile)
+        o.indirici = İndirici(kj: kj, klasör: klasör, gönder: e.gönder, bitti: o.kurulumu_yenile, adres: katalog_adresi)
         e.indirme = o.indirme_kararı
     }
     o.kataloğu_gönder()
