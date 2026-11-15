@@ -255,7 +255,7 @@ Cevap her zaman JSON:
 | `devices_list` | `{}` | Mikrofonların listesini ister; cevap `devices` olayıdır, liste okunamazsa `devices_unavailable` |
 | `model_download` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin kurulu olmayan modellerini indirme sırasına koyar, her girdi bir iş; sonuç `download` olaylarıyla gelir. Aynı girdinin işi sürüyorsa `download_busy` |
 | `download_cancel` | `{"job_id":"..."}` | İşi durdurur; geçici dosya kalır. Bu oturumda bitmiş iş için bir şey yapmaz (`accepted`); bu oturumda olmamış iş `unknown_job` |
-| `model_delete` | `{"entry_id":"..."}` | Dil modelinin kurulu dosyalarını siler; konuşma dilinin modelleri kalır. Yüklü modeli önce bırakır, durum `setup` olur; tur sürüyorsa `turn_busy`, işi süren `download_busy` |
+| `model_delete` | `{"entry_id":"..."}` | Dil modelinin kurulu dosyalarını siler; konuşma dilinin modelleri kalır. Yüklü modeli önce bırakır, durum `setup` olur; tur sürüyorsa `turn_busy`, işi süren `download_busy`. Yükleme sürerken gelen silme kabul edilir; yükleme bitince model bırakılır ve silinir. |
 
 `settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `context` ve `microphone` bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
 

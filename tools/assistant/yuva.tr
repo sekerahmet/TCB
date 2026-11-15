@@ -71,6 +71,21 @@ TR_func _ham(kj: TR_JSON, kimlik: TR_String) -> TR_JSON? {
 # (`_durum`). Dosya değişince anahtar değişir, yeniden karılır; tutan girdinin kaydı yazılır, burada durmaz.
 TR_var _karmalar: TR_Dict[TR_String, TR_Bool] = {}
 
+# yol_parçası_mı: tek yol parçası: boş, `.`, `..` değil, ayırıcı taşımıyor (DENETİM 768 N4, 778 N3). Katalogun `id`'si
+# ve `target`'ı kaydın, taşımanın ve silmenin yollarına girer; başka parça Dost klasörünün dışına yazdırırdı.
+TR_func yol_parçası_mı(x: TR_String) -> TR_Bool {
+    TR_return x != "" TR_and x != "." TR_and x != ".." TR_and TR_Path(x).TR_name == x
+}
+
+# yollar_doğru: girdinin `id`'si ve her `target`'ı tek yol parçası.
+TR_func yollar_doğru(g: TR_JSON) -> TR_Bool {
+    TR_if TR_not yol_parçası_mı(TR_String(g["id"])) { TR_return TR_false }
+    TR_for f TR_in g["source"]["files"] {
+        TR_if TR_not yol_parçası_mı(TR_String(f["target"])) { TR_return TR_false }
+    }
+    TR_return TR_true
+}
+
 TR_func kayıt_yolu(klasör: TR_String, kimlik: TR_String) -> TR_String { TR_return TR_String(TR_Path(girdi_klasörü(klasör, kimlik), _KAYIT)) }
 
 # kayıt_yaz: girdinin kurulu kaydı: katalogun `revision`'ı, her dosyanın boyu, sha256'sı ve diskteki değişme zamanı.
@@ -131,17 +146,18 @@ TR_func _durum(g: TR_JSON, klasör: TR_String) -> TR_String? {
 # açılışta ekran `verifying` görür).
 TR_func karılacak_var(kj: TR_JSON, klasör: TR_String) -> TR_Bool {
     TR_for g TR_in kj["entries"] {
+        TR_if TR_not yollar_doğru(g) { TR_continue }
         TR_var durum = _durum(g, klasör)
         TR_if durum != TR_none TR_and TR_not _karmalar.TR_contains(durum) TR_and TR_not _kayıt_tutuyor(g, klasör) { TR_return TR_true }
     }
     TR_return TR_false
 }
 
-# kurulu: girdi kurulu mu. Önce kayıt (`_kayıt_tutuyor`); tutmuyorsa ve dosyalar katalogdaki boydaysa her dosya karılır
+# kurulu: girdi kurulu mu; `id`'si ya da bir `target`'ı tek yol parçası değilse değil (kayıt yazılmaz). Önce kayıt (`_kayıt_tutuyor`); tutmuyorsa ve dosyalar katalogdaki boydaysa her dosya karılır
 # (`TR_sha256_file`): hepsi katalogla tutarsa kayıt yazılır, tutmazsa sonuç bu oturumda bellekte kalır (`_karmalar`).
 TR_func kurulu(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Bool {
     TR_var g = _ham(kj, kimlik)
-    TR_if g == TR_none { TR_return TR_false }
+    TR_if g == TR_none TR_or TR_not yollar_doğru(g) { TR_return TR_false }
     TR_if _kayıt_tutuyor(g, klasör) { TR_return TR_true }
     TR_var durum = _durum(g, klasör)
     TR_if durum == TR_none TR_or _karmalar.TR_contains(durum) { TR_return TR_false }

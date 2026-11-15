@@ -300,6 +300,7 @@ TR_struct Oturum {
             TR_if t != TR_none TR_and t.giriş == giriş {
                 TR_if e.tur != "" { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.tur})) }
                 TR_if e.metin != TR_none { TR_return red(k.kimlik, "turn_busy", TR_JSON({"turn_id": e.metin_turu})) }
+                e.hazır = TR_false # aynı bakışta gelen send_text not_ready alır (DENETİM 778 N4)
             }
             TR_self.silinecek = giriş
             TR_return kabul(k.kimlik)

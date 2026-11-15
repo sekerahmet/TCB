@@ -210,20 +210,6 @@ TR_func katalog_adresi(g: TR_JSON, f: TR_JSON) -> TR_String {
     TR_return "https://huggingface.co/\(TR_String(s["repo"]))/resolve/\(TR_String(s["revision"]))/\(TR_String(f["path"]))"
 }
 
-# yol_parçası_mı: tek yol parçası: boş, `.`, `..` değil, ayırıcı taşımıyor (DENETİM 768 N4). Katalogun `id`'si ve
-# `target`'ı taşınan ve silinen yollara girer; başka parça Dost klasörünün dışına yazdırırdı.
-TR_func yol_parçası_mı(x: TR_String) -> TR_Bool {
-    TR_return x != "" TR_and x != "." TR_and x != ".." TR_and TR_Path(x).TR_name == x
-}
-
-TR_func _yollar_doğru(g: TR_JSON) -> TR_Bool {
-    TR_if TR_not yol_parçası_mı(TR_String(g["id"])) { TR_return TR_false }
-    TR_for f TR_in g["source"]["files"] {
-        TR_if TR_not yol_parçası_mı(TR_String(f["target"])) { TR_return TR_false }
-    }
-    TR_return TR_true
-}
-
 TR_func ara_klasör(klasör: TR_String, kimlik: TR_String) -> TR_Path { TR_return TR_Path(klasör, "indirme", kimlik) }
 
 # _indir: işin görevi. Ara klasörü kurar, yeri denetler, her dosyayı indirir, sonra taşır ve kaydı yazar. Beklenen
@@ -231,7 +217,7 @@ TR_func ara_klasör(klasör: TR_String, kimlik: TR_String) -> TR_Path { TR_retur
 TR_func _indir(klasör: TR_String, adres: (TR_JSON, TR_JSON) -> TR_String, iş: İş) -> TR_JSON {
     TR_var g = iş.girdi
     TR_var kimlik = iş.girdi_kimliği()
-    TR_if TR_not _yollar_doğru(g) { TR_return _kod("internal", TR_JSON({})) }
+    TR_if TR_not yollar_doğru(g) { TR_return _kod("internal", TR_JSON({})) }
     TR_var ara = ara_klasör(klasör, kimlik)
     TR_make_dir(ara)
     TR_var hazır = _hazırlar(g, ara, iş)
@@ -322,7 +308,7 @@ TR_func taşı(klasör: TR_String, g: TR_JSON) {
 # TR_false (`internal`).
 TR_func sil(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_Bool {
     TR_var g = girdi_ham(kj, kimlik)
-    TR_if g == TR_none TR_or TR_not _yollar_doğru(g) { TR_return TR_false }
+    TR_if g == TR_none TR_or TR_not yollar_doğru(g) { TR_return TR_false }
     TR_var kayıt = TR_Path(kayıt_yolu(klasör, kimlik))
     TR_if kayıt.TR_exists { TR_remove(kayıt) }
     TR_var yer = TR_Path(girdi_klasörü(klasör, kimlik))

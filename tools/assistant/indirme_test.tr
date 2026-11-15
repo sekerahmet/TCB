@@ -115,14 +115,17 @@ TR_func _son(olaylar: TR_List[TR_JSON], iş: TR_String) -> TR_JSON {
 
 TR_func _yer(d: Düzen, kimlik: TR_String, target: TR_String) -> TR_Path { TR_return TR_Path(girdi_klasörü(d.klasör, kimlik), target) }
 
-TR_test "kayıt: inen girdi modeller/<id>/'e taşınır, kurulu.json revision'ı, boyu, sha256'yı ve taşımadan sonraki zamanı taşır; ara klasör kalmaz" {
+TR_test "kayıt: inen girdi modeller/<id>/'e taşınır, kurulu.json revision'ı, boyu, sha256'yı ve taşımadan sonraki zamanı taşır; ara klasör kalmaz; görevin her geçişi sırasıyla olay olur" {
     TR_var d = _düzen()
     d.ind.kuyruğa(["yaz"])
-    _koş(d.ind)
-    TR_var durumlar = _durumlar(d.olaylar, "d1")
-    TR_assert_equal("queued", durumlar[0])
-    TR_assert_equal("done", durumlar[durumlar.TR_length - 1])
-    TR_assert(durumlar.TR_contains("running") TR_and durumlar.TR_contains("verifying"))
+    # Belirlenimci: görev ana döngünün iki bakışı arasında bütün geçişlerinden geçer; olaylar yine tam ve sıralı (778 Ş1).
+    d.ind.adım()
+    TR_var g = d.ind.görev
+    TR_if g != TR_none {
+        TR_for TR_not g.TR_done() { TR_sleep(0.01) }
+    }
+    d.ind.adım()
+    TR_assert_equal(["queued", "running", "verifying", "done"], _durumlar(d.olaylar, "d1"))
     TR_assert_equal(1, d.kurulan)
     TR_assert_equal("yazıcı", TR_read_file(_yer(d, "yaz", "model.safetensors")))
     TR_var k = TR_json_parse(TR_read_file(kayıt_yolu(d.klasör, "yaz")))
@@ -150,6 +153,16 @@ TR_test "kurulu: kayıt ve disk tutarsa kurulu; revision ilerleyip dosyalar ayn�
     TR_assert_equal(_YENİ_REV, TR_String(TR_json_parse(TR_read_file(kayıt_yolu(d.klasör, "dm")))["revision"]))
     TR_assert(TR_not kurulu(_değiş(yeni, _sha("dil-modeli-verisi"), _sha("başka-veri-17bayt")), d.klasör, "dm"))
     TR_assert(TR_not kurulu(d.kj, d.klasör, "olmayan"))
+    # Yol parçası olmayan id kurulu sayılmaz, karılmaz, kaydı Dost klasörünün dışına yazılmaz (778 N3): `../dm`'nin
+    # gösterdiği yerde (`modeller/` dışında) katalogla tutan bir dosya durur.
+    TR_var dışarı = TR_make_dir(TR_Path(d.klasör, "dm"))
+    TR_write_file(TR_Path(dışarı, "dm.gguf"), "dil-modeli-verisi")
+    TR_for kötü TR_in ["../dm", "a/dm", ".."] {
+        TR_var kj = _değiş(d.kj, "\"id\":\"dm\"", "\"id\":\"\(kötü)\"")
+        TR_assert(TR_not kurulu(kj, d.klasör, kötü))
+        TR_assert(TR_not karılacak_var(_değiş(kj, "\"id\":\"yaz\"", "\"id\":\"yok\""), d.klasör))
+    }
+    TR_assert(TR_not TR_Path(dışarı, "kurulu.json").TR_exists)
     d.s.TR_close()
 }
 
@@ -348,7 +361,11 @@ TR_test "silme: dosyalar ve kayıt gider, konuşma modelleri kalır; yüklü mod
     o.e.tur = "t-1"
     TR_assert_equal("turn_busy", _karar(o, "model_delete", TR_JSON({"entry_id": "dm"})))
     o.e.tur = ""
+    o.e.hazır = TR_true
     TR_assert_equal("accepted", _karar(o, "model_delete", TR_JSON({"entry_id": "dm"})))
+    # Kabul edilen silmeden sonra aynı bakışta gelen metin turu not_ready alır (778 N4).
+    TR_assert(TR_not o.e.hazır)
+    TR_assert_equal("not_ready", TR_String(karar(o.e, Komut(kimlik: "c2", tür: "send_text", veri: TR_JSON({"text": "merhaba"})))["error"]["code"]))
     o.işle()
     TR_assert_equal(TR_none, o.y.takım)
     TR_assert(TR_not o.e.hazır)
