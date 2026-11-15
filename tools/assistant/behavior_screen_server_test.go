@@ -378,9 +378,11 @@ func TestDostWritesTheSettingBeforeTheEvent(t *testing.T) {
 	if len(catalogs) != 1 {
 		t.Fatalf("görüntüde bir catalog bekleniyordu: %v", snapshot)
 	}
+	// Katalog her türü taşır (M1); dil modeli kurulu değil, dosyaları da inmemiş.
 	entries, _ := catalogs[0]["entries"].([]any)
 	entry, _ := entries[0].(map[string]any)
-	if len(entries) != 1 || entry["id"] != "qwen3-4b-q4km" || entry["installed"] != false || entry["kind"] != "language_model" {
+	if len(entries) != 5 || entry["id"] != "qwen3-4b-q4km" || entry["installed"] != false || entry["downloaded"] != false ||
+		entry["kind"] != "language_model" || entry["bytes"] != float64(2497280256) {
 		t.Errorf("catalog: %v", entries)
 	}
 	if got := s.command(t, "c-1", "settings_set", `{"key":"context","value":4096}`); got != "accepted" {

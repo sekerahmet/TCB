@@ -385,6 +385,7 @@ TR_func ekranlı_kip() -> TR_Int {
         TR_if g.tür == "language_model" TR_and g.bağlam_sınırı > e.bağlam_sınırı { e.bağlam_sınırı = g.bağlam_sınırı }
     }
     e.konuşma_dili = etkin.konuşma_dili
+    e.dil_modeli = etkin.dil_modeli
     TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
     TR_var o = Oturum(e: e, k: k, kj: kj, klasör: klasör, etkin: etkin, ayar_verisi: ayar_verisi, y: Yuva(), yüklü: Yüklü(),
         en_çok_tur: TR_Int(ayar["en_çok_tur"]), kuyruk_ms: _KUYRUK_MS, çerçeve_bayt: _ÇERÇEVE_BAYT, açılış: şimdi(),
@@ -393,8 +394,9 @@ TR_func ekranlı_kip() -> TR_Int {
         kayıt: Kayıt(klasör: kayıt_klasörü(klasör, TR_time_ms()), başlık: deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]),
             "ekran": TR_String(ayar["ekran"]), "nicemli_seçimi": seçim.değer})))
     TR_defer { o.bırak() }
+    o.bağlam = bağlam
     TR_if TR_not elle {
-        o.indirici = İndirici(kj: kj, klasör: klasör, gönder: e.gönder, bitti: o.kurulumu_yenile, adres: katalog_adresi)
+        o.indirici = İndirici(kj: kj, klasör: klasör, gönder: e.gönder, bitti: o.indirme_bitti, adres: katalog_adresi)
         e.indirme = o.indirme_kararı
     }
     o.kataloğu_gönder()

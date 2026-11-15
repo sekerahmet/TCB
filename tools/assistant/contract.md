@@ -91,6 +91,8 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 - `model`: yalnız `loading`'de, yüklenen dil modelinin katalog kimliği.
 - `verifying`: `loading`'de her zaman: `true` açılışta kaydı olmayan modellerin dosyaları denetlenirken (sha256), öbür hâlde `false`.
 
+Yükleme: Dost seçili takımı kendisi yükler: açılışta, takım kurulu hâle gelince ve `language_model` ya da `speech_language` değişince. Ayarda olmayan bir dil modeli inince yüklenmez.
+
 ### `turn_start`
 
 ```json
@@ -211,10 +213,10 @@ Bir indirme işi: her girdi bir iş. `state`: `queued`, `running`, `verifying`, 
 ### `catalog`
 
 ```json
-{"v":2,"type":"catalog","data":{"entries":[{"id":"qwen3-4b-q4km","kind":"language_model","name":"Qwen3 4B Q4_K_M","installed":true}]}}
+{"v":2,"type":"catalog","data":{"entries":[{"id":"qwen3-4b-q4km","kind":"language_model","name":"Qwen3 4B Q4_K_M","installed":true,"downloaded":true,"bytes":2497280256,"memory_bytes":13632032768,"fit":"fits"},{"id":"whisper-small","kind":"transcriber","name":"Whisper small","installed":true,"downloaded":true,"bytes":969481381,"memory_bytes":990814208,"languages":["tr","en"]}]}}
 ```
 
-Katalogun dil modelleri: her girdinin `id`'si, `kind`'ı, adı (`name`) ve `installed`'ı. `installed` `true` ise `model_load` girdiyi kabul eder: girdinin ve konuşma dilinin modelleri kurulu. Bu sürümde yalnız `language_model` girdileri gelir; ekran bilmediği alanı ve bilmediği `kind`'ı yok sayar. `snapshot`'ta, açılışta ve bir girdi kurulunca ya da silinince gelir; Dost modelsiz (`--dil_modeli`'yle) açıldıysa gelmez. `installed` indirmenin kaydıyla (`modeller/<id>/kurulu.json`) hesaplanır: kayıttaki her dosyanın sha256'sı ve boyu katalogdakine eşit olmalı; diskte dosyanın bulunması yetmez.
+Katalogun bütün girdileri: `id`, `kind` (`language_model`, `transcriber`, `vad`, `voice`), `name`, `installed`, `downloaded` (girdinin kendi dosyaları kayıtla tutuyor), `bytes` (dosyaların toplam boyu), `memory_bytes` (çalışırken gereken bellek: dil modelinde ayarın bağlamı ve konuşma dili için takımla birlikte, öbürlerinde yalnız kendisi). Dil modelinde makinenin belleği biliniyorsa `fit` (`fits`, `tight`, `too_large`, `too_long`); yazıcı ve seste `languages` (kullanıldığı konuşma dilleri). `installed` dil modelinde takımın, öbür türlerde girdinin kendi dosyalarının kurulu olduğudur; dil modelinin kendi dosyaları inmiş ama konuşma dilinin modeli eksikse `downloaded` `true`, `installed` `false`'tur. `installed` `true` ise `model_load` girdiyi kabul eder: girdinin ve konuşma dilinin modelleri kurulu. Ekran bilmediği alanı ve bilmediği `kind`'ı yok sayar. `snapshot`'ta, açılışta ve bir girdi kurulunca ya da silinince gelir; Dost modelsiz (`--dil_modeli`'yle) açıldıysa gelmez. `installed` indirmenin kaydıyla (`modeller/<id>/kurulu.json`) hesaplanır: kayıttaki her dosyanın sha256'sı ve boyu katalogdakine eşit olmalı; diskte dosyanın bulunması yetmez.
 
 ### `heartbeat`
 
@@ -247,17 +249,17 @@ Cevap her zaman JSON:
 | `type` | `data` | Ne yapar |
 | --- | --- | --- |
 | `send_text` | `{"text":"..."}` | Metinle yeni tur açar; metin en çok 32 KiB |
-| `mic_set` | `{"on":true}` | Mikrofonu açar ya da kapar |
+| `mic_set` | `{"on":true}` | Mikrofonu açar ya da kapar. Model yüklü değilse ayarın modellerini yükler, hazır olunca açar; kurulu değilse `not_installed`. Yükleme düşerse istek düşer: mikrofon açılmaz, `model_load_failed` olayı gelir. Yükleme sürerken gelen `mic_set {on:false}` bekleyen dinlemeyi iptal eder; yükleme sürer. |
 | `approval_answer` | `{"approval_id":"...","decision":"approve"}` | Onay cevabı: `approve` ya da `deny` |
 | `stop` | `{}` | Sürmekte olan turu durdurur; açık onaylar `stopped` ile kapanır |
-| `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy`. Yüklenince ayarın dil modelini ayar dosyasına yazar (dosya varsa; Dost'un açılışta kendiliğinden başlattığı yükleme yazmaz); yazma düşerse model yüklü kalır, ayar değişmez, `settings_write_failed` |
+| `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy`. Yüklenince ayarın dil modelini ayar dosyasına yazar (dosya varsa; Dost'un açılışta kendiliğinden başlattığı yükleme yazmaz); yazma düşerse model yüklü kalır, ayar değişmez, `settings_write_failed`. Yükleme sürerken de kabul edilir: son istek kazanır (süren yükleme biter, son istenen takım farklıysa o yüklenir; `settings_set language_model` ve `speech_language` de aynı kurala girer). |
 | `settings_set` | `{"key":"...","value":...}` | Listedeki bir ayarı değiştirir ve ayar dosyasına yazar; listede olmayan `setting_invalid`; dosya yazılamazsa değişiklik geri alınır, `settings_write_failed` |
 | `devices_list` | `{}` | Mikrofonların listesini ister; cevap `devices` olayıdır, liste okunamazsa `devices_unavailable` |
-| `model_download` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin kurulu olmayan modellerini indirme sırasına koyar, her girdi bir iş; sonuç `download` olaylarıyla gelir. Aynı girdinin işi sürüyorsa `download_busy` |
+| `model_download` | `{"entry_id":"..."}` | Girdiyi indirme sırasına koyar; dil modelinde konuşma dilinin kurulu olmayan modellerini de, her girdi bir iş; sonuç `download` olaylarıyla gelir. Aynı girdinin işi sürüyorsa `download_busy` |
 | `download_cancel` | `{"job_id":"..."}` | İşi durdurur; geçici dosya kalır. Bu oturumda bitmiş iş için bir şey yapmaz (`accepted`); bu oturumda olmamış iş `unknown_job` |
-| `model_delete` | `{"entry_id":"..."}` | Dil modelinin kurulu dosyalarını siler; konuşma dilinin modelleri kalır. Yüklü modeli önce bırakır, durum `setup` olur; tur sürüyorsa `turn_busy`, işi süren `download_busy`. Yükleme sürerken gelen silme kabul edilir; yükleme bitince model bırakılır ve silinir. |
+| `model_delete` | `{"entry_id":"..."}` | Girdinin kurulu dosyalarını siler. Kullanılan takımdaysa takım önce bırakılır, durum `setup` olur; tur sürüyorsa `turn_busy`, işi süren `download_busy`. Yükleme sürerken gelen silme kabul edilir; yükleme bitince model bırakılır ve silinir. |
 
-`settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `context` ve `microphone` bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
+`settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `language_model` hemen geçerlidir: takım yeniden yüklenir. Tur sürüyorsa `turn_busy`; takımı kurulu değilse `setting_invalid` (`reason` `not_installed`), ayar yazılmaz. `speech_language` tur sürerken `turn_busy` alır: dil değişince takım yeniden yüklenir. `context` ve `microphone` bir sonraki açılışta geçerlidir; `quantized_activations` (`auto`, `on`, `off`) bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
 
 İndirme, silme ve yükleme yalnız `POST /command`'dan gelir. Modelin araçları bu yolu görmez. İndirme adresi yalnız katalogdan kurulur (`huggingface`, `github`); her dosya katalogdaki sha256 ve boyla iner.
 
@@ -291,7 +293,7 @@ Sunucudan gelenler:
 | `size_exceeded` | `file`, `limit_bytes` | Sunucu katalogdaki boydan fazlasını gönderdi; indirme durdu |
 | `disk_full` | `needed_bytes`, `free_bytes` | Yer yetmedi |
 | `unknown_job` | `job_id` | Bu oturumda böyle bir indirme işi olmadı |
-| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` üç değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü ya da aralığı anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış) |
+| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` dört değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü ya da aralığı anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış), `not_installed` (`language_model`'in takımı kurulu değil) |
 | `unknown_language` | `language` | Whisper bu dili tanımıyor ya da katalogda bu dilin modelleri yok |
 | `devices_unavailable` | | Mikrofonların listesi okunamadı |
 | `settings_write_failed` | `path`, `message`, `command` | Ayar dosyası yazılamadı; `command` onu doğuran komuttur (`settings_set` ya da `model_load`). `settings_set`'te değişiklik geri alındı; `model_load`'da model yüklü kaldı, ayar eski: Dost yeniden açılınca ayardaki model yüklenir |

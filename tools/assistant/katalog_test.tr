@@ -318,6 +318,23 @@ TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca
     TR_assert(TR_not TR_Path("\(ayar).tmp").TR_exists)
 }
 
+# kur.tr'nin yeniden koşusu kullanıcının isteğe bağlı seçimlerini öntanımlıya döndürmez (N'nin Bulgu 1'i, TCB 16:47).
+TR_test "ayar_yaz isteğe bağlı alanları korur: microphone, recording ve quantized_activations kalır; olmayan alan yazılmaz" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var yol = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true,\"quantized_activations\":\"off\""))
+    ayar_yaz(yol, k, ayar_oku(yol, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_var j = TR_json_parse(TR_read_file(yol))
+    TR_assert_equal(["Mikrofon (X)", "off"], [TR_String(j["microphone"]), TR_String(j["quantized_activations"])])
+    TR_assert(TR_Bool(j["recording"]))
+    TR_assert_equal(4096, TR_Int(j["context"]))
+    TR_var a = ayar_oku(yol, k)
+    TR_assert(a != TR_none TR_and a.nicemli == "off" TR_and a.kayıt TR_and a.mikrofon == "Mikrofon (X)")
+    TR_var sade = _dosya("ayar.json", _örnek_ayar())
+    ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_var js = TR_json_parse(TR_read_file(sade))
+    TR_assert(js.TR_get("microphone") == TR_none TR_and js.TR_get("recording") == TR_none TR_and js.TR_get("quantized_activations") == TR_none)
+}
+
 TR_test "depodaki katalog.json okunur ve tutarlıdır" {
     TR_var yol = "tools/assistant/katalog.json"
     TR_var k = katalog_oku(yol)

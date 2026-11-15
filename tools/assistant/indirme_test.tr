@@ -329,7 +329,7 @@ TR_func _karar(o: Oturum, tür: TR_String, veri: TR_JSON) -> TR_String {
 TR_test "komutlar: model_download dil modelini ve konuşma dilinin kurulu olmayan modellerini sıraya koyar; sıradaki girdi download_busy; bilinmeyen girdi ve iş" {
     TR_var d = _düzen()
     TR_var o = _oturum(d)
-    TR_assert_equal("unknown_entry", _karar(o, "model_download", TR_JSON({"entry_id": "yaz"})))
+    TR_assert_equal("unknown_entry", _karar(o, "model_download", TR_JSON({"entry_id": "olmayan"})))
     TR_assert_equal("unknown_entry", _karar(o, "model_delete", TR_JSON({"entry_id": "olmayan"})))
     TR_assert_equal("unknown_job", _karar(o, "download_cancel", TR_JSON({"job_id": "d1"})))
     TR_var y = TR_make_dir(girdi_klasörü(d.klasör, "vad"))
@@ -384,4 +384,59 @@ TR_test "silme: dosyalar ve kayıt gider, konuşma modelleri kalır; yüklü mod
     _koş(d.ind)
     TR_assert_equal("internal", TR_String(_son(d.olaylar, "d3")["error"]["code"]))
     d.s.TR_close()
+}
+
+# _katalog_girdisi: son `catalog` olayında girdinin satırı.
+TR_func _katalog_girdisi(o: Oturum, kimlik: TR_String) -> TR_JSON {
+    TR_var kataloglar = [x TR_for x TR_in o.e.giden TR_if TR_String(x["type"]) == "catalog"]
+    TR_return [g TR_for g TR_in kataloglar[kataloglar.TR_length - 1]["data"]["entries"] TR_if TR_String(g["id"]) == kimlik][0]
+}
+
+# _indir_bitir: indirmeleri ana döngünün indirme adımıyla bitirir (yükleme yok: `işle` koşmaz).
+TR_func _indir_bitir(o: Oturum) {
+    TR_var son = TR_time_ms() + 10000
+    TR_for _işler(o).TR_length > 0 {
+        TR_assert(TR_time_ms() < son, "indirme 10 sn'de bitmedi")
+        o.indirme_adımı()
+        TR_sleep(0.01)
+    }
+}
+
+TR_test "her tür: konuşma modeli tek başına iner ve silinir; dil modeli inmiş, konuşma dilinin modeli eksik: downloaded true, installed false" {
+    TR_var d = _düzen()
+    TR_var o = _oturum(d)
+    TR_assert_equal("accepted", _karar(o, "model_download", TR_JSON({"entry_id": "yaz"})))
+    TR_assert_equal(["yaz"], [i.girdi_kimliği() TR_for i TR_in _işler(o)])
+    _indir_bitir(o)
+    TR_var y = _katalog_girdisi(o, "yaz")
+    TR_assert(TR_Bool(y["installed"]) TR_and TR_Bool(y["downloaded"]))
+    TR_assert_equal("accepted", _karar(o, "model_download", TR_JSON({"entry_id": "dm"})))
+    _indir_bitir(o)
+    TR_assert(TR_Bool(_katalog_girdisi(o, "dm")["installed"]))
+    TR_assert_equal("accepted", _karar(o, "model_delete", TR_JSON({"entry_id": "ses-tr"})))
+    o.işle()
+    TR_var dm = _katalog_girdisi(o, "dm")
+    TR_assert(TR_Bool(dm["downloaded"]) TR_and TR_not TR_Bool(dm["installed"]))
+    TR_assert(TR_not TR_Bool(_katalog_girdisi(o, "ses-tr")["downloaded"]))
+    TR_assert(TR_Path(girdi_klasörü(d.klasör, "dm"), "dm.gguf").TR_exists)
+    d.s.TR_close()
+}
+
+TR_test "indirme bitince takım yüklenir; ayarda olmayan dil modeli inince yüklenmez" {
+    TR_var d = _düzen()
+    TR_var o = _oturum(d)
+    o.indirici = İndirici(kj: d.kj, klasör: d.klasör, gönder: o.e.gönder, bitti: o.indirme_bitti, adres: d.ind.adres)
+    TR_assert_equal("accepted", _karar(o, "model_download", TR_JSON({"entry_id": "dm"})))
+    _indir_bitir(o)
+    TR_assert_equal("dm", TR_String(o.e.yüklenecek))
+    TR_var b = _düzen()
+    TR_var p = _oturum(b)
+    p.indirici = İndirici(kj: b.kj, klasör: b.klasör, gönder: p.e.gönder, bitti: p.indirme_bitti, adres: b.ind.adres)
+    p.etkin.dil_modeli = "başka" # ayarın dil modeli bu değil
+    TR_assert_equal("accepted", _karar(p, "model_download", TR_JSON({"entry_id": "dm"})))
+    _indir_bitir(p)
+    TR_assert(p.e.yüklenecek == TR_none)
+    TR_assert(TR_Bool(_katalog_girdisi(p, "dm")["downloaded"]))
+    d.s.TR_close()
+    b.s.TR_close()
 }

@@ -234,6 +234,44 @@ TR_func yüklenebilirler(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar) -
     TR_return d
 }
 
+# katalog_olayı: `catalog`'un girdileri (contract.md): her türün `id`, `kind`, `name`, `installed` (dil modelinde takım:
+# `model_load`'un cevabı; öbürlerinde girdinin kendi dosyaları), `downloaded` (girdinin kendi dosyaları), `bytes`,
+# `memory_bytes` (dil modelinde ayarın bağlamı ve dili için `gereken`); dil modelinde makinenin belleği biliniyorsa
+# `fit` (`uygunluk`), yazıcı ve seste `languages`. `toplam` 1 GiB'den küçükse (bilinmiyor) `fit` yok.
+TR_func katalog_olayı(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar, yüklenebilir: TR_Dict[TR_String, TR_JSON],
+    bağlam: TR_Int, toplam: TR_Int) -> TR_List[TR_JSON] {
+        TR_var küçük = küçükler(k, a)
+        TR_var uyum: TR_Dict[TR_String, TR_String] = {}
+        TR_if toplam >= 1073741824 {
+            TR_for u TR_in uygunluk(k, a, toplam, bağlam) { uyum[u.kimlik] = u.uyum }
+        }
+        TR_var l: TR_List[TR_JSON] = []
+        TR_for g TR_in kj["entries"] {
+            TR_var kimlik = TR_String(g["id"])
+            TR_var tür = TR_String(g["kind"])
+            TR_var indi = kurulu(kj, klasör, kimlik)
+            TR_var bayt = 0
+            TR_for f TR_in g["source"]["files"] { bayt += TR_Int(f["bytes"]) }
+            TR_var c = yüklenebilir.TR_get(kimlik)
+            TR_var takım = TR_if tür == "language_model" { c != TR_none TR_and c.TR_get("code") == TR_none } TR_else { indi }
+            TR_var d: TR_Dict[TR_String, TR_JSON] = {"id": g["id"], "kind": g["kind"], "name": g["name"], "installed": TR_JSON(takım),
+                "downloaded": TR_JSON(indi), "bytes": TR_JSON(bayt)}
+            TR_var gi = girdi_bul(k, kimlik)
+            TR_if tür == "language_model" TR_and gi != TR_none {
+                d["memory_bytes"] = TR_JSON(gereken(gi, bağlam, küçük))
+                TR_var u = uyum.TR_get(kimlik)
+                TR_if u != TR_none { d["fit"] = TR_JSON(u) }
+            } TR_else {
+                d["memory_bytes"] = TR_JSON(küçük_bellek(k, kimlik))
+            }
+            TR_if tür == "transcriber" TR_or tür == "voice" {
+                d["languages"] = TR_JSON([dl.kod TR_for dl TR_in k.diller TR_if dl.yazıcı == kimlik TR_or dl.ses == kimlik])
+            }
+            l.TR_append(TR_JSON(d))
+        }
+        TR_return l
+    }
+
 # dil_cevapları: her konuşma dilinin `settings_set {key: speech_language}` cevabı: boş nesne ya da hata kodu ve
 # değerleri. Kullanıcının sistem iletisi başka dil içinse `setting_invalid` (`system_prompt_language`; ekran soruyu
 # sorar); dilin yazıcısı ya da sesi kurulu değilse `not_installed` (dil değişmez).
