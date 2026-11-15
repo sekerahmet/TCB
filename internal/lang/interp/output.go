@@ -170,6 +170,12 @@ func (v *VM) HasSecrets() bool { return v.mask.Load() != nil }
 // secret of every address in text (the contextual mask, 19.4) with SecretMask.
 func (v *VM) Mask(text string) string { return v.mask.Load().apply(text) }
 
+// MaskKey şimdiki değer maskesinin kimliğidir: her yeni gizli değer yenisini kurar (addSecrets); aynı
+// kimlikle maskelenmiş çıktı yeniden maskelenmez. Saklanan çıktı (olay akışının saklanan olayı, nabzı)
+// kimlik değiştiyse yazılmadan önce yeniden maskelenir (28.7: maske çıktının yazıldığı anda uygulanır).
+// Her goroutine'den çağrılabilir.
+func (v *VM) MaskKey() any { return v.mask.Load() }
+
 // maskValues is Mask without the contextual mask: only the registered values and their escaped
 // forms. TR_write_file's H7600 check uses it (18.13): an address with a password in the written
 // text is data, not a registered secret.

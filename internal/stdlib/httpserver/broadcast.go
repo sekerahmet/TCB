@@ -38,17 +38,19 @@ var (
 // broadcastBeat yayın akışının varsayılan nabzının verisidir (28.7).
 var broadcastBeat = []byte(`{"type":"heartbeat"}`)
 
-// event saklanan bir olaydır: kimliği ve yazılacak çerçevesi (id ve data satırları).
+// event saklanan bir olaydır: kimliği ve çerçevesi (id ve data satırları); çerçeve geri oynatılırken ve
+// dinleyiciye yazılırken maskenin kimliği değiştiyse yeniden maskelenir (28.7, frame.wire).
 type event struct {
-	id    int64
-	frame []byte
+	id int64
+	f  *sseFrame
 }
 
 // EventBroadcast TR_EventBroadcast'tır.
 type EventBroadcast struct {
+	vm       *interp.VM // maskenin kimliği ve maskesi (dinleyiciler kilitsiz okur: VM.MaskKey)
 	capacity int
 	reduce   *interp.FuncVal
-	beat     []byte
+	beat     *sseFrame // her dinleyici kopyasını alır
 	every    time.Duration
 	prefix   string // kimliklerin ön eki (newPrefix)
 
@@ -116,14 +118,14 @@ func newBroadcast(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if len(reduce.Parameters) != 2 {
 		return nil, messages.New(messages.H7638, fn, len(reduce.Parameters))
 	}
-	b := &EventBroadcast{capacity: int(n), reduce: reduce, beat: dataFrame(broadcastBeat), every: heartbeatInterval,
-		prefix: newPrefix(), sem: make(chan struct{}, 1), snap: snap, listeners: map[chan struct{}]struct{}{}}
+	b := &EventBroadcast{vm: m, capacity: int(n), reduce: reduce, beat: &sseFrame{head: dataHead, data: broadcastBeat, key: m.MaskKey()},
+		every: heartbeatInterval, prefix: newPrefix(), sem: make(chan struct{}, 1), snap: snap, listeners: map[chan struct{}]struct{}{}}
 	if v, ok := bind.GetNamed(named, nameHeartbeat); ok {
-		data, err := eventData(m, v)
+		beat, err := dataEvent(m, dataHead, v)
 		if err != nil {
 			return nil, err
 		}
-		b.beat = dataFrame(data)
+		b.beat = beat
 	}
 	return b, nil
 }
@@ -179,6 +181,7 @@ func (b *EventBroadcast) sendEvent(m *interp.VM, args []interp.Value, _ map[stri
 		return nil, err
 	}
 	defer b.release()
+	key := m.MaskKey() // maskeden önce: arada eklenen gizli değer yazılırken yeniden maskelenir
 	data, err := eventData(m, args[0])
 	if err != nil {
 		return nil, err
@@ -202,7 +205,7 @@ func (b *EventBroadcast) sendEvent(m *interp.VM, args []interp.Value, _ map[stri
 	b.snap = snap
 	b.mu.Lock()
 	b.last++
-	b.ring = append(b.ring, event{id: b.last, frame: idFrame(b.prefix, b.last, data)})
+	b.ring = append(b.ring, event{id: b.last, f: &sseFrame{head: idHead(b.prefix, b.last), data: data, key: key}})
 	if len(b.ring) > b.capacity {
 		b.ring = append(b.ring[:0:0], b.ring[len(b.ring)-b.capacity:]...)
 	}
@@ -225,22 +228,21 @@ func newPrefix() string {
 	return hex.EncodeToString(p[:])
 }
 
-// idFrame kimlikli bir SSE olayıdır: id ("<ön ek>-<sıra>") ve data satırları.
-func idFrame(prefix string, id int64, data []byte) []byte {
-	f := make([]byte, 0, len(data)+len(prefix)+32)
+// idHead kimlikli bir SSE olayının başıdır: id ("<ön ek>-<sıra>") satırı ve "data: ".
+func idHead(prefix string, id int64) []byte {
+	f := make([]byte, 0, len(prefix)+32)
 	f = append(f, "id: "...)
 	f = append(f, prefix...)
 	f = append(f, '-')
 	f = strconv.AppendInt(f, id, 10)
-	f = append(f, "\ndata: "...)
-	f = append(f, data...)
-	return append(f, "\n\n"...)
+	return append(f, "\ndata: "...)
 }
 
-// subscription dinleyicinin başlangıcıdır: önce yazılacak çerçeveler ve imleci (son yazdığı kimlik).
+// subscription dinleyicinin başlangıcıdır: önce yazılacak çerçeveler (dinleyicinin kopyaları) ve imleci
+// (son yazdığı kimlik).
 type subscription struct {
 	b      *EventBroadcast
-	frames [][]byte
+	frames []*sseFrame
 	cursor int64
 }
 
@@ -266,22 +268,24 @@ func (b *EventBroadcast) subscribe(m *interp.VM, args []interp.Value, _ map[stri
 	if replay {
 		for _, e := range b.ring {
 			if e.id > from {
-				sub.frames = append(sub.frames, e.frame)
+				c := *e.f // dinleyicinin kopyası: yazmadan önce kilitsiz yeniden maskelenir
+				sub.frames = append(sub.frames, &c)
 			}
 		}
 	}
 	b.mu.Unlock()
 	if !replay {
-		data, err := eventData(m, b.snap)
+		f, err := dataEvent(m, idHead(b.prefix, sub.cursor), b.snap)
 		if err != nil {
 			return nil, err
 		}
-		sub.frames = [][]byte{idFrame(b.prefix, sub.cursor, data)}
+		sub.frames = []*sseFrame{f}
 	}
 	h := newHeaders()
 	h.add("Content-Type", "text/event-stream; charset=utf-8")
 	h.add("Cache-Control", "no-store") // 28.7: akış saklanmaz
-	return &Response{status: http.StatusOK, headers: h, stream: &streamSpec{sub: sub, beat: b.beat, every: b.every}}, nil
+	beat := *b.beat
+	return &Response{status: http.StatusOK, headers: h, stream: &streamSpec{sub: sub, beat: &beat, every: b.every}}, nil
 }
 
 // replayFrom Last-Event-ID'yi okur (b.mu tutulurken): bu yayıncının ön ekini ve pozitif bir sırayı
@@ -306,8 +310,9 @@ func (b *EventBroadcast) replayFrom(req *Request) (int64, bool) {
 	return id, id > 0 && id >= oldest-1 && id <= b.last
 }
 
-// since imleçten sonraki olayların çerçeveleridir ve yeni imleç; kaçırılan olay halkadan düştüyse ok
-// yanlıştır (dinleyici çok geride: bağlantısı kapanır, olay atlanmaz).
+// since imleçten sonraki olayların yazılacak baytlarıdır ve yeni imleç; kaçırılan olay halkadan düştüyse
+// ok yanlıştır (dinleyici çok geride: bağlantısı kapanır, olay atlanmaz). Maskenin kimliği değiştiyse
+// olay halkada yeniden maskelenir (b.mu altında; her dinleyici yeniden yapmaz).
 func (b *EventBroadcast) since(cursor int64) (frames [][]byte, next int64, ok bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -319,7 +324,7 @@ func (b *EventBroadcast) since(cursor int64) (frames [][]byte, next int64, ok bo
 	}
 	for _, e := range b.ring {
 		if e.id > cursor {
-			frames = append(frames, e.frame)
+			frames = append(frames, e.f.wire(b.vm))
 		}
 	}
 	return frames, b.last, true
@@ -359,7 +364,11 @@ func (s *HTTPServer) listen(w http.ResponseWriter, r *http.Request, res *Respons
 	if !ok {
 		return
 	}
-	frames := append(sub.frames, more...)
+	frames := make([][]byte, 0, len(sub.frames)+len(more))
+	for _, f := range sub.frames {
+		frames = append(frames, f.wire(b.vm))
+	}
+	frames = append(frames, more...)
 	t := time.NewTicker(res.stream.every)
 	defer t.Stop()
 	for {
@@ -371,7 +380,7 @@ func (s *HTTPServer) listen(w http.ResponseWriter, r *http.Request, res *Respons
 		select {
 		case <-notify:
 		case <-t.C:
-			if !write(res.stream.beat) {
+			if !write(res.stream.beat.wire(b.vm)) {
 				return
 			}
 		case <-r.Context().Done():

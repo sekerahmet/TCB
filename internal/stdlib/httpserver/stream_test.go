@@ -328,3 +328,77 @@ func mustRequest(t *testing.T, method, url string) *http.Request {
 	}
 	return req
 }
+
+// TestBroadcastReplayIsMaskedAgain: abonelikten önce eklenen gizli değer geri oynatılan olayda *** olur;
+// halkadaki olay dinleyiciye yazılırken (since) de yeniden maskelenir (28.7: maske yazıldığı anda).
+func TestBroadcastReplayIsMaskedAgain(t *testing.T) {
+	ts, b := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g)`, "")
+	if err := send(t, ts, `y.TR_send_event("bir")
+y.TR_send_event({"metin": "olay gizli-deger-456", "gizli-deger-456": 1})`); err != nil {
+		t.Fatal(err)
+	}
+	ts.vm.AddSecret("gizli-deger-456")
+	_, br, _ := subscribeRaw(t, ts, "GET", "Last-Event-ID: "+b.prefix+"-1\r\n")
+	if f := frame(t, br); f != "id: 2\ndata: {\"metin\":\"olay ***\",\"***\":1}\n\n" {
+		t.Fatalf("geri oynatılan olay yeniden maskelenmeli: %q", f)
+	}
+	if err := send(t, ts, `y.TR_send_event("canlı gizli-deger-789")`); err != nil {
+		t.Fatal(err)
+	}
+	ts.vm.AddSecret("gizli-deger-789")
+	frames, _, ok := b.since(2)
+	if !ok || len(frames) != 1 || !strings.HasSuffix(string(frames[0]), "data: \"canlı ***\"\n\n") {
+		t.Fatalf("halkadaki olay yazılırken yeniden maskelenmeli: %q", frames)
+	}
+}
+
+// TestHeartbeatIsMaskedAtEachWrite: TR_heartbeat:'ın verisi her yazılışta maskelenir (28.7): akış ya da
+// yayıncı kurulduktan sonra eklenen gizli değer nabızda *** olur; iki kipte.
+func TestHeartbeatIsMaskedAtEachWrite(t *testing.T) {
+	old := heartbeatInterval
+	heartbeatInterval = 30 * time.Millisecond
+	t.Cleanup(func() { heartbeatInterval = old })
+	ts, _ := broadcastServer(t, `TR_var y = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduce: (g, _) => g, TR_heartbeat: "nabız gizli-deger-321")`, "")
+	_, br, _ := subscribeRaw(t, ts, "GET", "")
+	frame(t, br)
+	if f := frame(t, br); f != "data: \"nabız gizli-deger-321\"\n\n" {
+		t.Fatalf("yayın nabzı: %q", f)
+	}
+	ts.vm.AddSecret("gizli-deger-321")
+	if f := frame(t, br); f != "data: \"nabız ***\"\n\n" {
+		t.Fatalf("yayın nabzı yeniden maskelenmeli: %q", f)
+	}
+	rs := serveTR(t, `TR_func f(i: TR_Request) -> TR_Response {
+    TR_return TR_stream_response((a) => { TR_sleep(1) }, TR_heartbeat: "istek nabzı gizli-deger-654")
+}
+TR_var s = TR_serve_http(f)`, nil)
+	res, _ := streamGet(t, rs, "GET", "/")
+	rb := bufio.NewReader(res.Body)
+	if f, _ := rawFrame(rb); f != "data: \"istek nabzı gizli-deger-654\"\n\n" {
+		t.Fatalf("istek nabzı: %q", f)
+	}
+	rs.vm.AddSecret("gizli-deger-654")
+	if f, _ := rawFrame(rb); f != "data: \"istek nabzı ***\"\n\n" {
+		t.Fatalf("istek nabzı yeniden maskelenmeli: %q", f)
+	}
+}
+
+// TestRemaskKeepsTheBytes: yeniden maske yalnız metin sözcüklerini değiştirir (DENETİM 775 Ş2): gizli değer
+// içermeyen olay, alakasız bir gizli değer eklenince bayt bayt aynı kalır (ondalığın yazımı, 2^53'ten
+// büyük tam sayı, kaçışlı metin, anahtar sırası); gizli değer taşıyan metin eventData'nın yazımıyla ***.
+func TestRemaskKeepsTheBytes(t *testing.T) {
+	v := interp.New()
+	data := []byte(`{"z":1.0,"a":12345678901234567890,"e":1e3,"n":-0.0,"m":"xç\n<\"","l":[true,null,"gizli-deger-987 son"]}`)
+	if got := remask(v, data); string(got) != string(data) {
+		t.Fatalf("gizli değer yokken baytlar değişmemeli: %s", got)
+	}
+	v.AddSecret("alakasız-değer")
+	if got := remask(v, data); string(got) != string(data) {
+		t.Fatalf("alakasız gizli değerde baytlar değişmemeli: %s", got)
+	}
+	v.AddSecret("gizli-deger-987")
+	want := `{"z":1.0,"a":12345678901234567890,"e":1e3,"n":-0.0,"m":"xç\n<\"","l":[true,null,"*** son"]}`
+	if got := remask(v, data); string(got) != want {
+		t.Fatalf("yalnız gizli değerli metin değişmeli:\n%s\n%s", got, want)
+	}
+}

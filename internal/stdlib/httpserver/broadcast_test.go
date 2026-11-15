@@ -556,7 +556,7 @@ TR_var y2 = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduc
 		t.Fatalf("nabız saklanmamalı: %d", n)
 	}
 	yv, _ := ts.vm.GlobalEnv.Get("y2")
-	if got := string(yv.(*EventBroadcast).beat); got != "data: {\"tür\":\"nabız gizli-deger-123\"}\n\n" {
+	if got := string(yv.(*EventBroadcast).beat.wire(ts.vm)); got != "data: {\"tür\":\"nabız gizli-deger-123\"}\n\n" {
 		t.Fatalf("TR_heartbeat: %q", got)
 	}
 	ts.vm.AddSecret("gizli-deger-123")
@@ -564,7 +564,7 @@ TR_var y2 = TR_EventBroadcast(TR_capacity: 10, TR_snapshot: TR_JSON(0), TR_reduc
 		t.Fatal(err)
 	}
 	yv, _ = ts.vm.GlobalEnv.Get("y3")
-	if got := string(yv.(*EventBroadcast).beat); got != "data: \"***\"\n\n" {
+	if got := string(yv.(*EventBroadcast).beat.wire(ts.vm)); got != "data: \"***\"\n\n" {
 		t.Fatalf("nabzın verisi maskelenmeli: %q", got)
 	}
 }

@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
@@ -36,8 +37,79 @@ var commentBeat = []byte(":\n\n")
 type streamSpec struct {
 	block *interp.FuncVal
 	sub   *subscription // yayın akışının dinleyicisi (broadcast.go); block nil
-	beat  []byte        // yazılacak nabız çerçevesi
+	beat  *sseFrame     // yazılacak nabız; her yazılışta maskelenir (28.7)
 	every time.Duration
+}
+
+// sseFrame bir SSE çerçevesidir: veriden önceki satırlar (head: "id: ...\n" ve "data: ", ya da yorum
+// nabzının tamamı), maskeli JSON verisi ve onu maskeleyen maskenin kimliği (interp.VM.MaskKey). Maske
+// çıktının yazıldığı anda uygulanır (28.7, 19.4): kimlik değiştiyse wire veriyi yeniden maskeler.
+// Bir çerçeveyi tek goroutine kullanır: halkadakileri b.mu korur, dinleyicinin kopyaları kendinindir.
+type sseFrame struct {
+	head []byte
+	data []byte // nil: verisiz çerçeve (yorum nabzı)
+	key  any
+}
+
+// dataEvent v'yi olayın verisi olarak maskeler; kimlik maskeden önce okunur: arada eklenen gizli değer
+// bir sonraki yazılışta yeniden maskelenir.
+func dataEvent(m *interp.VM, head []byte, v interp.Value) (*sseFrame, error) {
+	key := m.MaskKey()
+	data, err := eventData(m, v)
+	if err != nil {
+		return nil, err
+	}
+	return &sseFrame{head: head, data: data, key: key}, nil
+}
+
+// wire çerçevenin yazılacak baytlarıdır; maskenin kimliği değiştiyse veri önce yeniden maskelenir.
+func (f *sseFrame) wire(m *interp.VM) []byte {
+	if f.data == nil {
+		return f.head
+	}
+	if key := m.MaskKey(); key != f.key {
+		f.data, f.key = remask(m, f.data), key
+	}
+	b := make([]byte, 0, len(f.head)+len(f.data)+2)
+	b = append(append(b, f.head...), f.data...)
+	return append(b, "\n\n"...)
+}
+
+// remask maskeli JSON'un metin sözcüklerini (sözlük anahtarları dahil) şimdiki maskeden geçirir; öbür
+// baytlar olduğu gibi kalır (DENETİM 775 Ş2: çözüp yeniden yazmak sayıların yazımını değiştirebilirdi).
+// Değişen metin eventData'nın kodlamasıyla yazılır (json.Marshal). Hiçbir metin değişmezse data döner.
+// data jsonwrite'ın çıktısıdır: tırnak yalnız metin sözcüğünü açar ve kapar.
+func remask(m *interp.VM, data []byte) []byte {
+	var out []byte
+	last := 0
+	for i := 0; i < len(data); i++ {
+		if data[i] != '"' {
+			continue
+		}
+		j := i + 1
+		for j < len(data) && data[j] != '"' {
+			if data[j] == '\\' {
+				j++
+			}
+			j++
+		}
+		if j >= len(data) {
+			break
+		}
+		var s string
+		if json.Unmarshal(data[i:j+1], &s) == nil {
+			if masked := m.Mask(s); masked != s {
+				b, _ := json.Marshal(masked)
+				out = append(append(out, data[last:i]...), b...)
+				last = j + 1
+			}
+		}
+		i = j
+	}
+	if out == nil {
+		return data
+	}
+	return append(out, data[last:]...)
 }
 
 // streamResponse TR_stream_response(blok, TR_heartbeat: v)'dir (28.7): blok tek parametreli bir
@@ -57,13 +129,13 @@ func streamResponse(m *interp.VM, args []interp.Value, named map[string]interp.V
 	if len(block.Parameters) != 1 {
 		return nil, messages.New(messages.H7635, fn, len(block.Parameters))
 	}
-	spec := &streamSpec{block: block, beat: commentBeat, every: heartbeatInterval}
+	spec := &streamSpec{block: block, beat: &sseFrame{head: commentBeat}, every: heartbeatInterval}
 	if v, ok := bind.GetNamed(named, nameHeartbeat); ok {
-		data, err := eventData(m, v)
+		beat, err := dataEvent(m, dataHead, v)
 		if err != nil {
 			return nil, err
 		}
-		spec.beat = dataFrame(data)
+		spec.beat = beat
 	}
 	h := newHeaders()
 	h.add("Content-Type", "text/event-stream; charset=utf-8")
@@ -77,10 +149,13 @@ func eventData(m *interp.VM, v interp.Value) ([]byte, error) {
 	return jsonwrite.WriteOptions(v, jsonwrite.Options{TextFilter: m.Mask})
 }
 
+// dataHead yalnız data: satırı olan SSE olayının başıdır (istek akışının olayı ve nabzı).
+var dataHead = []byte("data: ")
+
 // dataFrame yalnız data: satırı olan bir SSE olayıdır.
 func dataFrame(data []byte) []byte {
 	f := make([]byte, 0, len(data)+8)
-	f = append(f, "data: "...)
+	f = append(f, dataHead...)
 	f = append(f, data...)
 	return append(f, "\n\n"...)
 }
@@ -154,8 +229,9 @@ func (e *EventStream) write(frame []byte) bool {
 	return err == nil
 }
 
-// beat nabzı aralıkla yazar, done kapanana ya da yazma hata verene kadar; kilit dışında.
-func (e *EventStream) beat(frame []byte, every time.Duration, done <-chan struct{}) {
+// beat nabzı aralıkla yazar, done kapanana ya da yazma hata verene kadar; kilit dışında. Nabız her
+// yazılışta maskelenir (28.7): kurulduktan sonra eklenen gizli değer de *** olur.
+func (e *EventStream) beat(m *interp.VM, f *sseFrame, every time.Duration, done <-chan struct{}) {
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
@@ -163,7 +239,7 @@ func (e *EventStream) beat(frame []byte, every time.Duration, done <-chan struct
 		case <-done:
 			return
 		case <-t.C:
-			if !e.write(frame) {
+			if !e.write(f.wire(m)) {
 				return
 			}
 		}
@@ -185,7 +261,15 @@ func (s *HTTPServer) stream(task *interp.VM, w http.ResponseWriter, r *http.Requ
 		return nil
 	}
 	done := make(chan struct{})
-	defer close(done)
+	// Blok bitince ya da kesilince (iptal, kapanış: panik) akış kapanır. Kilit süren bir nabız yazmasının
+	// bitmesini bekler; ondan sonra yazılmaz: işleyici döndükten sonra cevaba yazmak Go'nun sunucusunda
+	// yarıştır (TestHeartbeatIsMaskedAtEachWrite -race ile buldu; önce closed yalnız olağan dönüşte kuruluyordu).
+	defer func() {
+		e.mu.Lock()
+		e.closed = true
+		e.mu.Unlock()
+		close(done)
+	}()
 	go func() {
 		select {
 		case <-r.Context().Done():
@@ -193,11 +277,8 @@ func (s *HTTPServer) stream(task *interp.VM, w http.ResponseWriter, r *http.Requ
 		case <-done:
 		}
 	}()
-	go e.beat(res.stream.beat, res.stream.every, done)
+	go e.beat(task, res.stream.beat, res.stream.every, done)
 	_, err = task.ApplyFunction(res.stream.block, []interp.Value{e}, nil, s.line)
-	e.mu.Lock()
-	e.closed = true
-	e.mu.Unlock()
 	return err
 }
 
