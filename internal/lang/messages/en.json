@@ -578,6 +578,7 @@
 "H2921": "{fn} timed out ({value} seconds): the work was stopped (started at line {line|loc})",
 "H2922": "; `{written}` is an identity of the language and cannot be a field of {struct}: add the field as `{field}: {#Int}` and use `.{field}`",
 "H2923": "; `{written}` is an identity of the language: this member of {struct} is written `.{field}`",
+"H2924": "the work started at line {line|loc} ended with the HTTP server it opened still open, so the server was closed: open the server outside the task, or wait for it inside the task with `s.{#wait}()` and close it from outside with `g.{#cancel}()`",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

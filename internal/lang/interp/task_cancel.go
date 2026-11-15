@@ -55,6 +55,31 @@ func (t *TaskVal) addChild(y *VM, child *TaskVal) {
 	}
 }
 
+// endBody görev gövdesi bitince çalışır (taskStart, runHosted): gövde hatasız bittiyse ve görevin açtığı
+// bir HTTP sunucusu hâlâ açıksa görev H2924 ile biter (28.8): sunucunun tutamacı görev bitmeden ele
+// geçmezdi, görev de sunucu kapanmadan bitmezdi. Sonra alt görevler beklenir; hatada önce iptal edilirler,
+// sunucu bu yolla kapanır (TaskHost.OnCancel).
+func (t *TaskVal) endBody(y *VM, err error) error {
+	if err == nil && t.leavesAnOpenHost() {
+		err = messages.New(messages.H2924, t.line)
+	}
+	t.endChildren(y, err != nil)
+	return err
+}
+
+// leavesAnOpenHost görevin açtığı host'lardan biri (HTTP sunucusu) açık mı?
+func (t *TaskVal) leavesAnOpenHost() bool {
+	t.mu.Lock()
+	children := t.children
+	t.mu.Unlock()
+	for _, c := range children {
+		if c.host != nil && c.host.open() {
+			return true
+		}
+	}
+	return false
+}
+
 // endChildren görev gövdesi bitince alt görevleri bekler (10.9: görev program gibi biter); görev
 // hatayla ya da iptalle bittiyse (failed) önce onları iptal eder. Bekleme bir temizlik işidir:
 // durdurma ya da iptal onu kesmez. Liste bekleme bitene kadar kalır: bekleme sürerken gelen iptal

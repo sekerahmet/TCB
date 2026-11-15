@@ -40,6 +40,9 @@ type TaskVal struct {
 	// ownErr is a cancelled task's error before the cancel error replaced it: its own error and
 	// its defers' errors, which a timeout keeps (10.7, waitFor).
 	ownErr error
+	// host bir TaskHost'un sahibinde (HTTP sunucusunun görevleri) kurulur: sunucuyu açan görevin alt
+	// görevleri arasında sahip vardır, gövdesi sunucu açıkken bitemez (28.8, endBody).
+	host *TaskHost
 }
 
 func newTask(line int, held bool) *TaskVal {

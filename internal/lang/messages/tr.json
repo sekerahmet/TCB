@@ -578,6 +578,7 @@
 "H2921": "{fn} süre sınırı doldu ({value} saniye): iş durduruldu (satır {line|loc} başlatılan)",
 "H2922": "; `{written}` dilin kimliğidir, {struct} yapısının alanı olamaz: alanı `{field}: {#Int}` diye ekleyin, `.{field}` ile kullanın",
 "H2923": "; `{written}` dilin kimliğidir, {struct} yapısının bu üyesi `.{field}` diye yazılır",
+"H2924": "satır {line|loc} başlatılan işin gövdesi bittiğinde açtığı HTTP sunucusu hâlâ açıktı, sunucu kapatıldı: sunucuyu görevin dışında açın ya da görevin içinde `s.{#wait}()` ile bekleyip dışarıdan `g.{#cancel}()` ile kapatın",
 "H3001": "{dev} arka ucunun dikkat blok boyutları ayarlanamaz",
 "H3002": "Attention maskesi farklı cihazda ({mask}, {q})",
 "H3003": "Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}",

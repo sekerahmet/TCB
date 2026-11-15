@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
@@ -206,4 +208,85 @@ func TestTokenlessPathsNeedAToken(t *testing.T) {
 	}
 	trrun.MustExec(t, handlerTR+`TR_var s = TR_serve_http(f, TR_token: TR_secret_token(), TR_tokenless_paths: [])
 TR_var result = s.TR_close()`)
+}
+
+// TestServerOpenedInATaskIsItsChild: görevin içinde açılan sunucu görevin alt işidir (28.8, 10.9). Açanın
+// iptali ve süre sınırı sunucuyu kapatır; görev ancak kapı bırakılınca biter (aynı kapı hemen yeniden
+// açılır). Gövdesi bittiğinde açtığı sunucu hâlâ açık olan görev H2924 ile biter ve sunucu kapanır: blok,
+// sunucuyu döndüren fonksiyon, sunucuyu listede döndüren fonksiyon. s.TR_wait() ve g.TR_cancel()
+// yazımı çalışır; program düzeyinde açılan sunucu programındır.
+func TestServerOpenedInATaskIsItsChild(t *testing.T) {
+	v := interp.New()
+	v.SetInteractive()
+	v.Out, v.Err = io.Discard, io.Discard
+	code := `TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "tamam") }
+TR_func aç() -> TR_HTTPServer { TR_return TR_serve_http(f) }
+TR_func liste() -> TR_List[TR_HTTPServer] { TR_return [TR_serve_http(f)] }
+TR_var p1 = 0
+TR_var g1 = TR_async {
+    TR_var s1 = TR_serve_http(f)
+    p1 = s1.TR_port
+    s1.TR_wait()
+}
+TR_for p1 == 0 { TR_sleep(0.01) }
+g1.TR_cancel()
+TR_var k1 = TR_error_code { g1.TR_wait() }
+TR_var yeniden = TR_serve_http(f, TR_port: p1)
+TR_var p2 = 0
+TR_var g2 = TR_async {
+    TR_var s2 = TR_serve_http(f)
+    p2 = s2.TR_port
+    s2.TR_wait()
+}
+TR_for p2 == 0 { TR_sleep(0.01) }
+TR_var k2 = TR_error_code { g2.TR_wait(TR_timeout: 0.1) }
+TR_var p3 = 0
+TR_var g3 = TR_async {
+    TR_var s3 = TR_serve_http(f)
+    p3 = s3.TR_port
+}
+TR_var k3 = TR_error_code { g3.TR_wait() }
+TR_var g4 = TR_async aç()
+TR_var k4 = TR_error_code { g4.TR_wait() }
+TR_var g5 = TR_async liste()
+TR_var k5 = TR_error_code { g5.TR_wait() }
+TR_var dış = TR_serve_http(f)
+TR_var p6 = dış.TR_port
+`
+	if _, err := v.Run(trrun.Parse(t, code)); err != nil {
+		t.Fatalf("koşmadı: %v", err)
+	}
+	get := func(name string) string {
+		val, _ := v.GlobalEnv.Get(name)
+		return val.Inspect()
+	}
+	for name, want := range map[string]string{"k1": "H2920", "k2": "H2921", "k3": "H2924", "k4": "H2924", "k5": "H2924"} {
+		if got := get(name); got != want {
+			t.Fatalf("%s: %s, beklenen %s", name, got, want)
+		}
+	}
+	for _, name := range []string{"yeniden", "dış"} {
+		val, _ := v.GlobalEnv.Get(name)
+		s, ok := val.(*HTTPServer)
+		if !ok {
+			t.Fatalf("%s bir sunucu değil: %v", name, val)
+		}
+		t.Cleanup(s.cut)
+	}
+	// "yeniden" p1'de açıldı (yoksa Run H7625 verirdi): g1.TR_wait() döndüğünde kapı bırakılmıştı.
+	for _, name := range []string{"p2", "p3"} {
+		if c, err := net.DialTimeout("tcp", "127.0.0.1:"+get(name), time.Second); err == nil {
+			c.Close()
+			t.Fatalf("%s: görevin sunucusu kapanmalı", name)
+		}
+	}
+	res, err := (&http.Client{Timeout: 5 * time.Second}).Get("http://127.0.0.1:" + get("p6") + "/")
+	if err != nil {
+		t.Fatalf("program düzeyindeki sunucu sürmeli: %v", err)
+	}
+	res.Body.Close()
+	msg := messages.TextIn("tr", messages.H2924, 3)
+	if !strings.Contains(msg, "`s.TR_wait()`") || !strings.Contains(msg, "`g.TR_cancel()`") {
+		t.Fatalf("H2924 iki yazımı önermeli: %q", msg)
+	}
 }

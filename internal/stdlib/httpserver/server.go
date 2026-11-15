@@ -62,8 +62,8 @@ func (s *HTTPServer) shutdown(y *interp.VM) bool {
 	if !s.closing.CompareAndSwap(false, true) {
 		return false
 	}
-	close(s.stop) // açık yayın dinleyicileri cevabı bitirir; istek akışlarının blokları iptal edilir (host.Close)
-	s.host.Close(y)
+	close(s.stop)           // açık yayın dinleyicileri cevabı bitirir; istek akışlarının blokları iptal edilir (host.Close)
+	s.host.Close(y, s.done) // sahip dinleyici kapanınca biter: açan görev kapıyı bırakmadan bitmez (28.8)
 	y.Blocking(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), closeWait)
 		defer cancel()
