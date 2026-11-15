@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -9,7 +10,10 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // TestOriginIsChecked: 127.0.0.1'e bağlı sunucu Host, Origin ve Sec-Fetch-Site'ı işleyiciden önce
@@ -228,6 +232,74 @@ func TestPathIsChecked(t *testing.T) {
 	if len(lastQuery) != 2 || lastQuery[0] != "1\n2" || lastQuery[1] != "3" {
 		t.Fatalf("sorgunun değerleri geliş sırasıyla olmalı: %q", lastQuery)
 	}
+}
+
+// TestHeaderValueIsChecked: Cookie dışında geçersiz UTF-8 taşıyan başlık değeri 400'dür, işleyici çağrılmaz
+// (28.3): bozuk bayt, yarım çok baytlı karakter, aynı başlığın ikinci değeri. Bozuk Host'u ve adı Go reddeder.
+// Geçerli çok baytlı değer ulaşır. Bozuk Cookie isteği düşürmez; h["Cookie"] ve h.TR_get("cookie")
+// okununca H7645'tir; iletinin önerisi kopyalanınca çalışır ve çerezsiz sürer.
+func TestHeaderValueIsChecked(t *testing.T) {
+	ts := serveGo(t, "", ok200)
+	for _, h := range []string{"X-A: a\xffb\r\n", "X-A: x\xc3\r\n", "X-A: tamam\r\nX-A: \xff\r\n", "X\xff: 1\r\n"} {
+		req := "GET / HTTP/1.1\r\nHost: " + ts.addr() + "\r\n" + h + "Connection: close\r\n\r\n"
+		if res, _ := ts.raw(t, req); res.StatusCode != 400 {
+			t.Fatalf("%q: %d, 400 bekleniyordu", h, res.StatusCode)
+		}
+	}
+	if res, _ := ts.raw(t, "GET / HTTP/1.1\r\nHost: "+ts.addr()+"\xff\r\nConnection: close\r\n\r\n"); res.StatusCode != 400 {
+		t.Fatalf("bozuk Host: %d, 400 bekleniyordu", res.StatusCode)
+	}
+	if ts.calls.Load() != 0 {
+		t.Fatalf("reddedilen başlıkta işleyici çağrıldı: %d", ts.calls.Load())
+	}
+	if res, _ := ts.raw(t, "GET / HTTP/1.1\r\nHost: "+ts.addr()+"\r\nX-A: \xc3\xa7ok\r\nConnection: close\r\n\r\n"); res.StatusCode != 200 {
+		t.Fatalf("geçerli çok baytlı değer geçmeli: %d", res.StatusCode)
+	}
+	hint := func(lang, name string) string {
+		text := messages.TextIn(lang, messages.H7645, "f", 0)
+		i := strings.LastIndex(text, ": `") // öneri son iki noktadan sonraki koddur
+		if i < 0 || !strings.Contains(text[i:], name+".") {
+			t.Fatalf("%s: H7645'in önerisi yok: %q", lang, text)
+		}
+		code, _, _ := strings.Cut(text[i+3:], "`")
+		return code
+	}
+	tr, en := hint("tr", "istek"), hint("en", "request")
+	if strings.ReplaceAll(en, "request.", "istek.") != tr {
+		t.Fatalf("iki dilin önerisi aynı yazım olmalı: %q, %q", tr, en)
+	}
+	src := `TR_func f(istek: TR_Request) -> TR_Response {
+    TR_if istek.TR_path == "/kod" {
+        TR_return TR_Response(TR_body: TR_error_code { istek.TR_headers["Cookie"] } + " " + TR_error_code { istek.TR_headers.TR_get("cookie") })
+    }
+    TR_if istek.TR_path == "/oku" { TR_return TR_Response(TR_body: istek.TR_headers["Cookie"]) }
+    TR_if istek.TR_path == "/oneri" {
+        ` + strings.ReplaceAll(tr, "; ", "\n        ") + `
+        TR_return TR_Response(TR_body: "çerezsiz \(c == TR_none)")
+    }
+    TR_return TR_Response(TR_body: "tamam")
+}
+TR_var s = TR_serve_http(f)`
+	ch := checker.New()
+	ch.SetFile(checker.ProgramFile, src)
+	ch.CheckProgram(trrun.Parse(t, src))
+	if errs := ch.Errs(); len(errs) != 0 {
+		t.Fatalf("öneriyle program denetimden geçmeli: %v", errs)
+	}
+	cookie := serveTR(t, src, nil)
+	get := func(path string) (int, string) {
+		res, body := cookie.raw(t, "GET "+path+" HTTP/1.1\r\nHost: "+cookie.addr()+"\r\nCookie: bad=a\xffb; good=\xc3\xa7ok\r\nConnection: close\r\n\r\n")
+		return res.StatusCode, body
+	}
+	for path, want := range map[string]string{"/": "200 tamam", "/kod": "200 H7645 H7645", "/oneri": "200 çerezsiz true"} {
+		if code, body := get(path); fmt.Sprint(code, " ", body) != want {
+			t.Fatalf("%s: %d %q, beklenen %q", path, code, body, want)
+		}
+	}
+	if code, _ := get("/oku"); code != 500 {
+		t.Fatalf("okunan bozuk çerez işleyicinin hatası olmalı: %d", code)
+	}
+	mustContain(t, "standart hata", cookie.errOut.String(), "Cookie")
 }
 
 // FuzzValidPath: yol denetimi hiçbir girdide paniklemez; geçen yol geçerli UTF-8'dir, \, denetim

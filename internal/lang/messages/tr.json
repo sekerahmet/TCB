@@ -1901,6 +1901,8 @@
 "H7639": "{fn}: `{#reduce}:` hatayla bitti; olay gönderilmedi, görüntü değişmedi: {err}",
 "H7640": "{fn}: `{#reduce}:` yeni görüntüyü {@JSON} olarak vermeli, {given} verdi: `{#reduce}: (g, olay) => {#JSON}({{\"son\": olay}})` yazın",
 "H7641": "{fn}: `{#reduce}:` aynı yayıncıya gönderemez, katlama sürerken yayıncı kendini beklerdi; olayı katlamanın dışında gönderin",
+"H7642": "Geçersiz istek başlığı",
+"H7645": "{fn}: `Cookie` başlığının değeri geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); çerezi başka bir uygulama koymuş olabilir. Okumayı yakalayıp çerezsiz sürdürün: `{#var} c: {#String}? = {#none}; {#try} {{ c = istek.{#headers}.{#get}(\"Cookie\") }} {#catch} h {{ }}`; kullanıcı tarayıcıda 127.0.0.1'in çerezlerini silebilir",
 "H7660": "{fn}: `{#tokenless_paths}:`'taki {path|q} tam bir yol değil: yol `/` ile başlar, sorgu, ters bölü, denetim karakteri ve `..` bileşeni taşımaz; her dosya adıyla yazılır: `{#tokenless_paths}: [\"/\", \"/index.html\"]`",
 "H7661": "{fn}: `{#tokenless_paths}:` yalnız belirteçli sunucuda anlamlıdır, belirteçsiz sunucuda her yol zaten açıktır; korumak için belirteç verin: `{#token}: {#secret_token}()`",
 "H7662": "{fn}: `{#tokenless_paths}:`'taki {path|q} `%` taşıyor: liste çözülmüş yolla yazılır, istek de çözülmüş yoluyla karşılaştırılır; çözülmüş biçimini yazın: `{#tokenless_paths}: [{decoded|q}]`",

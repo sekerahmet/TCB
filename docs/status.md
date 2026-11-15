@@ -113,7 +113,6 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.3a
 
-- **Yapılacaklar (A, Ö0; sahip HTTP sunucusu, TCB atar; Motor'un JSON tasarımının B2'si, 2026-11-13):** HTTP isteğinin başlık değeri geçerli UTF-8 denetiminden geçmeden metin oluyor (HTTP sunucusu paketinin başlıkları metne çeviren `headersOf`'u); Go'nun sunucusu `0xFF`'li başlığı kabul ediyor ve bu metin JSON'a yazılınca sessizce U+FFFD oluyor [ölçüldü: Motor, go1.27.4]. Geçersiz UTF-8 girişte hata olmalı (3.3a). Ortam değişkeni, süreç argümanı ve süreç çıktısı ölçülmedi.
 - **Yapılacaklar (E, Ö3; sınıf uzak 14):** ağ istemcisinin okumalarının `TR_Bytes` da vermesi; dosyadan bayt okuma ve sunucunun `.TR_body`'si var (yol haritası: ağ istemcisi).
 
 ### 3.5

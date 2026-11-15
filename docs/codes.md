@@ -3623,7 +3623,7 @@ tr: değişken b = gizli_belirteç(); yazdır(b.uzunluk, b)
 
     http_sun(Fonksiyon | YerleşikFonksiyon, adres: Metin = "127.0.0.1", kapı_numarası: Tam = 0, belirteç: Metin = yok, en_çok_eşzamanlı: Tam = yok, en_çok_gövde_baytı: Tam = 1.048576e+06, belirteçsiz_yollar: Liste = yok) → HTTPSunucusu
 
-Bir HTTP sunucusu açar ve beklemeden HTTPSunucusu verir; işleyici her istek için ayrı bir görevde çağrılır. Varsayılan adres 127.0.0.1'dir; başka adres belirteç ister. Başka bir siteden tarayıcıyla gelen istek, belirteçsiz istek, geçersiz yol, büyük gövde ve sınırı aşan istek işleyiciye ulaşmaz.
+Bir HTTP sunucusu açar ve beklemeden HTTPSunucusu verir; işleyici her istek için ayrı bir görevde çağrılır. Varsayılan adres 127.0.0.1'dir; başka adres belirteç ister. Başka bir siteden tarayıcıyla gelen istek, belirteçsiz istek, geçersiz yol ya da başlık (Cookie dışında), büyük gövde ve sınırı aşan istek işleyiciye ulaşmaz.
 
 ```tr
 TR_func cevapla(i: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla, TR_port: 0); TR_print(s.TR_port > 0, s.TR_close())

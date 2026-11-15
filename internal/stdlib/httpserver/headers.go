@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -72,7 +73,27 @@ func (h *Headers) Index(idx interp.Value) (interp.Value, error) {
 	if !ok {
 		return nil, messages.New(messages.H7603, interp.CallPrefix(codes.TypeHeaders), s.Val)
 	}
+	if err := cookieError(s.Val, v); err != nil {
+		return nil, err
+	}
 	return &interp.StringVal{Val: v}, nil
+}
+
+// cookieError Cookie'nin geçersiz UTF-8 değerinin okunma hatasıdır (28.3, H7645); öbür başlıkların değeri
+// girişte denetlendi (validHeaders), TR_Request(TR_headers: ...) metin alır.
+func cookieError(name, v string) error {
+	if utf8.ValidString(v) || !strings.EqualFold(name, "Cookie") {
+		return nil
+	}
+	off := 0
+	for off < len(v) {
+		r, n := utf8.DecodeRuneInString(v[off:])
+		if r == utf8.RuneError && n <= 1 {
+			break
+		}
+		off += n
+	}
+	return messages.New(messages.H7645, interp.CallPrefix(codes.TypeHeaders), off)
 }
 
 // GetProperty h.TR_get(ad)'ı verir: olmayan başlıkta TR_none (13.4).
@@ -89,6 +110,9 @@ func (h *Headers) GetProperty(kd codes.Code, name string) (interp.Value, error) 
 			return nil, interp.ArgTypeError(codes.MemGet, 1, args[0], codes.TypeString)
 		}
 		if v, ok := h.get(s.Val); ok {
+			if err := cookieError(s.Val, v); err != nil {
+				return nil, err
+			}
 			return &interp.StringVal{Val: v}, nil
 		}
 		return interp.Null, nil
