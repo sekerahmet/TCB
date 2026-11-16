@@ -380,17 +380,10 @@ TR_func ön_cihaz(kart: TR_Int) -> TR_String {
     }
 }
 
-# açılış_hataları: sunucu açıldıktan sonra açılışın hataları: ayarın cihazı yoksa `compute_device_unavailable`;
-# önceki yükleme yarıda kaldıysa (işaret) `model_load_failed`.
+# açılış_hataları: sunucu açıldıktan ve Dost klasörü bilindikten hemen sonra açılışın hataları (yuva.tr,
+# `açılış_olayları`): ayarın cihazı yoksa `compute_device_unavailable`, önceki yükleme yarıda kaldıysa `model_load_failed`.
 TR_func açılış_hataları(e: Ekran, klasör: TR_String, istenen: TR_String, kullanılan: TR_String) {
-    TR_if istenen != kullanılan {
-        e.gönder("error", TR_JSON({"code": "compute_device_unavailable", "values": {"device": istenen}, "fatal": TR_false}))
-    }
-    TR_var önceki = işareti_al(klasör)
-    TR_if önceki.var {
-        TR_var g = önceki.giriş
-        e.gönder("error", TR_JSON({"code": "model_load_failed", "values": TR_if g == TR_none { TR_JSON({}) } TR_else { TR_JSON({"model": g}) }, "fatal": TR_false}))
-    }
+    TR_for v TR_in açılış_olayları(işareti_al(klasör), istenen, kullanılan) { e.gönder("error", v) }
 }
 
 # ekranlı_kip: canlı kip, ekranla (`--ekran`). Açılış sırası: belirteç bellekte üretilir, sunucu onunla açılır (kapı
@@ -419,6 +412,7 @@ TR_func ekranlı_kip() -> TR_Int {
     TR_if eş != TR_none { eş.yenile_ve_aç() }
     TR_var ayar_dosyası = ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA"))
     TR_var klasör = dost_klasörü(ayar_dosyası)
+    açılış_hataları(e, klasör, istenen, kullanılan)
     TR_var k = Katalog(girdiler: [], diller: [])
     TR_var kj = TR_JSON({})
     TR_var a_ayar: Ayar? = TR_none
@@ -440,7 +434,6 @@ TR_func ekranlı_kip() -> TR_Int {
         seçim = nicemli_seç(nicemli_verilen, ayardaki, ayar_dosyası)
     }
     deneme_aç()
-    açılış_hataları(e, klasör, istenen, kullanılan)
     TR_var etkin = takım_ayarı(k, a_ayar)
     TR_if TR_not elle TR_and karılacak_var(kj, klasör) { e.doğrulanıyor() }
     e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
