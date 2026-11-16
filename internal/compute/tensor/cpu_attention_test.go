@@ -130,3 +130,26 @@ func TestAttentionSharedHeadsMatchSeparate(t *testing.T) {
 		sameFloatBits(t, "paylaşılan", shared.Data(), separate.Data())
 	}
 }
+
+// TestDecodeAttentionMatchesFused: tek sorgulu adım (puanlar nokta çarpımıyla, değerler 64 sütunluk
+// şeritlerle) bileşik sürümle ileri ve gradyanda aynıdır: AVX2'li ve Go yolu, Dh ve Dv 64'ün katı olan ve
+// olmayan (kısa son şerit), paylaşılan ve ayrı bakışlar, maske, pencere, blok sınırının iki yanı.
+func TestDecodeAttentionMatchesFused(t *testing.T) {
+	old := hasAVX2
+	defer func() { hasAVX2 = old }()
+	for _, avx := range []bool{old, false} {
+		hasAVX2 = avx
+		for _, Tk := range []int{1, 63, 64, 65, 700} {
+			for _, d := range []attnState{
+				{ad: "paylaşılan", B: 1, H: 8, Hkv: 2, Dh: 128, Dv: 128, causalFlag: true},
+				{ad: "ayrı", B: 2, H: 4, Hkv: 4, Dh: 64, Dv: 80, causalFlag: true},
+				{ad: "kısa şerit", B: 1, H: 4, Hkv: 1, Dh: 96, Dv: 40, causalFlag: true, window: 50},
+				{ad: "maske", B: 1, H: 4, Hkv: 2, Dh: 64, Dv: 64, maskVal: true},
+			} {
+				d.Tq, d.Tk = 1, Tk
+				d.ad = fmt.Sprintf("%s Tk=%d avx2=%v", d.ad, Tk, avx)
+				compareAttention(t, d, 2e-4)
+			}
+		}
+	}
+}

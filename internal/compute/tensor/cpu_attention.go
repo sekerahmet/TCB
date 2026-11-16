@@ -22,9 +22,11 @@ import (
 //	O = O·e^{m-m'} + P·V_j
 //
 // Sonda O/l yazılır ve satır başına logsumexp (m + log l) saklanır. İç
-// çarpımlar matris çarpımının paketleme ve mikro çekirdekleriyle (AVX2/FMA
-// derlemesinde 6×16 çekirdek) tek iş parçacığında yapılır; paralellik birimler
-// arasındadır.
+// çarpımlar tek iş parçacığında yapılır; paralellik birimler arasındadır. Çok
+// sorguda (istem okuma, eğitim) matris çarpımının paketleme ve mikro
+// çekirdekleri kullanılır (AVX2/FMA derlemesinde 6×16 çekirdek). Tek sorguda
+// (üretim adımı) paket kendini ödemez: puanlar nokta çarpımıyla, değerler 64
+// sütunluk şeritlerle (gemv'nin çekirdekleri) hesaplanır (attnScores, attnValues).
 //
 // Geri geçiş puanları yeniden hesaplar (P = e^{S - lse}); ek bellek yalnızca
 // satır başına D = Σ dO·O'dur. k/v bakışını paylaşan bütün sorgu bakışları aynı
@@ -356,7 +358,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 			tb.s = sized(tb.s, m*n)
 			S := tb.s
 			clear(S)
-			gemmSingle(m, n, p.Dh, qb, qRow, 1, kb[j0*kRow:], 1, kRow, S, n, tb)
+			attnScores(&p, m, n, qb, qRow, kb[j0*kRow:], kRow, S, tb)
 			partial := j0 < wholeLo || j0+n > wholeHi || md != nil
 			empty := true
 			for r := 0; r < m; r++ {
@@ -422,7 +424,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 				denom[r] += totalSum
 			}
 			if !empty {
-				gemmSingle(m, p.Dv, n, S, n, 1, vb[j0*vRow:], vRow, 1, O, p.Dv, tb)
+				attnValues(&p, m, n, S, vb[j0*vRow:], vRow, O, tb)
 			}
 		}
 		attnFinish(ob, O, enb, denom, lsb, m, p.Dv, oRow)
@@ -433,4 +435,41 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 		}
 	}
 	return lse
+}
+
+// attnScores bir anahtar bloğunun puanlarını yazar: S[r, j] = Q_r·K_j (S sıfırlı gelir). Tek sorguda
+// (Tq = 1; üretim adımı, bakışları paylaşan satırlar dahil) her puan bitişik iki satırın nokta
+// çarpımıdır (dotF32), K paketlenmez. Çok sorguda blok çarpımı (gemmSingle) kalır: orada paket kendini
+// öder (istem okumada tek satırlı yol bağlam 4 100'de 1,20 kat yavaştı).
+func attnScores(p *AttentionParams, m, n int, qb []float32, qRow int, kb []float32, kRow int, S []float32, tb *attnBuf) {
+	if p.Tq != 1 {
+		gemmSingle(m, n, p.Dh, qb, qRow, 1, kb, 1, kRow, S, n, tb)
+		return
+	}
+	for jj := 0; jj < n; jj++ {
+		kr := kb[jj*kRow : jj*kRow+p.Dh]
+		for r := 0; r < m; r++ {
+			S[r*n+jj] = dotF32(qb[r*qRow:r*qRow+p.Dh], kr)
+		}
+	}
+}
+
+// attnValues O += P·V_j (O satırları önceden ölçeklenmiştir). Tek sorguda her satır V'nin satırlarını
+// 64 sütunluk şeritlerle biriktirir (gemvStrip; kısa son şerit gemvStripGo ile, gemv gibi); çok
+// sorguda gemmSingle.
+func attnValues(p *AttentionParams, m, n int, S, vb []float32, vRow int, O []float32, tb *attnBuf) {
+	if p.Tq != 1 {
+		gemmSingle(m, p.Dv, n, S, n, 1, vb, vRow, 1, O, p.Dv, tb)
+		return
+	}
+	for r := 0; r < m; r++ {
+		a, or := S[r*n:(r+1)*n], O[r*p.Dv:(r+1)*p.Dv]
+		for c0 := 0; c0 < p.Dv; c0 += gemvStripN {
+			if c0+gemvStripN <= p.Dv {
+				gemvStrip(a, vb[c0:], vRow, or[c0:c0+gemvStripN])
+			} else {
+				gemvStripGo(a, vb[c0:], vRow, or[c0:])
+			}
+		}
+	}
 }
