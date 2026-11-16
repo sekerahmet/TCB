@@ -68,6 +68,15 @@ function renderControls() {
   byId("stop").disabled = !usable || (!ui.activeTurn && cards.size === 0);
   const mic = byId("micButton");
   mic.disabled = !usable;
+  const chatOnly = ui.settings.chat_only === true;
+  byId("chatMode").hidden = Object.keys(ui.settings).length === 0;
+  for (const [id, on] of /** @type {[string, boolean][]} */ ([["modeVoice", false], ["modeText", true]])) {
+    const option = /** @type {HTMLButtonElement} */ (byId(id));
+    option.setAttribute("aria-checked", String(chatOnly === on));
+    option.disabled = !usable || ui.activeTurn !== "";
+  }
+  mic.hidden = chatOnly;
+  byId("chatOnlyNote").hidden = !chatOnly;
   mic.setAttribute("aria-pressed", String(ui.mic));
   const value = byId("micValue");
   if (ui.state === "loading") bind(value, ui.micWaiting ? "mic_waits" : "mic_preparing");
@@ -310,6 +319,14 @@ async function micPressed() {
   renderControls();
 }
 
+// Sesli / Yalnız sohbet: ayarın `chat_only`'si (contract.md); seçim `settings` olayıyla çizilir. Yalnız sohbete
+// geçince yazı kutusu odak alır.
+/** @param {boolean} on */
+async function chooseChatOnly(on) {
+  if ((ui.settings.chat_only === true) === on) return;
+  if ((await command("settings_set", { key: "chat_only", value: on })) && on) composer.focus();
+}
+
 /** @param {boolean} on */
 function setFocusMode(on) {
   document.body.classList.toggle("focus", on);
@@ -324,6 +341,8 @@ function wire() {
   });
   byId("stop").addEventListener("click", () => command("stop", {}));
   byId("micButton").addEventListener("click", micPressed);
+  byId("modeVoice").addEventListener("click", () => chooseChatOnly(false));
+  byId("modeText").addEventListener("click", () => chooseChatOnly(true));
   byId("setupModels").addEventListener("click", openModels);
   byId("setupRetry").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));
   byId("setupOther").addEventListener("click", openSettings);

@@ -140,6 +140,17 @@
     </svg>
     <p class="state-text" id="stateText" role="status"></p>
   </div>
+  <div class="mode" id="chatMode" role="radiogroup" data-i18n="chat_mode_label" data-i18n-attr="aria-label" hidden>
+    <button class="mode-opt" id="modeVoice" type="button" role="radio" aria-checked="true">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+      <span data-i18n="chat_mode_voice"></span>
+    </button>
+    <button class="mode-opt" id="modeText" type="button" role="radio" aria-checked="false">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>
+      <span data-i18n="chat_mode_text"></span>
+    </button>
+  </div>
+  <p class="mode-note" id="chatOnlyNote" data-i18n="chat_only_note" hidden></p>
   <button class="talk" id="micButton" type="button" aria-pressed="false">
     <span class="talk-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></span>
     <span class="talk-text"><span class="talk-name" data-i18n="button_mic"></span><span class="talk-value" id="micValue"></span></span>

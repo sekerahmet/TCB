@@ -445,7 +445,7 @@ function createMockTransport() {
       userSays(text || "");
       setState("thinking");
       await wait(400);
-      setState("speaking");
+      if (models.settings.chat_only !== true) setState("speaking");
       await say(wait, t("mock_reply", { count: (text || "").length }));
       endTurn("done");
       publishMetrics();

@@ -45,7 +45,7 @@ TR_func ayarı_değiştir(yol: TR_String, k: Katalog, anahtar: TR_String, değer
 }
 
 # ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dili, sistem iletisi, kapısı ve isteğe
-# bağlı alanları (`microphone`, `recording`, `quantized_activations`) korunur: kur.tr'nin yeniden koşusu kullanıcının
+# bağlı alanları (`microphone`, `recording`, `quantized_activations`, `chat_only`) korunur: kur.tr'nin yeniden koşusu kullanıcının
 # seçimini öntanımlıya döndürmez (N'nin Bulgu 1'i).
 TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int) {
     TR_var dil = k.diller[0].kod
@@ -65,6 +65,7 @@ TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String,
         TR_if a.kayıt { d["recording"] = TR_JSON(TR_true) }
         TR_var n = a.nicemli
         TR_if n != TR_none { d["quantized_activations"] = TR_JSON(n) }
+        TR_if a.yalnız_sohbet { d["chat_only"] = TR_JSON(TR_true) }
     }
     ayar_dosyasına_yaz(yol, TR_JSON(d))
 }

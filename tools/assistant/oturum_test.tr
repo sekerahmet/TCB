@@ -1,7 +1,7 @@
 # TR 4
 # Ekranlı kipin oturumunun modelsiz sınaması (oturum.tr): ayarın dosyaya yazılması ve yazma hatası, `catalog` ve `devices`,
 # kullanıcının yüklemesi, `settings_set`'in dil modeli ve nicemli anahtarları, son istek kazanır, kurulumda `mic_set` ve
-# yüklemenin düşmesi. Yükleyen, mikrofon ve tur sahtedir; indirme komutları ve silme indirme_test.tr'de.
+# yüklemenin düşmesi, yalnız sohbet. Yükleyen, mikrofon ve tur sahtedir; indirme komutları ve silme indirme_test.tr'de.
 TR_import "ekran"
 TR_import "screen_helpers"
 TR_import "katalog"
@@ -222,4 +222,51 @@ TR_test "settings_set quantized_activations: tur sürerken de kabul, yalnız dos
     TR_assert_equal("off", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["quantized_activations"]))
     TR_assert(o.etkin.nicemli == TR_none) # bir sonraki açılışta geçerli
     TR_assert_equal("off", TR_String(_son(o.e)["data"]["quantized_activations"]))
+}
+
+TR_test "yalnız sohbet, hemen (chat_only): dosyaya yazılır, ekrana ve etkin ayara geçer, settings gelir; tur sürerken turn_busy; true/false dışı invalid_value" {
+    TR_var o = _oturum()
+    TR_var ayar = (kimlik: TR_String, değer: TR_JSON) => karar(o.e, Komut(kimlik: kimlik, tür: "settings_set", veri: TR_JSON({"key": "chat_only", "value": değer})))
+    o.e.tur = "t-1"
+    TR_assert(TR_json_string(ayar("c1", TR_JSON(TR_true))).TR_contains("turn_busy"))
+    o.e.tur = ""
+    TR_assert(TR_json_string(ayar("c2", TR_JSON("evet"))).TR_contains("invalid_value"))
+    TR_assert_equal("accepted", TR_String(ayar("c3", TR_JSON(TR_true))["status"]))
+    o.e.ayar_istendi = TR_none
+    o.ayarı_uygula("chat_only", TR_JSON(TR_true))
+    TR_assert(TR_Bool(dosya_oku(o.ayar_dosyası, "ayar")["chat_only"]))
+    TR_assert(o.etkin.yalnız_sohbet TR_and o.e.yalnız_sohbet)
+    TR_assert(TR_Bool(_son(o.e)["data"]["chat_only"]))
+    o.ayarı_uygula("chat_only", TR_JSON(TR_false))
+    TR_assert(TR_not o.etkin.yalnız_sohbet TR_and TR_not o.e.yalnız_sohbet)
+    TR_assert(TR_not TR_Bool(_son(o.e)["data"]["chat_only"]))
+}
+
+TR_test "yalnız sohbet, mikrofon: açılınca açık mikrofon ve yükleme bitince açılmayı bekleyen istek düşer, mic false gelir; açıkken mic_set on mic_unavailable, off kabul; kapanınca on kabul" {
+    TR_var o = _oturum()
+    TR_var e = o.e
+    TR_var mik = (açık: TR_Bool) => TR_json_string(karar(e, Komut(kimlik: "m-\(açık)-\(e.giden.TR_length)", tür: "mic_set", veri: TR_JSON({"on": açık}))))
+    e.mic = TR_true
+    e.mikrofon_istendi = TR_true
+    e.yükleyip_dinle = TR_true
+    o.ayarı_uygula("chat_only", TR_JSON(TR_true))
+    TR_assert(TR_not e.mic TR_and TR_not e.mikrofon_istendi TR_and TR_not e.yükleyip_dinle)
+    TR_var durumlar = [x TR_for x TR_in e.giden TR_if TR_String(x["type"]) == "state"]
+    TR_assert(TR_not TR_Bool(durumlar[durumlar.TR_length - 1]["data"]["mic"]))
+    TR_var r = mik(TR_true)
+    TR_assert(r.TR_contains("mic_unavailable"), r)
+    TR_assert(TR_not e.mikrofon_istendi)
+    TR_assert(mik(TR_false).TR_contains("accepted"))
+    o.ayarı_uygula("chat_only", TR_JSON(TR_false))
+    TR_assert(mik(TR_true).TR_contains("accepted"))
+    TR_assert(e.mikrofon_istendi)
+}
+
+TR_test "yalnız sohbet, ses: söyleyen sessizde cümleyi söyleyene vermez, sesliyken verir" {
+    TR_var söylenen: TR_List[TR_String] = []
+    TR_var söyle = (c: TR_String) => { söylenen.TR_append(c) }
+    söyleyen(TR_true, söyle)("Merhaba.")
+    TR_assert_equal(0, söylenen.TR_length)
+    söyleyen(TR_false, söyle)("Merhaba.")
+    TR_assert_equal(["Merhaba."], söylenen)
 }

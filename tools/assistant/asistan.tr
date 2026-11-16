@@ -186,8 +186,10 @@ TR_func tur_aç(z: Zincir, kesit: TR_Tensor?, çalma_sonrası: TR_Bool, geride: 
 }
 
 # tur_işi: turun kendisi, sözün yazısından son çalmanın bitmesine; hatası çağırana gider. Söz boşsa TR_none (tur
-# yok). Metin turunda (`söz`) yazıya çevirme yoktur. Ekranlı kipte cevabın metni `ekran`'a akar.
-TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, ekran: Yazıcı?) -> TR_String? {
+# yok). Metin turunda (`söz`) yazıya çevirme yoktur. Ekranlı kipte cevabın metni `ekran`'a akar. `sessiz`'de (yalnız
+# sohbet) cevap seslendirilmez: kayıtta seslendirilen cümle yoktur.
+TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, ekran: Yazıcı?,
+    sessiz: TR_Bool = TR_false) -> TR_String? {
     TR_var z = a.z
     TR_var yazı = ""
     TR_if söz != TR_none {
@@ -202,7 +204,8 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     TR_var aktı = (m: TR_String) => {
         TR_if ekran != TR_none { ekran.ilerle(m) }
     }
-    TR_var içerik = cevapla(z, yazı, t0, t, (c) => konuşma.söyle(a.ses.TR_synthesize(c)), aktı)
+    TR_var içerik = cevapla(z, yazı, t0, t, söyleyen(sessiz, (c) => konuşma.söyle(a.ses.TR_synthesize(c))), aktı)
+    TR_if sessiz { t.seslendirilen = [] }
     TR_if içerik == TR_none {
         TR_print("söz boş: tur yok")
         TR_return TR_none
@@ -386,6 +389,7 @@ TR_func ekranlı_kip() -> TR_Int {
     }
     e.konuşma_dili = etkin.konuşma_dili
     e.dil_modeli = etkin.dil_modeli
+    e.yalnız_sohbet = etkin.yalnız_sohbet
     TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
     TR_var o = Oturum(e: e, k: k, kj: kj, klasör: klasör, etkin: etkin, ayar_verisi: ayar_verisi, y: Yuva(), yüklü: Yüklü(),
         en_çok_tur: TR_Int(ayar["en_çok_tur"]), kuyruk_ms: _KUYRUK_MS, çerçeve_bayt: _ÇERÇEVE_BAYT, açılış: şimdi(),
@@ -424,21 +428,22 @@ TR_func tarayıcıyı_aç(adres: TR_String) {
     }
 }
 
-# ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır.
-# Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı. Turun sonunda deneme kaydına ve konuşma kaydına
+# ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır;
+# yalnız sohbette (`e.yalnız_sohbet`, turun başındaki değer) seslendirilmez. Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı. Turun sonunda deneme kaydına ve konuşma kaydına
 # (`kayda`, oturum.tr) yazılır.
 TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, sonrası: TR_Bool, geride: TR_Int, işle: () -> TR_NoneType,
     kayda: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı {
         TR_var z = a.z
         TR_var t = tur_aç(z, kesit, sonrası, geride)
         TR_var uzunluk = z.geçmiş.TR_length
+        TR_var sessiz = e.yalnız_sohbet # turun başındaki ayar: tur sürerken chat_only değişmez (turn_busy)
         TR_var klasör = TR_temp_dir()
         TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
         TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
         TR_var konuşma = Konuşma(hazırla: (s, i) => wav_yaz(klasör, s, i), t: t, t0: t0,
             çal: (yol) => wav_çal(yol, (y) => { program_koş(çalıcı, çalıcı_argümanları(y)) }))
         TR_var aralık = tur_yürüt(e, TR_if söz == TR_none { "voice" } TR_else { "text" }, TurUçları(
-            iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y),
+            iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y, sessiz),
             bitti: () => {
                 TR_if t.yazı_ms >= 0 TR_and z.tur == t.sıra {
                     tur_ölç(t)

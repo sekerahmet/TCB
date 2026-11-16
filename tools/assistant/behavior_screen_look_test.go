@@ -261,3 +261,45 @@ func TestTeamBoxNamesTheTeam(t *testing.T) {
 		}
 	}
 }
+
+// Sesli / Yalnız sohbet (tasarım dost-sohbet-gpu S4): sağ panelde Konuş'un üstünde iki seçenekli düğme; seçim ayarın
+// `chat_only`'sini `settings_set` ile gönderir ve `settings` olayından çizilir.
+func TestChatOnlySwitchSendsTheSetting(t *testing.T) {
+	panel := block(t, "aside", "right")
+	mode := strings.Index(panel, `id="chatMode"`)
+	talk := strings.Index(panel, `id="micButton"`)
+	if mode < 0 || talk < 0 || mode > talk {
+		t.Fatal("the voice/chat-only switch is not above Talk in the right panel")
+	}
+	for _, want := range []string{`role="radiogroup" data-i18n="chat_mode_label"`, `id="modeVoice" type="button" role="radio"`,
+		`id="modeText" type="button" role="radio"`, `data-i18n="chat_mode_voice"`, `data-i18n="chat_mode_text"`} {
+		if !strings.Contains(panel, want) {
+			t.Errorf("the switch has no %q", want)
+		}
+	}
+	js := script(t)
+	choose := capture(t, `(?s)async function chooseChatOnly\(on\) \{(.*?)\n\}`, js)
+	if !strings.Contains(choose, `command("settings_set", { key: "chat_only", value: on })`) {
+		t.Error("chooseChatOnly does not send settings_set chat_only")
+	}
+	for _, want := range []string{`byId("modeVoice").addEventListener("click", () => chooseChatOnly(false));`,
+		`byId("modeText").addEventListener("click", () => chooseChatOnly(true));`} {
+		if !strings.Contains(js, want) {
+			t.Errorf("the page has no %q", want)
+		}
+	}
+}
+
+// Yalnız sohbette Konuş gizlenir, yerinde not durur; düğme tur sürerken seçilmez (sunucu `turn_busy` verir).
+func TestChatOnlyHidesTalk(t *testing.T) {
+	controls := capture(t, `(?s)function renderControls\(\) \{(.*?)\n\}`, script(t))
+	for _, want := range []string{`const chatOnly = ui.settings.chat_only === true;`, `mic.hidden = chatOnly;`,
+		`byId("chatOnlyNote").hidden = !chatOnly;`, `option.disabled = !usable || ui.activeTurn !== "";`} {
+		if !strings.Contains(controls, want) {
+			t.Errorf("renderControls has no %q", want)
+		}
+	}
+	if !strings.Contains(block(t, "aside", "right"), `<p class="mode-note" id="chatOnlyNote" data-i18n="chat_only_note" hidden></p>`) {
+		t.Error("the right panel has no chat-only note")
+	}
+}

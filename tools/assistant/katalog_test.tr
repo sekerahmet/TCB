@@ -537,3 +537,17 @@ TR_test "ayarı_değiştir: yalnız bir alan değişir, öbürleri kalır; denet
     TR_assert(düştü)
     TR_assert_equal(önce, TR_read_file(y))
 }
+
+TR_test "yalnız sohbet, ayar (chat_only): yoksa kapalı, true okunur; türü yanlışsa H8165; ayar_yaz açığı korur, kapalıyı yazmaz" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_assert(TR_not ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).yalnız_sohbet)
+    TR_var yol = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"chat_only\":true"))
+    TR_var a = ayar_oku(yol, k)
+    TR_assert(a.yalnız_sohbet TR_and ayar_kopyası(a).yalnız_sohbet)
+    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"chat_only\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"chat_only\""))
+    ayar_yaz(yol, k, a, "qwen3-4b-q4km", 17179869184, 4096)
+    TR_assert(TR_Bool(TR_json_parse(TR_read_file(yol))["chat_only"]))
+    TR_var sade = _dosya("ayar.json", _örnek_ayar())
+    ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_assert(TR_json_parse(TR_read_file(sade)).TR_get("chat_only") == TR_none)
+}
