@@ -303,3 +303,47 @@ func TestChatOnlyHidesTalk(t *testing.T) {
 		t.Error("the right panel has no chat-only note")
 	}
 }
+
+// Hesap cihazı (tasarım dost-sohbet-gpu T6): Ayarlar'da Kullanılan modeller bölümünde; değerler `session`'ın
+// `compute_devices`'ından: kart yoksa "Ekran kartı" seçilemez ve not durur; nicemli "Açık" ile kart birlikte seçilmez;
+// ayar kart deyip modeller işlemcideyse not durur. Seçim `settings_set device` gönderir.
+func TestDeviceSelectorFollowsTheMachine(t *testing.T) {
+	group := capture(t, `(?s)<section class="box" aria-labelledby="settingsGroupModels">(.*?)</section>`, markup(t))
+	selector := capture(t, `(?s)<select id="settingsDevice">(.*?)</select>`, group)
+	for _, value := range []string{"cpu", "gpu"} {
+		if !strings.Contains(selector, `<option value="`+value+`" data-i18n="settings_device_`+value+`"></option>`) {
+			t.Errorf("the device selector has no %s option", value)
+		}
+	}
+	for _, id := range []string{`id="settingsDeviceNoGpu" data-i18n="settings_device_no_gpu" hidden`, `id="settingsDeviceMissing" data-i18n="error_compute_device_unavailable" hidden`} {
+		if !strings.Contains(group, id) {
+			t.Errorf("the device field has no %q", id)
+		}
+	}
+	js := script(t)
+	render := capture(t, `(?s)function renderDevice\(usable\) \{(.*?)\n\}`, js)
+	for _, want := range []string{`const gpu = ui.computeDevices.includes("gpu");`, `byId("settingsDeviceNoGpu").hidden = gpu;`,
+		`.disabled = !gpu || ui.settings.quantized_activations === "on";`, `option[value="on"]')).disabled = saved === "gpu";`,
+		`byId("settingsDeviceMissing").hidden = !(saved === "gpu" && ui.computeDeviceInUse !== "gpu");`} {
+		if !strings.Contains(render, want) {
+			t.Errorf("renderDevice has no %q", want)
+		}
+	}
+	for _, want := range []string{`setSetting("device",`, `ui.computeDevices = Array.isArray(d.compute_devices)`, `ui.computeDeviceInUse = d.compute_device_in_use === "gpu"`} {
+		if !strings.Contains(js, want) {
+			t.Errorf("the page has no %q", want)
+		}
+	}
+}
+
+// Sonucu değiştiren ayarın işareti (15.22a; tek tık S1-20): hesap cihazının altında "Cevabı değiştirebilir", stilde
+// işaretli.
+func TestDeviceSelectorMarksResultChange(t *testing.T) {
+	field := capture(t, `(?s)<label for="settingsDevice"(.*?)</div>`, markup(t))
+	if !strings.Contains(field, `<p class="hint result-mark" data-i18n="settings_changes_answers"></p>`) {
+		t.Error("the device field has no result-change mark")
+	}
+	if !strings.Contains(style(t), `.result-mark::before {`) {
+		t.Error("the style has no result-mark")
+	}
+}

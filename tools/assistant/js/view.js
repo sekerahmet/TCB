@@ -175,6 +175,7 @@ function renderSettings() {
   const quantized = /** @type {HTMLSelectElement} */ (byId("settingsQuantized"));
   quantized.value = str(ui.settings.quantized_activations) || "auto";
   quantized.disabled = !usable;
+  renderDevice(usable);
   const context = /** @type {HTMLInputElement} */ (byId("settingsContext"));
   if (document.activeElement !== context) context.value = String(num(ui.settings.context) ?? "");
   context.disabled = !usable;
@@ -198,6 +199,22 @@ function renderSettings() {
     ui.devicesAsked = true;
     command("devices_list", {});
   }
+}
+
+// Hesap cihazı (tasarım dost-sohbet-gpu T6): kart yoksa "Ekran kartı" seçilemez ve not durur; kartta nicemlinin
+// "Açık"ı, nicemli açıkken kart seçilemez (sunucu `invalid_value` verir). Kullanılan cihaz ayarınkinden farklıysa
+// (ayar kart diyor, kart yok) not durur.
+/** @param {boolean} usable */
+function renderDevice(usable) {
+  const device = /** @type {HTMLSelectElement} */ (byId("settingsDevice"));
+  const saved = str(ui.settings.device) || "cpu";
+  const gpu = ui.computeDevices.includes("gpu");
+  device.value = saved;
+  device.disabled = !usable;
+  /** @type {HTMLOptionElement} */ (device.querySelector('option[value="gpu"]')).disabled = !gpu || ui.settings.quantized_activations === "on";
+  /** @type {HTMLOptionElement} */ (byId("settingsQuantized").querySelector('option[value="on"]')).disabled = saved === "gpu";
+  byId("settingsDeviceNoGpu").hidden = gpu;
+  byId("settingsDeviceMissing").hidden = !(saved === "gpu" && ui.computeDeviceInUse !== "gpu");
 }
 
 /** @param {string} key @param {unknown} value */
@@ -353,6 +370,7 @@ function wire() {
   });
   byId("settingsLanguage").addEventListener("change", () => setSetting("speech_language", /** @type {HTMLSelectElement} */ (byId("settingsLanguage")).value));
   byId("settingsModel").addEventListener("change", () => setSetting("language_model", /** @type {HTMLSelectElement} */ (byId("settingsModel")).value));
+  byId("settingsDevice").addEventListener("change", () => setSetting("device", /** @type {HTMLSelectElement} */ (byId("settingsDevice")).value));
   byId("settingsQuantized").addEventListener("change", () => setSetting("quantized_activations", /** @type {HTMLSelectElement} */ (byId("settingsQuantized")).value));
   byId("settingsContext").addEventListener("change", () => setSetting("context", Number(/** @type {HTMLInputElement} */ (byId("settingsContext")).value)));
   byId("settingsMicrophone").addEventListener("change", () => setSetting("microphone", /** @type {HTMLSelectElement} */ (byId("settingsMicrophone")).value));

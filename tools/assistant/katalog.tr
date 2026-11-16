@@ -57,12 +57,14 @@ TR_struct Ayar {
     kayıt: TR_Bool = TR_false # ayarın `recording`'i; yoksa kapalı
     nicemli: TR_String? = TR_none # ayarın `quantized_activations`'ı (auto, on, off); yoksa TR_none (nicemli.tr, nicemli_seç)
     yalnız_sohbet: TR_Bool = TR_false # ayarın `chat_only`'si; yoksa kapalı (mikrofon ve ses kapalı, yazıyla sohbet)
+    cihaz: TR_String = "cpu" # ayarın `device`'ı (cpu, gpu); bir sonraki açılışta geçerli
 }
 
 # ayar_kopyası: ayarın bütün alanlarıyla kopyası (oturum.tr bir alanı değiştirip etkin ayarı yeniler; alan düşmez).
 TR_func ayar_kopyası(a: Ayar) -> Ayar {
     TR_return Ayar(dil_modeli: a.dil_modeli, konuşma_dili: a.konuşma_dili, sistem: a.sistem, bağlam: a.bağlam, kapı: a.kapı,
-        mikrofon: a.mikrofon, kayıt: a.kayıt, nicemli: a.nicemli, yalnız_sohbet: a.yalnız_sohbet)
+        mikrofon: a.mikrofon, kayıt: a.kayıt, nicemli: a.nicemli, yalnız_sohbet: a.yalnız_sohbet,
+        cihaz: a.cihaz)
 }
 
 # Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`; bağlam modelin
@@ -388,6 +390,7 @@ TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
 # ayar_denetle: ayar dosyasının JSON'unun bütünü denetlenir (`yol` iletide görünür); ayarın tek denetimi budur:
 # ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir. `microphone` (metin), `recording` ve `chat_only` (true/false)
 # ve `quantized_activations` (auto, on, off) isteğe bağlıdır: olmayan eski dosya da okunur; bilinmeyen alan yine H8163.
+# `device` `cpu` ya da `gpu`; `machine.gpu` (kartın özeti, `_kart`) isteğe bağlıdır.
 TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     _sürüm(yol, j)
     TR_var alanlar = ["v", "language_model", "speech_language", "system_prompt", "context", "device", "port", "machine"]
@@ -400,10 +403,11 @@ TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     TR_if TR_not kodlar.TR_contains(dil) { TR_throw TR_Message("H8168", "speech_language", dil, "not_in_catalog", _sıra(kodlar)) }
     _sistem_iletisi(yol, j["system_prompt"])
     TR_var bağlam = _pozitif(yol, j, "", "context")
-    _seçim(yol, j, "", "device", ["cpu"])
+    TR_var cihaz = _seçim(yol, j, "", "device", ["cpu", "gpu"])
     TR_var kapı = _tam(yol, j, "", "port")
     TR_var ma = ["memory_bytes", "memory_source"]
-    _nesne(yol, j["machine"], "machine", ma, ma)
+    _nesne(yol, j["machine"], "machine", ma + ["gpu"], ma)
+    TR_if j["machine"].TR_get("gpu") != TR_none { _kart(yol, j["machine"]["gpu"]) }
     _tam(yol, j["machine"], "machine", "memory_bytes")
     _seçim(yol, j["machine"], "machine", "memory_source", ["option", "system"])
     TR_var mikrofon = TR_if j.TR_get("microphone") != TR_none { _metin(yol, j, "", "microphone") } TR_else { "" }
@@ -420,7 +424,7 @@ TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
         sohbet = TR_Bool(j["chat_only"])
     }
     TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı, mikrofon: mikrofon, kayıt: kayıt,
-        nicemli: nicemli, yalnız_sohbet: sohbet)
+        nicemli: nicemli, yalnız_sohbet: sohbet, cihaz: cihaz)
 }
 
 # bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.
@@ -543,6 +547,28 @@ TR_func _en_büyük(l: TR_List[Uygunluk], uyum: TR_String) -> TR_String {
         }
     }
     TR_return en
+}
+
+# _kart: ayarın `machine.gpu`'su (ayar kartta hesaplandıysa): kartın adı, belleği, sürücü sürümü ve `@`'nin yolu
+# (`vendor`: üreticinin kitaplığı, 15.53b; Dost'un dil modeli bu yoldadır, zincir.tr `model_çağrısı`).
+TR_func _kart(yol: TR_String, j: TR_JSON) {
+    TR_var alanlar = ["name", "memory_bytes", "driver_version", "matmul"]
+    _nesne(yol, j, "machine.gpu", alanlar, alanlar)
+    _metin(yol, j, "machine.gpu", "name")
+    _tam(yol, j, "machine.gpu", "memory_bytes")
+    _metin(yol, j, "machine.gpu", "driver_version")
+    _seçim(yol, j, "machine.gpu", "matmul", ["vendor"])
+}
+
+# öntanımlı_cihaz: kart varsa (`kart`, kartın belleği, 0'dan büyük) ve dil modeli, bağlamın önbelleğiyle ve takımın
+# küçükleriyle, kartın belleğinin eşiğine sığıyorsa "gpu", yoksa "cpu" (TCB 16:20, DENETİM 819 Ş1). Eşik işlemcinin
+# `fits` eşiğidir (0,6) ve geçicidir: kartınki Açık-4'ün ölçüsüyle konur. Model katalogda yoksa ya da bağlam modelin
+# sınırını aşıyorsa "cpu".
+TR_func öntanımlı_cihaz(k: Katalog, a: Ayar?, model: TR_String, bağlam: TR_Int, kart: TR_Int) -> TR_String {
+    TR_var g = girdi_bul(k, model)
+    TR_if kart <= 0 TR_or g == TR_none { TR_return "cpu" }
+    TR_if bağlam > g.bağlam_sınırı { TR_return "cpu" }
+    TR_return TR_if gereken(g, bağlam, küçükler(k, a)) <= kart * 60 // 100 { "gpu" } TR_else { "cpu" }
 }
 
 # öneri: ölçülü `fits` olanların en büyüğü (ağırlığıyla); hiçbiri `fits` değilse ölçülü `tight` olanların en büyüğü;

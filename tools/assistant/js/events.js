@@ -19,6 +19,8 @@ on("session", (d) => {
   clearStream();
   ui.tools = (Array.isArray(d.tools) ? d.tools : []).map((tool) => ({ name: str(tool && tool.name), irreversible: Boolean(tool && tool.irreversible) }));
   ui.heartbeatMs = num(d.heartbeat_ms) ?? ui.heartbeatMs;
+  ui.computeDevices = Array.isArray(d.compute_devices) ? d.compute_devices.filter((/** @type {unknown} */ v) => v === "cpu" || v === "gpu") : ["cpu"];
+  ui.computeDeviceInUse = d.compute_device_in_use === "gpu" ? "gpu" : "cpu";
   ui.metrics = {};
   renderMetrics();
   renderTools();

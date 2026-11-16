@@ -22,9 +22,10 @@ TR_const _TUTULAN_KOMUT = 1024
 TR_const _BÜTÇE = 524288
 TR_const _TUR_BAKIŞI = 0.02 # tur sürerken ana döngünün komutlara bakışı (sn)
 TR_const _ETİKETLER = ["<think>", "</think>", "<tool_call>", "</tool_call>"]
-# `settings_set`'in anahtarları: dil, sistem iletisi ve yalnız sohbet hemen; bağlam ve mikrofon bir sonraki açılışta; kayıt
-# kapatılınca hemen, açılınca bir sonraki turdan (tasarım, Aç28).
-TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording", "language_model", "quantized_activations", "chat_only"]
+# `settings_set`'in anahtarları: dil, sistem iletisi ve yalnız sohbet hemen; bağlam, mikrofon ve cihaz bir sonraki
+# açılışta; kayıt kapatılınca hemen, açılınca bir sonraki turdan (tasarım, Aç28).
+TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording", "language_model", "quantized_activations",
+    "chat_only", "device"]
 
 # Komut: işleyicinin bıraktığı, ana döngünün cevapladığı komut.
 TR_struct Komut {
@@ -65,6 +66,9 @@ TR_struct Ekran {
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
     mikrofon_istendi: TR_Bool = TR_false
     yalnız_sohbet: TR_Bool = TR_false # ayarın `chat_only`'si (oturum günceller): mikrofon açılmaz, cevap seslendirilmez
+    # ayar_çakışması: değer ayarın öbür alanıyla birlikte geçersiz mi (`device` `gpu` ile `quantized_activations` `on`);
+    # oturum.tr kurar.
+    ayar_çakışması: (TR_String, TR_JSON) -> TR_Bool = (_, _) => TR_false
     tur: TR_String = "" # süren ya da açılmak üzere olan tur; yoksa ""
     tur_sayısı: TR_Int = 0
     metin: TR_String? = TR_none # kabul edilmiş, henüz açılmamış metin turu
@@ -112,9 +116,10 @@ TR_struct Ekran {
 
 # ekran_kur: yayıncıyı kurar ve ilk olayı (`state: loading`) yollar. `kök` index.html'in klasörüdür; `katlayıcı`
 # yalnız sınamada değişir (screen_demo.tr katlamayı yavaşlatır, abonelik bir gönderime denk gelsin).
-TR_func ekran_kur(kök: TR_String, model: TR_String, katlayıcı: (TR_JSON, TR_JSON) -> TR_JSON = katla) -> Ekran {
+TR_func ekran_kur(kök: TR_String, model: TR_String, katlayıcı: (TR_JSON, TR_JSON) -> TR_JSON = katla, cihazlar: TR_List[TR_String] = ["cpu"],
+    kullanılan: TR_String = "cpu") -> Ekran {
     TR_var baş = TR_JSON({"v": _SÜRÜM, "type": "session", "data": {"session_id": "s-\(TR_time_ms())", "server_version": "tr-assistant-1",
-        "model": model, "tools": [], "heartbeat_ms": _NABIZ_MS, "snapshot": []}})
+        "model": model, "tools": [], "heartbeat_ms": _NABIZ_MS, "compute_devices": cihazlar, "compute_device_in_use": kullanılan, "snapshot": []}})
     TR_var yayın = TR_EventBroadcast(TR_capacity: _KAPASİTE, TR_snapshot: baş, TR_reduce: katlayıcı,
         TR_heartbeat: {"v": _SÜRÜM, "type": "heartbeat"})
     TR_var e = Ekran(yayın: yayın, kök: kök, diller: sayfanın_betikleri(kök, "lang"), modüller: sayfanın_betikleri(kök, "js"))
@@ -351,8 +356,8 @@ TR_func mikrofon_kararı(e: Ekran, k: Komut) -> TR_JSON {
 }
 
 # ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın
-# istediği değilse `invalid_value` (`setting_invalid`). Bağlam, mikrofon, kayıt ve nicemli seçim tur sürerken de kabul
-# edilir (modele dokunmazlar). Dilde, sistem iletisinde, dil modelinde ve yalnız sohbette tur sürüyorsa `turn_busy`;
+# istediği değilse ya da öbür ayarla çakışıyorsa `invalid_value` (`setting_invalid`). Bağlam, mikrofon, kayıt, nicemli
+# seçim ve cihaz tur sürerken de kabul edilir (modele dokunmazlar). Dilde, sistem iletisinde, dil modelinde ve yalnız sohbette tur sürüyorsa `turn_busy`;
 # dil katalogda yoksa `unknown_language`; dil modeli katalogda yoksa `invalid_value`, takımı kurulu değilse
 # `not_installed` (ayar yazılmaz); öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana
 # döngü uygular (oturum.tr, `ayarı_uygula`).
@@ -363,10 +368,10 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     }
     TR_var değer = k.veri.TR_get("value")
     TR_var geçersiz = red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "invalid_value"}))
-    TR_if değer == TR_none TR_or TR_not ayar_değeri_mi(anahtar, değer) { TR_return geçersiz }
+    TR_if değer == TR_none TR_or TR_not ayar_değeri_mi(anahtar, değer) TR_or e.ayar_çakışması(anahtar, değer) { TR_return geçersiz }
     # Dil modellerinin en büyük bağlam sınırını aşan bağlam yazılmaz: Dost bir sonraki açılışta H8174 ile açılmazdı.
     TR_if anahtar == "context" TR_and e.bağlam_sınırı > 0 TR_and TR_Int(değer) > e.bağlam_sınırı { TR_return geçersiz }
-    TR_if ["context", "microphone", "recording", "quantized_activations"].TR_contains(anahtar) {
+    TR_if ["context", "microphone", "recording", "quantized_activations", "device"].TR_contains(anahtar) {
         e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})
         TR_return kabul(k.kimlik)
     }
@@ -396,6 +401,7 @@ TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
     TR_match anahtar {
         "speech_language", "language_model" => { TR_return t == TR_String }
         "quantized_activations" => { TR_return t == TR_String TR_and ["auto", "on", "off"].TR_contains(TR_String(değer)) }
+        "device" => { TR_return t == TR_String TR_and ["cpu", "gpu"].TR_contains(TR_String(değer)) }
         "system_prompt" => { TR_return sistem_iletisi_mi(değer) }
         "context" => { TR_return t == TR_Int TR_and TR_Int(değer) > 0 }
         "microphone" => { TR_return t == TR_String TR_and TR_String(değer) != "" }

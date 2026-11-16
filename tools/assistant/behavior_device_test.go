@@ -151,3 +151,101 @@ func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
 		})
 	}
 }
+
+// Ekranlı kipte hesap cihazı (tasarım dost-sohbet-gpu T3, T5, T7): modeller ayarın `device`'ında kurulur; `session`
+// bu makinenin değerlerini (`compute_devices`) ve kullanılan cihazı (`compute_device_in_use`) söyler; deneme kaydının
+// başlığı ayardan sonra yazılır, cihaz motorun adıyla ve kartın satırıyla. Ayar `gpu` deyip kart yoksa işlemci.
+func startScreenWithDevice(t *testing.T, device string, env []string) (screenServer, string) {
+	t.Helper()
+	dost := filepath.Join(t.TempDir(), "Dost")
+	if err := os.MkdirAll(dost, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"v": 1, "language_model": "qwen3-4b-q4km", "speech_language": "tr", "system_prompt": {"source": "catalog"},
+"context": 8192, "device": "` + device + `", "port": 47863, "machine": {"memory_bytes": 17179869184, "memory_source": "option"}}`
+	if err := os.WriteFile(filepath.Join(dost, "ayar.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, kv := range env {
+		k, v, _ := strings.Cut(kv, "=")
+		t.Setenv(k, v)
+	}
+	record := filepath.Join(t.TempDir(), "deneme")
+	if err := os.MkdirAll(record, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return startProgram(t, chainProgram, "DİNLİYORUM", "Dost", "--kip", "canlı", "--ekran", "0", "--ayar",
+		filepath.Join(dost, "ayar.json"), "--katalog", dostCatalog, "--deneme_klasörü", record), record
+}
+
+func sessionData(t *testing.T, s screenServer) map[string]any {
+	t.Helper()
+	first := next(t, s.stream(t, ""))
+	if first.Type != "session" {
+		t.Fatalf("ilk olay %s", first.Type)
+	}
+	return first.Data
+}
+
+func TestScreenLoadsOnTheSettingsDevice(t *testing.T) {
+	s, record := startScreenWithDevice(t, "gpu", []string{"TR_GPU_SIM=1"})
+	d := sessionData(t, s)
+	if toString(d["compute_devices"]) != "[cpu gpu]" {
+		t.Errorf("compute_devices %v, beklenen [cpu gpu]", d["compute_devices"])
+	}
+	if d["compute_device_in_use"] != "gpu" {
+		t.Errorf("compute_device_in_use %v, beklenen gpu", d["compute_device_in_use"])
+	}
+	_ = record
+}
+
+// Deneme kaydının ilk satırı ayardan sonra yazılır (status'un deneme başlığı satırı): cihaz kullanılanın motor adı,
+// kartta kartın satırı (adı, belleği, sürücü sürümü, `@`'nin yolu; kitaplık sürümü yok).
+func TestScreenTrialHeaderHasTheSettingsDevice(t *testing.T) {
+	s, record := startScreenWithDevice(t, "gpu", []string{"TR_GPU_SIM=1"})
+	_ = sessionData(t, s)
+	trialHeaderHas(t, record, `"cihaz":"gpu:0"`, `"kart":"TR_GPU_SIM; `)
+}
+
+func TestMissingGpuLoadsOnCpu(t *testing.T) {
+	s, record := startScreenWithDevice(t, "gpu", []string{"CUDA_VISIBLE_DEVICES=", "TR_GPU_SIM=0"})
+	d := sessionData(t, s)
+	if strings.Contains(toString(d["compute_devices"]), "gpu") {
+		t.Skip("bu makinede kart görünür kaldı (CUDA_VISIBLE_DEVICES boşken de); kartsız yol kartsız makinede sınanır")
+	}
+	if d["compute_device_in_use"] != "cpu" {
+		t.Errorf("kart yokken compute_device_in_use %v, beklenen cpu", d["compute_device_in_use"])
+	}
+	trialHeaderHas(t, record, `"cihaz":"cpu"`, "")
+}
+
+// trialHeaderHas: deneme kaydının ilk satırında cihaz ve (verildiyse) kart satırı var; kart verilmediyse kart satırı yok.
+func trialHeaderHas(t *testing.T, record, device, card string) {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(record, "turlar.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := strings.SplitN(string(b), "\n", 2)[0]
+	if !strings.Contains(head, device) {
+		t.Errorf("deneme başlığında %s yok: %s", device, head)
+	}
+	if card != "" && !strings.Contains(head, card) {
+		t.Errorf("deneme başlığında %s yok: %s", card, head)
+	}
+	if card == "" && strings.Contains(head, `"kart":"T`) {
+		t.Errorf("işlemcide kart satırı olmamalı: %s", head)
+	}
+}
+
+func toString(v any) string {
+	if l, ok := v.([]any); ok {
+		parts := make([]string, len(l))
+		for i, x := range l {
+			parts[i], _ = x.(string)
+		}
+		return "[" + strings.Join(parts, " ") + "]"
+	}
+	s, _ := v.(string)
+	return s
+}

@@ -224,6 +224,16 @@
           <label for="settingsContext" data-i18n="settings_context"></label>
           <input class="input" id="settingsContext" type="number" min="1" step="1" inputmode="numeric">
         </div>
+        <div class="field">
+          <label for="settingsDevice" data-i18n="settings_device"></label>
+          <select id="settingsDevice">
+            <option value="cpu" data-i18n="settings_device_cpu"></option>
+            <option value="gpu" data-i18n="settings_device_gpu"></option>
+          </select>
+          <p class="hint result-mark" data-i18n="settings_changes_answers"></p>
+          <p class="hint" id="settingsDeviceNoGpu" data-i18n="settings_device_no_gpu" hidden></p>
+          <p class="hint" id="settingsDeviceMissing" data-i18n="error_compute_device_unavailable" hidden></p>
+        </div>
         <button class="btn" id="settingsModels" type="button" data-i18n="setup_open_models"></button>
       </section>
       <section class="box" aria-labelledby="settingsGroupAudio">

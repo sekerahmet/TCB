@@ -6,7 +6,7 @@
 
 /**
  * @param {{emit: (type: string, data?: any) => void, setState: (state: string, extra?: any) => void,
- *   state: () => string, setMic: (on: boolean) => void, turn: () => string}} host
+ *   state: () => string, setMic: (on: boolean) => void, turn: () => string, gpu: boolean}} host
  */
 function createMockModels(host) {
   const { emit, setState } = host;
@@ -108,6 +108,7 @@ function createMockModels(host) {
     microphone: (value) => typeof value === "string" && value !== "",
     recording: (value) => typeof value === "boolean",
     chat_only: (value) => typeof value === "boolean",
+    device: (value) => value === "cpu" || value === "gpu",
     quantized_activations: (value) => ["auto", "on", "off"].includes(value),
     language_model: (value) => Boolean(find(str(value))),
   };
@@ -173,6 +174,9 @@ function createMockModels(host) {
           const check = types[key];
           if (!check) return rejected("setting_invalid", { key, reason: "unknown_key" });
           if (!check(data.value)) return rejected("setting_invalid", { key, reason: "invalid_value" });
+          const clash = (key === "device" && data.value === "gpu" && (!host.gpu || settings.quantized_activations === "on"))
+            || (key === "quantized_activations" && data.value === "on" && settings.device === "gpu");
+          if (clash) return rejected("setting_invalid", { key, reason: "invalid_value" });
           if (key === "language_model" && !(/** @type {any} */ (find(data.value))).installed) return rejected("setting_invalid", { key, reason: "not_installed" });
           if (["language_model", "speech_language", "chat_only"].includes(key) && host.turn()) return rejected("turn_busy", { turn_id: host.turn() });
           settings[key] = data.value;

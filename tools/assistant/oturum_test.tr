@@ -270,3 +270,38 @@ TR_test "yalnız sohbet, ses: söyleyen sessizde cümleyi söyleyene vermez, ses
     söyleyen(TR_false, söyle)("Merhaba.")
     TR_assert_equal(["Merhaba."], söylenen)
 }
+
+TR_test "cihaz ayarı (device): tur sürerken de kabul, yalnız dosyaya yazılır (bir sonraki açılış); cpu ve gpu dışı invalid_value; kart yokken gpu invalid_value; nicemli on ile iki yönde çakışma" {
+    TR_var o = _oturum()
+    o.e.ayar_çakışması = o.ayar_çakışması
+    TR_var ayar = (anahtar: TR_String, değer: TR_String) => TR_json_string(karar(o.e, Komut(kimlik: "\(anahtar)-\(değer)-\(o.e.giden.TR_length)",
+        tür: "settings_set", veri: TR_JSON({"key": anahtar, "value": değer}))))
+    o.e.tur = "t-1"
+    TR_assert(ayar("device", "cpu").TR_contains("accepted"))
+    o.e.ayar_istendi = TR_none
+    TR_assert(ayar("device", "gpu:0").TR_contains("invalid_value"))
+    TR_var kart = kart_özeti() != TR_none
+    TR_assert_equal(TR_not kart, ayar("device", "gpu").TR_contains("invalid_value"))
+    o.e.ayar_istendi = TR_none
+    o.ayarı_uygula("quantized_activations", TR_JSON("on"))
+    TR_assert(ayar("device", "gpu").TR_contains("invalid_value"))
+    o.ayarı_uygula("quantized_activations", TR_JSON("auto"))
+    o.ayarı_uygula("device", TR_JSON("gpu"))
+    TR_assert_equal("gpu", TR_String(dosya_oku(o.ayar_dosyası, "ayar")["device"]))
+    TR_assert_equal(kart, dosya_oku(o.ayar_dosyası, "ayar")["machine"].TR_get("gpu") != TR_none)
+    TR_assert_equal("cpu", o.etkin.cihaz) # bir sonraki açılışta geçerli
+    TR_assert(ayar("quantized_activations", "on").TR_contains("invalid_value"))
+    TR_assert(ayar("quantized_activations", "off").TR_contains("accepted"))
+}
+
+TR_test "katalog kartta: modeller kartta kurulduysa uygunluk kartın belleğiyle; işlemcide ayarın makinesiyle" {
+    TR_var o = _oturum()
+    TR_var uyum = () => {
+        o.kataloğu_gönder()
+        TR_var l = [x TR_for x TR_in TR_List(_son(o.e)["data"]["entries"]) TR_if TR_String(x["id"]) == "qwen3-4b-q4km"]
+        TR_return TR_String(l[0]["fit"])
+    }
+    TR_assert_equal("tight", uyum()) # 16 GiB'lik makine
+    o.kart = 2147483648
+    TR_assert_equal("too_large", uyum()) # 2 GiB'lik kart
+}
