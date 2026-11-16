@@ -103,6 +103,77 @@ func TestQ8FourRowsMatchOneRow(t *testing.T) {
 	}
 }
 
+// TestQ8EightRowsMatchOneRow: Q4_K'da sekiz satırlı çekirdek (sekizli gruplar, ardından dörtlü ve tek satırlar)
+// her satırda quantGemvQ8 ile ve Go yoluyla bit bit aynıdır; ×1000 ölçekli, sıfır bloklu ve ±1 satırları dahil.
+func TestQ8EightRowsMatchOneRow(t *testing.T) {
+	oldAVX, oldF16C := hasAVX2, hasF16C
+	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	for _, c := range [][3]int{{8, 3, 256}, {12, 17, 512}, {16, 33, 2560}, {23, 5, 9728}, {40, 18, 512}} {
+		M, N, K := c[0], c[1], c[2]
+		w := smallScaleQuant(Q4K, uint32(7*M+N+K), N*K/kBlock)
+		x := randomData(rand.New(rand.NewSource(int64(M+N*K))), M*K)
+		for m := range M {
+			row := x[m*K : (m+1)*K]
+			switch m % 5 {
+			case 1:
+				for i := range row {
+					row[i] *= 1000
+				}
+			case 2:
+				clear(row[:kBlock])
+			case 3:
+				for i := range row {
+					row[i] = float32(1 - 2*(i%2))
+				}
+			}
+		}
+		var first []float32
+		for _, path := range q8Paths() {
+			hasAVX2, hasF16C = path.avx, path.f16c
+			got := make([]float32, M*N)
+			quantGemmQ8(M, N, K, x, w, Q4K, got)
+			for m := range M {
+				want := make([]float32, N)
+				quantGemvQ8(N, K, x[m*K:(m+1)*K], w, Q4K, want)
+				sameFloatBits(t, path.name+" satır", got[m*N:(m+1)*N], want)
+			}
+			if first == nil {
+				first = got
+			}
+			sameFloatBits(t, path.name+" yollar", got, first)
+		}
+	}
+}
+
+// TestQ8EightRowsChecksBounds: sekiz satırlı çekirdek çağıranın sözüne dayanmaz: r0'ın arkasında yedi satır yoksa
+// ya da out sekiz öğeden kısaysa her yolda (çekirdek ve Go eşi) panik verir.
+func TestQ8EightRowsChecksBounds(t *testing.T) {
+	oldAVX, oldF16C := hasAVX2, hasF16C
+	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	const K = 512
+	nb := K / kBlock
+	w := smallScaleQuant(Q4K, 9, nb)
+	dT, ps := make([]float32, nb*8), make([]int16, nb*64)
+	for _, path := range q8Paths() {
+		hasAVX2, hasF16C = path.avx, path.f16c
+		var tmp [q8Tmp]byte
+		for _, c := range []struct {
+			name string
+			r0   *q8kRow
+			out  []float32
+		}{{"yedi satır", newQ8KRow(7 * K), make([]float32, 8)}, {"kısa out", newQ8KRow(8 * K), make([]float32, 7)}} {
+			func() {
+				defer func() {
+					if recover() == nil {
+						t.Fatalf("%s %s: panik yok", path.name, c.name)
+					}
+				}()
+				dotQ4KQ8x8(nb, w, c.r0, K, dT, ps, tmp[:], c.out)
+			}()
+		}
+	}
+}
+
 // TestQ8FourRowsChecksBounds: dört satırlı çekirdekler çağıranın sözüne dayanmaz: r0'ın arkasında üç satır yoksa
 // ya da out dört öğeden kısaysa her yolda panik verir (assembly tamponun dışını okumaz).
 func TestQ8FourRowsChecksBounds(t *testing.T) {

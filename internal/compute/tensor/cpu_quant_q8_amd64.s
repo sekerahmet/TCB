@@ -21,6 +21,16 @@
 	VADDSS       ooff(R8), X2, X2; \
 	VMOVSS       X2, ooff(R8)
 
+// X8SATIR bir satırın 64 öğelik grubunu acc'ye ekler: Y2/Y3 grubun alt ve üst dörtlü kodları, Y7/Y8 iki alt
+// bloğun ölçekleri; lo ve hi satırın 32'lik iki parçası (bellekten, işaretli).
+#define X8SATIR(lo, hi, acc) \
+	VPMADDUBSW lo, Y2, Y5; \
+	VPMADDUBSW hi, Y3, Y6; \
+	VPMADDWD   Y7, Y5, Y5; \
+	VPMADDWD   Y8, Y6, Y6; \
+	VPADDD     Y5, acc, acc; \
+	VPADDD     Y6, acc, acc
+
 // func sdotq4kq8(blocks int, w *byte, q *int8, d *float32, bs *int16, tmp *byte) float32
 //
 // Q4_K blok 144 bayt (d, dmin, 12 bayt ölçek, 128 bayt kod); Q8 satırı blok başına 256 kod, bir d, 16 alt toplam.
@@ -755,5 +765,142 @@ q6x4blok:
 	JNZ          q6x4blok
 
 q6x4son:
+	VZEROUPPER
+	RET
+
+// func sdotq4kq8x8(blocks int, w *byte, q *int8, dT *float32, ps *int16, tmp *byte, out *float32, sq int)
+//
+// Sekiz Q8 satırını (kodlar sq bayt arayla) aynı Q4_K satırıyla çarpar; satır başına toplam vektörde tek seferde
+// alınır. dT blok başına sekiz satırın d8'i (32 bayt), ps blok başına dört çift × sekiz satır × iki alt blok
+// toplamı (128 bayt; ps_j = bs[2j] + bs[2j+1]). Float sırası dotQ4KQ8Go'nunki, şeritte: t = d·isum − dmin·msum,
+// out += t·d8 (kaynaştırma yok). tmp 32 bayt: ölçekler (16) ve minimumlar (16) kelime olarak.
+TEXT ·sdotq4kq8x8(SB), NOSPLIT, $0-64
+	MOVQ         blocks+0(FP), CX
+	MOVQ         w+8(FP), DI
+	MOVQ         q+16(FP), SI
+	MOVQ         dT+24(FP), R11
+	MOVQ         ps+32(FP), R12
+	MOVQ         tmp+40(FP), DX
+	MOVQ         sq+56(FP), R13
+	MOVL         $0x0F0F0F0F, AX
+	VMOVD        AX, X4
+	VPBROADCASTD X4, Y4
+	TESTQ        CX, CX
+	JZ           x8son
+
+x8blok:
+	MOVL         4(DI), R8
+	MOVL         8(DI), R9
+	MOVL         12(DI), R10
+	MOVL         R8, AX
+	ANDL         $0x3f3f3f3f, AX
+	MOVL         R10, BX
+	ANDL         $0x0f0f0f0f, BX
+	SHRL         $6, R8
+	ANDL         $0x03030303, R8
+	SHLL         $4, R8
+	ORL          R8, BX
+	SHLQ         $32, BX
+	ORQ          BX, AX
+	VMOVQ        AX, X9
+	MOVL         R9, AX
+	ANDL         $0x3f3f3f3f, AX
+	SHRL         $4, R10
+	ANDL         $0x0f0f0f0f, R10
+	SHRL         $6, R9
+	ANDL         $0x03030303, R9
+	SHLL         $4, R9
+	ORL          R9, R10
+	SHLQ         $32, R10
+	ORQ          R10, AX
+	VMOVQ        AX, X10
+	VPMOVZXBW    X9, X9
+	VPMOVZXBW    X10, X10
+	VMOVDQU      X9, (DX)
+	VMOVDQU      X10, 16(DX)
+	MOVQ         out+48(FP), R8
+	VPXOR        Y0, Y0, Y0
+	VPXOR        Y1, Y1, Y1
+	VPXOR        Y9, Y9, Y9
+	VPXOR        Y10, Y10, Y10
+	VPXOR        Y11, Y11, Y11
+	VPXOR        Y12, Y12, Y12
+	VPXOR        Y13, Y13, Y13
+	VPXOR        Y14, Y14, Y14
+	ADDQ         $16, DI
+	XORQ         BX, BX
+	MOVQ         SI, R10
+	MOVQ         $4, R9
+
+x8grup:
+	VMOVDQU      (DI), Y2
+	VPSRLW       $4, Y2, Y3
+	VPAND        Y4, Y2, Y2
+	VPAND        Y4, Y3, Y3
+	VPBROADCASTW (DX)(BX*1), Y7
+	VPBROADCASTW 2(DX)(BX*1), Y8
+	LEAQ         (R10)(R13*2), R14
+	ADDQ         R13, R14
+	LEAQ         (R14)(R13*2), AX
+	ADDQ         R13, AX
+	X8SATIR((R10), 32(R10), Y0)
+	X8SATIR((R10)(R13*1), 32(R10)(R13*1), Y1)
+	X8SATIR((R10)(R13*2), 32(R10)(R13*2), Y9)
+	X8SATIR((R14), 32(R14), Y10)
+	X8SATIR((R10)(R13*4), 32(R10)(R13*4), Y11)
+	X8SATIR((R14)(R13*2), 32(R14)(R13*2), Y12)
+	X8SATIR((AX), 32(AX), Y13)
+	X8SATIR((AX)(R13*1), 32(AX)(R13*1), Y14)
+	ADDQ         $32, DI
+	ADDQ         $64, R10
+	ADDQ         $4, BX
+	DECQ         R9
+	JNZ          x8grup
+
+	// Sekiz satırın isum'u tek vektöre: şerit r = r'inci satırın sekiz int32'sinin toplamı (tamsayı, sırası serbest).
+	VPHADDD      Y1, Y0, Y0
+	VPHADDD      Y10, Y9, Y9
+	VPHADDD      Y12, Y11, Y11
+	VPHADDD      Y14, Y13, Y13
+	VPHADDD      Y9, Y0, Y0
+	VPHADDD      Y13, Y11, Y11
+	VPERM2I128   $0x20, Y11, Y0, Y5
+	VPERM2I128   $0x31, Y11, Y0, Y6
+	VPADDD       Y6, Y5, Y5
+	VCVTDQ2PS    Y5, Y5
+	MOVWLZX      -144(DI), AX
+	VMOVD        AX, X6
+	VCVTPH2PS    X6, X6
+	VBROADCASTSS X6, Y6
+	VMULPS       Y6, Y5, Y5
+	// msum: şerit r'de Σ_j m_j·ps_j (dört çift; tamsayı).
+	VPBROADCASTD 16(DX), Y7
+	VPMADDWD     (R12), Y7, Y7
+	VPBROADCASTD 20(DX), Y8
+	VPMADDWD     32(R12), Y8, Y8
+	VPADDD       Y8, Y7, Y7
+	VPBROADCASTD 24(DX), Y8
+	VPMADDWD     64(R12), Y8, Y8
+	VPADDD       Y8, Y7, Y7
+	VPBROADCASTD 28(DX), Y8
+	VPMADDWD     96(R12), Y8, Y8
+	VPADDD       Y8, Y7, Y7
+	VCVTDQ2PS    Y7, Y7
+	MOVWLZX      -142(DI), AX
+	VMOVD        AX, X8
+	VCVTPH2PS    X8, X8
+	VBROADCASTSS X8, Y8
+	VMULPS       Y8, Y7, Y7
+	VSUBPS       Y7, Y5, Y5
+	VMULPS       (R11), Y5, Y5
+	VADDPS       (R8), Y5, Y5
+	VMOVUPS      Y5, (R8)
+	ADDQ         $256, SI
+	ADDQ         $32, R11
+	ADDQ         $128, R12
+	DECQ         CX
+	JNZ          x8blok
+
+x8son:
 	VZEROUPPER
 	RET

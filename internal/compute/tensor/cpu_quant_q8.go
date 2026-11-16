@@ -142,9 +142,10 @@ func quantGemvQ8(N, K int, a []float32, w []byte, dt DType, c []float32) {
 // q8Tmp çekirdeklerin çalışma alanının baytıdır: en çoğu Q6_K'nın dört satırlısı (16 ölçek ve dört msum).
 const q8Tmp = 48
 
-// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; her ağırlık satırı dört etkinleştirme
-// satırıyla birlikte çarpılır (dotQ4KQ8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her
-// satırın sonucu tek satırlı yolunkiyle (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
+// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; Q4_K'da her ağırlık satırı önce sekiz
+// etkinleştirme satırıyla (dotQ4KQ8x8, q4x8Ready ise), sonra dörder satırla birlikte çarpılır (dotQ4KQ8x4,
+// dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her satırın sonucu tek satırlı yolunkiyle
+// (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
 // yoluyla (quantGemv) tek başına hesaplanır; sonlu satırlar bitişik bir tampona toplanır (idx: tampondaki satırın
 // a'daki yeri). Satırın sonucu yanındaki satırların verisinden bağımsızdır.
 func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
@@ -181,13 +182,14 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	// baştan okuyordu; 512 satırlık okumada float yolundan yavaştı (profil, 2026-11-10, Qwen3-4B Q4_K_M,
 	// i7-13700H: süre çekirdeklerde, ~17 GOPS). Her c öğesi yine tek bir çekirdek çağrısının sonucunu bir kez
 	// alır: bitler bloksuz sürümle aynıdır.
+	eights := newQ8x8(dt, rows, nb, K, rowBytes)
 	nBlocks := (N + q8BlockN - 1) / q8BlockN
 	parallelFor(nBlocks, q8BlockN*F*K, func(lo, hi int) {
 		var tmp [q8Tmp]byte
 		var out [4]float32
 		for jb := lo; jb < hi; jb++ {
 			n0, n1 := jb*q8BlockN, min(N, (jb+1)*q8BlockN)
-			i := 0
+			i := eights.into(n0, n1, N, w, rows, idx, c, tmp[:])
 			for ; i+4 <= F; i += 4 {
 				for n := n0; n < n1; n++ {
 					four(nb, w[n*rowBytes:(n+1)*rowBytes], rows[i], K, tmp[:], out[:])
@@ -205,6 +207,58 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	})
 }
 
+// q8x8 quantGemmQ8'in sekizli gruplarıdır: G grup (Q4_K'da ve q4x8Ready ise len(rows)/8, değilse 0) ve
+// sekiz satırlı çekirdeğin çevrik tabloları. Gruplar nicemlemeden sonra bir kez kurulur.
+type q8x8 struct {
+	G, nb, K, rowBytes int
+	dT                 []float32
+	ps                 []int16
+}
+
+func newQ8x8(dt DType, rows []*q8kRow, nb, K, rowBytes int) *q8x8 {
+	e := &q8x8{nb: nb, K: K, rowBytes: rowBytes}
+	if dt == Q4K && q4x8Ready() {
+		e.G = len(rows) / 8
+	}
+	e.dT, e.ps = q8x8Tables(rows[:e.G*8], nb)
+	return e
+}
+
+// into n0..n1 ağırlık satırlarını her sekizli grupla çarpar ve c'ye ekler (c'nin her öğesi yine tek bir çekirdek
+// çağrısının sonucunu bir kez alır); sekizlilerin kapladığı satır sayısını (8·G) verir.
+func (e *q8x8) into(n0, n1, N int, w []byte, rows []*q8kRow, idx []int, c []float32, tmp []byte) int {
+	var out [8]float32
+	for g := range e.G {
+		for n := n0; n < n1; n++ {
+			dotQ4KQ8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], e.ps[g*e.nb*64:], tmp, out[:])
+			for r := range 8 {
+				c[idx[8*g+r]*N+n] += out[r]
+			}
+		}
+	}
+	return 8 * e.G
+}
+
+// q8x8Tables sekiz satırlı çekirdeğin tablolarıdır (len(rows) sekizin katı): g'inci sekizlinin i'inci bloğunda
+// dT[(g·nb+i)·8 + r] = d8, ps[(g·nb+i)·64 + p·16 + r·2 + k] = bs[2j] + bs[2j+1] (j = 2p + k, 32'lik alt blok j'nin
+// kod toplamı; int16'da taşmaz: |bs| ≤ 16·127).
+func q8x8Tables(rows []*q8kRow, nb int) ([]float32, []int16) {
+	G := len(rows) / 8
+	dT, ps := make([]float32, G*nb*8), make([]int16, G*nb*64)
+	for g := range G {
+		for i := range nb {
+			for r := range 8 {
+				row := rows[g*8+r]
+				dT[(g*nb+i)*8+r] = row.d[i]
+				for j := range 8 {
+					ps[(g*nb+i)*64+(j/2)*16+r*2+j%2] = row.bs[i*16+2*j] + row.bs[i*16+2*j+1]
+				}
+			}
+		}
+	}
+	return dT, ps
+}
+
 // q8BlockN quantGemmQ8'in bir iş biriminin ağırlık satırı sayısıdır: K = 9728'de Q4_K 16 satır 87 KB,
 // ikinci düzey önbelleğe (i7-13700H'nin P çekirdeğinde 1,25 MB) sığar [hesap].
 const q8BlockN = 16
@@ -217,11 +271,16 @@ func dotQ8x4(dt DType) func(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte,
 	return dotQ4KQ8x4
 }
 
-// dotQ8x4Go dört satırlı çekirdeklerin Go eşidir: r0'dan başlayan dört satır (r0'ın dilimleri K arayla devam
-// eder; bitişik tampon), out[r] = dot(r'inci satır).
+// dotQ8x4Go dört satırlı çekirdeklerin Go eşidir (dotQ8RowsGo, n = 4).
 func dotQ8x4Go(dot func(int, []byte, *q8kRow) float32, blocks int, w []byte, r0 *q8kRow, K int, out []float32) {
+	dotQ8RowsGo(4, dot, blocks, w, r0, K, out)
+}
+
+// dotQ8RowsGo n satırlı çekirdeklerin Go eşidir: r0'dan başlayan n satır (r0'ın dilimleri K arayla devam eder;
+// bitişik tampon), out[r] = dot(r'inci satır). Tampon ya da out kısaysa panik verir.
+func dotQ8RowsGo(n int, dot func(int, []byte, *q8kRow) float32, blocks int, w []byte, r0 *q8kRow, K int, out []float32) {
 	nb := K / kBlock
-	for r := range 4 {
+	for r := range n {
 		row := &q8kRow{q: r0.q[r*K : r*K+K : r*K+K], d: r0.d[r*nb : r*nb+nb], bs: r0.bs[r*K/16 : r*K/16+K/16]}
 		out[r] = dot(blocks, w, row)
 	}
