@@ -367,6 +367,19 @@ TR_func ekran_cihazı(k: Katalog, a: Ayar?, bağlam: TR_Int, kart: TR_Int) -> TR
     TR_return öntanımlı_cihaz(k, TR_none, ilk[0], bağlam, kart)
 }
 
+# ön_cihaz: sunucudan önce istenen cihaz (`ekran_cihazı`): varsayılan cihaz modellerden önce bir kez seçilir ve
+# `session` onu taşır. Katalog ya da ayar okunamazsa "cpu": hata sunucu açıldıktan sonra bugünkü yerinde ve sırasında
+# gelir (kapı hatası önce, H7625; ayarın yeri sonra, H8172), program orada durur.
+TR_func ön_cihaz(kart: TR_Int) -> TR_String {
+    TR_try {
+        TR_var k = katalog_oku(TR_String(ayar["katalog"]))
+        TR_var a = ayar_oku(ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA")), k)
+        TR_return ekran_cihazı(k, a, bağlam_belirle(k, bağlam_verilen, a), kart)
+    } TR_catch _h {
+        TR_return "cpu"
+    }
+}
+
 # açılış_hataları: sunucu açıldıktan sonra açılışın hataları: ayarın cihazı yoksa `compute_device_unavailable`;
 # önceki yükleme yarıda kaldıysa (işaret) `model_load_failed`.
 TR_func açılış_hataları(e: Ekran, klasör: TR_String, istenen: TR_String, kullanılan: TR_String) {
@@ -392,6 +405,18 @@ TR_func açılış_hataları(e: Ekran, klasör: TR_String, istenen: TR_String, k
 TR_func ekranlı_kip() -> TR_Int {
     TR_var dosya = _gerekli("belirteç_dosyası")
     TR_var elle = TR_String(ayar["dil_modeli"]) != ""
+    TR_var kart = kart_belleği()
+    TR_var istenen = TR_if elle { "cpu" } TR_else { ön_cihaz(kart) }
+    TR_var kullanılan = TR_if istenen == "gpu" TR_and kart > 0 { "gpu" } TR_else { "cpu" }
+    TR_default_device(kullanılan)
+    TR_var e = ekran_kur(ekran_klasörü(), TR_if elle { TR_Path(TR_String(ayar["dil_modeli"])).TR_name } TR_else { "" },
+        cihazlar: TR_if kart > 0 { ["cpu", "gpu"] } TR_else { ["cpu"] }, kullanılan: kullanılan)
+    TR_if TR_Bool(ayar["tarayıcıyla_eşle"]) { e.eşleme = Eşleme(açıcı: tarayıcıyı_aç) }
+    TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
+    TR_defer { s.TR_close() }
+    TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
+    TR_var eş = e.eşleme
+    TR_if eş != TR_none { eş.yenile_ve_aç() }
     TR_var ayar_dosyası = ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA"))
     TR_var klasör = dost_klasörü(ayar_dosyası)
     TR_var k = Katalog(girdiler: [], diller: [])
@@ -414,19 +439,7 @@ TR_func ekranlı_kip() -> TR_Int {
         TR_if a_ayar != TR_none { ayardaki = a_ayar.nicemli }
         seçim = nicemli_seç(nicemli_verilen, ayardaki, ayar_dosyası)
     }
-    TR_var kart = kart_belleği()
-    TR_var istenen = TR_if elle { "cpu" } TR_else { ekran_cihazı(k, a_ayar, bağlam, kart) }
-    TR_var kullanılan = TR_if istenen == "gpu" TR_and kart > 0 { "gpu" } TR_else { "cpu" }
-    TR_default_device(kullanılan)
     deneme_aç()
-    TR_var e = ekran_kur(ekran_klasörü(), TR_if elle { TR_Path(TR_String(ayar["dil_modeli"])).TR_name } TR_else { "" },
-        cihazlar: TR_if kart > 0 { ["cpu", "gpu"] } TR_else { ["cpu"] }, kullanılan: kullanılan)
-    TR_if TR_Bool(ayar["tarayıcıyla_eşle"]) { e.eşleme = Eşleme(açıcı: tarayıcıyı_aç) }
-    TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
-    TR_defer { s.TR_close() }
-    TR_print("EKRAN", ekran_adresi(s), "belirteç dosyası:", dosya)
-    TR_var eş = e.eşleme
-    TR_if eş != TR_none { eş.yenile_ve_aç() }
     açılış_hataları(e, klasör, istenen, kullanılan)
     TR_var etkin = takım_ayarı(k, a_ayar)
     TR_if TR_not elle TR_and karılacak_var(kj, klasör) { e.doğrulanıyor() }

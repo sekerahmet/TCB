@@ -204,7 +204,7 @@ func TestScreenLoadsOnTheSettingsDevice(t *testing.T) {
 func TestScreenTrialHeaderHasTheSettingsDevice(t *testing.T) {
 	s, record := startScreenWithDevice(t, "gpu", []string{"TR_GPU_SIM=1"})
 	_ = sessionData(t, s)
-	trialHeaderHas(t, record, `"cihaz":"gpu:0"`, `"kart":"TR_GPU_SIM; `)
+	trialHeaderHas(t, record, `"cihaz":"gpu:0"`, `; @ vendor"`) // kartın adı makineye göre (G4'te gerçek kart)
 }
 
 func TestMissingGpuLoadsOnCpu(t *testing.T) {
@@ -233,7 +233,7 @@ func trialHeaderHas(t *testing.T, record, device, card string) {
 	if card != "" && !strings.Contains(head, card) {
 		t.Errorf("deneme başlığında %s yok: %s", card, head)
 	}
-	if card == "" && strings.Contains(head, `"kart":"T`) {
+	if card == "" && strings.Contains(head, "@ vendor") {
 		t.Errorf("işlemcide kart satırı olmamalı: %s", head)
 	}
 }
