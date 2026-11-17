@@ -108,6 +108,57 @@ q8son:
 	VZEROUPPER
 	RET
 
+// Sekiz "q4" baytı: alt yarılar öğe xlo'dan lo'ya, üst yarılar öğe xhi'den hi'ye; değer (kod − 8)·d,
+// çarpım float32'de kesin. Y8: d; Y4: 15; Y5: 8.
+#define Q40LANE(codes, xlo, xhi, lo, hi) \
+	VPMOVZXBD   codes(DI), Y9; \
+	VPAND       Y4, Y9, Y14; \
+	VPSRLD      $4, Y9, Y15; \
+	VPSUBD      Y5, Y14, Y14; \
+	VPSUBD      Y5, Y15, Y15; \
+	VCVTDQ2PS   Y14, Y14; \
+	VCVTDQ2PS   Y15, Y15; \
+	VMULPS      Y8, Y14, Y14; \
+	VMULPS      Y8, Y15, Y15; \
+	VFMADD231PS xlo(SI), Y14, lo; \
+	VFMADD231PS xhi(SI), Y15, hi
+
+// func sdotq4(n int, x *float32, w *byte) float32
+//
+// Blok 18 bayt: fp16 ölçek, 16 bayt kod. j. baytın alt yarısı j., üst yarısı j+16. öğedir: 0–7 Y0'a,
+// 8–15 Y1'e, 16–23 Y2'ye, 24–31 Y3'e (sdot32'nin kulvarları).
+TEXT ·sdotq4(SB), NOSPLIT, $0-28
+	MOVQ n+0(FP), CX
+	MOVQ x+8(FP), SI
+	MOVQ w+16(FP), DI
+	ZERO4
+	MOVL         $15, AX
+	VMOVD        AX, X4
+	VPBROADCASTD X4, Y4
+	MOVL         $8, AX
+	VMOVD        AX, X5
+	VPBROADCASTD X5, Y5
+	SHRQ         $5, CX
+	JZ           q40son
+
+q40dongu:
+	MOVWLZX      (DI), AX
+	VMOVD        AX, X8
+	VCVTPH2PS    X8, X8
+	VBROADCASTSS X8, Y8
+	Q40LANE(2, 0, 64, Y0, Y2)
+	Q40LANE(10, 32, 96, Y1, Y3)
+	ADDQ         $18, DI
+	ADDQ         $128, SI
+	DECQ         CX
+	JNZ          q40dongu
+
+q40son:
+	SUM32
+	VMOVSS X0, ret+24(FP)
+	VZEROUPPER
+	RET
+
 // Sekiz "q4_k" baytı: alt yarılar acc'ye öğe xlo'dan, üst yarılar öğe xhi'den. Y10, Y11: alt yarının
 // d·a ve m·b'si; Y12, Y13: üst yarının, d·a 16'ya bölünmüş. Üst yarı kaydırılmaz, kodun 16 katıdır:
 // çarpım yine kesindir, kaydırma 0 ve 1 kapılarını boşa tutmaz. Y4: 15; Y5: 0xF0. Çıkarma tek yuvarlamadır.

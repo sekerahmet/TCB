@@ -1360,7 +1360,7 @@ const (
 	H6671 Code = 6671 // GGUF tensörü {name|q}: son eksen {dim}, {type} bloğunun ({block} öğe) katı olmalı
 	H6672 Code = 6672 // GGUF tensörü {name|q}: kayma {offset}, {expected} olmalı
 	H6673 Code = 6673 // GGUF tensörü {name|q}: verisi {end}. bayta kadar sürüyor, dosya {size} bayt
-	H6674 Code = 6674 // GGUF tensörü {name|q}: {type} türü okunamıyor (bu TR sürümü F32, F16, BF16, Q8_0, Q4_K ve Q6_K okuyabilir)
+	H6674 Code = 6674 // GGUF tensörü {name|q}: {type} türü okunamıyor (bu TR sürümü F32, F16, BF16, Q8_0, Q4_0, Q4_K ve Q6_K okuyabilir)
 	H6675 Code = 6675 // bölünmüş GGUF dosyası okunmaz ({count} parça): parçaları önce tek dosyada birleştirin: `llama-gguf-split --merge`
 	H6676 Code = 6676 // GGUF dosyası değil: dosya {magic|q} ile başlamalı
 	H6677 Code = 6677 // GGUF dosyası {offset}. baytta okunamadı: {error}

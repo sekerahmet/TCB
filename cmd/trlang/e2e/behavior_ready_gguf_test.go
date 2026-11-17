@@ -25,6 +25,7 @@ type tinyConfig struct {
 	heads, kv, headDim, context int
 	tied                        bool
 	theta                       float32
+	q4                          bool // nicemli sınamada iki boyutlu ağırlıkların hepsi Q4_0 (Gemma 3 QAT dosyası gibi)
 }
 
 // tinyTensor Hugging Face düzeninde bir ağırlıktır.
@@ -348,7 +349,7 @@ func TestGGUFOpenToFloat64OnTheCard(t *testing.T) {
 // atlanır (GPU tam denetimi koşar).
 func TestGGUFModelOnTheCard(t *testing.T) {
 	for _, c := range quantizedConfigs {
-		t.Run(c.arch, func(t *testing.T) {
+		t.Run(c.quantName(), func(t *testing.T) {
 			dir := t.TempDir()
 			writeTR(t, dir, "kart.tr", ggufCard)
 			file, _ := c.writeQuantized(t, dir)
@@ -360,7 +361,11 @@ func TestGGUFModelOnTheCard(t *testing.T) {
 			if lines[0] == "kart yok" {
 				t.Skip("kart yok")
 			}
-			if len(lines) != 3 || !strings.HasPrefix(lines[0], "gpu") || !strings.HasSuffix(lines[0], "q8") {
+			embed := "q8"
+			if c.q4 {
+				embed = "q4"
+			}
+			if len(lines) != 3 || !strings.HasPrefix(lines[0], "gpu") || !strings.HasSuffix(lines[0], embed) {
 				t.Fatalf("çıktı:\n%s", s.Stdout)
 			}
 			fields := strings.Fields(lines[1])

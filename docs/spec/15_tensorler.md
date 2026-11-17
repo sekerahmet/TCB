@@ -662,7 +662,7 @@ Sınır: tablo özel değerler içindir. float32'nin ucundaki büyük sonlu say�
 - Grup boyu adın parçasıdır ("q4z128"): başka grup boyu başka bir hassasiyettir; tablodakiler dışında nicemlenmiş hassasiyet yoktur.
 - "q4_k" ve "q6_k" salt okunurdur: dosyadan gelir (15.55), TR üretmez. Yayımlanmış 4 bitlik modellerin türleridir; `Q4_0` dosyaları da çıkış katmanını başka türde saklar.
 - `.TR_dtype` adı verir; `.TR_shape` mantıksal şekli verir (`[N, K]`), deponun bayt düzeni görünmez.
-- *Test:* TR testi (`tests/tensor_nicemli_test.tr`: "q8", "q4_k", "q6_k"); Go: `TestQuantStorageSizes`, `TestQuantShapeGate`; "q4", "q4z128", "fp8" uygulanınca TR testi.
+- *Test:* TR testi (`tests/tensor_nicemli_test.tr`: "q8", "q4", "q4_k", "q6_k"); Go: `TestQuantStorageSizes`, `TestQuantShapeGate`; "q4z128", "fp8" uygulanınca TR testi.
 
 **15.52** Nicemlemek ve açmak `.TR_to_dtype` iledir (15.3):
 - `t.TR_to_dtype("q8")` float32, bf16, fp16 ya da float64 tensörü nicemler. "q4_k" ve "q6_k"ye nicemleme çalışma hatasıdır (15.51).

@@ -67,6 +67,12 @@ func ZerosOf(dt DType, shape ...int) *Tensor {
 	if dt.IsQuantized() {
 		checkQuantShape(dt, shape)
 	}
+	if dt == Q4 {
+		// "q4"ün sıfırı sıfır bayt değildir (kodlar 0x88, quantZeroRaw): kartın sıfırlaması kodları
+		// 0 yapardı, değer −0 olurdu. Bloklar konakta yazılır, cihaza bayt bayt gider.
+		n := allocSizeOn(be, isCreate, shape, dt)
+		return fromStorage(be, quantStorage(be, dt, quantZeroRaw(dt, n), n), shape)
+	}
 	return zerosOf(isCreate, be, shape, dt)
 }
 

@@ -212,7 +212,7 @@ var kindDTypeNames = map[string]tensor.DType{
 	"int64":   tensor.Int64, "int32": tensor.Int32, "int16": tensor.Int16, "int8": tensor.Int8,
 	"uint32": tensor.UInt32, "uint16": tensor.UInt16, "uint8": tensor.UInt8,
 	"bool": tensor.Bool,
-	"q8":   tensor.Q8, "q4_k": tensor.Q4K, "q6_k": tensor.Q6K,
+	"q8":   tensor.Q8, "q4": tensor.Q4, "q4_k": tensor.Q4K, "q6_k": tensor.Q6K,
 }
 
 // kindOf hassasiyetin öğe cinsi (TR_Float, TR_Int ya da TR_Bool'un kodu).

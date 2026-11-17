@@ -164,8 +164,8 @@ func TestTypedTensors(t *testing.T) {
 			t.Fatalf("%s: Set", dt)
 		}
 	}
-	expectPanic(t, "q4 CPU'da desteklenmez", func() { ZerosOf(Q4, 4) })
-	if Q4.StorageBytes(5) != 3 || Q8.Bits() != 0 || Int8.Bits() != 8 || Bool.Bits() != 8 || BFloat16.String() != "bfloat16" {
+	// "q4"ün deposu GGUF Q4_0 blokları (quant.go): 5 öğe bir blok, 18 bayt; şekil kapısı TestQuantShapeGate'te.
+	if Q4.StorageBytes(5) != 18 || Q4.Bits() != 0 || Q8.Bits() != 0 || Int8.Bits() != 8 || Bool.Bits() != 8 || BFloat16.String() != "bfloat16" {
 		t.Fatal("tür yardımcıları")
 	}
 }

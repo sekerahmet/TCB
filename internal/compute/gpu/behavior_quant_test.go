@@ -15,7 +15,7 @@ import (
 // Kural (15.53): nicemlenmiş tensör kartta nicemli durur; bloklar ham baytlarıyla gider, bit bit
 // döner; kartta açılan değer CPU'nunkiyle bit bit aynıdır; sayılı olmayan işlem kartta da hatadır.
 
-var quantTypes = []tensor.DType{tensor.Q8, tensor.Q4K, tensor.Q6K}
+var quantTypes = []tensor.DType{tensor.Q8, tensor.Q4, tensor.Q4K, tensor.Q6K}
 
 // quantRowCounts çarpımın sınanan satır sayılarıdır.
 var quantRowCounts = []int{1, 2, 5}
@@ -38,7 +38,7 @@ func quantBlockBytes(rng *rand.Rand, dt tensor.DType, blocks int) []byte {
 // quantScaleOffsets bloktaki fp16 ölçeklerin yerleridir.
 func quantScaleOffsets(dt tensor.DType) []int {
 	switch dt {
-	case tensor.Q8:
+	case tensor.Q8, tensor.Q4:
 		return []int{0}
 	case tensor.Q4K:
 		return []int{0, 2}
@@ -111,6 +111,13 @@ func TestQuantCrossesTheCardWithItsBytes(t *testing.T) {
 		if !bytes.Equal(rows, append(bytes.Clone(raw[4*size:6*size]), raw[:2*size]...)) {
 			t.Errorf("%v: tensörle indeks bloklar değişti", dt)
 		}
+	}
+	// "q4"ün sıfırı (15.2) kartta da ölçeği +0, kodları 8 olan bloklardır: kartın sıfırlaması kodları 0
+	// yapar, açılan değer −0 olurdu.
+	var z *tensor.Tensor
+	onCard(t, func() { z = tensor.ZerosOf(tensor.Q4, 2, 32) })
+	if want := tensor.ZerosOf(tensor.Q4, 2, 32).Raw(); z.Device() != gpuDevice || !bytes.Equal(z.To(tensor.CPU).Raw(), want) {
+		t.Errorf("q4 sıfırı kartta % x", z.To(tensor.CPU).Raw())
 	}
 }
 
