@@ -18,6 +18,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/turkish` | [`turkish.tr`](turkish.tr) | Türkçe sözcüğün sözlük biçimi (`TR_fn_lemma`), türü ve ekleri (`TR_fn_analyze_word`); kendi sözlüğü olan bulucu (`TR_type_Lemmatizer`) |
 | `tr/vad` | [`vad.tr`](vad.tr) | Silero VAD ile konuşma olasılığı (`TR_type_VoiceDetector`) ve sürekli sesten konuşma kesitleri (`TR_type_SpeechSplitter`) |
 | `tr/vits` | [`vits.tr`](vits.tr) | Yayımlanmış VITS modelini açmak ve metinden ses üretmek: Hugging Face klasörü (MMS-TTS) ya da Piper sesi (`.onnx`) (`TR_type_Vits`) |
+| `tr/phonemes` | [`phonemes.tr`](phonemes.tr) | Metni bir sesin fonemlerine çevirmek (`TR_fn_phonemize`): Türkçe kurallarla, İngilizce espeak-ng'yle |
 | `tr/chat` | [`chat.tr`](chat.tr) | Sohbet iletisi (`TR_type_ChatMessage`, `TR_type_Role`, `TR_type_ToolCall`) ve Qwen3'ün sohbet biçimi (`TR_fn_qwen3_format`, `TR_fn_qwen3_reply`) |
 | `tr/chat_gemma3` | [`chat_gemma3.tr`](chat_gemma3.tr) | Gemma 3'ün sohbet biçimi (`TR_fn_gemma3_format`, `TR_fn_gemma3_reply`); `tr/chat`'in iletisini ve `TR_type_ChatTokens`'ını kullanır |
 
@@ -211,6 +212,10 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Gürültü:** süre ve öncül gürültüsü sabit tohumdan gelir: aynı metin aynı sesi verir. Ölçek `noise_scale`, `noise_scale_duration`, `speaking_rate`'tir.
 - **Ters evrişim:** girdinin arasına sıfır konur, çevrilmiş çekirdekle `TR_fn_conv1d`. 15.21a'nın seçme işlemi motorda olmadığı için spline'ın seçimi tek-sıcak maske ve `TR_fn_where`'ledir.
 - **Doğruluk:** küçük rastgele modelde Hugging Face'in süreleri bire bir, dalgası 1·10⁻⁴ içinde (`tests/vits_model_test.tr`, başvurusu `tests/data/vits_tiny/KAYNAK.md`). Gerçek model kıyası depoda değil, kaydında.
+
+## `tr/phonemes`
+
+`TR_fn_phonemize(metin, TR_arg_language: dil)` metni dilin fonemlerine çevirir: cümle başına bir IPA dizisi; Piper sesi bu fonemleri kimliklere çevirip konuşur. Bu sürümde hiçbir dilin çeviricisi yoktur: her dil H7559'dur, ileti çeviricisi olan dilleri sayar. Türkçe kurallar ve İngilizce espeak-ng yolu sonraki adımlardadır. Dil tanımında maddesi yoktur (27, yazılacak).
 
 ## `tr/chat`
 

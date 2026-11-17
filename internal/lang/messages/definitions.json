@@ -1871,7 +1871,6 @@
 "H7563": { "param": ["field"], "slots": {"qwen3_reply": "TR_fn_qwen3_reply"} },
 "H7564": { "param": ["fn", "name", "run", "file", "args"], "slots": {"env": "TR_arg_env", "path": "TR_type_Path"} },
 "H7565": { "param": ["fn", "name"], "slots": {"env": "TR_arg_env", "path": "TR_type_Path"} },
-"H7566": { "param": [], "slots": {"phonemize": "TR_fn_phonemize"} },
 "H7567": { "param": ["phoneme", "voice"], "slots": {"phonemize": "TR_fn_phonemize"} },
 "H7600": { "param": ["fn"], "slots": {"write_file": "TR_fn_write_file", "owner_only": "TR_arg_owner_only", "true": "TR_kw_true"} },
 "H7601": { "param": [] },

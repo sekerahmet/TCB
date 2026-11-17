@@ -1876,7 +1876,6 @@ const (
 	H7563 Code = 7563 // {@qwen3_reply}: geçerli bir araç çağrısının {field|q} alanı modelin metninde bulunamadı; bu tr/chat'in hatasıdır, lütfen bildirin (24.3)
 	H7564 Code = 7564 // {fn}: `{#env}:`'deki PATH boş, {name|q} programı hiçbir yerde aranmadı; dosyanın kendisi yol olarak verilir: `{run}({#path}({file|q}), {args})`; `{#env}:` ve öbür adlı argümanlar aynen kalır
 	H7565 Code = 7565 // {fn}: `{#env}:`'deki PATH boş, {name|q} programı hiçbir yerde aranmadı; dosyanın kendisi {@path} olarak verilir
-	H7566 Code = 7566 // {@phonemize}: İngilizce fonemler espeak-ng programıyla çevrilir ve bu makinede bulunamadı; espeak-ng'yi kurun (https://github.com/espeak-ng/espeak-ng/releases) ve `espeak-ng` komutunun PATH'te olduğunu denetleyin
 	H7567 Code = 7567 // {@phonemize}: {phoneme|q} fonemi sesin sözlüğünde yok ({voice|q})
 	H7600 Code = 7600 // {fn}: içerik gizli bir değer taşıyor; dosyayı yalnız size açık yazın: `{#write_file}(yol, içerik, {#owner_only}: {#true})`
 	H7601 Code = 7601 // Görev kaynağı kapandı: yeni görev açılmaz

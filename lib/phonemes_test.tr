@@ -1,0 +1,13 @@
+# TR 4
+# tr/phonemes testleri: bu sürümde çevirici olmadığının açık hatası. Koşturma: trlang test lib
+TR_import "tr/phonemes"
+
+TR_test "fonemlere_çevir bu sürümde her dilde H7559 verir, ileti dili söyler" {
+    TR_assert_equal("H7559", TR_error_code { TR_phonemize("merhaba", TR_language: "tr") })
+    TR_assert_equal("H7559", TR_error_code { TR_phonemize("hello", TR_language: "en") })
+    TR_try {
+        TR_phonemize("", TR_language: "de")
+    } TR_catch e {
+        TR_assert(e.TR_text("tr").TR_contains("\"de\" dili için fonem çevirici yok"), e.TR_text("tr"))
+    }
+}

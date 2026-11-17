@@ -1,0 +1,11 @@
+# TR 4
+# tr/phonemes: metni bir sesin fonemlerine çevirir: Türkçe kurallarla, İngilizce espeak-ng programıyla.
+#
+# Bu sürümde hiçbir dilin çeviricisi yoktur: her dil H7559'dur ve ileti çeviricisi olan dilleri (bugün hiçbiri)
+# sayar. Türkçe kurallar ve İngilizce espeak-ng yolu sonraki adımlarda gelir; çıktı cümle başına bir IPA dizisidir,
+# Piper sesinin fonem kimliklerine çevrilir (`tr/vits`).
+
+# fonemlere_çevir metni dilin fonemlerine çevirir: cümle başına bir IPA dizisi.
+TR_func TR_phonemize(metin: TR_String, TR_language: TR_String) -> TR_List[TR_String] {
+    TR_throw TR_Message("H7559", TR_language, "")
+}

@@ -183,6 +183,9 @@ type piperEdit struct {
 	cfg   func(map[string]any)
 	extra []onnxtest.Tensor
 	scale map[string]float32
+	// torch26 torch 2.6'nın dışa verilişidir: `Exp` katlanmaz, girdisi adsız `-logs`'tur; adsız sabitin
+	// düğümü `/` ile başlamayabilir (`Gather_3060`) [ölçüldü: tasima/a5/kucuk_piper2.py, 2026-11-17].
+	torch26 bool
 }
 
 // piperVoice küçük modeli dir/ses.onnx ve dir/ses.onnx.json olarak Piper'ın biçiminde yazar.
@@ -222,6 +225,14 @@ func piperVoice(t *testing.T, dir string, edit piperEdit) {
 			continue
 		case strings.HasSuffix(hf, ".weight_g") || strings.HasSuffix(hf, ".weight_v"):
 			continue // arka kodlayıcının normlu ağırlıkları: dışa verilmez
+		case hf == "duration_predictor.flows.0.log_scale" && edit.torch26:
+			e := stTensor{shape: x.shape, data: make([]float32, len(x.data))}
+			for i, v := range x.data {
+				e.data[i] = -v
+			}
+			b.Node(onnxtest.Node{Name: "/dp/flows.0/Exp", Op: "Exp", Inputs: []string{"onnx::Exp_6298"}, Outputs: []string{"/dp/flows.0/Exp_output_0"}})
+			add(f32Tensor("onnx::Exp_6298", e), e)
+			continue
 		case hf == "duration_predictor.flows.0.log_scale":
 			e := stTensor{shape: x.shape, data: make([]float32, len(x.data))}
 			for i, v := range x.data {
@@ -245,6 +256,10 @@ func piperVoice(t *testing.T, dir string, edit piperEdit) {
 	b.Initializer(onnxtest.Tensor{Name: "onnx::Split_77", Dims: []int64{2}, Type: onnx.Int64, Int64s: []int64{1, 1}})
 	b.Initializer(onnxtest.Tensor{Name: "/Constant_output_0", Dims: []int64{1}, Type: onnx.Int64, Int64s: []int64{2}})
 	b.Initializer(onnxtest.Tensor{Name: "6549", Type: onnx.Float, Raw: onnxtest.F32(0.5)})
+	if edit.torch26 {
+		b.Node(onnxtest.Node{Name: "Gather_3060", Op: "Gather", Inputs: []string{"z", "onnx::Gather_3059"}})
+		b.Initializer(onnxtest.Tensor{Name: "onnx::Gather_3059", Type: onnx.Int64, Int64s: []int64{1}})
+	}
 	for _, e := range edit.extra {
 		b.Initializer(e)
 	}
@@ -341,16 +356,21 @@ TR_test "Piper sesinin sese_çevir'i fonem çevirici olmadan H7559 verir" {
 // Kural (s1-piper A2–A5): TR bir Piper sesini (`.onnx` ve `.onnx.json`) doğrudan açar; aynı fonem
 // kimlikleriyle dalgası Hugging Face'in aynı ağırlıklı modelininkinden en çok 1·10⁻⁴ uzaktır ve süreler
 // aynıdır; iç giriş cümle başına tepe 1'e normlar; dil `.onnx.json`'dan okunur.
+// İki dışa veriliş: gerçek seslerinki (torch 2.0) ve torch 2.6'nınki.
 func TestPiperVoiceMatchesTransformers(t *testing.T) {
-	dir := t.TempDir()
-	piperVoice(t, dir, piperEdit{})
-	ref := filepath.ToSlash(reporoot.Path(piperTiny, "reference"))
-	writeTR(t, dir, "piper_test.tr", strings.ReplaceAll(piperTests, "BASVURU", ref))
-	r := tr(t, dir, "test", "piper_test.tr")
-	if r.Code != 0 || !strings.Contains(r.Stdout, "5 test, 5 geçti, 0 kaldı") {
-		t.Fatalf("Piper testleri geçmedi (çıkış %d):\n%s%s", r.Code, r.Stdout, r.Stderr)
+	for _, torch26 := range []bool{false, true} {
+		t.Run(fmt.Sprintf("torch26=%v", torch26), func(t *testing.T) {
+			dir := t.TempDir()
+			piperVoice(t, dir, piperEdit{torch26: torch26})
+			ref := filepath.ToSlash(reporoot.Path(piperTiny, "reference"))
+			writeTR(t, dir, "piper_test.tr", strings.ReplaceAll(piperTests, "BASVURU", ref))
+			r := tr(t, dir, "test", "piper_test.tr")
+			if r.Code != 0 || !strings.Contains(r.Stdout, "5 test, 5 geçti, 0 kaldı") {
+				t.Fatalf("Piper testleri geçmedi (çıkış %d):\n%s%s", r.Code, r.Stdout, r.Stderr)
+			}
+			t.Log(r.Stdout)
+		})
 	}
-	t.Log(r.Stdout)
 }
 
 // Kural: kıyas ağırlıktaki farkı görür. Dosyanın çevrilen her türünden bir ağırlık değişince (adsız

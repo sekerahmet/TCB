@@ -773,18 +773,23 @@ TR_func _ayrık_adı(p: TR_List[TR_String], i: TR_Int) -> TR_String? {
 }
 
 # _piper_adı Piper'ın (özgün VITS'in) ağırlık adının Hugging Face'teki adını ve yükleme işlemini verir: [ad, işlem].
-# İşlem "" (olduğu gibi), "doğrusal" ([h, h, 1] evrişim → [h, h]) ya da "eksi_log" (dışa vericinin katladığı
-# `exp(-logs)` → `logs`). Çizgenin sabitleri (adı `/`, `onnx::` ya da rakamla başlayan) boş liste verir.
+# İşlem "" (olduğu gibi), "doğrusal" ([h, h, 1] evrişim → [h, h]), "eksi_log" (dışa vericinin katladığı
+# `exp(-logs)` → `logs`) ya da "eksi" (`-logs` → `logs`). Çizgenin sabitleri (adı `/`, `onnx::` ya da rakamla başlayan,
+# ya da `:` taşıyan) boş liste verir.
 # Tanınmayan ağırlık adı olduğu gibi kalır: kurulumun sonunda H7556'dır.
 TR_func _piper_adı(ad: TR_String) -> TR_List[TR_String] {
     TR_if ad == "sid" { TR_return ["text_encoder.embed_tokens.weight", ""] }
+    # Öteleme ölçeğinin iki dışa verilişi: torch 2.0 `Exp`'i katlar (initializer `exp(-logs)`, gerçek seslerde);
+    # torch 2.6 `Exp` düğümünü bırakır, girdisi adsız `-logs`'tur (A1'in adlamasıyla `/dp/flows.0/Exp:0`).
     TR_if ad == "/dp/flows.0/Exp_output_0" { TR_return ["duration_predictor.flows.0.log_scale", "eksi_log"] }
+    TR_if ad == "/dp/flows.0/Exp:0" { TR_return ["duration_predictor.flows.0.log_scale", "eksi"] }
     TR_var y = ad.TR_split("/")
     # Adsız WaveNet evrişimi: onu kullanan düğümün adı ve girdi sırası (15.47), `/flow/flows.<2k>/enc/<katman>.<j>/Conv:1`.
     TR_if y.TR_length == 6 TR_and y[1] == "flow" TR_and y[2].TR_starts_with("flows.") TR_and y[3] == "enc" TR_and y[5] == "Conv:1" {
         TR_return ["flow.flows.\(TR_Int(y[2][6..y[2].TR_length]) // 2).wavenet.\(y[4]).weight", ""]
     }
-    TR_if ad.TR_starts_with("/") TR_or ad.TR_starts_with("onnx::") TR_or (ad.TR_length > 0 TR_and "0123456789".TR_contains(ad[0])) { TR_return [] }
+    # Kullanılan adsız sabit düğümün adını ve `:sıra`'yı alır (A1); ağırlık adında `:` geçmez.
+    TR_if ad.TR_starts_with("/") TR_or ad.TR_starts_with("onnx::") TR_or ad.TR_contains(":") TR_or (ad.TR_length > 0 TR_and "0123456789".TR_contains(ad[0])) { TR_return [] }
     TR_var p = ad.TR_split(".")
     TR_var n = p.TR_length
     TR_if p[0] == "enc_p" TR_and n >= 3 TR_and p[1] == "proj" { TR_return ["text_encoder.project.\(_kalan(p, 2))", ""] }
@@ -835,6 +840,7 @@ TR_func _piper_alıcı(dosya: TR_Dict[TR_String, TR_Tensor]) -> _Alıcı {
         TR_var x = t
         TR_if y[1] == "doğrusal" { x = x.TR_reshape([x.TR_shape[0], x.TR_shape[1]]) }
         TR_if y[1] == "eksi_log" { x = -TR_log(x) }
+        TR_if y[1] == "eksi" { x = -x }
         çıkış[y[0]] = x
         adlar[y[0]] = ad
     }
