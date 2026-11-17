@@ -367,11 +367,14 @@ func startREPL() {
 // program biter"): dosya çalıştırmadaki gibi çıkılır, sonraki satır çalışmaz; boruyla verilen betikte
 // TR_exit'ten sonrası sessizce çalışmaz. Çıkış Run'ın hatasından değil VM'in durumundan anlaşılır:
 // görevdeki TR_exit'in hatası Run'a ulaşmaz. Girdi beklerken gelen TR_exit kabuğu hemen bitirmez,
-// sonraki girdide bitirir. Ertelenen işler Run'da çalıştı; motorlar kapanır.
+// sonraki girdide bitirir. Çıkmadan önce görevler beklenir: TR_exit onları kesmiştir, ertelenen
+// işleri 1.10'daki gibi çalışır (dosya çalıştırmada bunu Run'ın beklemesi yapar; kabukta TR_exit
+// Run'ın beklemesinden sonra ya da satırlar arasında gelebilir). Sonra motorlar kapanır.
 func endShellOnExit(machine *interp.VM, err error, line string) {
 	if !machine.ExitRequested() {
 		return
 	}
+	machine.WaitAsync()
 	end := machine.End(err)
 	closeEngine()
 	finishProgram(machine, end, line)

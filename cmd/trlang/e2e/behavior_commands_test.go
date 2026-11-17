@@ -265,7 +265,10 @@ func TestREPLExitEndsTheShell(t *testing.T) {
 
 // replExitAfterTheLine: hatalı satır görevini beklemez, görev TR_exit'i satır bittikten sonra, kabuk
 // girdi beklerken çağırır. Kabuk hemen bitmez (kabul edilen sınır); sonraki girdide o satırı
-// çalıştırmadan görevin koduyla çıkar. Sonraki satır görev yazdıktan sonra gönderilir.
+// çalıştırmadan, görevi bekleyip (ertelenen işi 1.10'daki gibi biter, "temiz") görevin koduyla
+// çıkar. Sonraki satır ertelenen işin başındaki "ertelenen" yazılınca gönderilir: ertelenen iş TR_exit
+// çağrıldıktan sonra çalıştığı için çıkış o anda istenmiştir, sabit süreli bekleme gerekmez; işin
+// 0,3 sn'si de sürmektedir.
 func replExitAfterTheLine(t *testing.T) {
 	cmd := exec.Command(trBinary)
 	stdout, stderr := &testkit.TeeWriter{}, &testkit.TeeWriter{}
@@ -280,16 +283,16 @@ func replExitAfterTheLine(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	defer func() { _ = cmd.Process.Kill() }()
-	if _, err := io.WriteString(in, "TR_async { TR_sleep(0.2); TR_print(\"görev\"); TR_exit(6) }; [1][5]\n"); err != nil {
+	line := "TR_async { TR_sleep(0.2); TR_defer { TR_print(\"ertelenen\"); TR_sleep(0.3); TR_print(\"temiz\") }; TR_exit(6) }; [1][5]\n"
+	if _, err := io.WriteString(in, line); err != nil {
 		t.Fatal(err)
 	}
-	for deadline := time.Now().Add(30 * time.Second); !strings.Contains(stdout.String(), "görev"); {
+	for deadline := time.Now().Add(30 * time.Second); !strings.Contains(stdout.String(), "ertelenen"); {
 		if time.Now().After(deadline) {
-			t.Fatalf("görev 30 sn içinde yazmadı:\n%s\n%s", stdout.String(), stderr.String())
+			t.Fatalf("görevin ertelenen işi 30 sn içinde başlamadı:\n%s\n%s", stdout.String(), stderr.String())
 		}
-		time.Sleep(20 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
-	time.Sleep(300 * time.Millisecond) // görev yazdıktan hemen sonra TR_exit'i çağırır
 	_, _ = io.WriteString(in, "TR_print(\"sürdü\")\nexit\n")
 	_ = in.Close()
 	select {
@@ -303,6 +306,9 @@ func replExitAfterTheLine(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "sürdü") || strings.Contains(stdout.String(), "Görüşmek üzere!") {
 		t.Errorf("görevin TR_exit'inden sonraki satır çalışmamalı:\n%s", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "temiz") {
+		t.Errorf("kabuk görevi beklemeden çıktı, ertelenen iş yarıda kaldı:\n%s", stdout.String())
 	}
 }
 
