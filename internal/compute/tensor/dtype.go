@@ -67,6 +67,7 @@ func ZerosOf(dt DType, shape ...int) *Tensor {
 	if dt.IsQuantized() {
 		checkQuantShape(dt, shape)
 	}
+	// "q4"ün sıfırı sıfır bayt değildir (kodlar 0x88, QuantZeroRaw); iki cihazın Alloc'u da onu yazar.
 	return zerosOf(isCreate, be, shape, dt)
 }
 

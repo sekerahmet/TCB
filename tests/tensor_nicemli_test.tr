@@ -154,6 +154,32 @@ TR_test "15.55 kaydetme henüz yok, ileti açmayı söyler" {
     TR_assert_equal("H6687", TR_error_code { TR_save_tensors("q.safetensors", {"q": q}) })
 }
 
+TR_test "15.51–15.55 q4: GGUF Q4_0'ın blokları, öbür türler gibi sayılı işlemlerde" {
+    TR_var q = TR_zeros([3, 64], TR_dtype: "q4")
+    TR_assert_equal("q4", q.TR_dtype)
+    TR_assert_equal([3, 64], q.TR_shape)
+    TR_assert_equal("H6692", TR_error_code { TR_zeros([2, 33], TR_dtype: "q4") })
+    TR_var a = q.TR_to_dtype("float32")
+    TR_assert_equal(0.0, TR_sum(a).TR_item())
+    # 15.2: sıfırın kodu 8'dir, açılan değer +0'dır, −0 değil (1 / +0 artı sonsuzdur).
+    TR_assert((1.0 / a[0][0]).TR_item() > 0.0)
+    TR_assert_equal("float64", q.TR_to_dtype("float64").TR_dtype)
+    TR_assert_equal("bf16", q.TR_to_dtype("bf16").TR_dtype)
+    TR_assert_equal([64], q[1].TR_shape)
+    TR_assert_equal([2, 64], q[1..3].TR_shape)
+    TR_assert_equal("q4", q[TR_Tensor[TR_Int]([2, 0])].TR_dtype)
+    TR_assert_equal([2, 3], (TR_ones([2, 64]) @ q.TR_transpose()).TR_shape)
+    TR_assert_equal(0.0, TR_sum(TR_ones([2, 64]) @ q.TR_transpose()).TR_item())
+    TR_assert_equal([64], TR_embedding_lookup(q, 2).TR_shape)
+    TR_assert_equal("H6695", TR_error_code { TR_ones([2, 64]) @ q })
+    TR_assert_equal("H6687", TR_error_code { q + q })
+    TR_assert_equal("H6957", TR_error_code { q[0] = 1.0 })
+    TR_assert_equal("q4", TR_Tensor(q).TR_dtype)
+    TR_assert_equal("H6691", TR_error_code { TR_zeros([32]).TR_to_dtype("q4") })
+    TR_assert_equal("H6691", TR_error_code { TR_ones([32], TR_dtype: "q4") })
+    TR_assert(TR_String(q[0]).TR_contains("q4"))
+}
+
 TR_test "15.53 yazdırma açılmış değerlerle" {
     TR_var q = TR_zeros([32], TR_dtype: "q8")
     TR_assert(TR_String(q).TR_contains("q8"))

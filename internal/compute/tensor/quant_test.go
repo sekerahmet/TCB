@@ -33,7 +33,7 @@ func randomQuant(dt DType, seed uint32, blocks int) []byte {
 	for b := range blocks {
 		block := raw[b*size : (b+1)*size]
 		switch dt {
-		case Q8:
+		case Q8, Q4:
 			fix(block)
 		case Q4K:
 			fix(block)
@@ -48,7 +48,10 @@ func randomQuant(dt DType, seed uint32, blocks int) []byte {
 // TestDequantMatchesLlamaCpp: açma llama.cpp'nin dequantize_row_*'uyla bit bit aynıdır (15.52). Sayılar
 // gerçek C kodundan: ggml-quants.c'nin üç fonksiyonu (cd959bae) değiştirilmeden derlendi, aynı
 // baytlar açıldı, float32 bitlerinin FNV-1a özeti ve bir örnek yazıldı. Ölçekler bütün fp16 aralığını
-// tarar (alt normaller ve eksiler dahil); "q8"de −128 kodu da geçer.
+// tarar (alt normaller ve eksiler dahil); "q8"de −128 kodu da geçer. "q4"ün sayısı llama.cpp b12124'ün
+// (8bed7cfb) libggml-base'indeki dequantize_row_q4_0'dan: aynı koşumda öbür üç türün sayıları da bu
+// satırlarla aynı çıktı (Drive TR_dili/olcumler/t1-q4-baslik/20261117134541_altin.txt); örnek öğe 49
+// ikinci bloğun üst yarısındadır.
 func TestDequantMatchesLlamaCpp(t *testing.T) {
 	for _, c := range []struct {
 		dt     DType
@@ -60,6 +63,7 @@ func TestDequantMatchesLlamaCpp(t *testing.T) {
 		{Q8, 1, 0x9994d70c2568f054, 33, 0x3a0c6000},
 		{Q4K, 2, 0x9aea8c1a1a939707, 300, 0xc8f6bd40},
 		{Q6K, 3, 0xf982bdb0f96cd2fc, 300, 0xc02c0000},
+		{Q4, 4, 0xbe538ba4bf9b8554, 49, 0x3f328000},
 	} {
 		t.Run(c.dt.Name(), func(t *testing.T) {
 			elems, _ := c.dt.QuantBlock()
@@ -103,6 +107,24 @@ func TestDequantKnownValues(t *testing.T) {
 		t.Errorf("q4_k: %v %v %v", y[0], y[32], y[1])
 	}
 
+	q40 := make([]byte, q4Bytes)
+	le.LittleEndian.PutUint16(q40, two)
+	q40[2], q40[3] = 0x3A, 0x08 // bayt 0: alt 10, üst 3; bayt 1: alt 8, üst 0
+	y = FromQuantized(Q4, q40, 32).Open(Float32).Data()
+	if y[0] != 4 || y[16] != -10 || y[1] != 0 || y[17] != -16 || y[2] != -16 {
+		t.Errorf("q4: %v %v %v %v %v", y[0], y[16], y[1], y[17], y[2])
+	}
+	// Sıfır kurucu (15.2): ölçek +0, kodlar sıfırın kodu (8); açılan değer +0'dır, −0 değil.
+	z := ZerosOf(Q4, 2, 32)
+	if raw := z.quantRaw(0, 64); raw[0] != 0 || raw[1] != 0 || raw[2] != 0x88 || raw[17] != 0x88 || raw[20] != 0x88 {
+		t.Errorf("q4 sıfır baytları: % x", raw)
+	}
+	for i, v := range z.Open(Float32).Data() {
+		if math.Float32bits(v) != 0 {
+			t.Fatalf("q4 sıfırı öğe %d: %08x", i, math.Float32bits(v))
+		}
+	}
+
 	q6 := make([]byte, q6kBytes)
 	le.LittleEndian.PutUint16(q6[208:], two)
 	q6[192] = 0xFD              // a = −3
@@ -115,14 +137,14 @@ func TestDequantKnownValues(t *testing.T) {
 
 // TestDequantZeroScaleGivesZero: sıfır ölçek geçerlidir, bloğun değeri 0'dır (15.55).
 func TestDequantZeroScaleGivesZero(t *testing.T) {
-	for _, dt := range []DType{Q8, Q4K, Q6K} {
+	for _, dt := range []DType{Q8, Q4, Q4K, Q6K} {
 		elems, size := dt.QuantBlock()
 		raw := make([]byte, size)
 		for i := range raw {
 			raw[i] = 0x11
 		}
 		switch dt {
-		case Q8:
+		case Q8, Q4:
 			raw[0], raw[1] = 0, 0
 		case Q4K:
 			copy(raw, []byte{0, 0, 0, 0})
@@ -142,7 +164,7 @@ func TestCheckQuantScales(t *testing.T) {
 	for _, c := range []struct {
 		dt DType
 		at int
-	}{{Q8, 0}, {Q4K, 0}, {Q4K, 2}, {Q6K, 208}} {
+	}{{Q8, 0}, {Q4, 0}, {Q4K, 0}, {Q4K, 2}, {Q6K, 208}} {
 		_, size := c.dt.QuantBlock()
 		raw := make([]byte, 3*size)
 		if got := CheckQuantScales(c.dt, raw); got != -1 {
@@ -160,7 +182,14 @@ func TestCheckQuantScales(t *testing.T) {
 
 // TestDequantToOtherPrecisions: float64 kesindir, bf16 ve fp16 float32'den bir kez yuvarlanır (15.52).
 func TestDequantToOtherPrecisions(t *testing.T) {
-	q := FromQuantized(Q4K, quantBlocks(Q4K, 2), quantTestBlocks, 256)
+	for _, dt := range []DType{Q4K, Q4} {
+		t.Run(dt.Name(), func(t *testing.T) { dequantToOtherPrecisions(t, dt) })
+	}
+}
+
+func dequantToOtherPrecisions(t *testing.T, qt DType) {
+	elems, _ := qt.QuantBlock()
+	q := FromQuantized(qt, quantBlocks(qt, 2), quantTestBlocks, elems)
 	f32 := q.Open(Float32).Data()
 	wide, fault := Convert(q, Float64)
 	if fault != nil {
@@ -195,6 +224,7 @@ func TestQuantStorageSizes(t *testing.T) {
 		elems, size int
 	}{
 		{Q8, 64, 68, "q8", 32, 34}, {Q4K, 512, 288, "q4_k", 256, 144}, {Q6K, 256, 210, "q6_k", 256, 210},
+		{Q4, 64, 36, "q4", 32, 18}, {Q4, 33, 36, "q4", 32, 18},
 	} {
 		if got := c.dt.StorageBytes(c.n); got != c.bytes {
 			t.Errorf("%s: %d bayt", c.name, got)
@@ -205,9 +235,14 @@ func TestQuantStorageSizes(t *testing.T) {
 		if !c.dt.IsQuantized() || c.dt.IsFloat() || c.dt.IsTyped() || c.dt.Elem() != ElemFloat {
 			t.Errorf("%s: sınıf", c.name)
 		}
+		// Bloklu türde öğe başına bit yoktur (DENETİM 830 Ş1): bloğa bakmayan bir yol "q4"ü yarım
+		// baytla saymasın, öbür nicemlenmiş türler gibi işlesin.
+		if c.dt.Bits() != 0 {
+			t.Errorf("%s: Bits %d", c.name, c.dt.Bits())
+		}
 	}
-	if Q4.IsQuantized() {
-		t.Error("q4'ün deposu yok")
+	if s := Q4.StorageBytes(32); s != 18 {
+		t.Errorf("q4: 32 öğe %d bayt", s)
 	}
 }
 
@@ -240,6 +275,8 @@ func TestQuantShapeGate(t *testing.T) {
 	expect(messages.H6692, func() { ZerosOf(Q8, 2, 33) })
 	expect(messages.H6692, func() { ZerosOf(Q4K, 32) })
 	expect(messages.H6692, func() { ZerosOf(Q8) })
+	expect(messages.H6692, func() { ZerosOf(Q4, 2, 33) })
+	expect(messages.H3035, func() { FromQuantized(Q4, make([]byte, 19), 32) })
 	expect(messages.H3035, func() { FromQuantized(Q8, make([]byte, 33), 32) })
 }
 
@@ -318,7 +355,14 @@ func TestTakeRows(t *testing.T) {
 
 // TestQuantRefusesEverythingElse: sayılı olmayan her işlem hatadır, sessizce açılmaz (15.53).
 func TestQuantRefusesEverythingElse(t *testing.T) {
-	q := func() *Tensor { return FromQuantized(Q8, quantBlocks(Q8, 1)[:4*q8Bytes], 2, 64) }
+	for _, dt := range []DType{Q8, Q4} {
+		t.Run(dt.Name(), func(t *testing.T) { quantRefusesEverythingElse(t, dt) })
+	}
+}
+
+func quantRefusesEverythingElse(t *testing.T, dt DType) {
+	_, size := dt.QuantBlock()
+	q := func() *Tensor { return FromQuantized(dt, quantBlocks(dt, 1)[:4*size], 2, 64) }
 	f := New(make([]float32, 128), 2, 64)
 	for _, c := range []struct {
 		name string

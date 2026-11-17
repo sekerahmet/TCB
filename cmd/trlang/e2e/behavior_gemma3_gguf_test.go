@@ -109,8 +109,13 @@ func (g gemmaTiny) metadata(b *gguftest.Builder, over map[string]any) {
 
 // ggufFile ağırlıkları F32 yazar; dönüştürücü gibi normlara 1 ekler, satırları dizmez.
 func (g gemmaTiny) ggufFile(w map[string]tinyTensor) *gguftest.Builder {
+	return g.ggufFileWith(w, nil)
+}
+
+// ggufFileWith ggufFile'dır; over üstverinin anahtarlarını metadata'daki gibi değiştirir.
+func (g gemmaTiny) ggufFileWith(w map[string]tinyTensor, over map[string]any) *gguftest.Builder {
 	b := &gguftest.Builder{}
-	g.metadata(b, nil)
+	g.metadata(b, over)
 	for _, name := range sortedNames(g.names()) {
 		t := w[name]
 		if len(t.shape) == 1 {
@@ -248,4 +253,40 @@ func TestGemma3GGUFLayout(t *testing.T) {
 			}
 		})
 	}
+}
+
+// gemmaVisionKeys çok kipli gemma3 GGUF'unun görüntü kulesi anahtarlarıdır (Google'ın QAT Q4_0 dosyasının
+// dokuz adı); değerler SigLIP'in boyutları gibi, kapı yalnız adlara bakar.
+var gemmaVisionKeys = map[string]any{"gemma3.mm.tokens_per_image": uint32(256), "gemma3.vision.attention.head_count": uint32(16),
+	"gemma3.vision.attention.layer_norm_epsilon": float32(1e-6), "gemma3.vision.block_count": uint32(27),
+	"gemma3.vision.embedding_length": uint32(1152), "gemma3.vision.feed_forward_length": uint32(4304),
+	"gemma3.vision.image_size": uint32(896), "gemma3.vision.num_channels": uint32(3), "gemma3.vision.patch_size": uint32(14)}
+
+// Kural (15.55): gemma3 GGUF'unda görüntü kulesinin dokuz anahtarı etkisizdir: kule kurulmaz, anahtarlı
+// ve anahtarsız dosyanın logitleri bit bit aynıdır. Liste tamdır, önek değil: onuncu bir "gemma3.vision."
+// ya da "gemma3.mm." anahtarı H7160'tır, ileti yalnız onu adlandırır.
+func TestGemma3GGUFVisionKeys(t *testing.T) {
+	g := gemmaTiny{dim: 64, headDim: 256}
+	w := g.weights(7)
+	dir := t.TempDir()
+	writeTR(t, dir, "karsilastir.tr", ggufCompare)
+	plain, vision := filepath.Join(dir, "a.gguf"), filepath.Join(dir, "b.gguf")
+	writeBytes(t, plain, g.ggufFile(w).Bytes())
+	writeBytes(t, vision, g.ggufFileWith(w, gemmaVisionKeys).Bytes())
+	if diff, size, _ := runCompare(t, dir, "--other", plain, "--file", vision); diff != 0 || size == 0 {
+		t.Errorf("görüntü anahtarlı dosyanın logit farkı %v (logit %v); bit bit aynı olmalı", diff, size)
+	}
+	with := func(key string, value any) []byte {
+		over := map[string]any{key: value}
+		for k, v := range gemmaVisionKeys {
+			over[k] = v
+		}
+		b := &gguftest.Builder{}
+		g.metadata(b, over)
+		return b.Bytes()
+	}
+	runGGUFGateCases(t, []ggufGateCase{
+		{"onuncu vision", "H7160", []string{"olmayan anahtar: gemma3.vision.projection_dim ("}, with("gemma3.vision.projection_dim", uint32(2560))},
+		{"başka mm", "H7160", []string{"olmayan anahtar: gemma3.mm.image_token_index ("}, with("gemma3.mm.image_token_index", uint32(262144))},
+	})
 }

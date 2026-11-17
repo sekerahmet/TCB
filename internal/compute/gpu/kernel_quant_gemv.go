@@ -22,9 +22,9 @@ const (
 	quantAccs  = 4 // şeridin bağımsız toplayıcı sayısı
 )
 
-// quantLanes bir bloğu okuyan şerit sayısıdır: "q8"de şerit 8 öğe, K türlerinde 32 öğe alır.
+// quantLanes bir bloğu okuyan şerit sayısıdır: "q8" ve "q4"te şerit 8 öğe, K türlerinde 32 öğe alır.
 func quantLanes(dt tensor.DType) int {
-	if dt == tensor.Q8 {
+	if dt == tensor.Q8 || dt == tensor.Q4 {
 		return 4
 	}
 	return 8
@@ -62,6 +62,8 @@ func quantGemvKernel(dt tensor.DType, over bool) func() *emitter {
 			switch dt {
 			case tensor.Q8:
 				k.dotQ8(pa, row, b, sub, acc)
+			case tensor.Q4:
+				k.dotQ4(pa, row, b, sub, acc)
 			case tensor.Q4K:
 				k.dotQ4K(pa, row, b, sub, acc)
 			default:
@@ -136,6 +138,31 @@ func (k *emitter) dotQ8(pa, row, b, sub reg, acc []reg) {
 		y := k.f()
 		k.e("mul.rn.f32", y, k.toFloat(c), d)
 		k.e("fma.rn.f32", acc[i%quantAccs], x[i], y, acc[i%quantAccs])
+	}
+}
+
+// dotQ4 şerit bloğun 4 baytını alır (4·sub'dan): alt yarım baytlar 4·sub'dan, üst yarım baytlar
+// 16 + 4·sub'dan başlayan 4'er öğedir. Blok yalnız 2 bayta hizalıdır: kodlar iki 16 bitlik sözcüktür.
+func (k *emitter) dotQ4(pa, row, b, sub reg, acc []reg) {
+	block := k.address(row, b, q4BlockBytes)
+	d := k.half(block, 0)
+	codes := k.words(k.address(block, sub, 4), 2, 2)
+	at := k.r()
+	k.e("shl.b32", at, b, 5)
+	k.e("mad.lo.s32", at, sub, 4, at)
+	lo, hi := k.activations(pa, at, 0, 4), k.activations(pa, at, 16, 4)
+	for i := range 4 {
+		code := k.byteOf(codes, i)
+		for half, x := range [][]reg{lo, hi} {
+			c := k.r()
+			k.e("shr.u32", c, code, 4*half)
+			k.e("and.b32", c, c, 0xF)
+			k.e("add.s32", c, c, -8)
+			y := k.f()
+			k.e("mul.rn.f32", y, k.toFloat(c), d)
+			a := acc[(2*i+half)%quantAccs]
+			k.e("fma.rn.f32", a, x[i], y, a)
+		}
 	}
 }
 

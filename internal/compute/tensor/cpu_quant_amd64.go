@@ -5,6 +5,11 @@ package tensor
 //go:noescape
 func sdotq8(n int, x *float32, w *byte) float32
 
+// sdotq4 x·aç(w)'dir ("q4", n 32'nin katı; F16C ister). Assembly: cpu_quant_amd64.s.
+//
+//go:noescape
+func sdotq4(n int, x *float32, w *byte) float32
+
 // sdotq4k x·aç(w)'dir ("q4_k"; blocks blok). scales blok başına 16 float32'lik çalışma alanıdır:
 // çekirdek dört grubun d·a ve m·b çiftlerini oraya açar, çarpımlar float32'de kesindir. Go'da
 // açmak çekirdeğin kendisinden uzun sürüyordu [ölçüldü: h1k2b]. Assembly: cpu_quant_amd64.s.
@@ -25,6 +30,8 @@ func quantDot(dt DType, x []float32, w []byte, s *quantScratch) float32 {
 		return dotQuantGo(dt, x, w, s)
 	}
 	switch dt {
+	case Q4:
+		return sdotq4(len(x), &x[0], &w[0])
 	case Q4K:
 		return sdotq4k(len(x)/kBlock, &x[0], &w[0], &s.scales[0])
 	case Q6K:

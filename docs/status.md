@@ -913,8 +913,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.51
 
-- **Mevcut durum:** "q4", "q4z128", "fp8" yok: ad bilinmeyen hassasiyet hatası verir.
-- **Yapılacaklar (E, Ö3; sınıf uzak 14):** "q4", "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
+- **Mevcut durum:** "q4z128", "fp8" yok: ad bilinmeyen hassasiyet hatası verir.
+- **Mevcut durum (T1 Q4_0 dilim A):** "q4" GGUF `Q4_0` olarak okunuyor; açma llama.cpp b12124 ile bit bit, işlemcide ve kartta çarpılıyor, `TR_zeros`'un sıfırı +0 (kodlar 8); `TR_quantized_activations` bloğunda henüz hata (H6723) [test: `TestDequantMatchesLlamaCpp`].
+- **Yapılacaklar (E, Ö3; sınıf uzak 14):** "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
 
 ### 15.52
 
@@ -947,7 +948,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Yapılacaklar (C, Ö2; sahip D1; D1 Gemma 3 Teslim E, bulgu 1; TCB 2026-11-17 12:33, 13:45):** parçalı safetensors yayımı okunmuyor: `TR_pretrained_model` klasörde yalnız `model.safetensors`'ı açar [kanıtlı: `lib/pretrained.tr:49`]; 4B ve üstü modellerin parçalı yayımı (model-0000N-of-0000M.safetensors ve model.safetensors.index.json) H2132 ile düşer ve ileti parçalı yayımı söylemez, yalnız "böyle bir dosya ya da klasör yok" der [ölçüldü: D1, Teslim E koşu 6; kanıtlı: `internal/lang/messages/system_error.go:73`]. Sıradaki adım: Teslim E'den sonra ayrı iş (TCB 12:33); D1'in önerisi dizin dosyasından (index.json) dosya listesi ve eksik parçada dosya adını söyleyen hata, ileti kodu o işin tasarımında.
 - **Yapılacaklar (D, Ö3; hız; sınıf uzak 14; sahip H1, hız kuyruğu; D1'in bulgusu):** 4096 token'lık istemde TR, llama.cpp `b12124`'ten yaklaşık 2 kat yavaş: Llama 3.1-8B'de 730 sn, llama.cpp 370 sn; açgözlü üretim 16/16 aynı [ölçüldü: D1, Colab CPU High-RAM koşu 2/8, 2026-11-11 16:31–17:21, Drive `d1a2`]. Profil H1'in kuyruğunda.
 - **Mevcut durum:** ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister. Safetensors'ta `F8_E4M3` okunmuyor: H6643 [ölçüldü: `d6adf7e3`].
-- **Yapılacaklar (E ve F, Ö3; sınıf uzak 14):** TR biçiminde nicemlenmiş tür kodları: bugün iki biçime de yazmak H6687, ileti açmayı söyler; kod gelince `.safetensors` iletisi TR biçimini de önerir; GGUF `Q4_0`'ı ("q4") H6674; `F8_E4M3` okuma; kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi.
+- **Yapılacaklar (E ve F, Ö3; sınıf uzak 14):** TR biçiminde nicemlenmiş tür kodları: bugün iki biçime de yazmak H6687, ileti açmayı söyler; kod gelince `.safetensors` iletisi TR biçimini de önerir; `F8_E4M3` okuma; kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi.
 - **Yapılacaklar (C, Ö3; sahip H1):** 1 MiB'tan büyük F32 tensörler artık `HostBlock` ile tek kopya; kalan: varsayılan cihaz kartken `FromHostBlock`'un konak kopyası (`host_block.go:162-164`) ve 4,95 GB F32 GGUF'ta tepe belleğin yeniden ölçülmesi.
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM istek 161):** `TR_pretrained_model` Llama 3 safetensors'unda `rope_scaling` H6943 veriyor [kanıtlı: `lib/pretrained.tr:68-70`]; GGUF çalışıyor.
 - **Yapılacaklar (F, Ö3; sahip T1, önce ölç; DENETİM istek 161):** GGUF yüklemesinde tablo iki kez kuruluyor; süresi ölçülmedi. Repoda uçtan uca dış kanıt yok: küçük fikstürün llama.cpp logitleri altın dosya olabilir.

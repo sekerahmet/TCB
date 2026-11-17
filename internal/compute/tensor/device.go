@@ -98,7 +98,7 @@ const (
 	Float16
 	// Q8 GGUF Q8_0'ın blokları (15.51, quant.go): 32 öğe, 34 bayt.
 	Q8
-	// Q4 GGUF Q4_0'ın adıdır (15.51); deposu henüz yoktur.
+	// Q4 GGUF Q4_0'ın blokları (15.51, quant.go): 32 öğe, 18 bayt.
 	Q4
 	// Float64 64 bitlik kayan nokta ("float64", TR_Float).
 	Float64
@@ -188,8 +188,6 @@ func (d DType) Bits() int {
 		return 16
 	case Int8, UInt8, Bool:
 		return 8
-	case Q4:
-		return 4
 	case Float64, Int64:
 		return 64
 	}
