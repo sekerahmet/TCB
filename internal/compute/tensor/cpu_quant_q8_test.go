@@ -125,12 +125,13 @@ func TestQ8FourRowsMatchOneRow(t *testing.T) {
 
 // TestQ8EightRowsMatchOneRow: Q4_K'da ve Q4_0'da sekiz satırlı çekirdek (sekizli gruplar, ardından dörtlü ve tek
 // satırlar) her satırda quantGemvQ8 ile ve Go yoluyla bit bit aynıdır; ×1000 ölçekli, sıfır bloklu ve ±1 satırları
-// dahil.
+// dahil. N = 13 ve 29'da q8BlockN'lik bir birim 13 satır alır: Q4_0'ın paneli sekizini, tek satırlı aynı birimin
+// kalan beşini çarpar (DENETİM 861 N2).
 func TestQ8EightRowsMatchOneRow(t *testing.T) {
 	oldAVX, oldF16C := hasAVX2, hasF16C
 	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
 	for _, dt := range []DType{Q4K, Q4} {
-		for _, c := range [][3]int{{8, 3, 256}, {12, 17, 512}, {16, 33, 2560}, {23, 5, 9728}, {40, 18, 512}, {9, 7, 96}} {
+		for _, c := range [][3]int{{8, 3, 256}, {12, 17, 512}, {16, 33, 2560}, {23, 5, 9728}, {40, 18, 512}, {9, 7, 96}, {5, 13, 96}, {12, 29, 512}} {
 			testEightRows(t, dt, c[0], c[1], c[2])
 		}
 	}
