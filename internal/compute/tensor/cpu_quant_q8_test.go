@@ -6,6 +6,12 @@ import (
 	"testing"
 )
 
+// q8MachineAVX2 ve q8MachineF16C makinenin değerleridir (paket değişkenlerinden önce değil, sonra kurulur). Testler
+// hasAVX2'yi yol yol değiştirir ve son yolda false bırakır; q8Paths bunları okumasaydı bir döngünün içinde ikinci kez
+// çağrıldığında "çekirdek" yolu da Go eşi olurdu (TestQ8FourRowsMatchOneRow'da ve TestQ8EightRowsMatchOneRow'da
+// yalnız ilk durum çekirdeği sınıyordu; sekiz satırlı Q4_0 çekirdeğinin bozması bu yüzden geçti).
+var q8MachineAVX2, q8MachineF16C = hasAVX2, hasF16C
+
 // q8Paths nicemli çekirdeklerin üç yoludur: AVX2 çekirdeği, F16C yok (Go eşine düşer), Go. Testler çekirdeği
 // sarmalayıcıdan çağırır: amd64 dışında da derlenir, Go eşleri (dört satırlılar dahil) AVX2'li makinede de koşar.
 func q8Paths() []struct {
@@ -15,7 +21,7 @@ func q8Paths() []struct {
 	return []struct {
 		name      string
 		avx, f16c bool
-	}{{"çekirdek", hasAVX2, hasF16C}, {"F16C yok", hasAVX2, false}, {"Go", false, false}}
+	}{{"çekirdek", q8MachineAVX2, q8MachineF16C}, {"F16C yok", q8MachineAVX2, false}, {"Go", false, false}}
 }
 
 // q8GoDot dt'nin tek satırlı Go eşidir.
@@ -116,50 +122,62 @@ func TestQ8FourRowsMatchOneRow(t *testing.T) {
 	}
 }
 
-// TestQ8EightRowsMatchOneRow: Q4_K'da sekiz satırlı çekirdek (sekizli gruplar, ardından dörtlü ve tek satırlar)
-// her satırda quantGemvQ8 ile ve Go yoluyla bit bit aynıdır; ×1000 ölçekli, sıfır bloklu ve ±1 satırları dahil.
+// TestQ8EightRowsMatchOneRow: Q4_K'da ve Q4_0'da sekiz satırlı çekirdek (sekizli gruplar, ardından dörtlü ve tek
+// satırlar) her satırda quantGemvQ8 ile ve Go yoluyla bit bit aynıdır; ×1000 ölçekli, sıfır bloklu ve ±1 satırları
+// dahil.
 func TestQ8EightRowsMatchOneRow(t *testing.T) {
 	oldAVX, oldF16C := hasAVX2, hasF16C
 	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
-	for _, c := range [][3]int{{8, 3, 256}, {12, 17, 512}, {16, 33, 2560}, {23, 5, 9728}, {40, 18, 512}} {
-		M, N, K := c[0], c[1], c[2]
-		w := smallScaleQuant(Q4K, uint32(7*M+N+K), N*K/kBlock)
-		x := randomData(rand.New(rand.NewSource(int64(M+N*K))), M*K)
-		for m := range M {
-			row := x[m*K : (m+1)*K]
-			switch m % 5 {
-			case 1:
-				for i := range row {
-					row[i] *= 1000
-				}
-			case 2:
-				clear(row[:kBlock])
-			case 3:
-				for i := range row {
-					row[i] = float32(1 - 2*(i%2))
-				}
-			}
-		}
-		var first []float32
-		for _, path := range q8Paths() {
-			hasAVX2, hasF16C = path.avx, path.f16c
-			got := make([]float32, M*N)
-			quantGemmQ8(M, N, K, x, w, Q4K, got)
-			for m := range M {
-				want := make([]float32, N)
-				quantGemvQ8(N, K, x[m*K:(m+1)*K], w, Q4K, want)
-				sameFloatBits(t, path.name+" satır", got[m*N:(m+1)*N], want)
-			}
-			if first == nil {
-				first = got
-			}
-			sameFloatBits(t, path.name+" yollar", got, first)
+	for _, dt := range []DType{Q4K, Q4} {
+		for _, c := range [][3]int{{8, 3, 256}, {12, 17, 512}, {16, 33, 2560}, {23, 5, 9728}, {40, 18, 512}, {9, 7, 96}} {
+			testEightRows(t, dt, c[0], c[1], c[2])
 		}
 	}
 }
 
-// TestQ8EightRowsChecksBounds: sekiz satırlı çekirdek çağıranın sözüne dayanmaz: r0'ın arkasında yedi satır yoksa
-// ya da out sekiz öğeden kısaysa her yolda (çekirdek ve Go eşi) panik verir.
+// testEightRows TestQ8EightRowsMatchOneRow'un bir durumudur (dt, M satır, N ağırlık satırı, K).
+func testEightRows(t *testing.T, dt DType, M, N, K int) {
+	t.Helper()
+	if K%actBlock(dt) != 0 {
+		return
+	}
+	w := smallScaleQuant(dt, uint32(7*M+N+K), N*K/actBlock(dt))
+	x := randomData(rand.New(rand.NewSource(int64(M+N*K))), M*K)
+	for m := range M {
+		row := x[m*K : (m+1)*K]
+		switch m % 5 {
+		case 1:
+			for i := range row {
+				row[i] *= 1000
+			}
+		case 2:
+			clear(row[:actBlock(dt)])
+		case 3:
+			for i := range row {
+				row[i] = float32(1 - 2*(i%2))
+			}
+		}
+	}
+	var first []float32
+	for _, path := range q8Paths() {
+		hasAVX2, hasF16C = path.avx, path.f16c
+		got := make([]float32, M*N)
+		quantGemmQ8(M, N, K, x, w, dt, got)
+		for m := range M {
+			want := make([]float32, N)
+			quantGemvQ8(N, K, x[m*K:(m+1)*K], w, dt, want)
+			sameFloatBits(t, path.name+" "+dt.Name()+" satır", got[m*N:(m+1)*N], want)
+		}
+		if first == nil {
+			first = got
+		}
+		sameFloatBits(t, path.name+" "+dt.Name()+" yollar", got, first)
+	}
+}
+
+// TestQ8EightRowsChecksBounds: sekiz satırlı çekirdekler (Q4_K, Q4_0) çağıranın sözüne dayanmaz: r0'ın arkasında
+// yedi satır yoksa ya da out sekiz öğeden kısaysa her yolda (çekirdek ve Go eşi), Q4_0'da dT kısaysa çekirdek
+// yolunda panik verir (Go eşi dT'yi okumaz).
 func TestQ8EightRowsChecksBounds(t *testing.T) {
 	oldAVX, oldF16C := hasAVX2, hasF16C
 	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
@@ -182,6 +200,24 @@ func TestQ8EightRowsChecksBounds(t *testing.T) {
 					}
 				}()
 				dotQ4KQ8x8(nb, w, c.r0, K, dT, ps, tmp[:], c.out)
+			}()
+		}
+		w4, nb4 := smallScaleQuant(Q4, 9, K/32), K/32
+		for _, c := range []struct {
+			name string
+			r0   *q8kRow
+			out  []float32
+			dT   []float32
+		}{{"q4 yedi satır", newQ8Row(7*K, 32), make([]float32, 8), make([]float32, nb4*8)},
+			{"q4 kısa out", newQ8Row(8*K, 32), make([]float32, 7), make([]float32, nb4*8)},
+			{"q4 kısa dT", newQ8Row(8*K, 32), make([]float32, 8), make([]float32, nb4*8-1)}} {
+			func() {
+				defer func() {
+					if recover() == nil && (c.name != "q4 kısa dT" || path.avx && path.f16c) {
+						t.Fatalf("%s %s: panik yok", path.name, c.name)
+					}
+				}()
+				dotQ4Q8x8(nb4, w4, c.r0, K, c.dT, c.out)
 			}()
 		}
 	}

@@ -176,9 +176,9 @@ func quantGemvQ8(N, K int, a []float32, w []byte, dt DType, c []float32) {
 // q8Tmp çekirdeklerin çalışma alanının baytıdır: en çoğu Q6_K'nın dört satırlısı (16 ölçek ve dört msum).
 const q8Tmp = 48
 
-// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; Q4_K'da her ağırlık satırı önce sekiz
-// etkinleştirme satırıyla (dotQ4KQ8x8, q4x8Ready ise), sonra dörder satırla birlikte çarpılır (dotQ4KQ8x4,
-// dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her satırın sonucu tek satırlı yolunkiyle
+// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; Q4_K'da ve Q4_0'da her ağırlık satırı
+// önce sekiz etkinleştirme satırıyla (dotQ4KQ8x8, dotQ4Q8x8; q4x8Ready ise), sonra dörder satırla birlikte çarpılır
+// (dotQ4KQ8x4, dotQ4Q8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her satırın sonucu tek satırlı yolunkiyle
 // (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
 // yoluyla (quantGemv) tek başına hesaplanır; sonlu satırlar bitişik bir tampona toplanır (idx: tampondaki satırın
 // a'daki yeri). Satırın sonucu yanındaki satırların verisinden bağımsızdır.
@@ -242,20 +242,27 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	})
 }
 
-// q8x8 quantGemmQ8'in sekizli gruplarıdır: G grup (Q4_K'da ve q4x8Ready ise len(rows)/8, değilse 0) ve
-// sekiz satırlı çekirdeğin çevrik tabloları. Gruplar nicemlemeden sonra bir kez kurulur.
+// q8x8 quantGemmQ8'in sekizli gruplarıdır: G grup (Q4_K'da ve Q4_0'da q4x8Ready ise len(rows)/8, değilse 0) ve
+// sekiz satırlı çekirdeğin çevrik tabloları (Q4_0'da yalnız dT). Gruplar nicemlemeden sonra bir kez kurulur.
+// Q4_0'ın sekiz satırlısı okumada dört satırlısının yerini alır: QAT Q4_0'da (Gemma 3 4B) Dost'un 651 token'lık
+// okumasında CPU'nun %90,4'ü sdotq4q8x4'teydi (profil, 2026-11-17, Colab AMD EPYC 7B12, 8 iş parçacığı).
 type q8x8 struct {
+	dt                 DType
 	G, nb, K, rowBytes int
 	dT                 []float32
 	ps                 []int16
 }
 
 func newQ8x8(dt DType, rows []*q8kRow, nb, K, rowBytes int) *q8x8 {
-	e := &q8x8{nb: nb, K: K, rowBytes: rowBytes}
-	if dt == Q4K && q4x8Ready() {
+	e := &q8x8{dt: dt, nb: nb, K: K, rowBytes: rowBytes}
+	if (dt == Q4K || dt == Q4) && q4x8Ready() {
 		e.G = len(rows) / 8
 	}
-	e.dT, e.ps = q8x8Tables(rows[:e.G*8], nb)
+	if dt == Q4 {
+		e.dT = q8x8Scales(rows[:e.G*8], nb)
+	} else {
+		e.dT, e.ps = q8x8Tables(rows[:e.G*8], nb)
+	}
 	return e
 }
 
@@ -265,7 +272,11 @@ func (e *q8x8) into(n0, n1, N int, w []byte, rows []*q8kRow, idx []int, c []floa
 	var out [8]float32
 	for g := range e.G {
 		for n := n0; n < n1; n++ {
-			dotQ4KQ8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], e.ps[g*e.nb*64:], tmp, out[:])
+			if e.dt == Q4 {
+				dotQ4Q8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], out[:])
+			} else {
+				dotQ4KQ8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], e.ps[g*e.nb*64:], tmp, out[:])
+			}
 			for r := range 8 {
 				c[idx[8*g+r]*N+n] += out[r]
 			}
@@ -279,12 +290,11 @@ func (e *q8x8) into(n0, n1, N int, w []byte, rows []*q8kRow, idx []int, c []floa
 // kod toplamı; int16'da taşmaz: |bs| ≤ 16·127).
 func q8x8Tables(rows []*q8kRow, nb int) ([]float32, []int16) {
 	G := len(rows) / 8
-	dT, ps := make([]float32, G*nb*8), make([]int16, G*nb*64)
+	dT, ps := q8x8Scales(rows, nb), make([]int16, G*nb*64)
 	for g := range G {
 		for i := range nb {
 			for r := range 8 {
 				row := rows[g*8+r]
-				dT[(g*nb+i)*8+r] = row.d[i]
 				for j := range 8 {
 					ps[(g*nb+i)*64+(j/2)*16+r*2+j%2] = row.bs[i*16+2*j] + row.bs[i*16+2*j+1]
 				}
@@ -292,6 +302,21 @@ func q8x8Tables(rows []*q8kRow, nb int) ([]float32, []int16) {
 		}
 	}
 	return dT, ps
+}
+
+// q8x8Scales sekizlilerin çevrik ölçek tablosudur (len(rows) sekizin katı): dT[(g·nb+i)·8 + r] = g'inci sekizlinin
+// r'inci satırının i'inci bloğunun d8'i.
+func q8x8Scales(rows []*q8kRow, nb int) []float32 {
+	G := len(rows) / 8
+	dT := make([]float32, G*nb*8)
+	for g := range G {
+		for i := range nb {
+			for r := range 8 {
+				dT[(g*nb+i)*8+r] = rows[g*8+r].d[i]
+			}
+		}
+	}
+	return dT
 }
 
 // q8BlockN quantGemmQ8'in bir iş biriminin ağırlık satırı sayısıdır: K = 9728'de Q4_K 16 satır 87 KB,

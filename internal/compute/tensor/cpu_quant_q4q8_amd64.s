@@ -113,3 +113,67 @@ q4q8x4son:
 	VMOVSS X13, 12(R8)
 	VZEROUPPER
 	RET
+
+// Q4Q8X8SATIR bir satırın bloğundaki sekiz int32 kısmi toplamı r'ye yazar: |w|·(x·işaret(w)), ikişer int16, int32.
+#define Q4Q8X8SATIR(xq, r) \
+	VMOVDQU    xq, r; \
+	VPSIGNB    Y2, r, r; \
+	VPMADDUBSW r, Y7, r; \
+	VPMADDWD   Y6, r, r
+
+// func sdotq4q8x8(blocks int, w *byte, q *int8, dT *float32, out *float32, sq int)
+//
+// Sekiz Q8 satırını (kodlar sq bayt arayla) aynı Q4_0 satırıyla çarpar: blok bir kez açılır; sekiz satırın isum'u
+// tek vektöre iner (şerit r = r'inci satırın sekiz int32'sinin toplamı; tamsayı, sırası serbest; eşlemesi
+// sdotq4kq8x8'inki), float adımları şeritte dotQ4Q8Go'nun sırasıyla: t = ölçek·d8, acc += t·isum (kaynaştırma
+// yok). dT blok başına sekiz satırın d8'i (32 bayt, q8x8Scales). out[r] r'inci satırın sonucudur (yazılır).
+TEXT ·sdotq4q8x8(SB), NOSPLIT, $0-48
+	MOVQ   blocks+0(FP), CX
+	MOVQ   w+8(FP), DI
+	MOVQ   q+16(FP), SI
+	MOVQ   dT+24(FP), R11
+	MOVQ   out+32(FP), R8
+	MOVQ   sq+40(FP), R13
+	Q4Q8SABIT
+	VXORPS Y15, Y15, Y15
+	TESTQ  CX, CX
+	JZ     q4q8x8son
+
+q4q8x8blok:
+	Q4Q8KOD
+	VBROADCASTSS X10, Y3
+	LEAQ         (SI)(R13*2), R14
+	ADDQ         R13, R14
+	LEAQ         (R14)(R13*2), AX
+	ADDQ         R13, AX
+	Q4Q8X8SATIR((SI), Y0)
+	Q4Q8X8SATIR((SI)(R13*1), Y1)
+	Q4Q8X8SATIR((SI)(R13*2), Y9)
+	Q4Q8X8SATIR((R14), Y10)
+	Q4Q8X8SATIR((SI)(R13*4), Y11)
+	Q4Q8X8SATIR((R14)(R13*2), Y12)
+	Q4Q8X8SATIR((AX), Y13)
+	Q4Q8X8SATIR((AX)(R13*1), Y14)
+	VPHADDD      Y1, Y0, Y0
+	VPHADDD      Y10, Y9, Y9
+	VPHADDD      Y12, Y11, Y11
+	VPHADDD      Y14, Y13, Y13
+	VPHADDD      Y9, Y0, Y0
+	VPHADDD      Y13, Y11, Y11
+	VPERM2I128   $0x20, Y11, Y0, Y13
+	VPERM2I128   $0x31, Y11, Y0, Y14
+	VPADDD       Y14, Y13, Y13
+	VCVTDQ2PS    Y13, Y13
+	VMULPS       (R11), Y3, Y8
+	VMULPS       Y13, Y8, Y8
+	VADDPS       Y8, Y15, Y15
+	ADDQ         $18, DI
+	ADDQ         $32, SI
+	ADDQ         $32, R11
+	DECQ         CX
+	JNZ          q4q8x8blok
+
+q4q8x8son:
+	VMOVUPS Y15, (R8)
+	VZEROUPPER
+	RET

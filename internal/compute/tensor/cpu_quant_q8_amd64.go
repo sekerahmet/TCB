@@ -40,7 +40,7 @@ func dotQ4KQ8x4(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float
 //go:noescape
 func sdotq4kq8x8(blocks int, w *byte, q *int8, dT *float32, ps *int16, tmp *byte, out *float32, sq int)
 
-// q4x8Ready quantGemmQ8 Q4_K'da sekizli grupları sekiz satırlı çekirdeğe verir mi (AVX2 ve F16C).
+// q4x8Ready quantGemmQ8 Q4_K'da ve Q4_0'da sekizli grupları sekiz satırlı çekirdeğe verir mi (AVX2 ve F16C).
 func q4x8Ready() bool { return hasAVX2 && hasF16C }
 
 // dotQ4KQ8x8 r0'dan başlayan sekiz bitişik satırı (aynı tampondan, K arayla) çarpar: out[r] = r'inci satırın
@@ -121,4 +121,21 @@ func dotQ4Q8x4(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float3
 	}
 	checkQ8x4(blocks, 18, w, r0, K, tmp, out)
 	sdotq4q8x4(blocks, &w[0], &r0.q[0], &r0.d[0], &out[0], K, K/r0.blk*4)
+}
+
+// sdotq4q8x8 sekiz Q8 satırını (kodlar sq bayt arayla) aynı Q4_0 satırıyla çarpar; dT blok başına sekiz d8
+// (q8x8Scales); out[r] r'inci satırın sonucudur (sdotq4q8'inkiyle bit bit aynı).
+//
+//go:noescape
+func sdotq4q8x8(blocks int, w *byte, q *int8, dT *float32, out *float32, sq int)
+
+// dotQ4Q8x8 r0'dan başlayan sekiz bitişik satırı (aynı tampondan, K arayla) çarpar: out[r] = r'inci satırın
+// sonucu. dT sekizlinin çevrik ölçek tablosudur (q8x8Scales); Go eşi onu kullanmaz.
+func dotQ4Q8x8(blocks int, w []byte, r0 *q8kRow, K int, dT []float32, out []float32) {
+	if !hasAVX2 || !hasF16C || blocks == 0 {
+		dotQ8RowsGo(8, dotQ4Q8Go, blocks, w, r0, K, out)
+		return
+	}
+	_, _, _, _ = w[:blocks*18], r0.q[:7*K+blocks*32], dT[:blocks*8], out[:8]
+	sdotq4q8x8(blocks, &w[0], &r0.q[0], &dT[0], &out[0], K)
 }
