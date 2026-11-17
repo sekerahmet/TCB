@@ -128,3 +128,58 @@ TR_test "VITS arka kodlayıcı ve kullanılmayan akışlar adıyla atlanır" {
     TR_var model = TR_pretrained_vits(_MODEL)
     TR_assert_equal(16000, model.TR_synthesize("süt").TR_sample_rate)
 }
+
+TR_test "MMS'in ses_dili boş: Hugging Face klasörü dili söylemez" {
+    TR_assert_equal("", TR_pretrained_vits(_MODEL).TR_voice_language)
+}
+
+# Ajanın yanılgısı: sesin dili `TR_language` değil `TR_voice_language`'dır (`TR_mem_language` tr/whisper'ındır).
+# Bugünkü ileti (H2468) alanı eklemeyi öneriyor, doğru adı söylemiyor: s1-piper devri "Dil tanımına düşenler".
+TR_test "Vits'te ses.TR_language yazmak hatadır" {
+    TR_var model = TR_pretrained_vits(_MODEL)
+    TR_assert_equal("H2468", TR_error_code { TR_print(model.TR_language) })
+}
+
+# Tip 2 artık blok (Piper'ın `ResBlock2`'si): her genişlemede x = x + c(gevşek(x)). Elle hesap, tek kanal,
+# eğim 0,1, x = [1, 2, -1, 0,5]:
+#   1. genişleme 1, w = [0,5, 1, -0,5], b = 0,1, dolgu 1: gevşek(x) = [1, 2, -0,1, 0,5];
+#      c = [0,1, 2,65, 0,75, 0,55]; x = [1,1, 4,65, -0,25, 1,05].
+#   2. genişleme 2, w = [1, 0, 1], b = 0, dolgu 2: gevşek(x) = [1,1, 4,65, -0,025, 1,05];
+#      c[t] = g[t-2] + g[t+2] = [-0,025, 1,05, 1,1, 4,65]; x = [1,075, 5,7, 0,85, 5,7].
+# tip2 küçük modelin ilk artık bloğunu verilen evrişimlerle tip 2'ye çevirir ve x'i ondan geçirir (yapının
+# kurucusu ve tipi modülün içindedir).
+TR_func tip2(ağırlıklar: TR_List[TR_Tensor], sapmalar: TR_List[TR_Tensor], genişlemeler: TR_List[TR_Int], x: TR_Tensor) -> TR_Tensor {
+    TR_var blok = TR_pretrained_vits(_MODEL)._çözücü.bloklar[0][0]
+    # Küçük modelin bloğunda iki ayrı evrişim var (genişlemeler [1, 3]); yapılar paylaşılır, kopyalanmaz.
+    TR_var evrişimler = [blok.birinciler[i] TR_for i TR_in 0..genişlemeler.TR_length]
+    TR_for i TR_in 0..genişlemeler.TR_length {
+        TR_var k = ağırlıklar[i].TR_shape[2]
+        evrişimler[i].ağırlık = ağırlıklar[i]
+        evrişimler[i].sapma = sapmalar[i]
+        evrişimler[i].dolgu = (k * genişlemeler[i] - genişlemeler[i]) // 2
+        evrişimler[i].genişleme = genişlemeler[i]
+    }
+    blok.birinciler = evrişimler
+    blok.ikinciler = []
+    blok.eğim = 0.1
+    TR_return blok._ileri(x)
+}
+
+TR_test "tip 2 artık blok tanımını verir" {
+    TR_var y = tip2([TR_Tensor([[[0.5, 1.0, -0.5]]]), TR_Tensor([[[1.0, 0.0, 1.0]]])], [TR_Tensor([0.1]), TR_Tensor([0.0])], [1, 2], TR_Tensor([[[1.0, 2.0, -1.0, 0.5]]]))
+    TR_assert(TR_all_close(y, TR_Tensor([[[1.075, 5.7, 0.85, 5.7]]]), TR_rtol: 0.0, TR_atol: 1e-6))
+}
+
+# Büyük durum: 4 kanal, çekirdek 5, genişlemeler (2, 6); TR'nin ayrı işlemleriyle yazılmış tanımla aynı.
+TR_test "tip 2 artık blok TR'nin ayrı işlemleriyle aynı" {
+    TR_var w = [TR_randn([4, 4, 5], TR_seed: 2) * 0.3, TR_randn([4, 4, 5], TR_seed: 6) * 0.3]
+    TR_var b = [TR_randn([4], TR_seed: 12), TR_randn([4], TR_seed: 16)]
+    TR_var x = TR_randn([1, 4, 40], TR_seed: 3)
+    TR_var y = tip2(w, b, [2, 6], x)
+    TR_var beklenen = x
+    TR_for i, g TR_in [2, 6] {
+        TR_var a = TR_where(beklenen >= 0.0, beklenen, beklenen * 0.1)
+        beklenen = beklenen + TR_conv1d(a, w[i], b[i], TR_padding: (5 * g - g) // 2, TR_dilation: g)
+    }
+    TR_assert(TR_all_close(y, beklenen, TR_rtol: 1e-5, TR_atol: 1e-5))
+}

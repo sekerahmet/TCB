@@ -1,5 +1,5 @@
 # TR 4
-# tr/vits: yayımlanmış bir VITS modelini (Hugging Face `VitsModel`, MMS-TTS) klasöründen açar ve metinden ses üretir.
+# tr/vits: yayımlanmış bir VITS modelini açar ve metinden ses üretir: Hugging Face klasörü (`VitsModel`, MMS-TTS) ya da Piper sesi (`.onnx` ve `.onnx.json`).
 #
 # Mimari Hugging Face'in `modeling_vits.py`'sidir, yalnız çıkarım yolu: metin kodlayıcı (göreli konumlu dikkat),
 # olasılıklı süre öngörücünün ters yönü (spline akışları), öncülün süreyle yayılması, akışın ters yönü ve
@@ -24,13 +24,15 @@ TR_const _KÜÇÜK_HARF = {"İ": "i\u{307}"}
 TR_struct _Alıcı {
     tensörler: TR_Dict[TR_String, TR_Tensor]
     alınan: TR_Dict[TR_String, TR_Bool]
+    dosyadaki: TR_Dict[TR_String, TR_String] = {} # çevrilmiş ad → dosyadaki ad (Piper); iletiler dosyanın adını söyler
     TR_func _var(ad: TR_String) -> TR_Bool { TR_return TR_self.tensörler.TR_contains(ad) }
+    TR_func _dosya_adı(ad: TR_String) -> TR_String { TR_return TR_if TR_self.dosyadaki.TR_contains(ad) { TR_self.dosyadaki[ad] } TR_else { ad } }
     # _al tensörü denetler ve float32 olarak verir.
     TR_func _al(ad: TR_String, şekil: TR_List[TR_Int]) -> TR_Tensor {
         TR_if TR_not TR_self._var(ad) { TR_throw TR_Message("H7553", ad) }
         TR_var t = TR_self.tensörler[ad]
-        TR_if TR_not ["float32", "fp16", "bf16"].TR_contains(t.TR_dtype) { TR_throw TR_Message("H7554", ad, t.TR_dtype) }
-        TR_if t.TR_shape != şekil { TR_throw TR_Message("H7555", ad, t.TR_shape, şekil) }
+        TR_if TR_not ["float32", "fp16", "bf16"].TR_contains(t.TR_dtype) { TR_throw TR_Message("H7554", TR_self._dosya_adı(ad), t.TR_dtype) }
+        TR_if t.TR_shape != şekil { TR_throw TR_Message("H7555", TR_self._dosya_adı(ad), t.TR_shape, şekil) }
         TR_self.alınan[ad] = TR_true
         TR_return t.TR_to_dtype("float32")
     }
@@ -52,7 +54,7 @@ TR_struct _Alıcı {
     }
     TR_func _bitir() {
         TR_for ad, _ TR_in TR_self.tensörler {
-            TR_if TR_not TR_self.alınan.TR_contains(ad) { TR_throw TR_Message("H7556", ad) }
+            TR_if TR_not TR_self.alınan.TR_contains(ad) { TR_throw TR_Message("H7556", TR_self._dosya_adı(ad)) }
         }
     }
 }
@@ -340,7 +342,8 @@ TR_struct _Bağlaşım {
     }
 }
 
-# HiFi-GAN'ın artık bloğu (`HifiGanResidualBlock`).
+# HiFi-GAN'ın artık bloğu (`HifiGanResidualBlock`). Tip 1'de her genişlemede iki evrişim var:
+# x = x + c2(gevşek(c1(gevşek(x)))). Tip 2'de (Piper'ın `ResBlock2`'si) `ikinciler` boştur: x = x + c1(gevşek(x)).
 TR_struct _ArtıkBlok {
     birinciler: TR_List[_Evrişim]
     ikinciler: TR_List[_Evrişim]
@@ -349,7 +352,8 @@ TR_struct _ArtıkBlok {
         TR_var x = girdi
         TR_for i TR_in 0..TR_self.birinciler.TR_length {
             TR_var h = TR_self.birinciler[i]._ileri(_gevşek(x, TR_self.eğim))
-            x = x + TR_self.ikinciler[i]._ileri(_gevşek(h, TR_self.eğim))
+            TR_if TR_self.ikinciler.TR_length > 0 { h = TR_self.ikinciler[i]._ileri(_gevşek(h, TR_self.eğim)) }
+            x = x + h
         }
         TR_return x
     }
@@ -449,6 +453,11 @@ TR_struct TR_Vits {
     _gürültü: TR_Float
     _süre_gürültüsü: TR_Float
     _örnek_hızı: TR_Int
+    _fonemler: TR_Dict[TR_String, TR_List[TR_Int]] # Piper'ın fonem kimlikleri; MMS'te boş
+    _piper: TR_Bool
+    _ad: TR_String # sesin dosyası ya da klasörü, iletiler için
+    # ses_dili sesin dilidir: Piper'da `.onnx.json`'un `language.family`'si ("tr", "en"), MMS'te "" (bilinmiyor).
+    TR_voice_language: TR_String = ""
     # _üret parçalardan sesi üretir. İki gürültü dışarıdan verilir; `süreler` verilirse öngörülen süre yerine kullanılır.
     TR_func _üret(parçalar: TR_List[TR_Int], süre_gürültüsü: TR_Tensor, önce_gürültüsü: TR_Tensor?, verilen: TR_List[TR_Int]?) -> _Çıktı {
         TR_var boy = parçalar.TR_length
@@ -482,27 +491,58 @@ TR_struct TR_Vits {
             önce_örnek: önce, gizli_ses: z.TR_reshape([f, t]), dalga: TR_self._çözücü._ileri(z))
     }
     # sese_çevir metni sese çevirir. Gürültü sabit tohumdan gelir: aynı metin aynı sesi verir.
+    # Piper sesi metni fonemlere çeviren bir çeviriciyle konuşur; bu sürümde hiçbir dilin çeviricisi yok (H7559).
     TR_func TR_synthesize(metin: TR_String) -> TR_Sound {
+        TR_if TR_self._piper { TR_throw TR_Message("H7559", TR_self.TR_voice_language, "") }
         TR_var parçalar = TR_self._parçalayıcı._parçala(metin)
         TR_var ç = TR_self._üret(parçalar, TR_randn([1, 2, parçalar.TR_length], TR_seed: 0), TR_none, TR_none)
         TR_return TR_Sound(TR_samples: ç.dalga.TR_reshape([1, ç.dalga.TR_shape[0]]), TR_sample_rate: TR_self._örnek_hızı)
     }
+    # _kimlik Piper sözlüğündeki bir fonemin kimlikleridir; sözlükte olmayan fonem hatadır.
+    TR_func _kimlik(fonem: TR_String) -> TR_List[TR_Int] {
+        TR_if TR_not TR_self._fonemler.TR_contains(fonem) { TR_throw TR_Message("H7567", fonem, TR_self._ad) }
+        TR_return TR_self._fonemler[fonem]
+    }
+    # _kimlikler Piper sesinin fonem dizisini kimliklere çevirir: `^`, `_`, her fonemden sonra `_`, sonda `$`
+    # (piper-tts 1.8.0 `phoneme_ids.py`). Piper sözlükte olmayan fonemi atlayıp uyarır; TR onu hata sayar (H7567).
+    TR_func _kimlikler(fonemler: TR_String) -> TR_List[TR_Int] {
+        TR_var dolgu = TR_self._kimlik("_")
+        TR_var k = TR_self._kimlik("^") + dolgu
+        TR_for f TR_in fonemler { k = k + TR_self._kimlik(f) + dolgu }
+        TR_return k + TR_self._kimlik("$")
+    }
+    # _konuş Piper sesinin iç girişidir: her cümlenin fonem kimlikleri ayrı üretilir, dalga tepesi 1'e normlanıp
+    # [-1, 1]'e kırpılır ve cümleler arka arkaya eklenir (piper-tts 1.8.0 `voice.py`, `normalize_audio`; tepesi
+    # 1e-8'den küçük dalga sıfırdır). Boş cümle atlanır. Gürültü sabit tohumdan gelir: aynı kimlikler aynı sesi verir.
+    TR_func _konuş(cümleler: TR_List[TR_List[TR_Int]]) -> TR_Sound {
+        TR_var parçalar: TR_List[TR_Tensor] = []
+        TR_for kimlikler TR_in cümleler {
+            TR_if kimlikler.TR_length == 0 { TR_continue }
+            TR_var d = TR_self._üret(kimlikler, TR_randn([1, 2, kimlikler.TR_length], TR_seed: 0), TR_none, TR_none).dalga
+            TR_var tepe = TR_max(TR_abs(d)).TR_tolist
+            TR_if tepe < 1e-8 { d = TR_zeros(d.TR_shape) } TR_else { d = TR_clamp(d / tepe, TR_min: -1.0, TR_max: 1.0) }
+            parçalar.TR_append(d)
+        }
+        TR_var hepsi = TR_zeros([0])
+        TR_if parçalar.TR_length > 0 { hepsi = TR_concat(parçalar, TR_dim: 0) }
+        TR_return TR_Sound(TR_samples: hepsi.TR_reshape([1, hepsi.TR_shape[0]]), TR_sample_rate: TR_self._örnek_hızı)
+    }
 }
 
-# _alan config.json'un zorunlu alanını verir.
-TR_func _alan(ayar: TR_JSON, alan: TR_String) -> TR_JSON {
+# _alan ayar dosyasının (config.json ya da Piper'ın `.onnx.json`'u) zorunlu alanını verir.
+TR_func _alan(ayar: TR_JSON, alan: TR_String, dosya: TR_String = _AYAR) -> TR_JSON {
     TR_var v = ayar.TR_get(alan)
-    TR_if v == TR_none TR_or TR_Type(v) == TR_NoneType { TR_throw TR_Message("H7551", _AYAR, alan) }
+    TR_if v == TR_none TR_or TR_Type(v) == TR_NoneType { TR_throw TR_Message("H7551", dosya, alan) }
     TR_return v
 }
 
-TR_func _sayı(ayar: TR_JSON, alan: TR_String) -> TR_Int {
-    TR_var n = TR_Int(_alan(ayar, alan))
+TR_func _sayı(ayar: TR_JSON, alan: TR_String, dosya: TR_String = _AYAR) -> TR_Int {
+    TR_var n = TR_Int(_alan(ayar, alan, dosya))
     TR_if n <= 0 { TR_throw TR_Message("H7557", alan, n, "positive") }
     TR_return n
 }
 
-TR_func _ondalık(ayar: TR_JSON, alan: TR_String) -> TR_Float { TR_return TR_Float(_alan(ayar, alan)) }
+TR_func _ondalık(ayar: TR_JSON, alan: TR_String, dosya: TR_String = _AYAR) -> TR_Float { TR_return TR_Float(_alan(ayar, alan, dosya)) }
 
 TR_func _sayılar(ayar: TR_JSON, alan: TR_String) -> TR_List[TR_Int] { TR_return [TR_Int(e) TR_for e TR_in _alan(ayar, alan)] }
 
@@ -628,9 +668,16 @@ TR_func _çözücü(a: _Alıcı, ayar: TR_JSON) -> _Çözücü {
         TR_for j TR_in 0..blok_çekirdekleri.TR_length {
             TR_var k = blok_çekirdekleri[j]
             TR_var r = "decoder.resblocks.\(sıra)"
-            TR_var birinciler = [_evrişim(a, "\(r).convs1.\(m)", yeni, yeni, k, dolgu: (k * genişlemeler[j][m] - genişlemeler[j][m]) // 2, genişleme: genişlemeler[j][m]) TR_for m TR_in 0..genişlemeler[j].TR_length]
-            TR_var ikinciler = [_evrişim(a, "\(r).convs2.\(m)", yeni, yeni, k, dolgu: (k - 1) // 2) TR_for m TR_in 0..genişlemeler[j].TR_length]
-            aşama.TR_append(_ArtıkBlok(birinciler: birinciler, ikinciler: ikinciler, eğim: eğim))
+            TR_var g = genişlemeler[j]
+            TR_if a._var("\(r).convs.0.weight") {
+                # Tip 2: her genişlemede tek evrişim (`convs`).
+                TR_var tekler = [_evrişim(a, "\(r).convs.\(m)", yeni, yeni, k, dolgu: (k * g[m] - g[m]) // 2, genişleme: g[m]) TR_for m TR_in 0..g.TR_length]
+                aşama.TR_append(_ArtıkBlok(birinciler: tekler, ikinciler: [], eğim: eğim))
+            } TR_else {
+                TR_var birinciler = [_evrişim(a, "\(r).convs1.\(m)", yeni, yeni, k, dolgu: (k * g[m] - g[m]) // 2, genişleme: g[m]) TR_for m TR_in 0..g.TR_length]
+                TR_var ikinciler = [_evrişim(a, "\(r).convs2.\(m)", yeni, yeni, k, dolgu: (k - 1) // 2) TR_for m TR_in 0..g.TR_length]
+                aşama.TR_append(_ArtıkBlok(birinciler: birinciler, ikinciler: ikinciler, eğim: eğim))
+            }
             sıra = sıra + 1
         }
         bloklar.TR_append(aşama)
@@ -659,14 +706,21 @@ TR_func _dosya(yol: TR_String, ad: TR_String) -> TR_Path {
     TR_return p
 }
 
-# hazır_vits klasörü açar: config.json, model.safetensors, vocab.json, tokenizer_config.json.
+# hazır_vits bir VITS sesi açar. Yol bir `.onnx` dosyasıysa Piper sesidir (yanında aynı adlı `.onnx.json`);
+# değilse Hugging Face klasörüdür: config.json, model.safetensors, vocab.json, tokenizer_config.json.
 TR_func TR_pretrained_vits(yol: TR_String) -> TR_Vits {
+    TR_if yol.TR_lower().TR_ends_with(".onnx") { TR_return _piper(yol) }
     TR_var ayar = TR_json_parse(TR_read_file(_dosya(yol, _AYAR)))
     TR_var mimari = TR_String(_alan(ayar, "model_type"))
     TR_if mimari != "vits" { TR_throw TR_Message("H7552", yol, mimari) }
     _desteklenen(ayar)
     TR_var a = _Alıcı(tensörler: TR_load_tensors(TR_String(_dosya(yol, _AĞIRLIK))), alınan: {})
     a._atla(["posterior_encoder."])
+    TR_return _kur(a, ayar, _parçalayıcı(yol), yol, "", {}, TR_false)
+}
+
+# _kur adları Hugging Face'inkiler olan tensörlerden ve ayardan modeli kurar; iki biçim de buradan geçer.
+TR_func _kur(a: _Alıcı, ayar: TR_JSON, parçalayıcı: _Parçalayıcı, ad: TR_String, dil: TR_String, fonemler: TR_Dict[TR_String, TR_List[TR_Int]], piper: TR_Bool) -> TR_Vits {
     TR_var h = _sayı(ayar, "hidden_size")
     TR_var f = _sayı(ayar, "flow_size")
     TR_var katmanlar = [_katman(a, "text_encoder.encoder.layers.\(i)", ayar) TR_for i TR_in 0.._sayı(ayar, "num_hidden_layers")]
@@ -677,10 +731,177 @@ TR_func TR_pretrained_vits(yol: TR_String) -> TR_Vits {
         akışlar.TR_append(_Bağlaşım(ön: _evrişim(a, "\(ad).conv_pre", h, f // 2, 1), wavenet: _wavenet(a, "\(ad).wavenet", ayar), son: _evrişim(a, "\(ad).conv_post", f // 2, h, 1)))
         i = i - 1
     }
-    TR_var model = TR_Vits(_parçalayıcı: _parçalayıcı(yol), _gömme: a._al("text_encoder.embed_tokens.weight", [_sayı(ayar, "vocab_size"), h]),
+    TR_var model = TR_Vits(_parçalayıcı: parçalayıcı, _gömme: a._al("text_encoder.embed_tokens.weight", [_sayı(ayar, "vocab_size"), h]),
         _katmanlar: katmanlar, _izdüşüm: _evrişim(a, "text_encoder.project", 2 * f, h, 1), _süre: _süre(a, ayar), _akışlar: akışlar,
         _çözücü: _çözücü(a, ayar), _boyut: h, _akış_boyu: f, _hız: _ondalık(ayar, "speaking_rate"), _gürültü: _ondalık(ayar, "noise_scale"),
-        _süre_gürültüsü: _ondalık(ayar, "noise_scale_duration"), _örnek_hızı: _sayı(ayar, "sampling_rate"))
+        _süre_gürültüsü: _ondalık(ayar, "noise_scale_duration"), _örnek_hızı: _sayı(ayar, "sampling_rate"),
+        _fonemler: fonemler, _piper: piper, _ad: ad)
+    model.TR_voice_language = dil
     a._bitir()
     TR_return model
+}
+
+# Piper sesi. Ses tek dosyadır: `.onnx` (ağırlıklar, Piper'ın dışa vericisinin adlarıyla) ve yanında `.onnx.json`
+# (örnek hızı, ölçekler, fonem kimlikleri, dil). Ağ özgün VITS'tir ve yukarıdaki kurulumla aynıdır: adlar
+# Hugging Face'inkilere çevrilir, mimari ağırlık şekillerinden ve Piper'ın ön ayarından çıkar. Piper'ın kodu
+# (GPL-3) kopyalanmadı; davranış piper-tts 1.8.0'dan okundu ve testlerde ölçülür.
+
+TR_const _PIPER_EĞİM = 0.1 # HiFi-GAN'ın gevşek eğimi (`LRELU_SLOPE`)
+TR_const _PIPER_SINIR = 5.0 # süre akışlarının spline sınırı (`tail_bound`)
+TR_const _PIPER_EPS = 0.00001 # katman normunun eps'i
+# Piper'ın HiFi-GAN ön ayarlarının blok başına genişlemeleri (piper-tts 1.8.0 `train/vits/config.py`); tip ağırlık
+# adından anlaşılır: tip 1 `convs1`/`convs2`, tip 2 `convs`. Genişleme dosyadan okunmaz (düğümler okunmaz).
+TR_const _PIPER_GENİŞLEMELER = {"1": [[1, 3, 5], [1, 3, 5], [1, 3, 5]], "2": [[1, 2], [2, 6], [3, 12]]}
+TR_const _PIPER_DİKKAT = {"conv_q": "q_proj", "conv_k": "k_proj", "conv_v": "v_proj", "conv_o": "out_proj"}
+TR_const _PIPER_AYRIK = {"convs_sep": "convs_dilated", "convs_1x1": "convs_pointwise", "norms_1": "norms_1", "norms_2": "norms_2"}
+TR_const _PIPER_AKIŞ = {"pre": "conv_pre", "convs": "conv_dds", "proj": "conv_proj", "post": "conv_post", "enc": "wavenet"}
+
+# _kalan p'nin i'den sonraki parçalarını noktayla birleştirir.
+TR_func _kalan(p: TR_List[TR_String], i: TR_Int) -> TR_String { TR_return p[i..p.TR_length].TR_join(".") }
+
+# _norm_adı LayerNorm'un `gamma`/`beta`'sını `weight`/`bias` yapar.
+TR_func _norm_adı(ad: TR_String) -> TR_String {
+    TR_if ad == "gamma" { TR_return "weight" }
+    TR_if ad == "beta" { TR_return "bias" }
+    TR_return ad
+}
+
+# _ayrık_adı ayrık evrişimin (`DDSConv`) alt adını çevirir: `convs_sep.0.weight` → `convs_dilated.0.weight`.
+TR_func _ayrık_adı(p: TR_List[TR_String], i: TR_Int) -> TR_String? {
+    TR_if p.TR_length != i + 3 TR_or TR_not _PIPER_AYRIK.TR_contains(p[i]) { TR_return TR_none }
+    TR_return "\(_PIPER_AYRIK[p[i]]).\(p[i + 1]).\(_norm_adı(p[i + 2]))"
+}
+
+# _piper_adı Piper'ın (özgün VITS'in) ağırlık adının Hugging Face'teki adını ve yükleme işlemini verir: [ad, işlem].
+# İşlem "" (olduğu gibi), "doğrusal" ([h, h, 1] evrişim → [h, h]) ya da "eksi_log" (dışa vericinin katladığı
+# `exp(-logs)` → `logs`). Çizgenin sabitleri (adı `/`, `onnx::` ya da rakamla başlayan) boş liste verir.
+# Tanınmayan ağırlık adı olduğu gibi kalır: kurulumun sonunda H7556'dır.
+TR_func _piper_adı(ad: TR_String) -> TR_List[TR_String] {
+    TR_if ad == "sid" { TR_return ["text_encoder.embed_tokens.weight", ""] }
+    TR_if ad == "/dp/flows.0/Exp_output_0" { TR_return ["duration_predictor.flows.0.log_scale", "eksi_log"] }
+    TR_var y = ad.TR_split("/")
+    # Adsız WaveNet evrişimi: onu kullanan düğümün adı ve girdi sırası (15.47), `/flow/flows.<2k>/enc/<katman>.<j>/Conv:1`.
+    TR_if y.TR_length == 6 TR_and y[1] == "flow" TR_and y[2].TR_starts_with("flows.") TR_and y[3] == "enc" TR_and y[5] == "Conv:1" {
+        TR_return ["flow.flows.\(TR_Int(y[2][6..y[2].TR_length]) // 2).wavenet.\(y[4]).weight", ""]
+    }
+    TR_if ad.TR_starts_with("/") TR_or ad.TR_starts_with("onnx::") TR_or (ad.TR_length > 0 TR_and "0123456789".TR_contains(ad[0])) { TR_return [] }
+    TR_var p = ad.TR_split(".")
+    TR_var n = p.TR_length
+    TR_if p[0] == "enc_p" TR_and n >= 3 TR_and p[1] == "proj" { TR_return ["text_encoder.project.\(_kalan(p, 2))", ""] }
+    TR_if p[0] == "enc_p" TR_and n >= 5 TR_and p[1] == "encoder" {
+        TR_var k = "text_encoder.encoder.layers.\(p[3])"
+        TR_if p[2] == "attn_layers" TR_and _PIPER_DİKKAT.TR_contains(p[4]) TR_and n == 6 {
+            TR_return ["\(k).attention.\(_PIPER_DİKKAT[p[4]]).\(p[5])", TR_if p[5] == "weight" { "doğrusal" } TR_else { "" }]
+        }
+        TR_if p[2] == "attn_layers" { TR_return ["\(k).attention.\(_kalan(p, 4))", ""] }
+        TR_if p[2] == "norm_layers_1" TR_and n == 5 { TR_return ["\(k).layer_norm.\(_norm_adı(p[4]))", ""] }
+        TR_if p[2] == "norm_layers_2" TR_and n == 5 { TR_return ["\(k).final_layer_norm.\(_norm_adı(p[4]))", ""] }
+        TR_if p[2] == "ffn_layers" { TR_return ["\(k).feed_forward.\(_kalan(p, 4))", ""] }
+    }
+    TR_if p[0] == "dp" TR_and n >= 3 {
+        TR_var d = "duration_predictor"
+        TR_if p[1] == "flows" TR_and n >= 4 {
+            TR_if p[2] == "0" TR_and n == 4 TR_and p[3] == "m" { TR_return ["\(d).flows.0.translate", ""] }
+            # Piper'ın akış listesinde spline akışları tek sıralardadır (aralarda `Flip`): 2k − 1 → k.
+            TR_var s = "\(d).flows.\((TR_Int(p[2]) + 1) // 2)"
+            TR_if p[3] == "convs" {
+                TR_var alt = _ayrık_adı(p, 4)
+                TR_if alt != TR_none { TR_return ["\(s).conv_dds.\(alt)", ""] }
+            } TR_else TR_if _PIPER_AKIŞ.TR_contains(p[3]) { TR_return ["\(s).\(_PIPER_AKIŞ[p[3]]).\(_kalan(p, 4))", ""] }
+        }
+        TR_if p[1] == "convs" {
+            TR_var alt = _ayrık_adı(p, 2)
+            TR_if alt != TR_none { TR_return ["\(d).conv_dds.\(alt)", ""] }
+        }
+        TR_if p[1] == "pre" TR_or p[1] == "proj" { TR_return ["\(d).\(_PIPER_AKIŞ[p[1]]).\(_kalan(p, 2))", ""] }
+    }
+    TR_if p[0] == "flow" TR_and n >= 5 TR_and p[1] == "flows" TR_and _PIPER_AKIŞ.TR_contains(p[3]) {
+        # Akış listesinde bağlaşımlar çift sıralardadır (aralarda `Flip`): 2k → k.
+        TR_return ["flow.flows.\(TR_Int(p[2]) // 2).\(_PIPER_AKIŞ[p[3]]).\(_kalan(p, 4))", ""]
+    }
+    TR_if p[0] == "dec" TR_and n >= 3 {
+        TR_return ["decoder.\(TR_if p[1] == "ups" { "upsampler" } TR_else { p[1] }).\(_kalan(p, 2))", ""]
+    }
+    TR_return [ad, ""]
+}
+
+# _piper_alıcı dosyanın tensörlerini Hugging Face adlarıyla verir; çizgenin sabitleri atılır, iletiler dosyadaki adı söyler.
+TR_func _piper_alıcı(dosya: TR_Dict[TR_String, TR_Tensor]) -> _Alıcı {
+    TR_var çıkış: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_var adlar: TR_Dict[TR_String, TR_String] = {}
+    TR_for ad, t TR_in dosya {
+        TR_var y = _piper_adı(ad)
+        TR_if y.TR_length == 0 { TR_continue }
+        TR_var x = t
+        TR_if y[1] == "doğrusal" { x = x.TR_reshape([x.TR_shape[0], x.TR_shape[1]]) }
+        TR_if y[1] == "eksi_log" { x = -TR_log(x) }
+        çıkış[y[0]] = x
+        adlar[y[0]] = ad
+    }
+    TR_return _Alıcı(tensörler: çıkış, alınan: {}, dosyadaki: adlar)
+}
+
+# _şekil bir ağırlığın şeklidir; ağırlık yoksa H7553.
+TR_func _şekil(t: TR_Dict[TR_String, TR_Tensor], ad: TR_String) -> TR_List[TR_Int] {
+    TR_if TR_not t.TR_contains(ad) { TR_throw TR_Message("H7553", ad) }
+    TR_return t[ad].TR_shape
+}
+
+# _say `<ön><i><son>` adlı ağırlıkları 0'dan sayar.
+TR_func _say(t: TR_Dict[TR_String, TR_Tensor], ön: TR_String, son: TR_String, baş: TR_Int = 0) -> TR_Int {
+    TR_var i = baş
+    TR_for t.TR_contains("\(ön)\(i)\(son)") { i = i + 1 }
+    TR_return i - baş
+}
+
+# _piper_ayarı Hugging Face'in config.json'unun kurulumun okuduğu alanlarını ağırlık şekillerinden, Piper'ın ön
+# ayarından ve `.onnx.json`'dan kurar.
+TR_func _piper_ayarı(t: TR_Dict[TR_String, TR_Tensor], ses: TR_JSON, dosya: TR_String) -> TR_JSON {
+    TR_var n = TR_Int(ses.TR_get("num_speakers") ?? TR_JSON(1))
+    TR_if n != 1 { TR_throw TR_Message("H7557", "num_speakers", n, "other") }
+    TR_var gömme = _şekil(t, "text_encoder.embed_tokens.weight")
+    TR_var h = gömme[1]
+    TR_var göreli = _şekil(t, "text_encoder.encoder.layers.0.attention.emb_rel_k")
+    TR_var ileri = _şekil(t, "text_encoder.encoder.layers.0.feed_forward.conv_1.weight")
+    # Süre akışları ters yönde 2..n'dir; 1. akış dışa verilmez (ters yönde atılır).
+    TR_var akış = 1 + _say(t, "duration_predictor.flows.", ".conv_pre.weight", baş: 2)
+    TR_var büyütme = _say(t, "decoder.upsampler.", ".weight")
+    TR_var çekirdekler = [_şekil(t, "decoder.upsampler.\(i).weight")[2] TR_for i TR_in 0..büyütme]
+    TR_var tip = TR_if t.TR_contains("decoder.resblocks.0.convs.0.weight") { "2" } TR_else { "1" }
+    TR_var blok_adı = TR_if tip == "2" { "convs" } TR_else { "convs1" }
+    TR_var bloklar = _say(t, "decoder.resblocks.", ".\(blok_adı).0.weight") // TR_max(büyütme, 1)
+    TR_var genişlemeler = _PIPER_GENİŞLEMELER[tip]
+    TR_if bloklar != genişlemeler.TR_length { TR_throw TR_Message("H7557", "resblock_kernel_sizes", bloklar, "other") }
+    TR_var çıkarım = _alan(ses, "inference", dosya)
+    TR_return TR_JSON({
+        "vocab_size": gömme[0], "hidden_size": h, "num_attention_heads": h // göreli[2], "window_size": (göreli[1] - 1) // 2,
+        "num_hidden_layers": _say(t, "text_encoder.encoder.layers.", ".attention.q_proj.weight"),
+        "ffn_dim": ileri[0], "ffn_kernel_size": ileri[2], "layer_norm_eps": _PIPER_EPS,
+        "flow_size": _şekil(t, "text_encoder.project.weight")[0] // 2,
+        "duration_predictor_kernel_size": _şekil(t, "duration_predictor.conv_dds.convs_dilated.0.weight")[2],
+        "depth_separable_num_layers": _say(t, "duration_predictor.conv_dds.convs_dilated.", ".weight"),
+        "duration_predictor_num_flows": akış, "duration_predictor_tail_bound": _PIPER_SINIR,
+        "duration_predictor_flow_bins": (_şekil(t, "duration_predictor.flows.\(akış).conv_proj.weight")[0] + 1) // 3,
+        "wavenet_kernel_size": _şekil(t, "flow.flows.0.wavenet.in_layers.0.weight")[2], "wavenet_dilation_rate": 1,
+        "prior_encoder_num_wavenet_layers": _say(t, "flow.flows.0.wavenet.in_layers.", ".weight"),
+        "prior_encoder_num_flows": _say(t, "flow.flows.", ".conv_pre.weight"),
+        "upsample_initial_channel": _şekil(t, "decoder.conv_pre.weight")[0], "upsample_kernel_sizes": çekirdekler,
+        "upsample_rates": [k // 2 TR_for k TR_in çekirdekler], "leaky_relu_slope": _PIPER_EĞİM,
+        "resblock_kernel_sizes": [_şekil(t, "decoder.resblocks.\(j).\(blok_adı).0.weight")[2] TR_for j TR_in 0..bloklar],
+        "resblock_dilation_sizes": genişlemeler,
+        "speaking_rate": 1.0 / _ondalık(çıkarım, "length_scale", dosya), "noise_scale": _ondalık(çıkarım, "noise_scale", dosya),
+        "noise_scale_duration": _ondalık(çıkarım, "noise_w", dosya), "sampling_rate": _sayı(_alan(ses, "audio", dosya), "sample_rate", dosya)})
+}
+
+# _piper Piper sesini açar.
+TR_func _piper(yol: TR_String) -> TR_Vits {
+    TR_var ayar_yolu = "\(yol).json"
+    TR_if TR_not TR_Path(ayar_yolu).TR_exists { TR_throw TR_Message("H7558", yol, ayar_yolu) }
+    TR_var ses = TR_json_parse(TR_read_file(TR_Path(ayar_yolu)))
+    TR_var a = _piper_alıcı(TR_load_tensors(yol))
+    TR_var fonemler: TR_Dict[TR_String, TR_List[TR_Int]] = {}
+    TR_for f, k TR_in _alan(ses, "phoneme_id_map", ayar_yolu) { fonemler[f] = [TR_Int(e) TR_for e TR_in k] }
+    TR_var dil = ses.TR_get("language") ?? TR_JSON({})
+    TR_var boş = _Parçalayıcı(sözlük: {}, sözcükler: [], boşluk_ekle: TR_false, normalle: TR_false)
+    TR_return _kur(a, _piper_ayarı(a.tensörler, ses, ayar_yolu), boş, yol, TR_String(dil.TR_get("family") ?? TR_JSON("")), fonemler, TR_true)
 }

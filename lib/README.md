@@ -17,7 +17,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |
 | `tr/turkish` | [`turkish.tr`](turkish.tr) | Türkçe sözcüğün sözlük biçimi (`TR_fn_lemma`), türü ve ekleri (`TR_fn_analyze_word`); kendi sözlüğü olan bulucu (`TR_type_Lemmatizer`) |
 | `tr/vad` | [`vad.tr`](vad.tr) | Silero VAD ile konuşma olasılığı (`TR_type_VoiceDetector`) ve sürekli sesten konuşma kesitleri (`TR_type_SpeechSplitter`) |
-| `tr/vits` | [`vits.tr`](vits.tr) | Yayımlanmış VITS (MMS-TTS) modelini Hugging Face klasöründen açmak ve metinden ses üretmek (`TR_type_Vits`) |
+| `tr/vits` | [`vits.tr`](vits.tr) | Yayımlanmış VITS modelini açmak ve metinden ses üretmek: Hugging Face klasörü (MMS-TTS) ya da Piper sesi (`.onnx`) (`TR_type_Vits`) |
 | `tr/chat` | [`chat.tr`](chat.tr) | Sohbet iletisi (`TR_type_ChatMessage`, `TR_type_Role`, `TR_type_ToolCall`) ve Qwen3'ün sohbet biçimi (`TR_fn_qwen3_format`, `TR_fn_qwen3_reply`) |
 | `tr/chat_gemma3` | [`chat_gemma3.tr`](chat_gemma3.tr) | Gemma 3'ün sohbet biçimi (`TR_fn_gemma3_format`, `TR_fn_gemma3_reply`); `tr/chat`'in iletisini ve `TR_type_ChatTokens`'ını kullanır |
 
@@ -200,7 +200,9 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 
 ## `tr/vits`
 
-`TR_fn_pretrained_vits(klasör)` Hugging Face biçimindeki bir VITS klasörünü (`VitsModel`, MMS-TTS) açar ve bir `TR_type_Vits` verir; `model.TR_mem_synthesize(metin)` bir `TR_type_Sound` verir (tek kanal, `config.json`'un `sampling_rate`'i). Dil tanımında maddesi yoktur (27, yazılacak).
+`TR_fn_pretrained_vits(klasör)` Hugging Face biçimindeki bir VITS klasörünü (`VitsModel`, MMS-TTS) açar ve bir `TR_type_Vits` verir; `model.TR_mem_synthesize(metin)` bir `TR_type_Sound` verir (tek kanal, `config.json`'un `sampling_rate`'i). Dil tanımında maddesi yoktur (27, yazılacak). Yol bir `.onnx` dosyasıysa Piper sesi açılır (yanında aynı adlı `.onnx.json`); ses cümle cümle üretilir ve her cümle tepe 1'e normlanır.
+
+- **Piper sesi:** ağırlık adları özgün VITS'inkilerdir ve Hugging Face'inkilere çevrilir (`sid` gömme, `dp.flows.<2k−1>` spline akışları, `flow.flows.<2k>` bağlaşımlar, adsız WaveNet evrişimleri onu kullanan düğümün adıyla, `/dp/flows.0/Exp_output_0` katlanmış `exp(-logs)`); mimari ağırlık şekillerinden, HiFi-GAN bloklarının genişlemesi Piper'ın ön ayarından (tip 1 her blokta (1, 3, 5), tip 2 ((1, 2), (2, 6), (3, 12))) çıkar. Örnek hızı, `noise_scale`, `noise_w`, `length_scale`, fonem kimlikleri ve dil (`TR_mem_voice_language` özelliği, `language.family`; MMS'te boş) `.onnx.json`'dan gelir. Bu sürümde fonem çevirici yoktur: Piper sesinin `TR_mem_synthesize`'ı H7559 verir. Doğruluk: Piper adlarıyla yazılmış küçük rastgele seste Hugging Face'in süreleri bire bir, dalgası 1·10⁻⁴ içinde (`cmd/trlang/e2e/behavior_piper_test.go`, başvurusu `tests/data/vits_piper_tiny/KAYNAK.md`).
 
 - **Dosyalar:** `config.json`, `model.safetensors`, `vocab.json`, `tokenizer_config.json`. `model_type` `vits` değilse `TR_fn_pretrained_model` önerilir.
 - **Ağırlıklar:** her tensörün adı ve şekli ayardan hesaplanır; eksik, şekli uymayan ya da tanınmayan tensör adıyla hata verir. Ağırlık normu (`weight_g`, `weight_v`) yüklemede `g · v / ‖v‖` olarak birleşir. Çıkarımda kullanılmayanlar adıyla atlanır: `posterior_encoder.`, `duration_predictor.post_` ve ters yönün attığı `duration_predictor.flows.1.`.
