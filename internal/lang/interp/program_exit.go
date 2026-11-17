@@ -65,7 +65,7 @@ func (v *VM) RequestExit(code int, message string) *ExitRequest {
 		v.exitMessage = message
 	}
 	v.exitMu.Unlock()
-	v.Interrupt()
+	v.stopOwn() // programın kendi bitişi: Run dönmeden kaldırır (releaseOwnStop)
 	return &ExitRequest{Code: code, Message: message}
 }
 

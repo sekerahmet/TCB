@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -328,4 +329,157 @@ func TestHandleStopCancelsTheDeferralTimer(t *testing.T) {
 	default:
 		t.Error("bekleyen yerleşiği uyandıran kanal kapanmalıydı")
 	}
+}
+
+// reuseLoop aynı VM'de sonraki programdır: döngü turu güvenli noktadır, kesilmiş VM'de H2461 alır.
+const reuseLoop = "TR_var s = 0\nTR_for i TR_in [1, 2, 3] {\n    s += i\n}\n"
+
+// runReuseLoop reuseLoop'u v'de çalıştırır ve hatasını verir; hatasızsa toplamı da denetler.
+func runReuseLoop(t *testing.T, v *VM) error {
+	t.Helper()
+	_, err := v.Run(mustParseProgram(t, reuseLoop))
+	if err == nil {
+		if s, _ := v.GlobalEnv.Get("s"); s.Inspect() != "6" {
+			t.Errorf("döngülü program 6 vermeli: %v", s.Inspect())
+		}
+	}
+	return err
+}
+
+// Yakalanmayan hatayla ya da TR_exit ile biten programın kesmesi (1.9, 1.10) programın kendisinindir:
+// görevler durup ertelenen işler bitince kalkar, aynı VM'deki sonraki program kesilmiş başlamaz. Ertelenen
+// işte açılan görev beklenmez; canlıyken kesme kalır ve görev hiç çalışmaz.
+func TestErrorDoesNotStopTheNextProgram(t *testing.T) {
+	for name, first := range map[string]string{
+		"uncaught_error":    "TR_var x = [1]\nx[5]\n",
+		"error_with_a_task": "TR_async {\n    TR_for { }\n}\nTR_var x = [1]\nx[5]\n",
+		"exit":              "TR_exit(4)\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			v := New()
+			if _, err := v.Run(mustParseProgram(t, first)); err == nil {
+				t.Fatal("ilk program hatayla bitmeliydi")
+			}
+			if v.Interrupted() {
+				t.Error("programın kendi kesmesi Run dönmeden kalkmalı")
+			}
+			if err := runReuseLoop(t, v); err != nil {
+				t.Errorf("sonraki program kesilmemeli: %v", err)
+			}
+		})
+	}
+	t.Run("task_opened_in_defer", func(t *testing.T) {
+		v := New()
+		var ran atomic.Int32
+		v.RegisterBuiltin("say", func(*VM, []Value, map[string]Value) (Value, error) {
+			ran.Add(1)
+			return Null, nil
+		})
+		code := "TR_defer {\n    TR_async {\n        say()\n        TR_for { }\n    }\n}\nTR_var x = [1]\nx[5]\n"
+		if _, err := v.Run(mustParseProgram(t, code)); err == nil {
+			t.Fatal("program hatayla bitmeliydi")
+		}
+		// Görev durdurulmadan çalışırsa sonsuz döngüdedir: süreli beklenir, sonra durdurulur.
+		for deadline := time.Now().Add(5 * time.Second); v.liveTasks.Load() != 0 && time.Now().Before(deadline); {
+			time.Sleep(time.Millisecond)
+		}
+		if v.liveTasks.Load() != 0 {
+			v.Interrupt()
+			v.WaitAsync()
+			t.Fatalf("ertelenen işte açılan görev 5 sn'de durmadı (çalıştı=%d)", ran.Load())
+		}
+		if ran.Load() != 0 || !v.Interrupted() {
+			t.Fatalf("ertelenen işte açılan görev durdurulmalı (çalıştı=%d), kesme kalmalı (%v)", ran.Load(), v.Interrupted())
+		}
+		if err := runReuseLoop(t, v); !errors.Is(err, ErrInterrupted) {
+			t.Errorf("kesme kaldığı için sonraki program durmalı: %v", err)
+		}
+	})
+}
+
+// stopDuring v'de sonsuz döngülü bir program başlatır, döngüye girince RequestStop gönderir ve isteğin
+// nasıl karşılandığını ve Run'ın hatasını verir. Program durmazsa test düşer.
+func stopDuring(t *testing.T, v *VM) (StopDisposition, error) {
+	t.Helper()
+	ready := make(chan struct{})
+	v.RegisterBuiltin("hazır", func(*VM, []Value, map[string]Value) (Value, error) {
+		close(ready)
+		return Null, nil
+	})
+	got := make(chan StopDisposition, 1)
+	go func() {
+		<-ready
+		time.Sleep(5 * time.Millisecond)
+		got <- v.RequestStop(2)
+	}()
+	done := make(chan error, 1)
+	go func() {
+		_, err := v.Run(mustParseProgram(t, "hazır()\nTR_for { }\n"))
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		return <-got, err
+	case <-time.After(10 * time.Second):
+		v.Interrupt() // takılan programı bırak
+		t.Fatalf("istek programı durdurmadı: %v", <-got)
+		return 0, nil
+	}
+}
+
+// Aynı VM'de gerçek kesme sürer (1.5, 1.15): önceki programın bitişi sonrakine gelen isteği yutmaz;
+// önceki program biterken ya da programlar arasında gelen istek, istekle duran programın kesmesi ve
+// Go'dan doğrudan Interrupt kalıcıdır.
+func TestReusedVMStillStops(t *testing.T) {
+	t.Run("after_a_clean_program", func(t *testing.T) {
+		v := New()
+		if err := runReuseLoop(t, v); err != nil {
+			t.Fatal(err)
+		}
+		if d, err := stopDuring(t, v); d != StopApplied || !errors.Is(err, ErrInterrupted) {
+			t.Errorf("hatasız programdan sonra istek uygulanmalı: %v %v", d, err)
+		}
+	})
+	t.Run("after_an_error_program", func(t *testing.T) {
+		v := New()
+		v.Run(mustParseProgram(t, "TR_var x = [1]\nx[5]\n"))
+		if d, err := stopDuring(t, v); d != StopApplied || !errors.Is(err, ErrInterrupted) {
+			t.Errorf("hatalı programdan sonra istek uygulanmalı: %v %v", d, err)
+		}
+	})
+	t.Run("request_between_programs", func(t *testing.T) {
+		for _, first := range []string{reuseLoop, "TR_var x = [1]\nx[5]\n"} {
+			v := New()
+			v.Run(mustParseProgram(t, first))
+			if d := v.RequestStop(2); d != StopFinishing {
+				t.Fatalf("programlar arasındaki istek biten programın isteğidir: %v", d)
+			}
+			if err := runReuseLoop(t, v); !errors.Is(err, ErrInterrupted) {
+				t.Errorf("kaydedilmiş istek sonraki programı durdurmalı: %v\n%s", err, first)
+			}
+		}
+	})
+	t.Run("after_a_stopped_program", func(t *testing.T) {
+		v := New()
+		if _, err := stopDuring(t, v); !errors.Is(err, ErrInterrupted) {
+			t.Fatalf("istek programı durdurmalı: %v", err)
+		}
+		if err := runReuseLoop(t, v); !errors.Is(err, ErrInterrupted) {
+			t.Errorf("istekle duran programdan sonra da durmalı: %v", err)
+		}
+	})
+	t.Run("direct_interrupt_is_kept", func(t *testing.T) {
+		v := New()
+		v.RegisterBuiltin("kes", func(y *VM, _ []Value, _ map[string]Value) (Value, error) {
+			y.Interrupt() // programın kendi kesmesinden sonra gelir, false döner
+			return Null, nil
+		})
+		v.Run(mustParseProgram(t, "TR_defer { kes() }\nTR_var x = [1]\nx[5]\n"))
+		if !v.Interrupted() {
+			t.Fatal("Go'dan doğrudan Interrupt kalmalı")
+		}
+		if err := runReuseLoop(t, v); !errors.Is(err, ErrInterrupted) {
+			t.Errorf("doğrudan Interrupt'tan sonra program durmalı: %v", err)
+		}
+	})
 }

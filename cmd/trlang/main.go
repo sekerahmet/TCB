@@ -348,6 +348,7 @@ func startREPL() {
 		}
 
 		val, err := machine.Run(s.Program)
+		endShellOnExit(machine, err, line)
 		if err != nil {
 			writeRunError(machine, err, line)
 			continue
@@ -359,6 +360,19 @@ func startREPL() {
 			}
 		}
 	}
+}
+
+// endShellOnExit, satır TR_exit ile bittiyse kabuğu o kodla bitirir (1.10 "bütün program biter"):
+// dosya çalıştırmadaki gibi çıkılır, sonraki satır okunmaz; boruyla verilen betikte TR_exit'ten
+// sonrası sessizce çalışmaz. Ertelenen işler Run'da çalıştı; motorlar kapanır.
+func endShellOnExit(machine *interp.VM, err error, line string) {
+	if _, exited := interp.IsExitRequest(err); !exited {
+		return
+	}
+	end := machine.End(err)
+	closeEngine()
+	finishProgram(machine, end, line)
+	exit(0) // finishProgram yalnız kod 0'da döner
 }
 
 // replCommand kabuğun kendi komutlarını (çıkış, çıkış ipucu, /h hata ayıklayıcı) yürütür: handled

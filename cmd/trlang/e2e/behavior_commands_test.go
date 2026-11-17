@@ -234,6 +234,19 @@ func TestREPL(t *testing.T) {
 	}
 }
 
+// Kabukta TR_exit(kod) kabuğu o kodla bitirir (1.10 "bütün program biter"): sonraki satır okunmaz,
+// boruyla verilen betikte TR_exit'ten sonrası sessizce çalışmaz. Önceki satır çalışmış olmalı.
+func TestREPLExitEndsTheShell(t *testing.T) {
+	s := testkit.RunBinary(t, trBinary, "", "TR_print(\"önce\")\nTR_exit(4)\nTR_for i TR_in [1, 2] { TR_print(\"sürdü\") }\nexit\n", nil)
+	testkit.Wait(t, s, 4, []string{"önce"}, nil)
+	if strings.Contains(s.Stdout, "sürdü") || strings.Contains(s.Stdout, "Görüşmek üzere!") {
+		t.Errorf("TR_exit'ten sonraki satır çalışmamalı:\n%s", s.Stdout)
+	}
+	if strings.Contains(s.Stderr, "❌") {
+		t.Errorf("TR_exit bir hata değildir, kabuk hata yazmamalı:\n%s", s.Stderr)
+	}
+}
+
 // Kabuk satırı kimliklerle yazılır (17.7): kullanıcının önceki satırda tanımladığı ad (toplam, sum) bir
 // dilin sözcüğüyle aynı yazılsa da kullanıcının adıdır, yerleşiğe dönmez. Her yazım dilinde (TR_LANG).
 func TestREPLKeepsTheEarlierLinesNames(t *testing.T) {
