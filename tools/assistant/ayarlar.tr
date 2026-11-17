@@ -44,27 +44,48 @@ TR_func ayarı_değiştir(yol: TR_String, k: Katalog, anahtar: TR_String, değer
     TR_return j
 }
 
-# ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dili, sistem iletisi, kapısı ve isteğe
-# bağlı alanları (`microphone`, `recording`, `quantized_activations`) korunur: kur.tr'nin yeniden koşusu kullanıcının
-# seçimini öntanımlıya döndürmez (N'nin Bulgu 1'i).
-TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int) {
+# kart_özeti: makinenin ilk kartının özeti (`machine.gpu`): adı, belleği, sürücü sürümü (15.37a) ve `@`'nin yolu;
+# kart yoksa TR_none. Kitaplığın sürümü TR'de okunamıyor, yazılmaz (tasarım dost-sohbet-gpu, defter 4).
+TR_func kart_özeti() -> TR_JSON? {
+    TR_if TR_not TR_devices().TR_contains("gpu:0") { TR_return TR_none }
+    TR_var b = TR_device_info("gpu:0")
+    TR_return TR_JSON({"name": b.TR_name, "memory_bytes": b.TR_memory_total_bytes, "driver_version": b.TR_driver_version, "matmul": "vendor"})
+}
+
+# kart_belleği: ilk kartın belleği; kart yoksa 0 (`öntanımlı_cihaz`, katalog.tr).
+TR_func kart_belleği() -> TR_Int {
+    TR_var k = kart_özeti()
+    TR_return TR_if k == TR_none { 0 } TR_else { TR_Int(k["memory_bytes"]) }
+}
+
+# ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dili, sistem iletisi, kapısı, cihazı ve
+# isteğe bağlı alanları (`microphone`, `recording`, `quantized_activations`, `chat_only`) korunur: kur.tr'nin yeniden
+# koşusu kullanıcının seçimini öntanımlıya döndürmez (N'nin Bulgu 1'i). Ayar yoksa cihaz `cihaz`'dır; cihaz `gpu`
+# ise `machine.gpu` kartın özetidir (`kart`).
+TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int,
+    cihaz: TR_String = "cpu", kart: TR_JSON? = TR_none) {
     TR_var dil = k.diller[0].kod
     TR_var sistem: TR_JSON = {"source": "catalog"}
     TR_var kapı = ÖNTANIMLI_KAPI
+    TR_var c = cihaz
     TR_var a = ayar
     TR_if a != TR_none {
         dil = a.konuşma_dili
         sistem = a.sistem
         kapı = a.kapı
+        c = a.cihaz
     }
+    TR_var makine: TR_Dict[TR_String, TR_JSON] = {"memory_bytes": TR_JSON(toplam), "memory_source": TR_JSON("option")}
+    TR_if c == "gpu" TR_and kart != TR_none { makine["gpu"] = kart }
     TR_var d: TR_Dict[TR_String, TR_JSON] = {"v": TR_JSON(SÜRÜM), "language_model": TR_JSON(dil_modeli), "speech_language": TR_JSON(dil),
-        "system_prompt": sistem, "context": TR_JSON(bağlam), "device": TR_JSON("cpu"), "port": TR_JSON(kapı),
-        "machine": TR_JSON({"memory_bytes": toplam, "memory_source": "option"})}
+        "system_prompt": sistem, "context": TR_JSON(bağlam), "device": TR_JSON(c), "port": TR_JSON(kapı),
+        "machine": TR_JSON(makine)}
     TR_if a != TR_none {
         TR_if a.mikrofon != "" { d["microphone"] = TR_JSON(a.mikrofon) }
         TR_if a.kayıt { d["recording"] = TR_JSON(TR_true) }
         TR_var n = a.nicemli
         TR_if n != TR_none { d["quantized_activations"] = TR_JSON(n) }
+        TR_if a.yalnız_sohbet { d["chat_only"] = TR_JSON(TR_true) }
     }
     ayar_dosyasına_yaz(yol, TR_JSON(d))
 }
@@ -94,7 +115,9 @@ TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, t
         }
         satırlar.TR_append(TR_if ö == "" { "ONERILEN yok" } TR_else { "ONERILEN \(ö)\(sıkı)" })
         TR_if yaz TR_and ö != "" {
-            ayar_yaz(yol, k, a, ö, toplam, bağlam)
+            TR_var kart = kart_özeti()
+            TR_var b = TR_if kart == TR_none { 0 } TR_else { TR_Int(kart["memory_bytes"]) }
+            ayar_yaz(yol, k, a, ö, toplam, bağlam, öntanımlı_cihaz(k, a, ö, bağlam, b), kart)
             satırlar.TR_append("AYAR_YAZILDI \(yol)")
         }
         TR_return satırlar

@@ -64,6 +64,8 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
     {"name":"example_delete_file","irreversible":true}
   ],
   "heartbeat_ms":15000,
+  "compute_devices":["cpu","gpu"],
+  "compute_device_in_use":"gpu",
   "snapshot":[
     {"type":"state","data":{"state":"idle","mic":false}},
     {"type":"turn_start","data":{"turn_id":"t-6","source":"text"}},
@@ -73,6 +75,7 @@ Bağlantının ilk olayı (yukarıdaki "tutmuyorsa" durumu). Ekran elindeki her 
 }}
 ```
 
+- `compute_devices`: ayarın `device`'ının bu makinede alabileceği değerler (`["cpu","gpu"]`); kart yoksa `["cpu"]`. `compute_device_in_use`: modellerin kurulduğu cihaz (`cpu` ya da `gpu`); ayar `gpu` deyip kart yoksa `cpu`.
 - `session`'ın `id`'si görüntüye katılan son olayınkidir; daha olay yoksa `<ön ek>-0`'dır.
 - `snapshot` öbür olayların aynısıdır, kimliksiz ve sıkıştırılmış: bir konuşma parçası tek `turn_text`, `heartbeat` ve `session` yoktur. Ekranda ikinci bir durum biçimi yok, aynı kod işler.
 - `snapshot` bir `state` olayı, son ölçüler için bir `metrics` olayı, ayar dosyası varsa son `settings` olayı, katalog okunduysa son `catalog` olayı, son yüklemenin `model_load_failed` hatası (sonraki başarılı yüklemeye kadar; önceki açılışta yarıda kalan yükleme de) ve **açık her onay için bir `approval_open`** taşır. Sığmazsa eski turlar düşer; açık onay düşmez.
@@ -192,7 +195,7 @@ Bir tura bağlı olmayan ya da sürmekte olan işi bitirmeyen hata.
 {"v":2,"type":"settings","data":{"language_model":"qwen3-4b-q4km","speech_language":"tr","system_prompt":{"source":"catalog"},"context":8192,"device":"cpu","port":47863,"machine":{"memory_bytes":17179869184,"memory_source":"option"}}}
 ```
 
-Ayarın hepsi (`ayar.json`'un alanları, `v` dışında) ve ayarın hesaplandığı makinenin özeti `machine`. `snapshot`'ta ve her değişimde gelir. Ayar dosyası yoksa gelmez; durum `setup`'tır. Değişim ayar dosyasına yazıldıktan sonra gelir.
+Ayarın hepsi (`ayar.json`'un alanları, `v` dışında) ve ayarın hesaplandığı makinenin özeti `machine`. `machine.gpu`: ayar `gpu` iken kartın özeti (`{"name":"…","memory_bytes":…,"driver_version":"12.4","matmul":"vendor"}`); `matmul` `@`'nin yoludur (`vendor`: üreticinin kitaplığı, 15.53b). `snapshot`'ta ve her değişimde gelir. Ayar dosyası yoksa gelmez; durum `setup`'tır. Değişim ayar dosyasına yazıldıktan sonra gelir.
 
 ### `devices`
 
@@ -249,7 +252,7 @@ Cevap her zaman JSON:
 | `type` | `data` | Ne yapar |
 | --- | --- | --- |
 | `send_text` | `{"text":"..."}` | Metinle yeni tur açar; metin en çok 32 KiB |
-| `mic_set` | `{"on":true}` | Mikrofonu açar ya da kapar. Model yüklü değilse ayarın modellerini yükler, hazır olunca açar; kurulu değilse `not_installed`. Yükleme düşerse istek düşer: mikrofon açılmaz, `model_load_failed` olayı gelir. Yükleme sürerken gelen `mic_set {on:false}` bekleyen dinlemeyi iptal eder; yükleme sürer. |
+| `mic_set` | `{"on":true}` | Mikrofonu açar ya da kapar. Model yüklü değilse ayarın modellerini yükler, hazır olunca açar; kurulu değilse `not_installed`. Yükleme düşerse istek düşer: mikrofon açılmaz, `model_load_failed` olayı gelir. Yükleme sürerken gelen `mic_set {on:false}` bekleyen dinlemeyi iptal eder; yükleme sürer. `chat_only` açıkken `mic_unavailable`. |
 | `approval_answer` | `{"approval_id":"...","decision":"approve"}` | Onay cevabı: `approve` ya da `deny` |
 | `stop` | `{}` | Sürmekte olan turu durdurur; açık onaylar `stopped` ile kapanır |
 | `model_load` | `{"entry_id":"..."}` | Dil modelini ve konuşma dilinin modellerini yükler; tur sürüyorsa `turn_busy`. Yüklenince ayarın dil modelini ayar dosyasına yazar (dosya varsa; Dost'un açılışta kendiliğinden başlattığı yükleme yazmaz); yazma düşerse model yüklü kalır, ayar değişmez, `settings_write_failed`. Yükleme sürerken de kabul edilir: son istek kazanır (süren yükleme biter, son istenen takım farklıysa o yüklenir; `settings_set language_model` ve `speech_language` de aynı kurala girer). |
@@ -259,7 +262,7 @@ Cevap her zaman JSON:
 | `download_cancel` | `{"job_id":"..."}` | İşi durdurur; geçici dosya kalır. Bu oturumda bitmiş iş için bir şey yapmaz (`accepted`); bu oturumda olmamış iş `unknown_job` |
 | `model_delete` | `{"entry_id":"..."}` | Girdinin kurulu dosyalarını siler. Kullanılan takımdaysa takım önce bırakılır, durum `setup` olur; tur sürüyorsa `turn_busy`, işi süren `download_busy`. Yükleme sürerken gelen silme kabul edilir; yükleme bitince model bırakılır ve silinir. |
 
-`settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `language_model` hemen geçerlidir: takım yeniden yüklenir. Tur sürüyorsa `turn_busy`; takımı kurulu değilse `setting_invalid` (`reason` `not_installed`), ayar yazılmaz. `speech_language` tur sürerken `turn_busy` alır: dil değişince takım yeniden yüklenir. `context` ve `microphone` bir sonraki açılışta geçerlidir; `quantized_activations` (`auto`, `on`, `off`) bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
+`settings_set`'in anahtarları: `speech_language` ve `system_prompt` hemen geçerlidir; `language_model` hemen geçerlidir: takım yeniden yüklenir. Tur sürüyorsa `turn_busy`; takımı kurulu değilse `setting_invalid` (`reason` `not_installed`), ayar yazılmaz. `speech_language` tur sürerken `turn_busy` alır: dil değişince takım yeniden yüklenir. `context` ve `microphone` bir sonraki açılışta geçerlidir; `quantized_activations` (`auto`, `on`, `off`) bir sonraki açılışta geçerlidir; `recording` kapatılınca hemen (olaydan sonra kayda satır yazılmaz), açılınca bir sonraki turdan geçerlidir. `chat_only` (true/false) hemen geçerlidir: açıkken mikrofon kapanır ve açılmaz, bekleyen açılma isteği iptal edilir, cevap seslendirilmez; tur sürerken `turn_busy`. `device` (`cpu`, `gpu`) bir sonraki açılışta geçerlidir; `quantized_activations` `on` iken `gpu` ve `gpu` iken `on` `setting_invalid` (`invalid_value`) alır. Komutlar geldikleri sırayla cevaplanır; kabul edilen bir `settings_set` uygulanmadan sonraki komut cevaplanmaz, böylece her `settings_set` kendinden öncekilerin uygulandığı ayara göre denetlenir ve hiçbiri kaybolmaz.
 
 İndirme, silme ve yükleme yalnız `POST /command`'dan gelir. Modelin araçları bu yolu görmez. İndirme adresi yalnız katalogdan kurulur (`huggingface`, `github`); her dosya katalogdaki sha256 ve boyla iner.
 
@@ -293,9 +296,10 @@ Sunucudan gelenler:
 | `size_exceeded` | `file`, `limit_bytes` | Sunucu katalogdaki boydan fazlasını gönderdi; indirme durdu |
 | `disk_full` | `needed_bytes`, `free_bytes` | Yer yetmedi |
 | `unknown_job` | `job_id` | Bu oturumda böyle bir indirme işi olmadı |
-| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` dört değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü ya da aralığı anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış), `not_installed` (`language_model`'in takımı kurulu değil) |
+| `setting_invalid` | `key`, `reason` | Ayar listede yok ya da değeri geçersiz. `reason` dört değerden biri: `unknown_key` (anahtar ayar listesinde değil), `invalid_value` (değerin türü ya da aralığı anahtarın istediği değil: `speech_language` metin değil, `system_prompt` nesne değil; ya da öbür ayarla birlikte geçersiz (`device` `gpu` ile `quantized_activations` `on`)), `system_prompt_language` (kullanıcının sistem iletisi başka dil için yazılmış), `not_installed` (`language_model`'in takımı kurulu değil) |
 | `unknown_language` | `language` | Whisper bu dili tanımıyor ya da katalogda bu dilin modelleri yok |
 | `devices_unavailable` | | Mikrofonların listesi okunamadı |
+| `compute_device_unavailable` | `device` | Ayardaki hesap cihazı bu makinede yok; modeller işlemcide kuruldu |
 | `settings_write_failed` | `path`, `message`, `command` | Ayar dosyası yazılamadı; `command` onu doğuran komuttur (`settings_set` ya da `model_load`). `settings_set`'te değişiklik geri alındı; `model_load`'da model yüklü kaldı, ayar eski: Dost yeniden açılınca ayardaki model yüklenir |
 | `tool_failed` | `tool` | Araç hatayla bitti |
 | `tool_timeout` | `tool`, `limit_ms` | Araç süresini aştı |

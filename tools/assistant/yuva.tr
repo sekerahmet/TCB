@@ -387,6 +387,21 @@ TR_func işaret_sil(klasör: TR_String) {
 
 # işareti_al: açılışta işaret varsa okur ve siler (bildirildikten sonra yeniden söylenmesin). Okunamayan, JSON
 # olmayan ya da `entry`'si metin olmayan işaret de "yarıda kaldı" sayılır, girdisizdir.
+# açılış_olayları: ekranlı açılışın `error` olaylarının verisi, sırasıyla (asistan.tr, `açılış_hataları`): ayar `gpu`
+# deyip modeller işlemcide kurulduysa (`istenen` ≠ `kullanılan`) `compute_device_unavailable` (`device`: istenen);
+# önceki yükleme yarıda kaldıysa (işaret) `model_load_failed` (`model`: işaretin girdisi, okunamadıysa yok).
+TR_func açılış_olayları(önceki: İşaret, istenen: TR_String, kullanılan: TR_String) -> TR_List[TR_JSON] {
+    TR_var l: TR_List[TR_JSON] = []
+    TR_if istenen != kullanılan {
+        l.TR_append(TR_JSON({"code": "compute_device_unavailable", "values": {"device": istenen}, "fatal": TR_false}))
+    }
+    TR_if önceki.var {
+        TR_var g = önceki.giriş
+        l.TR_append(TR_JSON({"code": "model_load_failed", "values": TR_if g == TR_none { TR_JSON({}) } TR_else { TR_JSON({"model": g}) }, "fatal": TR_false}))
+    }
+    TR_return l
+}
+
 TR_func işareti_al(klasör: TR_String) -> İşaret {
     TR_var yol = işaret_yolu(klasör)
     TR_if TR_not TR_Path(yol).TR_exists { TR_return İşaret() }

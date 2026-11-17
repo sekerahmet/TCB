@@ -86,6 +86,8 @@ function createMockTransport() {
         { name: "example_delete_file", irreversible: true },
       ],
       heartbeat_ms: HEARTBEAT_MS,
+      compute_devices: ["cpu"], // sahte makinede kart yok
+      compute_device_in_use: "cpu",
       snapshot,
     });
   }
@@ -128,7 +130,7 @@ function createMockTransport() {
   /** @param {string} state @param {any} [extra] */
   const setState = (state, extra) => emit("state", { state, mic: current.mic, ...(state === "loading" ? { verifying: false } : {}), ...extra });
   // Katalog, ayar, indirme ve yükleme js/mock_models.js'te; durum ve tur buradadır.
-  const models = createMockModels({ emit, setState, state: () => current.state, setMic: (on) => { current.mic = on; }, turn: () => activeTurn });
+  const models = createMockModels({ emit, setState, state: () => current.state, setMic: (on) => { current.mic = on; }, turn: () => activeTurn, gpu: false });
 
   /** @param {string} source */
   function newTurn(source) {
@@ -445,7 +447,7 @@ function createMockTransport() {
       userSays(text || "");
       setState("thinking");
       await wait(400);
-      setState("speaking");
+      if (models.settings.chat_only !== true) setState("speaking");
       await say(wait, t("mock_reply", { count: (text || "").length }));
       endTurn("done");
       publishMetrics();

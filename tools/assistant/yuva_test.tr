@@ -211,3 +211,20 @@ TR_test "dil_değiştir: yeni modeller yüklenemezse hiçbir şey değişmez; y�
     TR_assert_equal(1, uygulandı)
     TR_assert_equal("en", y.takım.dil)
 }
+
+TR_test "açılış olayları: istenen gpu kullanılan cpu ise compute_device_unavailable (device gpu); ikisi aynıysa yok; yarıda kalan yükleme model_load_failed, sırası cihazdan sonra" {
+    TR_var yok = açılış_olayları(İşaret(), "cpu", "cpu")
+    TR_assert_equal(0, yok.TR_length)
+    TR_assert_equal(0, açılış_olayları(İşaret(), "gpu", "gpu").TR_length)
+    TR_var l = açılış_olayları(İşaret(), "gpu", "cpu")
+    TR_assert_equal(1, l.TR_length)
+    TR_assert_equal("compute_device_unavailable", TR_String(l[0]["code"]))
+    TR_assert_equal("gpu", TR_String(l[0]["values"]["device"]))
+    TR_assert(TR_not TR_Bool(l[0]["fatal"]))
+    TR_var iki = açılış_olayları(İşaret(var: TR_true, giriş: "qwen3-4b-q4km"), "gpu", "cpu")
+    TR_assert_equal(["compute_device_unavailable", "model_load_failed"], [TR_String(iki[0]["code"]), TR_String(iki[1]["code"])])
+    TR_assert_equal("qwen3-4b-q4km", TR_String(iki[1]["values"]["model"]))
+    TR_var bozuk = açılış_olayları(İşaret(var: TR_true), "cpu", "cpu")
+    TR_assert_equal(1, bozuk.TR_length)
+    TR_assert(bozuk[0]["values"].TR_get("model") == TR_none)
+}
