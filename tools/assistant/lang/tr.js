@@ -126,6 +126,7 @@ assistantLanguages.tr = {
   "error_setting_invalid": "Bu ayar değiştirilemedi: {key}",
   "error_unknown_language": "Konuşma modeli bu dili tanımıyor ya da katalogda bu dilin modelleri yok: {language}",
   "error_compute_device_unavailable": "Ayardaki ekran kartı bu makinede yok; modeller işlemcide çalışıyor.",
+  "error_context_limited": "Ayardaki bağlam ({context}) bu dil modelinin sınırını aşıyor; model {limit} tokenla çalışıyor.",
   "error_devices_unavailable": "Mikrofonların listesi okunamadı. Mikrofon ayarı değişmedi; Dost ayardaki ya da başlatılırken verilen mikrofonu kullanır.",
   "error_settings_write_failed": "Ayar dosyası yazılamadı: {path} ({message}). Ayar değişmedi.",
   "error_pair_code_expired": "Bağlantı kodu geçersiz.",

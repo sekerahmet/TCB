@@ -80,3 +80,10 @@ TR_func aile_cevabı(aile: TR_String, p: TR_Tokenizer, kimlikler: TR_List[TR_Int
     TR_if gövde.TR_length > 0 TR_and gövde[gövde.TR_length - 1] == p.TR_token_id("<|im_end|>") { gövde = gövde[0..gövde.TR_length - 1] }
     TR_return TR_qwen3_reply(p, gövde)
 }
+
+# önbellek_bağlamı: önbelleğin parça sayısı: istenen bağlam yüklenen modelin sınırını (GGUF `context_length`,
+# `TR_config["bağlam"]`; aşan konumda model H6912 atar) aşıyorsa sınır (Dost katalog K-9; ayar dosyası değişmez,
+# olayı oturum.tr gönderir: yuva.tr, `bağlam_olayı`).
+TR_func önbellek_bağlamı(istenen: TR_Int, model: TR_GPT) -> TR_Int {
+    TR_return TR_min(istenen, TR_Int(model.TR_config["bağlam"]))
+}

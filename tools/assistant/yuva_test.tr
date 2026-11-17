@@ -228,3 +228,15 @@ TR_test "açılış olayları: istenen gpu kullanılan cpu ise compute_device_un
     TR_assert_equal(1, bozuk.TR_length)
     TR_assert(bozuk[0]["values"].TR_get("model") == TR_none)
 }
+
+# Dost katalog K-9: önbellek istenenden küçük kurulduysa ölümcül olmayan context_limited; ekranın sınırı seçili modelinki.
+TR_test "bağlam_olayı: iniş varsa context_limited (context, limit), yoksa yok; bağlam_sınırı seçili modelin context_max'ı" {
+    TR_var o = bağlam_olayı(65536, 40960)
+    TR_assert(o != TR_none)
+    TR_assert_equal("{\"code\":\"context_limited\",\"values\":{\"context\":65536,\"limit\":40960},\"fatal\":false}", TR_json_string(o))
+    TR_assert(bağlam_olayı(8192, 8192) == TR_none TR_and bağlam_olayı(0, 40960) == TR_none)
+    TR_var k = katalog_oku("tools/assistant/katalog.json")
+    TR_assert_equal([40960, 131072, 40960, 131072, 131072, 131072], [bağlam_sınırı(k, "qwen3-4b-q4km"), bağlam_sınırı(k, "gemma3-4b-q4km"),
+        bağlam_sınırı(k, "qwen3-8b-q4km"), bağlam_sınırı(k, "gemma3-12b-q4km"), bağlam_sınırı(k, ""), bağlam_sınırı(k, "yok")])
+    TR_assert_equal(0, bağlam_sınırı(Katalog(girdiler: [], diller: []), "qwen3-4b-q4km"))
+}

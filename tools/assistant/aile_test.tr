@@ -114,3 +114,9 @@ TR_test "Qwen3'ün cevabında sondaki <|im_end|> atılır" {
     TR_assert_equal("Yedi eder.", cevap.TR_content)
     TR_assert_equal(0, hatalar.TR_length)
 }
+
+# Dost katalog K-9: önbellek yüklenen modelin sınırını (TR_config["bağlam"]) aşmaz; altındaki bağlam değişmez.
+TR_test "önbellek_bağlamı: istenen modelin sınırını aşarsa sınır, aşmazsa istenen" {
+    TR_var m = TR_GPT(16, TR_context: 64, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 1)
+    TR_assert_equal([64, 64, 32], [önbellek_bağlamı(65, m), önbellek_bağlamı(64, m), önbellek_bağlamı(32, m)])
+}

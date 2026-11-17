@@ -62,7 +62,7 @@ TR_struct Ekran {
     konuşma_dili: TR_String = ""
     ayar_istendi: TR_JSON? = TR_none
     aygıtlar_istendi: TR_Bool = TR_false # `devices_list` geldi: ana döngü mikrofonları listeler, `devices` gönderir
-    bağlam_sınırı: TR_Int = 0 # dil modellerinin en büyük `context_max`'ı; 0: katalog okunmadı, sınır yok
+    bağlam_sınırı: TR_Int = 0 # seçili dil modelinin `context_max`'ı (seçili değilse en büyüğü); 0: katalog yok, sınır yok
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
     mikrofon_istendi: TR_Bool = TR_false
     yalnız_sohbet: TR_Bool = TR_false # ayarın `chat_only`'si (oturum günceller): mikrofon açılmaz, cevap seslendirilmez
@@ -369,7 +369,7 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_var değer = k.veri.TR_get("value")
     TR_var geçersiz = red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "invalid_value"}))
     TR_if değer == TR_none TR_or TR_not ayar_değeri_mi(anahtar, değer) TR_or e.ayar_çakışması(anahtar, değer) { TR_return geçersiz }
-    # Dil modellerinin en büyük bağlam sınırını aşan bağlam yazılmaz: Dost bir sonraki açılışta H8174 ile açılmazdı.
+    # Seçili dil modelinin sınırını aşan bağlam yazılmaz (Dost katalog K-9; en büyüğü aşan H8174 ile açılmazdı).
     TR_if anahtar == "context" TR_and e.bağlam_sınırı > 0 TR_and TR_Int(değer) > e.bağlam_sınırı { TR_return geçersiz }
     TR_if ["context", "microphone", "recording", "quantized_activations", "device"].TR_contains(anahtar) {
         e.ayar_istendi = TR_JSON({"key": anahtar, "value": değer})

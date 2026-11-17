@@ -126,6 +126,7 @@ assistantLanguages.en = {
   "error_setting_invalid": "This setting could not be changed: {key}",
   "error_unknown_language": "The speech model does not recognize this language, or the catalog has no models for it: {language}",
   "error_compute_device_unavailable": "The graphics card in the settings is not on this machine; the models run on the processor.",
+  "error_context_limited": "The context in the settings ({context}) is above this language model's limit; the model runs with {limit} tokens.",
   "error_devices_unavailable": "The list of microphones could not be read. The microphone setting did not change; Dost uses the one in the settings or the one given at start.",
   "error_settings_write_failed": "The settings file could not be written: {path} ({message}). The setting did not change.",
   "error_pair_code_expired": "The connection code is not valid.",

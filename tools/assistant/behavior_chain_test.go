@@ -184,6 +184,10 @@ func TestChainFamilyComesFromTheLibrary(t *testing.T) {
 	if !strings.Contains(setup, "aile: aile, durma: durma") {
 		t.Errorf("%s asistan_kur: Zincir'e aile: aile, durma: durma verilmeli", chainProgram)
 	}
+	// Dost katalog K-9: önbellek yüklenen modelin sınırını aşmaz (aile.tr, önbellek_bağlamı; aile_test.tr sınar).
+	if !strings.Contains(setup, "bağlam: önbellek_bağlamı(bağlam, model)") {
+		t.Errorf("%s asistan_kur: Zincir'in bağlamı önbellek_bağlamı(bağlam, model) olmalı", chainProgram)
+	}
 	family := body(t, familyModule, readFile(t, familyModule), "TR_func gguf_ailesi(")
 	before(t, familyModule+" gguf_ailesi", family, "model.TR_eos_tokens()", "TR_load_metadata(")
 	if !strings.Contains(family, "aile_denetle(") {

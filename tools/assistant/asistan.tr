@@ -154,7 +154,7 @@ TR_func asistan_kur(t: Takım) -> Asistan {
     TR_var aile, durma = gguf_ailesi(t.dil_modeli, model)
     TR_var nicemli = nicemli_çöz(seçim, TR_default_device(), model)
     TR_var z = Zincir(p: TR_load_tokenizer(t.dil_modeli), model: model, sistem: t.sistem, en_çok: TR_Int(ayar["en_çok_parça"]),
-        bağlam: bağlam, önbelleksiz: TR_Bool(ayar["önbelleksiz"]), aile: aile, durma: durma, nicemli: nicemli, seçim: seçim)
+        bağlam: önbellek_bağlamı(bağlam, model), önbelleksiz: TR_Bool(ayar["önbelleksiz"]), aile: aile, durma: durma, nicemli: nicemli, seçim: seçim)
     TR_if açık { # üçüncü denetim, Whisper'dan önce: nicemlenmiş çarpım ağırlığı hiç yoksa seçenek etkisiz kalırdı (S2d)
         TR_var hata = nicemli_ağırlık_hatası(z.model, seçim)
         TR_if hata != TR_none { TR_throw hata }
@@ -442,9 +442,7 @@ TR_func ekranlı_kip() -> TR_Int {
     TR_var etkin = takım_ayarı(k, a_ayar)
     TR_if TR_not elle TR_and karılacak_var(kj, klasör) { e.doğrulanıyor() }
     e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
-    TR_for g TR_in k.girdiler {
-        TR_if g.tür == "language_model" TR_and g.bağlam_sınırı > e.bağlam_sınırı { e.bağlam_sınırı = g.bağlam_sınırı }
-    }
+    e.bağlam_sınırı = bağlam_sınırı(k, etkin.dil_modeli) # seçili modelinki (Dost katalog K-9)
     e.konuşma_dili = etkin.konuşma_dili
     e.dil_modeli = etkin.dil_modeli
     e.yalnız_sohbet = etkin.yalnız_sohbet

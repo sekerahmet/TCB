@@ -169,6 +169,9 @@ TR_struct Oturum {
             TR_sleep(0.05)
         }
         TR_if hata == TR_none {
+            TR_var a = TR_self.yüklü.a
+            TR_var ol = TR_if a == TR_none { TR_none } TR_else { bağlam_olayı(TR_self.bağlam, a.z.bağlam) }
+            TR_if ol != TR_none { TR_self.e.gönder("error", ol) } # Dost katalog K-9
             TR_self.e.hazır = TR_true
             TR_self.e.boşta()
             TR_return TR_true
@@ -203,6 +206,7 @@ TR_struct Oturum {
             yeni.dil_modeli = TR_String(değer)
             TR_self.etkin = yeni
             TR_self.e.dil_modeli = yeni.dil_modeli
+            TR_self.e.bağlam_sınırı = bağlam_sınırı(TR_self.k, yeni.dil_modeli)
             TR_if TR_not TR_self.yüklü_mü(yeni.dil_modeli) { TR_self.e.yüklenecek = yeni.dil_modeli } # son istek kazanır
             TR_self.ayarı_gönder()
             TR_return
@@ -466,6 +470,7 @@ TR_struct Oturum {
         yeni.dil_modeli = giriş
         TR_self.etkin = yeni
         TR_self.e.dil_modeli = giriş
+        TR_self.e.bağlam_sınırı = bağlam_sınırı(TR_self.k, giriş)
         TR_self.ayarı_gönder()
     }
 
