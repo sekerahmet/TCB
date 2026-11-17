@@ -33,11 +33,12 @@
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=commit      commit öncesi denetim (en çok 120 sn ve kaydın yazılması; yan oturumların
 #                     ve TCB'nin tek commit öncesi komutu, CLAUDE_YAN_DAL_KURALLARI.md "Sınama"): gofmt, .tr biçimi
-#                     (format_checks), düzen kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests), dil
-#                     tanımı atıfları, son olarak değişen dosyaların hafif testleri, yakından uzağa (codegraph changed
-#                     --go-tests --by-distance --without-codegraph-self-tests, ağır listesi commit_heavy_tests dışarıda,
-#                     kipin 120 sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph testlerinin sayısı "G4'e kaldı"
-#                     diye yazılır). Sonuç ✅ (yakın testler koştu), ⚠️ (düzen adımının paketleri dışında yakın seçildi,
+#                     (format_checks), dil tanımı atıfları (codegraph'ı derler), sonra birlikte: arka planda düzen
+#                     kuralları (./internal) ve G4'ü sık düşüren hafif testler (commit_tests; 120 sn'ye girmez, kesilmez,
+#                     kip onları bekler ve çıktılarını sonda basar), ön planda değişen dosyaların hafif testleri, yakından
+#                     uzağa (codegraph changed --go-tests --by-distance --without-codegraph-self-tests, ağır listesi
+#                     commit_heavy_tests dışarıda, kipin 120 sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph
+#                     testlerinin sayısı "G4'e kaldı" diye yazılır). Sonuç ✅ (yakın testler koştu), ⚠️ (düzen adımının paketleri dışında yakın seçildi,
 #                     hiçbiri koşmadı; çıkış 3) ya da ℹ️ (yakın test seçilmedi). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
@@ -235,6 +236,11 @@ commit_specrefs=-
 # Düzen adımının bütün olarak koştuğu paketler: seçimdeki testleri parçalara girmez, koşulmuş sayılır (commit_plan);
 # ⚠️'nün ölçütü bunların dışındaki yakınlardır (commit_counts; DENETİM 840 Ş1, TCB 2026-11-17 16:13).
 commit_layout_pkgs=(./internal ./internal/reporoot)
+# Arka plandaki düzen adımı (commit_layout_start yazar, commit_layout_finish okur; kip-yakın K2–K7).
+commit_layout_pid=""
+commit_layout_out=""
+commit_layout_res=""
+commit_layout_prior_fail=""
 commit_failed_step=""
 repo_scan_pkgs=(
 	./cmd/trlang
@@ -651,6 +657,8 @@ commit_run_chunks() {
 	for ((chunk = 1; chunk <= last; chunk++)); do
 		mapfile -t pkgs < <(awk -F'\t' -v c="$chunk" '$1 == c && !s[$2]++ { print $2 }' "$plan")
 		run="^($(awk -F'\t' -v c="$chunk" '$1 == c { print $3 }' "$plan" | sort -u | paste -sd'|'))\$"
+		# --ilk-kalanda-dur: arka plandaki düzen adımı kaldıysa sonraki parça başlamaz, kesilmiş sayılır (kip-yakın K6).
+		[ -z "$stop_first" ] || ! commit_layout_failed || commit_deadline_ms=0
 		remaining=$((commit_deadline_ms - $(commit_now_ms)))
 		log=$(mktemp)
 		code=124
@@ -749,6 +757,75 @@ commit_selection() {
 		echo "G4'e kaldı (seçime girmeyen $commit_self_out codegraph testi)"
 	fi
 	[ "$commit_failed_tests" -eq 0 ] || fail "değişen dosyaların hafif testleri"
+}
+
+# commit_layout_start commit kipinin düzen adımını arka planda başlatır (kip-yakın K2, K3): düzen paketleri
+# (commit_layout_pkgs) bütün olarak, sonra G4'ü sık düşüren hafif testler (commit_tests). Adım yakınların 120 sn'sine
+# girmez ve kesilmez (K5). Çıktısı commit_layout_out'a, sonucu ("<sn><TAB><kalan adımlar, | ile>") commit_layout_res'e
+# yazılır; ana kabuk commit_layout_finish'te okur (K4). Arka planda stop_first boştur ve seen_fail'e yazılmaz: arka plan
+# ön planı durdurmaz, ön plandaki parçanın watched_ok'una kalan yazmaz (DENETİM 841 N3). Betik biterse ya da kesilirse
+# trap arka planı durdurur (K7). Bash trap'i ön plandaki komut bitince koşar: kesilen kipte arka plan en geç o anda durur.
+commit_layout_start() {
+	commit_layout_out=$(mktemp)
+	commit_layout_res=$(mktemp)
+	rm -f "$commit_layout_res"
+	commit_layout_prior_fail=$commit_failed_step
+	(
+		stop_first=""
+		start=$SECONDS
+		left=()
+		go test "${p_flag[@]}" -short -count=1 "${commit_layout_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files'
+		[ "${PIPESTATUS[0]}" -eq 0 ] || left+=("düzen kuralları")
+		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
+			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files'
+		[ "${PIPESTATUS[0]}" -eq 0 ] || left+=("G4'ü sık düşüren hafif testler")
+		printf '%d\t%s\n' $((SECONDS - start)) "$(IFS='|' && echo "${left[*]}")" >"$commit_layout_res.tmp"
+		mv "$commit_layout_res.tmp" "$commit_layout_res"
+	) >"$commit_layout_out" 2>&1 &
+	commit_layout_pid=$!
+	trap commit_layout_stop EXIT
+	trap 'commit_layout_stop; exit 130' INT
+	trap 'commit_layout_stop; exit 143' TERM
+}
+
+# commit_layout_failed arka plan bittiyse ve bir adımı kaldıysa doğru döner (--ilk-kalanda-dur'un parça arası bakışı, K6).
+commit_layout_failed() {
+	local secs left=""
+	[ -n "$commit_layout_res" ] && [ -s "$commit_layout_res" ] || return 1
+	IFS=$'\t' read -r secs left <"$commit_layout_res"
+	[ -n "$left" ]
+}
+
+# commit_layout_finish arka planı bekler, çıktısını düzen adımının başlığıyla basar, kalan adımlarını ana kabukta
+# kaydeder ve süresini adım sürelerine yazar (K4). Süre arka planın kendi süresidir, yakınlarla örtüşür. Kaydın sonuç
+# alanı ilk kalan adımdır, ama iki adım birden kalırsa bugünkü gibi düzen adımıdır (DENETİM 841 N1): yakınların kalanı,
+# arka plan başladıktan sonra yazılmışsa silinir. Sonuç dosyası yoksa (ilk kalanda durdurulan arka plan) adım kalan
+# sayılmaz.
+commit_layout_finish() {
+	local secs=0 left="" name pkgs
+	local names=()
+	step_end
+	[ -z "$commit_layout_pid" ] || wait "$commit_layout_pid" 2>/dev/null
+	commit_layout_pid=""
+	pkgs=$(printf '%s, ' "${commit_layout_pkgs[@]}")
+	step "Düzen kuralları (${pkgs%, }) ve G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
+	[ -z "$commit_layout_out" ] || cat "$commit_layout_out" 2>/dev/null
+	if [ -n "$commit_layout_res" ] && [ -s "$commit_layout_res" ]; then
+		IFS=$'\t' read -r secs left <"$commit_layout_res"
+	fi
+	step_start=$((SECONDS - secs))
+	rm -f "$commit_layout_out" "$commit_layout_res"
+	[ -n "$left" ] || return 0
+	commit_failed_step=$commit_layout_prior_fail
+	IFS='|' read -r -a names <<<"$left"
+	for name in "${names[@]}"; do fail "$name"; done
+}
+
+# commit_layout_stop koşan arka planı alt süreçleriyle durdurur (K7; trap'ler commit_layout_start'ta).
+commit_layout_stop() {
+	[ -n "$commit_layout_pid" ] || return 0
+	stop_tree "$commit_layout_pid"
+	commit_layout_pid=""
 }
 
 # commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen
@@ -1265,16 +1342,14 @@ for mode in $modes; do
 		gofmt_check
 		step "TR dosyalarının biçimi"
 		if build_tr; then format_checks; else fail "trlang derlenemedi"; fi
-		step "Düzen kuralları (./internal, ./internal/reporoot) ve G4'ü sık düşüren hafif testler (${#commit_tests[@]} test, ${#commit_test_pkgs[@]} paket)"
-		go test "${p_flag[@]}" -short -count=1 ./internal ./internal/reporoot 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
-		watched_ok "${PIPESTATUS[0]}" || fail "düzen kuralları"
-		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${commit_tests[@]}" | sed 's/|$//'))\$" \
-			"${commit_test_pkgs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
-		watched_ok "${PIPESTATUS[0]}" || fail "G4'ü sık düşüren hafif testler"
 		# Tekrar adayları (dups_check) bu kipte yok: kopya aramasını G4'ün tam denetimi yapar (codegraph dilim 6, D6-2;
-		# codegraph 7 K1). Kaydın aday: alanı -.
+		# codegraph 7 K1). Kaydın aday: alanı -. Atıflar codegraph'ı derler; yakınların seçimi o ikiliyle alınır.
 		spec_refs_check
+		# Düzen adımı arka planda, yakınlar ön planda birlikte koşar (kip-yakın K2): düzen adımı ve atıflar yakınlardan
+		# önce 120 sn'nin 65–97 sn'sini harcıyordu (2026-11-16 – 2026-11-17'nin dört kipi).
+		commit_layout_start
 		commit_light_tests
+		commit_layout_finish
 		;;
 	on)
 		quick_static_checks

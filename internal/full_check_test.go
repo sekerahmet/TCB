@@ -152,7 +152,9 @@ func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
 	}
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
 	goTest := regexp.MustCompile(`^\s*(?:\w+=\S*\s+)*go test `)
-	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"}, {"\tcommit)\n", "\n\t\t;;\n"}} {
+	// Commit kipinin düzen adımı arka planda, commit_layout_start'ta koşar (kip-yakın K2).
+	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"},
+		{"commit_layout_start() {\n", "\n}\n"}} {
 		_, rest, found := strings.Cut(script, part[0])
 		if !found {
 			t.Fatalf("tools/full_check.sh: %q bulunamadı", part[0])

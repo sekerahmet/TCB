@@ -28,10 +28,12 @@ func commitPrelude(t *testing.T) string {
 	}
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
 	parts := []string{"set -o pipefail", "stop_first=\"\"", "seen_fail=$(mktemp)", "p_flag=()", "failed=0",
-		`step() { printf '== %s\n' "$1"; }`, `fail() { printf '!! KALDI: %s\n' "$1"; failed=1; }`}
+		`step() { printf '== %s\n' "$1"; }`, `step_end() { :; }`, `fail() { printf '!! KALDI: %s\n' "$1"; failed=1; }`}
 	for _, pat := range []string{
+		`(?ms)^commit_tests=\(\n.*?^\)$`, `(?ms)^commit_test_pkgs=\(\n.*?^\)$`,
 		`(?ms)^commit_heavy_tests=\(\n.*?^\)$`, `(?ms)^commit_late_packages=\(\n.*?^\)$`,
 		`(?ms)^commit_seconds=.*?^commit_failed_step=""$`, `(?m)^commit_now_ms\(\) \{ .*\}$`,
+		`(?m)^ext=""\ncase "\$\(uname -s\)" in .*$`,
 	} {
 		m := regexp.MustCompile(pat).FindString(script)
 		if m == "" {
@@ -40,7 +42,9 @@ func commitPrelude(t *testing.T) string {
 		parts = append(parts, m)
 	}
 	for _, name := range []string{"commit_plan", "commit_run_chunks", "commit_settle", "commit_selection", "commit_record",
-		"commit_counts", "commit_kind", "commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests"} {
+		"commit_counts", "commit_kind", "commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests",
+		"commit_layout_start", "commit_layout_failed", "commit_layout_finish", "commit_layout_stop", "children", "stop_tree",
+		"stop_siblings"} {
 		m := regexp.MustCompile(`(?ms)^` + name + `\(\) \{\n.*?^\}$`).FindString(script)
 		if m == "" {
 			t.Fatalf("tools/full_check.sh: %s işlevi bulunamadı", name)
@@ -194,6 +198,16 @@ func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
 	}
 	if spec, light := strings.Index(branch, "\t\tspec_refs_check\n"), strings.Index(branch, "\t\tcommit_light_tests\n"); spec < 0 || light < spec {
 		t.Errorf("commit kipinde spec_refs_check commit_light_tests'ten önce koşmalı:\n%s", branch)
+	}
+	// Düzen adımı atıflardan sonra arka planda başlar, yakınlar onunla birlikte koşar, kip sonda onu bekler (kip-yakın K2).
+	order := []string{"\t\tspec_refs_check\n", "\t\tcommit_layout_start\n", "\t\tcommit_light_tests\n", "\t\tcommit_layout_finish\n"}
+	for i, prev := 1, strings.Index(branch, order[0]); i < len(order); i++ {
+		at := strings.Index(branch, order[i])
+		if at < 0 || at < prev {
+			t.Errorf("commit kipinin sırası %q olmalı:\n%s", order, branch)
+			break
+		}
+		prev = at
 	}
 	dir, env := fakeGo(t, map[string]string{"tools_edithook.out": "345 item(s), 7956 mention(s), 0 error(s), 0 note(s)\n"})
 	built := filepath.ToSlash(filepath.Join(dir, "bin", "codegraph-built"))
