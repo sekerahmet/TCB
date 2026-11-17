@@ -35,7 +35,7 @@ Her hız ve bellek ölçüsü burada, işine göre beş dosyadan birinde tek sat
 | Koşu | koşu sayısı, ortanca ve aralık |
 | Sonuç | sayılar birimleriyle; iki şeyin karşılaştırması oranla |
 | Kaynak | `tools/record` kimliği ve devir; taşınan satırda ayrıca `taşındı: <dosya>@<commit>:<satır>`, taşınan Colab satırında günlüğün saat dilimi |
-| Yerini alan | `—` ya da aynı şeyin (iş, model, aygıt, ölçü) yeni ölçüsünün kimliği; o satır aynı dosyadadır ve Tarih'i daha yenidir |
+| Yerini alan | `—` ya da aynı şeyin (iş, model, aygıt, ölçü) yeni ölçüsünün kimliği; o satır aynı dosyadadır ve Tarih'i daha yenidir (aynı gün ve saat yeni sayılmaz; saati yazılmamış aynı günlü satırda sıra bilinmez, kabul edilir) |
 
 ## Yollar
 
@@ -62,6 +62,9 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | G4CPU | Colab G4, işlemci | işlemci |
 | G4GPU | Colab G4, GPU | GPU |
 | HIGHRAM | Colab CPU High-RAM | işlemci |
+| CPU | Colab CPU | işlemci |
+
+Dizüstünün belleği iki 16 GB DDR5-4800 modülüdür; çift kanalsa teorik bant 76,8 GB/sn, kanal sayısı ölçülmedi (`Win32_PhysicalMemory`, 2026-11-01; eski `docs/measurements.md`'den).
 
 ## Oturumlar
 
@@ -72,6 +75,10 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | D1 | D1 |
 | S1 | S1 |
 | C1 | C1 |
+| H2 | H2 |
+| MOTOR | Motor |
+| DOST | Dost Interface |
+| CODEGRAPH | CODEGRAPH UZMANI |
 | TCB | TCB |
 | DENETIM | DENETİM |
 | DILUZMANI | DIL UZMANI |
@@ -100,7 +107,7 @@ Emsallerin ve ortamın makine başına geçerli sürümü. Yeni sürümle ölçe
 
 - **Karşılaştırma aynı makinede ve aynı koşuda yapılır,** sırası dönüşümlü. İki ayrı makinenin mutlak sayıları karşılaştırılmaz; oran yazılır.
 - **Dizüstü paylaşımlıdır:** yan oturumlar çalışırken sayılar gürültülüdür. Hız ölçüleri Colab'da koşulur; dizüstünde yalnız orada ölçülebilen şey ölçü penceresinde ölçülür.
-- **Commit'siz ölçü girmez.**
+- **Commit'siz ölçü girmez.** Ölçünün commit'i main'de ya da kontrol dalında bir commit'tir; deneme birleşmesi olmaz (DENETİM 842 N2: komut birleşme commit'lerini saymaz, deneme birleşmesinin kendi çözümü sayılmadan kalır).
 - **Bir satır ne zaman eski:** commit'inden bu yana yollarından birine dokunan bir commit `origin/main`'e girdiyse ya da depo dışı sürümlerinden biri değiştiyse. Ayrı bir "Eski" listesi yoktur; komut söyler.
 
 ## Ölçü yöntemi notları
