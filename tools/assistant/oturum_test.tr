@@ -301,7 +301,7 @@ TR_test "katalog kartta: modeller kartta kurulduysa uygunluk kartın belleğiyle
         TR_var l = [x TR_for x TR_in TR_List(_son(o.e)["data"]["entries"]) TR_if TR_String(x["id"]) == "qwen3-4b-q4km"]
         TR_return TR_String(l[0]["fit"])
     }
-    TR_assert_equal("tight", uyum()) # 16 GiB'lik makine
+    TR_assert_equal("fits", uyum()) # 16 GiB'lik makine (Qwen3-4B'nin 2026-11-17 ölçüsüyle)
     o.kart = 2147483648
     TR_assert_equal("too_large", uyum()) # 2 GiB'lik kart
 }

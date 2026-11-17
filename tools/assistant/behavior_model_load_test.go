@@ -121,7 +121,7 @@ func TestDostStartsWithoutModels(t *testing.T) {
 		{"c-7", "settings_set", `{"key":"speech_language","value":"xx"}`, "unknown_language"},
 		// Bağlamın üst sınırı katalogun en büyük context_max'ıdır: modelsiz açılışta da tanımlı.
 		{"c-8", "settings_set", `{"key":"context","value":4096}`, "accepted"},
-		{"c-9", "settings_set", `{"key":"context","value":40961}`, "setting_invalid"},
+		{"c-9", "settings_set", `{"key":"context","value":131073}`, "setting_invalid"},
 	} {
 		if got := s.command(t, c.id, c.typ, c.data); got != c.want {
 			t.Errorf("%s %s: %s, beklenen %s", c.typ, c.data, got, c.want)

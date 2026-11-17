@@ -58,18 +58,21 @@ TR_func kart_belleği() -> TR_Int {
     TR_return TR_if k == TR_none { 0 } TR_else { TR_Int(k["memory_bytes"]) }
 }
 
-# ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dili, sistem iletisi, kapısı, cihazı ve
-# isteğe bağlı alanları (`microphone`, `recording`, `quantized_activations`, `chat_only`) korunur: kur.tr'nin yeniden
-# koşusu kullanıcının seçimini öntanımlıya döndürmez (N'nin Bulgu 1'i). Ayar yoksa cihaz `cihaz`'dır; cihaz `gpu`
-# ise `machine.gpu` kartın özetidir (`kart`).
+# ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dil modeli, dili, sistem iletisi, kapısı,
+# cihazı ve isteğe bağlı alanları (`microphone`, `recording`, `quantized_activations`, `chat_only`) korunur: kur.tr'nin
+# yeniden koşusu kullanıcının seçimini öntanımlıya ya da öneriye döndürmez (N'nin Bulgu 1'i; dil modeli Dost katalog
+# K-1, TCB 22:49). Ayar yoksa dil modeli `dil_modeli` (öneri), cihaz `cihaz`'dır; cihaz `gpu` ise `machine.gpu`
+# kartın özetidir (`kart`).
 TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String, toplam: TR_Int, bağlam: TR_Int,
     cihaz: TR_String = "cpu", kart: TR_JSON? = TR_none) {
+    TR_var lm = dil_modeli
     TR_var dil = k.diller[0].kod
     TR_var sistem: TR_JSON = {"source": "catalog"}
     TR_var kapı = ÖNTANIMLI_KAPI
     TR_var c = cihaz
     TR_var a = ayar
     TR_if a != TR_none {
+        lm = a.dil_modeli
         dil = a.konuşma_dili
         sistem = a.sistem
         kapı = a.kapı
@@ -77,7 +80,7 @@ TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String,
     }
     TR_var makine: TR_Dict[TR_String, TR_JSON] = {"memory_bytes": TR_JSON(toplam), "memory_source": TR_JSON("option")}
     TR_if c == "gpu" TR_and kart != TR_none { makine["gpu"] = kart }
-    TR_var d: TR_Dict[TR_String, TR_JSON] = {"v": TR_JSON(SÜRÜM), "language_model": TR_JSON(dil_modeli), "speech_language": TR_JSON(dil),
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {"v": TR_JSON(SÜRÜM), "language_model": TR_JSON(lm), "speech_language": TR_JSON(dil),
         "system_prompt": sistem, "context": TR_JSON(bağlam), "device": TR_JSON(c), "port": TR_JSON(kapı),
         "machine": TR_JSON(makine)}
     TR_if a != TR_none {
