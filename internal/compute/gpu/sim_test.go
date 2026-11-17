@@ -218,8 +218,10 @@ func limitPlace(err error) string {
 
 func TestUnsupported(t *testing.T) {
 	g := gpuBackend()
-	if err := testkit.PanicError(func() { g.Alloc(4, tensor.Q4) }); !messages.Has(err, messages.H4050) {
-		t.Fatalf("q4 mesajı: %v", err)
+	// "q4"ün kartta deposu var (GGUF Q4_0 blokları, TestQuantCrossesTheCardWithItsBytes); deposu olmayan
+	// tür burada tanımsız bir türdür.
+	if err := testkit.PanicError(func() { g.Alloc(4, tensor.DType(200)) }); !messages.Has(err, messages.H4050) {
+		t.Fatalf("tanımsız tür mesajı: %v", err)
 	}
 	a := tensor.NewOn(tensor.CPU, []float32{1, 2}, 2)
 	b := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
