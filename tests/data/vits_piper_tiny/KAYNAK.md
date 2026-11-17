@@ -1,0 +1,9 @@
+# Piper biçimli küçük VITS modeli
+
+Piper sesinin testleri bu klasörü okur: Go testi ağırlıkları Piper'ın adlarıyla bir ONNX dosyasına yazar (`sid` gömmesi, adsız WaveNet evrişimleri, `Exp`'e katlanmış ölçek), TR o dosyayı Piper sesi olarak açar ve dalgası buradaki başvuruyla karşılaştırılır.
+
+- **`config.json`, `model.safetensors`, `vocab.json`, `tokenizer_config.json`:** `tools/hf/small_vits.py --preset piper` ile bu depo için üretildi: Hugging Face `transformers` 5.2.0'ın `VitsModel`'i bir yapılandırmadan kuruldu, ağırlıklar `torch` 2.6.0'ın tohum 0'lı rastgele başlatmasıdır; başlatmanın sıfır bıraktığı parametreler (akışların son evrişimi) tohumlu küçük rastgele değer alır. float16 saklanır. Yapı bir Piper sesinindir: tip 1 HiFi-GAN blokları, her blokta genişlemeler (1, 3, 5), büyütme oranı çekirdek // 2, WaveNet genişlemesi 1, dört öncül akışı ve dört süre akışı, 22 050 Hz. Sözlük `_ ^ $` ile başlar (Piper'ın dolgusu, başı ve sonu); geri kalanı bu deponundur. Yayımlanmış bir modelden ve Piper'ın kodundan gelmez; anlamlı ses üretmez.
+- **`reference/dizi_sessiz_f32.safetensors`, `reference/dizi_gurultulu_f32.safetensors`:** `tools/hf/vits_reference.py`'nin bu modelde Piper biçimli kimlik dizisi `1,0,12,0,21,0,18,0,19,0,15,0,21,0,4,0,18,0,10,0,2` (`^`, her fonemden sonra `_`, `$`) için verdiği kimlikler, iki gürültü tensörü, `ceil`'den önceki log süre, süreler ve dalga biçimi (float32). Dizi süreleri tam sayıdan uzak olduğu için seçildi: `ceil`'den önceki sürenin en yakın tam sayıya uzaklığı gürültüsüz koşuda 0,042, gürültülüde 0,053; float32 ile float64 dalgası arasındaki en büyük fark 3,6·10⁻⁶ ve 2,1·10⁻⁵ [ölçüldü: `meta.json`, 2026-11-17].
+- Yeniden üretmenin komutları `tools/hf/README.md`'dedir.
+
+**Lisans:** dosyalar bu deponun lisansındadır. Değerleri hesaplayan yazılım `transformers`'tır (Apache 2.0).

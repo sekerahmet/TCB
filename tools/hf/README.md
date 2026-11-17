@@ -39,6 +39,16 @@ rm tests/data/vits_tiny/reference/meta.json
 
 `--tail-noise 6.5` gürültülü koşunun süre gürültüsüne spline sınırının (5) dışına düşen bir değer koyar: TR testi aralık dışı dalı da görür.
 
+`--preset piper` aynı ağı bir Piper sesinin yapısıyla kurar (`tests/data/vits_piper_tiny`): tip 1 HiFi-GAN blokları, her blokta genişlemeler (1, 3, 5), büyütme oranı çekirdek // 2, WaveNet genişlemesi 1, dört öncül ve dört süre akışı, 22 050 Hz; sözlük Piper'ın `_ ^ $`'ıyla başlar. Başlatmanın sıfır bıraktığı parametreler tohumlu küçük değer alır: her yol dalgayı değiştirir. Piper'ın kodu kullanılmaz; Go testi bu modeli Piper adlarıyla ONNX'e yazar. `--ids` parçalayıcıyı atlar ve kimlikleri olduğu gibi verir (Piper'ın fonem kimlikleri dolguları kendisi taşır). Yeniden üretmek için:
+
+```sh
+python -I tools/hf/small_vits.py --preset piper --out tests/data/vits_piper_tiny
+python -I tools/hf/vits_reference.py --model tests/data/vits_piper_tiny --out tests/data/vits_piper_tiny/reference \
+    --ids "dizi=1,0,12,0,21,0,18,0,19,0,15,0,21,0,4,0,18,0,10,0,2" \
+    --keep ids,noise_duration,noise_prior,log_duration,duration,waveform --f32-only
+rm tests/data/vits_piper_tiny/reference/meta.json
+```
+
 ## Sohbet biçimi (`chat_reference.py`)
 
 `chat_reference.py` iki iş yapar. `--tokenizer-out` Qwen3'ün etiketlerini eklenmiş parça olarak taşıyan küçük bir BPE parçalayıcısı kurar (`tokenizers`, belirlenimci). `--cases-out` betikteki durumları (dil tanımı 24.2'nin *Test:* satırı) verilen parçalayıcı ve şablonla transformers'ın `apply_chat_template(..., tokenize=True)`'inden geçirir; iletileri, argümanları ve kimlikleri yazar. Şablon yayımlanmış Qwen3 parçalayıcısının `tokenizer_config.json`'undan okunur, depoya girmez; karması çıktıdadır. Ağ gerekmez.

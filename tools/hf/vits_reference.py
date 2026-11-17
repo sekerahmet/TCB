@@ -157,6 +157,8 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--wav", action="store_true")
     ap.add_argument("--sentence", action="append", default=[], help="name=text; replaces the fixed sentences")
+    ap.add_argument("--ids", action="append", default=[],
+                    help="name=1,2,3: token ids given as they are (no tokenizer, as Piper's phoneme ids); replaces the fixed sentences")
     ap.add_argument("--tail-noise", type=float, default=None, help="puts this value into the duration noise of the noisy run")
     ap.add_argument("--keep", default="", help="comma separated tensor names to write (default: all)")
     ap.add_argument("--f32-only", action="store_true", help="write only the float32 files (the float64 run still happens)")
@@ -171,6 +173,12 @@ def main():
     m32 = transformers.VitsModel.from_pretrained(a.model, revision=a.revision).eval().float()
     m64 = transformers.VitsModel.from_pretrained(a.model, revision=a.revision).eval().double()
     sentences = dict(s.split("=", 1) for s in a.sentence) if a.sentence else SENTENCES
+    given = {}
+    for s in a.ids:
+        name, ids = s.split("=", 1)
+        given[name] = [int(x) for x in ids.split(",")]
+        sentences = {} if not a.sentence else sentences
+    sentences.update({name: "" for name in given})
     meta = {
         "versions": {"python": platform.python_version(), "torch": torch.__version__,
                      "transformers": transformers.__version__, "threads": torch.get_num_threads()},
@@ -181,7 +189,7 @@ def main():
     meta["config"].pop("id2label", None), meta["config"].pop("label2id", None)
     rate = m32.config.sampling_rate
     for name, text in sentences.items():
-        ids, kept, dropped = tokenize(tok, text)
+        ids, kept, dropped = (given[name], "", []) if name in given else tokenize(tok, text)
         for run_name, ns, nd in (("sessiz", 0.0, 0.0), ("gurultulu", m32.config.noise_scale, m32.config.noise_scale_duration)):
             r32 = run(m32, ids, ns, nd, Noise(a.seed, tail=a.tail_noise if ns else None))
             replay = Noise(a.seed, replay=[r32["noise_duration"][None], r32["noise_prior"][None]], dtype=torch.float64)
