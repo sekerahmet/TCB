@@ -58,7 +58,8 @@ func TestQ8KernelsMatchGo(t *testing.T) {
 		for _, dt := range q8Types {
 			r := rand.New(rand.NewSource(31))
 			blk := actBlock(dt)
-			for _, K := range []int{32, 96, 256, 512, 2560, 9728} {
+			// Q4_0'da 9, 15 ve 23 blok: sdotq4q8'in sekizli grupları ve kalan blokları birlikte.
+			for _, K := range []int{32, 96, 256, 288, 480, 512, 736, 2560, 9728} {
 				if K%blk != 0 {
 					continue
 				}
@@ -175,9 +176,8 @@ func testEightRows(t *testing.T, dt DType, M, N, K int) {
 	}
 }
 
-// TestQ8EightRowsChecksBounds: sekiz satırlı çekirdekler (Q4_K, Q4_0) çağıranın sözüne dayanmaz: r0'ın arkasında
-// yedi satır yoksa ya da out sekiz öğeden kısaysa her yolda (çekirdek ve Go eşi), Q4_0'da dT kısaysa çekirdek
-// yolunda panik verir (Go eşi dT'yi okumaz).
+// TestQ8EightRowsChecksBounds: Q4_K'nın sekiz satırlı çekirdeği çağıranın sözüne dayanmaz: r0'ın arkasında yedi
+// satır yoksa ya da out sekiz öğeden kısaysa her yolda (çekirdek ve Go eşi) panik verir.
 func TestQ8EightRowsChecksBounds(t *testing.T) {
 	oldAVX, oldF16C := hasAVX2, hasF16C
 	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
@@ -202,24 +202,58 @@ func TestQ8EightRowsChecksBounds(t *testing.T) {
 				dotQ4KQ8x8(nb, w, c.r0, K, dT, ps, tmp[:], c.out)
 			}()
 		}
-		w4, nb4 := smallScaleQuant(Q4, 9, K/32), K/32
-		for _, c := range []struct {
-			name string
-			r0   *q8kRow
-			out  []float32
-			dT   []float32
-		}{{"q4 yedi satır", newQ8Row(7*K, 32), make([]float32, 8), make([]float32, nb4*8)},
-			{"q4 kısa out", newQ8Row(8*K, 32), make([]float32, 7), make([]float32, nb4*8)},
-			{"q4 kısa dT", newQ8Row(8*K, 32), make([]float32, 8), make([]float32, nb4*8-1)}} {
-			func() {
-				defer func() {
-					if recover() == nil && (c.name != "q4 kısa dT" || path.avx && path.f16c) {
-						t.Fatalf("%s %s: panik yok", path.name, c.name)
-					}
-				}()
-				dotQ4Q8x8(nb4, w4, c.r0, K, c.dT, c.out)
+	}
+}
+
+// TestQ4PanelChecksBounds: Q4_0'ın paneli (q4PanelGemm: packq4x8, sdotq4x8q8x4) çağıranın sözüne dayanmaz: panel
+// ya da ölçek tamponu kısaysa, düzeltme tablosu dört satıra yetmiyorsa, etkinleştirme tamponunda dört satır yoksa ya
+// da ağırlıkta sekiz satır yoksa assembly'ye girmeden panik verir. Yalnız çekirdek yolunda (q4x8Ready).
+func TestQ4PanelChecksBounds(t *testing.T) {
+	if !q8MachineAVX2 || !q8MachineF16C {
+		t.Skip("AVX2 ya da F16C yok: panel yolu yok")
+	}
+	const K, N = 512, 8
+	nb := K / 32
+	w := smallScaleQuant(Q4, 7, N*nb)
+	rowBytes := quantRowBytes(Q4, K)
+	all := newQ8Row(4*K, 32)
+	rows := make([]*q8kRow, 4)
+	for i := range rows {
+		rows[i] = &q8kRow{q: all.q[i*K : (i+1)*K], d: all.d[i*nb : (i+1)*nb], bs: all.bs[i*K/16 : (i+1)*K/16], blk: 32}
+	}
+	idx, c := []int{0, 1, 2, 3}, make([]float32, 4*N)
+	tam := func() ([]byte, []byte, []float32, []int32, *q8kRow) {
+		return w, make([]byte, nb*256), make([]float32, nb*8), make([]int32, 4*nb), all
+	}
+	for _, d := range []struct {
+		name string
+		boz  func(w, pan []byte, ps []float32, c8 []int32, a *q8kRow) ([]byte, []byte, []float32, []int32, *q8kRow)
+	}{
+		{"kısa panel", func(w, pan []byte, ps []float32, c8 []int32, a *q8kRow) ([]byte, []byte, []float32, []int32, *q8kRow) {
+			return w, pan[:nb*256-1], ps, c8, a
+		}},
+		{"kısa ölçek", func(w, pan []byte, ps []float32, c8 []int32, a *q8kRow) ([]byte, []byte, []float32, []int32, *q8kRow) {
+			return w, pan, ps[:nb*8-1], c8, a
+		}},
+		{"kısa düzeltme", func(w, pan []byte, ps []float32, c8 []int32, a *q8kRow) ([]byte, []byte, []float32, []int32, *q8kRow) {
+			return w, pan, ps, c8[:4*nb-1], a
+		}},
+		{"üç etkinleştirme satırı", func(w, pan []byte, ps []float32, c8 []int32, a *q8kRow) ([]byte, []byte, []float32, []int32, *q8kRow) {
+			return w, pan, ps, c8, &q8kRow{q: a.q[:3*K], d: a.d[:3*nb], bs: a.bs[:3*K/16], blk: 32}
+		}},
+		{"yedi ağırlık satırı", func(w, pan []byte, ps []float32, c8 []int32, a *q8kRow) ([]byte, []byte, []float32, []int32, *q8kRow) {
+			return w[:7*rowBytes], pan, ps, c8, a
+		}},
+	} {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Fatalf("%s: panik yok", d.name)
+				}
 			}()
-		}
+			ww, pan, ps, c8, a := d.boz(tam())
+			q4PanelGemm(0, N, N, K, ww, rowBytes, a, rows, c8, idx, c, pan, ps)
+		}()
 	}
 }
 

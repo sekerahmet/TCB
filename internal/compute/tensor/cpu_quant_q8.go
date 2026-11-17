@@ -176,10 +176,11 @@ func quantGemvQ8(N, K int, a []float32, w []byte, dt DType, c []float32) {
 // q8Tmp çekirdeklerin çalışma alanının baytıdır: en çoğu Q6_K'nın dört satırlısı (16 ölçek ve dört msum).
 const q8Tmp = 48
 
-// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir; Q4_K'da ve Q4_0'da her ağırlık satırı
-// önce sekiz etkinleştirme satırıyla (dotQ4KQ8x8, dotQ4Q8x8; q4x8Ready ise), sonra dörder satırla birlikte çarpılır
-// (dotQ4KQ8x4, dotQ4Q8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek tek. Her satırın sonucu tek satırlı yolunkiyle
-// (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
+// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir. Q4_0'da (q4x8Ready ve en az dört satır)
+// sekizli ağırlık satırları işçinin panelinden dört etkinleştirme satırıyla çarpılır (q4PanelGemm), panelin bıraktığı
+// satırlar tek satırlıyla. Öbür durumda Q4_K'da her ağırlık satırı önce sekiz etkinleştirme satırıyla (dotQ4KQ8x8;
+// q4x8Ready ise), sonra dörder satırla (dotQ4KQ8x4, dotQ4Q8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek
+// tek. Her satırın sonucu tek satırlı yolunkiyle (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
 // yoluyla (quantGemv) tek başına hesaplanır; sonlu satırlar bitişik bir tampona toplanır (idx: tampondaki satırın
 // a'daki yeri). Satırın sonucu yanındaki satırların verisinden bağımsızdır.
 func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
@@ -217,15 +218,30 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	// baştan okuyordu; 512 satırlık okumada float yolundan yavaştı (profil, 2026-11-10, Qwen3-4B Q4_K_M,
 	// i7-13700H: süre çekirdeklerde, ~17 GOPS). Her c öğesi yine tek bir çekirdek çağrısının sonucunu bir kez
 	// alır: bitler bloksuz sürümle aynıdır.
+	// Q4_0'da sekizli ağırlık satırları işçinin panelinden çarpılır (q4PanelGemm); panelin bıraktığı satırlar tek
+	// satırlıyla (dörtlü çekirdeğe gitmez).
+	panel := dt == Q4 && q4x8Ready() && F >= 4
+	var c8 []int32
+	if panel {
+		c8 = q4Corrections(rows, nb)
+	}
 	eights := newQ8x8(dt, rows, nb, K, rowBytes)
 	nBlocks := (N + q8BlockN - 1) / q8BlockN
 	parallelFor(nBlocks, q8BlockN*F*K, func(lo, hi int) {
 		var tmp [q8Tmp]byte
 		var out [4]float32
+		var pan []byte
+		var ps []float32
+		if panel {
+			pan, ps = make([]byte, nb*256), make([]float32, nb*8)
+		}
 		for jb := lo; jb < hi; jb++ {
 			n0, n1 := jb*q8BlockN, min(N, (jb+1)*q8BlockN)
+			if panel {
+				n0 = q4PanelGemm(n0, n1, N, K, w, rowBytes, all, rows, c8, idx, c, pan, ps)
+			}
 			i := eights.into(n0, n1, N, w, rows, idx, c, tmp[:])
-			for ; i+4 <= F; i += 4 {
+			for ; !panel && i+4 <= F; i += 4 {
 				for n := n0; n < n1; n++ {
 					four(nb, w[n*rowBytes:(n+1)*rowBytes], rows[i], K, tmp[:], out[:])
 					for r := range 4 {
@@ -242,27 +258,20 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	})
 }
 
-// q8x8 quantGemmQ8'in sekizli gruplarıdır: G grup (Q4_K'da ve Q4_0'da q4x8Ready ise len(rows)/8, değilse 0) ve
-// sekiz satırlı çekirdeğin çevrik tabloları (Q4_0'da yalnız dT). Gruplar nicemlemeden sonra bir kez kurulur.
-// Q4_0'ın sekiz satırlısı okumada dört satırlısının yerini alır: QAT Q4_0'da (Gemma 3 4B) Dost'un 651 token'lık
-// okumasında CPU'nun %90,4'ü sdotq4q8x4'teydi (profil, 2026-11-17, Colab AMD EPYC 7B12, 8 iş parçacığı).
+// q8x8 quantGemmQ8'in Q4_K'daki sekizli gruplarıdır: G grup (q4x8Ready ise len(rows)/8, değilse 0) ve sekiz satırlı
+// çekirdeğin çevrik tabloları. Gruplar nicemlemeden sonra bir kez kurulur. Q4_0'ın okuması paneldedir (q4PanelGemm).
 type q8x8 struct {
-	dt                 DType
 	G, nb, K, rowBytes int
 	dT                 []float32
 	ps                 []int16
 }
 
 func newQ8x8(dt DType, rows []*q8kRow, nb, K, rowBytes int) *q8x8 {
-	e := &q8x8{dt: dt, nb: nb, K: K, rowBytes: rowBytes}
-	if (dt == Q4K || dt == Q4) && q4x8Ready() {
+	e := &q8x8{nb: nb, K: K, rowBytes: rowBytes}
+	if dt == Q4K && q4x8Ready() {
 		e.G = len(rows) / 8
 	}
-	if dt == Q4 {
-		e.dT = q8x8Scales(rows[:e.G*8], nb)
-	} else {
-		e.dT, e.ps = q8x8Tables(rows[:e.G*8], nb)
-	}
+	e.dT, e.ps = q8x8Tables(rows[:e.G*8], nb)
 	return e
 }
 
@@ -272,11 +281,7 @@ func (e *q8x8) into(n0, n1, N int, w []byte, rows []*q8kRow, idx []int, c []floa
 	var out [8]float32
 	for g := range e.G {
 		for n := n0; n < n1; n++ {
-			if e.dt == Q4 {
-				dotQ4Q8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], out[:])
-			} else {
-				dotQ4KQ8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], e.ps[g*e.nb*64:], tmp, out[:])
-			}
+			dotQ4KQ8x8(e.nb, w[n*e.rowBytes:(n+1)*e.rowBytes], rows[8*g], e.K, e.dT[g*e.nb*8:], e.ps[g*e.nb*64:], tmp, out[:])
 			for r := range 8 {
 				c[idx[8*g+r]*N+n] += out[r]
 			}
@@ -302,6 +307,18 @@ func q8x8Tables(rows []*q8kRow, nb int) ([]float32, []int16) {
 		}
 	}
 	return dT, ps
+}
+
+// q4Corrections panel çekirdeğinin düzeltmesidir: c8[i·nb + b] = −8·Σx, i'inci satırın b'inci 32'lik bloğunun kod
+// toplamıyla (bs'nin iki 16'lığı). Panel kodları 0–15 tutar; isum = Σ kod·x + c8 = Σ (kod − 8)·x, tamsayıda kesin.
+func q4Corrections(rows []*q8kRow, nb int) []int32 {
+	c8 := make([]int32, len(rows)*nb)
+	for i, r := range rows {
+		for b := range nb {
+			c8[i*nb+b] = -8 * (int32(r.bs[2*b]) + int32(r.bs[2*b+1]))
+		}
+	}
+	return c8
 }
 
 // q8x8Scales sekizlilerin çevrik ölçek tablosudur (len(rows) sekizin katı): dT[(g·nb+i)·8 + r] = g'inci sekizlinin
@@ -332,6 +349,12 @@ func dotQ8x4(dt DType) func(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte,
 		return dotQ6KQ8x4
 	}
 	return dotQ4KQ8x4
+}
+
+// dotQ4Q8x4 Q4_0'ın dört satırlısıdır: Go eşi (dotQ8x4Go). AVX2'li yolda Q4_0'ın okuması paneldedir (q4PanelGemm);
+// buraya yalnız panelsiz durum (AVX2 yok ya da dörtten az satır) gelir.
+func dotQ4Q8x4(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float32) {
+	dotQ8x4Go(dotQ4Q8Go, blocks, w, r0, K, out)
 }
 
 // dotQ8x4Go dört satırlı çekirdeklerin Go eşidir (dotQ8RowsGo, n = 4).
