@@ -90,6 +90,9 @@ Emsallerin ve ortamın makine başına geçerli sürümü. Yeni sürümle ölçe
 | llama.cpp | HIGHRAM | b12124 |
 | sürücü | L4GPU | 580.82.07 |
 | güç | LAPTOP | Dengeli |
+| onnxruntime | LAPTOP | 1.31.1 |
+| torch | LAPTOP | 2.6.0+cpu |
+| transformers | LAPTOP | 5.2.0 |
 
 ## Kim yazar
 
