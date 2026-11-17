@@ -304,6 +304,7 @@ func startREPL() {
 	for {
 		fmt.Print("tr> ")
 		ln, readError := reader.ReadString('\n')
+		endShellOnExit(machine, nil, "") // girdi beklenirken bir görev TR_exit çağırdıysa satır çalışmaz
 		if ln == "" && readError != nil {
 			break
 		}
@@ -348,6 +349,7 @@ func startREPL() {
 		}
 
 		val, err := machine.Run(s.Program)
+		endShellOnExit(machine, err, line)
 		if err != nil {
 			writeRunError(machine, err, line)
 			continue
@@ -359,6 +361,24 @@ func startREPL() {
 			}
 		}
 	}
+}
+
+// endShellOnExit, TR_exit çağrıldıysa kabuğu o kodla bitirir (1.10 "bir görevden çağrılsa da bütün
+// program biter"): dosya çalıştırmadaki gibi çıkılır, sonraki satır çalışmaz; boruyla verilen betikte
+// TR_exit'ten sonrası sessizce çalışmaz. Çıkış Run'ın hatasından değil VM'in durumundan anlaşılır:
+// görevdeki TR_exit'in hatası Run'a ulaşmaz. Girdi beklerken gelen TR_exit kabuğu hemen bitirmez,
+// sonraki girdide bitirir. Çıkmadan önce görevler beklenir: TR_exit onları kesmiştir, ertelenen
+// işleri 1.10'daki gibi çalışır (dosya çalıştırmada bunu Run'ın beklemesi yapar; kabukta TR_exit
+// Run'ın beklemesinden sonra ya da satırlar arasında gelebilir). Sonra motorlar kapanır.
+func endShellOnExit(machine *interp.VM, err error, line string) {
+	if !machine.ExitRequested() {
+		return
+	}
+	machine.WaitAsync()
+	end := machine.End(err)
+	closeEngine()
+	finishProgram(machine, end, line)
+	exit(0) // finishProgram yalnız kod 0'da döner
 }
 
 // replCommand kabuğun kendi komutlarını (çıkış, çıkış ipucu, /h hata ayıklayıcı) yürütür: handled

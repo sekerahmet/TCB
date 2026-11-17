@@ -142,6 +142,11 @@ func TestMembersMatchDictionary(t *testing.T) {
 			t.Errorf("üye %s hiçbir tipte karşılanmıyor", k)
 		}
 	}
+	// Üye denemelerinin çoğu hatayla biter; o programların kesmesi kalsaydı sonraki program güvenli
+	// noktaya girince H2461 alırdı (yükte kararsız düşüş).
+	if m.Interrupted() {
+		t.Error("hatayla biten denemelerden sonra VM kesilmiş kalmamalı")
+	}
 	if v, err := runSame(t, m, "TR_var web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
 		t.Errorf("dilde olmayan ad değişken adı olabilmeli: %v %v", v, err)
 	}
