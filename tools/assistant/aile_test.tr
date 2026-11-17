@@ -26,8 +26,8 @@ TR_test "AİLELER'in her ailesinin biçimi var ve biçim ailenin ilk parçaları
     TR_var baş = {"qwen3": "<|im_start|>system", "gemma3": "<bos><start_of_turn>user"}
     TR_for aile TR_in AİLELER {
         TR_var p = parçalayıcı(aile)
-        TR_var metin = p.TR_decode(ilk_tur(aile, p, "Merhaba"), TR_special_tokens: TR_true)
-        TR_assert(metin.TR_starts_with(TR_String(baş[aile])))
+        TR_var çözülen = p.TR_decode(ilk_tur(aile, p, "Merhaba"), TR_special_tokens: TR_true)
+        TR_assert(çözülen.TR_starts_with(TR_String(baş[aile])))
     }
 }
 
