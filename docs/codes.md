@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 797 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 185 fonksiyon, 13 sabit, 95 metot, 147 özellik, 200 adlı argüman.
+Toplam 799 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 186 fonksiyon, 13 sabit, 95 metot, 148 özellik, 200 adlı argüman.
 
 ## İçindekiler
 
@@ -3206,6 +3206,12 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 ```
 
 İlişkili: `TR_read_csv(...)`, `TR_json_parse(...)`
+
+#### `TR_phonemize(...)` (`TR_fn_phonemize`, `fonemlere_çevir`)
+
+    fonemlere_çevir()
+
+
 
 #### `TR_ple_gelu(...)` (`TR_fn_ple_gelu`, `ple_gelu`)
 
@@ -8818,6 +8824,10 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu
 ```
 
 İlişkili: `.TR_token_id(...)`
+
+#### `.TR_voice_language` (`TR_mem_voice_language`, `ses_dili`)
+
+
 
 #### `.TR_wait(...)` (`TR_mem_wait`, `bekle`)
 

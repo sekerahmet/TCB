@@ -379,6 +379,10 @@
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
  },
+ "H7566": {
+  "commit": "claude/s1-piper",
+  "reason": "deleted: vits: the espeak-ng message was defined with slice A of the Piper work, where nothing uses it; slice C takes a new code"
+ },
  "H8040": {
   "commit": "020a98a7",
   "reason": "deleted: codes, hint, interp: drop old names, moved and removed codes while the language is a draft"
