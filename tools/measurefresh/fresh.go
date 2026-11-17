@@ -156,19 +156,36 @@ func freshness(f *Folder, g repo, goVer string, r Row) (string, error) {
 	return line, nil
 }
 
-// possibleReplacement Yerini alan'ı boş satırın, aynı dosyada, aynı bölümde, aynı modelle ve
-// aynı programla ölçülmüş en yeni satırının kimliğini verir (yoksa "").
+// possibleReplacement Yerini alan'ı boş satırın, aynı dosyada ve aynı bölümde ölçülmüş, onunla
+// aynı şeyi ölçtüğü görülen (sameMeasure) en yeni satırının kimliğini verir (yoksa "").
 func possibleReplacement(f *Folder, r Row) string {
 	if r.Cells[cReplacedBy] != "—" {
 		return ""
 	}
 	for _, s := range f.Rows { // bölümde en yeni satır üstte: ilk eşleşen en yenisidir
-		if s.File == r.File && s.Section == r.Section && s.ID() != r.ID() && newer(s, r) &&
-			sameModels(r.Cells[cModel], s.Cells[cModel]) && samePrograms(r.Cells[cPaths], s.Cells[cPaths]) {
+		if s.File == r.File && s.Section == r.Section && s.ID() != r.ID() && newer(s, r) && sameMeasure(r, s) {
 			return s.ID()
 		}
 	}
 	return ""
+}
+
+// sameMeasure iki satırın aynı şeyi ölçtüğünü söyler: ya dolu bir ortak model kümesi ya da
+// bilinen bir ortak program paylaşırlar ve öbür boyutta çelişmezler (iki dolu model kümesi ya da
+// iki bilinen program farklıysa değil). Boş model kümesi (`— (model yok)`, `— (model yazılmamış,
+// taşındı)`), bilinmeyen ve olmayan program ortak değer sayılmaz: iki modelsiz, programı
+// bilinmeyen satır birbirinin yerini almaz (TCB 2026-11-17 18:10, ölçüler B Bulgu 1).
+func sameMeasure(a, b Row) bool {
+	ma, mb := models(a.Cells[cModel]), models(b.Cells[cModel])
+	pa, pb := programsOf(a.Cells[cPaths]), programsOf(b.Cells[cPaths])
+	bothModels := len(ma) > 0 && len(mb) > 0
+	bothPrograms := len(pa) > 0 && len(pb) > 0
+	modelsAgree := bothModels && sameModels(ma, mb)
+	programsAgree := bothPrograms && strings.Join(pa, ",") == strings.Join(pb, ",")
+	if bothModels && !modelsAgree || bothPrograms && !programsAgree {
+		return false
+	}
+	return modelsAgree || programsAgree
 }
 
 // models Model hücresinin dosya adı → sha256 önekidir ("" bilinmiyor).
@@ -189,10 +206,9 @@ func models(cell string) map[string]string {
 	return out
 }
 
-// sameModels iki satırın aynı modelleri ölçtüğünü söyler: dosya adları aynı, sha256 yalnız iki
+// sameModels iki model kümesinin aynı olduğunu söyler: dosya adları aynı, sha256 yalnız iki
 // satırda da yazılıysa karşılaştırılır.
-func sameModels(a, b string) bool {
-	ma, mb := models(a), models(b)
+func sameModels(ma, mb map[string]string) bool {
 	if len(ma) != len(mb) {
 		return false
 	}
@@ -205,15 +221,8 @@ func sameModels(a, b string) bool {
 	return true
 }
 
-// samePrograms iki satırın aynı .tr programlarını ölçtüğünü söyler; programı bilinmeyen taşınan
-// satır her programla eşleşir.
-func samePrograms(a, b string) bool {
-	if strings.Contains(a, programUnknown) || strings.Contains(b, programUnknown) {
-		return true
-	}
-	return strings.Join(programsOf(a), ",") == strings.Join(programsOf(b), ",")
-}
-
+// programsOf Yollar hücresinin saydığı .tr programlarıdır, sıralı; bilinmeyen ve olmayan program
+// (işaretleri `.tr` ile bitmez) boş liste verir.
 func programsOf(cell string) []string {
 	var out []string
 	for _, item := range strings.Split(cell, ",") {
