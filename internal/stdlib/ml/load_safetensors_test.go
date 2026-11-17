@@ -286,6 +286,11 @@ func TestLoadOnnxRejectsBroken(t *testing.T) {
 		dims33[i] = 1
 	}
 	overlong := append(onnxtest.Tag(slices.Clone(head), 1, onnxtest.WireVarint), bytes.Repeat([]byte{0xff}, 10)...)
+	// İç içe: çizgenin içindeki ağırlığın boyu (100) çizgenin kalanını (1 bayt) aşıyor, ama dosyada
+	// ondan sonra 200 bayt daha var. Bu "dosyada yalnız N bayt kaldı" değil, geçersiz kodlamadır.
+	inner := append(onnxtest.Tag(nil, 5, onnxtest.WireLen), 100, 1)
+	nested := append(onnxtest.Tag(slices.Clone(head), 7, onnxtest.WireLen), byte(len(inner)))
+	nested = append(append(nested, inner...), make([]byte, 200)...)
 	for _, d := range []struct {
 		name string
 		file []byte
@@ -296,6 +301,7 @@ func TestLoadOnnxRejectsBroken(t *testing.T) {
 		{"11 baytlık varint", append(overlong, 0x01), messages.H6742},
 		{"çizge varint olarak", onnxtest.VarintField(slices.Clone(head), 7, 1), messages.H6742},
 		{"boy kalanı aşıyor", append(onnxtest.Tag(slices.Clone(head), 7, onnxtest.WireLen), 100, 1, 2), messages.H6743},
+		{"iç içe boy iletinin kalanını aşıyor", nested, messages.H6742},
 		{"çok tensör", graph(many...), messages.H6744},
 		{"çok eksen", graph(f("w", dims33...)), messages.H6745},
 		{"metin türü", graph(onnxtest.Tensor{Name: "s", Type: 8}), messages.H6746},

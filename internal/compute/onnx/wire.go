@@ -91,7 +91,9 @@ func (d *reader) tag(what string, end int64) (field uint64, wire int, err error)
 	return field, wire, nil
 }
 
-// length boylu bir alanın boyunu okur; boy iletinin kalanını aşamaz (H6743).
+// length boylu bir alanın boyunu okur; boy içinde bulunulan iletinin kalanını aşamaz. Sınır
+// dosyanın sonuysa bu H6743'tür ve ileti dosyanın kalanını söyler; iç içe bir iletinin sınırını
+// aşan boy, reader'ın kuralıyla geçersiz kodlamadır (H6742): dosyada daha çok bayt olabilir.
 func (d *reader) length(what string, end int64) (int64, error) {
 	at := d.pos
 	n, err := d.varint(what, end)
@@ -99,6 +101,9 @@ func (d *reader) length(what string, end int64) (int64, error) {
 		return 0, err
 	}
 	if left := end - d.pos; n > uint64(left) {
+		if end < d.size {
+			return 0, d.invalid(what, at)
+		}
 		return 0, messages.New(messages.H6743, at, n, left)
 	}
 	return int64(n), nil

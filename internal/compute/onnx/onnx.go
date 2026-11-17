@@ -5,7 +5,8 @@
 // hesap okunmaz; alt çizgeler (If, Loop), seyrek ağırlıklar ve işlevler de okunmaz.
 //
 // Dosya güvenilmeyen girdidir: protobuf'un tel biçimi elle, bağımlılıksız çözülür; her boy
-// içinde bulunduğu iletinin kalanıyla denetlenir (H6743), dosya bir kez, baştan sona okunur ve
+// içinde bulunduğu iletinin kalanıyla denetlenir (en dış düzeyde H6743, iç içe iletide geçersiz
+// kodlama H6742), dosya bir kez, baştan sona okunur ve
 // ayırma dosyadaki baytla orantılıdır: ağırlık verisi bildirilen boyda (dosyada vardır), varint'li
 // tam sayı alanları en çok 8 katı, tensör kaydı en çok MaxTensors tanedir.
 //
