@@ -121,6 +121,31 @@ func (g *backend) Alloc(n int, dt tensor.DType) tensor.Storage {
 	return g.allocate(n, dt, true)
 }
 
+// reset depolamayı sıfırlar: bütün baytları 0'dır; "q4"te CPU'nun sıfır blokları yazılır (ölçek +0,
+// kodlar 8; 15.2), çünkü kod 0'ın açılan değeri (0 − 8)·(+0) = −0'dır.
+func (g *backend) reset(d *storage) {
+	if d.n == 0 {
+		return
+	}
+	if d.dtype == tensor.Q4 {
+		if raw := tensor.QuantZeroRaw(d.dtype, d.n); len(raw) > 0 {
+			g.loadHost(d, unsafe.Pointer(&raw[0]), len(raw))
+		}
+		return
+	}
+	d.dropShadow()
+	ev := g.measureStart()
+	switch {
+	case d.dtype == tensor.Float32:
+		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, uint64(d.n)))
+	case d.dtype.IsTyped() || d.dtype.IsQuantized():
+		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, (storageBytes(d.n, d.dtype)+3)/4))
+	default:
+		g.try_("cuMemsetD16Async", g.sr.fill16(d.addr, 0, uint64(d.n)))
+	}
+	g.measureEnd("surucu_sifirla", ev)
+}
+
 // AllocUninit (tensor.UninitAllocator) içeriği belirsiz depolama; her elemanı yazılacak
 // çıktılar içindir.
 func (g *backend) AllocUninit(n int, dt tensor.DType) tensor.Storage {

@@ -112,12 +112,45 @@ func TestQuantCrossesTheCardWithItsBytes(t *testing.T) {
 			t.Errorf("%v: tensörle indeks bloklar değişti", dt)
 		}
 	}
-	// "q4"ün sıfırı (15.2) kartta da ölçeği +0, kodları 8 olan bloklardır: kartın sıfırlaması kodları 0
-	// yapar, açılan değer −0 olurdu.
+	// "q4"ün sıfırı (15.2) kartta da ölçeği +0, kodları 8 olan bloklardır (ayırmanın kendisi
+	// TestQuantZeroOnTheCardIsPositiveZero'da).
 	var z *tensor.Tensor
 	onCard(t, func() { z = tensor.ZerosOf(tensor.Q4, 2, 32) })
 	if want := tensor.ZerosOf(tensor.Q4, 2, 32).Raw(); z.Device() != gpuDevice || !bytes.Equal(z.To(tensor.CPU).Raw(), want) {
 		t.Errorf("q4 sıfırı kartta % x", z.To(tensor.CPU).Raw())
+	}
+}
+
+// Kartın sıfırlı ayırması "q4"te CPU'nunkiyle aynı baytlardır (ölçek +0, kodlar 8); baytlar sıfırlansaydı
+// kod 0'ın açılan değeri (0 − 8)·(+0) = −0 olurdu. Havuzdan çöplü dönen blok da yeniden yazılır.
+func TestQuantZeroOnTheCardIsPositiveZero(t *testing.T) {
+	g := gpuBackend()
+	whole := func(s tensor.Storage, n int) tensor.View {
+		return tensor.View{S: s, Shape: []int{n}, Strides: []int{1}}
+	}
+	for _, blocks := range []int{1, 3, 64} {
+		n := 32 * blocks
+		want := tensor.ZerosOf(tensor.Q4, n).Raw() // CPU'nun Alloc'u
+		if len(want) != 18*blocks || want[0] != 0 || want[1] != 0 || want[2] != 0x88 || want[17] != 0x88 {
+			t.Fatalf("%d blok: CPU'nun sıfırı % x", blocks, want)
+		}
+		junk := make([]float32, (len(want)+3)/4)
+		for i := range junk {
+			junk[i] = math.Float32frombits(0x7fc01234)
+		}
+		j := g.FromHost(junk, tensor.Float32)
+		at := g.storageOf(j).addr
+		g.Release(j)
+		s := g.Alloc(n, tensor.Q4)
+		if g.storageOf(s).addr != at {
+			t.Fatalf("%d blok: havuzun çöplü bloğu dönmedi", blocks)
+		}
+		if got := g.ToRaw(whole(s, n)); !bytes.Equal(got, want) {
+			t.Errorf("%d blok: kartın sıfırı % x, beklenen % x", blocks, got[:min(len(got), 36)], want[:min(len(want), 36)])
+		}
+		out := g.Alloc(n, tensor.Float32)
+		g.OpenQuant(out, whole(s, n))
+		sameFloatBits(t, "kartta açılan q4 sıfırı", g.ToHost(whole(out, n)), make([]float32, n))
 	}
 }
 

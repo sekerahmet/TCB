@@ -311,24 +311,6 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	return d
 }
 
-// reset depolamanın bütün baytlarını sıfırlar.
-func (g *backend) reset(d *storage) {
-	if d.n == 0 {
-		return
-	}
-	d.dropShadow()
-	ev := g.measureStart()
-	switch {
-	case d.dtype == tensor.Float32:
-		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, uint64(d.n)))
-	case d.dtype.IsTyped() || d.dtype.IsQuantized():
-		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, (storageBytes(d.n, d.dtype)+3)/4))
-	default:
-		g.try_("cuMemsetD16Async", g.sr.fill16(d.addr, 0, uint64(d.n)))
-	}
-	g.measureEnd("surucu_sifirla", ev)
-}
-
 // fill32 float32 depolamanın bütün elemanlarını verilen bitlerle doldurur.
 func (g *backend) fill32(d *storage, bitsList uint32) {
 	if d.n == 0 {

@@ -406,14 +406,14 @@ func (t *Tensor) quantRows(idx, shape []int) *Tensor {
 
 // newQuantStorage n öğelik sıfırlı depodur: bütün ölçekler 0, kodlar sıfırın kodu, değeri +0
 // (15.2). "q6_k"de kod 0'ın değeri −32·d·a'dır, d 0 olduğu için 0. "q4"te kod 0'ın değeri
-// (0 − 8)·(+0) = −0 olurdu: kodlar 8'dir (quantZeroRaw).
+// (0 − 8)·(+0) = −0 olurdu: kodlar 8'dir (QuantZeroRaw).
 func newQuantStorage(dt DType, n int) *cpuStorage {
-	return &cpuStorage{dtyp: dt, raw: quantZeroRaw(dt, n), n: n}
+	return &cpuStorage{dtyp: dt, raw: QuantZeroRaw(dt, n), n: n}
 }
 
-// quantZeroRaw n öğelik sıfır blokların baytlarıdır: "q4"te ölçek +0 ve kodlar 0x88, öbür
-// türlerde bütün baytlar 0.
-func quantZeroRaw(dt DType, n int) []byte {
+// QuantZeroRaw n öğelik sıfır blokların baytlarıdır: "q4"te ölçek +0 ve kodlar 0x88, öbür
+// türlerde bütün baytlar 0. Kartın sıfırlı ayırması da bu baytları yazar (gpu reset).
+func QuantZeroRaw(dt DType, n int) []byte {
 	elems, size := dt.QuantBlock()
 	raw := make([]byte, n/elems*size)
 	if dt == Q4 {
