@@ -258,9 +258,18 @@ func (c *checker) replacedBy(r Row) {
 		c.add(r, "replacedMissing", id)
 	case other.File != r.File:
 		c.add(r, "replacedOtherFile", id, other.File)
-	case id == r.ID() || newer(r, other):
+	case id == r.ID() || newer(r, other) || sameClock(r, other):
 		c.add(r, "replacedNotNewer", id)
 	}
+}
+
+// sameClock iki satırın aynı gün ve aynı saatte yazıldığını söyler (ikisinde de saat yazılı).
+// Yerini alan "daha yeni" ister; aynı saat yeni değildir (DENETİM 842 N3). Saati bilinmeyen
+// aynı günlü satırda sıra bilinmez, kabul edilir.
+func sameClock(a, b Row) bool {
+	ad, at, _ := rowDate(a)
+	bd, bt, _ := rowDate(b)
+	return ad == bd && at != "" && at == bt
 }
 
 // order her bölümde en yeni satırın üstte olduğunu denetler.

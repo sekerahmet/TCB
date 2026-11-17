@@ -37,8 +37,8 @@ origin/main <kısa karma> (<YYYY-AA-GG>) ile kıyaslandı
 
 Biçim ve gönderme testleri bu pakettedir ve CI'da koşar; yalnız çalışılan ağaca bakar, geçmişe bakmaz:
 
-- **Biçim:** depodaki klasör biçime uyar (README'nin dört tablosu, beş dosya, her satır) ve her biçim yanlışı kendi iletisiyle bulunur. Denetim: `TestMeasurementDocsAreWellFormed`, `TestCheckFindsEachProblem`.
-- **Yerel yol ve kişi yoktur.** Yasak yerel yol ve kişi biçimleri: sürücü harfli yol (ters bölüyle, bölüyle; harfin önünde harf ya da rakam olmaz, yoksa `https://` da yakalanırdı), Git Bash'in `/c/`'si, `%USERPROFILE%`, `%LOCALAPPDATA%`, `Users\`, `Users/`, `~/.claude`, `/content/`, `/home/`, `scratchpad`, "<Ad>'ın makinesi / dizüstüsü / bilgisayarı". Denetim: `TestCheckFindsEachProblem` (her biçim için bir olumlu örnek; `https://` olumsuz örnek).
+- **Biçim:** depodaki klasör biçime uyar (README'nin dört tablosu, beş dosya, her satır) ve her biçim yanlışı kendi iletisiyle bulunur. "Yerini alan" daha yeni bir satıra gider; aynı gün ve saatli satır yeni sayılmaz, saati yazılmamış aynı günlü satırda sıra bilinmez ve kabul edilir. Denetim: `TestMeasurementDocsAreWellFormed`, `TestCheckFindsEachProblem`.
+- **Yerel yol ve kişi yoktur.** Yasak yerel yol ve kişi biçimleri: sürücü harfli yol (ters bölüyle, bölüyle; harfin önünde harf ya da rakam olmaz, yoksa `https://` da yakalanırdı), Git Bash'in `/c/`'si, `%USERPROFILE%`, `%LOCALAPPDATA%`, `Users\`, `Users/`, `~/.claude`, `/content/`, `/home/`, `scratchpad`, "<Ad>'ın makinesi / dizüstüsü / bilgisayarı". Git Bash deseninde `/<harf>/`'in önünde harf, rakam, `_`, `.`, `/` ya da `-` olmaz, yoksa depo yolu (`testdata/s/x`, `./s/x`) da yakalanırdı. Denetim: `TestCheckFindsEachProblem` (her biçim için bir olumlu örnek; `https://` ve iki depo yolu olumsuz örnek).
 - **Göndermeler:** depodaki her `.md`'de kimlik desenine uyan söz klasördeki bir satıra gider. Not klasörü depoda değildir; onun için `--refs`. Denetim: `TestMeasurementReferencesExist`.
 
 Tazelik komutunun kendisi geçici bir git deposunda sınanır (yukarıdaki "Denetim:" satırları).

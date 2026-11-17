@@ -75,6 +75,8 @@ func TestCheckFindsEachProblem(t *testing.T) {
 		{"taşınan Colab", [][]string{movedWith(cSource, "taşındı: docs/measurements.md@c061399a:20")}, "", "saat dilimi"},
 		{"yerini alan yok", one(cReplacedBy, "TG-2026-11-18-L4GPU-H1-1"), "", "klasörde yok"},
 		{"yerini alan eski", [][]string{validCells(map[int]string{cReplacedBy: older[cID]}), older}, "", "yeni değil"},
+		{"yerini alan aynı saatte", [][]string{validCells(map[int]string{cReplacedBy: "TG-2026-11-17-L4GPU-H1-2"}),
+			validCells(map[int]string{cID: "TG-2026-11-17-L4GPU-H1-2"})}, "", "yeni değil"},
 		{"sıra", [][]string{older, validCells(nil)}, "", "en yeni satır üstte"},
 		{"kimlik iki kez", [][]string{validCells(nil), validCells(nil)}, "", "daha önce"},
 		{"hücre sayısı", nil, "| a | b |", "hücre olmalı"},
@@ -95,7 +97,10 @@ func TestCheckFindsEachProblem(t *testing.T) {
 		{"kişinin bilgisayarı", one(cSource, "Umut'un bilgisayarı"), "", "yerel yol ya da kişi"},
 	}
 	clean := newFixture(t, "")
-	clean.section("text-generation.md", "Colab L4, GPU", validCells(nil), validCells(moved))
+	// Git Bash deseninin olumsuz örnekleri: depo yolunun içindeki /s/ (önünde harf ya da nokta)
+	// yerel yol değildir (DENETİM 842 N3).
+	repoPath := validCells(map[int]string{cID: "TG-2026-11-17-L4GPU-H1-2", cSource: "H1 devri, tools/x/testdata/s/x ve ./s/x"})
+	clean.section("text-generation.md", "Colab L4, GPU", validCells(nil), repoPath, validCells(moved))
 	if f, err := Load(clean.dir); err != nil {
 		t.Fatal(err)
 	} else if ps := Check(f); len(ps) > 0 {
