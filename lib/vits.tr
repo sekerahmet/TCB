@@ -59,8 +59,8 @@ TR_struct _Alıcı {
     }
 }
 
-# Bir evrişim: ağırlık [çıkış, giriş // grup, çekirdek], sapma ya da yok. Ters evrişimde (`ConvTranspose1d`,
-# `ara` adım) girdinin öğeleri arasına ara − 1 sıfır konur; ağırlık yüklemede çevrilmiştir (`_ters_evrişim`).
+# Bir evrişim: ağırlık [çıkış, giriş // grup, çekirdek], sapma ya da yok. Ters evrişim (`ConvTranspose1d`,
+# `ara` adım) çok fazlıdır: `_ters_kur`'a bakın.
 TR_struct _Evrişim {
     ağırlık: TR_Tensor
     sapma: TR_Tensor?
@@ -68,18 +68,41 @@ TR_struct _Evrişim {
     genişleme: TR_Int
     grup: TR_Int
     ara: TR_Int
+    kuyruk: TR_Int = 0
     TR_func _ileri(x: TR_Tensor) -> TR_Tensor {
         TR_if TR_self.ara > 1 { TR_return TR_self._büyüt(x) }
         TR_return TR_conv1d(x, TR_self.ağırlık, TR_self.sapma, TR_padding: TR_self.dolgu, TR_dilation: TR_self.genişleme, TR_num_groups: TR_self.grup)
     }
-    # _büyüt ters evrişimdir; profilde ayrı satırlarda görünür.
+    # _ters_kur evrişimi `ConvTranspose1d`'in ağırlığından (w [giriş, çıkış, K], adım s, dolgu p = (K − s) // 2)
+    # çok fazlı kurar. Çıkışın n. öğesi n + p = q·s + r yazılınca y[n] = Σ_m x[q − m]·w[r + m·s]'dir: her r fazı
+    # x üstünde M = ⌈K / s⌉ boylu sıradan bir evrişimdir. Fazlar tek evrişimin s·çıkış kanalında durur:
+    # ağırlık[r·çıkış + o, i, m'] = w[i, o, r + (M − 1 − m')·s] (w sona sıfırla M·s'ye uzatılır). Araya sıfır
+    # koyan yolun s − 1 sıfır çarpımı yoktur.
+    TR_func _ters_kur(w: TR_Tensor, sapma: TR_Tensor, s: TR_Int) {
+        TR_var giriş = w.TR_shape[0]
+        TR_var çıkış = w.TR_shape[1]
+        TR_var k = w.TR_shape[2]
+        TR_var m = (k + s - 1) // s
+        TR_var ters = TR_Tensor[TR_Int]([m - 1 - i TR_for i TR_in 0..m])
+        # [giriş, çıkış, M, s] → [M, s, çıkış, giriş]; M ters sırayla; → [s, çıkış, giriş, M].
+        TR_var fazlar = _dolgu(w, 0, m * s - k).TR_reshape([giriş, çıkış, m, s]).TR_permute([2, 3, 1, 0])[ters].TR_permute([1, 2, 3, 0])
+        TR_self.ağırlık = TR_Tensor(fazlar).TR_reshape([s * çıkış, giriş, m])
+        TR_self.sapma = TR_concat([sapma TR_for i TR_in 0..s], TR_dim: 0)
+        TR_self.dolgu = (k - s) // 2
+        TR_self.kuyruk = m * s - k + TR_self.dolgu
+        TR_self.genişleme = 1
+        TR_self.grup = 1
+        TR_self.ara = s
+    }
+    # _büyüt ters evrişimdir: fazlar iç içe dizilir, baştan dolgu, sondan kuyruk kadar öğe atılır; boy (L − 1)·s + K − 2p.
     TR_func _büyüt(x: TR_Tensor) -> TR_Tensor {
         TR_var s = TR_self.ara
-        TR_var kanal = x.TR_shape[1]
-        TR_var boy = x.TR_shape[2]
-        TR_var sıfır = TR_zeros([1, kanal, boy, s - 1])
-        TR_var araya = TR_concat([x.TR_reshape([1, kanal, boy, 1]), sıfır], TR_dim: -1).TR_reshape([1, kanal, boy * s]).TR_slice(2, 0, (boy - 1) * s + 1)
-        TR_return TR_conv1d(araya, TR_self.ağırlık, TR_self.sapma, TR_padding: TR_self.dolgu)
+        TR_var m = TR_self.ağırlık.TR_shape[2]
+        TR_var z = TR_conv1d(x, TR_self.ağırlık, TR_self.sapma, TR_padding: m - 1)
+        TR_var çıkış = z.TR_shape[1] // s
+        TR_var n = z.TR_shape[2]
+        TR_var iç_içe = z.TR_reshape([s, çıkış, n]).TR_permute([1, 2, 0]).TR_reshape([1, çıkış, n * s])
+        TR_return iç_içe.TR_slice(2, TR_self.dolgu, n * s - TR_self.kuyruk)
     }
 }
 
@@ -641,13 +664,12 @@ TR_func _wavenet(a: _Alıcı, ad: TR_String, ayar: TR_JSON) -> _WaveNet {
     TR_return _WaveNet(girişler: girişler, artıklar: artıklar, kanal: h)
 }
 
-# _ters_evrişim `ConvTranspose1d`'in [giriş, çıkış, K] ağırlığını [çıkış, giriş, K] düzenine ve ters sıraya çevirir.
+# _ters_evrişim `ConvTranspose1d`'i [giriş, çıkış, K] ağırlığıyla okur ve çok fazlı kurar (`_Evrişim._ters_kur`).
 TR_func _ters_evrişim(a: _Alıcı, ad: TR_String, giriş: TR_Int, çıkış: TR_Int, k: TR_Int, adım: TR_Int) -> _Evrişim {
     TR_var w = a._evrişim(ad, [giriş, çıkış, k])
-    TR_var ters = TR_Tensor[TR_Int]([k - 1 - i TR_for i TR_in 0..k])
-    TR_var çevrik = w.TR_permute([2, 0, 1])[ters].TR_permute([2, 1, 0])
-    TR_var dolgu = (k - adım) // 2
-    TR_return _Evrişim(ağırlık: TR_Tensor(çevrik), sapma: a._al("\(ad).bias", [çıkış]), dolgu: k - 1 - dolgu, genişleme: 1, grup: 1, ara: adım)
+    TR_var e = _Evrişim(ağırlık: w, sapma: TR_none, dolgu: 0, genişleme: 1, grup: 1, ara: 1)
+    e._ters_kur(w, a._al("\(ad).bias", [çıkış]), adım)
+    TR_return e
 }
 
 TR_func _çözücü(a: _Alıcı, ayar: TR_JSON) -> _Çözücü {
