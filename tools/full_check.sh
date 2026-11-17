@@ -37,8 +37,8 @@
 #                     tanımı atıfları, son olarak değişen dosyaların hafif testleri, yakından uzağa (codegraph changed
 #                     --go-tests --by-distance --without-codegraph-self-tests, ağır listesi commit_heavy_tests dışarıda,
 #                     kipin 120 sn'sinin kalanıyla; kalanlar ve seçime girmeyen codegraph testlerinin sayısı "G4'e kaldı"
-#                     diye yazılır). Sonuç ✅ (yakın testler koştu), ⚠️ (yakın seçildi, hiçbiri koşmadı; çıkış 3) ya da ℹ️
-#                     (yakın test seçilmedi). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
+#                     diye yazılır). Sonuç ✅ (yakın testler koştu), ⚠️ (düzen adımının paketleri dışında yakın seçildi,
+#                     hiçbiri koşmadı; çıkış 3) ya da ℹ️ (yakın test seçilmedi). Her koşu ortak git klasörüne bir kayıt yazar (commit_record). Bu makinede koşan
 #                     tek kip; öbürleri Colab'da (ağır koşu kancası).
 #   --kip=on          ön denetim (Colab'da 441–529 sn, yerelde oturumlar yarışırken ortanca ~4 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -232,6 +232,9 @@ commit_failed_tests=0
 declare -A commit_near=()
 commit_dups=-
 commit_specrefs=-
+# Düzen adımının bütün olarak koştuğu paketler: seçimdeki testleri parçalara girmez, koşulmuş sayılır (commit_plan);
+# ⚠️'nün ölçütü bunların dışındaki yakınlardır (commit_counts; DENETİM 840 Ş1, TCB 2026-11-17 16:13).
+commit_layout_pkgs=(./internal ./internal/reporoot)
 commit_failed_step=""
 repo_scan_pkgs=(
 	./cmd/trlang
@@ -570,10 +573,11 @@ commit_now_ms() { date +%s%3N; }
 # adları sığdığı sürece tek parçada; tek başına sınırı aşan paketin adları birden çok parçaya bölünür.
 commit_plan() {
 	local dir name band pkg n key chunk=1 len=0 pkg_len late_started
-	local -A heavy=() seen=() is_late=() names=()
+	local -A heavy=() seen=() is_late=() names=() layout=()
 	local near_keys=() near_late=() far_keys=() far_late=() keys=()
 	for n in "${commit_heavy_tests[@]}"; do heavy[${n#*:}]=1; done
 	for pkg in "${commit_late_packages[@]}"; do is_late[$pkg]=1; done
+	for pkg in "${commit_layout_pkgs[@]}"; do layout[$pkg]=1; done
 	while read -r dir name band; do
 		case $name in Test* | Fuzz*) ;; *) continue ;; esac
 		[ "$band" = far ] || band=near
@@ -581,11 +585,10 @@ commit_plan() {
 		[ -z "${seen[$pkg $name]:-}" ] || continue
 		seen[$pkg $name]=1
 		[ "$band" = far ] || commit_near[$pkg $name]=1
-		case $pkg in ./internal | ./internal/reporoot)
+		if [ -n "${layout[$pkg]:-}" ]; then
 			commit_ran+=("$pkg $name")
 			continue
-			;;
-		esac
+		fi
 		if [ -n "${heavy[$name]:-}" ]; then
 			commit_left+=("$pkg $name")
 			commit_left_heavy=$((commit_left_heavy + 1))
@@ -836,29 +839,42 @@ commit_record() {
 	} >"$dir/.$name.tmp" && mv "$dir/.$name.tmp" "$dir/$name"
 }
 
-# commit_counts commit kipinin yakın sayılarıdır: "<yakın seçilen> <yakın koşan> <uzak koşan> <ağır listesinde kalan yakın>"
-# (commit_near, commit_ran ve commit_left'ten; codegraph 7 B3). Sonuç satırı ve kayıt buradan sayar.
+# commit_counts commit kipinin yakın sayılarıdır: "<yakın seçilen> <yakın koşan> <uzak koşan> <ağır listesinde kalan yakın>
+# <düzen paketleri dışında seçilen yakın> <düzen paketleri dışında koşan yakın>" (commit_near, commit_ran ve
+# commit_left'ten; codegraph 7 B3). Sonuç satırı ve kayıt buradan sayar. Son iki sayı ⚠️'nün ölçütüdür: düzen adımının
+# paketlerindeki (commit_layout_pkgs) yakınlar koşulmuş sayılır, değişen dosyaların öbür yakınları koşmadıysa kip
+# yine de ✅ diyordu (2026-11-14 – 2026-11-17'nin 68 ✅'inin 25'i; T1 4c53d080, yakın 24/1060).
 commit_counts() {
-	local t n near=0 far=0 heavy=0
-	local -A heavy_names=()
+	local t n near=0 far=0 heavy=0 sel_out=0 near_out=0
+	local -A heavy_names=() layout=()
 	for n in "${commit_heavy_tests[@]}"; do heavy_names[${n#*:}]=1; done
+	for n in "${commit_layout_pkgs[@]}"; do layout[$n]=1; done
+	for t in "${!commit_near[@]}"; do
+		[ -n "${layout[${t%% *}]:-}" ] || sel_out=$((sel_out + 1))
+	done
 	for t in "${commit_ran[@]}"; do
-		if [ -n "${commit_near[$t]:-}" ]; then near=$((near + 1)); else far=$((far + 1)); fi
+		if [ -n "${commit_near[$t]:-}" ]; then
+			near=$((near + 1))
+			[ -n "${layout[${t%% *}]:-}" ] || near_out=$((near_out + 1))
+		else
+			far=$((far + 1))
+		fi
 	done
 	for t in "${commit_left[@]}"; do
 		[ -z "${commit_near[$t]:-}" ] || [ -z "${heavy_names[${t#* }]:-}" ] || heavy=$((heavy + 1))
 	done
-	echo "${#commit_near[@]} $near $far $heavy"
+	echo "${#commit_near[@]} $near $far $heavy $sel_out $near_out"
 }
 
-# commit_kind geçen kipin sonuç türüdür (kaydın sonuç alanı, DENETİM 748 N2): geçti (✅), uyarı (⚠️: yakın test seçildi,
-# hiçbiri koşmadı) ya da bilgi (ℹ️: yakın test seçilmedi).
+# commit_kind geçen kipin sonuç türüdür (kaydın sonuç alanı, DENETİM 748 N2): geçti (✅), uyarı (⚠️: düzen paketleri
+# dışında yakın test seçildi, hiçbiri koşmadı) ya da bilgi (ℹ️: yakın test seçilmedi). Yakınların hepsi düzen
+# paketlerindeyse ✅: düzen adımında bütün paketle koştular.
 commit_kind() {
-	local sel near far heavy
-	read -r sel near far heavy < <(commit_counts)
+	local sel near far heavy sel_out near_out
+	read -r sel near far heavy sel_out near_out < <(commit_counts)
 	if [ "$sel" -eq 0 ]; then
 		echo bilgi
-	elif [ "$near" -eq 0 ]; then
+	elif [ "$sel_out" -gt 0 ] && [ "$near_out" -eq 0 ]; then
 		echo uyarı
 	else
 		echo geçti
@@ -866,12 +882,12 @@ commit_kind() {
 }
 
 # commit_passed_line geçen kipin sonuç satırıdır (S6): yakın testlerin hepsi koştuysa bunu, bir kısmı kaldıysa sayısını
-# kalan yakınları nedenine göre söyler (ağır listesinde, süreye sığmayan); yakın seçilip hiçbiri koşmadıysa ⚠️ yazar ve 3
-# döner (commit'siz geçme, DENETİM 747 Açık-4); yakın test seçilmediyse ✅ değil ℹ️ yazar. Neden: "✅ geçti" değişen
-# dosyanın hiçbir testi koşmamışken de yazılıyordu, 52 kaydın 12'sinde (codegraph 7 B3).
+# kalan yakınları nedenine göre söyler (ağır listesinde, süreye sığmayan); düzen paketleri dışında yakın seçilip hiçbiri
+# koşmadıysa ⚠️ yazar ve 3 döner (commit'siz geçme, DENETİM 747 Açık-4, 840 Ş1); yakın test seçilmediyse ✅ değil ℹ️
+# yazar. Neden: "✅ geçti" değişen dosyanın hiçbir testi koşmamışken de yazılıyordu, 52 kaydın 12'sinde (codegraph 7 B3).
 commit_passed_line() {
-	local sel near far heavy n=${#commit_left[@]}
-	read -r sel near far heavy < <(commit_counts)
+	local sel near far heavy sel_out near_out n=${#commit_left[@]}
+	read -r sel near far heavy sel_out near_out < <(commit_counts)
 	local why="$heavy ağır listesinde, $((sel - near - heavy)) süreye sığmadı"
 	if [ "$sel" -eq 0 ]; then
 		if [ $((far + n)) -gt 0 ]; then
@@ -879,8 +895,8 @@ commit_passed_line() {
 		else
 			echo "ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için hiç test seçilmedi; düzen kuralları ve hafif testler koştu."
 		fi
-	elif [ "$near" -eq 0 ]; then
-		echo "⚠️ Commit öncesi denetim değişen dosyaların hiçbir testini koşamadı ($why; $n test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş."
+	elif [ "$sel_out" -gt 0 ] && [ "$near_out" -eq 0 ]; then
+		echo "⚠️ Commit öncesi denetim değişen dosyaların düzen adımı dışındaki hiçbir yakın testini koşamadı ($why; $n test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş."
 		return 3
 	elif [ "$near" -lt "$sel" ]; then
 		echo "✅ Commit öncesi denetim geçti (tam denetim değildir; $((sel - near)) yakın test koşmadı: $why; $n test G4'e kaldı)"

@@ -492,9 +492,9 @@ func TestCommitModeRunsNearTestsFirst(t *testing.T) {
 
 // Kural (tools/full_check.sh, --kip=commit; codegraph 7 B3, S6; DENETİM 748 Ş1): sonuç satırı dürüsttür, beş kolu var
 // ve her kol metnini ve çıkış kodunu taşır: yakın testlerin hepsi koştu (uzak kalan varsa sayısıyla; 0); bir kısmı
-// kaldı (0); yakın seçilip hiçbiri koşmadı (⚠️, 3); yalnız uzaklar seçildi (ℹ️, 0); hiç seçim yok (ℹ️, 0). Kaydın türü
-// aynı ayrımı yazar (geçti, uyarı, bilgi; DENETİM 748 N2). ./internal'ın seçilen testleri düzen adımında koşar,
-// koşulmuş sayılır. Neden: kip 52 kaydın 12'sinde hiçbir test koşmadan "✅ geçti" diyordu (R276).
+// kaldı (0); düzen paketleri dışında yakın seçilip hiçbiri koşmadı (⚠️, 3); yalnız uzaklar seçildi (ℹ️, 0); hiç seçim yok
+// (ℹ️, 0). Kaydın türü aynı ayrımı yazar (geçti, uyarı, bilgi; DENETİM 748 N2). ./internal'ın seçilen testleri düzen
+// adımında koşar, koşulmuş sayılır; ⚠️'nün ölçütüne girmezler (DENETİM 840 Ş1): yakınların hepsi oradaysa ✅. Neden: kip 52 kaydın 12'sinde hiçbir test koşmadan "✅ geçti" diyordu (R276).
 func TestCommitModeSaysWhenNearTestsAreLeft(t *testing.T) {
 	dir, env := fakeGo(t, map[string]string{"a.out": "ok  \texample.com/fix/a\t0.1s\n", "b.out": "ok  \texample.com/fix/b\t0.1s\n",
 		"c.sleep": "30"})
@@ -506,13 +506,16 @@ func TestCommitModeSaysWhenNearTestsAreLeft(t *testing.T) {
 		{"hepsi, uzak kalan", "a TestA near\ntools/codegraph TestPlanningQuestionsAreAnswered far",
 			"✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu; 1 uzak test G4'e kaldı)\n", "geçti", 0},
 		{"internal", "internal TestLayout near", "✅ Commit öncesi denetim geçti (tam denetim değildir; yakın testlerin hepsi koştu)\n", "geçti", 0},
+		// T1 4c53d080: koşan yakınların hepsi düzen adımındandı (24/1060), kip ✅ diyordu (DENETİM 840 Ş1).
+		{"internal ve kesilen", "internal TestLayout near\nc TestC near",
+			"⚠️ Commit öncesi denetim değişen dosyaların düzen adımı dışındaki hiçbir yakın testini koşamadı (0 ağır listesinde, 1 süreye sığmadı; 1 test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş.\n", "uyarı", 3},
 		{"bir kısmı", "a TestA near\nc TestC near\nb TestB far",
 			"✅ Commit öncesi denetim geçti (tam denetim değildir; 1 yakın test koşmadı: 0 ağır listesinde, 1 süreye sığmadı; 2 test G4'e kaldı)\n", "geçti", 0},
 		// Kipin bu daldaki ilk gerçek koşusu: kalan tek yakın test ağır listesindeydi, satır "süreye sığmadı" diyordu.
 		{"ağır yakın", "a TestA near\ntools/codegraph TestPlanningQuestionsAreAnswered near",
 			"✅ Commit öncesi denetim geçti (tam denetim değildir; 1 yakın test koşmadı: 1 ağır listesinde, 0 süreye sığmadı; 1 test G4'e kaldı)\n", "geçti", 0},
 		{"hiçbiri", "c TestC near\nb TestB far",
-			"⚠️ Commit öncesi denetim değişen dosyaların hiçbir testini koşamadı (0 ağır listesinde, 1 süreye sığmadı; 2 test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş.\n", "uyarı", 3},
+			"⚠️ Commit öncesi denetim değişen dosyaların düzen adımı dışındaki hiçbir yakın testini koşamadı (0 ağır listesinde, 1 süreye sığmadı; 2 test G4'e kaldı). Commit'ten önce dosyaların tests-for run: satırlarını koş.\n", "uyarı", 3},
 		{"yalnız uzak", "a TestA far\nb TestB far",
 			"ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için yakın test seçilmedi; 2 uzak test koştu, 0 test G4'e kaldı.\n", "bilgi", 0},
 		{"seçim yok", "",
