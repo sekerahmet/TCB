@@ -171,8 +171,12 @@ func conv1dBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, err
 	}
 	mixed := mixedDType(m)
+	direct := conv1dDirect(mixed, x, w, b, o)
 	r, err := safe(func() *tensor.Tensor {
 		tensor.CheckSize([]int{x.Shape()[0], o.Length(x.Shape()[2], w.Shape()[2]), x.Shape()[1] * w.Shape()[2]}, tensor.Float32)
+		if direct {
+			return conv1dOn(m, x.Contiguous(), w.Contiguous(), contiguousOrNil(b), o)
+		}
 		return tensor.Conv1d(x, w, b, o, func(a, c *tensor.Tensor) *tensor.Tensor {
 			if mixed != tensor.Float32 {
 				return matMulOn(m, a.CastShared(mixed), c.CastShared(mixed), mixed)
@@ -184,4 +188,29 @@ func conv1dBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, err
 	}
 	return New(r), nil
+}
+
+// conv1dDirect evrişimin işlemcinin türevsiz çekirdeğinden (tensor.Conv1dKernel) yapılacağıdır:
+// karışık hassasiyet bloğunun dışında ve tensor.Conv1dDirectOK doğruysa. Öbür her çağrı (türev,
+// kart, 16 bit, karışık hassasiyet, eski yolun gemv'e gittiği tek satırlık çarpım) tensor.Conv1d'den.
+func conv1dDirect(mixed tensor.DType, x, w, b *tensor.Tensor, o tensor.Conv1dOptions) bool {
+	return mixed == tensor.Float32 && tensor.Conv1dDirectOK(x, w, b, o)
+}
+
+// conv1dOn işlemcinin türevsiz evrişimidir; iş büyükse kilit bırakılarak (matMulOn'un eşiğiyle).
+func conv1dOn(m *interp.VM, x, w, b *tensor.Tensor, o tensor.Conv1dOptions) *tensor.Tensor {
+	ws := w.Shape()
+	work := x.Shape()[0] * o.Length(x.Shape()[2], ws[2]) * ws[0] * ws[1] * ws[2]
+	if m == nil || work < unlockedMatMulWork {
+		return tensor.Conv1dDirect(x, w, b, o)
+	}
+	return runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return tensor.Conv1dKernel(x, w, b, o) })
+}
+
+// contiguousOrNil t'nin bitişik hâlidir (nil için nil).
+func contiguousOrNil(t *tensor.Tensor) *tensor.Tensor {
+	if t == nil {
+		return nil
+	}
+	return t.Contiguous()
 }

@@ -5,7 +5,9 @@ import "github.com/sekerahmet/TCB/internal/lang/messages"
 // Bir boyutlu evrişim (15.23c). Girdi pencereleri bir kez satırlara açılır, çarpımı `@` yapar:
 // hesap, biriktirme ve türev onunla aynıdır. Açma tensörün cihazındadır (15.41): işlemcide
 // openRows, kartta arka ucun açma çekirdeği (Conv1dFolder). Açma kopyadır; türevi her girdi
-// satırını sabit sırayla toplar (15.22a): iki cihazda da bitler aynıdır.
+// satırını sabit sırayla toplar (15.22a): iki cihazda da bitler aynıdır. İşlemcide türevsiz,
+// float32 çağrı açma tamponu olmadan Conv1dKernel'den gider (conv1d_cpu.go); sonuç bu yolla bit bit
+// aynıdır.
 
 // convCost bir öğenin yaklaşık maliyetidir (işçi sayısı için).
 const convCost = 4
