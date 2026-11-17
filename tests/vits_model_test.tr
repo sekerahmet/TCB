@@ -148,7 +148,7 @@ TR_test "Vits'te ses.TR_language yazmak hatadır" {
 #      c[t] = g[t-2] + g[t+2] = [-0,025, 1,05, 1,1, 4,65]; x = [1,075, 5,7, 0,85, 5,7].
 # tip2 küçük modelin ilk artık bloğunu verilen evrişimlerle tip 2'ye çevirir ve x'i ondan geçirir (yapının
 # kurucusu ve tipi modülün içindedir).
-TR_func tip2(ağırlıklar: TR_List[TR_Tensor], sapmalar: TR_List[TR_Tensor], genişlemeler: TR_List[TR_Int], x: TR_Tensor) -> TR_Tensor {
+TR_func tip2(ağırlıklar: TR_List[TR_Tensor], sapmalar: TR_List[TR_Tensor], genişlemeler: TR_List[TR_Int], x: TR_Tensor, eğim: TR_Float = 0.1) -> TR_Tensor {
     TR_var blok = TR_pretrained_vits(_MODEL)._çözücü.bloklar[0][0]
     # Küçük modelin bloğunda iki ayrı evrişim var (genişlemeler [1, 3]); yapılar paylaşılır, kopyalanmaz.
     TR_var evrişimler = [blok.birinciler[i] TR_for i TR_in 0..genişlemeler.TR_length]
@@ -161,7 +161,7 @@ TR_func tip2(ağırlıklar: TR_List[TR_Tensor], sapmalar: TR_List[TR_Tensor], ge
     }
     blok.birinciler = evrişimler
     blok.ikinciler = []
-    blok.eğim = 0.1
+    blok.eğim = eğim
     TR_return blok._ileri(x)
 }
 
@@ -182,6 +182,33 @@ TR_test "tip 2 artık blok TR'nin ayrı işlemleriyle aynı" {
         beklenen = beklenen + TR_conv1d(a, w[i], b[i], TR_padding: (5 * g - g) // 2, TR_dilation: g)
     }
     TR_assert(TR_all_close(y, beklenen, TR_rtol: 1e-5, TR_atol: 1e-5))
+}
+
+# Kural (A8-4, DENETİM 849 Ş2): _gevşek PyTorch'un `leaky_relu`'sudur: x > 0'da x, değilse x · eğim
+# (torch.nn.functional.leaky_relu'nun tanımı); eğim dosyadan gelir, 0 ile 1'in dışında da doğrudur. Beklenenler bu
+# tanımdan elle yazıldı (çarpanlar ikinin kuvvetiyle ölçeklenir: float32'de tam). _gevşek modülün içindedir: 1×1
+# birim evrişimli tip 2 artık blok x + gevşek(x) verir, beklenen x + beklenen ile aynı toplamadır. Eksi sıfırın
+# işareti karşılaştırılmaz: bugünkü yazım +0 verir, PyTorch −0 (lib/vits.tr'nin _gevşek yorumu). NaN NaN kalır.
+TR_test "gevşek PyTorch'un leaky_relu'su: eğim 0, 0,01, 0,1, 1, 1,5 ve -0,1" {
+    TR_var x = TR_Tensor([[[-2.0, -0.5, -0.0, 0.0, 0.5, 3.0]]])
+    TR_var eğimler = [0.0, 0.01, 0.1, 1.0, 1.5, -0.1]
+    TR_var beklenenler = [
+        [0.0, 0.0, 0.0, 0.0, 0.5, 3.0],
+        [-0.02, -0.005, 0.0, 0.0, 0.5, 3.0],
+        [-0.2, -0.05, 0.0, 0.0, 0.5, 3.0],
+        [-2.0, -0.5, 0.0, 0.0, 0.5, 3.0],
+        [-3.0, -0.75, 0.0, 0.0, 0.5, 3.0],
+        [0.2, 0.05, 0.0, 0.0, 0.5, 3.0],
+    ]
+    TR_var birim = [TR_Tensor([[[1.0]]])]
+    TR_var sıfır = [TR_Tensor([0.0])]
+    TR_for i TR_in 0..eğimler.TR_length {
+        TR_var y = tip2(birim, sıfır, [1], x, eğim: eğimler[i])
+        TR_assert(TR_all(y == x + TR_Tensor([[beklenenler[i]]])), "eğim \(eğimler[i])")
+        TR_var nan = TR_Tensor([[[0.0]]]) / TR_Tensor([[[0.0]]])
+        TR_var n = tip2(birim, sıfır, [1], nan, eğim: eğimler[i])
+        TR_assert(TR_all(n != n), "eğim \(eğimler[i]): NaN")
+    }
 }
 
 # eski_ters ters evrişimin araya sıfır koyan eski yoludur (be8e3749'un `_büyüt`'ü, transformers kıyasından geçmişti):
