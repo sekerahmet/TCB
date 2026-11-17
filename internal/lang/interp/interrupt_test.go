@@ -394,6 +394,14 @@ func TestErrorDoesNotStopTheNextProgram(t *testing.T) {
 		if err := runReuseLoop(t, v); !errors.Is(err, ErrInterrupted) {
 			t.Errorf("kesme kaldığı için sonraki program durmalı: %v", err)
 		}
+		// Kalan kesme ilk programındır (kaldırılmadı, ownStop durur); canlı görev kalmayınca ikinci
+		// programın sonunda kalkar: VM bir program sonra düzelir.
+		if v.Interrupted() {
+			t.Error("ikinci programdan sonra kesme kalkmalı")
+		}
+		if err := runReuseLoop(t, v); err != nil {
+			t.Errorf("üçüncü program kesilmemeli: %v", err)
+		}
 	})
 }
 

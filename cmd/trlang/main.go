@@ -304,6 +304,7 @@ func startREPL() {
 	for {
 		fmt.Print("tr> ")
 		ln, readError := reader.ReadString('\n')
+		endShellOnExit(machine, nil, "") // girdi beklenirken bir görev TR_exit çağırdıysa satır çalışmaz
 		if ln == "" && readError != nil {
 			break
 		}
@@ -362,11 +363,13 @@ func startREPL() {
 	}
 }
 
-// endShellOnExit, satır TR_exit ile bittiyse kabuğu o kodla bitirir (1.10 "bütün program biter"):
-// dosya çalıştırmadaki gibi çıkılır, sonraki satır okunmaz; boruyla verilen betikte TR_exit'ten
-// sonrası sessizce çalışmaz. Ertelenen işler Run'da çalıştı; motorlar kapanır.
+// endShellOnExit, TR_exit çağrıldıysa kabuğu o kodla bitirir (1.10 "bir görevden çağrılsa da bütün
+// program biter"): dosya çalıştırmadaki gibi çıkılır, sonraki satır çalışmaz; boruyla verilen betikte
+// TR_exit'ten sonrası sessizce çalışmaz. Çıkış Run'ın hatasından değil VM'in durumundan anlaşılır:
+// görevdeki TR_exit'in hatası Run'a ulaşmaz. Girdi beklerken gelen TR_exit kabuğu hemen bitirmez,
+// sonraki girdide bitirir. Ertelenen işler Run'da çalıştı; motorlar kapanır.
 func endShellOnExit(machine *interp.VM, err error, line string) {
-	if _, exited := interp.IsExitRequest(err); !exited {
+	if !machine.ExitRequested() {
 		return
 	}
 	end := machine.End(err)

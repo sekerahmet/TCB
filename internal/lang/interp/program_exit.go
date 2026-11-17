@@ -69,6 +69,16 @@ func (v *VM) RequestExit(code int, message string) *ExitRequest {
 	return &ExitRequest{Code: code, Message: message}
 }
 
+// ExitRequested programın TR_exit ile bitmesinin istendiğini söyler; ana görevden de, bir
+// görevden de (1.10). Etkileşimli kabuk her satırdan sonra ve her girdiden önce buna bakar: görevden
+// gelen TR_exit'in hatası Run'ın hatasına ulaşmaz (taskError), çıkış yalnız VM'in durumunda görünür.
+// Her goroutine'den çağrılabilir.
+func (v *VM) ExitRequested() bool {
+	v.exitMu.Lock()
+	defer v.exitMu.Unlock()
+	return v.exitRequested
+}
+
 // maxExitCode TR_exit'in en büyük kodudur: POSIX süreç kodunun alt 8 bitini görür, 126'dan sonrası
 // kabuğa aittir (1.11).
 const maxExitCode = 125

@@ -195,9 +195,10 @@ func (v *VM) StopRequested() bool { return v.stopRequested.Load() }
 // StopSignal ilk isteğin sinyal numarasıdır (0: istek gelmedi).
 func (v *VM) StopSignal() int { return int(v.stopSignal.Load()) }
 
-// Interrupt applies a stop to every task: they unwind at their next safe point and abandonable
-// waits end. It may be called from any goroutine and returns true on the first call (later
-// calls do nothing). The stop stays on the VM after Run returns.
+// Interrupt kesmeyi bütün görevlere uygular: görevler ilk güvenli noktada çözülür, bırakılabilir
+// beklemeler biter. Her goroutine'den çağrılabilir; VM kesilmemişken gelen ilk çağrıda (ilk kez ya
+// da kesme kalktıktan sonraki ilk çağrıda) true döner, sonrakiler bir şey yapmaz. Bu kesme Run
+// döndükten sonra da VM'de kalır.
 func (v *VM) Interrupt() bool {
 	// Başkasının kesmesi (istek, erteleme süresi, InterruptNow, Go'dan doğrudan çağrı): ilk çağrı
 	// olmasa da kaydedilir, Run bu kesmeyi kaldırmaz.
