@@ -5,7 +5,9 @@ import "github.com/sekerahmet/TCB/internal/lang/messages"
 // Bir boyutlu evrişim (15.23c). Girdi pencereleri bir kez satırlara açılır, çarpımı `@` yapar:
 // hesap, biriktirme ve türev onunla aynıdır. Açma tensörün cihazındadır (15.41): işlemcide
 // openRows, kartta arka ucun açma çekirdeği (Conv1dFolder). Açma kopyadır; türevi her girdi
-// satırını sabit sırayla toplar (15.22a): iki cihazda da bitler aynıdır.
+// satırını sabit sırayla toplar (15.22a): iki cihazda da bitler aynıdır. İşlemcide türevsiz,
+// float32 çağrı açma tamponu olmadan Conv1dKernel'den gider (conv1d_cpu.go); sonuç bu yolla bit bit
+// aynıdır.
 
 // convCost bir öğenin yaklaşık maliyetidir (işçi sayısı için).
 const convCost = 4
@@ -135,21 +137,36 @@ func foldOn(be Backend, g *Tensor, f foldShape) *Tensor {
 	return dx
 }
 
-// openRows satırları kurar; dolgu sıfırdır. Her satır yalnız kendi yerine yazar.
+// openRows satırları kurar; dolgu sıfırdır. Her satır yalnız kendi yerine yazar. Çekirdeğin bütün
+// öğeleri girdinin içine düşen konumda (iç konum) sınır denetlenmez; genişleme 1'de bir kanalın K
+// öğesi girdide bitişiktir ve tek kopyadır. Kenar konumları öğe öğe denetlenir. onnxruntime'ın
+// MLAS'ı da açmada dolguyu ayrı yazar, girdinin içini denetimsiz kopyalar (MlasConvIm2Col).
 func openRows(src []float32, f foldShape) []float32 {
 	cg, width := f.cg(), f.cg()*f.k
 	rows := f.o.Groups * f.batch * f.frames
 	cols := make([]float32, rows*width)
+	reach := (f.k - 1) * f.o.Dilation // çekirdeğin ilk ve son öğesi arası
 	parallelFor(rows, width*convCost, func(lo, hi int) {
 		for u := lo; u < hi; u++ {
 			gi, rest := u/(f.batch*f.frames), u%(f.batch*f.frames)
 			b, start := rest/f.frames, rest%f.frames*f.o.Stride-f.o.Padding
 			dst := cols[u*width : (u+1)*width]
+			inner := start >= 0 && start+reach < f.l
 			for c := range cg {
 				row := src[(b*f.cin+gi*cg+c)*f.l : (b*f.cin+gi*cg+c+1)*f.l]
-				for j := range f.k {
-					if p := start + j*f.o.Dilation; f.inside(p) {
-						dst[c*f.k+j] = row[p]
+				d := dst[c*f.k : (c+1)*f.k]
+				switch {
+				case inner && f.o.Dilation == 1:
+					copy(d, row[start:start+f.k])
+				case inner:
+					for j := range d {
+						d[j] = row[start+j*f.o.Dilation]
+					}
+				default:
+					for j := range d {
+						if p := start + j*f.o.Dilation; f.inside(p) {
+							d[j] = row[p]
+						}
 					}
 				}
 			}

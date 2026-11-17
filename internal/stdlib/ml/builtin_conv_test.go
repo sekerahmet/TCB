@@ -1,11 +1,13 @@
 package ml
 
 import (
+	"math"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -69,5 +71,83 @@ TR_print(g[0], g[5], c[1] == g[1], c[2] == g[2], c[3] == g[3], c[4] == g[4])`)
 	if out := mustRun(t, `TR_var x = TR_ones([1, 1, 4]).TR_to_device("gpu")
 TR_print(TR_conv1d(x, TR_ones([1, 1, 2]).TR_to_device(x.TR_device), TR_none).TR_to_device("cpu").TR_tolist)`); out != "[[[2.0, 2.0, 2.0]]]"+"\n" {
 		t.Errorf("H6102'nin önerisi: %q", out)
+	}
+}
+
+// convOperand n öğeli, sıfırdan farklı belirlenimli değerlerle [shape] tensörüdür.
+func convOperand(shape ...int) *tensor.Tensor {
+	n := 1
+	for _, d := range shape {
+		n *= d
+	}
+	v := make([]float32, n)
+	for i := range v {
+		v[i] = float32(math.Sin(float64(i)*0.37)) * 0.5
+	}
+	return tensor.New(v, shape...)
+}
+
+// Kural (DENETİM 849 N2): TR_conv1d kapsamdaki çağrıyı işlemcinin türevsiz çekirdeğine
+// (tensor.Conv1dKernel) gönderir; türevli, karışık hassasiyetli, 16 bitlik, kartta ve eski yolun gemv'e
+// gittiği çağrı (B · çıkış = 1, N · K ≥ 4096) tensor.Conv1d'den gider. İki yol aynı bitleri verdiği
+// için seçim çıktıdan görünmez; bu test seçimin kendisini sınar.
+func TestConv1dDirectChoosesTheKernel(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	o := tensor.Conv1dOptions{Stride: 1, Padding: 1, Dilation: 1, Groups: 1}
+	p0 := tensor.Conv1dOptions{Stride: 1, Dilation: 1, Groups: 1}
+	x, w, b := convOperand(1, 4, 50), convOperand(8, 4, 3), convOperand(8)
+	f32 := tensor.Float32
+	for _, c := range []struct {
+		name    string
+		mixed   tensor.DType
+		x, w, b *tensor.Tensor
+		o       tensor.Conv1dOptions
+		want    bool
+	}{
+		{"kapsamda", f32, x, w, b, o, true},
+		{"sapmasız", f32, x, w, nil, o, true},
+		{"bitişik olmayan girdi", f32, convOperand(1, 50, 4).Transpose(1, 2), w, b, o, true},
+		{"çıkış boyu 1, küçük iç boyut", f32, convOperand(1, 2, 3), convOperand(3, 2, 3), nil, p0, true},
+		{"çıkış boyu 1, toplu 2", f32, convOperand(2, 64, 5), convOperand(64, 64, 5), nil, p0, true},
+		{"çıkış boyu 1, gemv", f32, convOperand(1, 64, 5), convOperand(64, 64, 5), nil, p0, false},
+		{"türevli girdi", f32, convOperand(1, 4, 50).SetRequiresGrad(true), w, b, o, false},
+		{"türevli ağırlık", f32, x, convOperand(8, 4, 3).SetRequiresGrad(true), b, o, false},
+		{"türevli sapma", f32, x, w, convOperand(8).SetRequiresGrad(true), o, false},
+		{"karışık hassasiyet", tensor.BFloat16, x, w, b, o, false},
+		{"16 bit", f32, x.Cast(tensor.BFloat16), w.Cast(tensor.BFloat16), nil, o, false},
+		{"kartta", f32, x.To(tensor.GPU(0)), w.To(tensor.GPU(0)), nil, o, false},
+	} {
+		if got := conv1dDirect(c.mixed, c.x, c.w, c.b, c.o); got != c.want {
+			t.Errorf("%s: çekirdeğe gider %v, beklenen %v", c.name, got, c.want)
+		}
+	}
+}
+
+// Kural (15.22a, 15.23c): TR_conv1d'in sonucu iki yolda eski yolla (tensor.Conv1d) bit bit aynıdır:
+// çekirdeğe giden bitişik olmayan girdi (çağıran bitişik yapar) ve eski yola kalan gemv çağrısı
+// (çıkış boyu 1, Cin 64 × K 5 = 320 > kcBlock).
+func TestConv1dBuiltinMatchesOldPathBits(t *testing.T) {
+	o := tensor.Conv1dOptions{Stride: 1, Dilation: 1, Groups: 1}
+	for _, c := range []struct {
+		name    string
+		x, w, b *tensor.Tensor
+	}{
+		{"bitişik olmayan girdi", convOperand(1, 50, 4).Transpose(1, 2), convOperand(8, 4, 3), convOperand(8)},
+		{"çıkış boyu 1, gemv", convOperand(1, 64, 5), convOperand(64, 64, 5), convOperand(64)},
+	} {
+		r, err := conv1dBuiltin(nil, []interp.Value{New(c.x), New(c.w), New(c.b)}, nil)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		got, want := r.(*TensorValue).t.Data(), tensor.Conv1d(c.x, c.w, c.b, o, tensor.MatMul).Data()
+		if len(got) != len(want) {
+			t.Fatalf("%s: %d öğe, eski yolda %d", c.name, len(got), len(want))
+		}
+		for i := range got {
+			if math.Float32bits(got[i]) != math.Float32bits(want[i]) {
+				t.Fatalf("%s: %d. öğe %v, eski yolda %v", c.name, i, got[i], want[i])
+			}
+		}
 	}
 }

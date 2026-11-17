@@ -1298,7 +1298,7 @@ const (
 	H6607 Code = 6607 // {fn}: bir ad çok uzun ({bytes} bayt; en fazla {maxNameLen})
 	H6608 Code = 6608 // {fn}: {key|q} değeri bir tensör olmalıdır, {given} verildi
 	H6609 Code = 6609 // {fn}: {key|q} en fazla {maxDims} eksenli olabilir, {shape} verildi
-	H6610 Code = 6610 // tanınan bir tensör dosyası değil: TR tensör dosyası ({fileMagic|q} ile başlar, {saveTensorsFn} yazar), GGUF dosyası (GGUF ile başlar) ya da safetensors dosyası (8 baytlık başlık boyundan sonra {{ ile başlayan JSON başlık) bekleniyordu
+	H6610 Code = 6610 // tanınan bir tensör dosyası değil: TR tensör dosyası ({fileMagic|q} ile başlar, {saveTensorsFn} yazar), GGUF dosyası (GGUF ile başlar), safetensors dosyası (8 baytlık başlık boyundan sonra {{ ile başlayan JSON başlık) ya da ONNX modeli (ilk baytı 0x08 olan protobuf) bekleniyordu
 	H6611 Code = 6611 // dosya biçimi sürümü {version}; bu TR sürümü yalnızca sürüm {fileVersion} okur; eski sürüm okunamaz, veriyi bu TR sürümüyle yeniden üretin
 	H6612 Code = 6612 // dosya bozuk: {count} girdi bildiriliyor ama dosyada yalnızca {remaining} bayt kaldı
 	H6613 Code = 6613 // dosya bozuk: {entry} adının uzunluğu {length} geçersiz
@@ -1408,13 +1408,20 @@ const (
 	H6720 Code = 6720 // {fn}: {axis}. eksenin uzunluğu {length} ({shape}); [{start}, {end}) aralığı geçersiz (0 ≤ baş ≤ son ≤ {length} olmalı)
 	H6721 Code = 6721 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı
 	H6722 Code = 6722 // {method}() argüman almaz; eksenlerin sırasını vermek için {permute}(...) kullanın
-	H6723 Code = 6723 // {fn} {{ ... }} bloğunda "{dtype}" ağırlıkla çarpım yok (15.53a): girdi yalnız "q4_k" ve "q6_k" ağırlıkla nicemlenir; çarpımı bloğun dışına alın
+	H6723 Code = 6723 // {fn} {{ ... }} bloğunda "{dtype}" ağırlıkla çarpım yok (15.53a): girdi yalnız "q4", "q4_k" ve "q6_k" ağırlıkla nicemlenir; çarpımı bloğun dışına alın
 	H6724 Code = 6724 // {fn} {{ ... }} bloğu GPU'da yok (15.53a, 15.41): "{dtype}" ağırlık GPU'da; çarpımı bloğun dışına alın ya da girdiyi ve ağırlığı CPU'ya taşıyın
 	H6725 Code = 6725 // {fn} {{ ... }} yalnız bir blok alır, {given} parametre verildi
 	H6726 Code = 6726 // {fn} {{ ... }} bir blok bekler, {given} verildi
 	H6730 Code = 6730 // Uyarı: {fn}: bırakılan tensörlerin {waiting_bytes} baytlık belleği {seconds} sn içinde geri verilmedi; yükleme sürüyor, bellek tepesi bu kadar yüksek olabilir.
 	H6740 Code = 6740 // `{step}` tensörle indekstir ve kopya verir (15.6d): yazma kopyada kalırdı, `{base}` değişmezdi. Kopyayı değiştirmek için ona ad verin: `{#var} {copy} = {step}; {write}`. `{base}` tensörüne yazmak için, `{index}` yinelenmeyen bir tam sayı tensörüyse, kopyayı değiştirip satırlarını geri yazın: `{#var} {copy} = {step}; {write}; {#for} {k}, {i} {#in} {index}.{#reshape}([-1]) {{ {base}[{i}] = {copy}.{#reshape}([-1] + {base}[0].{#shape})[{k}] }}`
 	H6741 Code = 6741 // `{step}` {kind, select, op {bir işlemin sonucudur} call {bir çağrının sonucudur} method {görünüm sayılmayan bir metodun sonucudur} other {ad, alan, kap öğesi ya da görünüm değildir}}: yerinde yazmanın hedefi kopyadan geçmez (15.6d), yazma bir kopyada kalıp kaybolabilirdi. Yazmayı adı olan bir değere yapın: `{#var} {copy} = {step}; {write}` (yazma bu ada gider); asıl tensörü değiştirmek için ona yazın.
+	H6742 Code = 6742 // ONNX dosyası bozuk ya da eksik: {what} okunurken {case, select, end {dosya {offset}. baytta bitti} other {{offset}. baytta geçersiz protobuf kodlaması var}}
+	H6743 Code = 6743 // ONNX dosyasının {offset}. baytında bildirilen boy {length}: dosyada yalnız {remaining} bayt kaldı
+	H6744 Code = 6744 // ONNX dosyası {count} tensör bildiriyor (en fazla {limit})
+	H6745 Code = 6745 // ONNX tensörü {name|q} {dims} eksenli bildiriliyor (en fazla {maxDims})
+	H6746 Code = 6746 // ONNX tensörü {name|q}: desteklenmeyen veri türü {dtype} (bu TR sürümü FLOAT, DOUBLE, FLOAT16, BFLOAT16, INT64, INT32, INT16, INT8, UINT8 ve BOOL okuyabilir)
+	H6747 Code = 6747 // ONNX tensörü {name|q}: {shape} şekli {want} bayt ister, dosyada {got} bayt var{case, select, external {: verisi ayrı bir dosyada (external_data); dış veri okunmaz, modeli tek dosya olarak dışa verin} other {}}
+	H6748 Code = 6748 // ONNX dosyasında {name|q} adı iki kez geçiyor
 	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
 	H6801 Code = 6801 // {fn}() cihaz adını metin olarak bekler ("cpu" ya da "gpu"), {given} verildi
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler
@@ -1860,13 +1867,16 @@ const (
 	H7554 Code = 7554 // {@pretrained_vits}: {weight|q} tensörü {dtype|q} türünde; ağırlık float32, fp16 ya da bf16 olmalıdır, nicemli ağırlık açılmaz
 	H7555 Code = 7555 // {@pretrained_vits}: {weight|q} tensörünün şekli {given}, `config.json`'a göre {expected} olmalıdır
 	H7556 Code = 7556 // {@pretrained_vits}: tanınmayan tensör {weight|q}
-	H7557 Code = 7557 // {@pretrained_vits}: {field|q} {given} olamaz: {case, select, positive {boyutlar sıfırdan büyüktür} heads {bakış sayısı `hidden_size`'ı bölmelidir} other {bu kitaplık tek konuşmacılı, olasılıklı süre öngörücülü, karakter parçalayıcılı VITS'i açar}}
+	H7557 Code = 7557 // {@pretrained_vits}: {field|q} {given} olamaz: {case, select, positive {boyutlar sıfırdan büyüktür} heads {bakış sayısı `hidden_size`'ı bölmelidir} other {bu kitaplık tek konuşmacılı, olasılıklı süre öngörücülü VITS'i açar: karakter parçalayıcılı Hugging Face klasörü ya da Piper sesi}}
+	H7558 Code = 7558 // {@pretrained_vits}: {file|q} Piper sesi olarak açılamadı: yanında {json|q} yok; Piper sesi `.onnx` dosyası ve aynı adlı `.onnx.json` ile açılır
+	H7559 Code = 7559 // {@phonemize}: {language|q} dili için fonem çevirici yok; bu TR sürümünde çeviricisi olan diller: {supported}
 	H7560 Code = 7560 // {@qwen3_format}: `{#add_generation_prompt}: {#true}` ile modelin düşünüp düşünmeyeceği yazılır: `{#add_generation_prompt}: {#true}, {#enable_thinking}: {#false}` (24.2)
 	H7561 Code = 7561 // {@qwen3_format}: `{#enable_thinking}:` yalnız `{#add_generation_prompt}: {#true}` ile geçerlidir; {given} verildi. Eğitim için biçimlerken kaldırın: `{#add_generation_prompt}: {#false}` (24.2)
 	H7562 Code = 7562 // parçalayıcıda {tag|q} parçası yok: Qwen3'ün sohbet biçimi bir Qwen3 modelinin parçalayıcısını ister (24.2)
 	H7563 Code = 7563 // {@qwen3_reply}: geçerli bir araç çağrısının {field|q} alanı modelin metninde bulunamadı; bu tr/chat'in hatasıdır, lütfen bildirin (24.3)
 	H7564 Code = 7564 // {fn}: `{#env}:`'deki PATH boş, {name|q} programı hiçbir yerde aranmadı; dosyanın kendisi yol olarak verilir: `{run}({#path}({file|q}), {args})`; `{#env}:` ve öbür adlı argümanlar aynen kalır
 	H7565 Code = 7565 // {fn}: `{#env}:`'deki PATH boş, {name|q} programı hiçbir yerde aranmadı; dosyanın kendisi {@path} olarak verilir
+	H7567 Code = 7567 // {@phonemize}: {phoneme|q} fonemi sesin sözlüğünde yok ({voice|q})
 	H7600 Code = 7600 // {fn}: içerik gizli bir değer taşıyor; dosyayı yalnız size açık yazın: `{#write_file}(yol, içerik, {#owner_only}: {#true})`
 	H7601 Code = 7601 // Görev kaynağı kapandı: yeni görev açılmaz
 	H7602 Code = 7602 // {fn}: başlık adı bir metin olmalı, {given} verildi

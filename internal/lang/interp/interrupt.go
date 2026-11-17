@@ -195,10 +195,65 @@ func (v *VM) StopRequested() bool { return v.stopRequested.Load() }
 // StopSignal ilk isteğin sinyal numarasıdır (0: istek gelmedi).
 func (v *VM) StopSignal() int { return int(v.stopSignal.Load()) }
 
-// Interrupt applies a stop to every task: they unwind at their next safe point and abandonable
-// waits end. It may be called from any goroutine and returns true on the first call (later
-// calls do nothing).
+// Interrupt kesmeyi bütün görevlere uygular: görevler ilk güvenli noktada çözülür, bırakılabilir
+// beklemeler biter. Her goroutine'den çağrılabilir; VM kesilmemişken gelen ilk çağrıda (ilk kez ya
+// da kesme kalktıktan sonraki ilk çağrıda) true döner, sonrakiler bir şey yapmaz. Bu kesme Run
+// döndükten sonra da VM'de kalır.
 func (v *VM) Interrupt() bool {
+	// Başkasının kesmesi (istek, erteleme süresi, InterruptNow, Go'dan doğrudan çağrı): ilk çağrı
+	// olmasa da kaydedilir, Run bu kesmeyi kaldırmaz.
+	v.stopMu.Lock()
+	v.otherStop = true
+	v.stopMu.Unlock()
+	return v.interrupt()
+}
+
+// stopOwn programın kendi bitişi için (yakalanmayan hata 1.9, TR_exit 1.10) öbür görevleri
+// durdurur. Kesme ilk kez burada uygulandıysa programın kendisinindir: Run, görevler bitince onu
+// kaldırır (releaseOwnStop) ve aynı VM'deki sonraki program kesilmiş başlamaz.
+func (v *VM) stopOwn() {
+	if v.interrupt() {
+		v.stopMu.Lock()
+		v.ownStop = true
+		v.stopMu.Unlock()
+	}
+}
+
+// releaseOwnStop Run'ın sonunda, görevler beklenip ertelenen işler bittikten sonra çağrılır:
+// kesme yalnız programın kendisininse, istek gelmediyse ve canlı görev kalmadıysa kalkar. Ertelenen
+// işte açılan görev beklenmez (1.9); canlıyken kesme kalır, yoksa görev durdurulmadan çalışırdı.
+// Kaldırma yalnız kesmeyi geri alır: çıkış kodu ve iletisi, görev hatası ve üstlenme sıfırlanmaz.
+// Ana görevin interruptThrown'u bu yolda false'tur: ertelenen işler temizlik içinde koşar,
+// checkInterrupt orada atmaz.
+func (v *VM) releaseOwnStop() {
+	v.stopMu.Lock()
+	defer v.stopMu.Unlock()
+	if !v.ownStop || v.otherStop || v.stopSignal.Load() != 0 || v.liveTasks.Load() != 0 {
+		return
+	}
+	v.ownStop = false
+	v.interrupted.Store(false)
+	v.interruptChan = make(chan struct{})
+	v.pending.Add(-1) // Interrupt'ın eklediği
+}
+
+// beginProgram Run'ın başında çağrılır. finishing yalnız biten programındır (1.15): kalkmazsa aynı
+// VM'deki sonraki programa gelen ilk istek StopFinishing olur ve program durmaz. Önceki program
+// biterken ya da programlar arasında gelen istek kaydedilmiştir (stopSignal) ve kalıcıdır: kesme
+// uygulanır, sonraki istekler StopRepeated olurdu. Sıra önemlidir: finishing önce kalkar, araya
+// giren istek ya burada görülür ya da RequestStop onu uygular. Ana görevin interruptThrown'u
+// önceki programın çözülmesine aittir: kalırsa checkInterrupt yeni programda hiç atmaz ve istekle
+// duran programdan sonraki program durmaz. Run iç içe çağrılmaz; yeni program çözülmede değildir.
+func (v *VM) beginProgram() {
+	v.interruptThrown = false
+	v.finishing.Store(false)
+	if v.stopSignal.Load() != 0 {
+		v.Interrupt()
+	}
+}
+
+// interrupt durdurmayı uygular; ilk çağrıda true döner.
+func (v *VM) interrupt() bool {
 	if !v.interrupted.CompareAndSwap(false, true) {
 		return false
 	}

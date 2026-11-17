@@ -167,6 +167,10 @@ type vmShared struct {
 	endWork   []func() []EndError
 	stopTimer *time.Timer
 	finishing atomic.Bool
+	// ownStop kesmeyi programın kendi bitişinin (yakalanmayan hata, TR_exit) koyduğunu, otherStop
+	// Interrupt'ı başka birinin de (istek, erteleme süresi, InterruptNow, Go'dan doğrudan çağrı)
+	// çağırdığını söyler. Run yalnız kendi kesmesini kaldırır (releaseOwnStop). stopMu altında.
+	ownStop, otherStop bool
 	// interactive etkileşimli kabukta açıktır: VM birden çok Run ile sürer, hatayla biten satır
 	// görevleri durdurmaz (bkz. SetInteractive).
 	interactive bool
@@ -463,13 +467,15 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 		v.acquireGIL()
 		defer v.releaseGIL()
 	}
+	v.beginProgram()
 	v.addRuntimeChecks(prog) // denetleyicinin çalışma denetimleri (1.2, runtime_checks.go)
 	val, err := v.runMain(prog)
 	err = v.takeUnwindErrors(err) // durdurmada ertelenen işlerin hataları (9.4)
 	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli
-	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz.
+	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz. Bu kesme programın kendisinindir:
+	// dönmeden kaldırılır (releaseOwnStop).
 	if _, main := splitProgramErrors(err); main != nil && !v.interactive {
-		v.Interrupt()
+		v.stopOwn()
 	}
 	v.runMainEnds() // açık sunucular kapanır (28.8): görevleri yeni istek beslemez
 	// Görevlere durma emri gittiyse (durdurma, TR_exit, hata) ya da program hatasız bittiyse görevler
@@ -484,6 +490,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 		val, err = nil, addDeferError(err, derr)
 	}
 	v.reportUnwaitedTasks() // ertelenen iş görevi bekleyebilir: ondan sonra (10.6)
+	v.releaseOwnStop()      // aynı VM'deki sonraki program kesilmiş başlamasın
 	return val, err
 }
 

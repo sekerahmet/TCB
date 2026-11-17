@@ -23,6 +23,17 @@ func q4kWeight(seed int64, N, K int) *tensor.Tensor {
 	return tensor.FromQuantized(tensor.Q4K, raw, N, K)
 }
 
+// q4Weight sonlu küçük ölçekli rastgele bir q4 ağırlığı [N, K] kurar (ölçeğin üst baytı 0x1C: fp16 ~0,004).
+func q4Weight(seed int64, N, K int) *tensor.Tensor {
+	r := rand.New(rand.NewSource(seed))
+	raw := make([]byte, N*K/32*18)
+	r.Read(raw)
+	for b := 0; b < len(raw); b += 18 {
+		raw[b+1] = 0x1C | raw[b+1]&0x83
+	}
+	return tensor.FromQuantized(tensor.Q4, raw, N, K)
+}
+
 func wantMessage(t *testing.T, err error, code messages.Code) {
 	t.Helper()
 	var me *messages.Error
@@ -33,12 +44,17 @@ func wantMessage(t *testing.T, err error, code messages.Code) {
 
 // TestQuantizedActivationsBlockPicksTheIntPath: TR_quantized_activations bloğunda (görev durumu açık) `@` nicemli
 // ağırlıkla tensor.MatMulActQuantKernel'in yolundan gider: sonuç onunla bit bit aynı, bloğun dışındakiyle
-// (float yolu) farklıdır. Blok dışında yol değişmez (15.53).
+// (float yolu) farklıdır. Blok dışında yol değişmez (15.53). q4_k 256'lık, q4 32'lik etkinleştirme bloğuyla.
 func TestQuantizedActivationsBlockPicksTheIntPath(t *testing.T) {
 	r := rand.New(rand.NewSource(53))
-	for _, M := range []int{1, 5} {
+	for _, tc := range []struct {
+		dt string
+		M  int
+		w  func(seed int64, N, K int) *tensor.Tensor
+	}{{"q4_k", 1, q4kWeight}, {"q4_k", 5, q4kWeight}, {"q4", 1, q4Weight}, {"q4", 5, q4Weight}} {
+		M := tc.M
 		x := tensor.Randn(r, M, 512)
-		w := q4kWeight(int64(M), 7, 512).T()
+		w := tc.w(int64(M), 7, 512).T()
 		m := interp.New()
 		outside, err := matmulDType(m, x, w, tensor.Float32)
 		if err != nil {
@@ -56,26 +72,31 @@ func TestQuantizedActivationsBlockPicksTheIntPath(t *testing.T) {
 		same := true
 		for i := range want {
 			if math.Float32bits(got[i]) != math.Float32bits(want[i]) {
-				t.Fatalf("M=%d [%d]: blokta %v, nicemli yol %v", M, i, got[i], want[i])
+				t.Fatalf("%s M=%d [%d]: blokta %v, nicemli yol %v", tc.dt, M, i, got[i], want[i])
 			}
 			if math.Float32bits(out[i]) != math.Float32bits(plain[i]) {
-				t.Fatalf("M=%d [%d]: blok dışında %v, float yolu %v", M, i, out[i], plain[i])
+				t.Fatalf("%s M=%d [%d]: blok dışında %v, float yolu %v", tc.dt, M, i, out[i], plain[i])
 			}
 			same = same && math.Float32bits(got[i]) == math.Float32bits(out[i])
 		}
 		if same {
-			t.Fatalf("M=%d: blokta da float yolu kullanıldı", M)
+			t.Fatalf("%s M=%d: blokta da float yolu kullanıldı", tc.dt, M)
 		}
 	}
 }
 
-// TestQuantizedActivationsRefusesOtherWeights: blokta q8 ağırlık hatadır (H6723), sessizce float yoluna düşmez.
+// TestQuantizedActivationsRefusesOtherWeights: blokta q8 ağırlık hatadır (H6723), sessizce float yoluna düşmez;
+// q4 kabul edilir (15.53a). fp8 türü bu sürümde yoktur, sınanamaz.
 func TestQuantizedActivationsRefusesOtherWeights(t *testing.T) {
 	m := interp.New()
 	m.SetTaskValue(actQuantKey{}, true)
 	w := tensor.FromQuantized(tensor.Q8, make([]byte, 2*34), 2, 32).T()
 	_, err := matmulDType(m, tensor.Ones(1, 32), w, tensor.Float32)
 	wantMessage(t, err, messages.H6723)
+	w4 := tensor.FromQuantized(tensor.Q4, make([]byte, 2*18), 2, 32).T()
+	if _, err := matmulDType(m, tensor.Ones(1, 32), w4, tensor.Float32); err != nil {
+		t.Fatalf("q4 ağırlık blokta kabul edilmeliydi: %v", err)
+	}
 }
 
 // TestQuantizedActivationsArguments: blok yalnız bir blok alır (H6725, H6726); sorgu argüman almaz.
