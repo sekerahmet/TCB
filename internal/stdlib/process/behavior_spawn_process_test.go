@@ -336,6 +336,26 @@ TR_var kod = TR_error_code { p.TR_wait(TR_timeout: 0.3) }
 	}
 }
 
+// İptalden sonraki okuma da kalanı verir, hata vermez (21.2, 21.5): iptal programın bitişini bekler,
+// okuma programın bitişini işleyen okuyucudan önce sıraya girse de kesilmez. İptal hemen geldiği için
+// tamponun dolması beklenmez; kalan herhangi bir boydadır.
+func TestReadAfterCancelGivesTheRest(t *testing.T) {
+	got, err := run(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["endless"])
+TR_var ilk = p.TR_read(1).TR_length
+p.TR_cancel()
+TR_var kalan = -1
+TR_var kod = TR_error_code { kalan = p.TR_read(8388608).TR_length } ?? "yok"
+[ilk, kod, kalan]`)
+	parts := strings.Split(strings.Trim(got, "[]"), ", ")
+	left := -1
+	if len(parts) == 3 {
+		left, _ = strconv.Atoi(parts[2])
+	}
+	if err != nil || len(parts) != 3 || parts[0] != "1" || parts[1] != `"yok"` || left < 0 {
+		t.Errorf("%s (%v)", got, err)
+	}
+}
+
 // TR_buffer_bytes: pozitif tam sayıdır; belleği aşan değer program başlamadan hatadır, büyük ama
 // geçerli değer ön ayırma yapmadan başlar (21.2).
 func TestBufferBytesIsChecked(t *testing.T) {
