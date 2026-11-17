@@ -92,10 +92,8 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 		}
 	}
 	x.keepClean(prev, dirty)
-	for _, rel := range prev.Files {
-		if !dirty[rel] {
-			x.files[rel] = stubFile(rel, prev)
-		}
+	for rel, f := range stubFiles(prev, dirty) {
+		x.files[rel] = f
 	}
 	order := sortedKeys(dirty)
 	for _, rel := range order {
@@ -174,16 +172,34 @@ func readInput(root string, opts Options, rel string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 }
 
+// stubFiles önceki dizinin değişmeyen (dirty'de olmayan) dosyalarını stubFile ile kurar. Düğümler bir geçişte dosyaya
+// göre toplanır: her dosya için bütün düğümleri gezmek temiz dosya sayısı × düğüm sayısı, yani karesel büyüyordu
+// (yaprak düzenlemede yenilemenin ~%27'si; TestBuildScalesLinearly'nin "temiz dosyaların kurulumu" aşaması).
+func stubFiles(prev *Index, dirty map[string]bool) map[string]*file {
+	byFile := map[string][]int{}
+	for i := range prev.Nodes {
+		if f := nodeFile(&prev.Nodes[i]); f != "" && !dirty[f] {
+			byFile[f] = append(byFile[f], i)
+		}
+	}
+	out := make(map[string]*file, len(prev.Files))
+	for _, rel := range prev.Files {
+		if !dirty[rel] {
+			out[rel] = stubFile(rel, prev, byFile[rel])
+		}
+	}
+	return out
+}
+
 // stubFile değişmeyen bir dosyayı önceki dizinden kurar: ayrıştırma ağacı yoktur, yalnızca
-// diğer dosyaların ad çözümlemesi için gereken tanımlar, metotlar ve aktarmalar vardır.
-func stubFile(rel string, prev *Index) *file {
+// diğer dosyaların ad çözümlemesi için gereken tanımlar, metotlar ve aktarmalar vardır. nodes dosyanın düğümlerinin
+// prev.Nodes'taki sıralarıdır, dizindeki sırayla (aynı adlı tanımda sonraki kazanır).
+func stubFile(rel string, prev *Index, nodes []int) *file {
 	f := &file{rel: rel, base: strings.TrimSuffix(filepath.Base(rel), ".tr"), defs: map[string]string{},
 		methods: map[string][]string{}, fields: map[string][]string{}, aliases: map[string]*file{}}
 	var top []Node
-	for _, n := range prev.Nodes {
-		if nodeFile(&n) != rel {
-			continue
-		}
+	for _, i := range nodes {
+		n := prev.Nodes[i]
 		switch n.Kind {
 		case KindModule:
 			for _, imp := range n.Imports {

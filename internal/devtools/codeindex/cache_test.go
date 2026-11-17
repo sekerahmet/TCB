@@ -335,6 +335,10 @@ func BenchmarkBuild(b *testing.B) {
 // Kod biçimli adlar 400 modülün 300'ünü Skipped'a düşürüyor, iki boyda aynı iş ölçülüyordu.
 // Proje zincir aktarımlıdır (her modül öncekileri dolaylı görür): görünen adları dosya başına kopyalamak ve üye adaylarını
 // bütün kapanışta aramak karesel büyüyordu, CI'da oran 9-10; ad sorulunca aranır (lookupVisible, methodCandidates).
+// Önbellekten okuma 200 modülde ölçülür: 100'de CI'da 16-17 ms sürüyordu, ScalesLinearly'nin 20 ms şartının altında.
+// İlk modülün düzenlenmesi bütün dosyaları kirletir (hepsi onu dolaylı aktarır); son modülünki öbürlerini temiz bırakır,
+// temiz dosyalar önceki dizinden kurulur (stubFiles). O kurulum ayrıca ölçülür: dosya başına bütün düğümleri gezdiğinde
+// yaprak düzenlemenin ~%27'siydi ve karesel büyüyordu, ama yenilemenin oranını 8'e çıkarmıyordu.
 func TestBuildScalesLinearly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("zaman ölçümü")
@@ -343,24 +347,52 @@ func TestBuildScalesLinearly(t *testing.T) {
 		dir := benchProject(t, n)
 		return func() (int, error) { return buildFiles(dir, false) }
 	})
-	testkit.ScalesLinearly(t, "önbellekten okuma", 100, func(n int) func() (int, error) {
+	testkit.ScalesLinearly(t, "önbellekten okuma", 200, func(n int) func() (int, error) {
 		dir := benchProject(t, n)
 		buildFiles(dir, true)
 		return func() (int, error) { return buildFiles(dir, true) }
 	})
-	testkit.ScalesLinearly(t, "bir modülün düzenlenmesinden sonra yenileme", 100, func(n int) func() (int, error) {
-		dir := benchProject(t, n)
-		buildFiles(dir, true)
-		p := filepath.Join(dir, "m0.tr")
-		orig, _ := os.ReadFile(p)
-		edits := 0
+	for _, c := range []struct {
+		what   string
+		module func(n int) int
+	}{
+		{"bir modülün düzenlenmesinden sonra yenileme", func(int) int { return 0 }},
+		{"son modülün düzenlenmesinden sonra yenileme", func(n int) int { return n - 1 }},
+	} {
+		testkit.ScalesLinearly(t, c.what, 100, func(n int) func() (int, error) {
+			dir := benchProject(t, n)
+			buildFiles(dir, true)
+			p := filepath.Join(dir, fmt.Sprintf("m%d.tr", c.module(n)))
+			orig, _ := os.ReadFile(p)
+			edits := 0
+			return func() (int, error) {
+				edits++
+				os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("# düzenleme %d", edits)...), 0o644)
+				return buildFiles(dir, true)
+			}
+		})
+	}
+	testkit.ScalesLinearly(t, "temiz dosyaların kurulumu", 100, func(n int) func() (int, error) {
+		idx, err := buildIndex(benchProject(t, n), false)
+		dirty := map[string]bool{fmt.Sprintf("m%d.tr", n-1): true}
 		return func() (int, error) {
-			edits++
-			os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("# düzenleme %d", edits)...), 0o644)
-			return buildFiles(dir, true)
+			if err != nil {
+				return 0, err
+			}
+			files := 0
+			for range stubRepeats { // tek kurulum birkaç ms sürer; küçük boy 20 ms'yi bulsun
+				files = len(stubFiles(idx, dirty))
+			}
+			return files, nil
 		}
 	})
 }
+
+// stubRepeats temiz dosyaların kurulumunun bir ölçüde kaç kez tekrarlandığıdır (TestBuildScalesLinearly). Colab CPU'da
+// (Xeon 2,20 GHz) 100 modülde bir kurulum 0,7 ms sürdü; 57 tekrar küçük boyu Colab'ın iki işlemcisinde 27-39 ms yaptı
+// (Xeon ve AMD EPYC), ikisinde de 20 ms'nin üstünde; CI'daki payı 2026-11-24 sayımında okunur. Dosya başına bütün
+// düğümleri gezen eski kurulum bu aşamada 15 oranını verdi.
+const stubRepeats = 57
 
 // buildFiles dizini kurar (cached: önbellekle) ve okunan dosya sayısını verir; kurulum hatası ya da atlanan dosya hatadır.
 func buildFiles(dir string, cached bool) (int, error) {
