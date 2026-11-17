@@ -5,8 +5,7 @@ import "github.com/sekerahmet/TCB/internal/lang/messages"
 // Bir boyutlu evrişim (15.23c). Girdi pencereleri bir kez satırlara açılır, çarpımı `@` yapar:
 // hesap, biriktirme ve türev onunla aynıdır. Açma tensörün cihazındadır (15.41): işlemcide
 // openRows, kartta arka ucun açma çekirdeği (Conv1dFolder). Açma kopyadır; türevi her girdi
-// satırını sabit sırayla toplar (15.22a): iki cihazda da bitler aynıdır. İşlemcide türev
-// istenmeyen çağrı açmayı sütun düzeninde yapar (openColumns, columnsFirst'e bakın).
+// satırını sabit sırayla toplar (15.22a): iki cihazda da bitler aynıdır.
 
 // convCost bir öğenin yaklaşık maliyetidir (işçi sayısı için).
 const convCost = 4
@@ -44,20 +43,9 @@ func Conv1d(x, w, b *Tensor, o Conv1dOptions, mm func(a, b *Tensor) *Tensor) *Te
 	batch, g := x.shape[0], o.Groups
 	cout, inner := w.shape[0], w.shape[1]*w.shape[2]
 	frames := o.Length(x.shape[2], w.shape[2])
-	var r *Tensor
-	if columnsFirst(x, w, b) {
-		// w · cols [g, Cout / g, B · çıkış]: B = 1'de çıkışın kendisidir, devrik kopya olmaz.
-		y := mm(w.Reshape(g, cout/g, inner), openColumns(x, w.shape[2], frames, o))
-		if batch == 1 {
-			r = y.Reshape(1, cout, frames)
-		} else {
-			r = y.Reshape(g, cout/g, batch, frames).Permute(2, 0, 1, 3).Contiguous().Reshape(batch, cout, frames)
-		}
-	} else {
-		cols := unfold1d(x, w.shape[2], frames, o)
-		y := mm(cols, w.Reshape(g, cout/g, inner).Transpose(1, 2))
-		r = y.Reshape(g, batch, frames, cout/g).Permute(1, 0, 3, 2).Contiguous().Reshape(batch, cout, frames)
-	}
+	cols := unfold1d(x, w.shape[2], frames, o)
+	y := mm(cols, w.Reshape(g, cout/g, inner).Transpose(1, 2))
+	r := y.Reshape(g, batch, frames, cout/g).Permute(1, 0, 3, 2).Contiguous().Reshape(batch, cout, frames)
 	if b == nil {
 		return r
 	}
@@ -65,61 +53,6 @@ func Conv1d(x, w, b *Tensor, o Conv1dOptions, mm func(a, b *Tensor) *Tensor) *Te
 		b = b.CastShared(r.dtyp)
 	}
 	return r.Add(b.Reshape(1, cout, 1))
-}
-
-// columnsFirst işlemcide türev istenmeyen çağrıda doğrudur: açma sütun düzeninde yapılır ve çarpım
-// çıkışı kendi [Cout, çıkış] düzeninde verir (onnxruntime'ın MLAS'ı da GEMM'i M = süzgeç sayısı,
-// N = çıkış boyuyla kurar). Türevli çağrı ve öbür cihazlar satır düzeninde kalır: türevi
-// (foldRows) ve kartın açma çekirdeği o düzeni bekler.
-func columnsFirst(x, w, b *Tensor) bool {
-	if x.be.Device() != CPU {
-		return false
-	}
-	return !GradEnabled() || !x.RequiresGrad() && !w.RequiresGrad() && (b == nil || !b.RequiresGrad())
-}
-
-// openColumns x'in pencerelerini [g, Cin / g · K, B · çıkış] sütunlarına açar (dolgu sıfır): (c, j)
-// satırının b'nin t. sütunu x[b, c, t · adım − dolgu + j · genişleme]'dir. Adım 1'de satırın
-// dolgunun içinde kalan parçası tek kopyadır.
-func openColumns(x *Tensor, k, frames int, o Conv1dOptions) *Tensor {
-	f := foldShape{batch: x.shape[0], cin: x.shape[1], l: x.shape[2], k: k, frames: frames, o: o}
-	shape := []int{o.Groups, f.cg() * k, f.batch * frames}
-	allocSizeOn(x.be, isCreate, shape, Float32)
-	out := NewOn(CPU, openColumnRows(x.Detach().Data(), f), shape...)
-	if x.dtyp != Float32 {
-		out = out.CastShared(x.dtyp)
-	}
-	return out
-}
-
-// openColumnRows openColumns'un verisidir; her satır yalnız kendi yerine yazar.
-func openColumnRows(src []float32, f foldShape) []float32 {
-	cg, width := f.cg(), f.batch*f.frames
-	rows := f.o.Groups * cg * f.k
-	cols := make([]float32, rows*width)
-	parallelFor(rows, width*convCost, func(lo, hi int) {
-		for u := lo; u < hi; u++ {
-			gi, c, j := u/(cg*f.k), u/f.k%cg, u%f.k
-			off := j*f.o.Dilation - f.o.Padding // t. sütunun girdideki yeri: t · adım + off
-			for b := range f.batch {
-				row := src[(b*f.cin+gi*cg+c)*f.l : (b*f.cin+gi*cg+c+1)*f.l]
-				dst := cols[u*width+b*f.frames : u*width+(b+1)*f.frames]
-				if f.o.Stride == 1 {
-					a, z := max(0, -off), min(f.frames, f.l-off) // girdinin içine düşen sütunlar [a, z)
-					if a < z {
-						copy(dst[a:z], row[a+off:z+off])
-					}
-					continue
-				}
-				for t := range f.frames {
-					if p := t*f.o.Stride + off; f.inside(p) {
-						dst[t] = row[p]
-					}
-				}
-			}
-		}
-	})
-	return cols
 }
 
 // foldShape açılmış satırların düzenidir: girdiyle aynı adımla okunur ve türevde geri toplanır.
