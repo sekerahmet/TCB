@@ -148,6 +148,7 @@ repo_scans=(
 	TestJSONFieldsHaveExplicitNames
 	TestKernelBodiesCallNoGate
 	TestLibraryModulesDoNotReadTheCommandLine
+	TestMeasurementReferencesExist
 	TestMessageArgsAreNotMessageFragments
 	TestRepoTRFilesPassCheck
 	TestRepoTRFilesShow
@@ -246,6 +247,7 @@ repo_scan_pkgs=(
 	./internal/stdlib
 	./internal/stdlib/checkpoint
 	./tools/codegraph
+	./tools/measurefresh
 )
 
 failed=0
