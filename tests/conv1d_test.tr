@@ -39,6 +39,16 @@ TR_test "15.23c evrişim_1b: dört adlı argüman birlikte PyTorch'la aynı, tü
     TR_assert(yakın(b.TR_grad, kesit(d, 342, [6])))
 }
 
+# Türev istenmeyen çağrı işlemcide başka bir açma düzeninden geçer (sütunlar, `conv1d.go` `openColumns`); aynı başvuru.
+TR_test "15.23c evrişim_1b: türevsiz çağrı da PyTorch'la aynı" {
+    TR_var d = başvuru()
+    TR_var y = TR_conv1d(kesit(d, 0, [2, 4, 9]), kesit(d, 72, [6, 2, 3]), kesit(d, 108, [6]), TR_stride: 2, TR_padding: 2, TR_dilation: 2, TR_num_groups: 2)
+    TR_assert_equal([2, 6, 5], y.TR_shape)
+    TR_assert(yakın(y, kesit(d, 174, [2, 6, 5])))
+    TR_var tek = TR_conv1d(kesit(d, 0, [2, 4, 9]).TR_slice(0, 0, 1), kesit(d, 72, [6, 2, 3]), kesit(d, 108, [6]), TR_stride: 2, TR_padding: 2, TR_dilation: 2, TR_num_groups: 2)
+    TR_assert(yakın(tek, kesit(d, 174, [2, 6, 5]).TR_slice(0, 0, 1)))
+}
+
 TR_test "15.23c evrişim_1b: başvuruyla kıyas farkı görür" {
     TR_var d = başvuru()
     TR_var y = TR_conv1d(kesit(d, 0, [2, 4, 9]), kesit(d, 72, [6, 2, 3]), TR_none, TR_stride: 2, TR_padding: 2, TR_dilation: 2, TR_num_groups: 2)

@@ -56,3 +56,56 @@ func TestConv1dLength(t *testing.T) {
 		}
 	}
 }
+
+// İşlemcide türevsiz çağrının sütun düzeni (openColumns) türevli çağrının satır düzeniyle aynı sonucu
+// verir: adım, genişleme, dolgu, grup, toplu, sapmalı ve sapmasız, dolgudan geniş çekirdek, boş toplu.
+func TestConv1dColumnsMatchRows(t *testing.T) {
+	for _, c := range []struct {
+		o                      Conv1dOptions
+		batch, cin, l, cout, k int
+		bias                   bool
+	}{
+		{Conv1dOptions{Stride: 1, Padding: 0, Dilation: 1, Groups: 1}, 1, 3, 20, 4, 3, false},
+		{Conv1dOptions{Stride: 1, Padding: 3, Dilation: 1, Groups: 1}, 1, 8, 50, 6, 7, true},
+		{Conv1dOptions{Stride: 1, Padding: 10, Dilation: 5, Groups: 1}, 1, 4, 30, 4, 5, true},
+		{Conv1dOptions{Stride: 2, Padding: 2, Dilation: 2, Groups: 2}, 2, 4, 9, 6, 3, true},
+		{Conv1dOptions{Stride: 3, Padding: 1, Dilation: 1, Groups: 4}, 3, 8, 41, 8, 4, false},
+		{Conv1dOptions{Stride: 1, Padding: 6, Dilation: 1, Groups: 1}, 1, 2, 4, 3, 11, true},
+		{Conv1dOptions{Stride: 1, Padding: 1, Dilation: 1, Groups: 1}, 0, 2, 6, 3, 3, true},
+	} {
+		x := noise(c.batch * c.cin * c.l)
+		w := New(noise(c.cout*c.cin/c.o.Groups*c.k), c.cout, c.cin/c.o.Groups, c.k)
+		var b *Tensor
+		if c.bias {
+			b = New(noise(c.cout), c.cout)
+		}
+		got := Conv1d(New(x, c.batch, c.cin, c.l), w, b, c.o, MatMul)
+		want := Conv1d(New(x, c.batch, c.cin, c.l).SetRequiresGrad(true), w, b, c.o, MatMul)
+		if !slices.Equal(got.Shape(), want.Shape()) {
+			t.Fatalf("%+v: şekil %v, beklenen %v", c, got.Shape(), want.Shape())
+		}
+		g, h := got.Data(), want.Detach().Data()
+		for i := range g {
+			if d := g[i] - h[i]; d > 1e-6 || d < -1e-6 {
+				t.Fatalf("%+v: %d. öğe %v, satır düzeninde %v", c, i, g[i], h[i])
+			}
+		}
+	}
+}
+
+// Türevsiz çağrının sonucu da işçi sayısına bağlı değildir (15.22a).
+func TestConv1dColumnsSameBitsForAnyWorkerCount(t *testing.T) {
+	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(0))
+	o := Conv1dOptions{Stride: 1, Padding: 4, Dilation: 2, Groups: 1}
+	once := func() []uint32 {
+		return floatBits(Conv1d(New(noise(1*16*300), 1, 16, 300), New(noise(12*16*5), 12, 16, 5), New(noise(12), 12), o, MatMul))
+	}
+	runtime.GOMAXPROCS(1)
+	want := once()
+	for _, n := range []int{2, 3, 8} {
+		runtime.GOMAXPROCS(n)
+		if !slices.Equal(once(), want) {
+			t.Fatalf("GOMAXPROCS=%d sonucu seri hesaptan farklı", n)
+		}
+	}
+}
