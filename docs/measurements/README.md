@@ -62,6 +62,9 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | G4CPU | Colab G4, işlemci | işlemci |
 | G4GPU | Colab G4, GPU | GPU |
 | HIGHRAM | Colab CPU High-RAM | işlemci |
+| CPU | Colab CPU | işlemci |
+
+Dizüstünün belleği iki 16 GB DDR5-4800 modülüdür; çift kanalsa teorik bant 76,8 GB/sn, kanal sayısı ölçülmedi (`Win32_PhysicalMemory`, 2026-11-01; eski `docs/measurements.md`'den).
 
 ## Oturumlar
 
@@ -72,6 +75,10 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | D1 | D1 |
 | S1 | S1 |
 | C1 | C1 |
+| H2 | H2 |
+| MOTOR | Motor |
+| DOST | Dost Interface |
+| CODEGRAPH | CODEGRAPH UZMANI |
 | TCB | TCB |
 | DENETIM | DENETİM |
 | DILUZMANI | DIL UZMANI |
