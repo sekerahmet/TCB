@@ -364,6 +364,12 @@ TR_const _GEMMA3_ÜST = ["model_type", "text_config", "vision_config", "mm_token
     "boi_token_index", "eoi_token_index"]
 # GGUF'ta Gemma 3'ün ek anahtarları (_gguf_gemma, _gguf_kapıları).
 TR_const _GEMMA3_GGUF = ["attention.sliding_window_pattern", "rope.freq_base_swa", "final_logit_softcapping", "attn_logit_softcapping"]
+# Çok kipli gemma3 GGUF'unun görüntü kulesi anahtarları (Google'ın QAT Q4_0 dosyası taşır): kule kurulmaz,
+# tokens_per_image ve kulenin boyutları metin modelinin hesabına girmez. Liste tamdır, önek değil: başka
+# bir "gemma3.vision." anahtarı H7160'tır.
+TR_const _GEMMA3_GGUF_GÖRÜNTÜ = ["mm.tokens_per_image", "vision.attention.head_count", "vision.attention.layer_norm_epsilon",
+    "vision.block_count", "vision.embedding_length", "vision.feed_forward_length", "vision.image_size", "vision.num_channels",
+    "vision.patch_size"]
 # GGUF'un kapıya girmeyen önekleri: üstveri, parçalayıcı (16.1), bölünmüş dosya ve nicemleme kaydı.
 TR_const _GGUF_SERBEST = ["general", "tokenizer", "split", "quantize"]
 
@@ -386,7 +392,7 @@ TR_func _yapı(mimari: TR_String, yol: TR_String) -> _Yapı {
             gguf_satır_sırası: TR_false, rope_bölenleri: TR_false, metin_ayarı: TR_true)
     }
     TR_if (mimari == "gemma3_text" TR_and yol == "model") TR_or (mimari == "gemma3" TR_and yol == "gguf") {
-        TR_return _Yapı(mimari: mimari, ayar: ayar + _GEMMA3_AYAR, alt: alt, gguf: _GGUF_ANAHTARLARI + _GEMMA3_GGUF,
+        TR_return _Yapı(mimari: mimari, ayar: ayar + _GEMMA3_AYAR, alt: alt, gguf: _GGUF_ANAHTARLARI + _GEMMA3_GGUF + _GEMMA3_GGUF_GÖRÜNTÜ,
             qk_normu: TR_true, gguf_satır_sırası: TR_false, rope_bölenleri: TR_false, gemma3: TR_true)
     }
     TR_throw TR_Message("H6940", yol, mimari, TR_SUPPORTED_ARCHITECTURES)
