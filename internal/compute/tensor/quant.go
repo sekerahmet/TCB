@@ -9,31 +9,35 @@ import (
 )
 
 // ============================================================================
-// Nicemlenmiş saklama (15.51–15.55): "q8", "q4_k", "q6_k"
+// Nicemlenmiş saklama (15.51–15.55): "q8", "q4", "q4_k", "q6_k"
 // ============================================================================
 //
 // Depolama dosyanın bloklarıdır: cpuStorage.raw GGUF'un bayt düzenini olduğu gibi tutar, n öğe
 // sayısıdır. Blok son eksendedir ve son eksenin uzunluğu bloğun katıdır: bir satır tam blok
 // sayısıdır. Görünümün Offset'i öğe cinsindendir, satır başına düşer. Hesap float32'dedir:
 // açılan değer llama.cpp'nin dequantize_row_*'uyla bit bit aynıdır (llama.cpp cd959bae,
-// ggml-quants.c:556, :1539, :1960).
+// ggml-quants.c:556, :1539, :1960; "q4" b12124 8bed7cfb, ggml-quants.c:462).
 
-// Blok düzenleri (ggml-common.h): öğe sayısı ve bayt.
+// Blok düzenleri (ggml-common.h): öğe sayısı ve bayt. "q4"ün bloğu Q8'inkiyle aynı boydadır
+// (q8Block öğe): fp16 ölçek ve 16 bayt kod.
 const (
 	q8Block, q8Bytes = 32, 34
+	q4Bytes          = 18
 	kBlock           = 256
 	q4kBytes         = 144
 	q6kBytes         = 210
 )
 
-// IsQuantized blok blok saklanan nicemlenmiş tür mü. "q4" ayrılmış addır, deposu yoktur.
-func (d DType) IsQuantized() bool { return d == Q8 || d == Q4K || d == Q6K }
+// IsQuantized blok blok saklanan nicemlenmiş tür mü.
+func (d DType) IsQuantized() bool { return d == Q8 || d == Q4 || d == Q4K || d == Q6K }
 
 // QuantBlock bloğun öğe sayısı ve bayt boyudur; nicemlenmiş olmayan türde 0, 0.
 func (d DType) QuantBlock() (elems, size int) {
 	switch d {
 	case Q8:
 		return q8Block, q8Bytes
+	case Q4:
+		return q8Block, q4Bytes
 	case Q4K:
 		return kBlock, q4kBytes
 	case Q6K:
@@ -106,7 +110,7 @@ func CheckQuantScales(dt DType, raw []byte) int {
 	for b := 0; b*size < len(raw); b++ {
 		block := raw[b*size : (b+1)*size]
 		switch dt {
-		case Q8:
+		case Q8, Q4:
 			if badScale(block[0:]) {
 				return b
 			}
@@ -136,6 +140,17 @@ func dequantQ8(y []float32, b []byte) {
 	d := fp16(b)
 	for j := range q8Block {
 		y[j] = float32(int8(b[2+j])) * d
+	}
+}
+
+// dequantQ4 bir bloğu açar: j. baytın alt yarısı j., üst yarısı j+16. öğedir, y = (kod − 8) · d;
+// çarpım float32'de kesindir (kod 4 bit, d 11 bit anlamlı) [kanıtlı: llama.cpp b12124
+// ggml-quants.c:462-480].
+func dequantQ4(y []float32, b []byte) {
+	d := fp16(b)
+	for j, q := range b[2:q4Bytes] {
+		y[j] = float32(int(q&0xF)-8) * d
+		y[j+16] = float32(int(q>>4)-8) * d
 	}
 }
 
@@ -193,6 +208,8 @@ func dequantBlocks(dt DType, y []float32, raw []byte) {
 	elems, size := dt.QuantBlock()
 	open := dequantQ8
 	switch dt {
+	case Q4:
+		open = dequantQ4
 	case Q4K:
 		open = dequantQ4K
 	case Q6K:
@@ -387,9 +404,24 @@ func (t *Tensor) quantRows(idx, shape []int) *Tensor {
 	return fromStorage(t.be, quantStorage(t.be, t.dtyp, out, n), shape)
 }
 
-// newQuantStorage n öğelik sıfırlı depodur: bütün ölçekler ve kodlar 0, değeri 0 ("q6_k"de
-// kod 0 değeri −32·d·a'dır, d 0 olduğu için 0).
+// newQuantStorage n öğelik sıfırlı depodur: bütün ölçekler 0, kodlar sıfırın kodu, değeri +0
+// (15.2). "q6_k"de kod 0'ın değeri −32·d·a'dır, d 0 olduğu için 0. "q4"te kod 0'ın değeri
+// (0 − 8)·(+0) = −0 olurdu: kodlar 8'dir (QuantZeroRaw).
 func newQuantStorage(dt DType, n int) *cpuStorage {
+	return &cpuStorage{dtyp: dt, raw: QuantZeroRaw(dt, n), n: n}
+}
+
+// QuantZeroRaw n öğelik sıfır blokların baytlarıdır: "q4"te ölçek +0 ve kodlar 0x88, öbür
+// türlerde bütün baytlar 0. Kartın sıfırlı ayırması da bu baytları yazar (gpu reset).
+func QuantZeroRaw(dt DType, n int) []byte {
 	elems, size := dt.QuantBlock()
-	return &cpuStorage{dtyp: dt, raw: make([]byte, n/elems*size), n: n}
+	raw := make([]byte, n/elems*size)
+	if dt == Q4 {
+		for b := 0; b < len(raw); b += size {
+			for j := b + 2; j < b+size; j++ {
+				raw[j] = 0x88
+			}
+		}
+	}
+	return raw
 }

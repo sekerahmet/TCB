@@ -17,10 +17,10 @@ import (
 // ggufSplitKey bölünmüş dosyanın parça sayısı anahtarıdır.
 const ggufSplitKey = "split.count"
 
-// ggufDTypes okunan türlerin TR karşılıklarıdır; H6674'ün metni bu listeyi sayar. Q4_0 ("q4")
-// henüz yoktur.
+// ggufDTypes okunan türlerin TR karşılıklarıdır; H6674'ün metni bu listeyi sayar.
 var ggufDTypes = map[gguf.TensorType]tensor.DType{gguf.TypeF32: tensor.Float32, gguf.TypeF16: tensor.Float16,
-	gguf.TypeBF16: tensor.BFloat16, gguf.TypeQ8_0: tensor.Q8, gguf.TypeQ4_K: tensor.Q4K, gguf.TypeQ6_K: tensor.Q6K}
+	gguf.TypeBF16: tensor.BFloat16, gguf.TypeQ8_0: tensor.Q8, gguf.TypeQ4_0: tensor.Q4, gguf.TypeQ4_K: tensor.Q4K,
+	gguf.TypeQ6_K: tensor.Q6K}
 
 // decodeGGUF boyutu size bayt olan GGUF dosyasını r'den çözer; bütün denetimler veri
 // okunmadan yapılır, tensörler dosyadaki sırayla döner.

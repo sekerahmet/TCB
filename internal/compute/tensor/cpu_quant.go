@@ -28,7 +28,7 @@ func quantRowBytes(dt DType, K int) int {
 type quantScratch struct{ row, scales []float32 }
 
 func newQuantScratch(dt DType, K int) *quantScratch {
-	if dt == Q8 {
+	if dt == Q8 || dt == Q4 {
 		return &quantScratch{}
 	}
 	return &quantScratch{scales: make([]float32, K/16)}

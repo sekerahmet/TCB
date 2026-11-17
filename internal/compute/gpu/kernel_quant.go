@@ -10,7 +10,7 @@ import (
 // Nicemlenmiş blokları açmak (15.53: açılmış değerler cihazlar arasında kesin aynıdır)
 // ============================================================================
 //
-// Her iş parçacığı bir öğe açar. Çarpımlar ve çıkarma CPU'nun dequantQ8, dequantQ4K ve
+// Her iş parçacığı bir öğe açar. Çarpımlar ve çıkarma CPU'nun dequantQ8, dequantQ4, dequantQ4K ve
 // dequantQ6K'sıyla aynı sırada, aynı yuvarlamayla yazılır (.rn komutları kaynaştırılmaz). Kartın
 // NaN kuralı CPU'nunkinden ayrıdır: cvt ve aritmetik her NaN'ı tek desene çevirir; x86 ise birinci
 // NaN işleneni susturarak taşır, geçersiz işlem işaretli varsayılan NaN'ı verir. Açılan değer bit
@@ -25,6 +25,7 @@ const (
 // Blok boyları (ggml-common.h; tensor.DType.QuantBlock'la aynı).
 const (
 	q8BlockBytes  = 34
+	q4BlockBytes  = 18
 	q4kBlockBytes = 144
 	q6kBlockBytes = 210
 )
@@ -57,6 +58,8 @@ func (k *emitter) quantElem(dt tensor.DType, w, e reg) reg {
 	switch dt {
 	case tensor.Q8:
 		return k.openQ8(block, j)
+	case tensor.Q4:
+		return k.openQ4(block, j)
 	case tensor.Q4K:
 		return k.openQ4K(block, j)
 	}
@@ -153,6 +156,19 @@ func (k *emitter) subExact(a, b reg) reg {
 func (k *emitter) openQ8(block, j reg) reg {
 	code := k.toFloat(k.signedByte(k.byteAt(block, j, 2)))
 	return k.mulExact(code, k.halfExact(block, 0))
+}
+
+// openQ4 bloğun j. öğesi: dequantQ4. j. öğe (j%16). baytın alt (j < 16) ya da üst yarısıdır.
+func (k *emitter) openQ4(block, j reg) reg {
+	at, shift := k.r(), k.r()
+	k.e("and.b32", at, j, 15)
+	k.e("shr.u32", shift, j, 4)
+	k.e("shl.b32", shift, shift, 2)
+	c := k.r()
+	k.e("shr.u32", c, k.byteAt(block, at, 2), shift)
+	k.e("and.b32", c, c, 0xF)
+	k.e("add.s32", c, c, -8)
+	return k.mulExact(k.toFloat(c), k.halfExact(block, 0))
 }
 
 // q4kScale s. alt bloğun 6 bitlik ölçeği ve minimumu (quant.go: q4kScale); s yazmaçtadır.

@@ -68,7 +68,7 @@ func TestGGUFRejects(t *testing.T) {
 		data []byte
 		code messages.Code
 	}{
-		{"Q4_0 henüz yok", (&gguftest.Builder{}).Tensor("w", gguf.TypeQ4_0, []uint64{32}, make([]byte, 18)).Bytes(), messages.H6674},
+		{"Q4_1", (&gguftest.Builder{}).Tensor("w", gguf.TensorType(3), []uint64{32}, make([]byte, 20)).Bytes(), messages.H6674}, // ggml'de Q4_1 = 3
 		{"Q5_0", (&gguftest.Builder{}).Tensor("blk.0.attn_q.weight", gguf.TypeQ5_0, []uint64{32}, make([]byte, 22)).Bytes(), messages.H6674},
 		{"bölünmüş", (&gguftest.Builder{}).KV("split.count", uint16(3)).Bytes(), messages.H6675},
 		{"bölünmüş uint8", (&gguftest.Builder{}).KV("split.count", uint8(2)).Bytes(), messages.H6675},
@@ -195,13 +195,15 @@ func TestGGUFLoadsQuantizedTensors(t *testing.T) {
 	b := (&gguftest.Builder{}).Tensor("q", gguf.TypeQ8_0, []uint64{32, 2}, append(q8Row(), make([]byte, 34)...)).
 		Tensor("k", gguf.TypeQ4_K, []uint64{256}, make([]byte, 144)).
 		Tensor("s", gguf.TypeQ6_K, []uint64{256}, make([]byte, 210)).
+		Tensor("z", gguf.TypeQ4_0, []uint64{32}, append([]byte{0x00, 0x40, 0x3A, 0x08}, make([]byte, 14)...)).
 		Tensor("f", gguf.TypeF32, []uint64{1}, float32Bytes(1))
 	writeGGUF(t, dir, "m.gguf", b)
 	out, err := fromProgram(t, dir, `
 TR_var d = TR_load_tensors("m.gguf", TR_requires_grad: TR_true)
 TR_var q = d["q"]
-TR_print(q.TR_dtype, q.TR_shape, d["k"].TR_dtype, d["s"].TR_dtype)
+TR_print(q.TR_dtype, q.TR_shape, d["k"].TR_dtype, d["s"].TR_dtype, d["z"].TR_dtype)
 TR_print(q[0].TR_to_dtype("float32")[0..3].TR_tolist)
+TR_print(d["z"].TR_to_dtype("float32")[0..3].TR_tolist, d["z"].TR_to_dtype("float32")[16..18].TR_tolist)
 TR_print(TR_sum(q[1].TR_to_dtype("float32")).TR_item())
 TR_print(d["f"].TR_requires_grad)
 TR_print(q.TR_requires_grad)
@@ -211,12 +213,12 @@ TR_print(q)
 		t.Fatal(err)
 	}
 	lines := strings.Split(out, "\n")
-	for i, want := range []string{"q8 [2, 32] q4_k q6_k", "[6.0, -2.0, -256.0]", "0.0", "true", "false"} {
+	for i, want := range []string{"q8 [2, 32] q4_k q6_k q4", "[6.0, -2.0, -256.0]", "[4.0, 0.0, -16.0] [-10.0, -16.0]", "0.0", "true", "false"} {
 		if lines[i] != want {
 			t.Errorf("satır %d: %q; beklenen %q", i, lines[i], want)
 		}
 	}
-	if print := strings.Join(lines[5:], "\n"); !strings.Contains(print, "q8") || !strings.Contains(print, "-256") {
+	if print := strings.Join(lines[6:], "\n"); !strings.Contains(print, "q8") || !strings.Contains(print, "-256") {
 		t.Errorf("yazdırma:\n%s", print)
 	}
 }
@@ -235,6 +237,8 @@ func TestGGUFQuantRejects(t *testing.T) {
 	}{
 		{"q8 NaN", bad(gguf.TypeQ8_0, 32, 34, 0, 0x7E00)},
 		{"q8 sonsuz", bad(gguf.TypeQ8_0, 32, 34, 0, 0x7C00)},
+		{"q4 NaN", bad(gguf.TypeQ4_0, 32, 18, 0, 0x7E00)},
+		{"q4 eksi sonsuz", bad(gguf.TypeQ4_0, 32, 18, 0, 0xFC00)},
 		{"q4_k d", bad(gguf.TypeQ4_K, 256, 144, 0, 0xFC00)},
 		{"q4_k dmin", bad(gguf.TypeQ4_K, 256, 144, 2, 0x7E00)},
 		{"q6_k", bad(gguf.TypeQ6_K, 256, 210, 208, 0x7C00)},

@@ -12,6 +12,7 @@ import (
 // quantDotShapes ağırlık satırı uzunluklarıdır: en kısa satır, Qwen3-0.6B ve SmolLM2'nin boyları.
 var quantDotShapes = map[DType][]int{
 	Q8:  {32, 64, 576, 1024, 3072},
+	Q4:  {32, 64, 576, 1024, 2560, 3072},
 	Q4K: {256, 512, 1024, 2560, 3072},
 	Q6K: {256, 512, 1024, 2560, 3072},
 }
@@ -73,7 +74,7 @@ func smallScaleQuant(dt DType, seed uint32, blocks int) []byte {
 	for b := range blocks {
 		block := raw[b*size : (b+1)*size]
 		switch dt {
-		case Q8:
+		case Q8, Q4:
 			block[1] = 0x1C | block[1]&0x83
 		case Q4K:
 			block[1], block[3] = 0x1C|block[1]&0x83, 0x1C|block[3]&0x83

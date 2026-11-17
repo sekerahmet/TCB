@@ -1355,7 +1355,7 @@
 "H6671": "GGUF tensor {name|q}: the last axis is {dim}; it must be a multiple of the {type} block ({block} elements)",
 "H6672": "GGUF tensor {name|q}: the offset is {offset}; it must be {expected}",
 "H6673": "GGUF tensor {name|q}: its data runs to byte {end}, the file is {size} bytes",
-"H6674": "GGUF tensor {name|q}: the type {type} cannot be read (this TR version can read F32, F16, BF16, Q8_0, Q4_K and Q6_K)",
+"H6674": "GGUF tensor {name|q}: the type {type} cannot be read (this TR version can read F32, F16, BF16, Q8_0, Q4_0, Q4_K and Q6_K)",
 "H6675": "split GGUF files are not read ({count} parts): merge the parts into one file first: `llama-gguf-split --merge`",
 "H6676": "not a GGUF file: the file must start with {magic|q}",
 "H6677": "the GGUF file could not be read at byte {offset}: {error}",
