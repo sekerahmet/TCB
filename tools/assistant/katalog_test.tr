@@ -184,7 +184,7 @@ TR_test "H8164'ün spelling'i kopyalanınca o alanın hatası kalkar" {
 }
 
 TR_test "aile H8170; öbür türde kv H8163" {
-    TR_assert_equal("Message(\"H8170\", \"qwen3-4b-q4km\", \"llama3\", \"`qwen3`\")", _katalog_hatası("\"family\":\"qwen3\"", "\"family\":\"llama3\""))
+    TR_assert_equal("Message(\"H8170\", \"qwen3-4b-q4km\", \"llama3\", \"`gemma3`, `qwen3`\")", _katalog_hatası("\"family\":\"qwen3\"", "\"family\":\"llama3\""))
     TR_assert(_katalog_hatası("\"weights_bytes\":1000,", "\"weights_bytes\":1000,\"kv\":{},").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].memory.kv\""))
     TR_assert(_katalog_hatası("\"id\":\"whisper-small\",\"kind\":\"transcriber\",", "\"id\":\"whisper-small\",\"kind\":\"transcriber\",\"family\":\"qwen3\",").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].family\""))
 }

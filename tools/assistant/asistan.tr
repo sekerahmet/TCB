@@ -14,8 +14,9 @@
 #   trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevaplar --dil_modeli Qwen3-4B-Q4_K_M.gguf \
 #       --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 #
-# Zincir: VAD kesiti → Whisper (`TR_language: --konuşma_dili`, öntanımlı "tr") → `TR_qwen3_format` (düşünmeden) → açgözlü üretim →
-# `TR_qwen3_reply` → içerik cümlelere bölünür → her cümle `tr/vits` ile sese çevrilir → çalınır.
+# Zincir: VAD kesiti → Whisper (`TR_language: --konuşma_dili`, öntanımlı "tr") → modelin ailesinin biçimi (aile.tr; Qwen3
+# düşünmeden, Gemma 3) → açgözlü üretim → ailenin cevabı → içerik cümlelere bölünür → her cümle `tr/vits` ile sese
+# çevrilir → çalınır.
 # Zincirin modelsiz parçaları, tur ve önbellek zincir.tr'dedir; zincir_test.tr sınar.
 
 TR_import "tr/audio"
@@ -26,6 +27,7 @@ TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
 TR_import "nicemli"
+TR_import "aile"
 TR_import "ekran"
 TR_import "ekran_sunucu"
 TR_import "deneme"
@@ -57,7 +59,7 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
     "tarayıcıyla_eşle": TR_false},
     TR_description: "Dinler, yazıya çevirir, cevap üretir ve konuşur; her turun aşama sürelerini yazar",
     TR_descriptions: {"kip": "dosya ya da canlı", "girdi": "dosya kipinde soruların WAV klasörü", "çıktı": "dosya kipinde cevapların yazılacağı klasör",
-        "dil_modeli": "Qwen3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
+        "dil_modeli": "Qwen3 ya da Gemma 3 GGUF dosyası", "whisper": "Whisper klasörü", "vad": "Silero VAD ağırlıkları", "ses_modeli": "MMS-TTS (VITS) klasörü",
         "aygıt": "canlı kipte mikrofonun dshow adı; ekranlı kipte ayarın microphone'u varsa o kullanılır", "sahte_mikrofon": "canlı kipte mikrofonun yerine gerçek zaman hızında akıtılan WAV",
         "ffmpeg": "ffmpeg programı: PATH'teki ad ya da dosyanın yolu", "çalıcı": "çalma komutu (program PATH'teki ad ya da dosyanın yolu); WAV yolu {wav}'ın yerine, yoksa sona girer", "sistem": "sistem iletisi",
         "en_çok_parça": "bir cevabın en çok parça sayısı", "bağlam": "önbelleğin en çok parça sayısı, 0'dan büyük; dolacaksa yeni konuşma başlar; verilmezse ekranlı kipte ayarın context'i, öbür kiplerde 8192",
@@ -148,9 +150,11 @@ TR_func asistan_kur(t: Takım) -> Asistan {
         TR_if hata != TR_none { TR_throw hata }
     }
     TR_var model = TR_pretrained_gguf(t.dil_modeli)
+    # Aileyi kitaplık seçer (15.55): ailesiz modelde H7170, Dost'un ailesi değilse H8170; yükleme düşer.
+    TR_var aile, durma = gguf_ailesi(t.dil_modeli, model)
     TR_var nicemli = nicemli_çöz(seçim, TR_default_device(), model)
     TR_var z = Zincir(p: TR_load_tokenizer(t.dil_modeli), model: model, sistem: t.sistem, en_çok: TR_Int(ayar["en_çok_parça"]),
-        bağlam: bağlam, önbelleksiz: TR_Bool(ayar["önbelleksiz"]), nicemli: nicemli, seçim: seçim)
+        bağlam: bağlam, önbelleksiz: TR_Bool(ayar["önbelleksiz"]), aile: aile, durma: durma, nicemli: nicemli, seçim: seçim)
     TR_if açık { # üçüncü denetim, Whisper'dan önce: nicemlenmiş çarpım ağırlığı hiç yoksa seçenek etkisiz kalırdı (S2d)
         TR_var hata = nicemli_ağırlık_hatası(z.model, seçim)
         TR_if hata != TR_none { TR_throw hata }
@@ -160,9 +164,10 @@ TR_func asistan_kur(t: Takım) -> Asistan {
     TR_print("OLCU_YUKLEME ms=\(şimdi() - başla)")
     TR_print(nicemli_satırı(seçim, nicemli))
     ısıt(z)
-    # Önbelleksiz kipte ısıtma koşmaz: nicemli seçeneğin ikinci denetimi tek token'lık okumayla (önbelleğe dokunmaz).
+    # Önbelleksiz kipte ısıtma koşmaz: nicemli seçeneğin ikinci denetimi tek token'lık okumayla (önbelleğe dokunmaz;
+    # token ailenin ilk durma kimliği).
     TR_if z.nicemli TR_and z.önbelleksiz {
-        TR_try { TR_no_grad { istem_oku(z, [z.p.TR_token_id("<|im_end|>")], TR_none) } } TR_catch e {
+        TR_try { TR_no_grad { istem_oku(z, [z.durma[0]], TR_none) } } TR_catch e {
             nicemli_hatasını_at(e, seçim)
             TR_throw e
         }

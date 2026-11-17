@@ -6,9 +6,9 @@
 # modül hiçbir şey aktarmaz. katalog_test.tr ikisini de sınar (README, "Kurulum").
 
 TR_const SÜRÜM = 1
-# A'nın sohbet aileleri: D1'in listesi dışarıya açık değil (lib/pretrained.tr'nin `_sohbet_tablosu()`); D1 Teslim B
-# iki listeyi karşılaştıran testi ekler.
-TR_const AİLELER = ["qwen3"]
+# Dost'un sohbet aileleri; her birinin biçimi aile.tr'dedir. Kitaplığın tablosu dışarıya açık değil
+# (lib/model_family.tr'nin `_sohbet_tablosu()`); her ailenin orada olduğunu TestAssistantFamiliesAreInTheChatTable sınar.
+TR_const AİLELER = ["gemma3", "qwen3"]
 TR_const _TÜRLER = ["language_model", "transcriber", "vad", "voice"]
 TR_const _KONAKLAR = ["huggingface", "github"]
 TR_const _GİB = 1073741824

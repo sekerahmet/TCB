@@ -6,6 +6,10 @@ TR_import "nicemli"
 
 TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer("../../tests/data/qwen3_chat/tokenizer.json") }
 
+# durması: Qwen3 ailesinin durma kimlikleri (lib/model_family.tr). Elle kurulan modelde `TR_eos_tokens()` H7170'tir:
+# zincir onları açıkça alır.
+TR_func durması(p: TR_Tokenizer) -> TR_List[TR_Int] { TR_return [p.TR_token_id("<|im_end|>"), p.TR_token_id("<|endoftext|>")] }
+
 TR_test "cevap cümlelere bölünür: nokta, soru, ünlem ve satır sonunda; boş parça atılır" {
     TR_assert_equal(["Merhaba.", "Nasılsın?", "İyiyim!"], cümleler("Merhaba. Nasılsın? İyiyim!"))
     TR_assert_equal(["bir", "iki"], cümleler("bir\n\niki"))
@@ -56,7 +60,7 @@ TR_test "akan cümlelerin birleşimi cevabın içeriğinin cümleleridir" {
     TR_var p = parçalayıcı()
     TR_for metin TR_in _CEVAPLAR {
         TR_var kimlikler = p.TR_encode(metin, TR_special_tokens: TR_false)
-        TR_var a = cümle_akışı(p)
+        TR_var a = cümle_akışı(p, "qwen3")
         TR_var akan = akıt(a, kimlikler)
         TR_var cevap, hatalar = TR_qwen3_reply(p, kimlikler)
         TR_assert_equal(0, hatalar.TR_length)
@@ -70,7 +74,7 @@ TR_test "akan cümlelerin birleşimi cevabın içeriğinin cümleleridir" {
 # "…" bu parçalayıcıda üç bayt kimliğidir: ilk ikisinden sonra metnin sonu U+FFFD'dir, üçüncüsüyle sınır olur.
 TR_test "akış sınırla bitmeyen son parçayı bekletir, cevap bitince verir" {
     TR_var p = parçalayıcı()
-    TR_var a = cümle_akışı(p)
+    TR_var a = cümle_akışı(p, "qwen3")
     TR_var akan = akıt(a, p.TR_encode("Bir… İki? Üç ve dört", TR_special_tokens: TR_false))
     TR_assert_equal(["Bir…", "İki?"], akan)
     TR_assert_equal(["Üç ve dört"], a.bitir("Bir… İki? Üç ve dört"))
@@ -78,13 +82,13 @@ TR_test "akış sınırla bitmeyen son parçayı bekletir, cevap bitince verir" 
 
 TR_test "etiket kimliği akışı durdurur; söylenen cevaptan ayrıldıysa kalan verilmez" {
     TR_var p = parçalayıcı()
-    TR_var a = cümle_akışı(p)
+    TR_var a = cümle_akışı(p, "qwen3")
     TR_var akan: TR_List[TR_String] = []
     TR_for k TR_in p.TR_encode("Evet. <tool_call>Hayır.", TR_special_tokens: TR_true) { akan += a.ekle(k) }
     TR_assert_equal(["Evet."], akan)
     TR_assert(a.durdu)
     TR_assert_equal(["Hayır."], a.bitir("Evet. Hayır."))
-    TR_var b = cümle_akışı(p)
+    TR_var b = cümle_akışı(p, "qwen3")
     TR_for k TR_in p.TR_encode("Bir. İki.", TR_special_tokens: TR_false) { b.ekle(k) }
     TR_assert_equal(TR_none, b.bitir("Başka. İki."))
 }
@@ -110,7 +114,7 @@ TR_const _SİSTEM = "Kısa ve Türkçe cevap ver."
 TR_func küçük_zincir(bağlam: TR_Int, önbelleksiz: TR_Bool) -> Zincir {
     TR_var p = parçalayıcı()
     TR_var m = TR_GPT(p.TR_vocab_size, TR_context: 512, TR_embed_dim: 16, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 7)
-    TR_var z = Zincir(p: p, model: m, sistem: _SİSTEM, en_çok: 8, bağlam: bağlam, önbelleksiz: önbelleksiz)
+    TR_var z = Zincir(p: p, model: m, sistem: _SİSTEM, en_çok: 8, bağlam: bağlam, önbelleksiz: önbelleksiz, aile: "qwen3", durma: durması(p))
     z.yeni_konuşma()
     TR_return z
 }
@@ -308,7 +312,7 @@ TR_func q8_çıkışlı_zincir(nicemli: TR_Bool) -> Zincir {
     TR_var m = TR_GPT(p.TR_vocab_size, TR_context: 512, TR_embed_dim: 32, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 7)
     m.TR_logit_layer = TR_Linear(1, 1, TR_init_std: 0.0)
     m.TR_logit_layer.TR_weight = TR_zeros([p.TR_vocab_size, 32], TR_dtype: "q8").TR_transpose()
-    TR_var z = Zincir(p: p, model: m, sistem: _SİSTEM, en_çok: 8, bağlam: 256, önbelleksiz: TR_false, nicemli: nicemli)
+    TR_var z = Zincir(p: p, model: m, sistem: _SİSTEM, en_çok: 8, bağlam: 256, önbelleksiz: TR_false, aile: "qwen3", durma: durması(p), nicemli: nicemli)
     z.yeni_konuşma()
     TR_return z
 }
@@ -474,10 +478,10 @@ TR_test "önbelleğin ortak öneki önceki asistan başlığının sonunda biter
     geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?"))
     TR_var yeni = TR_qwen3_format(p, geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
     TR_var ortak = ortak_önek(önbellekte, yeni)
-    TR_assert_equal(beklenen_önek(p, geçmiş, 2), ortak)
+    TR_assert_equal(beklenen_önek("qwen3", p, geçmiş, 2), ortak)
     TR_assert(ortak < istem.TR_length)
     TR_assert_equal(p.TR_token_id("<think>"), önbellekte[ortak])
-    TR_assert_equal(0, beklenen_önek(p, geçmiş, -1))
+    TR_assert_equal(0, beklenen_önek("qwen3", p, geçmiş, -1))
 }
 
 TR_test "durdurulan ya da hatalı tur geri alınır: geçmiş tur öncesine döner, önbellek yeniden kurulur ve ısıtılır" {

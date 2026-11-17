@@ -1,0 +1,82 @@
+# TR 4
+# Zincirin sohbet biçimine bağlı her şeyi, aileye göre: biçim, ısıtmanın kimlikleri, asistan başlığı, cümle akışının
+# etiketleri, cevap (zincir.tr kullanır, aile_test.tr sınar). Aileyi ve durma kimliklerini kitaplık seçer (15.55,
+# lib/model_family.tr); burada aile tablosu ve durma adı yoktur. Dost'un aileleri katalog.tr'nin `AİLELER`'idir.
+
+TR_import "tr/chat"
+TR_import "tr/chat_gemma3"
+TR_import "tr/pretrained"
+TR_import "katalog" # AİLELER
+
+# aile_denetle: `aile` Dost'un ailelerinden değilse H8170 (`kimlik` dosyanın ya da girdinin adı).
+TR_func aile_denetle(kimlik: TR_String, aile: TR_String) {
+    TR_if TR_not AİLELER.TR_contains(aile) {
+        TR_throw TR_Message("H8170", kimlik, aile, ["`\(a)`" TR_for a TR_in AİLELER].TR_join(", "))
+    }
+}
+
+# _seç: zincirin elle kurulduğu yolda da bilinmeyen aile sessizce bir biçime düşmez.
+TR_func _seç(aile: TR_String) -> TR_String {
+    aile_denetle("Zincir.aile", aile)
+    TR_return aile
+}
+
+# gguf_ailesi: GGUF dil modelinin biçiminin adı ve durma kimlikleri. Kitaplık aileyi (`general.architecture`,
+# `tokenizer.ggml.pre`) ikilisiyle seçmiştir; ailesiz modelde `TR_eos_tokens()` kitaplığın H7170'idir, yükleme düşer.
+# Biçimin adı dosyanın mimarisidir: GGUF'ta her ailenin mimarisi tektir (lib/pretrained.tr, gemma3 yalnız `gemma3`).
+TR_func gguf_ailesi(yol: TR_String, model: TR_GPT) -> (TR_String, TR_List[TR_Int]) {
+    TR_var durma = model.TR_eos_tokens()
+    TR_var aile = TR_String(TR_load_metadata(yol)["general.architecture"])
+    aile_denetle(TR_Path(yol).TR_name, aile)
+    TR_return (aile, durma)
+}
+
+# aile_biçimi: iletilerin kimlikleri; `üretim` asistan başlığını ekler. Qwen3 düşünmeden (`TR_enable_thinking` yalnız
+# üretimde verilir); Gemma 3'te sistem iletisi ilk kullanıcı turunun başına yazılır (24.7).
+TR_func aile_biçimi(aile: TR_String, p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], üretim: TR_Bool) -> TR_List[TR_Int] {
+    TR_if _seç(aile) == "gemma3" { TR_return TR_gemma3_format(p, iletiler, TR_add_generation_prompt: üretim) }
+    TR_if üretim { TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false) }
+    TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_false)
+}
+
+# aile_ısıtması: konuşmanın başında önbelleğe okunan kimlikler; her ilk turun önekidir. Qwen3'te sistem iletisinin tek
+# başına biçimi. Gemma 3 sistem iletisini tek başına biçimlemez (H7183), onu ilk kullanıcı turuna katar: ısıtma iki
+# ayrı ilk turun biçiminin ortak önekidir.
+TR_func aile_ısıtması(aile: TR_String, p: TR_Tokenizer, sistem: TR_String) -> TR_List[TR_Int] {
+    TR_var s = TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: sistem)
+    TR_if _seç(aile) == "qwen3" { TR_return aile_biçimi(aile, p, [s], TR_false) }
+    TR_var a = aile_biçimi(aile, p, [s, TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "a")], TR_false)
+    TR_var b = aile_biçimi(aile, p, [s, TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "b")], TR_false)
+    TR_var n = 0
+    TR_for n < a.TR_length TR_and n < b.TR_length TR_and a[n] == b[n] { n += 1 }
+    TR_return a[0..n]
+}
+
+# aile_başlığı: asistan sırasının başlık metni (sıra başı etiketinden sonra).
+TR_func aile_başlığı(aile: TR_String) -> TR_String {
+    TR_return TR_if _seç(aile) == "gemma3" { "model\n" } TR_else { "assistant\n" }
+}
+
+# aile_etiketleri: cümle akışını durduran etiket kimlikleri. Qwen3'te düşünce ve araç çağrısı; Gemma 3'ün ikisi de
+# yoktur, yeni sıra (`<start_of_turn>`) gelirse akış durur.
+TR_func aile_etiketleri(aile: TR_String, p: TR_Tokenizer) -> TR_List[TR_Int] {
+    TR_var adlar = TR_if _seç(aile) == "gemma3" { ["<start_of_turn>"] } TR_else { ["<think>", "</think>", "<tool_call>", "</tool_call>"] }
+    TR_return [p.TR_token_id(e) TR_for e TR_in adlar]
+}
+
+# aile_cevabı: üretilen kimliklerden asistan iletisi ve hatalar. Qwen3'te sondaki `<|im_end|>` atılır. Gemma 3'te cevap
+# ilk `<start_of_turn>`'e kadarki kimliklerdir: sonrası söylenmez, geçmişe girmez; hatalar bütün kimliklerinkidir
+# (yeni sıra H7186).
+TR_func aile_cevabı(aile: TR_String, p: TR_Tokenizer, kimlikler: TR_List[TR_Int]) -> (TR_ChatMessage, TR_List[TR_Message]) {
+    TR_if _seç(aile) == "gemma3" {
+        TR_var bütün, hatalar = TR_gemma3_reply(p, kimlikler)
+        TR_var baş = p.TR_token_id("<start_of_turn>")
+        TR_var son = 0
+        TR_for son < kimlikler.TR_length TR_and kimlikler[son] != baş { son += 1 }
+        TR_var cevap, kesik = TR_gemma3_reply(p, kimlikler[0..son])
+        TR_return (cevap, hatalar)
+    }
+    TR_var gövde = kimlikler
+    TR_if gövde.TR_length > 0 TR_and gövde[gövde.TR_length - 1] == p.TR_token_id("<|im_end|>") { gövde = gövde[0..gövde.TR_length - 1] }
+    TR_return TR_qwen3_reply(p, gövde)
+}
