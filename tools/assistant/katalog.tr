@@ -509,18 +509,24 @@ TR_func küçükler(k: Katalog, ayar: Ayar?) -> Bellek {
 }
 
 # gereken: need = ölçü(c₀) + kv × (bağlam − c₀) + geçici + pay + küçükler; ölçü yoksa ağırlıklar + kv × bağlam.
-# geçici = kv × bağlam: tur hatasında yeni önbellek eskisi ölmeden ayrılır (zincir.tr, geri_al).
+# geçici = kv × bağlam: tur hatasında yeni önbellek eskisi ölmeden ayrılır (zincir.tr, geri_al). Küçükler hariç
+# toplam en küçük bağlamlı ölçünün (nokta 1) altına inmez: c₀'dan geriye kv'yle inen doğru küçük bağlamda modelin
+# ısıtılmış belleğini eksik sayardı (DENETİM 863 N1).
 TR_func gereken(g: Girdi, bağlam: TR_Int, küçük: Bellek) -> TR_Int {
     TR_var kv = kv_baytı(g)
     TR_var taban = g.ağırlık + kv * bağlam
+    TR_var en_az = 0
     TR_if g.ölçüler.TR_length > 0 {
         TR_var c = g.ölçüler[0]
+        TR_var a = g.ölçüler[0]
         TR_for ö TR_in g.ölçüler {
             TR_if ö.bağlam > c.bağlam { c = ö }
+            TR_if ö.bağlam < a.bağlam { a = ö }
         }
         taban = c.özel + kv * (bağlam - c.bağlam)
+        en_az = a.özel
     }
-    TR_return taban + kv * bağlam + PAY + küçük.bayt
+    TR_return TR_max(taban + kv * bağlam + PAY, en_az) + küçük.bayt
 }
 
 # uygunluk: her dil modelinin sınıfı. `need ≤ 0,6 × toplam` fits, `≤ 0,85 × toplam` tight, üstü too_large; bağlam

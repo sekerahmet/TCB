@@ -240,3 +240,14 @@ TR_test "bağlam_olayı: iniş varsa context_limited (context, limit), yoksa yok
         bağlam_sınırı(k, "qwen3-8b-q4km"), bağlam_sınırı(k, "gemma3-12b-q4km"), bağlam_sınırı(k, ""), bağlam_sınırı(k, "yok")])
     TR_assert_equal(0, bağlam_sınırı(Katalog(girdiler: [], diller: []), "qwen3-4b-q4km"))
 }
+
+# DENETİM 863 N1: küçük bağlamda gereken (küçükler hariç) modelin ölçülü nokta 1'inin altına inmez (Qwen3-4B, depodaki
+# katalog: kv'yle inen doğru bağlam 128'de 4 065 910 784 verirdi, nokta 1 4 275 568 640).
+TR_test "gereken: Qwen3-4B'de bağlam 128'de küçükler hariç nokta 1'in altına inmez; 8192'de doğru değişmez" {
+    TR_var g = girdi_bul(katalog_oku("tools/assistant/katalog.json"), "qwen3-4b-q4km")
+    TR_var hiç = Bellek(bayt: 0, ölçülü: TR_true)
+    TR_assert_equal(4275568640, g.ölçüler[0].özel)
+    TR_assert(gereken(g, 128, hiç) >= g.ölçüler[0].özel)
+    TR_assert_equal(4275568640, gereken(g, 128, hiç))
+    TR_assert_equal(5270364160 + 294912 * (8192 - 7981) + 294912 * 8192 + PAY, gereken(g, 8192, hiç))
+}
