@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/onnx"
+	"github.com/sekerahmet/TCB/internal/compute/onnx/onnxtest"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -178,5 +180,181 @@ func TestSafetensorsLargeTensorsGoToBlocks(t *testing.T) {
 	}
 	if b.DType() != tensor.BFloat16 || !slices.Equal(b.Bits16s(), bits) {
 		t.Errorf("16 bitlik desen farklı: %v", b.DType())
+	}
+}
+
+// writeTemp dosyayı geçici klasöre yazar ve TR yolunu verir.
+func writeTemp(t *testing.T, name string, data []byte) string {
+	t.Helper()
+	p := filepath.ToSlash(filepath.Join(t.TempDir(), name))
+	if err := os.WriteFile(p, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// Kural (15.47): tensör_yükle ONNX modelinin ağırlıklarını adlarıyla, dosyadaki sırayla ve kendi
+// türlerinde okur; veri raw_data'da ya da türün alanında (float_data, int64_data) olabilir; 0
+// boyutlu ve boş tensör geçerlidir. Neden: Piper sesleri ONNX dosyasıdır.
+func TestLoadOnnxInitializers(t *testing.T) {
+	file := (&onnxtest.Builder{}).
+		Initializer(onnxtest.Tensor{Name: "w", Dims: []int64{2, 2}, Type: onnx.Float, Raw: f32Bytes(1, 2, 3, 4)}).
+		Initializer(onnxtest.Tensor{Name: "h", Dims: []int64{2}, Type: onnx.Float16, Raw: u16Bytes(0x3C00, 0xC000)}).
+		Initializer(onnxtest.Tensor{Name: "i", Dims: []int64{3}, Type: onnx.Int64, Int64s: []int64{1, -2, 3}}).
+		Initializer(onnxtest.Tensor{Name: "b", Dims: []int64{2}, Type: onnx.Bool, Raw: []byte{0, 2}}).
+		Initializer(onnxtest.Tensor{Name: "s", Type: onnx.Float, Floats: []float32{1.5}}).
+		Initializer(onnxtest.Tensor{Name: "e", Dims: []int64{0, 3}, Type: onnx.Float, Raw: []byte{}}).
+		Bytes()
+	out := mustRun(t, `TR_var y = TR_load_tensors("`+writeTemp(t, "ses.onnx", file)+`")
+TR_print(y.TR_keys())
+TR_print(y["w"].TR_tolist, y["w"].TR_dtype, y["h"].TR_tolist, y["h"].TR_dtype, y["i"].TR_tolist, y["i"].TR_dtype)
+TR_print(y["b"].TR_tolist, y["b"].TR_dtype, y["s"].TR_tolist, y["e"].TR_shape)`)
+	want := `["w", "h", "i", "b", "s", "e"]` + "\n[[1.0, 2.0], [3.0, 4.0]] float32 [1.0, -2.0] fp16 [1, -2, 3] int64\n" +
+		"[false, true] bool 1.5 [0, 3]\n"
+	if out != want {
+		t.Fatalf("onnx:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
+// Kural (15.47): adı `onnx::` ile başlayan ağırlık, onu girdi olarak kullanan ilk düğümün adıyla ve
+// girdi sırasıyla adlanır; adsız düğümün ya da hiç kullanılmayan ağırlığın adı değişmez. Neden:
+// Piper'ın akışlarındaki WaveNet evrişimleri adsız dışa verilir (`onnx::Conv_8168`).
+func TestLoadOnnxAnonymousNamedByNode(t *testing.T) {
+	one := func(name string) onnxtest.Tensor {
+		return onnxtest.Tensor{Name: name, Dims: []int64{1}, Type: onnx.Float, Raw: f32Bytes(1)}
+	}
+	file := (&onnxtest.Builder{}).
+		Node(onnxtest.Node{Name: "/flow/flows.0/enc/in_layers.0/Conv", Op: "Conv", Inputs: []string{"x", "onnx::Conv_8168", "onnx::Conv_8169"}}).
+		Node(onnxtest.Node{Name: "/sonraki/Conv", Op: "Conv", Inputs: []string{"x", "onnx::Conv_8168"}}).
+		Node(onnxtest.Node{Op: "Mul", Inputs: []string{"onnx::Mul_7"}}).
+		Initializer(one("onnx::Conv_8168")).Initializer(one("onnx::Conv_8169")).
+		Initializer(one("onnx::Mul_7")).Initializer(one("onnx::Kullanılmayan")).Initializer(one("sid")).
+		Bytes()
+	out := mustRun(t, `TR_print(TR_load_tensors("`+writeTemp(t, "ses.onnx", file)+`").TR_keys())`)
+	want := `["/flow/flows.0/enc/in_layers.0/Conv:1", "/flow/flows.0/enc/in_layers.0/Conv:2", "onnx::Mul_7", "onnx::Kullanılmayan", "sid"]` + "\n"
+	if out != want {
+		t.Fatalf("adlar:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
+// Kural (15.47): Constant düğümlerinin değerleri çıkış adlarıyla gelir: `value` tensörü ve
+// `value_float`, `value_floats`, `value_int`, `value_ints`. Constant olmayan düğümün tensör
+// özniteliği (ConstantOfShape'in `value`'su) ve başka alan adındaki Constant okunmaz.
+func TestLoadOnnxConstantNodes(t *testing.T) {
+	v := onnxtest.Tensor{Name: "iç ad", Dims: []int64{2}, Type: onnx.Float, Raw: f32Bytes(0.5, -1)}
+	c := func(output string, attr []byte) onnxtest.Node {
+		return onnxtest.Node{Name: "/" + output, Op: "Constant", Outputs: []string{output}, Attrs: [][]byte{attr}}
+	}
+	file := (&onnxtest.Builder{}).
+		Constant("/Constant", "/Constant_output_0", v).
+		Node(c("f", onnxtest.AttrFloat("value_float", 2.5))).
+		Node(c("fs", onnxtest.AttrFloats("value_floats", 1, 2))).
+		Node(c("i", onnxtest.AttrInt("value_int", -7))).
+		Node(c("is", onnxtest.AttrInts("value_ints", 3, 4, 5))).
+		Node(onnxtest.Node{Name: "/ConstantOfShape", Op: "ConstantOfShape", Outputs: []string{"cos"}, Attrs: [][]byte{onnxtest.AttrTensor("value", v)}}).
+		Node(onnxtest.Node{Name: "/özel", Op: "Constant", Domain: "com.example", Outputs: []string{"özel"}, Attrs: [][]byte{onnxtest.AttrTensor("value", v)}}).
+		Bytes()
+	out := mustRun(t, `TR_var y = TR_load_tensors("`+writeTemp(t, "ses.onnx", file)+`")
+TR_print(y.TR_keys())
+TR_print(y["/Constant_output_0"].TR_tolist, y["f"].TR_tolist, y["fs"].TR_tolist, y["i"].TR_tolist, y["i"].TR_dtype, y["is"].TR_tolist)`)
+	want := `["/Constant_output_0", "f", "fs", "i", "is"]` + "\n[0.5, -1.0] 2.5 [1.0, 2.0] -7 int64 [3, 4, 5]\n"
+	if out != want {
+		t.Fatalf("Constant:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
+// Kural (15.47): ONNX dosyası güvenilmeyen girdidir; her sınır ve her bozukluk kodlu bir hatadır
+// (H6742–H6748, eleman sınırı H6649, tanınmayan biçim H6610), hiçbiri çökmez.
+func TestLoadOnnxRejectsBroken(t *testing.T) {
+	head := onnxtest.VarintField(nil, 1, 8) // ir_version
+	graph := func(inits ...onnxtest.Tensor) []byte {
+		b := &onnxtest.Builder{}
+		for _, x := range inits {
+			b.Initializer(x)
+		}
+		return b.Bytes()
+	}
+	f := func(name string, dims ...int64) onnxtest.Tensor {
+		return onnxtest.Tensor{Name: name, Dims: dims, Type: onnx.Float, Raw: f32Bytes(1)}
+	}
+	many := make([]onnxtest.Tensor, onnx.MaxTensors+1)
+	for i := range many {
+		many[i] = f(fmt.Sprint(i), 1)
+	}
+	dims33 := make([]int64, 33)
+	for i := range dims33 {
+		dims33[i] = 1
+	}
+	overlong := append(onnxtest.Tag(slices.Clone(head), 1, onnxtest.WireVarint), bytes.Repeat([]byte{0xff}, 10)...)
+	for _, d := range []struct {
+		name string
+		file []byte
+		want messages.Code
+	}{
+		{"boy okunurken dosya bitti", onnxtest.Tag(slices.Clone(head), 7, onnxtest.WireLen), messages.H6742},
+		{"grup tel türü", append(slices.Clone(head), 7<<3|3), messages.H6742},
+		{"11 baytlık varint", append(overlong, 0x01), messages.H6742},
+		{"çizge varint olarak", onnxtest.VarintField(slices.Clone(head), 7, 1), messages.H6742},
+		{"boy kalanı aşıyor", append(onnxtest.Tag(slices.Clone(head), 7, onnxtest.WireLen), 100, 1, 2), messages.H6743},
+		{"çok tensör", graph(many...), messages.H6744},
+		{"çok eksen", graph(f("w", dims33...)), messages.H6745},
+		{"metin türü", graph(onnxtest.Tensor{Name: "s", Type: 8}), messages.H6746},
+		{"uint16 türü", graph(onnxtest.Tensor{Name: "u", Type: 4, Raw: []byte{1, 0}}), messages.H6746},
+		{"dış veri", graph(onnxtest.Tensor{Name: "w", Dims: []int64{1}, Type: onnx.Float, External: true}), messages.H6747},
+		{"veri boyu tutmuyor", graph(f("w", 2)), messages.H6747},
+		{"türün alanı eksik", graph(onnxtest.Tensor{Name: "w", Dims: []int64{2}, Type: onnx.Float, Floats: []float32{1}}), messages.H6747},
+		{"yinelenen ad", graph(f("w", 1), f("w", 1)), messages.H6748},
+		{"dev eksen", graph(f("w", 1<<32, 1<<32)), messages.H6649},
+		{"eksi eksen", graph(f("w", -1)), messages.H6649},
+		{"ilk bayt 0x09", []byte{0x09, 1}, messages.H6610},
+	} {
+		_, err := decodeTensorFile(bytes.NewReader(d.file), int64(len(d.file)))
+		if err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.name, err, d.want)
+			continue
+		}
+		t.Logf("%s: %v", d.name, err) // metin katalogdan kurulur: şablonun parametreleri tutar
+	}
+	// Adsız ağırlığın yeni adı var olan bir adla çakışırsa da yinelenen addır.
+	file := (&onnxtest.Builder{}).Node(onnxtest.Node{Name: "n", Op: "Conv", Inputs: []string{"x", "onnx::W"}}).
+		Initializer(f("onnx::W", 1)).Initializer(f("n:1", 1)).Bytes()
+	if _, err := decodeTensorFile(bytes.NewReader(file), int64(len(file))); !messages.Has(err, messages.H6748) {
+		t.Errorf("adsızın yeni adı çakışıyor: %v (içermeli: H6748)", err)
+	}
+}
+
+// Kural (15.47): safetensors'un başlık boyu küçük uçludur ve ilk baytı 0x08 olabilir (264 =
+// 0x108); 9. baytı { olan dosya ONNX değil safetensors olarak okunur: tanımada ONNX sondadır.
+func TestSafetensorsWithLeadingEightStaysSafetensors(t *testing.T) {
+	header := `{"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}}`
+	header += strings.Repeat(" ", 264-len(header))
+	file := safetensorsBytes(header, f32Bytes(3))
+	if file[0] != 0x08 || file[8] != '{' {
+		t.Fatalf("kurulum: ilk bayt %#x, 9. bayt %q", file[0], file[8])
+	}
+	entries, err := decodeTensorFile(bytes.NewReader(file), int64(len(file)))
+	if err != nil || len(entries) != 1 || entries[0].ad != "w" || entries[0].data[0] != 3 {
+		t.Fatalf("safetensors okunmadı: %v %v", entries, err)
+	}
+}
+
+// ONNX'in büyük ağırlığı doğrudan öbek dışı bloğa okunur; bırakılınca tensör bloğu tutar.
+func TestLoadOnnxLargeTensorsGoToBlocks(t *testing.T) {
+	needBlocks(t)
+	values := bigFloats()
+	file := (&onnxtest.Builder{}).
+		Initializer(onnxtest.Tensor{Name: "w", Dims: []int64{int64(len(values))}, Type: onnx.Float, Raw: f32Bytes(values...)}).Bytes()
+	entries, err := decodeTensorFile(bytes.NewReader(file), int64(len(file)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entries[0].block == nil {
+		t.Fatal("tensör blokta değil")
+	}
+	a := entries[0].tensor()
+	entries = nil
+	runtime.GC()
+	if !slices.Equal(a.Data(), values) {
+		t.Error("float32 değerleri farklı")
 	}
 }

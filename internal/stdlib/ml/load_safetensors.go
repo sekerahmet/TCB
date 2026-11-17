@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/gguf"
+	"github.com/sekerahmet/TCB/internal/compute/onnx"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -40,7 +41,9 @@ var safetensorsDTypes = map[string]tensor.DType{"F32": tensor.Float32, "BF16": t
 
 // decodeTensorFile dosyanın biçimini uzantıdan değil içerikten tanır: TRTENSOR ile başlıyorsa
 // TR biçimi, GGUF ile başlıyorsa GGUF, 9. baytı { ise (başlık boyundan sonra JSON başlık;
-// belirtim: "MUST begin with a {") safetensors; hiçbiri değilse üçünü de anan bir hata.
+// belirtim: "MUST begin with a {") safetensors, ilk baytı 0x08 ise (ModelProto'nun ir_version
+// alanının etiketi) ONNX; hiçbiri değilse dördünü de anan bir hata. Safetensors'un küçük uçlu
+// başlık boyu da 0x08 ile başlayabilir (8 + 256k bayt): bu yüzden ONNX sondadır.
 func decodeTensorFile(f io.Reader, size int64) ([]fileEntry, error) {
 	br := bufio.NewReaderSize(f, 1<<16)
 	p, _ := br.Peek(9)
@@ -51,6 +54,8 @@ func decodeTensorFile(f io.Reader, size int64) ([]fileEntry, error) {
 		return decodeGGUF(br, size)
 	case len(p) == 9 && p[8] == '{':
 		return decodeSafetensors(br, size)
+	case len(p) > 0 && p[0] == onnxMagic:
+		return decodeOnnx(br, size)
 	}
 	return nil, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.FnSaveTensors))
 }
@@ -363,4 +368,72 @@ func readValues(r io.Reader, n int) ([]float32, error) {
 		return nil, readErr
 	}
 	return data, nil
+}
+
+// onnxMagic ONNX dosyasının ilk baytıdır: alan 1 (ir_version), tel türü 0 (varint).
+const onnxMagic = 0x08
+
+// onnxDTypes ONNX türlerinin TR karşılıklarıdır (H6746'nın listesi).
+var onnxDTypes = map[onnx.DataType]tensor.DType{onnx.Float: tensor.Float32, onnx.Double: tensor.Float64,
+	onnx.Float16: tensor.Float16, onnx.BFloat16: tensor.BFloat16, onnx.Int64: tensor.Int64, onnx.Int32: tensor.Int32,
+	onnx.Int16: tensor.Int16, onnx.Int8: tensor.Int8, onnx.Uint8: tensor.UInt8, onnx.Bool: tensor.Bool}
+
+// decodeOnnx boyutu size bayt olan ONNX dosyasının tensörlerini çözer (15.47): ağırlıklar ve
+// Constant değerleri dosyadaki sırayla; büyük ağırlığın verisi doğrudan öbek dışı bloğa okunur.
+func decodeOnnx(r *bufio.Reader, size int64) ([]fileEntry, error) {
+	tensors, err := onnx.Decode(r, size, onnx.Options{Alloc: onnxAlloc, Check: checkOnnxTensor})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]fileEntry, len(tensors))
+	for i, t := range tensors {
+		out[i] = onnxEntry(t)
+	}
+	return out, nil
+}
+
+// onnxAlloc ağırlığın verisine yer verir: büyükse öbek dışı blok (15.53).
+func onnxAlloc(n int) ([]byte, any) {
+	if b := tensor.NewHostBlock(n); b != nil {
+		return b.Bytes(), b
+	}
+	return make([]byte, n), nil
+}
+
+// checkOnnxTensor eleman sınırını denetler (15.46).
+func checkOnnxTensor(t *onnx.Tensor) error {
+	if i, bound := tensorLimit(t.Dims, slices.Contains(t.Dims, 0)); i >= 0 {
+		return messages.New(messages.H6649, t.Name, t.Dims[i], bound)
+	}
+	return nil
+}
+
+// onnxEntry çözülmüş tensörü dosya girdisine çevirir; veri boyu çözücüde denetlenmiştir.
+func onnxEntry(t onnx.Tensor) fileEntry {
+	dt := onnxDTypes[t.Type]
+	g := fileEntry{ad: t.Name, dtype: dt, shape: make([]int, len(t.Dims))}
+	count := 1
+	for i, d := range t.Dims {
+		g.shape[i] = int(d)
+		count *= int(d)
+	}
+	g.block, _ = t.Owner.(*tensor.HostBlock)
+	switch {
+	case dt.IsTyped():
+		g.raw = t.Data
+		if dt == tensor.Bool {
+			for i, b := range g.raw {
+				g.raw[i] = min(b, 1)
+			}
+		}
+	case dt.Bits() == 16 && g.block != nil:
+		g.bits = g.block.Uint16s()
+	case dt.Bits() == 16:
+		g.bits, _ = readBits16(bytes.NewReader(t.Data), count)
+	case g.block != nil:
+		g.data = g.block.Float32s()
+	default:
+		g.data, _ = readValues(bytes.NewReader(t.Data), count)
+	}
+	return g
 }
