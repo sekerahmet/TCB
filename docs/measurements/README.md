@@ -45,12 +45,15 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 - Yalnız emsali ölçen satır `— (motordan bağımsız)` yazar ve Depo dışı'yı doldurur.
 - Kümelerin her yolu ve satırın her programı ağaçta vardır.
 - Küme eklemek ya da daraltmak TCB'nin kararıdır; yeni makine ve oturum kodu tabloya ölçünün commit'inde eklenir.
+- Codegraph'ı ölçen satır `codegraph`'ı, tam denetimi ölçen satır `full_check`'i `engine`'in yanında sayar: süre ölçtüğü aracın koduyla da eskir (TCB 2026-11-17 18:10).
 
 ## Yol kümeleri
 
 | ad | yollar |
 | :-- | :-- |
 | engine | `internal/compute/`, `internal/lang/`, `internal/stdlib/`, `internal/detmath/`, `internal/sysmem/`, `cmd/trlang/`, `go.mod`, `go.sum` |
+| codegraph | `tools/codegraph/` |
+| full_check | `tools/full_check.sh`, `tools/codegraph/` |
 
 ## Makineler
 
