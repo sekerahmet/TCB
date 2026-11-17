@@ -86,9 +86,39 @@ func dotQ6KQ8x4(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float
 }
 
 // checkQ8x4 dört satırlı çekirdeğin okuyacağı aralıkları Go'da dilimler: ağırlık satırı, r0'ın arkasındaki üç
-// satırın kodları, ölçekleri ve alt toplamları (bitişik tamponun kapasitesinden), out'un dört öğesi.
+// satırın kodları, ölçekleri ve alt toplamları (bitişik tamponun kapasitesinden; blok boyu r0.blk), out'un dört öğesi.
 func checkQ8x4(blocks, blockBytes int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float32) {
-	nb := K / kBlock
-	_, _, _, _ = w[:blocks*blockBytes], r0.q[:3*K+blocks*kBlock], r0.d[:3*nb+blocks], r0.bs[:3*K/16+blocks*16]
-	_, _ = tmp[0], out[:4]
+	nb := K / r0.blk
+	_, _, _ = w[:blocks*blockBytes], r0.q[:3*K+blocks*r0.blk], r0.d[:3*nb+blocks]
+	_, _, _ = r0.bs[:3*K/16+blocks*r0.blk/16], tmp[0], out[:4]
+}
+
+// sdotq4q8 dotQ4Q8Go'nun AVX2 eşidir (Q4_0 ağırlık, 32'lik Q8 satır; blocks blok). Assembly:
+// cpu_quant_q4q8_amd64.s.
+//
+//go:noescape
+func sdotq4q8(blocks int, w *byte, q *int8, d *float32) float32
+
+func dotQ4Q8(blocks int, w []byte, r *q8kRow) float32 {
+	if !hasAVX2 || !hasF16C || blocks == 0 {
+		return dotQ4Q8Go(blocks, w, r)
+	}
+	_, _, _ = w[:blocks*18], r.q[:blocks*32], r.d[:blocks]
+	return sdotq4q8(blocks, &w[0], &r.q[0], &r.d[0])
+}
+
+// sdotq4q8x4 dört Q8 satırını (kodlar sq, ölçekler sd bayt arayla) aynı Q4_0 satırıyla çarpar; out[r] r'inci
+// satırın sonucudur (sdotq4q8'inkiyle bit bit aynı).
+//
+//go:noescape
+func sdotq4q8x4(blocks int, w *byte, q *int8, d *float32, out *float32, sq, sd int)
+
+// dotQ4Q8x4 r0'dan başlayan dört bitişik satırı (aynı tampondan, K arayla) çarpar: out[r] = r'inci satırın sonucu.
+func dotQ4Q8x4(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float32) {
+	if !hasAVX2 || !hasF16C || blocks == 0 {
+		dotQ8x4Go(dotQ4Q8Go, blocks, w, r0, K, out)
+		return
+	}
+	checkQ8x4(blocks, 18, w, r0, K, tmp, out)
+	sdotq4q8x4(blocks, &w[0], &r0.q[0], &r0.d[0], &out[0], K, K/r0.blk*4)
 }

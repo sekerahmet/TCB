@@ -60,7 +60,7 @@ type ActQuantGemmer interface {
 	GemmActQuant(M, N, K int, a View, bv View, c Storage)
 }
 
-// MatMulActQuant MatMulOut'un etkinleştirmesi nicemlenen eşidir (15.53a): b q4_k ya da q6_k ağırlığın devriğidir
+// MatMulActQuant MatMulOut'un etkinleştirmesi nicemlenen eşidir (15.53a): b q4, q4_k ya da q6_k ağırlığın devriğidir
 // (QuantActSupported), arka uç ActQuantGemmer'dır. Türün ve cihazın uygunluğunu çağıran denetler (iletiler
 // stdlib'de); burada uymazsa iç hatadır.
 func MatMulActQuant(a, b *Tensor, outType DType) *Tensor {

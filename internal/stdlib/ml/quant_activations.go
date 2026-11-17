@@ -82,8 +82,8 @@ func flagQuery(m *interp.VM, key any, code codes.Code, args []interp.Value, name
 	return interp.False, nil
 }
 
-// checkActQuant bloktaki nicemlenmiş ağırlıklı çarpımın kapısıdır (15.53a): ağırlık CPU'da ve q4_k ya da q6_k
-// olmalıdır. Desteklenmeyen tür ve GPU hatadır, sessizce float yoluna düşmez: tür ileride desteklenince aynı
+// checkActQuant bloktaki nicemlenmiş ağırlıklı çarpımın kapısıdır (15.53a): ağırlık CPU'da ve q4, q4_k ya da
+// q6_k olmalıdır. Desteklenmeyen tür ve GPU hatadır, sessizce float yoluna düşmez: tür ileride desteklenince aynı
 // programın bitleri sürümle değişmesin.
 func checkActQuant(w *tensor.Tensor) error {
 	fn := codes.NameRef(codes.FnQuantizedActivations)

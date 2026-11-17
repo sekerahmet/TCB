@@ -226,7 +226,7 @@
   "TR_fn_pretrained_vits": { "name": "hazır_vits", "family": "kitaplık: tr/vits", "description": "" },
   "TR_fn_pretrained_whisper": { "name": "hazır_whisper", "family": "kitaplık: tr/whisper", "description": "" },
   "TR_fn_print": { "name": "yazdır", "family": "giriş ve çıkış", "description": "Değerleri aralarına boşluk koyarak tek satırda yazar, değer vermez; argümansız çağrı boş satır yazar." },
-  "TR_fn_quantized_activations": { "name": "nicemli_etkinleştirme", "family": "veri türleri", "description": "nicemli_etkinleştirme { ... } bloğunda \"q4_k\" ve \"q6_k\" ağırlıkla çarpımda girdi 256'lık bloklarla int8'e nicemlenir, tamsayıyla çarpılır (15.53a); sonuç bloğun dışındakinden biraz farklıdır, iş parçacığı sayısından bağımsızdır. Başka nicemlenmiş ağırlık türü ve GPU hatadır." },
+  "TR_fn_quantized_activations": { "name": "nicemli_etkinleştirme", "family": "veri türleri", "description": "nicemli_etkinleştirme { ... } bloğunda \"q4\", \"q4_k\" ve \"q6_k\" ağırlıkla çarpımda girdi ağırlığın bloğu kadar (32 ya da 256 öğelik) bloklarla int8'e nicemlenir, tamsayıyla çarpılır (15.53a); sonuç bloğun dışındakinden biraz farklıdır, iş parçacığı sayısından bağımsızdır. Başka nicemlenmiş ağırlık türü ve GPU hatadır." },
   "TR_fn_quantized_activations_on": { "name": "nicemli_etkinleştirme_açık_mı", "family": "veri türleri", "description": "Görev nicemli_etkinleştirme bloğunun içindeyse doğru, dışındaysa yanlış verir." },
   "TR_fn_qwen3_format": { "name": "qwen3_biçimi", "family": "kitaplık: tr/chat", "description": "" },
   "TR_fn_qwen3_reply": { "name": "qwen3_cevabı", "family": "kitaplık: tr/chat", "description": "" },
