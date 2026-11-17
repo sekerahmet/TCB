@@ -101,8 +101,8 @@ func TestCommitModeRunsLayoutAlongsideNearTests(t *testing.T) {
 	}
 }
 
-// Kural (tools/full_check.sh, --kip=commit; kip-yakın K7; DENETİM 840 Ş2, 841 N2): kip kesilince (TERM) trap arka
-// plandaki düzen adımını alt süreçleriyle durdurur; kip beklerken hemen, ön planda yakın bir parça koşarken en geç o
+// Kural (tools/full_check.sh, --kip=commit; kip-yakın K7; DENETİM 840 Ş2, 841 N2, 845 N3): kip kesilince (TERM) trap
+// arka plandaki düzen adımını alt süreçleriyle durdurur ve geçici dosyalarını siler; kip beklerken hemen, ön planda yakın bir parça koşarken en geç o
 // parça bitince (bash trap'i ön plandaki komut bitince koşar). Neden: betiği çağıranın timeout'u yalnız betiği keser,
 // arka plandaki go test sonraki komutlarla yarışırdı.
 func TestCommitModeStopsTheLayoutWhenCut(t *testing.T) {
@@ -117,9 +117,11 @@ func TestCommitModeStopsTheLayoutWhenCut(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dir, env := fakeGo(t, map[string]string{"internal.sleep": "20", "internal.out": "ok\n", "a.sleep": "3", "a.out": "ok  \texample.com/fix/a\t0.1s\n"})
 			src := layoutPrelude + "commit_deadline_ms=$(($(commit_now_ms) + 20000))\nt0=$SECONDS\n" +
-				"( me=$BASHPID; commit_layout_start; (sleep 1; kill -TERM $me) & " + strings.TrimSuffix(strings.ReplaceAll(c.body, "\n", "; "), " ") + " )\n" +
+				"( me=$BASHPID; commit_layout_start; echo \"$commit_layout_out $commit_layout_res $commit_layout_res.tmp\" >\"$FAKE_GO_DIR/tmpfiles\"; " +
+				"(sleep 1; kill -TERM $me) & " + strings.TrimSuffix(strings.ReplaceAll(c.body, "\n", "; "), " ") + " )\n" +
 				"echo \"CODE=$? T=$((SECONDS - t0))\"\nsleep 1\n" +
-				"for p in $(cat \"$FAKE_GO_DIR/pids\"); do kill -0 \"$p\" 2>/dev/null && echo \"ALIVE $p\"; done\necho END\n"
+				"for p in $(cat \"$FAKE_GO_DIR/pids\"); do kill -0 \"$p\" 2>/dev/null && echo \"ALIVE $p\"; done\n" +
+				"for f in $(cat \"$FAKE_GO_DIR/tmpfiles\"); do [ ! -e \"$f\" ] || echo \"KEPT $f\"; done\necho END\n"
 			out := runCommitBash(t, dir, env, src)
 			t.Logf("durduruldu: T=%d sn", lastSeconds(out))
 			if !strings.Contains(out, "CODE=143 ") {
@@ -127,6 +129,9 @@ func TestCommitModeStopsTheLayoutWhenCut(t *testing.T) {
 			}
 			if strings.Contains(out, "ALIVE ") {
 				t.Errorf("arka plandaki sahte go durdurulmalıydı:\n%s", out)
+			}
+			if strings.Contains(out, "KEPT ") {
+				t.Errorf("durdurulan arka planın geçici dosyaları silinmeliydi (DENETİM 845 N3):\n%s", out)
 			}
 			if secs := lastSeconds(out); secs < c.min || secs > c.max {
 				t.Errorf("arka plan %d–%d sn içinde durmalıydı (T=%d):\n%s", c.min, c.max, secs, out)

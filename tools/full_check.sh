@@ -821,11 +821,13 @@ commit_layout_finish() {
 	for name in "${names[@]}"; do fail "$name"; done
 }
 
-# commit_layout_stop koşan arka planı alt süreçleriyle durdurur (K7; trap'ler commit_layout_start'ta).
+# commit_layout_stop koşan arka planı alt süreçleriyle durdurur ve geçici dosyalarını siler (K7, DENETİM 845 N3;
+# trap'ler commit_layout_start'ta): erken çıkışta (--ilk-kalanda-dur) commit_layout_finish koşmaz.
 commit_layout_stop() {
 	[ -n "$commit_layout_pid" ] || return 0
 	stop_tree "$commit_layout_pid"
 	commit_layout_pid=""
+	rm -f "$commit_layout_out" "$commit_layout_res" "$commit_layout_res.tmp"
 }
 
 # commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen

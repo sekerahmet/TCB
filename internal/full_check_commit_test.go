@@ -535,7 +535,13 @@ func TestCommitModeSaysWhenNearTestsAreLeft(t *testing.T) {
 		{"seçim yok", "",
 			"ℹ️ Commit öncesi denetim bitti, geçti değil: değişen dosyalar için hiç test seçilmedi; düzen kuralları ve hafif testler koştu.\n", "bilgi", 0},
 	} {
-		src := "commit_deadline_ms=$(($(commit_now_ms) + 2000))\ncommit_selection $'" + strings.ReplaceAll(c.sel, "\n", "\\n") + "' >/dev/null\n" +
+		// Yalnız ./c'yi kesen kollar sınırı bekler; öbürleri sınıra hiç varmaz. Kipin düzen adımında bu paket yakınlarla
+		// birlikte koşar; 2 sn'lik sınır o yükte ./a ve ./b'yi de kesiyordu (DENETİM 845'in düzeltmesinin kipi).
+		deadline := 60000
+		if strings.Contains(c.sel, "c TestC") {
+			deadline = 5000
+		}
+		src := "commit_deadline_ms=$(($(commit_now_ms) + " + strconv.Itoa(deadline) + "))\ncommit_selection $'" + strings.ReplaceAll(c.sel, "\n", "\\n") + "' >/dev/null\n" +
 			"echo \"KIND=$(commit_kind)\"\ncommit_passed_line\necho \"CODE=$?\"\n"
 		out := runCommitBash(t, dir, env, src)
 		if want := "KIND=" + c.kind + "\n" + c.line + "CODE=" + strconv.Itoa(c.code) + "\n"; !strings.HasSuffix(out, want) {
