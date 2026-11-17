@@ -537,3 +537,47 @@ TR_test "ayarı_değiştir: yalnız bir alan değişir, öbürleri kalır; denet
     TR_assert(düştü)
     TR_assert_equal(önce, TR_read_file(y))
 }
+
+TR_test "yalnız sohbet, ayar (chat_only): yoksa kapalı, true okunur; türü yanlışsa H8165; ayar_yaz açığı korur, kapalıyı yazmaz" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_assert(TR_not ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).yalnız_sohbet)
+    TR_var yol = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"chat_only\":true"))
+    TR_var a = ayar_oku(yol, k)
+    TR_assert(a.yalnız_sohbet TR_and ayar_kopyası(a).yalnız_sohbet)
+    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"chat_only\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"chat_only\""))
+    ayar_yaz(yol, k, a, "qwen3-4b-q4km", 17179869184, 4096)
+    TR_assert(TR_Bool(TR_json_parse(TR_read_file(yol))["chat_only"]))
+    TR_var sade = _dosya("ayar.json", _örnek_ayar())
+    ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_assert(TR_json_parse(TR_read_file(sade)).TR_get("chat_only") == TR_none)
+}
+
+TR_test "cihaz, ayar (device): cpu ve gpu okunur, başkası H8166; machine.gpu isteğe bağlı, alanları denetlenir; ayar_yaz yeni ayara cihazı ve kartı yazar, var olanın cihazını korur" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_assert_equal("cpu", ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).cihaz)
+    TR_var kart = "\"machine\":{\"memory_bytes\":17179869184,\"memory_source\":\"option\",\"gpu\":{\"name\":\"K\",\"memory_bytes\":8589934592,\"driver_version\":\"12.4\",\"matmul\":\"vendor\"}}"
+    TR_var gpu = _değiş(_değiş(_örnek_ayar(), "\"device\":\"cpu\"", "\"device\":\"gpu\""), "\"machine\":{\"memory_bytes\":17179869184,\"memory_source\":\"option\"}", kart)
+    TR_assert_equal("gpu", ayar_oku(_dosya("ayar.json", gpu), k).cihaz)
+    TR_assert(_ayar_hatası("\"device\":\"cpu\"", "\"device\":\"gpu:0\"").TR_starts_with("Message(\"H8166\", \"A\", \"device\""))
+    TR_assert(_ayar_hatası("\"memory_source\":\"option\"}", "\"memory_source\":\"option\",\"gpu\":{\"name\":\"K\"}}").TR_starts_with("Message(\"H8164\", \"A\", \"machine.gpu.memory_bytes\""))
+    TR_var yeni = TR_String(TR_Path(TR_temp_dir(), "yeni-\(TR_time_ms())", "ayar.json"))
+    ayar_yaz(yeni, k, TR_none, "qwen3-4b-q4km", 17179869184, 4096, "gpu", TR_JSON({"name": "K", "memory_bytes": 8589934592, "driver_version": "12.4", "matmul": "vendor"}))
+    TR_var j = TR_json_parse(TR_read_file(yeni))
+    TR_assert_equal(["gpu", "vendor"], [TR_String(j["device"]), TR_String(j["machine"]["gpu"]["matmul"])])
+    TR_assert_equal("gpu", ayar_oku(yeni, k).cihaz)
+    TR_var eski = _dosya("ayar.json", _örnek_ayar())
+    ayar_yaz(eski, k, ayar_oku(eski, k), "qwen3-4b-q4km", 17179869184, 4096, "gpu", TR_none)
+    TR_assert_equal("cpu", TR_String(TR_json_parse(TR_read_file(eski))["device"]))
+}
+
+TR_test "öntanımlı cihaz: kart yoksa cpu; dil modeli kartın belleğinin 0,6'sına sığıyorsa gpu, sığmıyorsa cpu; bağlam sınırı aşılırsa ya da model yoksa cpu" {
+    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var g = girdi_bul(k, "qwen3-4b-q4km")
+    TR_var n = gereken(g, 4096, küçükler(k, TR_none))
+    TR_var sığan = (n * 100 + 59) // 60
+    TR_assert_equal("cpu", öntanımlı_cihaz(k, TR_none, "qwen3-4b-q4km", 4096, 0))
+    TR_assert_equal("gpu", öntanımlı_cihaz(k, TR_none, "qwen3-4b-q4km", 4096, sığan))
+    TR_assert_equal("cpu", öntanımlı_cihaz(k, TR_none, "qwen3-4b-q4km", 4096, sığan - 2))
+    TR_assert_equal("cpu", öntanımlı_cihaz(k, TR_none, "qwen3-4b-q4km", g.bağlam_sınırı + 1, sığan * 4))
+    TR_assert_equal("cpu", öntanımlı_cihaz(k, TR_none, "yok", 4096, sığan * 4))
+}

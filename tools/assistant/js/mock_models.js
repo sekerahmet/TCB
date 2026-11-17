@@ -6,7 +6,7 @@
 
 /**
  * @param {{emit: (type: string, data?: any) => void, setState: (state: string, extra?: any) => void,
- *   state: () => string, setMic: (on: boolean) => void, turn: () => string}} host
+ *   state: () => string, setMic: (on: boolean) => void, turn: () => string, gpu: boolean}} host
  */
 function createMockModels(host) {
   const { emit, setState } = host;
@@ -107,6 +107,8 @@ function createMockModels(host) {
     context: (value) => Number.isInteger(value) && value > 0 && value <= MAX_CONTEXT,
     microphone: (value) => typeof value === "string" && value !== "",
     recording: (value) => typeof value === "boolean",
+    chat_only: (value) => typeof value === "boolean",
+    device: (value) => value === "cpu" || value === "gpu",
     quantized_activations: (value) => ["auto", "on", "off"].includes(value),
     language_model: (value) => Boolean(find(str(value))),
   };
@@ -137,6 +139,7 @@ function createMockModels(host) {
       const id = str(data.entry_id);
       switch (command.type) {
         case "mic_set": {
+          if (data.on === true && settings.chat_only === true) return rejected("mic_unavailable", {});
           if (data.on !== true) {
             pendingMic = false;
             host.setMic(false);
@@ -171,9 +174,17 @@ function createMockModels(host) {
           const check = types[key];
           if (!check) return rejected("setting_invalid", { key, reason: "unknown_key" });
           if (!check(data.value)) return rejected("setting_invalid", { key, reason: "invalid_value" });
+          const clash = (key === "device" && data.value === "gpu" && (!host.gpu || settings.quantized_activations === "on"))
+            || (key === "quantized_activations" && data.value === "on" && settings.device === "gpu");
+          if (clash) return rejected("setting_invalid", { key, reason: "invalid_value" });
           if (key === "language_model" && !(/** @type {any} */ (find(data.value))).installed) return rejected("setting_invalid", { key, reason: "not_installed" });
-          if ((key === "language_model" || key === "speech_language") && host.turn()) return rejected("turn_busy", { turn_id: host.turn() });
+          if (["language_model", "speech_language", "chat_only"].includes(key) && host.turn()) return rejected("turn_busy", { turn_id: host.turn() });
           settings[key] = data.value;
+          if (key === "chat_only" && data.value === true) {
+            pendingMic = false;
+            host.setMic(false);
+            if (host.state() === "listening") setState("idle");
+          }
           if (key === "speech_language") refresh();
           emit("settings", settings);
           const model = find(settings.language_model);

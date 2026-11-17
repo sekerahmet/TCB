@@ -69,7 +69,20 @@ func TestSuggestsAPossibleReplacement(t *testing.T) {
 		validCells(map[int]string{cID: "TG-2026-11-10-L4GPU-H1-1", cDate: "2026-11-10 10:00 +0300", cCommit: a, cModel: "gemma.gguf 0123456789ab"}),
 		validCells(map[int]string{cID: "TG-2026-11-09-L4GPU-TASINDI-1", cDate: "2026-11-09 (saat yazılmamış)", cSession: "TASINDI",
 			cCommit: a, cModel: "qwen.gguf sha256 yazılmamış (taşındı)", cPaths: "engine, " + programUnknown,
-			cSource: "taşındı: docs/measurements.md@c061399a:20; günlüğün saat dilimi +0300"}))
+			cSource: "taşındı: docs/measurements.md@c061399a:20; günlüğün saat dilimi +0300"}),
+		// Modelsiz ve programı bilinmeyen iki satır (11-08, 11-06): ortak değer yok, birbirinin
+		// adayı değil (ölçüler B Bulgu 1; eski kural 11-06'ya 11-08'i önerirdi).
+		validCells(map[int]string{cID: "TG-2026-11-08-L4GPU-TASINDI-1", cDate: "2026-11-08 (saat yazılmamış)", cSession: "TASINDI",
+			cCommit: a, cModel: "— (model yazılmamış, taşındı)", cPaths: "engine, " + programUnknown,
+			cSource: "taşındı: docs/measurements.md@c061399a:21; günlüğün saat dilimi +0300"}),
+		// Modelsiz satır aynı programla: program ortak, model çelişmiyor, aday en yeni satır
+		// (eski kural 11-08'i önerirdi).
+		validCells(map[int]string{cID: "TG-2026-11-07-L4GPU-TASINDI-1", cDate: "2026-11-07 (saat yazılmamış)", cSession: "TASINDI",
+			cCommit: a, cModel: "— (model yazılmamış, taşındı)",
+			cSource: "taşındı: docs/measurements.md@c061399a:22; günlüğün saat dilimi +0300"}),
+		validCells(map[int]string{cID: "TG-2026-11-06-L4GPU-TASINDI-1", cDate: "2026-11-06 (saat yazılmamış)", cSession: "TASINDI",
+			cCommit: a, cModel: "— (model yazılmamış, taşındı)", cPaths: "engine, " + programUnknown,
+			cSource: "taşındı: docs/measurements.md@c061399a:23; günlüğün saat dilimi +0300"}))
 	f, err := Load(fx.dir)
 	if err != nil {
 		t.Fatal(err)
@@ -87,5 +100,9 @@ func TestSuggestsAPossibleReplacement(t *testing.T) {
 		"TG-2026-11-11-L4GPU-H1-1: güncel",
 		"TG-2026-11-10-L4GPU-H1-1: güncel",
 		"TG-2026-11-09-L4GPU-TASINDI-1: güncel",
-		"TG-2026-11-09-L4GPU-TASINDI-1: olası yerini alan: "+newID)
+		"TG-2026-11-09-L4GPU-TASINDI-1: olası yerini alan: "+newID,
+		"TG-2026-11-08-L4GPU-TASINDI-1: güncel",
+		"TG-2026-11-07-L4GPU-TASINDI-1: güncel",
+		"TG-2026-11-07-L4GPU-TASINDI-1: olası yerini alan: "+newID,
+		"TG-2026-11-06-L4GPU-TASINDI-1: güncel")
 }

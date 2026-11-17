@@ -2,11 +2,15 @@ package e2e
 
 import (
 	"debug/buildinfo"
+	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -231,6 +235,80 @@ func TestREPL(t *testing.T) {
 	testkit.Wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
 	if strings.Contains(s.Stdout, "sürdü") {
 		t.Error("exit kabuğu kapatmalıydı")
+	}
+}
+
+// Kabukta TR_exit(kod) kabuğu o kodla bitirir (1.10 "bütün program biter", bir görevden çağrılsa da):
+// sonraki satır okunmaz, boruyla verilen betikte TR_exit'ten sonrası sessizce çalışmaz. Önceki satır
+// çalışmış olmalı.
+func TestREPLExitEndsTheShell(t *testing.T) {
+	for _, c := range []struct {
+		name, input string
+		code        int
+	}{
+		{"main_line", "TR_print(\"önce\")\nTR_exit(4)\nTR_for i TR_in [1, 2] { TR_print(\"sürdü\") }\nexit\n", 4},
+		{"task", "TR_print(\"önce\")\nTR_async { TR_exit(5) }\nTR_for i TR_in [1, 2] { TR_print(\"sürdü\") }\nexit\n", 5},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := testkit.RunBinary(t, trBinary, "", c.input, nil)
+			testkit.Wait(t, s, c.code, []string{"önce"}, nil)
+			if strings.Contains(s.Stdout, "sürdü") || strings.Contains(s.Stdout, "Görüşmek üzere!") {
+				t.Errorf("TR_exit'ten sonraki satır çalışmamalı:\n%s", s.Stdout)
+			}
+			if strings.Contains(s.Stderr, "❌") {
+				t.Errorf("TR_exit bir hata değildir, kabuk hata yazmamalı:\n%s", s.Stderr)
+			}
+		})
+	}
+	t.Run("task_after_the_line", replExitAfterTheLine)
+}
+
+// replExitAfterTheLine: hatalı satır görevini beklemez, görev TR_exit'i satır bittikten sonra, kabuk
+// girdi beklerken çağırır. Kabuk hemen bitmez (kabul edilen sınır); sonraki girdide o satırı
+// çalıştırmadan, görevi bekleyip (ertelenen işi 1.10'daki gibi biter, "temiz") görevin koduyla
+// çıkar. Sonraki satır ertelenen işin başındaki "ertelenen" yazılınca gönderilir: ertelenen iş TR_exit
+// çağrıldıktan sonra çalıştığı için çıkış o anda istenmiştir, sabit süreli bekleme gerekmez; işin
+// 0,3 sn'si de sürmektedir.
+func replExitAfterTheLine(t *testing.T) {
+	cmd := exec.Command(trBinary)
+	stdout, stderr := &testkit.TeeWriter{}, &testkit.TeeWriter{}
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	defer func() { _ = cmd.Process.Kill() }()
+	line := "TR_async { TR_sleep(0.2); TR_defer { TR_print(\"ertelenen\"); TR_sleep(0.3); TR_print(\"temiz\") }; TR_exit(6) }; [1][5]\n"
+	if _, err := io.WriteString(in, line); err != nil {
+		t.Fatal(err)
+	}
+	for deadline := time.Now().Add(30 * time.Second); !strings.Contains(stdout.String(), "ertelenen"); {
+		if time.Now().After(deadline) {
+			t.Fatalf("görevin ertelenen işi 30 sn içinde başlamadı:\n%s\n%s", stdout.String(), stderr.String())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	_, _ = io.WriteString(in, "TR_print(\"sürdü\")\nexit\n")
+	_ = in.Close()
+	select {
+	case err = <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("kabuk 30 sn içinde bitmedi")
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 6 {
+		t.Errorf("kabuk görevin koduyla (6) bitmeli: %v\n%s", err, stdout.String())
+	}
+	if strings.Contains(stdout.String(), "sürdü") || strings.Contains(stdout.String(), "Görüşmek üzere!") {
+		t.Errorf("görevin TR_exit'inden sonraki satır çalışmamalı:\n%s", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "temiz") {
+		t.Errorf("kabuk görevi beklemeden çıktı, ertelenen iş yarıda kaldı:\n%s", stdout.String())
 	}
 }
 

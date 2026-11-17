@@ -68,6 +68,15 @@ function renderControls() {
   byId("stop").disabled = !usable || (!ui.activeTurn && cards.size === 0);
   const mic = byId("micButton");
   mic.disabled = !usable;
+  const chatOnly = ui.settings.chat_only === true;
+  byId("chatMode").hidden = Object.keys(ui.settings).length === 0;
+  for (const [id, on] of /** @type {[string, boolean][]} */ ([["modeVoice", false], ["modeText", true]])) {
+    const option = /** @type {HTMLButtonElement} */ (byId(id));
+    option.setAttribute("aria-checked", String(chatOnly === on));
+    option.disabled = !usable || ui.activeTurn !== "";
+  }
+  mic.hidden = chatOnly;
+  byId("chatOnlyNote").hidden = !chatOnly;
   mic.setAttribute("aria-pressed", String(ui.mic));
   const value = byId("micValue");
   if (ui.state === "loading") bind(value, ui.micWaiting ? "mic_waits" : "mic_preparing");
@@ -166,6 +175,7 @@ function renderSettings() {
   const quantized = /** @type {HTMLSelectElement} */ (byId("settingsQuantized"));
   quantized.value = str(ui.settings.quantized_activations) || "auto";
   quantized.disabled = !usable;
+  renderDevice(usable);
   const context = /** @type {HTMLInputElement} */ (byId("settingsContext"));
   if (document.activeElement !== context) context.value = String(num(ui.settings.context) ?? "");
   context.disabled = !usable;
@@ -189,6 +199,22 @@ function renderSettings() {
     ui.devicesAsked = true;
     command("devices_list", {});
   }
+}
+
+// Hesap cihazı (tasarım dost-sohbet-gpu T6): kart yoksa "Ekran kartı" seçilemez ve not durur; kartta nicemlinin
+// "Açık"ı, nicemli açıkken kart seçilemez (sunucu `invalid_value` verir). Kullanılan cihaz ayarınkinden farklıysa
+// (ayar kart diyor, kart yok) not durur.
+/** @param {boolean} usable */
+function renderDevice(usable) {
+  const device = /** @type {HTMLSelectElement} */ (byId("settingsDevice"));
+  const saved = str(ui.settings.device) || "cpu";
+  const gpu = ui.computeDevices.includes("gpu");
+  device.value = saved;
+  device.disabled = !usable;
+  /** @type {HTMLOptionElement} */ (device.querySelector('option[value="gpu"]')).disabled = !gpu || ui.settings.quantized_activations === "on";
+  /** @type {HTMLOptionElement} */ (byId("settingsQuantized").querySelector('option[value="on"]')).disabled = saved === "gpu";
+  byId("settingsDeviceNoGpu").hidden = gpu;
+  byId("settingsDeviceMissing").hidden = !(saved === "gpu" && ui.computeDeviceInUse !== "gpu");
 }
 
 /** @param {string} key @param {unknown} value */
@@ -310,6 +336,14 @@ async function micPressed() {
   renderControls();
 }
 
+// Sesli / Yalnız sohbet: ayarın `chat_only`'si (contract.md); seçim `settings` olayıyla çizilir. Yalnız sohbete
+// geçince yazı kutusu odak alır.
+/** @param {boolean} on */
+async function chooseChatOnly(on) {
+  if ((ui.settings.chat_only === true) === on) return;
+  if ((await command("settings_set", { key: "chat_only", value: on })) && on) composer.focus();
+}
+
 /** @param {boolean} on */
 function setFocusMode(on) {
   document.body.classList.toggle("focus", on);
@@ -324,6 +358,8 @@ function wire() {
   });
   byId("stop").addEventListener("click", () => command("stop", {}));
   byId("micButton").addEventListener("click", micPressed);
+  byId("modeVoice").addEventListener("click", () => chooseChatOnly(false));
+  byId("modeText").addEventListener("click", () => chooseChatOnly(true));
   byId("setupModels").addEventListener("click", openModels);
   byId("setupRetry").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));
   byId("setupOther").addEventListener("click", openSettings);
@@ -334,6 +370,7 @@ function wire() {
   });
   byId("settingsLanguage").addEventListener("change", () => setSetting("speech_language", /** @type {HTMLSelectElement} */ (byId("settingsLanguage")).value));
   byId("settingsModel").addEventListener("change", () => setSetting("language_model", /** @type {HTMLSelectElement} */ (byId("settingsModel")).value));
+  byId("settingsDevice").addEventListener("change", () => setSetting("device", /** @type {HTMLSelectElement} */ (byId("settingsDevice")).value));
   byId("settingsQuantized").addEventListener("change", () => setSetting("quantized_activations", /** @type {HTMLSelectElement} */ (byId("settingsQuantized")).value));
   byId("settingsContext").addEventListener("change", () => setSetting("context", Number(/** @type {HTMLInputElement} */ (byId("settingsContext")).value)));
   byId("settingsMicrophone").addEventListener("change", () => setSetting("microphone", /** @type {HTMLSelectElement} */ (byId("settingsMicrophone")).value));

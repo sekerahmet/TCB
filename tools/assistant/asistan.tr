@@ -68,7 +68,7 @@ TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_mode
         "belirteç_dosyası": "ekranlı kipte belirtecin yazılacağı dosya (yalnız sahibi okur)",
         "deneme_klasörü": "her turun kaydı (turlar.jsonl, kesitin WAV'ı, ozet.md): tam yol, deponun ve bulut klasörlerinin dışında; verilmezse kayıt yok",
         "konuşma_dili": "Whisper'ın dil kodu (tr, en, ...); --ses_modeli ve --sistem aynı dilde verilir",
-        "cihaz": "dil modelinin, Whisper'ın ve sesin hesap cihazı (cpu, gpu, gpu:1); VAD her zaman işlemcidedir; ekranlı kipte yalnız cpu",
+        "cihaz": "dil modelinin, Whisper'ın ve sesin hesap cihazı (cpu, gpu, gpu:1); VAD her zaman işlemcidedir; ekranlı kipte verilmez: cihaz ayarın `device`'ıdır",
         "ayar": "ekranlı kipte ayar dosyası (JSON); verilmezse %LOCALAPPDATA%\\Dost\\ayar.json; klasörü Dost klasörüdür (modeller, yükleme işareti)",
         "katalog": "ekranlı kipte model kataloğu (JSON); --dil_modeli verilirse ekranlı kip katalogu ve ayarı okumaz",
         "tarayıcıyla_eşle": "ekranlı kipte tarayıcıyı tek kullanımlık eşleme koduyla açar, belirteç sorulmaz; kod tarayıcıyı açan sürecin argümanında durduğu için yalnız argümanı başka kullanıcıya göstermeyen sistemde verilir; Windows başlatıcısı verir"})
@@ -95,6 +95,28 @@ TR_func _gerekli(ad: TR_String) -> TR_String {
 # deneme: --deneme_klasörü verildiyse oturumun kaydı (deneme.tr, Deneme); verilmezse kayıt yok, çıktı aynı. Kaydın
 # kendi yazma hatası turu bozmaz (Deneme.tur).
 TR_var deneme: Deneme? = TR_none
+
+# deneme_aç: --deneme_klasörü verildiyse kaydın başlığını yazar. Cihaz ve nicemli seçimi kesinleşince çağrılır:
+# ekransız kipte açılışta, ekranlı kipte ayar okunduktan sonra (status'un deneme başlığı satırı).
+TR_func deneme_aç() {
+    TR_var yer = TR_String(ayar["deneme_klasörü"])
+    TR_if yer == "" { TR_return }
+    TR_var d = Deneme(klasör: yer, başı: şimdi())
+    d.başla(deneme_başlığı({"kip": TR_String(ayar["kip"]), "dil_modeli": TR_String(ayar["dil_modeli"]), "whisper": TR_String(ayar["whisper"]),
+        "vad": TR_String(ayar["vad"]), "ses_modeli": TR_String(ayar["ses_modeli"]), "en_çok_tur": TR_String(ayar["en_çok_tur"]),
+        "ekran": TR_String(ayar["ekran"]), "nicemli_seçimi": seçim.değer, "cihaz": TR_default_device(), "kart": kart_satırı()}))
+    deneme = d
+    TR_print("DENEME", d.klasör)
+}
+
+# kart_satırı: kayıt başlığının `kart`'ı: kartta kurulduysa kartın adı, belleği, sürücü sürümü ve `@`'nin yolu
+# (ayarlar.tr `kart_özeti`); işlemcideyse "". Kitaplığın sürümü TR'de okunamıyor, yazılmaz.
+TR_func kart_satırı() -> TR_String {
+    TR_var k = kart_özeti()
+    TR_if TR_default_device() == "cpu" TR_or k == TR_none { TR_return "" }
+    TR_var ad = TR_String(k["name"]).TR_replace("/", "-").TR_replace("\\", "-")
+    TR_return "\(ad); \(TR_Int(k["memory_bytes"])) bayt; sürücü \(TR_String(k["driver_version"])); @ \(TR_String(k["matmul"]))"
+}
 
 TR_func deneme_yaz(t: Tur, kaynak: TR_String, kesit: TR_Tensor?, t0: TR_Int, son: TR_String, kod: TR_String) {
     TR_var d = deneme
@@ -186,8 +208,10 @@ TR_func tur_aç(z: Zincir, kesit: TR_Tensor?, çalma_sonrası: TR_Bool, geride: 
 }
 
 # tur_işi: turun kendisi, sözün yazısından son çalmanın bitmesine; hatası çağırana gider. Söz boşsa TR_none (tur
-# yok). Metin turunda (`söz`) yazıya çevirme yoktur. Ekranlı kipte cevabın metni `ekran`'a akar.
-TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, ekran: Yazıcı?) -> TR_String? {
+# yok). Metin turunda (`söz`) yazıya çevirme yoktur. Ekranlı kipte cevabın metni `ekran`'a akar. `sessiz`'de (yalnız
+# sohbet) cevap seslendirilmez: kayıtta seslendirilen cümle yoktur.
+TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, ekran: Yazıcı?,
+    sessiz: TR_Bool = TR_false) -> TR_String? {
     TR_var z = a.z
     TR_var yazı = ""
     TR_if söz != TR_none {
@@ -202,7 +226,8 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     TR_var aktı = (m: TR_String) => {
         TR_if ekran != TR_none { ekran.ilerle(m) }
     }
-    TR_var içerik = cevapla(z, yazı, t0, t, (c) => konuşma.söyle(a.ses.TR_synthesize(c)), aktı)
+    TR_var içerik = cevapla(z, yazı, t0, t, söyleyen(sessiz, (c) => konuşma.söyle(a.ses.TR_synthesize(c))), aktı)
+    TR_if sessiz { t.seslendirilen = [] }
     TR_if içerik == TR_none {
         TR_print("söz boş: tur yok")
         TR_return TR_none
@@ -332,6 +357,35 @@ TR_func canlı_kip(a: Asistan) {
         sürsün: () => en_çok_tur == 0 TR_or z.tur < en_çok_tur, kuyruk_ms: _KUYRUK_MS))
 }
 
+# ekran_cihazı: ekranlı kipte istenen cihaz (tasarım dost-sohbet-gpu T1, T3): ayarın `device`'ı; ayar yoksa öntanımlı
+# (kart varsa ve dil modeli sığıyorsa gpu, katalog.tr `öntanımlı_cihaz`; model katalogun ilk dil modeli). Varsayılan
+# cihaz modellerden önce bir kez seçilir (15.38); ayar `gpu` deyip kart yoksa modeller işlemcide kurulur
+# (`açılış_hataları`). Ekran onu `session`'da söyler (`compute_devices`, `compute_device_in_use`).
+TR_func ekran_cihazı(k: Katalog, a: Ayar?, bağlam: TR_Int, kart: TR_Int) -> TR_String {
+    TR_if a != TR_none { TR_return a.cihaz }
+    TR_var ilk = [g.kimlik TR_for g TR_in k.girdiler TR_if g.tür == "language_model"]
+    TR_return öntanımlı_cihaz(k, TR_none, ilk[0], bağlam, kart)
+}
+
+# ön_cihaz: sunucudan önce istenen cihaz (`ekran_cihazı`): varsayılan cihaz modellerden önce bir kez seçilir ve
+# `session` onu taşır. Katalog ya da ayar okunamazsa "cpu": hata sunucu açıldıktan sonra bugünkü yerinde ve sırasında
+# gelir (kapı hatası önce, H7625; ayarın yeri sonra, H8172), program orada durur.
+TR_func ön_cihaz(kart: TR_Int) -> TR_String {
+    TR_try {
+        TR_var k = katalog_oku(TR_String(ayar["katalog"]))
+        TR_var a = ayar_oku(ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA")), k)
+        TR_return ekran_cihazı(k, a, bağlam_belirle(k, bağlam_verilen, a), kart)
+    } TR_catch _h {
+        TR_return "cpu"
+    }
+}
+
+# açılış_hataları: sunucu açıldıktan ve Dost klasörü bilindikten hemen sonra açılışın hataları (yuva.tr,
+# `açılış_olayları`): ayarın cihazı yoksa `compute_device_unavailable`, önceki yükleme yarıda kaldıysa `model_load_failed`.
+TR_func açılış_hataları(e: Ekran, klasör: TR_String, istenen: TR_String, kullanılan: TR_String) {
+    TR_for v TR_in açılış_olayları(işareti_al(klasör), istenen, kullanılan) { e.gönder("error", v) }
+}
+
 # ekranlı_kip: canlı kip, ekranla (`--ekran`). Açılış sırası: belirteç bellekte üretilir, sunucu onunla açılır (kapı
 # tutulamazsa açılış durur, dosyaya dokunulmaz), belirteç --belirteç_dosyası'na yalnız sahibine yazılır, adres ve
 # dosyanın yolu yazılır (belirtecin kendisi hiçbir yere yazılmaz), sonra modeller
@@ -344,7 +398,12 @@ TR_func canlı_kip(a: Asistan) {
 TR_func ekranlı_kip() -> TR_Int {
     TR_var dosya = _gerekli("belirteç_dosyası")
     TR_var elle = TR_String(ayar["dil_modeli"]) != ""
-    TR_var e = ekran_kur(ekran_klasörü(), TR_if elle { TR_Path(TR_String(ayar["dil_modeli"])).TR_name } TR_else { "" })
+    TR_var kart = kart_belleği()
+    TR_var istenen = TR_if elle { "cpu" } TR_else { ön_cihaz(kart) }
+    TR_var kullanılan = TR_if istenen == "gpu" TR_and kart > 0 { "gpu" } TR_else { "cpu" }
+    TR_default_device(kullanılan)
+    TR_var e = ekran_kur(ekran_klasörü(), TR_if elle { TR_Path(TR_String(ayar["dil_modeli"])).TR_name } TR_else { "" },
+        cihazlar: TR_if kart > 0 { ["cpu", "gpu"] } TR_else { ["cpu"] }, kullanılan: kullanılan)
     TR_if TR_Bool(ayar["tarayıcıyla_eşle"]) { e.eşleme = Eşleme(açıcı: tarayıcıyı_aç) }
     TR_var s = belirteçle_aç(e, TR_Int(ayar["ekran"]), dosya)
     TR_defer { s.TR_close() }
@@ -353,11 +412,7 @@ TR_func ekranlı_kip() -> TR_Int {
     TR_if eş != TR_none { eş.yenile_ve_aç() }
     TR_var ayar_dosyası = ayar_yolu(TR_String(ayar["ayar"]), TR_env("LOCALAPPDATA"))
     TR_var klasör = dost_klasörü(ayar_dosyası)
-    TR_var önceki = işareti_al(klasör)
-    TR_if önceki.var {
-        TR_var g = önceki.giriş
-        e.gönder("error", TR_JSON({"code": "model_load_failed", "values": TR_if g == TR_none { TR_JSON({}) } TR_else { TR_JSON({"model": g}) }, "fatal": TR_false}))
-    }
+    açılış_hataları(e, klasör, istenen, kullanılan)
     TR_var k = Katalog(girdiler: [], diller: [])
     TR_var kj = TR_JSON({})
     TR_var a_ayar: Ayar? = TR_none
@@ -378,6 +433,7 @@ TR_func ekranlı_kip() -> TR_Int {
         TR_if a_ayar != TR_none { ayardaki = a_ayar.nicemli }
         seçim = nicemli_seç(nicemli_verilen, ayardaki, ayar_dosyası)
     }
+    deneme_aç()
     TR_var etkin = takım_ayarı(k, a_ayar)
     TR_if TR_not elle TR_and karılacak_var(kj, klasör) { e.doğrulanıyor() }
     e.yüklenebilir = yüklenebilirler(k, kj, klasör, etkin)
@@ -386,15 +442,18 @@ TR_func ekranlı_kip() -> TR_Int {
     }
     e.konuşma_dili = etkin.konuşma_dili
     e.dil_modeli = etkin.dil_modeli
+    e.yalnız_sohbet = etkin.yalnız_sohbet
     TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
     TR_var o = Oturum(e: e, k: k, kj: kj, klasör: klasör, etkin: etkin, ayar_verisi: ayar_verisi, y: Yuva(), yüklü: Yüklü(),
         en_çok_tur: TR_Int(ayar["en_çok_tur"]), kuyruk_ms: _KUYRUK_MS, çerçeve_bayt: _ÇERÇEVE_BAYT, açılış: şimdi(),
         kur: asistan_kur, mikrofon_aç: mikrofon_aç, ayar_dosyası: ayar_dosyası, aygıtlar: mikrofonları_oku,
         tur: (a, kesit, söz, t0, sonrası, geride, işle, kayda) => ekran_turu(a, e, kesit, söz, t0, sonrası, geride, işle, kayda),
         kayıt: Kayıt(klasör: kayıt_klasörü(klasör, TR_time_ms()), başlık: deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]),
-            "ekran": TR_String(ayar["ekran"]), "nicemli_seçimi": seçim.değer})))
+            "ekran": TR_String(ayar["ekran"]), "nicemli_seçimi": seçim.değer, "cihaz": TR_default_device(), "kart": kart_satırı()})))
     TR_defer { o.bırak() }
     o.bağlam = bağlam
+    o.kart = TR_if kullanılan == "gpu" { kart } TR_else { 0 }
+    e.ayar_çakışması = o.ayar_çakışması
     TR_if TR_not elle {
         o.indirici = İndirici(kj: kj, klasör: klasör, gönder: e.gönder, bitti: o.indirme_bitti, adres: katalog_adresi)
         e.indirme = o.indirme_kararı
@@ -424,21 +483,22 @@ TR_func tarayıcıyı_aç(adres: TR_String) {
     }
 }
 
-# ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır.
-# Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı. Turun sonunda deneme kaydına ve konuşma kaydına
+# ekran_turu: ekranlı bir tur (sesli ya da metin): `tur_yürüt` görevde koşturur, cümleler --çalıcı ile çalınır;
+# yalnız sohbette (`e.yalnız_sohbet`, turun başındaki değer) seslendirilmez. Geri alma ve ölçü satırı bekleyen tarafta, görevin sonucuna bağlı. Turun sonunda deneme kaydına ve konuşma kaydına
 # (`kayda`, oturum.tr) yazılır.
 TR_func ekran_turu(a: Asistan, e: Ekran, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, sonrası: TR_Bool, geride: TR_Int, işle: () -> TR_NoneType,
     kayda: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı {
         TR_var z = a.z
         TR_var t = tur_aç(z, kesit, sonrası, geride)
         TR_var uzunluk = z.geçmiş.TR_length
+        TR_var sessiz = e.yalnız_sohbet # turun başındaki ayar: tur sürerken chat_only değişmez (turn_busy)
         TR_var klasör = TR_temp_dir()
         TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
         TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
         TR_var konuşma = Konuşma(hazırla: (s, i) => wav_yaz(klasör, s, i), t: t, t0: t0,
             çal: (yol) => wav_çal(yol, (y) => { program_koş(çalıcı, çalıcı_argümanları(y)) }))
         TR_var aralık = tur_yürüt(e, TR_if söz == TR_none { "voice" } TR_else { "text" }, TurUçları(
-            iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y),
+            iş: (y) => tur_işi(a, t, konuşma, kesit, söz, t0, y, sessiz),
             bitti: () => {
                 TR_if t.yazı_ms >= 0 TR_and z.tur == t.sıra {
                     tur_ölç(t)
@@ -473,23 +533,17 @@ TR_var kip = _gerekli("kip")
 _dil_denetle()
 # --cihaz: varsayılan cihaz yan etkilerden ve modellerden önce kurulur; geçersiz ya da kullanılamayan cihaz burada durur.
 # Kararlar argümansız TR_default_device()'ın adıyla verilir (motor "GPU"yu ve "gpu"yu "gpu:0" yapar). Ekranlı kipte
-# modeller ayarın cihazında kurulur (bugün yalnız cpu): başka cihaz sunucudan önce hatadır.
+# modeller ayarın cihazında kurulur (`ekranlı_kip`): --cihaz sunucudan önce hatadır.
 TR_default_device(TR_String(ayar["cihaz"]))
 TR_if TR_Int(ayar["ekran"]) >= 0 TR_and TR_default_device() != "cpu" {
-    TR_throw "--cihaz \(TR_String(ayar["cihaz"])) ekranlı kipte verilmez: ekranlı kipte modeller ayarın cihazında kurulur (bugün yalnız cpu). --cihaz'ı kaldırın ya da Dost'u --ekran olmadan açın"
+    TR_throw "--cihaz \(TR_String(ayar["cihaz"])) ekranlı kipte verilmez: ekranlı kipte modeller ayarın cihazında kurulur (Ayarlar, Hesap cihazı). --cihaz'ı kaldırın ya da Dost'u --ekran olmadan açın"
 }
 TR_var deneme_yeri = TR_String(ayar["deneme_klasörü"])
 TR_if deneme_yeri != "" {
     TR_var hata = deneme_klasörü_hatası(deneme_yeri)
     TR_if hata != TR_none { TR_throw hata }
-    TR_var d = Deneme(klasör: deneme_yeri, başı: şimdi())
-    d.başla(deneme_başlığı({"kip": kip, "dil_modeli": TR_String(ayar["dil_modeli"]), "whisper": TR_String(ayar["whisper"]),
-        "vad": TR_String(ayar["vad"]), "ses_modeli": TR_String(ayar["ses_modeli"]), "en_çok_tur": TR_String(ayar["en_çok_tur"]),
-        "ekran": TR_String(ayar["ekran"]), "nicemli_seçimi": seçim.değer,
-        "cihaz": TR_default_device()}))
-    deneme = d
-    TR_print("DENEME", d.klasör)
 }
+TR_if TR_Int(ayar["ekran"]) < 0 { deneme_aç() } # ekranlı kipte ayardan sonra (ekranlı_kip)
 TR_if TR_Int(ayar["ekran"]) >= 0 {
     TR_if kip != "canlı" { TR_throw "--ekran yalnız --kip canlı ile verilir, --kip \(kip) verildi" }
     TR_print("bitti:", ekranlı_kip(), "tur")

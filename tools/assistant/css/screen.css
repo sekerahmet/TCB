@@ -375,6 +375,16 @@ select { padding: 5px 8px; font-size: 13px; color: var(--text); max-width: 200px
 .team-state { margin: 4px 0 0; font-size: 13px; color: var(--warn); } .team-state.team-ok { color: var(--accent); } .team-state.team-bad { color: var(--danger); }
 .setup-actions { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
 .setup[data-failed="true"] h2 { color: var(--danger); }
+/* Sesli / Yalnız sohbet (sağ panel, Konuş'un üstü) */
+.mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--sunken); }
+.mode-opt { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 10px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.mode-opt:hover:not(:disabled) { color: var(--text); }
+.mode-opt:disabled { opacity: .5; cursor: not-allowed; }
+.mode-opt[aria-checked="true"] { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink); box-shadow: 0 0 18px var(--glow); }
+.result-mark { color: var(--warn); }
+.result-mark::before { content: "\25B2  "; font-size: 10px; }
+.mode-note { margin: 0; padding: 14px 12px; border: 1px dashed var(--accent-soft); border-radius: var(--radius); font-size: 13px; color: var(--muted); text-align: center; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes bar { from { transform: scaleY(.45); } to { transform: scaleY(1); } }
 @keyframes wave { from { transform: scale(.35); opacity: 1; } to { transform: scale(1); opacity: 0; } }
@@ -401,6 +411,7 @@ select { padding: 5px 8px; font-size: 13px; color: var(--text); max-width: 200px
   .metrics { grid-template-columns: minmax(0, 1fr); }
   .info { flex: 1 1 200px; flex-direction: row; flex-wrap: wrap; gap: 4px 20px; }
   .info .team { flex-basis: 100%; }
+  .mode, .mode-note { flex: 1 1 100%; }
 }
 @media (max-width: 640px) {
   body { height: auto; min-height: 100dvh; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "top" "right" "center" "left"; }

@@ -84,6 +84,7 @@ TR_struct Oturum {
     indirici: İndirici? = TR_none # katalogla açılışta (asistan.tr); `--dil_modeli`'yle yok
     silinecek: TR_String? = TR_none # kabul edilmiş `model_delete`; ana döngü siler (`modeli_sil`)
     bağlam: TR_Int = 0 # açılışın bağlamı (asistan.tr, `bağlam_belirle`); 0: ayarın `context`'i (`catalog`'un belleği)
+    kart: TR_Int = 0 # modeller kartta kurulduysa kartın belleği (`catalog`'un uygunluğu onunla); işlemcideyse 0
 
     TR_func cevaplanan() -> TR_Int {
         TR_var a = TR_self.yüklü.a
@@ -103,6 +104,7 @@ TR_struct Oturum {
         TR_var toplam = 0
         TR_var v = TR_self.ayar_verisi
         TR_if v != TR_none TR_and v.TR_get("machine") != TR_none { toplam = TR_Int(v["machine"]["memory_bytes"]) }
+        TR_if TR_self.kart > 0 { toplam = TR_self.kart } # kartta uygunluk kartın belleğiyle (DENETİM 819 Ş1)
         TR_var bağlam = TR_if TR_self.bağlam > 0 { TR_self.bağlam } TR_else { TR_self.etkin.bağlam }
         TR_var l = katalog_olayı(TR_self.k, TR_self.kj, TR_self.klasör, TR_self.etkin, TR_self.e.yüklenebilir, bağlam, toplam)
         TR_self.e.gönder("catalog", TR_JSON({"entries": l}))
@@ -184,14 +186,15 @@ TR_struct Oturum {
     # `model_load_failed`, hiçbir şey değişmez. Yüklenirse sistem iletisi yenilenir, önbellek ve geçmiş sıfırlanır. Model
     # yüklü değilken (kurulum) yeni dille ayarın takımı kuruluysa takım yüklenir (`yüklenecek`).
     # Ayar dosyası varsa değişiklik önce ona yazılır (`dosyaya_yaz`); yazma düşerse hiçbir şey değişmez. Dilin
-    # modelleri yüklenemezse dosyanın eski hâli geri yazılır. Bağlam ve mikrofon yalnız dosyaya yazılır (bir sonraki
-    # açılışta geçerli); kayıt hemen `etkin`'e geçer (tur, kaydı turun başında ve sonunda okur). `settings` olayı yeni
-    # değeri taşır.
+    # modelleri yüklenemezse dosyanın eski hâli geri yazılır. Bağlam, mikrofon, nicemli ve cihaz yalnız dosyaya yazılır (bir sonraki
+    # açılışta geçerli); kayıt hemen `etkin`'e geçer (tur, kaydı turun başında ve sonunda okur); yalnız sohbet hemen
+    # ekrana (`yalnız_sohbet`). `settings` olayı yeni değeri taşır.
     TR_func ayarı_uygula(anahtar: TR_String, değer: TR_JSON) {
         TR_var ö = TR_self.etkin
         TR_var eski = TR_self.ayar_verisi
+        TR_if anahtar == "device" TR_and TR_String(değer) == "gpu" TR_and TR_not TR_self.kartı_yaz() { TR_return }
         TR_if TR_not TR_self.dosyaya_yaz(anahtar, değer, "settings_set") { TR_return }
-        TR_if ["context", "microphone", "quantized_activations"].TR_contains(anahtar) {
+        TR_if ["context", "microphone", "quantized_activations", "device"].TR_contains(anahtar) {
             TR_self.ayarı_gönder()
             TR_return
         }
@@ -207,6 +210,13 @@ TR_struct Oturum {
         TR_if anahtar == "recording" {
             yeni.kayıt = TR_Bool(değer)
             TR_self.etkin = yeni
+            TR_self.ayarı_gönder()
+            TR_return
+        }
+        TR_if anahtar == "chat_only" {
+            yeni.yalnız_sohbet = TR_Bool(değer)
+            TR_self.etkin = yeni
+            TR_self.yalnız_sohbet(yeni.yalnız_sohbet)
             TR_self.ayarı_gönder()
             TR_return
         }
@@ -235,6 +245,43 @@ TR_struct Oturum {
         }
         TR_self.kataloğu_gönder()
         TR_self.ayarı_gönder()
+    }
+
+    # yalnız_sohbet: ayarın `chat_only`'si ekrana geçer; açılınca açık mikrofon kapanır, yükleme bitince açılmayı bekleyen
+    # istek de düşer (contract.md, `settings_set`). Turun sesi `ekran_turu`'da kapanır (asistan.tr, `söyleyen`).
+    TR_func yalnız_sohbet(açık: TR_Bool) {
+        TR_var e = TR_self.e
+        e.yalnız_sohbet = açık
+        TR_if TR_not açık { TR_return }
+        e.mikrofon_istendi = TR_false
+        e.yükleyip_dinle = TR_false
+        TR_self.kapat()
+    }
+
+    # kartı_yaz: `device` `gpu` olurken ayarın `machine`'ine kartın özeti (`machine.gpu`) yazılır; yazma düşerse
+    # `settings_write_failed` gelmiştir, cihaz yazılmaz.
+    TR_func kartı_yaz() -> TR_Bool {
+        TR_var v = TR_self.ayar_verisi
+        TR_var kart = kart_özeti()
+        TR_if v == TR_none TR_or kart == TR_none { TR_return TR_true }
+        TR_var m = TR_Dict(v["machine"])
+        m["gpu"] = kart
+        TR_return TR_self.dosyaya_yaz("machine", TR_JSON(m), "settings_set")
+    }
+
+    # ayar_çakışması: ekranın `ayar_çakışması`'ı (ekran.tr): kart yokken `device` `gpu`; ayarda `quantized_activations`
+    # `on` iken `device` `gpu`; ayarda `device` `gpu` iken `quantized_activations` `on` (nicemli etkinleştirme yalnız
+    # işlemcide, 15.53a). Ayar dosyasının değerine bakılır: ikisi de bir sonraki açılışta geçerlidir.
+    TR_func ayar_çakışması(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
+        TR_var v = TR_self.ayar_verisi
+        TR_var nicemli = ""
+        TR_var cihaz = ""
+        TR_if v != TR_none {
+            TR_if v.TR_get("quantized_activations") != TR_none { nicemli = TR_String(v["quantized_activations"]) }
+            cihaz = TR_String(v["device"])
+        }
+        TR_if anahtar == "device" TR_and TR_String(değer) == "gpu" { TR_return kart_özeti() == TR_none TR_or nicemli == "on" }
+        TR_return anahtar == "quantized_activations" TR_and TR_String(değer) == "on" TR_and cihaz == "gpu"
     }
 
     # eskiyi_geri_yaz: dil değişimi yüklenemeyince dosyanın değişen alanı eski değerine döner; o da düşerse yalnız
@@ -534,4 +581,11 @@ TR_struct Oturum {
         }
         TR_return TR_self.cevaplanan()
     }
+}
+
+# söyleyen: turun cümlelerini söyleyen işlev; yalnız sohbette (`sessiz`) hiçbir şey söylemez: cümle sese çevrilmez ve
+# çalınmaz, `speaking` olmaz (asistan.tr, `ekran_turu`).
+TR_func söyleyen(sessiz: TR_Bool, söyle: (TR_String) -> TR_NoneType) -> (TR_String) -> TR_NoneType {
+    TR_if sessiz { TR_return (_) => {} }
+    TR_return söyle
 }

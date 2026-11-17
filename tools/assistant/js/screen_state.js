@@ -169,6 +169,8 @@ const ui = {
   activeTurn: "",
   lastId: /** @type {string|null} */ (null),
   heartbeatMs: 15000,
+  computeDevices: ["cpu"], // `session`'ın `compute_devices`'ı: ayarın `device`'ının alabileceği değerler
+  computeDeviceInUse: "cpu", // `session`'ın `compute_device_in_use`'u: modellerin kurulduğu cihaz
   metrics: /** @type {Record<string, unknown>} */ ({}),
   settings: /** @type {Record<string, unknown>} */ ({}),
   catalog: /** @type {any[]} */ ([]), // events.js'nin catalogEntries'i: katalogun bilinen türleri
