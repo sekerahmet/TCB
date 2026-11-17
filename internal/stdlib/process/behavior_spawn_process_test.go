@@ -31,6 +31,17 @@ func helperSpawn(args []string) {
 				return
 			}
 		}
+	case "fill": // durdurulana kadar yazar; n bayt yazınca işaret dosyasını yazar: dosya, n
+		n, _ := strconv.Atoi(args[2])
+		chunk := pattern(1 << 12)
+		for written := 0; ; written += len(chunk) {
+			if written >= n && written < n+len(chunk) {
+				writeMark(args[1])
+			}
+			if _, err := os.Stdout.Write(chunk); err != nil {
+				return
+			}
+		}
 	case "dribble": // yazar, uyur, yazar: bayt sayısı, milisaniye, kod
 		n, _ := strconv.Atoi(args[1])
 		ms, _ := strconv.Atoi(args[2])
@@ -318,19 +329,25 @@ g.TR_wait()`)
 }
 
 // Okunmayan program tampon dolunca bekler, TR_wait de onu bekler: süre sınırı onu durdurur (21.2). Süre
-// sınırı ilk bayt okununca başlar: önce başlarsa program yazmadan durabilir, tampon dolmaz. Durdurmadan
-// sonra tamponda en az bir tampon kalır (doldu, program bekledi), iki tampondan az (sınırsız büyümedi).
+// sınırı program bir tampon yazınca (işaret dosyası) başlar: önce başlarsa yavaş makinede tampon dolmadan
+// durur. Durdurulan programın yazdığı her bayt okunur: kalan en az bir tampondur (doldu, program bekledi),
+// iki tampondan azdır (sınırsız büyümedi). Alt sınır böylece makinenin hızına bağlı değildir.
 func TestUnreadProgramStopsWithAWaitLimit(t *testing.T) {
-	got, err := run(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["endless"])
-TR_var ilk = p.TR_read(1).TR_length
+	mark := filepath.Join(t.TempDir(), "dolu")
+	got, err := run(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["fill", `+tr(mark)+`, "`+strconv.Itoa(process.OutputBuffer)+`"])
+TR_for i TR_in 0..1500 {
+    TR_if TR_Path(`+tr(mark)+`).TR_exists { TR_break }
+    TR_sleep(0.01)
+}
+TR_var dolu = TR_Path(`+tr(mark)+`).TR_exists
 TR_var kod = TR_error_code { p.TR_wait(TR_timeout: 0.3) }
-[ilk, kod, p.TR_read(8388608).TR_length]`)
+[dolu, kod, p.TR_read(8388608).TR_length]`)
 	parts := strings.Split(strings.Trim(got, "[]"), ", ")
 	left := -1
 	if len(parts) == 3 {
 		left, _ = strconv.Atoi(parts[2])
 	}
-	if err != nil || len(parts) != 3 || parts[0] != "1" || parts[1] != `"H2921"` ||
+	if err != nil || len(parts) != 3 || parts[0] != "true" || parts[1] != `"H2921"` ||
 		left < process.OutputBuffer || left > 2*process.OutputBuffer {
 		t.Errorf("%s (%v)", got, err)
 	}
