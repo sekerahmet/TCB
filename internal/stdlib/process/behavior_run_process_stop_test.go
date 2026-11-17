@@ -449,21 +449,36 @@ kod`)
 	}
 }
 
-// Durdurma kilit tutmaz: inatçı program 2 saniye beklenirken öbür görevler ilerler (21.5, 10.3).
+// Durdurma kilit tutmaz: inatçı program durdurulurken 2 saniye beklenir, o sürede öbür görevler ilerler
+// (21.5, 10.3). İptal program isteği yakalamaya hazır olunca verilir: önce verilirse program istekten
+// ölebilir, inatçı program olmaz. Süre sınırı programı kilit dışındaki bir goroutine'de durdurur, bu yolu
+// sınamaz; iptal durdurmayı bekleyen görevin içinden yapar. n iptalden sonra 0,01 saniyelik uykuyla dönen
+// döngüdür, 2 saniyede en çok 200 dönüş: n ≥ 50 2 saniyenin yaklaşık %25'inde ilerleme demektir; kilidi
+// tam tutmak n'yi 1'e indirir, kısmen tutmak (1,5 saniyeye kadar) geçer.
 func TestStoppingDoesNotHoldTheLock(t *testing.T) {
+	if !consoleAttached() {
+		t.Skip("konsolsuz istek gitmez: program hemen öldürülür, 2 saniyelik bekleme yok")
+	}
 	prog := helperProgram(t)
 	ready := filepath.Join(t.TempDir(), "hazır")
-	got, err := run(t, `TR_var kod = "yok"
-TR_var g = TR_async {
-    kod = TR_error_code { TR_run_process(`+prog+`, ["ignore", `+tr(ready)+`], TR_timeout: 0.3) } ?? "yok"
+	got, err := run(t, `TR_var g = TR_async { TR_run_process(`+prog+`, ["ignore", `+tr(ready)+`]) }
+TR_for i TR_in 0..1500 {
+    TR_sleep(0.01)
+    TR_if TR_Path(`+tr(ready)+`).TR_exists { TR_break }
 }
+TR_var hazır = TR_Path(`+tr(ready)+`).TR_exists
+g.TR_cancel()
 TR_var n = 0
 TR_for TR_not g.TR_done() {
     TR_sleep(0.01)
     n += 1
 }
-[kod, n > 5]`)
-	if err != nil || !strings.Contains(got, "H2921") || !strings.Contains(got, "true") {
+[hazır, TR_error_code { g.TR_wait() }, n]`)
+	n := -1
+	if i := strings.LastIndex(got, ", "); i >= 0 {
+		n, _ = strconv.Atoi(strings.TrimSuffix(got[i+2:], "]"))
+	}
+	if err != nil || !strings.HasPrefix(got, "[true") || !strings.Contains(got, "H2920") || n < 50 {
 		t.Errorf("%s (%v)", got, err)
 	}
 }
@@ -495,18 +510,21 @@ func TestGrandchildHoldingThePipeDoesNotBlock(t *testing.T) {
 	await(t, "torun bitti", func() bool { return size(beat) >= 150 })
 }
 
-// Gruptan kaçan torun boruyu tutsa da durdurulan çağrı döner (21.5). Windows'ta program iş nesnesinden
-// çıkamaz: o yol yok.
+// Gruptan kaçan torun boruyu tutsa da durdurulan çağrı döner (21.5). Durdurma torun atmaya başlayınca
+// verilir: önce verilirse program torunu başlatmadan ölebilir, sınanan durum olmaz. Süre sınırı da aynı
+// stopFor'dan geçtiği için ayrıca sınanmaz. Windows'ta program iş nesnesinden çıkamaz: o yol yok.
 func TestEscapedGrandchildDoesNotBlockTheStop(t *testing.T) {
 	if windows {
 		t.Skip("iş nesnesinden kaçılmaz")
 	}
 	prog := helperProgram(t)
 	beat := filepath.Join(t.TempDir(), "atım")
+	m, end := startProgram(t, `TR_run_process(`+prog+`, ["escape", `+tr(beat)+`, "300"])`)
+	await(t, "torun atıyor", func() bool { return size(beat) > 0 })
 	start := time.Now()
-	_, err := run(t, `TR_run_process(`+prog+`, ["escape", `+tr(beat)+`, "300"], TR_timeout: 0.3)`)
-	if !messages.Has(err, messages.H2921) {
-		t.Errorf("H2921 bekleniyordu: %v", err)
+	m.RequestStop(2)
+	if err := finished(t, end); !errors.Is(err, interp.ErrInterrupted) {
+		t.Errorf("durdurma bekleniyordu: %v", err)
 	}
 	if d := time.Since(start); d > 5*time.Second {
 		t.Errorf("%v sürdü", d)

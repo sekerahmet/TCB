@@ -163,3 +163,30 @@ func TestPumpStopsWhenFullAndGoesOn(t *testing.T) {
 		t.Errorf("%d bayt", len(big.data))
 	}
 }
+
+// Durdurmadan önce bekleyen okuma durdurmayla döner; durdurma başladıktan sonra gelen okuma kesilmez,
+// kalanı alır (21.2, 21.5). Sıra belirlenimlidir: programEnded okumadan sonra çağrılır, p.TR_wait'ten
+// sonraki okumanın programEnded'den önce sıraya girdiği durum budur.
+func TestReadAfterTheStopGetsTheRest(t *testing.T) {
+	stopping := false
+	o := newProgramOutput(1<<10, false, func() bool { return stopping }, func() {})
+	o.add([]byte("abc"))
+	early := o.read(10)
+	stopping = true
+	late := o.read(10)
+	o.programEnded(true)
+	ready(t, early)
+	if !early.stopped {
+		t.Error("durdurmadan önce bekleyen okuma durdurmayla dönmeliydi")
+	}
+	select {
+	case <-late.done:
+		t.Fatalf("durdurmadan sonra gelen okuma kesildi (durduruldu %v)", late.stopped)
+	default:
+	}
+	o.finish()
+	ready(t, late)
+	if late.stopped || string(late.data) != "abc" {
+		t.Errorf("kalan gelmeliydi: %q (durduruldu %v)", late.data, late.stopped)
+	}
+}

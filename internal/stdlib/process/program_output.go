@@ -42,6 +42,9 @@ type readRequest struct {
 	data       []byte
 	stopped    bool // TR programı durdurdu, okuma bitmedi
 	overflowed bool
+	// late okuma durdurma başladıktan sonra sıraya girdi: durdurma onu kesmez, kalanı dosya sonunda
+	// alır (21.2: p.TR_read p.TR_wait'ten sonra da kalanı verir).
+	late bool
 }
 
 func newProgramOutput(limit int, drop bool, stopping func() bool, overflow func()) *programOutput {
@@ -158,6 +161,7 @@ func (o *programOutput) read(n int) *readRequest {
 		close(r.done)
 		return r
 	}
+	r.late = o.stopping()
 	o.queue = append(o.queue, r)
 	o.serve()
 	o.room.Broadcast() // okuma sınırdan büyükse okuyucu yeniden boruya gider
@@ -188,17 +192,24 @@ func (o *programOutput) abandon(r *readRequest) {
 }
 
 // programEnded program bitince çağrılır: sınır kalkar, okuyucu boruda kalanı alır ve bu taşma
-// sayılmaz. TR programı durdurduysa bekleyen okumalar hemen döner (21.5).
+// sayılmaz. TR programı durdurduysa durdurmadan önce bekleyen okumalar hemen döner (21.5). Durdurma
+// başladıktan sonra gelen okuma sırada kalır, kalanı alır: p.TR_wait ile bu işlev programın bitişinden
+// aynı anda uyanır, TR_wait'ten sonraki okuma buradan önce de sonra da sıraya girebilir.
 func (o *programOutput) programEnded(stopped bool) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	o.ended = true
 	if stopped {
+		kept := o.queue[:0]
 		for _, r := range o.queue {
+			if r.late {
+				kept = append(kept, r)
+				continue
+			}
 			r.stopped = true
 			close(r.done)
 		}
-		o.queue = nil
+		o.queue = kept
 	}
 	o.room.Broadcast()
 }
