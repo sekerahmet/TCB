@@ -58,7 +58,7 @@ TR_for {
 }
 ```
 
-- *Test:* TR testi: `tests/dis_program_test.tr`; Go: `TestBackpressureKeepsEveryByte`, `TestOutputOutlivesTheProgram`, `TestReaderRunsWhileTRComputes`, `TestOverflowStopsTheProgramAndSticks`, `TestUnseenOverflowIsWrittenAtTheEnd`, `TestOverflowSuggestionRuns`, `TestOutputOverflowsPastTheLimit`, `TestPendingReadOfTheBufferSizeIsNoOverflow`, `TestNoOverflowOnceTheProgramEnded`, `TestReadSizeAgainstTheBuffer`, `TestReadGivesExactlyNThenTheRest`, `TestWriteAndCloseStdin`, `TestTwoTasksReadWholePieces`, `TestOutputServesReadsInOrder`, `TestUnreadProgramStopsWithAWaitLimit`, `TestBufferBytesIsChecked`, `TestGrandchildDoesNotHangTheProcess`, `TestProgramEndStopsAndReports`, `TestProcessValue`, `TestProcessArgumentListHoldsNoPath`.
+- *Test:* TR testi: `tests/dis_program_test.tr`; Go: `TestBackpressureKeepsEveryByte`, `TestOutputOutlivesTheProgram`, `TestReaderRunsWhileTRComputes`, `TestOverflowStopsTheProgramAndSticks`, `TestUnseenOverflowIsWrittenAtTheEnd`, `TestOverflowSuggestionRuns`, `TestOutputOverflowsPastTheLimit`, `TestPendingReadOfTheBufferSizeIsNoOverflow`, `TestNoOverflowOnceTheProgramEnded`, `TestReadSizeAgainstTheBuffer`, `TestReadGivesExactlyNThenTheRest`, `TestWriteAndCloseStdin`, `TestTwoTasksReadWholePieces`, `TestOutputServesReadsInOrder`, `TestUnreadProgramStopsWithAWaitLimit`, `TestReadAfterCancelGivesTheRest`, `TestBufferBytesIsChecked`, `TestGrandchildDoesNotHangTheProcess`, `TestProgramEndStopsAndReports`, `TestProcessValue`, `TestProcessArgumentListHoldsNoPath`.
 
 **21.3** Ad olarak verilen program `PATH`'te aranır.
 - Ad bir yol ayırıcısı (`/` ya da `\`) içeremez. Dosyanın kendisi bir `TR_Path` ile verilir; göreli yol çalışma klasörüne göredir.
