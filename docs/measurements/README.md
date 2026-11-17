@@ -93,6 +93,9 @@ Emsallerin ve ortamın makine başına geçerli sürümü. Yeni sürümle ölçe
 | onnxruntime | LAPTOP | 1.31.1 |
 | torch | LAPTOP | 2.6.0+cpu |
 | transformers | LAPTOP | 5.2.0 |
+| onnxruntime | HIGHRAM | 1.31.1 |
+| torch | HIGHRAM | 2.14.1+cpu |
+| transformers | HIGHRAM | 5.22.1 |
 
 ## Kim yazar
 
