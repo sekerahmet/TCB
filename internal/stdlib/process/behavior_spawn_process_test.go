@@ -317,11 +317,21 @@ g.TR_wait()`)
 	}
 }
 
-// Okunmayan program tampon dolunca bekler, TR_wait de onu bekler: süre sınırı onu durdurur (21.2).
+// Okunmayan program tampon dolunca bekler, TR_wait de onu bekler: süre sınırı onu durdurur (21.2). Süre
+// sınırı ilk bayt okununca başlar: önce başlarsa program yazmadan durabilir, tampon dolmaz. Durdurmadan
+// sonra tamponda en az bir tampon kalır (doldu, program bekledi), iki tampondan az (sınırsız büyümedi).
 func TestUnreadProgramStopsWithAWaitLimit(t *testing.T) {
 	got, err := run(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["endless"])
-TR_error_code { p.TR_wait(TR_timeout: 0.3) }`)
-	if err != nil || !strings.Contains(got, "H2921") {
+TR_var ilk = p.TR_read(1).TR_length
+TR_var kod = TR_error_code { p.TR_wait(TR_timeout: 0.3) }
+[ilk, kod, p.TR_read(8388608).TR_length]`)
+	parts := strings.Split(strings.Trim(got, "[]"), ", ")
+	left := -1
+	if len(parts) == 3 {
+		left, _ = strconv.Atoi(parts[2])
+	}
+	if err != nil || len(parts) != 3 || parts[0] != "1" || parts[1] != `"H2921"` ||
+		left < process.OutputBuffer || left > 2*process.OutputBuffer {
 		t.Errorf("%s (%v)", got, err)
 	}
 }
