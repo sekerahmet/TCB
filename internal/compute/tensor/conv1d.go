@@ -135,21 +135,36 @@ func foldOn(be Backend, g *Tensor, f foldShape) *Tensor {
 	return dx
 }
 
-// openRows satırları kurar; dolgu sıfırdır. Her satır yalnız kendi yerine yazar.
+// openRows satırları kurar; dolgu sıfırdır. Her satır yalnız kendi yerine yazar. Çekirdeğin bütün
+// öğeleri girdinin içine düşen konumda (iç konum) sınır denetlenmez; genişleme 1'de bir kanalın K
+// öğesi girdide bitişiktir ve tek kopyadır. Kenar konumları öğe öğe denetlenir. onnxruntime'ın
+// MLAS'ı da açmada dolguyu ayrı yazar, girdinin içini denetimsiz kopyalar (MlasConvIm2Col).
 func openRows(src []float32, f foldShape) []float32 {
 	cg, width := f.cg(), f.cg()*f.k
 	rows := f.o.Groups * f.batch * f.frames
 	cols := make([]float32, rows*width)
+	reach := (f.k - 1) * f.o.Dilation // çekirdeğin ilk ve son öğesi arası
 	parallelFor(rows, width*convCost, func(lo, hi int) {
 		for u := lo; u < hi; u++ {
 			gi, rest := u/(f.batch*f.frames), u%(f.batch*f.frames)
 			b, start := rest/f.frames, rest%f.frames*f.o.Stride-f.o.Padding
 			dst := cols[u*width : (u+1)*width]
+			inner := start >= 0 && start+reach < f.l
 			for c := range cg {
 				row := src[(b*f.cin+gi*cg+c)*f.l : (b*f.cin+gi*cg+c+1)*f.l]
-				for j := range f.k {
-					if p := start + j*f.o.Dilation; f.inside(p) {
-						dst[c*f.k+j] = row[p]
+				d := dst[c*f.k : (c+1)*f.k]
+				switch {
+				case inner && f.o.Dilation == 1:
+					copy(d, row[start:start+f.k])
+				case inner:
+					for j := range d {
+						d[j] = row[start+j*f.o.Dilation]
+					}
+				default:
+					for j := range d {
+						if p := start + j*f.o.Dilation; f.inside(p) {
+							d[j] = row[p]
+						}
 					}
 				}
 			}

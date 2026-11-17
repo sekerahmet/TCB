@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"math"
 	"runtime"
 	"slices"
 	"testing"
@@ -53,6 +54,64 @@ func TestConv1dLength(t *testing.T) {
 	} {
 		if got := c.o.Length(c.l, c.k); got != c.want {
 			t.Errorf("%+v l=%d k=%d: %d, beklenen %d", c.o, c.l, c.k, got, c.want)
+		}
+	}
+}
+
+// openRowsRef openRows'un iç konum ayrımından önceki hâlidir (her öğe sınır denetimli).
+func openRowsRef(src []float32, f foldShape) []float32 {
+	cg, width := f.cg(), f.cg()*f.k
+	rows := f.o.Groups * f.batch * f.frames
+	cols := make([]float32, rows*width)
+	for u := range rows {
+		gi, rest := u/(f.batch*f.frames), u%(f.batch*f.frames)
+		b, start := rest/f.frames, rest%f.frames*f.o.Stride-f.o.Padding
+		for c := range cg {
+			row := src[(b*f.cin+gi*cg+c)*f.l : (b*f.cin+gi*cg+c+1)*f.l]
+			for j := range f.k {
+				if p := start + j*f.o.Dilation; f.inside(p) {
+					cols[u*width+c*f.k+j] = row[p]
+				}
+			}
+		}
+	}
+	return cols
+}
+
+// openRows iç konumları denetimsiz kopyalar; sonuç öğe öğe denetimli yazımla bit bit aynıdır: adım,
+// genişleme, dolgu (çekirdekten geniş dolgu), grup, toplu, çekirdekten kısa girdi, tek çıkış ve özel
+// değerler (NaN, sonsuz, eksi sıfır kopyalanır, dönüştürülmez).
+func TestOpenRowsInteriorMatchesCheckedRows(t *testing.T) {
+	for _, c := range []struct {
+		o                Conv1dOptions
+		batch, cin, l, k int
+	}{
+		{Conv1dOptions{Stride: 1, Padding: 0, Dilation: 1, Groups: 1}, 1, 3, 20, 3},
+		{Conv1dOptions{Stride: 1, Padding: 5, Dilation: 1, Groups: 1}, 1, 4, 40, 11},
+		{Conv1dOptions{Stride: 1, Padding: 15, Dilation: 3, Groups: 1}, 2, 4, 50, 11},
+		{Conv1dOptions{Stride: 2, Padding: 2, Dilation: 2, Groups: 2}, 2, 4, 9, 3},
+		{Conv1dOptions{Stride: 3, Padding: 1, Dilation: 1, Groups: 4}, 3, 8, 41, 4},
+		{Conv1dOptions{Stride: 1, Padding: 6, Dilation: 1, Groups: 1}, 1, 2, 4, 11},
+		{Conv1dOptions{Stride: 1, Padding: 0, Dilation: 1, Groups: 1}, 1, 2, 7, 7},
+		{Conv1dOptions{Stride: 1, Padding: 9, Dilation: 2, Groups: 1}, 1, 1, 3, 5},
+	} {
+		f := foldShape{batch: c.batch, cin: c.cin, l: c.l, k: c.k, o: c.o}
+		f.frames = c.o.Length(c.l, c.k)
+		src := noise(c.batch * c.cin * c.l)
+		special := []float32{float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.Copysign(0, -1))}
+		for i := range special {
+			if i*7 < len(src) {
+				src[i*7] = special[i]
+			}
+		}
+		got, want := openRows(src, f), openRowsRef(src, f)
+		if len(got) != len(want) {
+			t.Fatalf("%+v: %d öğe, beklenen %d", c, len(got), len(want))
+		}
+		for i := range got {
+			if math.Float32bits(got[i]) != math.Float32bits(want[i]) {
+				t.Fatalf("%+v: %d. öğe %v, denetimli yazımda %v", c, i, got[i], want[i])
+			}
 		}
 	}
 }
