@@ -152,7 +152,7 @@ func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
 	}
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
 	goTest := regexp.MustCompile(`^\s*(?:\w+=\S*\s+)*go test `)
-	// Commit kipinin düzen adımı arka planda, commit_layout_start'ta koşar (kip-yakın K2). Kipin kolunda bugün
+	// Commit kipinin düzen adımı arka planda, commit_layout_start'ta koşar (kip-yakın K2). Kipin kolunda
 	// doğrudan go test yok; oraya yazılacak satır da -count=1 taşımalı (DENETİM 845 N2).
 	commitBranch := "\tcommit)\n"
 	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"},
