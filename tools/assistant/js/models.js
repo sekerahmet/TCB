@@ -90,6 +90,19 @@ function inUse(entry, catalog, settings, state, loading) {
   if (entry.kind === "language_model" && state === "loading" && loading !== "") return entry.id === loading;
   return teamOf(entry.kind, catalog, settings) === entry;
 }
+
+/**
+ * İnen girdi ayarın takımında mı (dil modeli, konuşma dilinin yazıcısı ve sesi, VAD). Sunucu indirme bitince yalnız
+ * ayarın takımı kurulu hâle geldiyse onu yükler; başka bir girdi inince yüklemez (contract.md, "Yükleme"; katalog
+ * dilimi K-11).
+ * @param {string} id @param {any[]} catalog @param {Record<string, unknown>} settings
+ */
+function partOfTeam(id, catalog, settings) {
+  return ["language_model", "transcriber", "voice", "vad"].some((kind) => {
+    const entry = teamOf(kind, catalog, settings);
+    return entry !== undefined && entry.id === id;
+  });
+}
 // ---------- Satırın işi sonu ----------
 
 /**

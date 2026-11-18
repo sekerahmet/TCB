@@ -214,6 +214,27 @@ func TestSetupOffersTheDownloadedChatModels(t *testing.T) {
 
 const modelsModule = "tools/assistant/js/models.js"
 
+// Kurulum kartının "bitince kendiliğinden belleğe alınır" notu yalnız inen girdi ayarın takımındaysa doğrudur: sunucu
+// indirme bitince yalnız ayarın takımı kurulu hâle geldiyse yükler (oturum.tr, indirme_bitti; katalog dilimi K-11,
+// DENETİM 878 N2). Kural js/models.js'in saf işlevindedir (partOfTeam).
+func TestSetupNoteSaysLoadOnlyForTheTeam(t *testing.T) {
+	catalog := `[{"id":"big","kind":"language_model","languages":[]},{"id":"small","kind":"language_model","languages":[]},` +
+		`{"id":"whisper","kind":"transcriber","languages":["tr","en"]},{"id":"tts-tur","kind":"voice","languages":["tr"]},` +
+		`{"id":"tts-eng","kind":"voice","languages":["en"]},{"id":"vad","kind":"vad","languages":[]}]`
+	output := nodeBlock(t, modelsModule, "Satırın işi", "const catalog = JSON.parse(process.argv[2]);\n"+
+		"const settings = {language_model: \"big\", speech_language: \"tr\"};\nconst out = {};\n"+
+		"for (const id of [\"big\", \"small\", \"whisper\", \"tts-tur\", \"tts-eng\", \"vad\", \"gone\"]) out[id] = partOfTeam(id, catalog, settings);\n"+
+		"process.stdout.write(JSON.stringify(out));\n", catalog)
+	want := `{"big":true,"small":false,"whisper":true,"tts-tur":true,"tts-eng":false,"vad":true,"gone":false}`
+	if string(output) != want {
+		t.Errorf("partOfTeam: %s, want %s", output, want)
+	}
+	if view := readFile(t, "tools/assistant/js/view.js"); !strings.Contains(view,
+		`partOfTeam(str(job.entry_id), ui.catalog, ui.settings) ? "setup_downloading" : "setup_downloading_other"`) {
+		t.Error("the setup card's download note does not ask partOfTeam")
+	}
+}
+
 // nodeBlock bir modülün "// ---------- <ad> ----------" ile "// ---------- <ad> sonu ----------" arasındaki saf kodunu,
 // sonuna sürücüyü ekleyip node ile koşar ve çıktısını verir; node yoksa test atlanır.
 func nodeBlock(t *testing.T, module, name, driver string, args ...string) []byte {

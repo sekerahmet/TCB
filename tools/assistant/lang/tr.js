@@ -226,6 +226,7 @@ assistantLanguages.tr = {
   "setup_start": "Başlamak için modelleri indirin.",
   "setup_open_models": "Modelleri aç",
   "setup_downloading": "{model} iniyor {percent}; bitince kendiliğinden belleğe alınır.",
+  "setup_downloading_other": "{model} iniyor {percent}.",
   "setup_load_failed": "{model} belleğe alınamadı.",
   "setup_load_failed_note": "Yeniden deneyin ya da başka bir sohbet modeli seçin.",
   "setup_chosen_missing": "Seçili sohbet modeli {model} indirilmemiş.",

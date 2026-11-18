@@ -226,6 +226,7 @@ assistantLanguages.en = {
   "setup_start": "Download the models to start.",
   "setup_open_models": "Open models",
   "setup_downloading": "{model} is downloading {percent}; it is loaded into memory by itself when done.",
+  "setup_downloading_other": "{model} is downloading {percent}.",
   "setup_load_failed": "{model} could not be loaded into memory.",
   "setup_load_failed_note": "Try again or choose another chat model.",
   "setup_chosen_missing": "The selected chat model {model} is not downloaded.",
