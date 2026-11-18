@@ -526,6 +526,7 @@
 "H2723": "{fn}: {path|q} bu programda açık bir {@logger} dosyası; önce günlüğü kapatın: `g.{#close}()`",
 "H2724": "{fn}: {path|q} içindeki {open|q} bu programda açık bir {@logger} dosyası; önce günlüğü kapatın: `g.{#close}()`",
 "H2725": "{fn}: günlük kapatıldı; {path|q} dosyasına yeniden yazmak için günlüğü yeniden açın: `{#logger}({path|q})`",
+"H2726": "`{#import} \"{path}\"` ile {file} dosyasının {line}. satırındaki aktarım aynı dosyaya farklı klasör yollarından ulaşıyor (bağlantı, dizin kavşağı ya da sabit bağ); modülün göreli yolları hangi aktarımın önce geldiğine bağlı olmasın diye bu bir hatadır (11.3). İlk aktarımın dosyasını yazın: `{#import} \"{suggest}\"`",
 "H2730": "iki adlı `{#for}` indeksle öğeyi verir, ama öğe {count} öğeli bir demet; demeti açmak için `{#for} {pattern} {#in} {source}`, indeksiyle birlikte `{#for} {index}, {pattern} {#in} {source}` yazın",
 "H2731": "döngüdeki `{pattern}` deseni bir demeti açar, ama öğenin tipi {type}: öğeyi tek adla alın, `{#for} {head} {#in} {source}`{kind, select, list { ve listeyi gövdede açın (5.3)} other {}}",
 "H2740": "`{step}` {kind, select, op {bir işlemin sonucudur} call {bir çağrının sonucudur} method {bir metodun sonucudur} slice {bir dilimdir} other {yeni kurulan bir değerdir}}: yerinde yazmanın hedefi yalnız adlardan, alanlardan ve kap öğelerinden geçer (5.4), yazma adı olmayan bir değerde kalıp kaybolabilirdi. Değeri değiştirmek için ona ad verin: `{#var} {copy} = {step}; {write}` (yazma bu ada gider).",

@@ -4,6 +4,7 @@ import (
 	"os"
 	pathpkg "path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -32,7 +33,7 @@ func CheckImportedModules(mainFile string, prog *ast.Program) error {
 // aktarılanlarla, aktarım sırasıyla verir: aktarılan modülün testleri de koşar (12.1). Dilin gömülü
 // kitaplığı dosya değildir, listede yoktur.
 func ImportedModuleFiles(mainFile string, prog *ast.Program) ([]string, error) {
-	c := &moduleChecker{mainFile: mainFile, seen: map[string]bool{}}
+	c := &moduleChecker{mainFile: mainFile, seen: map[string]bool{}, ids: NewModuleIdentities(mainFile)}
 	err := c.check(nil, mainFile, prog)
 	return c.files, err
 }
@@ -40,8 +41,10 @@ func ImportedModuleFiles(mainFile string, prog *ast.Program) ([]string, error) {
 // moduleChecker bir denetimin durumudur.
 type moduleChecker struct {
 	mainFile string
-	seen     map[string]bool
-	files    []string // denetlenen modül dosyaları, aktarım sırasıyla
+	seen     map[string]bool   // denetlenen kitaplık modülleri
+	ids      *ModuleIdentities // denetlenen diskteki modüller ve ana program (11.3)
+	chain    []string          // inilen modüllerin anahtarları (döngü, K4)
+	files    []string          // denetlenen modül dosyaları, aktarım sırasıyla
 }
 
 // check importerin (nil: ana program) prog'unun aktardığı modülleri denetler.
@@ -77,18 +80,23 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 	}
 	dirs := FileDirs(file, c.mainFile)
 	resolved, searched, ok := ResolveModulePath(path, dirs)
-	abs := absPath(resolved)
-	if ok && c.seen[abs] {
-		return nil
-	}
 	if !ok {
 		return messages.At(im.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, ModulePathError(im.Path, dirs), searched))
+	}
+	// Görülen dosyaya (ana program dahil) ikinci kez inilmez; zincirdeki dosyanın döngüsünü
+	// çalışma anı bildirir (H2481). Zincirde olmayan dosyaya klasör yolu farklı bir yazımla
+	// ulaşmak çalışmadan önce H2726'dır (11.3).
+	k := c.ids.Key(im.Path, resolved, file, im.Line())
+	if k.Known {
+		if k.Moved != nil && !k.Main && !slices.Contains(c.chain, k.Key) {
+			return messages.At(im.Line(), 0, k.Moved)
+		}
+		return nil
 	}
 	data, err := os.ReadFile(resolved)
 	if err != nil {
 		return messages.At(im.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, err, searched))
 	}
-	c.seen[abs] = true
 	c.files = append(c.files, resolved)
 	checked := CheckModule(resolved, string(data))
 	modSource := &Source{Path: resolved, Name: shownPath(resolved), Code: checked.Text}
@@ -97,6 +105,8 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 			ModulePath: im.Path, ImportLine: im.Line(), Importer: importer}
 	}
 	rememberCheckedModule(resolved, string(data), checked)
+	c.chain = append(c.chain, k.Key)
+	defer func() { c.chain = c.chain[:len(c.chain)-1] }()
 	return c.check(modSource, filepath.Clean(resolved), checked.Program)
 }
 

@@ -247,14 +247,14 @@ func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	if err != nil {
 		return nil, err
 	}
-	keyStr := dest.Path
-	if !dest.Embedded {
-		if absolute, err := filepath.Abs(dest.Path); err == nil {
-			keyStr = absolute
-		}
-	}
-
+	// Anahtar dosyanın kimliğidir (module_identity.go, 11.3): başka bir yazımla ulaşılan aynı dosya
+	// aynı modüldür, program boyunca bir kez çalışır.
 	v.isImported.Lock()
+	keyStr, err := v.moduleKey(s, path, dest)
+	if err != nil {
+		v.isImported.Unlock()
+		return nil, err
+	}
 	if mod, ok := v.Imported[keyStr]; ok {
 		v.isImported.Unlock()
 		return mod, nil

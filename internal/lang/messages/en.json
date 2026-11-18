@@ -526,6 +526,7 @@
 "H2723": "{fn}: {path|q} is the file of an open {@logger} in this program; close the logger first: `g.{#close}()`",
 "H2724": "{fn}: {open|q} inside {path|q} is the file of an open {@logger} in this program; close the logger first: `g.{#close}()`",
 "H2725": "{fn}: the logger was closed; to write to {path|q} again, open it again: `{#logger}({path|q})`",
+"H2726": "`{#import} \"{path}\"` and the import on line {line} of {file} reach the same file from different folder paths (a link, a junction or a hard link); this is an error so that the module's relative paths do not depend on which import comes first (11.3). Write the first import's file: `{#import} \"{suggest}\"`",
 "H2730": "a two-name `{#for}` gives the index and the element, but the element is a tuple of {count} elements; to unpack it write `{#for} {pattern} {#in} {source}`, or with the index `{#for} {index}, {pattern} {#in} {source}`",
 "H2731": "the loop pattern `{pattern}` unpacks a tuple, but the element's type is {type}: take the element with one name, `{#for} {head} {#in} {source}`{kind, select, list { and unpack the list in the body (5.3)} other {}}",
 "H2740": "`{step}` is {kind, select, op {the result of an operation} call {the result of a call} method {the result of a method} slice {a slice} other {a newly built value}}: the target of an in-place write goes only through names, fields and container items (5.4), and the write could stay in a value with no name and be lost. To change the value, give it a name: `{#var} {copy} = {step}; {write}` (the write goes to that name).",
