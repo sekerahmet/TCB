@@ -427,7 +427,8 @@ TR_struct Oturum {
     }
 
     # sesi_eşitle: kurulum ya da silme dilin sesini (`dilin_sesi`) değiştirdiyse yüklü ses ona geçer, sıfırlamadan
-    # (`ses_yükle`; DENETİM 911 Ş1). `işle` tur yokken çağırır; böylece `selected_for` her an konuşan sestir.
+    # (`ses_yükle`; DENETİM 911 Ş1). `işle` tur yokken çağırır; `selected_for` tur yokken konuşan sestir, tur sürerken
+    # ya da ses yüklenemezse seçilen sesi gösterir (DENETİM 913 Ş1).
     TR_func sesi_eşitle() {
         TR_self.ses_bekliyor = TR_false
         TR_var t = TR_self.y.takım

@@ -340,11 +340,16 @@ TR_func _sesli_oturum(d: TR_String) -> Oturum {
     TR_return o
 }
 
-TR_test "oturum: seçili ses inince yüklü ses ona geçer (tur bitince); silinince dilin öbür sesine geçer, setup yok; ayrışma kalmaz" {
+TR_test "oturum: seçili ses inince yüklü ses ona geçer (tur bitince); silinince dilin öbür sesine geçer, setup yok; ayrışma kalmaz; silmeden sonra ikinci yükleme yok" {
     TR_var d = _klasör()
     TR_var o = _sesli_oturum(d)
     TR_var piper = TR_String(TR_Path(d, "modeller", "piper-tr", "p.onnx"))
     TR_var mms = TR_String(TR_Path(d, "modeller", "ses-tr"))
+    TR_var yüklenen: TR_List[TR_String] = [] # her ses yüklemesi (DENETİM 913 Not 2)
+    o.ses_değiştirici = (yt) => {
+        yüklenen.TR_append(yt.ses)
+        TR_return (dil_değiştir(o.y, yt, (x) => {}) {})
+    }
     o.etkin.sesler["tr"] = "piper-tr" # seçim var, ses inmemiş: yok sayılır
     TR_assert_equal(mms, o.y.takım.ses)
     TR_assert(TR_not o.yüklü_takımda("piper-tr"))
@@ -354,10 +359,14 @@ TR_test "oturum: seçili ses inince yüklü ses ona geçer (tur bitince); silini
     o.indirme_bitti()
     o.işle()
     TR_assert_equal(mms, o.y.takım.ses)
+    # Ayrışma penceresi: dilin sesi Piper, konuşan MMS; Piper yüklü takımda sayılmaz (`[0..3]` sesi almaz).
+    TR_assert(TR_not o.yüklü_takımda("piper-tr") TR_and o.yüklü_takımda("ses-tr"))
+    TR_assert_equal(0, yüklenen.TR_length)
     o.e.tur = ""
     o.işle()
     TR_assert_equal(piper, o.y.takım.ses)
     TR_assert(o.yüklü_takımda("piper-tr") TR_and TR_not o.yüklü_takımda("ses-tr"))
+    TR_assert_equal([piper], yüklenen)
     TR_var son = [g TR_for g TR_in o.e.giden TR_if TR_String(g["type"]) == "catalog"]
     TR_var l = TR_List(son[son.TR_length - 1]["data"]["entries"])
     TR_assert_equal("[\"tr\"]", TR_json_string([x TR_for x TR_in l TR_if TR_String(x["id"]) == "piper-tr"][0]["selected_for"]))
@@ -368,11 +377,16 @@ TR_test "oturum: seçili ses inince yüklü ses ona geçer (tur bitince); silini
     TR_assert(TR_not kurulu(o.kj, d, "piper-tr"))
     TR_assert_equal("piper-tr", o.etkin.sesler["tr"])
     TR_assert_equal(0, [g TR_for g TR_in o.e.giden TR_if TR_String(g["type"]) == "state" TR_and TR_String(g["data"]["state"]) == "setup"].TR_length)
+    # Silmeden sonraki eşitleme aynı sese bakar: MMS bir kez yüklenir (yedek_sese_geç), ikinci yükleme olmaz.
+    o.işle()
+    TR_assert_equal(mms, o.y.takım.ses)
+    TR_assert_equal([piper, mms], yüklenen)
     # Yeniden inince seçim döner, yüklü ses de.
     _kur(d, "piper-tr")
     o.indirme_bitti()
     o.işle()
     TR_assert_equal(piper, o.y.takım.ses)
+    TR_assert_equal([piper, mms, piper], yüklenen)
 }
 
 TR_test "oturum: yüklü olmayan sesi silmek takımı bırakmaz; dilin tek kurulu sesini silmek bırakır" {
