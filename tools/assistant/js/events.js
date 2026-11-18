@@ -87,6 +87,22 @@ function catalogEntries(data) {
 function loadableModels(entries) {
   return entries.filter((entry) => entry.kind === "language_model" && entry.installed);
 }
+// setupChoice: kurulumda ayarın dil modeli kurulu değil ama başka bir sohbet modeli kurulu: kart bunu söyler ve
+// ayarlardan seçtirir (Dost katalog K-10; sunucu kurulumda da kurulu takımlı `settings_set language_model`'i yükler).
+/** @param {string} chosen @param {any[]} entries */
+function setupChoice(chosen, entries) {
+  const entry = entries.find((e) => e.id === chosen);
+  return chosen !== "" && !(entry && entry.installed) && loadableModels(entries).length > 0;
+}
+// modelOptions: ayarların sohbet seçicisi: kurulu sohbet modelleri; ayarın modeli kurulu değilse önce o, seçilemez
+// (`missing`), böylece seçici kurulu bir modeli seçili göstermez ve onun seçimi de `change` olur.
+/** @param {any[]} entries @param {string} chosen */
+function modelOptions(entries, chosen) {
+  const options = loadableModels(entries).map((entry) => ({ value: entry.id, name: entry.name, missing: false }));
+  if (chosen === "" || options.some((option) => option.value === chosen)) return options;
+  const entry = entries.find((e) => e.id === chosen);
+  return [{ value: chosen, name: entry ? entry.name : chosen, missing: true }, ...options];
+}
 // ---------- Katalog sonu ----------
 
 // Konuş'un beklemesi yükleme bitince ya da düşünce biter (kurulumdan yüklemeye geçiş beklemeyi sürdürür); kurulum

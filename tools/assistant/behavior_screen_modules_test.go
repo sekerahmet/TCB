@@ -173,6 +173,45 @@ func TestPageIgnoresUnknownCatalogFieldsAndKinds(t *testing.T) {
 	}
 }
 
+// Kurulumda ayarın dil modeli inmemişken başka bir sohbet modeli kuruluysa sayfa onu seçtirir (Dost katalog K-10;
+// Ahmet'in denemesi: Qwen3 8B önerildi, inmedi, kurulu Qwen3 4B ve Gemma 3 4B seçilemedi). Ayarların seçicisi ayarın
+// inmemiş modelini ilk, seçilemez seçenek olarak gösterir; yoksa seçici kurulu ilk modeli seçili gösterir ve onun
+// seçimi `change` olmaz. Kural js/events.js'in iki saf fonksiyonundadır (setupChoice, modelOptions).
+func TestSetupOffersTheDownloadedChatModels(t *testing.T) {
+	entries := `[{"id":"big","kind":"language_model","name":"Big","installed":false,"downloaded":false},` +
+		`{"id":"small","kind":"language_model","name":"Small","installed":true,"downloaded":true},` +
+		`{"id":"voice","kind":"voice","name":"Voice","installed":true,"downloaded":true}]`
+	none := strings.Replace(entries, `"name":"Small","installed":true`, `"name":"Small","installed":false`, 1)
+	cases := []struct{ name, chosen, entries, want string }{
+		{"the chosen model is not downloaded, another is installed", "big", entries,
+			`{"choice":true,"options":[{"value":"big","name":"Big","missing":true},{"value":"small","name":"Small","missing":false}]}`},
+		{"an unknown chosen model, another is installed", "gone", entries,
+			`{"choice":true,"options":[{"value":"gone","name":"gone","missing":true},{"value":"small","name":"Small","missing":false}]}`},
+		{"the chosen model is installed", "small", entries,
+			`{"choice":false,"options":[{"value":"small","name":"Small","missing":false}]}`},
+		{"no chat model is installed", "big", none,
+			`{"choice":false,"options":[{"value":"big","name":"Big","missing":true}]}`},
+		{"no setting", "", entries, `{"choice":false,"options":[{"value":"small","name":"Small","missing":false}]}`},
+	}
+	for _, c := range cases {
+		output := nodeBlock(t, eventsModule, "Katalog", "const entries = JSON.parse(process.argv[2]);\n"+
+			"process.stdout.write(JSON.stringify({choice: setupChoice(process.argv[3], entries), options: modelOptions(entries, process.argv[3])}));\n",
+			c.entries, c.chosen)
+		if string(output) != c.want {
+			t.Errorf("%s: %s, want %s", c.name, output, c.want)
+		}
+	}
+	view := readFile(t, "tools/assistant/js/view.js")
+	for _, want := range []string{`const choose = !failed && setupChoice(chosen, ui.catalog);`,
+		`byId("setupOther").hidden = !failed && !choose;`,
+		`(ui.state !== "setup" || ui.loadFailed !== "" || setupChoice(chosen, ui.catalog))`,
+		`modelOptions(ui.catalog, chosen)`, `option.disabled = item.disabled === true;`} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view.js has no %q", want)
+		}
+	}
+}
+
 const modelsModule = "tools/assistant/js/models.js"
 
 // nodeBlock bir modülün "// ---------- <ad> ----------" ile "// ---------- <ad> sonu ----------" arasındaki saf kodunu,
