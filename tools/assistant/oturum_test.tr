@@ -329,10 +329,10 @@ TR_test "oturum: voice ayarı yazılır, catalog yeniden gider; başka dilin ses
     TR_var giden = o.e.giden[önce..o.e.giden.TR_length]
     TR_assert_equal(["catalog", "settings"], [TR_String(g["type"]) TR_for g TR_in giden])
     TR_assert_equal(p, TR_String(giden[1]["data"]["voices"]["tr"]))
-    # Piper kurulu olmadığından seçim yok sayılır: Türkçenin sesi ilk ses (P-4); languages sesin bulunduğu diller.
+    # Hiçbir ses kurulu değil: Türkçenin sesi listenin ilki, Piper (P-4, P-10); languages sesin bulunduğu diller.
     TR_var l = TR_List(giden[0]["data"]["entries"])
     TR_var seçilen = (id: TR_String) => TR_json_string([x TR_for x TR_in l TR_if TR_String(x["id"]) == id][0]["selected_for"])
-    TR_assert_equal(["[\"tr\"]", "[]", "[\"en\"]"], [seçilen("mms-tts-tur"), seçilen(p), seçilen("mms-tts-eng")])
+    TR_assert_equal(["[]", "[\"tr\"]", "[\"en\"]"], [seçilen("mms-tts-tur"), seçilen(p), seçilen("mms-tts-eng")])
     TR_assert_equal("[\"tr\"]", TR_json_string([x TR_for x TR_in l TR_if TR_String(x["id"]) == p][0]["languages"]))
     TR_assert([x TR_for x TR_in l TR_if TR_String(x["id"]) == "whisper-small"][0].TR_get("selected_for") == TR_none)
 }

@@ -507,7 +507,7 @@
       "code": "tr",
       "whisper_language": "tr",
       "transcriber": "whisper-small",
-      "voices": ["mms-tts-tur", "piper-tr-dfki-medium"],
+      "voices": ["piper-tr-dfki-medium", "mms-tts-tur"],
       "system_prompt": "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe cevap ver, bir iki cümleyi geçme. Sayıları rakamla değil yazıyla yaz."
     },
     {

@@ -275,7 +275,7 @@ TR_test "depodaki katalog.json okunur ve tutarlıdır" {
 TR_test "katalog: Piper girdisi iki dosyasıyla okunur; memory.weights_bytes dosyaların toplamıdır" {
     TR_var yol = "tools/assistant/katalog.json"
     TR_var k = katalog_oku(yol)
-    TR_assert_equal(["mms-tts-tur", "piper-tr-dfki-medium"], k.diller[0].sesler)
+    TR_assert_equal(["piper-tr-dfki-medium", "mms-tts-tur"], k.diller[0].sesler) # Piper öntanımlı (P-10, Ahmet 18:26)
     TR_assert_equal(["mms-tts-eng"], k.diller[1].sesler)
     TR_var j = TR_json_parse(TR_read_file(yol))
     TR_var p = [g TR_for g TR_in j["entries"] TR_if TR_String(g["id"]) == "piper-tr-dfki-medium"][0]
