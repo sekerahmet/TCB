@@ -97,7 +97,7 @@ type OpInfo struct {
 	Direction string   `json:"direction"` // "forward" ya da "backward"
 	Device    string   `json:"device"`    // "cpu" ya da "gpu"
 	Calls     int64    `json:"calls"`
-	Measured  int64    `json:"measured"` // süresi ölçülen çağrı (örnekleme)
+	Measured  int64    `json:"measured"` // süresi ölçülen çağrı (panikle biten dışında hepsi)
 	Seconds   float64  `json:"seconds"`
 	Share     float64  `json:"share"` // tensör süresi içindeki payı
 	Bytes     int64    `json:"bytes"`

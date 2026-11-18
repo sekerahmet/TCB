@@ -49,8 +49,12 @@ func ScreenLines(g *Snapshot, e Screen) []string {
 		}
 		add(messages.Text(messages.H8263, ad, count(ms), count(rate), remaining))
 	}
-	add(messages.Text(messages.H8264,
-		percent(p.TensorShare), percent(max(0, 1-p.TensorShare)), durationText(p.Seconds)))
+	if p.TensorShare > 1 { // eşzamanlı işlemler üst üste sayıldı (bkz. ReportText)
+		add(messages.Text(messages.H8295, percent(p.TensorShare), durationText(p.Seconds)))
+	} else {
+		add(messages.Text(messages.H8264,
+			percent(p.TensorShare), percent(max(0, 1-p.TensorShare)), durationText(p.Seconds)))
+	}
 	s = append(s, "")
 	s = append(s, opTable(p.Ops, p.Step, p.Seconds, w, 10)...)
 	if g.GPU.Used {

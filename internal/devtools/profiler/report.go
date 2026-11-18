@@ -29,8 +29,14 @@ func ReportText(g *Snapshot) string {
 		}
 	}
 	t := g.Tensor
-	write(messages.Text(messages.H8234,
-		percent(t.Share), durationText(t.Seconds), full(t.Calls), nBytes(t.Bytes), percent(max(0, 1-t.Share))))
+	// Pay işlem sürelerinin toplamının duvar süresine oranıdır; eşzamanlı işlemler üst üste
+	// sayılınca 1'i aşar ve "geri kalanı" anlamsızlaşır: satır bunu söyler.
+	if t.Share > 1 {
+		write(messages.Text(messages.H8294, percent(t.Share), durationText(t.Seconds), full(t.Calls), nBytes(t.Bytes)))
+	} else {
+		write(messages.Text(messages.H8234,
+			percent(t.Share), durationText(t.Seconds), full(t.Calls), nBytes(t.Bytes), percent(max(0, 1-t.Share))))
+	}
 	if o := g.Sampling; o != nil {
 		write(messages.Text(messages.H8235, durationText(o.IntervalMs/1000), full(o.Samples), percent(o.TensorShare)))
 	}

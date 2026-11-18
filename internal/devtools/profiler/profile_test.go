@@ -452,3 +452,29 @@ func TestProfileStepsAcrossProgressBars(t *testing.T) {
 		t.Errorf("pencere: %d adım, %v ms/adım; beklenen 6 ve 10", w.Step, w.MsPerStep)
 	}
 }
+
+// Kural (H1 profil payı A-3): tensör payı işlem sürelerinin toplamının duvar süresine oranıdır;
+// 1'i aşınca (eşzamanlı işlemler üst üste sayılır) rapor ve canlı ekran "geri kalanı" yazmaz,
+// nedenini ve duvar süresine göre payın yerini söyler (H8294, H8295). 1'in altında satır değişmez.
+func TestReportShareOverWallSaysWhy(t *testing.T) {
+	for _, c := range []struct {
+		share float64
+		over  bool
+	}{{1.5, true}, {0.5, false}} {
+		g := sampleSnapshot()
+		g.Tensor.Share, g.Window.TensorShare = c.share, c.share
+		report := ReportText(g)
+		screen := strings.Join(ScreenLines(g, Screen{Width: 200}), "\n")
+		for _, x := range []struct{ name, text, why, share string }{
+			{"rapor", report, "duvar süresini aşar; duvar süresine göre pay Örnekleme satırında", "Zaman: tensör işlemleri %"},
+			{"canlı ekran", screen, "eşzamanlı işlemler üst üste sayılır", "Zaman      tensör işlemleri %"},
+		} {
+			if !strings.Contains(x.text, x.share) {
+				t.Errorf("pay %v, %s: zaman satırı yok:\n%s", c.share, x.name, x.text)
+			}
+			if strings.Contains(x.text, x.why) != c.over || strings.Contains(x.text, "geri kalanı") == c.over {
+				t.Errorf("pay %v, %s: neden yazılmalı %v, geri kalanı yazılmalı %v:\n%s", c.share, x.name, c.over, !c.over, x.text)
+			}
+		}
+	}
+}

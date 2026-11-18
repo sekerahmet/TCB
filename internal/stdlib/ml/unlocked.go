@@ -35,6 +35,7 @@ func runUnlocked(m *interp.VM, prepare func() (*tensor.Tensor, *tensor.Kernel)) 
 			k.End()
 			return r
 		}
+		k.Abandon()
 		m.Blocking(k.WaitFree)
 	}
 }

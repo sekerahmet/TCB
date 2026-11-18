@@ -1,9 +1,6 @@
 package tensor
 
-import (
-	"math"
-	"time"
-)
+import "time"
 
 // ============================================================================
 // Profil sayaçları: her zaman açık, çok ucuz tensör işlemi sayaçları
@@ -14,23 +11,19 @@ import (
 // okur. Sayaçlar her zaman açıktır; açma/kapama yoktur. Bir işlemin maliyeti:
 //
 //   - Çağrı sayısı ve bayt kesindir: her çağrıda bir toplama.
-//   - Süre örneklenerek ölçülür: her kayıt, ölçülecek çağrıları olasılığı p olan bağımsız
-//     (geometrik aralıklı) seçimle belirler ve ölçülen süreyi 1/p ile ağırlıklandırır
-//     (Horvitz-Thompson tahmini: p yalnızca geçmiş ölçümlere bağlı olduğundan yansızdır).
-//     Uzun süren işlemlerde (son ölçüm longOpTicks'ten uzunsa) p = 1: her çağrı ölçülür;
-//     kısa işlemlerde p = 1/sampleRange. Böylece birkaç yüz nanosaniyelik küçük tensör
-//     işlemlerinde ölçülmeyen çağrının yükü bir toplama, bir gösterici yazması ve bir
-//     azaltmadır (ölçüm: counter_bench_test.go ve docs/architecture.md). GPU işlemlerinin her çağrısı
-//     ölçülür (counterMeasure.finish).
+//   - Süre her çağrıda ölçülür (CPU'da ve GPU'da): iki saat okuması, toplam kesindir
+//     (yükün ölçüsü: counter_bench_test.go ve docs/architecture.md). Kilitsiz çalışan
+//     eşzamanlı çekirdeklerin süreleri üst üste sayılır; toplam duvar süresini aşabilir.
+//     Gövdesi panikle biten çağrı sayılır, süresi eklenmez.
 //   - Saat amd64'te işlemcinin değişmez zaman damgası sayacıdır (okuması ~7 ns, çözünürlüğü
 //     nanosaniyenin altında); yoksa Go'nun monoton saati. Tıklar görüntü alınırken duvar
-//     saatiyle süreye çevrilir (sayac_saat*.go).
+//     saatiyle süreye çevrilir (counter_clock*.go).
 //
 // Eşzamanlılık: sayaçlar kilitsizdir. Yarış denetimsiz derlemede düz okuma ve yazma
-// kullanılır (sayac_duz.go): aynı anda iki goroutine'den çağrılan işlemlerde nadiren bir
+// kullanılır (counter_plain.go): aynı anda iki goroutine'den çağrılan işlemlerde nadiren bir
 // artırım kaybolabilir; TR görevleri yorumlayıcı kilidiyle sıraya girdiğinden pratikte
 // olmaz. Kelime boyundaki değerler bozulmaz. Yarış denetimli derlemede (-race) aynı yollar
-// atomik işlemlerle çalışır (sayac_yaris.go); davranış aynıdır.
+// atomik işlemlerle çalışır (counter_race.go); davranış aynıdır.
 //
 // GPU: cihaz işleri eşzamansız olduğundan konakta ölçülen süre GPU işlemlerinde yalnızca
 // başlatma süresidir (eşzamanlamada, ör. konağa okumada bekleme görünür). Çekirdeklerin
@@ -152,23 +145,12 @@ func (i OpKind) Code() string {
 // görünen ad değildir.
 func (i OpKind) String() string { return i.Code() }
 
-// longOpTicks, son ölçümü bundan uzun süren işlemin her çağrısının ölçüldüğü sınırdır (saat
-// tıkı; 3 GHz'lik sayaçta ~10 µs, monoton saatte 30 µs). Bu uzunluktaki bir işlemde iki saat
-// okuması (~15 ns) önemsizdir. Sınır yalnızca verimi etkiler, tahmin her durumda yansızdır.
-const longOpTicks = 30000
-
-// sampleRange kısa işlemlerde ortalama kaç çağrıda bir sürenin ölçüldüğüdür (1/p).
-const sampleRange = 32
-
 // counterRecord bir (cihaz, yön, işlem) üçlüsünün sayaçlarıdır.
 type counterRecord struct {
 	call        int64 // çağrı sayısı (kesin)
-	dur         int64 // ağırlıklandırılmış saat tıkı (tahmini toplam süre)
+	dur         int64 // saat tıkı (toplam süre)
 	measurement int64 // süresi ölçülen çağrı sayısı
 	byteN       int64 // ayrılan bayt (çıktılar ve gradyanlar)
-	back        int32 // sonraki ölçüme kalan çağrı (≤ 0: bu çağrı ölçülür)
-	wt          int32 // geçerli ağırlık 1/p (0: henüz ölçülmedi, p = 1)
-	rnd         int32 // aralık seçen sözde rastgele durum
 	no          int32 // kaydın kimliği (kayitNo: cihaz, yön, işlem); init'te yazılır, değişmez
 }
 
@@ -194,6 +176,11 @@ func init() {
 // çok iş parçacıklı, çok ayırmalı küçük işlemlerde bu, sayaçların yükünü üçe katlıyordu.
 var activeNo int32
 
+// preparedNo son counterStart'ın kaydının numarasıdır; newKernel onu çekirdeğe alıp sıfırlar
+// (Kernel.Abandon). activeNo'dan ayrıdır: onu kilitsiz çalışan başka çekirdeğin finish'i
+// sıfırlayabilir; bunu yalnız kilit altında çağrılan counterStart yazar.
+var preparedNo int32
+
 // recordNo (cihaz, yön, işlem) kaydının numarasıdır (0 "yok" anlamına gelir: +1).
 func recordNo(c, direction int, is OpKind) int32 { return int32(c<<9|direction<<8|int(is)) + 1 }
 
@@ -207,106 +194,54 @@ func deviceNo(be Backend) int {
 
 // counterMeasure bir işlemin başladığı anın bilgisidir; işlem bitince bitir ile kapatılır:
 //
-//	sy := sayacBasla(be, IslemMatrisCarpimi).baslat()
+//	sy := counterStart(be, OpKindMatMul).start()
 //	... hesap ...
 //	r := track(out, ...) // düğüm etkin işlemin türüyle etiketlenir
-//	sy.bitir()
+//	sy.finish()
 //	return r
 //
 // Ertelemeli kapatma (defer) kullanılmaz: küçük işlemlerde payı ölçülür büyüklükteydi.
 // İşlem panikle biterse (ör. şekil hatası) etkin işlem bir sonraki işleme kadar kalır;
-// yalnızca örnekleyicinin o arayı tensör işlemi sayması demektir. İç içe işlemde (bir
-// sayaçlı işlemin içinden çağrılan başka biri) içteki bitince etkin işlem sıfırlanır;
-// tensör paketinde işlemler birbirini çağırmaz (iç kopyalar arka uca doğrudan gider).
+// yalnızca örnekleyicinin o arayı tensör işlemi sayması demektir; çağrı sayılmış, süresi
+// eklenmemiş olur. İç içe işlemde (bir sayaçlı işlemin içinden çağrılan başka biri) içteki
+// bitince etkin işlem sıfırlanır; tensör paketinde işlemler birbirini çağırmaz (iç kopyalar
+// arka uca doğrudan gider).
 type counterMeasure struct {
-	k      *counterRecord // nil: bu çağrının süresi ölçülmüyor
-	begin  int64          // başlangıç tıkı
-	weight int64          // ölçülen sürenin ağırlığı (temsil ettiği çağrı sayısı)
+	k     *counterRecord // nil: sayaç başlamadı (sıfır değer; finish yalnız etkin işlemi sıfırlar)
+	begin int64          // başlangıç tıkı
 }
 
-// counterStart be cihazında is işleminin (ileri yön) bir çağrısını sayar ve etkin işlem yapar.
-// Çağrının süresi ölçülecekse dönen değerin kaydı doludur; saati baslat başlatır. İkisi
-// ayrıdır ve ikisi de satır içine alınır: ölçülmeyen çağrıda işlev çağrısı yoktur (çağrı,
-// çağıranın yazmaçlarını yığına yazdırdığı için küçük işlemde ölçülür bir paydı; satır içine
-// alma sınırı çağrı içeren tek bir işlevde bu kadar işe yetmiyor). Kullanım:
+// counterStart be cihazında is işleminin (ileri yön) bir çağrısını sayar ve etkin işlem yapar;
+// saati start başlatır. Kullanım:
 //
-//	sy := sayacBasla(be, IslemMatrisCarpimi).baslat()
+//	sy := counterStart(be, OpKindMatMul).start()
 func counterStart(be Backend, is OpKind) (s counterMeasure) {
 	k := &counters[deviceNo(be)&1][0][is]
 	add64(&k.call, 1)
 	write32i(&activeNo, k.no)
-	if add32(&k.back, -1) <= 0 {
-		s.k = k
-	}
+	write32i(&preparedNo, k.no)
+	s.k = k
 	return s
 }
 
-// start ölçülecek çağrının saatini başlatır (bkz. sayacBasla).
+// start çağrının saatini başlatır (bkz. counterStart).
 func (s counterMeasure) start() counterMeasure {
-	if s.k != nil {
-		s.startMeasure()
-	}
+	s.begin = clock()
 	return s
 }
 
-// startMeasure saati başlatır (soğuk yol); ağırlık, çağrı seçilirken geçerli olan 1/p'dir.
-//
-//go:noinline
-func (s *counterMeasure) startMeasure() {
-	s.weight = int64(max(read32i(&s.k.wt), 1))
-	s.begin = clock()
-}
-
-// nextMeasure ölçülen sürenin d (tık) uzunluğuna göre p'yi seçer ve sonraki ölçülecek
-// çağrıya kadarki aralığı geometrik dağılımdan çeker (her çağrı bağımsız olarak p olasılıkla
-// seçilmiş olur; dönemli döngülerde örtüşme olmaz).
-func nextMeasure(k *counterRecord, d int64) {
-	if d >= longOpTicks {
-		write32i(&k.wt, 1)
-		write32i(&k.back, 1)
-		return
-	}
-	r := uint32(read32i(&k.rnd))
-	if r == 0 {
-		r = 0x9e3779b9 ^ uint32(clock())
-	}
-	r ^= r << 13
-	r ^= r >> 17
-	r ^= r << 5
-	write32i(&k.rnd, int32(r))
-	// U ∈ (0, 1]; aralık = 1 + ⌊ln U / ln(1-p)⌋ (geometrik, ortalaması 1/p).
-	u := (float64(r>>8) + 1) / (1 << 24)
-	span := 1 + int32(math.Log(u)/math.Log1p(-1.0/sampleRange))
-	write32i(&k.wt, sampleRange)
-	write32i(&k.back, span)
-}
-
-// finish etkin işlemi sıfırlar ve süreyi (ölçülüyorsa) ekler.
+// finish etkin işlemi sıfırlar ve süreyi ekler.
 func (s counterMeasure) finish() {
 	write32i(&activeNo, 0)
-	if s.k != nil {
-		s.endMeasure()
+	if s.k == nil {
+		return
 	}
-}
-
-// endMeasure ölçülen süreyi ağırlığıyla ekler (soğuk yol).
-//
-//go:noinline
-func (s counterMeasure) endMeasure() {
 	d := clock() - s.begin
 	if d < 0 {
 		d = 0 // çekirdekler arası saat farkı
 	}
-	add64(&s.k.dur, d*s.weight)
+	add64(&s.k.dur, d)
 	add64(&s.k.measurement, 1)
-	if (s.k.no-1)>>9 != 0 { // cihaz GPU
-		// GPU işlemleri hep ölçülür (ağırlık 1): bir başlatma mikrosaniyeler sürer, iki saat
-		// okuması önemsizdir; eşzamanlama (konağa okuma) ise az sayıda ve uzun olabilir,
-		// örneklenirse tahmini çok oynak olurdu.
-		write32i(&s.k.back, 1)
-		return
-	}
-	nextMeasure(s.k, d)
 }
 
 // counterBytes be cihazında etkin işlemin ayırdığı baytı ekler; işlem çalışmıyorsa cihazın
@@ -342,11 +277,7 @@ func (n *node) backwardCounted(ctx any) {
 	add64(&k.call, 1)
 	write32i(&activeNo, k.no)
 	store64u(&backwardPos, n.pos)
-	var s counterMeasure
-	if add32(&k.back, -1) <= 0 {
-		s.k = k
-		s.startMeasure()
-	}
+	s := counterMeasure{k: k}.start()
 	// Ertelemesiz (ileri işlemlerdeki gibi): geri hesap panikle biterse etkin işlem bir
 	// sonraki işleme kadar kalır.
 	n.backward(n)
@@ -359,9 +290,10 @@ type CounterRecord struct {
 	Device   DeviceKind
 	Backward bool // geri yayılım (gradyan hesabı)
 	OpKind   OpKind
-	// Calls çağrı sayısıdır (kesin); Olcum süresi ölçülen çağrı sayısıdır.
+	// Calls çağrı sayısıdır (kesin); Measured süresi ölçülen çağrı sayısıdır (gövdesi panikle
+	// biten çağrı ve dış işlemin geri hesabı dışında Calls'a eşit).
 	Calls, Measured int64
-	// Duration konakta geçen tahmini toplam süredir (bkz. dosya başı).
+	// Duration konakta geçen toplam süredir (bkz. dosya başı).
 	Duration time.Duration
 	// Bytes işlemin çıktıları ve gradyanları için ayrılan bayttır.
 	Bytes int64

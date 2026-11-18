@@ -2176,6 +2176,8 @@
 "H8291": { "param": [] },
 "H8292": { "param": [] },
 "H8293": { "param": ["n"] },
+"H8294": { "param": ["share", "duration", "calls", "bytes"] },
+"H8295": { "param": ["share", "window"] },
 "H8300": { "param": ["name"] },
 "H8301": { "param": ["command", "option", "file"] },
 "H8400": { "param": ["detail"] },

@@ -2181,6 +2181,8 @@ const (
 	H8291 Code = 8291 // GPU süresi işleme göre (çekirdeklerin cihaz süresi, onları başlatan tensör işlemine göre):
 	H8292 Code = 8292 // GPU süresi satıra göre (geri yöndeki çekirdekler düğümü üreten ileri satırda):
 	H8293 Code = 8293 // %{n|decimal}
+	H8294 Code = 8294 // Zaman: tensör işlemleri {share} ({duration}, {calls} çağrı, {bytes} ayrıldı): eşzamanlı işlemler üst üste sayıldığı için duvar süresini aşar; duvar süresine göre pay Örnekleme satırında
+	H8295 Code = 8295 // Zaman      tensör işlemleri {share}: eşzamanlı işlemler üst üste sayılır   (son {window})
 	H8300 Code = 8300 // {name|q} ilk burada yazılmış
 	H8301 Code = 8301 // {option} dosya adından önce yazılır: dosya adından sonrası programın argümanıdır. Örn: trlang {command} {option} {file}
 	H8400 Code = 8400 // biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})
