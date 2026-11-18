@@ -8,7 +8,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 - Sorular cevaptan sonra aynı oturumda sorulur, baştan yazılmaz: ajan onlara göre davranmasın.
 - Her bulgunun denemesi, başlığı ve durumu yazılır. Başlıklar: belge, dil, dil tasarımı, fikir, yöntem, olumlu.
 - Dil ve dil tasarımı bulgularının sınıfı [`status.md`](status.md)'dekilerdir; belge bulgusu sınıf almaz, hemen düzelir.
-- Ajanın ortamı sonucu değiştirir, üçe ayrılır: kod koşamayan sohbet (1, 2), sohbetin kendi kısıtlı makinesi (3, 4, 5, 9, 10), kullanıcının bilgisayarı (7, 8). Aynı ajan her işte koşmayabilir: Grok 4'te koştu, 6'da koşmadı. Kullanıcının bilgisayarındaki deneme Go'suz kurulumu ölçmez.
+- Ajanın ortamı sonucu değiştirir, üçe ayrılır: kod koşamayan sohbet (1, 2), sohbetin kendi kısıtlı makinesi (3, 4, 5, 9, 10), kullanıcının bilgisayarı (7, 8, 11). Aynı ajan her işte koşmayabilir: Grok 4'te koştu, 6'da koşmadı. Kullanıcının bilgisayarındaki deneme Go'suz kurulumu ölçmez.
 
 ## Denemeler
 
@@ -26,6 +26,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; ekrana göre 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
 | 9 | 2026-11-06 | Arena AI, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; TCB koştu: 18 testin 18'i geçti; bilmediği kökte sözcüğü olduğu gibi veriyor |
 | 10 | 2026-11-06 | GLM, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; 610 köklük sözlük; TCB koştu: 18 testin 18'i geçti |
+| 11 | 2026-11-18 | Gemini 4 Carbon, Antigravity | Piper sesini TR'de onnxruntime hızına çıkarmak; motora dokunmadan, ses bozulmadan | ajan kullanıcının bilgisayarında kendi kopyasında çalıştı, yalnız `lib/vits.tr`'yi değiştirdi, var olan testler geçti; hız: S1'in ölçüsü bekleniyor; ses kulakla aynı (Ahmet dinledi), dalga yuvarlama mertebesinde farklı (DENETİM 920); kod S1'in tasarımıyla depoya giriyor. İstem depo adresiydi, `AGENTS.md` değil |
 
 ## Yarış
 
@@ -115,3 +116,13 @@ Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci 
 | 8 | dil tasarımı | ajanın sözü: deneme hızı için Python'u seçti, her denemede tip yazmak yavaşlatacaktı; taşırken üç hata çıktı. Ölçülmedi: dilin deneme hızı bir soru olarak açık | yok | açık |
 | 8 | belge | ajan Windows'ta hazır ikiliyi indiremedi, kaynaktan derledi; ajanın ortamından olabilir | yok | ölçülmedi |
 | 8 | olumlu | çok dosyalı kitaplık, `TR_import`, yapı, durum makinesi, ikili arama: 30 bin satırlık veri dosyasıyla kendi testleri yaklaşık 1 saniye [ölçüldü] | yok | |
+| 11 | olumlu | ajan dili depodaki belgelerden öğrendi; hız için motorun kaynağını da okudu, motora dokunmadı; hızlı yolu TR'de yazdı: ağırlıkları bir kez katlamak ve kaynaşmış adımlar | yok | |
+| 11 | dil | `TR_fuse` içinde `TR_where`, `TR_maximum` ve `TR_minimum` yok; ajan leaky_relu'yu dalsız bir formülle yazdı, tanımdan farkı yuvarlamayla büyüyor | E, Ö3 | status'ta |
+| 11 | dil | `TR_fuse`'un gövdesindeki desteklenmeyen işlem denetimde yakalanmıyor, H3107 işlemin adını söylemiyor | D, Ö3 | status'ta |
+| 11 | dil | dil tanımında olup motorda olmayan kimliğe (`.TR_unsqueeze`) ileti "bilinen bir kimlik değil" diyor | F1, Ö3 | status'ta |
+| 11 | dil | liste üretecinde `TR_for i, x` sözdizimi hatası; dil tanımı izin veriyor | E, Ö2 | status'ta |
+| 11 | belge | [`agent_reference.md`](agent_reference.md)'de çalışan tensör işlemlerinin ve `TR_fuse` kurallarının özeti yok; ajan motorun kaynağını okudu | yok | açık: TCB yazar, Ahmet'le konuşulduktan sonra |
+| 11 | yöntem | raporun dört iddiası kaynakta tutmadı; ajan sorulunca ikisini geri çekti, ikisi raporda duruyor: ajan cevabı ölçülmeden yazılmaz | yok | |
+| 11 | dil tasarımı | modülün özel tipi dışarıda adlandırılamıyor; ajan `TR_Any`'e uzandı, ileti tutmayan tipler önerdi | yok | pending'de |
+| 11 | dil | `TR_fuse` aynı alt ifadeyi her kullanımda yeniden hesaplıyor; ajanın yazımını yavaşlattı | sınıfsız: hız, Ö3 | status'ta |
+| 11 | dil | `TR_conv1d` sabit ağırlığı her çağrıda yeniden paketliyor | sınıfsız: hız, Ö2 | status'ta |
