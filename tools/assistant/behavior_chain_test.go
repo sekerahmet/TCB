@@ -16,6 +16,8 @@ const (
 	chainProgram = "tools/assistant/asistan.tr"
 	chainModule  = "tools/assistant/zincir.tr"
 	chainTest    = "tools/assistant/zincir_test.tr"
+	familyModule = "tools/assistant/aile.tr"
+	familyTest   = "tools/assistant/aile_test.tr"
 	quantModule  = "tools/assistant/nicemli.tr"
 	chainGoTest  = "behavior_chain_test.go"
 	screenModule = "tools/assistant/ekran.tr"
@@ -41,10 +43,15 @@ func TestChainHasNoDefaultModelOrDevice(t *testing.T) {
 // Zincirin, ekranın ve deneme kaydının TR dosyaları README'de anılır; test dosyaları modüllerini aktarır.
 func TestChainFilesAreListed(t *testing.T) {
 	readme := readFile(t, readmePath)
-	for _, f := range []string{chainProgram, chainModule, chainTest, quantModule, screenModule, screenTest, fakeChain, recordModule, recordTest} {
+	for _, f := range []string{chainProgram, chainModule, chainTest, familyModule, familyTest, quantModule, screenModule, screenTest, fakeChain, recordModule, recordTest} {
 		name := f[strings.LastIndex(f, "/")+1:]
 		if !strings.Contains(readme, "`"+name+"`") {
 			t.Errorf("%s does not name %s", readmePath, name)
+		}
+	}
+	for _, f := range []string{chainModule, chainProgram, familyTest} {
+		if !strings.Contains(readFile(t, f), `TR_import "aile"`) {
+			t.Errorf("%s does not import the family module", f)
 		}
 	}
 	if !strings.Contains(readme, "- `"+chainGoTest+"`: ") {
@@ -161,6 +168,38 @@ func TestChainQuantChecksOrder(t *testing.T) {
 	before(t, chainModule+" ısıt'ın TR_catch'i", catch, "nicemli_hatasını_at(", "ISITMA HATASI")
 	if !strings.Contains(body(t, chainModule, chain, "TR_func üret("), "istem_oku(") {
 		t.Errorf("%s üret: istem istem_oku ile okunmalı", chainModule)
+	}
+}
+
+// Sohbet biçimi modelin ailesinindir (dost-katalog tasarımı K-4, K-5, K-8): aileyi ve durma kimliklerini kitaplık seçer
+// (15.55; ailesiz modelde TR_eos_tokens() H7170'tir), aile adımı dil modelinden hemen sonra, parçalayıcıdan ve
+// zincirden önce gelir. Biçime bağlı adlar (biçim, cevap, etiket, başlık) yalnız aile.tr'dedir: programda ve zincirde
+// kalan bir ad Gemma 3'te sessizce yanlış biçim olurdu. Davranışı aile_test.tr ve cmd/trlang/e2e'nin
+// behavior_assistant_family_test.go'su sınar.
+func TestChainFamilyComesFromTheLibrary(t *testing.T) {
+	setup := body(t, chainProgram, readFile(t, chainProgram), "TR_func asistan_kur(")
+	before(t, chainProgram+" asistan_kur", setup, "TR_pretrained_gguf(", "gguf_ailesi(")
+	before(t, chainProgram+" asistan_kur", setup, "gguf_ailesi(", "TR_load_tokenizer(")
+	before(t, chainProgram+" asistan_kur", setup, "gguf_ailesi(", "Zincir(")
+	if !strings.Contains(setup, "aile: aile, durma: durma") {
+		t.Errorf("%s asistan_kur: Zincir'e aile: aile, durma: durma verilmeli", chainProgram)
+	}
+	// Dost katalog K-9: önbellek yüklenen modelin sınırını aşmaz (aile.tr, önbellek_bağlamı; aile_test.tr sınar).
+	if !strings.Contains(setup, "bağlam: önbellek_bağlamı(bağlam, model)") {
+		t.Errorf("%s asistan_kur: Zincir'in bağlamı önbellek_bağlamı(bağlam, model) olmalı", chainProgram)
+	}
+	family := body(t, familyModule, readFile(t, familyModule), "TR_func gguf_ailesi(")
+	before(t, familyModule+" gguf_ailesi", family, "model.TR_eos_tokens()", "TR_load_metadata(")
+	if !strings.Contains(family, "aile_denetle(") {
+		t.Errorf("%s gguf_ailesi: mimari aile_denetle'den geçmeli (H8170)", familyModule)
+	}
+	for _, f := range []string{chainProgram, chainModule} {
+		text := readFile(t, f)
+		for _, name := range []string{"TR_qwen3_", "TR_gemma3_", "<|im_end|>", "<|endoftext|>", "<end_of_turn>", "<start_of_turn>", "<think>", "<tool_call>", `"assistant\n"`, `"model\n"`} {
+			if strings.Contains(text, name) {
+				t.Errorf("%s: %q aile.tr'de olmalı", f, name)
+			}
+		}
 	}
 }
 

@@ -437,3 +437,10 @@ TR_func yükle(y: Yuva, klasör: TR_String, t: Takım, boşalt: () -> TR_NoneTyp
     işaret_sil(klasör)
     TR_return TR_none
 }
+
+# bağlam_olayı: önbellek istenen bağlamdan küçük kurulduysa (aile.tr, `önbellek_bağlamı`) `context_limited`
+# olayının verisi (`context`: istenen, `limit`: kurulan; `compute_device_unavailable` gibi ölümcül değil); değilse yok.
+TR_func bağlam_olayı(istenen: TR_Int, kurulan: TR_Int) -> TR_JSON? {
+    TR_if kurulan >= istenen { TR_return TR_none }
+    TR_return TR_JSON({"code": "context_limited", "values": {"context": istenen, "limit": kurulan}, "fatal": TR_false})
+}

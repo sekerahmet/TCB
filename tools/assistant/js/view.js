@@ -112,8 +112,11 @@ function renderTeam() {
   else bind(line, state === "error" || state === "offline" ? `state_${state}` : "team_ready");
 }
 
-// Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla).
+// Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla);
+// "bitince kendiliğinden belleğe alınır" yalnız inen girdi ayarın takımındaysa (`partOfTeam`, katalog dilimi K-11).
 // Yükleme düştüyse "<ad> belleğe alınamadı", Yeniden dene (`model_load`) ve Başka model seç (ayarlar). Yükle yok.
+// Ayarın dil modeli inmemiş ama başka bir sohbet modeli kuruluysa (`setupChoice`) kart bunu söyler; Modelleri aç ve
+// Başka model seç ikisi de görünür (katalog dilimi K-10).
 function renderSetup() {
   const box = byId("setupBox");
   box.hidden = ui.state !== "setup";
@@ -121,14 +124,18 @@ function renderSetup() {
   box.dataset.failed = String(failed);
   const note = byId("setupNote");
   const job = failed ? null : runningJob();
+  const chosen = str(ui.settings.language_model);
+  const choose = !failed && setupChoice(chosen, ui.catalog);
   if (failed) bind(byId("setupHeading"), "setup_load_failed", { model: nameOf(ui.loadFailed) });
+  else if (choose) bind(byId("setupHeading"), "setup_chosen_missing", { model: nameOf(chosen) });
   else bind(byId("setupHeading"), "setup_start");
   if (failed) bind(note, "setup_load_failed_note");
-  else if (job) bind(note, "setup_downloading", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
-  note.hidden = !failed && !job;
+  else if (job) bind(note, partOfTeam(str(job.entry_id), ui.catalog, ui.settings) ? "setup_downloading" : "setup_downloading_other", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
+  else if (choose) bind(note, "setup_chosen_missing_note");
+  note.hidden = !failed && !job && !choose;
   byId("setupModels").hidden = failed;
   byId("setupRetry").hidden = !failed;
-  byId("setupOther").hidden = !failed;
+  byId("setupOther").hidden = !failed && !choose;
   for (const id of ["setupModels", "setupRetry", "setupOther"]) byId(id).disabled = !connected();
   const speech = /** @type {HTMLSelectElement} */ (byId("speechLanguage"));
   const current = str(ui.settings.speech_language);
@@ -136,22 +143,25 @@ function renderSetup() {
   speech.disabled = !connected();
 }
 
-/** @param {HTMLSelectElement} select @param {{value: string, text: string}[]} items @param {string} chosen */
+/** @param {HTMLSelectElement} select @param {{value: string, text: string, disabled?: boolean}[]} items @param {string} chosen */
 function fillSelect(select, items, chosen) {
   select.replaceChildren(...items.map((item) => {
     const option = /** @type {HTMLOptionElement} */ (el("option", "", item.text));
     option.value = item.value;
+    option.disabled = item.disabled === true;
     return option;
   }));
   if (items.some((item) => item.value === chosen)) select.value = chosen;
 }
 
-// Ayarlar: ayar dosyası varken (`settings` geldi), kurulum dışında; yükleme düştüyse kurulumda da (kartın "Başka model
-// seç"i). Değerler sunucudan gelir; her değişiklik bir `settings_set`'tir, sunucu reddederse değer sunucununkine döner.
+// Ayarlar: ayar dosyası varken (`settings` geldi), kurulum dışında; yükleme düştüyse ya da ayarın dil modeli inmemişken
+// başka bir sohbet modeli kuruluysa kurulumda da (kartın "Başka model seç"i). Değerler sunucudan gelir; her değişiklik
+// bir `settings_set`'tir, sunucu reddederse değer sunucununkine döner.
 // "Kullanılan modeller": yalnız sohbet seçilir, takımı kurulu girdilerden; seçim hemen geçerlidir (takım yeniden
 // hazırlanır), Yükle yok. Yazıcı, ses ve VAD bu dil için tek seçenekli sönük seçicidir.
 function renderSettings() {
-  const shown = Object.keys(ui.settings).length > 0 && (ui.state !== "setup" || ui.loadFailed !== "");
+  const chosen = str(ui.settings.language_model);
+  const shown = Object.keys(ui.settings).length > 0 && (ui.state !== "setup" || ui.loadFailed !== "" || setupChoice(chosen, ui.catalog));
   byId("settingsOpen").hidden = !shown;
   if (!shown && settingsDialog.open) {
     closeSettings();
@@ -164,7 +174,8 @@ function renderSettings() {
   speech.disabled = !usable;
   const installed = loadableModels(ui.catalog);
   const modelSelect = /** @type {HTMLSelectElement} */ (byId("settingsModel"));
-  fillSelect(modelSelect, installed.map((entry) => ({ value: entry.id, text: entry.name })), str(ui.settings.language_model));
+  const options = modelOptions(ui.catalog, chosen).map((o) => ({ value: o.value, text: o.missing ? t("settings_model_missing", { model: o.name }) : o.name, disabled: o.missing }));
+  fillSelect(modelSelect, options, chosen);
   modelSelect.disabled = !usable || installed.length === 0;
   byId("settingsModelNote").hidden = installed.length === 0;
   byId("settingsModelNone").hidden = installed.length > 0;

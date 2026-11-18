@@ -184,7 +184,7 @@ TR_test "H8164'ün spelling'i kopyalanınca o alanın hatası kalkar" {
 }
 
 TR_test "aile H8170; öbür türde kv H8163" {
-    TR_assert_equal("Message(\"H8170\", \"qwen3-4b-q4km\", \"llama3\", \"`qwen3`\")", _katalog_hatası("\"family\":\"qwen3\"", "\"family\":\"llama3\""))
+    TR_assert_equal("Message(\"H8170\", \"qwen3-4b-q4km\", \"llama3\", \"`gemma3`, `qwen3`\")", _katalog_hatası("\"family\":\"qwen3\"", "\"family\":\"llama3\""))
     TR_assert(_katalog_hatası("\"weights_bytes\":1000,", "\"weights_bytes\":1000,\"kv\":{},").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].memory.kv\""))
     TR_assert(_katalog_hatası("\"id\":\"whisper-small\",\"kind\":\"transcriber\",", "\"id\":\"whisper-small\",\"kind\":\"transcriber\",\"family\":\"qwen3\",").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].family\""))
 }
@@ -335,10 +335,23 @@ TR_test "ayar_yaz isteğe bağlı alanları korur: microphone, recording ve quan
     TR_assert(js.TR_get("microphone") == TR_none TR_and js.TR_get("recording") == TR_none TR_and js.TR_get("quantized_activations") == TR_none)
 }
 
+# Dost katalog K-1 (TCB 22:49): öneri değişince ayarlı kullanıcının dil modeli kur.tr'nin yeniden koşusuyla değişmez.
+TR_test "kur --ayarı_yaz, depodaki katalogla 32 GiB: ayar yoksa öneri yazılır; ayar varsa dil modeli kalır, ONERILEN yine öneri" {
+    TR_var kat = "tools/assistant/katalog.json"
+    TR_var yeni = TR_String(TR_Path(TR_temp_dir(), "K1", "ayar.json"))
+    TR_assert_equal("ONERILEN qwen3-8b-q4km", kur(kat, yeni, TR_none, 34359738368, TR_none, TR_true)[6])
+    TR_assert_equal("qwen3-8b-q4km", TR_String(TR_json_parse(TR_read_file(yeni))["language_model"]))
+    TR_var var_olan = _dosya("ayar.json", _örnek_ayar())
+    TR_var satırlar = kur(kat, var_olan, TR_none, 34359738368, TR_none, TR_true)
+    TR_assert_equal(["ONERILEN qwen3-8b-q4km", "AYAR_YAZILDI \(var_olan)"], [satırlar[6], satırlar[7]])
+    TR_assert_equal("qwen3-4b-q4km", TR_String(TR_json_parse(TR_read_file(var_olan))["language_model"]))
+}
+
 TR_test "depodaki katalog.json okunur ve tutarlıdır" {
     TR_var yol = "tools/assistant/katalog.json"
     TR_var k = katalog_oku(yol)
-    TR_assert_equal(5, k.girdiler.TR_length)
+    TR_assert_equal(["qwen3-4b-q4km", "gemma3-4b-q4km", "gemma3-4b-qat-q40", "qwen3-8b-q4km", "gemma3-12b-q4km", "whisper-small",
+        "silero-vad-16k", "mms-tts-tur", "mms-tts-eng"], [g.kimlik TR_for g TR_in k.girdiler])
     TR_assert_equal(["tr", "en"], [k.diller[0].kod, k.diller[1].kod])
     TR_var j = TR_json_parse(TR_read_file(yol))
     TR_for g TR_in j["entries"] {
@@ -348,12 +361,16 @@ TR_test "depodaki katalog.json okunur ve tutarlıdır" {
     }
 }
 
-TR_test "depodaki katalogla Qwen3-4B 8192 bağlamda: 16 GiB tight, 24 ve 32 GiB fits (geçici kv × bağlam)" {
+TR_test "depodaki katalogla 8192 bağlamda: Qwen3-4B 16, 24 ve 32 GiB fits; 33,85 GB'ta öneri Qwen3 8B, 16 GiB'de Qwen3 4B" {
     TR_var k = katalog_oku("tools/assistant/katalog.json")
     TR_var g = 1073741824
-    TR_assert_equal(["tight", "fits", "fits"], [uygunluk(k, TR_none, 16 * g, 8192)[0].uyum,
+    TR_assert_equal(["fits", "fits", "fits"], [uygunluk(k, TR_none, 16 * g, 8192)[0].uyum,
         uygunluk(k, TR_none, 24 * g, 8192)[0].uyum, uygunluk(k, TR_none, 32 * g, 8192)[0].uyum])
-    TR_assert_equal(13632032768, uygunluk(k, TR_none, 16 * g, 8192)[0].gereken)
+    TR_assert_equal(10067959808, uygunluk(k, TR_none, 16 * g, 8192)[0].gereken)
+    TR_var büyük = uygunluk(k, TR_none, 33854128128, 8192)
+    TR_assert_equal(["fits", "fits", "fits", "fits", "tight", "qwen3-8b-q4km"], [u.uyum TR_for u TR_in büyük] + [öneri(büyük)])
+    TR_var küçük = uygunluk(k, TR_none, 16 * g, 8192)
+    TR_assert_equal(["fits", "tight", "tight", "tight", "too_large", "qwen3-4b-q4km"], [u.uyum TR_for u TR_in küçük] + [öneri(küçük)])
 }
 
 # _dil_modeli: örnek katalogun dil modeli girdisinin metni.
@@ -405,7 +422,7 @@ TR_test "katalogun sayıları: 0 ve eksi H8167 (measured[].context yalnız eksi;
         _katalog_hatası("\"context\":8192", "\"context\":-5"))
     TR_assert_equal("hata yok", _katalog_hatası("\"context\":8192", "\"context\":0"))
     # Depodaki katalogun küçük modelleri 0 taşır (tasarımın defteri 58).
-    TR_assert_equal(5, katalog_oku("tools/assistant/katalog.json").girdiler.TR_length)
+    TR_assert_equal(9, katalog_oku("tools/assistant/katalog.json").girdiler.TR_length)
 }
 
 TR_test "dil modelsiz katalog H8169 (no_language_model); dalın metni öbürlerinden ve other'dan ayrı" {

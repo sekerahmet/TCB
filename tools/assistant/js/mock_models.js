@@ -126,6 +126,12 @@ function createMockModels(host) {
       settings.speech_language = "tr";
       this.publish();
     },
+    /** Seçili model inmemiş, öbür sohbet modeli kurulu (katalog dilimi K-10): kart seçtirir. */
+    chosenMissing() {
+      this.reset(false);
+      settings.language_model = "mock-model-large";
+      this.publish();
+    },
     /** Düşen yükleme: büyük model inmiş ama yüklenemiyor. */
     failLoad() {
       this.reset(false);

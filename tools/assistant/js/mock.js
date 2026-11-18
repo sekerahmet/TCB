@@ -260,6 +260,12 @@ function createMockTransport() {
       models.reset(true);
       await wait(100);
     },
+    async setup_chosen_missing(wait) {
+      current.mic = false;
+      setState("setup");
+      models.chosenMissing();
+      await wait(100);
+    },
     async load_failed(wait) {
       current.mic = false;
       setState("setup");
