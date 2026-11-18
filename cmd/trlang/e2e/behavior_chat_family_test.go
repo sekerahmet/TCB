@@ -94,6 +94,7 @@ var reasonText = map[string][2]string{
 	"id":        {"dosyanın bildirdiği durma kimliği ailenin listesinde yok", "a stop id the file declares is not in the family's list"},
 	"tokenizer": {"parçalayıcısı yüklenemedi", "its tokenizer did not load"},
 	"file":      {"ailenin dosyası okunamadı", "a file of the family could not be read"},
+	"template":  {"dosyanın sohbet şablonu ailenin bilinen şablonlarından değil", "the file's chat template is not one of the family's known templates"},
 	"none":      {"model hazır bir dosyadan yüklenmedi", "the model was not loaded from a published file"},
 	"other":     {"nedeni bilinmiyor", "the reason is unknown"},
 }

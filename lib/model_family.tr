@@ -9,21 +9,23 @@ TR_import "tr/layers"
 
 # Sohbet tanımı (15.55, "Sohbet tanımının seçimi"): aile kimliği, mimari, GGUF'un ön bölme etiketi,
 # klasörün işareti (tokenizer_class, Fast'sız; genel sınıfta bos_token'ın adı) ve durma parçalarının
-# adları. Adlar parçalayıcının kimliğiyle çözülür.
+# adları, bilinen sohbet şablonlarının sha256 karmaları (GGUF'ta denetlenir; liste boşsa denetim yok).
+# Adlar parçalayıcının kimliğiyle çözülür.
 TR_struct _Sohbet {
     aile: TR_String
     mimari: TR_String
     etiket: TR_String
     işaret: TR_String
     durma: TR_List[TR_String]
+    şablonlar: TR_List[TR_String]
 }
 
 TR_func _sohbet_tablosu() -> TR_List[_Sohbet] {
     TR_return [
-        _Sohbet("llama3", "llama", "llama-bpe", "<|begin_of_text|>", ["<|eot_id|>", "<|eom_id|>", "<|end_of_text|>"]),
-        _Sohbet("qwen3", "qwen3", "qwen2", "Qwen2Tokenizer", ["<|im_end|>", "<|endoftext|>"]),
-        _Sohbet("gemma3", "gemma3", "default", "GemmaTokenizer", ["<end_of_turn>", "<eos>"]),
-        _Sohbet("gemma3", "gemma3_text", "default", "GemmaTokenizer", ["<end_of_turn>", "<eos>"]),
+        _Sohbet("llama3", "llama", "llama-bpe", "<|begin_of_text|>", ["<|eot_id|>", "<|eom_id|>", "<|end_of_text|>"], []),
+        _Sohbet("qwen3", "qwen3", "qwen2", "Qwen2Tokenizer", ["<|im_end|>", "<|endoftext|>"], []),
+        _Sohbet("gemma3", "gemma3", "default", "GemmaTokenizer", ["<end_of_turn>", "<eos>"], ["7de1c58e208eda46e9c7f86397df37ec49883aeece39fb961e0a6b24088dd3c4", "6d2d8fdb903d7014b50a7c1430dff8e61b21d6a861d81e196197ccd6ac855d59"]),
+        _Sohbet("gemma3", "gemma3_text", "default", "GemmaTokenizer", ["<end_of_turn>", "<eos>"], ["7de1c58e208eda46e9c7f86397df37ec49883aeece39fb961e0a6b24088dd3c4", "6d2d8fdb903d7014b50a7c1430dff8e61b21d6a861d81e196197ccd6ac855d59"]),
     ]
 }
 
@@ -56,7 +58,8 @@ TR_func _aileyi_kur(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, bildirilen: TR
 
 # _ailesiz modelin neden ailesiz kaldığını modelin _aile'sine yazar; model.TR_eos_tokens()'un H7170'i
 # onu okur (lib/layers.tr). neden: marker (klasörde tokenizer_config.json yok), table (ikili tabloda
-# yok), name, id (dosya aileyle uyuşmuyor), tokenizer (parçalayıcı yüklenemedi), file (klasörde
+# yok), name, id (dosya aileyle uyuşmuyor), template (GGUF'un sohbet şablonunun karması ailenin listesinde yok;
+# ayrıntı karmanın ilk 12'si, şablonu okuyan yazım, ailenin durma kimlikleri ve biçim fonksiyonu), tokenizer (parçalayıcı yüklenemedi), file (klasörde
 # tokenizer_config.json, generation_config.json ya da config.json'un eos_token_id'si okunamadı, GGUF'ta
 # eot ya da eom kimlik değil; ayrıntı dosyanın adıdır). Elle kurulan GPT'de neden yoktur (none). hata
 # yakalanan hatadır: H7170 onu nedeni olarak taşır (TCB 21:51, 8.2), kullanıcı e.TR_cause ile okur.
@@ -73,7 +76,8 @@ TR_func _ailesiz(model: TR_GPT, neden: TR_String, aile: TR_String, ayrıntı: TR
 # TR_pretrained_gguf aynı dosyanın üstverisini ve tensörlerini önce okur, okunamayan dosyada o hatayla
 # durur. Kod listesine bakılmaz: tanınmayan bir sonraki biçim de modeli kapatmaz. Dosyanın
 # bildirdiği kimliklerin hatası (yanlış türde eot, H6681) da ailesiz bırakır, nedeni file'dır:
-# parçalayıcı yüklenmiştir; ayrıntı boştur, bozuk anahtarı asıl hata söyler (TCB 22:52).
+# parçalayıcı yüklenmiştir; ayrıntı boştur, bozuk anahtarı asıl hata söyler (TCB 22:52). Aile kurulduktan sonra
+# dosyanın sohbet şablonu ailenin bilinen şablonlarıyla karşılaştırılır (_şablonu_denetle).
 # tr/pretrained'in iç adımı; modeli yükleyen yol bunları kendisi çağırır.
 TR_func TR_gguf_chat_family(model: TR_GPT, yol: TR_String, mimari: TR_String) -> TR_GPT {
     TR_var p: TR_Tokenizer? = TR_none
@@ -92,7 +96,28 @@ TR_func TR_gguf_chat_family(model: TR_GPT, yol: TR_String, mimari: TR_String) ->
         }
     }
     TR_if s == TR_none { TR_return _ailesiz(model, "table", "", "") }
-    TR_return _aileyi_kur(model, s, p, bildirilen)
+    TR_return _şablonu_denetle(_aileyi_kur(model, s, p, bildirilen), s, p, yol)
+}
+
+# _şablonu_denetle GGUF'un sohbet şablonunun karmasını ailenin bilinen şablon karmalarıyla karşılaştırır (15.55, 24.7).
+# _aileyi_kur'dan sonra koşar: ad ya da kimlik uyuşmazlığı önce raporlanır (DENETİM 875 N1). Liste boşsa, şablon
+# anahtarı yoksa ya da metin değilse denetim yoktur. Şablon çalıştırılmaz, yalnız karması alınır; üstveri ikinci
+# kez okunur. Karma listede yoksa model ailesizdir (template); ayrıntı kopyalanınca çalışan yazımlardır (H7170, 24.7).
+TR_func _şablonu_denetle(model: TR_GPT, s: _Sohbet?, p: TR_Tokenizer?, yol: TR_String) -> TR_GPT {
+    TR_var a = model._aile
+    TR_if a == TR_none TR_or a.durma == TR_none TR_or s.şablonlar.TR_length == 0 { TR_return model }
+    TR_var şablon = TR_config_value(TR_load_metadata(yol), "tokenizer.chat_template", TR_none)
+    TR_if şablon == TR_none TR_or TR_Type(şablon) != TR_String { TR_return model }
+    TR_var karma = TR_sha256(TR_Bytes(TR_String(şablon)))
+    TR_if s.şablonlar.TR_contains(karma) { TR_return model }
+    TR_var kimlikler: TR_List[TR_String] = []
+    TR_for ad TR_in s.durma {
+        TR_var k = p.TR_token_id(ad)
+        TR_if k != TR_none { kimlikler.TR_append("\(k)") }
+    }
+    TR_var okuma = "`TR_load_metadata(yol)[\"tokenizer.chat_template\"]`"
+    TR_var biçim = "`TR_gemma3_format(p, iletiler, TR_add_generation_prompt: TR_true)`"
+    TR_return _ailesiz(model, "template", s.aile, "`tokenizer.chat_template` sha256 \(karma[0..12]); \(okuma); `TR_eos: [\(kimlikler.TR_join(", "))]`; \(biçim)")
 }
 
 # TR_folder_chat_family safetensors klasöründe aileyi (model_type, işaret) ile seçer; işaret
