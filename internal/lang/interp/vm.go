@@ -98,12 +98,15 @@ type vmShared struct {
 	// heldTasks are the tasks whose value was kept and that ended with an error; at the end of the
 	// program or the test the ones nobody waited for are written (10.6, reportUnwaitedTasks).
 	heldTasks []heldTaskError
-	// loaded yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
+	// loaded yüklenmekte olan modüllerdir (anahtar → yükleme, moduleIDs); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
 	// waiting is the module each task (VM view) is waiting for another task to load; with
 	// moduleLoading.owner it detects import cycles across tasks.
 	waiting map[*VM]string
+	// moduleIDs koşunun gördüğü modül dosyalarıdır (module_identity.go); Imported, loaded ve
+	// waiting'in anahtarı ondan gelir. isImported ile korunur, ilk aktarımda kurulur.
+	moduleIDs *ModuleIdentities
 	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
 	// varsayılanı standart hatadır. Düzenleyici oturumu ve trlang test kendi çıktılarına bağlar.
 	Err         io.Writer
@@ -256,7 +259,7 @@ type VM struct {
 	// kendi dosyasının bağlamında kalır. Başka dosyada tanımlı bir fonksiyon çağrılınca o
 	// fonksiyonun dosyasına geçilir (kaynaktaCagir).
 	source *Source
-	// loading bu görevin yüklemekte olduğu modüllerin (mutlak yol) zinciridir; döngüsel
+	// loading bu görevin yüklemekte olduğu modüllerin (anahtar) zinciridir; döngüsel
 	// aktarımı, başka bir görevin yüklemesini beklemekten ayırır.
 	loading []string
 	// activeBlock hata ayıklayıcıya danışılan son deyimin bloğudur (bkz. ZiplamaHedefi).

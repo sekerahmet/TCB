@@ -21,7 +21,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - *Test:* TR testi; olumsuz fikstür `tests/negative/modul_koseli_ayrac.tr` (köşeli ayraç); olmayan adın denetim hatası uygulanınca olumsuz fikstür.
 
 **11.3** Bir modül program boyunca bir kez yüklenir; sonraki aktarımlar aynı değerleri paylaşır. Döngüsel aktarım (yüklenmekte olan bir modülün kendi yükleme zincirinden yeniden aktarılması) hatadır.
-- *Test:* TR testi.
+- *Test:* TR testi; Go `TestAModuleThroughAnotherPathLoadsOnce` (bağlantı, sabit bağ, dizin kavşağı, sürücü harfi), `TestAModuleThroughItsShortNameLoadsOnce` (8.3, yalnız Windows), `TestAModuleThroughAnotherFolderIsAnError` (H2726), `TestAnImportCycleThroughALinkIsAnError`, `TestBuildEmbedsAModuleReachedTwoWaysOnce`.
 
 **11.4** Program çalışmadan önce kendisi ve aktardığı bütün modüller (aktarılanların aktardıkları da) ayrıştırılır ve denetlenir (1.3). Herhangi birinde hata varsa programın hiçbir satırı çalışmaz; hata `TR_try`/`TR_catch` ile yakalanmaz, başlığı hatanın hangi modülde olduğunu söyler.
 - Modülün en dışında `TR_return` sözdizimi hatasıdır: modül bir fonksiyon değildir.

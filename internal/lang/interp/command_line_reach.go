@@ -34,7 +34,8 @@ type reachFile struct {
 type reachScan struct {
 	vm      *VM
 	main    string
-	files   map[string]*reachFile // mutlak yol → dosya
+	files   map[string]*reachFile // modülün anahtarı (ids) → dosya
+	ids     *ModuleIdentities     // görülen modül dosyaları ve ana program (11.3)
 	funcs   map[string][]*ast.FunctionLiteral
 	structs map[string][]*ast.StructStatement
 	methods map[string][]*ast.StructStatement // üye adı → o adlı yöntemi olan yapılar
@@ -55,6 +56,7 @@ func (v *VM) ReadsCommandLine(prog *ast.Program) bool {
 	s := &reachScan{
 		vm: v, main: v.SourceFile,
 		files:    map[string]*reachFile{},
+		ids:      NewModuleIdentities(v.SourceFile),
 		funcs:    map[string][]*ast.FunctionLiteral{},
 		structs:  map[string][]*ast.StructStatement{},
 		methods:  map[string][]*ast.StructStatement{},
@@ -72,7 +74,7 @@ func (v *VM) ReadsCommandLine(prog *ast.Program) bool {
 }
 
 // addFile dosyayı ve bildirimlerini kaydeder; path dosyanın yolu (modül yollarının çözümünde
-// aktaranın klasörü), key tekrar eklenmesini önleyen mutlak yoludur.
+// aktaranın klasörü), key tekrar eklenmesini önleyen anahtarıdır (ana programda mutlak yolu).
 func (s *reachScan) addFile(key, path string, prog *ast.Program) *reachFile {
 	f := &reachFile{path: path, program: prog}
 	s.files[key] = f
@@ -179,8 +181,14 @@ func (s *reachScan) importModule(unit any, im *ast.ImportStatement) {
 		s.found = true // modül bulunamıyor: denetim ayrıca bildirir, burada çağrı var sayılır
 		return
 	}
-	abs := absPath(resolved)
-	if f, seen := s.files[abs]; seen {
+	// Aynı dosya başka bir yazımla da aynı birimdir; klasör yolu farklı yazım denetimin hatasıdır
+	// (H2726), burada çağrı var sayılır.
+	k := s.ids.Key(im.Path, resolved, importer, im.Line())
+	if k.Moved != nil {
+		s.found = true
+		return
+	}
+	if f, seen := s.files[k.Key]; seen {
 		s.reach(f)
 		return
 	}
@@ -194,7 +202,7 @@ func (s *reachScan) importModule(unit any, im *ast.ImportStatement) {
 		s.found = true
 		return
 	}
-	s.reach(s.addFile(abs, resolved, r.Program))
+	s.reach(s.addFile(k.Key, resolved, r.Program))
 }
 
 // call bir çağrının neyi çağırdığını sınıflar.

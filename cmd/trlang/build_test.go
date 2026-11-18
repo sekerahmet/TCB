@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -68,5 +72,44 @@ func TestWriteEmbeddedModulesKeepsDotNamesInsideTheModuleFolder(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// Kural (11.3, 17.3): iki yazımla (dizin bağlantısı) ulaşılan aynı modül pakete bir kez girer, iki
+// aktarım da aynı sırayı bulur; yönlendirilmiş program `trlang run` gibi durumu paylaşır ("1 2").
+// Neden: toplayıcı modülü mutlak yolla anahtarlıyordu, pakete iki kopya giriyordu.
+func TestBuildEmbedsAModuleReachedTwoWaysOnce(t *testing.T) {
+	root := t.TempDir()
+	testkit.WritePath(t, filepath.Join(root, "lib", "sayac.tr"), source.Header+"\nTR_var sayi = 0\n\nTR_func artir() -> TR_Int {\n    sayi = sayi + 1\n    TR_return sayi\n}\n")
+	if err := os.Symlink(filepath.Join(root, "lib"), filepath.Join(root, "bag")); err != nil {
+		t.Skipf("dizin bağlantısı kurulamadı: %v", err)
+	}
+	code := source.Header + "\nTR_import \"lib/sayac\" TR_as a\nTR_import \"bag/sayac\" TR_as b\nTR_print(a.artir())\nTR_print(b.artir())\n"
+	srcPath := testkit.WritePath(t, filepath.Join(root, "ana.tr"), code)
+	pk, err := preparePackage(srcPath, code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pk.Modules) != 1 || len(pk.Main.Imports) != 2 || pk.Main.Imports[0] != 0 || pk.Main.Imports[1] != 0 {
+		t.Fatalf("pakette bir modül, iki aktarım aynı sırada olmalı: %d modül, sıralar %v", len(pk.Modules), pk.Main.Imports)
+	}
+	paths, err := writeEmbeddedModules(pk, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	redirected, err := redirectImports(pk.Main, paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := source.Prepare(redirected, source.Options{TypeCheck: true})
+	if s.Stage != "" {
+		t.Fatalf("yönlendirilmiş program: %s %v", s.Stage, s.Errors)
+	}
+	var out bytes.Buffer
+	m := interp.New()
+	m.Out, m.Err = &out, &out
+	m.SourceFile, m.SourceCode = embeddedSourceName, s.Text
+	if _, err := m.Run(s.Program); err != nil || out.String() != "1\n2\n" {
+		t.Fatalf("paket aynı modülü paylaşmalı: çıktı %q, hata %v", out.String(), err)
 	}
 }

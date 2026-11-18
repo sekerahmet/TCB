@@ -187,7 +187,8 @@ const libraryImport = -1
 
 // moduleCollector derleme sırasında programın aktardığı modülleri özyinelemeli toplar.
 type moduleCollector struct {
-	index    map[string]int // mutlak yol → Moduller içindeki sıra
+	index    map[string]int // modülün anahtarı (ids) → Moduller içindeki sıra
+	ids      *interp.ModuleIdentities
 	modules  []packageFile
 	mainFile string // ana programın yolu
 }
@@ -210,11 +211,14 @@ func (t *moduleCollector) collect(file *packageFile, sourcePath string) error {
 		if !ok {
 			return messages.New(messages.H8756, sourcePath, y.ln, y.filePath, strings.Join(wanted, ", "))
 		}
-		absolute, err := filepath.Abs(resolved)
-		if err != nil {
-			absolute = resolved
+		// Anahtar yorumlayıcınınkiyle aynıdır (11.3): başka bir yazımla ulaşılan aynı dosya pakete bir
+		// kez girer, iki aktarım da aynı sırayı bulur. Klasör yolu farklı yazımı (H2726) checkProgram
+		// paketten önce bildirir.
+		k := t.ids.Key(y.filePath, resolved, sourcePath, y.ln)
+		if k.Moved != nil {
+			return k.Moved
 		}
-		if i, exists := t.index[absolute]; exists {
+		if i, exists := t.index[k.Key]; exists {
 			file.Imports = append(file.Imports, i)
 			continue
 		}
@@ -231,7 +235,7 @@ func (t *moduleCollector) collect(file *packageFile, sourcePath string) error {
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
 		// (döngünün kendisini yorumlayıcı çalışma anında bildirir).
 		i := len(t.modules)
-		t.index[absolute] = i
+		t.index[k.Key] = i
 		t.modules = append(t.modules, packageFile{})
 		if err := t.collect(&module, resolved); err != nil {
 			return err
@@ -261,7 +265,8 @@ func (e *moduleCheckError) MessageText(lang string) string {
 
 // preparePackage ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func preparePackage(srcPath, code string) (*pkg, error) {
-	t := &moduleCollector{index: map[string]int{}, mainFile: srcPath}
+	// Ana program kümeye girmez: onu aktaran modülün döngüsünü çalışma anı bildirir (H2481).
+	t := &moduleCollector{index: map[string]int{}, ids: interp.NewModuleIdentities(""), mainFile: srcPath}
 	pk := &pkg{Main: packageFile{Name: filepath.ToSlash(srcPath), Code: code}}
 	if err := t.collect(&pk.Main, srcPath); err != nil {
 		return nil, err
