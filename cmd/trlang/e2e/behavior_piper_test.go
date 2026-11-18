@@ -299,6 +299,7 @@ func piperConfig(t *testing.T, edit func(map[string]any)) []byte {
 
 // piperTests Piper sesinin TR testleridir; ses ses.onnx'tir, başvuru küçük modelinkidir.
 const piperTests = `TR_import "tr/audio"
+TR_import "tr/phonemes"
 TR_import "tr/vits"
 
 TR_const _SES = "ses.onnx"
@@ -348,8 +349,15 @@ TR_test "Piper fonem dizisi Piper'ın kimliklerini verir: ^, her fonemden sonra 
     TR_assert_equal("H7567", TR_error_code { ses._kimlikler("lç") })
 }
 
-TR_test "Piper sesinin sese_çevir'i fonem çevirici olmadan H7559 verir" {
-    TR_assert_equal("H7559", TR_error_code { TR_pretrained_vits(_SES).TR_synthesize("merhaba") })
+# Metnin fonemleri küçük sesin sözlüğündedir (s1-piper B1g).
+TR_test "Piper sese_çevir Türkçe metni konuşur: fonemlere_çevir'in kimlikleriyle aynı ses" {
+    TR_var ses = TR_pretrained_vits(_SES)
+    TR_var metin = "Kadın kaşar arar. Baba da bakar."
+    TR_var cümleler = TR_phonemize(metin, TR_language: "tr")
+    TR_assert_equal(["kadˈɯn kaʃˈar aɾˈar.", "babˈa da bakˈar."], cümleler)
+    TR_var a = ses.TR_synthesize(metin)
+    TR_assert_equal(22050, a.TR_sample_rate)
+    TR_assert_equal(a.TR_samples.TR_tolist, ses._konuş([ses._kimlikler(c) TR_for c TR_in cümleler]).TR_samples.TR_tolist)
 }
 `
 
@@ -415,6 +423,24 @@ TR_if süreler != r["duration"].TR_tolist { TR_print("süre") } TR_else {
 				t.Errorf("%s × %g: kıyas %q dedi, beklenen %s\n%s", c.name, c.scale, got, want, r.Stderr)
 			}
 		})
+	}
+}
+
+// Kural (s1-piper B1g): dili için fonem çevirici olmayan Piper sesinin sese_çevir'i H7559 verir ve ileti
+// çeviricisi olan dili (tr) söyler; ses açılır, hata konuşurken gelir.
+func TestPiperVoiceWithoutPhonemizerSaysH7559(t *testing.T) {
+	dir := t.TempDir()
+	piperVoice(t, dir, piperEdit{cfg: func(m map[string]any) {
+		m["language"] = map[string]any{"code": "en_GB", "family": "en"}
+	}})
+	writeTR(t, dir, "kod.tr", "TR_import \"tr/vits\"\nTR_var ses = TR_pretrained_vits(\"ses.onnx\")\nTR_print(ses.TR_voice_language, TR_error_code { ses.TR_synthesize(\"hello\") })\n")
+	if k := tr(t, dir, "run", "kod.tr"); strings.TrimSpace(k.Stdout) != "en H7559" {
+		t.Fatalf("çıktı %q, beklenen \"en H7559\"\n%s", k.Stdout, k.Stderr)
+	}
+	writeTR(t, dir, "ileti.tr", "TR_import \"tr/vits\"\nTR_pretrained_vits(\"ses.onnx\").TR_synthesize(\"hello\")\n")
+	s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "ileti.tr"))
+	if !strings.Contains(s.Stdout+s.Stderr, "diller: tr") {
+		t.Errorf("ileti çeviricisi olan dili söylemiyor:\n%s%s", s.Stdout, s.Stderr)
 	}
 }
 

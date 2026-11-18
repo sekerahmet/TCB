@@ -40,7 +40,6 @@ var uncoveredLibraryNames = map[string]string{
 	"vits.Vits":                        "yayımlanmış model ister, depoda yok; tests/vits_model_test.tr küçük rastgele VITS ile sınar",
 	"vits.hazır_vits":                  "yayımlanmış model ister, depoda yok; tests/vits_model_test.tr küçük rastgele VITS ile sınar",
 	"vits.sese_çevir()":                "yayımlanmış model ister, depoda yok; tests/vits_model_test.tr küçük rastgele VITS ile sınar",
-	"phonemes.fonemlere_çevir":         "bu sürümde her dilde H7559 verir (çevirici yok); lib/phonemes_test.tr sınar, örnek Türkçe çevirici gelince yazılır",
 	"pretrained.hazır_gguf":            "GGUF dosyası ister, depoda yok; TestGGUFModelMatchesSafetensors dosyasını Go ile kurar",
 	"layers.göm()":                     "iç yardımcı metot: GPT.gizli_temsil ve tek_adım ortak gövdesi",
 	"layers.blokları_işle()":           "iç yardımcı metot: GPT.gizli_temsil ve tek_adım ortak gövdesi",

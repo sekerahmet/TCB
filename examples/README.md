@@ -74,6 +74,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 57 | [`57_olay_yayini.tr`](tr/57_olay_yayini.tr) | Olay yayını: bir asistanın olaylarını ekranlara yaymak; yeni ekran önce olaylardan katlanan anlık görüntüyü, sonra yeni olayları alır, Last-Event-ID ile kaldığı yerden sürer (`TR_type_EventBroadcast`, `TR_mem_subscribe`, `TR_arg_capacity`, `TR_arg_snapshot`, `TR_arg_reduce`) |
 | 58 | [`58_llama3_sohbet.tr`](tr/58_llama3_sohbet.tr) | Llama 3 sohbet biçimi: iletileri Llama 3.1 ve 3.2'nin parça dizisine çevirmek (`TR_fn_llama3_format`, `TR_arg_date`) ve cevabı iletiye ayırmak; araç çağrısının etiketi yok (`TR_fn_llama3_reply`; `tr/chat`) |
 | 59 | [`59_gemma3_sohbet.tr`](tr/59_gemma3_sohbet.tr) | Gemma 3 sohbet biçimi: iletileri Gemma 3'ün parça dizisine çevirmek (`TR_fn_gemma3_format`) ve cevabı iletiye ayırmak (`TR_fn_gemma3_reply`); sistem iletisi ilk kullanıcı turunun başında, araç desteği yok (`tr/chat_gemma3`) |
+| 60 | [`60_fonemler.tr`](tr/60_fonemler.tr) | Fonemler: Türkçe metni bir sesin IPA fonemlerine çevirmek; cümleler, vurgu, sayılar (`TR_fn_phonemize`; `tr/phonemes`) |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

@@ -1,11 +1,533 @@
 # TR 4
-# tr/phonemes: metni bir sesin fonemlerine çevirir: Türkçe kurallarla, İngilizce espeak-ng programıyla.
+# tr/phonemes: metni bir sesin fonemlerine çevirir: Türkçeyi kurallarla (İngilizce espeak-ng yolu sonraki adımda).
 #
-# Bu sürümde hiçbir dilin çeviricisi yoktur: her dil H7559'dur ve ileti çeviricisi olan dilleri (bugün hiçbiri)
-# sayar. Türkçe kurallar ve İngilizce espeak-ng yolu sonraki adımlarda gelir; çıktı cümle başına bir IPA dizisidir,
-# Piper sesinin fonem kimliklerine çevrilir (`tr/vits`).
+# Türkçe kurallar elle yazılmıştır, espeak-ng'den alınmamıştır: Türkçe küçültme, hece, kapalı hecede ünlü değişkeleri,
+# ince ve kalın ünsüzler, ğ, son hece vurgusu ve istisnaları, sayıların okunuşu. Çıktı cümle başına bir IPA dizisidir,
+# Piper'ın espeak çıktısının biçimiyle; Piper sesi onu fonem kimliklerine çevirir (`tr/vits`). Öbür diller H7559'dur.
+#
+# Kaynak: Wikipedia'nın `Turkish phonology` maddesi (oldid 1384242891) ve andığı kaynaklar; aşağıdaki bölüm adları
+# o maddenin bölümleridir.
 
-# fonemlere_çevir metni dilin fonemlerine çevirir: cümle başına bir IPA dizisi.
+TR_const _ÜNLÜ = "aeıioöuüâîû"
+TR_const _İNCE = "eiöüâîû" # öndeki g ve l'yi inceltenler
+TR_const _İNCE_ÜNLÜ = "eiöü"
+TR_const _BİRLER = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"]
+TR_const _ONLAR = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"]
+TR_const _BÜYÜKLER = ["trilyon", "milyar", "milyon", "bin"]
+TR_const _ÇEVİRİ = {"q": "k", "w": "v", "x": "ks", "á": "a", "à": "a", "ä": "a", "ã": "a", "å": "a", "é": "e",
+    "è": "e", "ë": "e", "ê": "e", "í": "i", "ì": "i", "ï": "i", "ó": "o", "ò": "o", "õ": "o", "ô": "o", "ú": "u",
+    "ù": "u", "ñ": "n", "ß": "s", "ÿ": "y"}
+TR_const _HARF_ADI = {"b": "be", "c": "ce", "ç": "çe", "d": "de", "f": "fe", "g": "ge", "ğ": "ge", "h": "he",
+    "j": "je", "k": "ke", "l": "le", "m": "me", "n": "ne", "p": "pe", "r": "re", "s": "se", "ş": "şe", "t": "te",
+    "v": "ve", "y": "ye", "z": "ze"}
+# Noktalı kısaltmalar açılımıyla okunur, noktaları cümleyi bitirmez.
+TR_const _KISALTMA = {"dr": "doktor", "prof": "profesör", "doç": "doçent", "av": "avukat", "sn": "sayın",
+    "vb": "ve benzeri", "vs": "vesaire", "örn": "örneğin", "bkz": "bakınız", "yy": "yüzyıl", "cad": "caddesi",
+    "sok": "sokağı", "no": "numara", "tel": "telefon"}
+# Büyük harfli kısaltmalardan sözcük gibi okunanlar.
+TR_const _SÖZCÜK_GİBİ = ["nato", "nasa", "uefa", "fifa", "odtü", "toki", "botaş"]
+# Vurgusuz sözcükler: ayrı yazılan mi ve de/da (Pre-accenting suffixes) ile öbekte vurgu almayanlar (Phrase-accent).
+TR_const _VURGUSUZ = ["bir", "ve", "veya", "ile", "ya", "ama", "ki", "bu", "şu", "o", "de", "da", "mi", "mı", "mu", "mü",
+    "misin", "mısın", "musun", "müsün", "miyim", "mıyım", "muyum", "müyüm", "miyiz", "mıyız", "muyuz", "müyüz",
+    "misiniz", "mısınız", "musunuz", "müsünüz"]
+# Vurgusu sabit sözcükler, vurgulu hecenin sırası (0 ilk hece): ilk hecede vurgulu belirteçler (Dursunoğlu 2006
+# s. 272) ve akrabalık adları (Börekçi 2005 s. 191), Other words with exceptional stress; yer adları, Place names
+# (Sezer 1981; Inkelas ve Orgun 2003 s. 142–152); alıntılar, Loanwords (Özcelik 2014 s. 231): kaynakta kapalı liste
+# yok, bu liste TR'nindir. Kaynağın anmadığı Türkçe söyleyişler de TR'nindir: erken, erkenden, merhaba, değil, lale,
+# salata (ve vurgusuz veya).
+TR_const _VURGU_YERİ = {"nerede": 0, "nereye": 0, "nasıl": 0, "hangi": 0, "yarın": 0, "sonra": 0, "şimdi": 0,
+    "yine": 0, "anne": 0, "teyze": 0, "hala": 0, "dayı": 0, "amca": 0, "kardeş": 0, "kayın": 0, "ankara": 0,
+    "kayseri": 0, "marmaris": 0, "istanbul": 1, "antalya": 1, "edirne": 1, "adana": 1, "konya": 0, "sivas": 0,
+    "bodrum": 0, "izmir": 0, "avrupa": 1, "afrika": 1, "belçika": 1, "ingiltere": 2, "türkiye": 0, "lokanta": 1,
+    "masa": 0, "çanta": 0, "sinema": 1, "gazete": 1, "fabrika": 1, "pencere": 0, "manzara": 0, "erken": 0,
+    "erkenden": 0, "merhaba": 0, "değil": 0, "lale": 0, "salata": 1}
+TR_const _EK_EYLEM = ["dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür", "ken"]
+TR_const _GENİŞ_KİŞİ = ["rım", "rim", "rum", "rüm", "rız", "riz", "ruz", "rüz"]
+TR_const _GENİŞ_SONRASI = ["sın", "sin", "sun", "sün", "san", "sen", "sam", "sem", "sak", "sek", "sa", "se", "dı", "di",
+    "du", "dü", "dım", "dim", "dum", "düm", "dık", "dik", "duk", "dük", "dın", "din", "dun", "dün", "tı", "ti", "tu",
+    "tü", "mış", "miş", "muş", "müş"]
+TR_const _GENİŞ_SİNİZ = ["sınız", "siniz", "sunuz", "sünüz"]
+
+TR_struct _Jeton {
+    tür: TR_String # söz, kısaltma, sayı, sıra, son, ara, durak
+    yazı: TR_String
+    ek: TR_String = ""
+}
+
+# fonemlere_çevir metni dilin fonemlerine çevirir: cümle başına bir IPA dizisi; çeviricisi olmayan dil H7559'dur.
 TR_func TR_phonemize(metin: TR_String, TR_language: TR_String) -> TR_List[TR_String] {
-    TR_throw TR_Message("H7559", TR_language, "")
+    TR_if TR_language != "tr" { TR_throw TR_Message("H7559", TR_language, "tr") }
+    TR_var cümleler: TR_List[TR_String] = []
+    TR_var şimdi: TR_List[TR_String] = []
+    TR_for j TR_in _jetonlar(metin) {
+        TR_if j.tür == "son" TR_or j.tür == "ara" TR_or j.tür == "durak" {
+            TR_if şimdi.TR_length == 0 { TR_continue }
+            şimdi[şimdi.TR_length - 1] = şimdi[şimdi.TR_length - 1] + j.yazı
+            TR_if j.tür == "son" {
+                cümleler.TR_append(şimdi.TR_join(" "))
+                şimdi = []
+            }
+        } TR_else {
+            şimdi = şimdi + _jetonun_sesi(j)
+        }
+    }
+    TR_if şimdi.TR_length > 0 { cümleler.TR_append(şimdi.TR_join(" ")) }
+    TR_return cümleler
+}
+
+TR_func _kesme_mi(c: TR_String) -> TR_Bool { TR_return c == "'" TR_or c == "’" }
+
+TR_func _birleşen_mi(c: TR_String) -> TR_Bool { TR_return TR_ord(c) >= 0x300 TR_and TR_ord(c) <= 0x36F }
+
+# _sayı_başı_mı: rakam; ya da sayının önünde % ya da tire. Tire metnin başında ya da önünde boşluk varken eksidir.
+TR_func _sayı_başı_mı(metin: TR_String, i: TR_Int) -> TR_Bool {
+    TR_var c = metin[i]
+    TR_if c.TR_is_digit() { TR_return TR_true }
+    TR_if i + 1 >= metin.TR_length TR_or TR_not metin[i + 1].TR_is_digit() { TR_return TR_false }
+    TR_if c == "%" { TR_return TR_true }
+    TR_return c == "-" TR_and (i == 0 TR_or metin[i - 1].TR_is_space())
+}
+
+# _sıra_mı: tam sayıdan sonra nokta, boşluk ve küçük harfle başlayan sözcük gelirse sayı sıra sayısıdır.
+TR_func _sıra_mı(metin: TR_String, i: TR_Int, yazı: TR_String) -> TR_Bool {
+    TR_if i >= metin.TR_length TR_or metin[i] != "." { TR_return TR_false }
+    TR_for c TR_in yazı {
+        TR_if TR_not c.TR_is_digit() { TR_return TR_false }
+    }
+    TR_var k = i + 1
+    TR_if k >= metin.TR_length TR_or TR_not metin[k].TR_is_space() { TR_return TR_false }
+    TR_for k < metin.TR_length TR_and metin[k].TR_is_space() { k = k + 1 }
+    TR_if k >= metin.TR_length { TR_return TR_false }
+    TR_var h = metin[k]
+    TR_return h.TR_is_alpha() TR_and h.TR_lower() == h TR_and h.TR_upper() != h
+}
+
+# _sayı_jetonu i'deki sayıyı okur: rakamlar, aralarındaki . , : ve kesme işaretli ek. [jeton, sonraki yer] verir.
+TR_func _sayı_jetonu(metin: TR_String, i: TR_Int) -> (_Jeton, TR_Int) {
+    TR_var n = metin.TR_length
+    TR_var b = i
+    TR_var k = i + 1
+    TR_for k < n TR_and (metin[k].TR_is_digit() TR_or (".,:".TR_contains(metin[k]) TR_and k + 1 < n TR_and metin[k + 1].TR_is_digit())) {
+        k = k + 1
+    }
+    TR_var yazı = metin[b..k]
+    TR_var ek = ""
+    TR_if k + 1 < n TR_and _kesme_mi(metin[k]) TR_and metin[k + 1].TR_is_alpha() {
+        TR_var e = k + 1
+        TR_for e < n TR_and metin[e].TR_is_alpha() { e = e + 1 }
+        ek = metin[k + 1..e]
+        k = e
+    }
+    TR_if ek == "" TR_and _sıra_mı(metin, k, yazı) { TR_return (_Jeton(tür: "sıra", yazı: yazı), k + 1) }
+    TR_return (_Jeton(tür: "sayı", yazı: yazı, ek: ek), k)
+}
+
+# _söz_jetonu i'deki sözcüğü okur: harfler, birleşen işaretler ve içteki kesme işareti; noktalı kısaltma da.
+TR_func _söz_jetonu(metin: TR_String, i: TR_Int) -> (_Jeton, TR_Int) {
+    TR_var n = metin.TR_length
+    TR_var k = i
+    TR_for k < n TR_and (metin[k].TR_is_alpha() TR_or _birleşen_mi(metin[k]) TR_or (_kesme_mi(metin[k]) TR_and k + 1 < n TR_and metin[k + 1].TR_is_alpha())) {
+        k = k + 1
+    }
+    TR_var yazı = metin[i..k]
+    TR_var anahtar = _normal(yazı)
+    TR_if k < n TR_and metin[k] == "." TR_and _KISALTMA.TR_contains(anahtar) {
+        TR_return (_Jeton(tür: "kısaltma", yazı: _KISALTMA[anahtar]), k + 1)
+    }
+    TR_return (_Jeton(tür: "söz", yazı: yazı), k)
+}
+
+# _jetonlar metni sözcüklere, sayılara ve noktalamaya ayırır. Tırnak, emoji ve öbür işaretler atılır.
+TR_func _jetonlar(metin: TR_String) -> TR_List[_Jeton] {
+    TR_var j: TR_List[_Jeton] = []
+    TR_var n = metin.TR_length
+    TR_var i = 0
+    TR_for i < n {
+        TR_var c = metin[i]
+        TR_if _sayı_başı_mı(metin, i) {
+            TR_var t, k = _sayı_jetonu(metin, i)
+            j.TR_append(t)
+            i = k
+            # İki sayı arasındaki boşluksuz tire kısa duraktır.
+            TR_if t.tür == "sayı" TR_and t.ek == "" TR_and i + 1 < n TR_and metin[i] == "-" TR_and metin[i + 1].TR_is_digit() {
+                j.TR_append(_Jeton(tür: "durak", yazı: ","))
+                i = i + 1
+            }
+        } TR_else TR_if c.TR_is_alpha() {
+            TR_var t, k = _söz_jetonu(metin, i)
+            j.TR_append(t)
+            i = k
+        } TR_else TR_if ".!?…".TR_contains(c) {
+            TR_var son = c
+            TR_if c == "…" { son = "." }
+            j.TR_append(_Jeton(tür: "son", yazı: son))
+            i = i + 1
+            TR_for i < n TR_and metin[i] == "." { i = i + 1 }
+        } TR_else TR_if ",:;".TR_contains(c) {
+            j.TR_append(_Jeton(tür: "ara", yazı: c))
+            i = i + 1
+        } TR_else {
+            i = i + 1
+        }
+    }
+    TR_return j
+}
+
+# _jetonun_sesi bir sözcüğün, kısaltmanın ya da sayının fonemlerini verir; her öğe bir sözcüktür.
+TR_func _jetonun_sesi(j: _Jeton) -> TR_List[TR_String] {
+    TR_if j.tür == "söz" {
+        TR_var s = _yazılı_sözcük(j.yazı)
+        TR_if s == "" { TR_return [] }
+        TR_return [s]
+    }
+    TR_var sözler: TR_List[TR_String] = []
+    TR_if j.tür == "kısaltma" {
+        sözler = j.yazı.TR_split(" ")
+    } TR_else {
+        sözler = _sayı_sözleri(j)
+    }
+    TR_return [_sözcük(_normal(s), _normal(s), j.tür == "kısaltma") TR_for s TR_in sözler]
+}
+
+# _normal Türkçe küçük harfe çevirir; Türkçede olmayan Latin harfi Türkçe karşılığına iner, birleşen işaret atılır.
+TR_func _normal(yazı: TR_String) -> TR_String {
+    TR_var k = yazı.TR_replace("I", "ı").TR_replace("İ", "i").TR_lower()
+    TR_var s = ""
+    TR_for c TR_in k {
+        TR_if _birleşen_mi(c) TR_or _kesme_mi(c) { TR_continue }
+        s = s + (_ÇEVİRİ.TR_get(c) ?? c)
+    }
+    TR_return s
+}
+
+TR_func _büyük_mü(yazı: TR_String) -> TR_Bool {
+    TR_for c TR_in yazı {
+        TR_if TR_not c.TR_is_alpha() TR_or c.TR_upper() != c TR_or c.TR_lower() == c { TR_return TR_false }
+    }
+    TR_return yazı.TR_length > 0
+}
+
+TR_func _ünlülü_mü(w: TR_String) -> TR_Bool {
+    TR_for c TR_in w {
+        TR_if _ÜNLÜ.TR_contains(c) { TR_return TR_true }
+    }
+    TR_return TR_false
+}
+
+# _yazılı_sözcük metinde yazılı bir sözcüğü okur. Kesme işaretli ek kökün vurgusunu değiştirmez (Place names:
+# `Ankara'dan`); 2–5 harfli büyük harfli kısaltma ve ünlüsüz sözcük harf adlarıyla okunur. Kısaltmada noktasız I
+# i okunur: Türkçe kısaltmalar İ yazar (İTÜ), I'lısı yabancıdır (API).
+TR_func _yazılı_sözcük(yazı: TR_String) -> TR_String {
+    TR_var kök = yazı
+    TR_var ek = ""
+    TR_for i TR_in 0..yazı.TR_length {
+        TR_if _kesme_mi(yazı[i]) {
+            kök = yazı[0..i]
+            ek = yazı[i + 1..yazı.TR_length]
+            TR_break
+        }
+    }
+    TR_var k = _normal(kök)
+    TR_if kök.TR_length >= 2 TR_and kök.TR_length <= 5 TR_and _büyük_mü(kök) TR_and TR_not _SÖZCÜK_GİBİ.TR_contains(k) {
+        TR_return _harfle(_normal(kök.TR_replace("I", "i")), _normal(ek))
+    }
+    TR_var w = k + _normal(ek)
+    TR_if w == "" { TR_return "" }
+    TR_if TR_not _ünlülü_mü(w) { TR_return _harfle(w, "") }
+    TR_return _sözcük(w, k, TR_true)
+}
+
+# _harfle sözcüğü harf adlarıyla okur: son harf ˈ, öbürleri ˌ alır; ek son harf adına bitişir.
+TR_func _harfle(w: TR_String, ek: TR_String) -> TR_String {
+    TR_var s = ""
+    TR_for i TR_in 0..w.TR_length {
+        TR_var ad = _HARF_ADI.TR_get(w[i]) ?? w[i]
+        TR_if i == w.TR_length - 1 {
+            TR_var son = ad + ek
+            s = s + _sözcük(son, son, TR_false)
+        } TR_else {
+            s = s + _sözcük(ad, ad, TR_false).TR_replace("ˈ", "ˌ")
+        }
+    }
+    TR_return s
+}
+
+# _heceler: ünlüler arasındaki tek ünsüz sonraki heceye, ünsüz öbeğinin sonuncusu sonraki heceye geçer.
+TR_func _heceler(w: TR_String) -> TR_List[TR_String] {
+    TR_var yer: TR_List[TR_Int] = []
+    TR_for i TR_in 0..w.TR_length {
+        TR_if _ÜNLÜ.TR_contains(w[i]) { yer.TR_append(i) }
+    }
+    TR_if yer.TR_length == 0 { TR_return [w] }
+    TR_var sınır = [0]
+    TR_for k TR_in 1..yer.TR_length {
+        TR_if yer[k] - yer[k - 1] == 1 { sınır.TR_append(yer[k]) } TR_else { sınır.TR_append(yer[k] - 1) }
+    }
+    sınır.TR_append(w.TR_length)
+    TR_return [w[sınır[k]..sınır[k + 1]] TR_for k TR_in 0..sınır.TR_length - 1]
+}
+
+# _sözcük bir sözcüğün fonemlerini verir; `kök` vurgu listesinde aranır, `yazılı` sözcük vurgusuz olabilir.
+TR_func _sözcük(w: TR_String, kök: TR_String, yazılı: TR_Bool) -> TR_String {
+    TR_var h = _heceler(w)
+    TR_var v = h.TR_length - 1
+    TR_if yazılı TR_and _VURGUSUZ.TR_contains(w) {
+        v = -1
+    } TR_else TR_if _VURGU_YERİ.TR_contains(kök) {
+        v = TR_min(_VURGU_YERİ[kök], h.TR_length - 1)
+    } TR_else {
+        v = _vurgu(w, h)
+    }
+    TR_return _sesler(h, v)
+}
+
+TR_func _ilk(h: TR_String, önler: TR_List[TR_String]) -> TR_Bool {
+    TR_for ö TR_in önler {
+        TR_if h.TR_starts_with(ö) { TR_return TR_true }
+    }
+    TR_return TR_false
+}
+
+# _olumsuz: olumsuz -mA -(I)yor, -DI, -mIş, -(y)AcAk, -sA ya da -mAlI önündeyse vurgu ondan önceki hecededir;
+# geniş zamanın olumsuzu -mAz vurguludur (Pre-accenting suffixes; Two accents in the same word). Yoksa -1.
+TR_func _olumsuz(h: TR_List[TR_String]) -> TR_Int {
+    TR_var n = h.TR_length
+    TR_for i TR_in 1..n {
+        TR_if ["maz", "mez"].TR_contains(h[i]) { TR_return i }
+        TR_if i + 1 >= n { TR_continue }
+        TR_var s = h[i + 1]
+        TR_var üçüncü = ""
+        TR_if i + 2 < n { üçüncü = h[i + 2] }
+        TR_if ["mı", "mi", "mu", "mü"].TR_contains(h[i]) TR_and s.TR_starts_with("yo") { TR_return i - 1 }
+        TR_if TR_not ["ma", "me"].TR_contains(h[i]) { TR_continue }
+        TR_if _ilk(s, ["dı", "di", "du", "dü", "mış", "miş", "sa", "se"]) { TR_return i - 1 }
+        TR_if ["ya", "ye"].TR_contains(s) TR_and _ilk(üçüncü, ["c", "ç"]) { TR_return i - 1 }
+        TR_if ["ma", "me"].TR_contains(s) TR_and ["lı", "li"].TR_contains(üçüncü) { TR_return i - 1 }
+    }
+    TR_return -1
+}
+
+# _vurgu sözcüğün vurgulu hecesini verir. Varsayılan son hece (Final accent); ek kurallarının en soldaki geçer.
+TR_func _vurgu(w: TR_String, h: TR_List[TR_String]) -> TR_Int {
+    TR_var n = h.TR_length
+    TR_var yer = n - 1
+    TR_var o = _olumsuz(h)
+    TR_if o >= 0 { yer = TR_min(yer, o) }
+    # Vurgulu ekler ilk hecelerinde: -(I)yor, -ArAk, -(y)IncA (Accented suffixes).
+    TR_for j TR_in 1..n {
+        TR_if h[j] == "yor" TR_or (h[j] == "yo" TR_and j + 1 < n TR_and h[j + 1].TR_starts_with("r")) { yer = TR_min(yer, j - 1) }
+    }
+    TR_if n >= 3 TR_and (w.TR_ends_with("arak") TR_or w.TR_ends_with("erek")) { yer = TR_min(yer, n - 2) }
+    TR_if n >= 3 TR_and ["ınca", "ince", "unca", "ünce"].TR_contains(w[w.TR_length - 4..w.TR_length]) { yer = TR_min(yer, n - 2) }
+    # Ek-eylem ve geniş, gelecek zamandan ya da -mAlI'dan sonraki kişi ekleri vurguyu öncesine çeker (Copular suffixes).
+    TR_if n >= 2 TR_and _EK_EYLEM.TR_contains(h[n - 1]) { yer = TR_min(yer, n - 2) }
+    TR_if n >= 3 TR_and _GENİŞ_KİŞİ.TR_contains(h[n - 1]) { yer = TR_min(yer, n - 2) }
+    TR_if n >= 3 TR_and _GENİŞ_SONRASI.TR_contains(h[n - 1]) TR_and h[n - 2].TR_ends_with("r") { yer = TR_min(yer, n - 2) }
+    TR_if n >= 4 TR_and _GENİŞ_SİNİZ.TR_contains(h[n - 2] + h[n - 1]) TR_and h[n - 3].TR_ends_with("r") { yer = TR_min(yer, n - 3) }
+    TR_for j TR_in 1..n - 1 {
+        TR_var s = h[j + 1]
+        TR_if ["cak", "cek", "çak", "çek"].TR_contains(h[j]) TR_and _ilk(s, ["t", "d", "s", "m"]) { yer = TR_min(yer, j) }
+        TR_if ["ca", "ce", "ça", "çe"].TR_contains(h[j]) TR_and s.TR_starts_with("ğ") { yer = TR_min(yer, j) }
+        TR_if ["lı", "li"].TR_contains(h[j]) TR_and ["ma", "me"].TR_contains(h[j - 1]) { yer = TR_min(yer, j) }
+    }
+    TR_return yer
+}
+
+# _ünlü_sesi: kapalı hecede gevşeme sesin eğitildiği yazımdır; e'nin hece sonu l, m, n önünde æ'sı Vowels bölümünün
+# /e/ → [ɛ]~[æ]'sidir. İkiz ünsüzle kapanan hece gevşemez.
+TR_func _ünlü_sesi(c: TR_String, kapalı: TR_Bool, kapayan: TR_String, son: TR_Bool) -> TR_String {
+    TR_return TR_match c {
+        "e" => TR_if kapalı TR_and "lmn".TR_contains(kapayan) { "æ" } TR_else TR_if kapalı TR_or son { "ɛ" } TR_else { "e" }
+        "i" => TR_if kapalı { "ɪ" } TR_else { "i" }
+        "î" => TR_if kapalı { "ɪ" } TR_else { "i" }
+        "u" => TR_if kapalı TR_or son { "ʊ" } TR_else { "u" }
+        "û" => TR_if kapalı TR_or son { "ʊ" } TR_else { "u" }
+        "o" => TR_if kapalı TR_or son { "ɔ" } TR_else { "o" }
+        "ü" => TR_if kapalı { "ø" } TR_else { "y" }
+        "ö" => "œ"
+        "ı" => "ɯ"
+        _ => "a"
+    }
+}
+
+# _yandaki_ünlü i'deki ünsüzden sonra ünlü varsa odur; yoksa önceki en yakın ünlü, o da yoksa sonraki.
+TR_func _yandaki_ünlü(w: TR_String, i: TR_Int) -> TR_String {
+    TR_if i + 1 < w.TR_length TR_and _ÜNLÜ.TR_contains(w[i + 1]) { TR_return w[i + 1] }
+    TR_for k TR_in 0..i {
+        TR_if _ÜNLÜ.TR_contains(w[i - 1 - k]) { TR_return w[i - 1 - k] }
+    }
+    TR_for k TR_in i + 1..w.TR_length {
+        TR_if _ÜNLÜ.TR_contains(w[k]) { TR_return w[k] }
+    }
+    TR_return ""
+}
+
+# _ünsüz_sesi (Consonants): g ve l ince ünlü yanında ɟ ve l, kalın yanında ɡ ve ɫ; r iki ünlü arasında ɾ; ikiz k kː;
+# ğ ince ünlüler arasında j, ünlüden sonra önceki ünlünün uzaması.
+TR_func _ünsüz_sesi(w: TR_String, i: TR_Int) -> TR_String {
+    TR_var c = w[i]
+    TR_var önce = ""
+    TR_if i > 0 { önce = w[i - 1] }
+    TR_var sonra = ""
+    TR_if i + 1 < w.TR_length { sonra = w[i + 1] }
+    TR_var ince = _İNCE.TR_contains(_yandaki_ünlü(w, i))
+    TR_return TR_match c {
+        "ğ" => TR_if _İNCE_ÜNLÜ.TR_contains(önce) TR_and önce != "" TR_and _ÜNLÜ.TR_contains(sonra) TR_and sonra != "" { "j" } TR_else TR_if _ÜNLÜ.TR_contains(önce) TR_and önce != "" { "ː" } TR_else { "" }
+        "g" => TR_if ince { "ɟ" } TR_else { "ɡ" }
+        "l" => TR_if ince { "l" } TR_else { "ɫ" }
+        "r" => TR_if (_ÜNLÜ.TR_contains(önce) TR_or önce == "ğ") TR_and önce != "" TR_and _ÜNLÜ.TR_contains(sonra) TR_and sonra != "" { "ɾ" } TR_else { "r" }
+        "k" => TR_if önce == "k" { "ː" } TR_else { "k" }
+        "c" => "dʒ"
+        "ç" => "tʃ"
+        "ş" => "ʃ"
+        "j" => "ʒ"
+        "y" => "j"
+        _ => c
+    }
+}
+
+# _sesler hecelerden fonem dizisini kurar; ˈ vurgulu hecenin ünlüsünün önündedir (v = -1: vurgusuz).
+TR_func _sesler(h: TR_List[TR_String], v: TR_Int) -> TR_String {
+    TR_var w = h.TR_join("")
+    TR_var s = ""
+    TR_var konum = 0
+    TR_for hi TR_in 0..h.TR_length {
+        TR_var hece = h[hi]
+        TR_var kapayan = hece[hece.TR_length - 1]
+        TR_var sonraki = ""
+        TR_if konum + hece.TR_length < w.TR_length { sonraki = w[konum + hece.TR_length] }
+        TR_var kapalı = TR_not _ÜNLÜ.TR_contains(kapayan) TR_and kapayan != "ğ" TR_and kapayan != sonraki
+        TR_for j TR_in 0..hece.TR_length {
+            TR_var c = hece[j]
+            TR_if _ÜNLÜ.TR_contains(c) {
+                TR_if hi == v { s = s + "ˈ" }
+                s = s + _ünlü_sesi(c, kapalı, kapayan, hi == h.TR_length - 1)
+            } TR_else {
+                s = s + _ünsüz_sesi(w, konum + j)
+            }
+        }
+        konum = konum + hece.TR_length
+    }
+    # ğ'nin iki yanı aynı ünlüyse tek uzun ünlü kalır.
+    TR_for a TR_in ["a", "ɯ", "o", "ɔ", "u", "ʊ"] {
+        s = s.TR_replace(a + "ːˈ" + a, "ˈ" + a + "ː").TR_replace(a + "ː" + a, a + "ː")
+    }
+    TR_return s
+}
+
+# _sözle tam sayıyı Türkçe sözcüklere çevirir; bin'in önünde bir yoktur.
+TR_func _sözle(n: TR_Int) -> TR_List[TR_String] {
+    TR_if n == 0 { TR_return ["sıfır"] }
+    TR_var s: TR_List[TR_String] = []
+    TR_var kalan = n
+    TR_var basamak = 1000000000000
+    TR_for ad TR_in _BÜYÜKLER {
+        TR_if kalan >= basamak {
+            TR_var k = kalan // basamak
+            kalan = kalan % basamak
+            TR_if TR_not (ad == "bin" TR_and k == 1) { s = s + _sözle(k) }
+            s.TR_append(ad)
+        }
+        basamak = basamak // 1000
+    }
+    TR_if kalan >= 100 {
+        TR_var y = kalan // 100
+        kalan = kalan % 100
+        TR_if y > 1 { s.TR_append(_BİRLER[y]) }
+        s.TR_append("yüz")
+    }
+    TR_if kalan >= 10 {
+        s.TR_append(_ONLAR[kalan // 10])
+        kalan = kalan % 10
+    }
+    TR_if kalan > 0 { s.TR_append(_BİRLER[kalan]) }
+    TR_return s
+}
+
+TR_func _rakam_rakam(r: TR_String) -> TR_List[TR_String] {
+    TR_return [TR_if c == "0" { "sıfır" } TR_else { _BİRLER[TR_Int(c)] } TR_for c TR_in r]
+}
+
+# _tam: 15 basamaktan uzun ya da 0 ile başlayan çok basamaklı sayı rakam rakam okunur.
+TR_func _tam(r: TR_String) -> TR_List[TR_String] {
+    TR_if r.TR_length > 15 TR_or (r.TR_length > 1 TR_and r.TR_starts_with("0")) { TR_return _rakam_rakam(r) }
+    TR_return _sözle(TR_Int(r))
+}
+
+# _kesir ondalık ya da dakika kısmıdır: 0 ile başlıyorsa rakam rakam.
+TR_func _kesir(r: TR_String) -> TR_List[TR_String] {
+    TR_if r.TR_starts_with("0") { TR_return _rakam_rakam(r) }
+    TR_return _tam(r)
+}
+
+# _saat: saatin baştaki sıfırı okunmaz (09 → dokuz), dakika 00 okunmaz.
+TR_func _saat(a: TR_String, b: TR_String) -> TR_List[TR_String] {
+    TR_var saat = _sözle(TR_Int(a))
+    TR_if b == "00" { TR_return saat }
+    TR_return saat + _kesir(b)
+}
+
+TR_func _saat_mı(a: TR_String, b: TR_String) -> TR_Bool {
+    TR_return a.TR_length <= 2 TR_and b.TR_length == 2 TR_and TR_Int(a) <= 23 TR_and TR_Int(b) <= 59
+}
+
+# _sayı_metni: : ya da saat biçimli . saattir; virgül ondalık, noktadan sonra üç basamak binliktir, öbür nokta "nokta".
+TR_func _sayı_metni(y: TR_String) -> TR_List[TR_String] {
+    TR_if y.TR_contains(":") {
+        TR_var p = y.TR_split(":")
+        TR_if p.TR_length == 2 { TR_return _saat(p[0], p[1]) }
+        TR_var s: TR_List[TR_String] = []
+        TR_for x TR_in p { s = s + _tam(x) }
+        TR_return s
+    }
+    TR_if y.TR_contains(",") {
+        TR_var p = y.TR_split(",")
+        TR_var s = _sayı_metni(p[0])
+        TR_for x TR_in p[1..p.TR_length] { s = s + ["virgül"] + _kesir(x) }
+        TR_return s
+    }
+    TR_if y.TR_contains(".") {
+        TR_var p = y.TR_split(".")
+        TR_var binlik = TR_true
+        TR_for x TR_in p[1..p.TR_length] {
+            TR_if x.TR_length != 3 { binlik = TR_false }
+        }
+        TR_if binlik TR_and p[0].TR_length <= 3 { TR_return _tam(y.TR_replace(".", "")) }
+        TR_if p.TR_length == 2 TR_and _saat_mı(p[0], p[1]) { TR_return _saat(p[0], p[1]) }
+        TR_var s = _tam(p[0])
+        TR_for x TR_in p[1..p.TR_length] { s = s + ["nokta"] + _kesir(x) }
+        TR_return s
+    }
+    TR_return _tam(y)
+}
+
+# _sıra_eki sıra sayısının ekini son sözcüğe ünlü uyumuyla ekler: ünlüden sonra -ncI, ünsüzden sonra -IncI.
+TR_func _sıra_eki(s: TR_String) -> TR_String {
+    TR_var u = "i"
+    TR_for c TR_in s {
+        TR_if "aı".TR_contains(c) { u = "ı" } TR_else TR_if "ei".TR_contains(c) { u = "i" } TR_else TR_if "ou".TR_contains(c) { u = "u" } TR_else TR_if "öü".TR_contains(c) { u = "ü" }
+    }
+    TR_if _ÜNLÜ.TR_contains(s[s.TR_length - 1]) { TR_return s + "nc" + u }
+    TR_var kök = s
+    TR_if s == "dört" { kök = "dörd" }
+    TR_return kök + u + "nc" + u
+}
+
+# _sayı_sözleri sayı jetonunun sözcükleridir: önde eksi ve yüzde, sıra sayısının eki, kesme işaretli ek.
+TR_func _sayı_sözleri(j: _Jeton) -> TR_List[TR_String] {
+    TR_var y = j.yazı
+    TR_var ön: TR_List[TR_String] = []
+    TR_if y.TR_starts_with("-") {
+        ön.TR_append("eksi")
+        y = y[1..y.TR_length]
+    }
+    TR_if y.TR_starts_with("%") {
+        ön.TR_append("yüzde")
+        y = y[1..y.TR_length]
+    }
+    TR_var s = _sayı_metni(y)
+    TR_var son = s.TR_length - 1
+    TR_if j.tür == "sıra" { s[son] = _sıra_eki(s[son]) }
+    TR_if j.ek != "" { s[son] = s[son] + _normal(j.ek) }
+    TR_return ön + s
 }

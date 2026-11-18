@@ -1,0 +1,16 @@
+# TR 4
+# 60 — Fonemler: Türkçe metni bir sesin fonemlerine (IPA) çevirmek. Piper sesi bu fonemlerle konuşur
+# (`tr/vits`); ses için model gerekir, fonemler için gerekmez.
+#
+# Kendin dene: kendi cümleni çevir; vurgunun (ˈ) hangi heceye düştüğüne ve sayıların okunuşuna bak.
+
+TR_import "tr/phonemes"
+
+# Her cümle ayrı bir dizidir; noktalama kalır, vurgu ˈ ile vurgulu ünlünün önündedir.
+TR_print(TR_phonemize("Merhaba! Bugün hava güzel.", TR_language: "tr"))
+
+# Sayılar, saat ve yüzde Türkçe okunur.
+TR_print(TR_phonemize("Saat 14:30'da hava %25 nemli.", TR_language: "tr"))
+
+# Ünlüsü olmayan sözcük harf harf okunur; emoji okunmaz.
+TR_print(TR_phonemize("TBMM toplandı 😊", TR_language: "tr"))

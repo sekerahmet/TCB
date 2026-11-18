@@ -9,6 +9,7 @@
 
 TR_import "tr/audio"
 TR_import "tr/layers"
+TR_import "tr/phonemes"
 
 TR_const _AYAR = "config.json"
 TR_const _AĞIRLIK = "model.safetensors"
@@ -514,9 +515,11 @@ TR_struct TR_Vits {
             önce_örnek: önce, gizli_ses: z.TR_reshape([f, t]), dalga: TR_self._çözücü._ileri(z))
     }
     # sese_çevir metni sese çevirir. Gürültü sabit tohumdan gelir: aynı metin aynı sesi verir.
-    # Piper sesi metni fonemlere çeviren bir çeviriciyle konuşur; bu sürümde hiçbir dilin çeviricisi yok (H7559).
+    # Piper sesi metni sesin dilinin çeviricisiyle (`tr/phonemes`) cümle cümle fonemlere, onları kimliklere çevirip konuşur.
     TR_func TR_synthesize(metin: TR_String) -> TR_Sound {
-        TR_if TR_self._piper { TR_throw TR_Message("H7559", TR_self.TR_voice_language, "") }
+        TR_if TR_self._piper {
+            TR_return TR_self._konuş([TR_self._kimlikler(c) TR_for c TR_in TR_phonemize(metin, TR_language: TR_self.TR_voice_language)])
+        }
         TR_var parçalar = TR_self._parçalayıcı._parçala(metin)
         TR_var ç = TR_self._üret(parçalar, TR_randn([1, 2, parçalar.TR_length], TR_seed: 0), TR_none, TR_none)
         TR_return TR_Sound(TR_samples: ç.dalga.TR_reshape([1, ç.dalga.TR_shape[0]]), TR_sample_rate: TR_self._örnek_hızı)
