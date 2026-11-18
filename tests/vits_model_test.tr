@@ -150,8 +150,8 @@ TR_test "Vits'te ses.TR_language yazmak hatadır" {
 #      c = [0,1, 2,65, 0,75, 0,55]; x = [1,1, 4,65, -0,25, 1,05].
 #   2. genişleme 2, w = [1, 0, 1], b = 0, dolgu 2: gevşek(x) = [1,1, 4,65, -0,025, 1,05];
 #      c[t] = g[t-2] + g[t+2] = [-0,025, 1,05, 1,1, 4,65]; x = [1,075, 5,7, 0,85, 5,7].
-# tip2 küçük modelin ilk artık bloğunu verilen evrişimlerle tip 2'ye çevirir ve x'i ondan geçirir (yapının
-# kurucusu ve tipi modülün içindedir).
+# tip2 küçük modelin ilk artık bloğunu verilen evrişimlerle tip 2'ye çevirir ve x'i üretimin adımından (`_adım`)
+# geçirir; ilk etkinleşme tanımla verilir (yapının kurucusu ve tipi modülün içindedir).
 TR_func tip2(ağırlıklar: TR_List[TR_Tensor], sapmalar: TR_List[TR_Tensor], genişlemeler: TR_List[TR_Int], x: TR_Tensor, eğim: TR_Float = 0.1) -> TR_Tensor {
     TR_var blok = TR_pretrained_vits(_MODEL)._çözücü.bloklar[0][0]
     # Küçük modelin bloğunda iki ayrı evrişim var (genişlemeler [1, 3]); yapılar paylaşılır, kopyalanmaz.
@@ -165,17 +165,18 @@ TR_func tip2(ağırlıklar: TR_List[TR_Tensor], sapmalar: TR_List[TR_Tensor], ge
     }
     blok.birinciler = evrişimler
     blok.ikinciler = []
-    blok.eğim = eğim
-    TR_return blok._ileri(x)
+    TR_return blok._adım(x, gevşek(x, eğim), (1.0 + eğim) * 0.5, (1.0 - eğim) * 0.5)
 }
 
-TR_test "tip 2 artık blok tanımını verir" {
+TR_func gevşek(x: TR_Tensor, eğim: TR_Float) -> TR_Tensor { TR_return TR_where(x >= 0.0, x, x * eğim) }
+
+TR_test "tip 2 artık blok adımı tanımını verir" {
     TR_var y = tip2([TR_Tensor([[[0.5, 1.0, -0.5]]]), TR_Tensor([[[1.0, 0.0, 1.0]]])], [TR_Tensor([0.1]), TR_Tensor([0.0])], [1, 2], TR_Tensor([[[1.0, 2.0, -1.0, 0.5]]]))
     TR_assert(TR_all_close(y, TR_Tensor([[[1.075, 5.7, 0.85, 5.7]]]), TR_rtol: 0.0, TR_atol: 1e-6))
 }
 
 # Büyük durum: 4 kanal, çekirdek 5, genişlemeler (2, 6); TR'nin ayrı işlemleriyle yazılmış tanımla aynı.
-TR_test "tip 2 artık blok TR'nin ayrı işlemleriyle aynı" {
+TR_test "tip 2 artık blok adımı TR'nin ayrı işlemleriyle aynı" {
     TR_var w = [TR_randn([4, 4, 5], TR_seed: 2) * 0.3, TR_randn([4, 4, 5], TR_seed: 6) * 0.3]
     TR_var b = [TR_randn([4], TR_seed: 12), TR_randn([4], TR_seed: 16)]
     TR_var x = TR_randn([1, 4, 40], TR_seed: 3)
@@ -188,11 +189,11 @@ TR_test "tip 2 artık blok TR'nin ayrı işlemleriyle aynı" {
     TR_assert(TR_all_close(y, beklenen, TR_rtol: 1e-5, TR_atol: 1e-5))
 }
 
-# Kural (A8-4, DENETİM 849 Ş2): _gevşek PyTorch'un `leaky_relu`'sudur: x > 0'da x, değilse x · eğim
-# (torch.nn.functional.leaky_relu'nun tanımı); eğim dosyadan gelir, 0 ile 1'in dışında da doğrudur. Beklenenler bu
-# tanımdan elle yazıldı (çarpanlar ikinin kuvvetiyle ölçeklenir: float32'de tam). _gevşek modülün içindedir: 1×1
-# birim evrişimli tip 2 artık blok x + gevşek(x) verir, beklenen x + beklenen ile aynı toplamadır. Eksi sıfırın
-# işareti karşılaştırılmaz: bugünkü yazım +0 verir, PyTorch −0 (lib/vits.tr'nin _gevşek yorumu). NaN NaN kalır.
+# Kural (A8-4, DENETİM 849 Ş2; eşik DENETİM 920 Ş2): üretimin leaky_relu'su (`_gev_abs`) PyTorch'un
+# `leaky_relu`'sudur: x > 0'da x, değilse x · eğim; eğim dosyadan gelir, 0 ile 1'in dışında da doğrudur. Dalsız
+# yazım iki çarpımı ayrı yuvarlar: fark en çok 2⁻²²·max(1, |eğim|)·|x| (|eğim| ≤ 1'de, olağan x'te x'in 2–4 ULP'si). Beklenenler
+# tanımdan elle yazıldı. Üretime tek genişlemeli, birim evrişimli tip 1 blokla girilir: h = 0 iken `_adım`
+# gevşek(x) verir. Eksi sıfırın işareti karşılaştırılmaz. NaN NaN kalır.
 TR_test "gevşek PyTorch'un leaky_relu'su: eğim 0, 0,01, 0,1, 1, 1,5 ve -0,1" {
     TR_var x = TR_Tensor([[[-2.0, -0.5, -0.0, 0.0, 0.5, 3.0]]])
     TR_var eğimler = [0.0, 0.01, 0.1, 1.0, 1.5, -0.1]
@@ -204,14 +205,25 @@ TR_test "gevşek PyTorch'un leaky_relu'su: eğim 0, 0,01, 0,1, 1, 1,5 ve -0,1" {
         [-3.0, -0.75, 0.0, 0.0, 0.5, 3.0],
         [0.2, 0.05, 0.0, 0.0, 0.5, 3.0],
     ]
-    TR_var birim = [TR_Tensor([[[1.0]]])]
-    TR_var sıfır = [TR_Tensor([0.0])]
+    TR_var blok = TR_pretrained_vits(_MODEL)._çözücü.bloklar[0][0]
+    TR_var birim = blok.birinciler[0]
+    birim.ağırlık = TR_Tensor([[[1.0]]])
+    birim.sapma = TR_Tensor([0.0])
+    birim.dolgu = 0
+    birim.genişleme = 1
+    blok.birinciler = [birim]
+    blok.ikinciler = [birim]
+    TR_var pay = 1.0 / 4194304.0
     TR_for i TR_in 0..eğimler.TR_length {
-        TR_var y = tip2(birim, sıfır, [1], x, eğim: eğimler[i])
-        TR_assert(TR_all(y == x + TR_Tensor([[beklenenler[i]]])), "eğim \(eğimler[i])")
+        TR_var e = eğimler[i]
+        TR_var a = (1.0 + e) * 0.5
+        TR_var b = (1.0 - e) * 0.5
+        TR_var y = blok._adım(TR_zeros([1, 1, 6]), x, a, b)
+        TR_var sınır = TR_abs(x) * (pay * TR_max(1.0, TR_max(e, -e)))
+        TR_assert(TR_all(TR_abs(y - TR_Tensor([[beklenenler[i]]])) <= sınır), "eğim \(e)")
         TR_var nan = TR_Tensor([[[0.0]]]) / TR_Tensor([[[0.0]]])
-        TR_var n = tip2(birim, sıfır, [1], nan, eğim: eğimler[i])
-        TR_assert(TR_all(n != n), "eğim \(eğimler[i]): NaN")
+        TR_var n = blok._adım(TR_zeros([1, 1, 1]), nan, a, b)
+        TR_assert(TR_all(n != n), "eğim \(e): NaN")
     }
 }
 
@@ -241,4 +253,155 @@ TR_test "çok fazlı ters evrişim eski yolla 1e-5 içinde" {
         TR_assert_equal(beklenen.TR_shape, y.TR_shape)
         TR_assert(TR_all_close(y, beklenen, TR_rtol: 0.0, TR_atol: 1e-5))
     }
+}
+
+# Tip 2 aşama: bütün blokları tip 2 olan aşamanın çıktısı tanımla aynı: büyütme, blokların ortalaması, sonraki etkinleşme.
+TR_test "tip 2 aşama adımı TR'nin ayrı işlemleriyle aynı" {
+    TR_var çz = TR_pretrained_vits(_MODEL)._çözücü
+    TR_var w = TR_randn([8, 4, 4], TR_seed: 70) * 0.3
+    TR_var b = TR_randn([4], TR_seed: 71)
+    çz.büyütücüler[0]._ters_kur(w, b, 2)
+    TR_var genişlemeler = [[1, 2], [2, 6]]
+    TR_var ağırlıklar: TR_List[TR_List[TR_Tensor]] = []
+    TR_var sapmalar: TR_List[TR_List[TR_Tensor]] = []
+    TR_for j TR_in 0..2 {
+        TR_var blok = çz.bloklar[0][j]
+        TR_var evrişimler = [blok.birinciler[m] TR_for m TR_in 0..2]
+        ağırlıklar.TR_append([TR_randn([4, 4, 3], TR_seed: 72 + 2 * j + m) * 0.3 TR_for m TR_in 0..2])
+        sapmalar.TR_append([TR_randn([4], TR_seed: 82 + 2 * j + m) TR_for m TR_in 0..2])
+        TR_for m TR_in 0..2 {
+            TR_var g = genişlemeler[j][m]
+            evrişimler[m].ağırlık = ağırlıklar[j][m]
+            evrişimler[m].sapma = sapmalar[j][m]
+            evrişimler[m].dolgu = g
+            evrişimler[m].genişleme = g
+        }
+        blok.birinciler = evrişimler
+        blok.ikinciler = []
+    }
+    TR_var gh = TR_randn([1, 8, 9], TR_seed: 90)
+    TR_var y = çz._aşama(0, gh, 0.55, 0.45, 0.01)
+    TR_var h = eski_ters(gh, w, b, 2)
+    TR_var toplam = TR_zeros(h.TR_shape)
+    TR_for j TR_in 0..2 {
+        TR_var x = h
+        TR_for m TR_in 0..2 {
+            TR_var g = genişlemeler[j][m]
+            x = x + TR_conv1d(gevşek(x, 0.1), ağırlıklar[j][m], sapmalar[j][m], TR_padding: g, TR_dilation: g)
+        }
+        toplam = toplam + x
+    }
+    TR_assert(TR_all_close(y, gevşek(toplam / 2.0, 0.01), TR_rtol: 1e-5, TR_atol: 1e-5))
+}
+
+TR_func birleşik(t: TR_Dict[TR_String, TR_Tensor], ad: TR_String) -> TR_Tensor {
+    TR_if t.TR_contains("\(ad).weight") { TR_return t["\(ad).weight"].TR_to_dtype("float32") }
+    TR_var v = t["\(ad).weight_v"].TR_to_dtype("float32")
+    TR_var g = t["\(ad).weight_g"].TR_to_dtype("float32")
+    TR_return v * (g / TR_sqrt(TR_sum(TR_sum(v * v, TR_dim: 2, TR_keepdim: TR_true), TR_dim: 1, TR_keepdim: TR_true)))
+}
+
+TR_func sapma(t: TR_Dict[TR_String, TR_Tensor], ad: TR_String) -> TR_Tensor { TR_return t["\(ad).bias"].TR_to_dtype("float32") }
+
+# Öncül akışın tanımı (Hugging Face `VitsResidualCouplingBlock`, ters yön): her akıştan önce kanallar çevrilir,
+# ikinci yarıdan WaveNet'in ortalaması çıkar; evrişimler sıfır dolgulu. Ağırlıklar başvuru dosyasından, ağırlık normu birleşik.
+TR_func öncül_tanım(t: TR_Dict[TR_String, TR_Tensor], akış_sayısı: TR_Int, x: TR_Tensor) -> TR_Tensor {
+    TR_var ayar = TR_json_parse(TR_read_file("\(_MODEL)/config.json"))
+    TR_var c = TR_Int(ayar.TR_get("hidden_size"))
+    TR_var k = TR_Int(ayar.TR_get("wavenet_kernel_size"))
+    TR_var oran = TR_Int(ayar.TR_get("wavenet_dilation_rate"))
+    TR_var n = TR_Int(ayar.TR_get("prior_encoder_num_wavenet_layers"))
+    TR_var f = x.TR_shape[1]
+    TR_var boy = x.TR_shape[2]
+    TR_var yarım = f // 2
+    TR_var ters = TR_Tensor[TR_Int]([f - 1 - j TR_for j TR_in 0..f])
+    TR_var z = x
+    TR_var i = akış_sayısı - 1
+    TR_for i >= 0 {
+        TR_var ad = "flow.flows.\(i)"
+        z = z.TR_reshape([f, boy])[ters].TR_reshape([1, f, boy])
+        TR_var birinci = z.TR_slice(1, 0, yarım)
+        TR_var h = TR_conv1d(birinci, birleşik(t, "\(ad).conv_pre"), sapma(t, "\(ad).conv_pre"))
+        TR_var çıkış = TR_zeros([1, c, boy])
+        TR_for j TR_in 0..n {
+            TR_var g = oran ** j
+            TR_var l = "\(ad).wavenet.in_layers.\(j)"
+            TR_var r = "\(ad).wavenet.res_skip_layers.\(j)"
+            TR_var giriş = TR_conv1d(h, birleşik(t, l), sapma(t, l), TR_padding: (k * g - g) // 2, TR_dilation: g)
+            TR_var artık = TR_conv1d(TR_tanh(giriş.TR_slice(1, 0, c)) * TR_sigmoid(giriş.TR_slice(1, c, 2 * c)), birleşik(t, r), sapma(t, r))
+            TR_if j < n - 1 {
+                h = h + artık.TR_slice(1, 0, c)
+                çıkış = çıkış + artık.TR_slice(1, c, 2 * c)
+            } TR_else {
+                çıkış = çıkış + artık
+            }
+        }
+        TR_var ortalama = TR_conv1d(çıkış, birleşik(t, "\(ad).conv_post"), sapma(t, "\(ad).conv_post"))
+        z = TR_concat([birinci, z.TR_slice(1, yarım, f) - ortalama], TR_dim: 1)
+        i = i - 1
+    }
+    TR_return z
+}
+
+# Kısa girdi: küçük modelde p = 2 (çekirdek 3, genişleme 2); t = 1 p'den kısa, t = 2 ve 3'te iki uç örtüşür, t = 4 = 2p.
+TR_test "öncül akış kısa girdide tanımı verir: t = 1, 2, 3, 4" {
+    TR_var model = TR_pretrained_vits(_MODEL)
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var f = model._akış_boyu
+    TR_for boy TR_in [1, 2, 3, 4] {
+        TR_var x = TR_randn([f, boy], TR_seed: 100 + boy)
+        TR_var beklenen = öncül_tanım(t, 2, x.TR_reshape([1, f, boy]))
+        TR_assert(TR_all_close(model._öncül(x), beklenen, TR_rtol: 0.0, TR_atol: 1e-5), "boy \(boy)")
+    }
+}
+
+TR_func değiştir(k: TR_String, eski: TR_String, yeni: TR_String) {
+    TR_var yol = TR_String(TR_Path(k, "config.json"))
+    TR_var yazı = TR_read_file(yol)
+    TR_assert(yazı.TR_contains(eski))
+    TR_write_file(yol, yazı.TR_replace(eski, yeni))
+}
+
+# Tek sayıda akış: son akıştan sonra iki yarı çevrilir. Ayar `prior_encoder_num_flows: 1`; ikinci akışın tensörleri
+# atılır, yükleyici de sınanır.
+TR_test "öncül akış tek sayıda akışta tanımı verir" {
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var bir: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for ad, v TR_in t {
+        TR_if TR_not ad.TR_starts_with("flow.flows.1.") { bir[ad] = v }
+    }
+    TR_var k = klasör(bir)
+    değiştir(k, "\"prior_encoder_num_flows\": 2", "\"prior_encoder_num_flows\": 1")
+    TR_var model = TR_pretrained_vits(k)
+    TR_var x = TR_randn([model._akış_boyu, 9], TR_seed: 110)
+    TR_var beklenen = öncül_tanım(t, 1, x.TR_reshape([1, model._akış_boyu, 9]))
+    TR_assert(TR_all_close(model._öncül(x), beklenen, TR_rtol: 0.0, TR_atol: 1e-5))
+}
+
+# Çift WaveNet çekirdeğinde ilk katmanın (k − 1)·g'si tektir: akış katlanamaz, yükleme H7557'nin `kernel` kolunu verir.
+TR_test "VITS çift WaveNet çekirdeğini geçirmez: H7557" {
+    TR_var r: TR_List[TR_String] = []
+    TR_try { TR_pretrained_vits(ayarlı("\"wavenet_kernel_size\": 3", "\"wavenet_kernel_size\": 4")) } TR_catch e { r = [TR_error_code { TR_throw e }, e.TR_text("tr"), e.TR_text("en")] }
+    TR_assert_equal(["H7557",
+        "hazır_vits: \"wavenet_kernel_size\" 4 olamaz: WaveNet çekirdeği tek sayı olmalıdır; Piper sesinde bu değer `.onnx.json`'da yazmaz, öncül akışın ağırlığının şeklinden okunur",
+        "pretrained_vits: \"wavenet_kernel_size\" cannot be 4: the WaveNet kernel size must be odd; a Piper voice does not write it in the `.onnx.json`, it is read from the shape of the prior flow's weight"], r)
+}
+
+# Büyütücüsüz çözücü: son etkinleşme 0,01 eğimlidir (eski yol, DENETİM 920 Not 5).
+TR_test "büyütücüsüz çözücü son etkinleşmeyi 0,01 eğimle yapar" {
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var kalan: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for ad, v TR_in t {
+        TR_if TR_not ad.TR_starts_with("decoder.upsampler.") TR_and TR_not ad.TR_starts_with("decoder.resblocks.") { kalan[ad] = v }
+    }
+    TR_var son = TR_randn([1, 8, 7], TR_seed: 120) * 0.3
+    kalan["decoder.conv_post.weight"] = son
+    TR_var k = klasör(kalan)
+    değiştir(k, "\"upsample_kernel_sizes\": [", "\"upsample_kernel_sizes\": [], \"eski_çekirdekler\": [")
+    değiştir(k, "\"upsample_rates\": [", "\"upsample_rates\": [], \"eski_oranlar\": [")
+    TR_var z = TR_randn([1, 4, 6], TR_seed: 121)
+    TR_var ön = TR_conv1d(z, birleşik(t, "decoder.conv_pre"), sapma(t, "decoder.conv_pre"), TR_padding: 3)
+    TR_var y = TR_pretrained_vits(k)._çözücü._ileri(z)
+    TR_assert(TR_all_close(y, TR_tanh(TR_conv1d(gevşek(ön, 0.01), son, TR_none, TR_padding: 3)).TR_reshape([6]), TR_rtol: 0.0, TR_atol: 1e-5))
+    TR_assert(TR_not TR_all_close(y, TR_tanh(TR_conv1d(gevşek(ön, 0.1), son, TR_none, TR_padding: 3)).TR_reshape([6]), TR_rtol: 0.0, TR_atol: 1e-5))
 }
