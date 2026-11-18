@@ -11,13 +11,13 @@ import (
 // işleçler (@ + - * / ** ve karşılaştırmalar), tekli eksi, indeksleme, indeksle atama,
 // döngüyle gezinme ve dış biçimlere (JSON) dönüşüm.
 
-// PlainValue tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
+// PlainValue tensörü JSON gibi dış biçimlere yazmak için .TR_tolist'le aynı iç içe Ondalık
 // listesine (0 boyutluda Ondalık'a) çevirir. Arayüz hata döndüremez; sıfır eksenli dev
 // şekiller oluşturulurken (sıfırlar, şekillendir) zaten engellenir.
 func (d *TensorValue) PlainValue() interp.Value { return d.nestedList() }
 
 // Equal iki tensörün şekli ve tüm elemanları aynıysa doğrudur (TR_assert_equal, 12.4). 0 boyutlu
-// tensör, değeri (.değer ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
+// tensör, değeri (.TR_tolist ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
 // değerlerle eşit değildir.
 func (d *TensorValue) Equal(otherVal interp.Value) bool {
 	o, ok := otherVal.(*TensorValue)
@@ -376,7 +376,7 @@ func (d *TensorValue) IterLen() (int, error) {
 	return sh[0], nil
 }
 
-// IterItem ilk eksen boyunca i. öğedir: 1 boyutlu tensörde sayı (.değer'deki gibi
+// IterItem ilk eksen boyunca i. öğedir: 1 boyutlu tensörde sayı (.TR_tolist'teki gibi
 // Ondalık; tam sayılı tensörde Tam), N boyutluda t[i] ile aynı (N-1) boyutlu görünüm
 // (veriyi paylaşır, türev izlenir).
 func (d *TensorValue) IterItem(i int) (interp.Value, error) {

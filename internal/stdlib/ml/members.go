@@ -142,7 +142,7 @@ func freshResult(fn interp.BuiltinFunc) interp.BuiltinFunc {
 
 // shortFloat64 float32 değeri, onu yazan en kısa ondalık gösterime karşılık gelen
 // float64'e çevirir: 0.1 (float32) → 0.1, 0.10000000149011612 değil. Böylece
-// a.değer[0] == 0.1 doğru olur.
+// a.TR_tolist[0] == 0.1 doğru olur.
 func shortFloat64(x float32) float64 {
 	f := float64(x)
 	if f == math.Trunc(f) || math.IsInf(f, 0) || math.IsNaN(f) {

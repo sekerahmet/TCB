@@ -248,7 +248,7 @@ type GradClipper interface {
 
 // ClipGradNormTensor ClipGradNorm'dur, kırpma öncesi normu 0 boyutlu tensör olarak verir.
 // Bütün gradyanlar GradClipper olan tek arka uçtaysa norm ve kırpma cihazda yapılır ve
-// konak beklemez; norm ancak okunduğunda (.değer, yazdırma) beklenir. Değilse norm konakta
+// konak beklemez; norm ancak okunduğunda (.TR_tolist, yazdırma) beklenir. Değilse norm konakta
 // hesaplanır (ClipGradNorm) ve CPU tensörü olarak döner.
 func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 	params = distinctGrads(params)

@@ -36,7 +36,7 @@ import (
 //
 // Konak gölgesi: konaktan yüklenen küçük float32 ve ham bayt depolamaları (≤ 1M eleman; ör. veri
 // kümesinden gelen TR_Int kimlik toplu işleri) konaktaki kopyalarını da tutar (host, raw). Depolama cihazda
-// değiştirilmediği sürece konağa okuma (indeksler, .değer) eşzamanlama gerektirmez.
+// değiştirilmediği sürece konağa okuma (indeksler, .TR_tolist) eşzamanlama gerektirmez.
 // Gölgenin silinmesi merkezîdir: cihaz belleğine yazan yollar yalnızca üçtür — çekirdek
 // başlatma (baslatici.go: göstericiler depolamayla ve okuma/yazma bildirimiyle verilir,
 // bildirim çekirdeğin imzasıyla denetlenir, yazılan depolamaların gölgesi başlatmada

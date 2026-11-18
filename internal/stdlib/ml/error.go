@@ -189,7 +189,7 @@ const maxTensorElements = 1 << 32
 
 // tensorLimit şeklin (eksenler, sıfır uzunluklular 1 yazılmış) sınırı aştığı ilk eksenin
 // indeksini ve uygulanan sınırı verir; aşmıyorsa -1. Sıfır eksenli şekil veri tutmaz ama öbür
-// eksenleri işlemlerin çıktısını ([4, 0] @ [0, N] → [4, N]) ve .değer'in liste sayısını belirler:
+// eksenleri işlemlerin çıktısını ([4, 0] @ [0, N] → [4, N]) ve .TR_tolist'in liste sayısını belirler:
 // verisiz dev şekil (126 baytlık dosyada [1048576, 0, 8192], güvenlik denetimi 2026-10-18)
 // liste sınırına tabidir; veri taşıyan tensör maxTensorElements'e.
 func tensorLimit(dims []uint64, hasZero bool) (int, int64) {
