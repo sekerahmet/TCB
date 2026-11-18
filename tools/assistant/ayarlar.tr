@@ -52,6 +52,20 @@ TR_func kart_özeti() -> TR_JSON? {
     TR_return TR_JSON({"name": b.TR_name, "memory_bytes": b.TR_memory_total_bytes, "driver_version": b.TR_driver_version, "matmul": "vendor"})
 }
 
+# ayar_çakışıyor: `değer` ayar dosyasının (`v`, `ayar_olayı`'nın verisi) öbür alanıyla birlikte geçersiz mi: kart yokken
+# `device` `gpu`; ayarda `quantized_activations` `on` iken `device` `gpu`; ayarda `device` `gpu` iken
+# `quantized_activations` `on` (nicemli etkinleştirme yalnız işlemcide, 15.53a). İkisi de bir sonraki açılışta geçerlidir.
+TR_func ayar_çakışıyor(v: TR_Dict[TR_String, TR_JSON]?, anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
+    TR_var nicemli = ""
+    TR_var cihaz = ""
+    TR_if v != TR_none {
+        TR_if v.TR_get("quantized_activations") != TR_none { nicemli = TR_String(v["quantized_activations"]) }
+        cihaz = TR_String(v["device"])
+    }
+    TR_if anahtar == "device" TR_and TR_String(değer) == "gpu" { TR_return kart_özeti() == TR_none TR_or nicemli == "on" }
+    TR_return anahtar == "quantized_activations" TR_and TR_String(değer) == "on" TR_and cihaz == "gpu"
+}
+
 # kart_belleği: ilk kartın belleği; kart yoksa 0 (`öntanımlı_cihaz`, katalog.tr).
 TR_func kart_belleği() -> TR_Int {
     TR_var k = kart_özeti()

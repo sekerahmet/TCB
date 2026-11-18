@@ -239,19 +239,9 @@ TR_struct Oturum {
         TR_return TR_self.dosyaya_yaz("machine", TR_JSON(m), "settings_set")
     }
 
-    # ayar_çakışması: ekranın `ayar_çakışması`'ı (ekran.tr): kart yokken `device` `gpu`; ayarda `quantized_activations`
-    # `on` iken `device` `gpu`; ayarda `device` `gpu` iken `quantized_activations` `on` (nicemli etkinleştirme yalnız
-    # işlemcide, 15.53a). Ayar dosyasının değerine bakılır: ikisi de bir sonraki açılışta geçerlidir.
+    # ayar_çakışması: ekranın `ayar_çakışması`'ı (ekran.tr), ayar dosyasının değeriyle (ayarlar.tr, `ayar_çakışıyor`).
     TR_func ayar_çakışması(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
-        TR_var v = TR_self.ayar_verisi
-        TR_var nicemli = ""
-        TR_var cihaz = ""
-        TR_if v != TR_none {
-            TR_if v.TR_get("quantized_activations") != TR_none { nicemli = TR_String(v["quantized_activations"]) }
-            cihaz = TR_String(v["device"])
-        }
-        TR_if anahtar == "device" TR_and TR_String(değer) == "gpu" { TR_return kart_özeti() == TR_none TR_or nicemli == "on" }
-        TR_return anahtar == "quantized_activations" TR_and TR_String(değer) == "on" TR_and cihaz == "gpu"
+        TR_return ayar_çakışıyor(TR_self.ayar_verisi, anahtar, değer)
     }
 
     # eskiyi_geri_yaz: dil değişimi yüklenemeyince dosyanın değişen alanı eski değerine döner; o da düşerse yalnız
