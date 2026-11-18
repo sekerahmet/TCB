@@ -70,7 +70,7 @@ Program bir arka plan işi olarak çalışıyorsa (iş klasörü `.tr/işler/<i�
 
 ## Maliyeti
 
-- **Tensör sayaçları her zaman açıktır** (`trlang` ile çalışan her programda): bir işlem başına sayma ve iki saat okuması (23,9 ns, `RT-2026-11-18-HIGHRAM-H1-1`). 1 259 ns süren çok küçük tensör işlemlerinde %5,2 civarındadır; işlem uzadıkça payı aynı oranda küçülür.
+- **Tensör sayaçları her zaman açıktır** (`trlang` ile çalışan her programda): bir işlem başına sayma ve iki saat okuması (27,1 ns, `RT-2026-11-18-HIGHRAM-H1-2`). 1 548 ns süren çok küçük tensör işlemlerinde %1,0 civarındadır; işlem uzadıkça payı aynı oranda küçülür.
 - **Satır örneklemesi** yalnızca `TR_cmd_watch` ve `TR_cmd_profile` altında açıktır; kapalıyken maliyeti sıfırdır. Açıkken yorumlayıcı her deyimde konumu yazar ve fonksiyon çağrılarında hızlı yolu kullanamaz: çağrı yoğun TR kodu yaklaşık iki kat yavaşlar (özyinelemeli `fib(27)`: 57 → 110 ms); zamanı tensör işlemlerinde geçen eğitimde etkisi küçüktür.
 - **GPU kernel ölçümü** yalnızca `TR_cmd_watch` ve `TR_cmd_profile` altında (ya da `TR_GPU_PROFILE=1` ile) açıktır.
 
