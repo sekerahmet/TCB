@@ -30,7 +30,7 @@ TR_test "boş ve yalnız noktalamalı metin boş liste" {
 }
 
 TR_test "küçültme, kesme ve okunmayan işaretler" {
-    TR_assert_equal(["ɯʃˈɯk ˈɪzmɪrdɛ mɛrhabˈa"], tr("Işık İzmir'de \"merhaba\" 😄"))
+    TR_assert_equal(["ɯʃˈɯk ˈɪzmɪrdɛ mˈɛrhaba"], tr("Işık İzmir'de \"merhaba\" 😄"))
     TR_assert_equal(["pelˈɛ taksˈi"], tr("Pelé taxi"))
     TR_assert_equal(["røzɟˈar halˈa"], tr("rüzgâr hâlâ"))
 }
@@ -50,8 +50,8 @@ TR_test "Türkçe fonemler başvuru sözcükleri verir: ünlüler" {
 }
 
 TR_test "Türkçe fonemler başvuru sözcükleri verir: ünsüzler ve ğ" {
-    TR_assert_equal(["ɟedʒˈɛ kalˈæm ɫalˈɛ kˈar kaɾˈa"], tr("gece kalem lale kar kara"))
-    TR_assert_equal(["dˈaː ˈaːtʃ dejˈɪl œːɾɛtmˈæn joːˈʊrt"], tr("dağ ağaç değil öğretmen yoğurt"))
+    TR_assert_equal(["ɟedʒˈɛ kalˈæm ɫˈalɛ kˈar kaɾˈa"], tr("gece kalem lale kar kara"))
+    TR_assert_equal(["dˈaː ˈaːtʃ dˈejɪl œːɾɛtmˈæn joːˈʊrt"], tr("dağ ağaç değil öğretmen yoğurt"))
     TR_assert_equal(["kaːˈɯt ɯʃˈɯː"], tr("kâğıt ışığı"))
 }
 
@@ -69,6 +69,8 @@ TR_test "vurgu listesi: belirteç, akrabalık, yer adı, alıntı; vurgusuz söz
     TR_assert_equal(["ɫokˈanta pˈændʒeɾɛ"], tr("lokanta pencere"))
     TR_assert_equal(["vɛ ilɛ bʊ ɟˈælmijɔr musʊn?"], tr("ve ile bu gelmiyor musun?"))
     TR_assert_equal(["bɪr ɟˈøn"], tr("bir gün"))
+    # Kaynağın anmadığı Türkçe söyleyişler (TR'nin listesi).
+    TR_assert_equal(["ˈɛrkæn ˈɛrkændæn mˈɛrhaba dˈejɪl ɫˈalɛ saɫˈata veja"], tr("erken erkenden merhaba değil lale salata veya"))
 }
 
 TR_test "sayılar okunur: tam, binlik, ondalık, saat, yüzde, ek" {

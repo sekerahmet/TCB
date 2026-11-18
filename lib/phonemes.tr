@@ -27,18 +27,20 @@ TR_const _KISALTMA = {"dr": "doktor", "prof": "profesör", "doç": "doçent", "a
 # Büyük harfli kısaltmalardan sözcük gibi okunanlar.
 TR_const _SÖZCÜK_GİBİ = ["nato", "nasa", "uefa", "fifa", "odtü", "toki", "botaş"]
 # Vurgusuz sözcükler: ayrı yazılan mi ve de/da (Pre-accenting suffixes) ile öbekte vurgu almayanlar (Phrase-accent).
-TR_const _VURGUSUZ = ["bir", "ve", "ile", "ya", "ama", "ki", "bu", "şu", "o", "de", "da", "mi", "mı", "mu", "mü",
+TR_const _VURGUSUZ = ["bir", "ve", "veya", "ile", "ya", "ama", "ki", "bu", "şu", "o", "de", "da", "mi", "mı", "mu", "mü",
     "misin", "mısın", "musun", "müsün", "miyim", "mıyım", "muyum", "müyüm", "miyiz", "mıyız", "muyuz", "müyüz",
     "misiniz", "mısınız", "musunuz", "müsünüz"]
 # Vurgusu sabit sözcükler, vurgulu hecenin sırası (0 ilk hece): ilk hecede vurgulu belirteçler (Dursunoğlu 2006
 # s. 272) ve akrabalık adları (Börekçi 2005 s. 191), Other words with exceptional stress; yer adları, Place names
 # (Sezer 1981; Inkelas ve Orgun 2003 s. 142–152); alıntılar, Loanwords (Özcelik 2014 s. 231): kaynakta kapalı liste
-# yok, bu liste TR'nindir.
+# yok, bu liste TR'nindir. Kaynağın anmadığı Türkçe söyleyişler de TR'nindir: erken, erkenden, merhaba, değil, lale,
+# salata (ve vurgusuz veya).
 TR_const _VURGU_YERİ = {"nerede": 0, "nereye": 0, "nasıl": 0, "hangi": 0, "yarın": 0, "sonra": 0, "şimdi": 0,
     "yine": 0, "anne": 0, "teyze": 0, "hala": 0, "dayı": 0, "amca": 0, "kardeş": 0, "kayın": 0, "ankara": 0,
     "kayseri": 0, "marmaris": 0, "istanbul": 1, "antalya": 1, "edirne": 1, "adana": 1, "konya": 0, "sivas": 0,
     "bodrum": 0, "izmir": 0, "avrupa": 1, "afrika": 1, "belçika": 1, "ingiltere": 2, "türkiye": 0, "lokanta": 1,
-    "masa": 0, "çanta": 0, "sinema": 1, "gazete": 1, "fabrika": 1, "pencere": 0, "manzara": 0}
+    "masa": 0, "çanta": 0, "sinema": 1, "gazete": 1, "fabrika": 1, "pencere": 0, "manzara": 0, "erken": 0,
+    "erkenden": 0, "merhaba": 0, "değil": 0, "lale": 0, "salata": 1}
 TR_const _EK_EYLEM = ["dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür", "ken"]
 TR_const _GENİŞ_KİŞİ = ["rım", "rim", "rum", "rüm", "rız", "riz", "ruz", "rüz"]
 TR_const _GENİŞ_SONRASI = ["sın", "sin", "sun", "sün", "san", "sen", "sam", "sem", "sak", "sek", "sa", "se", "dı", "di",
