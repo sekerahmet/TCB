@@ -1,7 +1,7 @@
 # TR 4
-# Katalog ve ayar testlerinin ortak örnekleri (katalog_test.tr aktarır): sınamanın katalogu ve ayarı, geçici
-# dosya, örnekte tam bir yerin değiştirilmesi, ikinci dil modelli katalog ve olmayan ayar dosyası. Test bloğu
-# taşımaz; adlar `_`'siz, çünkü `_`'li ad aktaran dosyadan görünmez (11.7).
+# Katalog ve ayar testlerinin ortak örnekleri (katalog_test.tr ve ayarlar_test.tr aktarır): sınamanın katalogu ve
+# ayarı, geçici dosya, örnekte tam bir yerin değiştirilmesi, ikinci dil modelli katalog ve olmayan ayar dosyası. Test
+# bloğu taşımaz; adlar `_`'siz, çünkü `_`'li ad aktaran dosyadan görünmez (11.7).
 
 # örnek_katalog: sınamanın katalogu; sayılar elle hesaplanabilsin diye yuvarlak. Dil modeli 8192 bağlamla ölçülü.
 TR_func örnek_katalog() -> TR_String {

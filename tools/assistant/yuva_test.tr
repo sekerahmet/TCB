@@ -2,6 +2,7 @@
 # Yuvanın, kurulu takımın ve yükleme işaretinin modelsiz sınaması (yuva.tr). Katalog elle kurulur: dosyalar birkaç
 # baytlık "x"; katalogun sha256'sı bu içerikten. Kaydın ve karmanın ayrıntısı indirme_test.tr'de.
 TR_import "katalog"
+TR_import "ayarlar"
 TR_import "yuva"
 
 TR_func _dosya(target: TR_String, bayt: TR_Int) -> TR_JSON {

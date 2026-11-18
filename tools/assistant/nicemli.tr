@@ -27,7 +27,7 @@ TR_func _karşılık(v: TR_String) -> TR_String {
 }
 
 # nicemli_seç: komut satırı verildiyse o; yoksa ekranlı kipte ayarın `quantized_activations`'ı (ayar_denetle değerini
-# denetler: auto, on, off); yoksa otomatik (`--bağlam`'ın sırası, katalog.tr bağlam_seç).
+# denetler: auto, on, off); yoksa otomatik (`--bağlam`'ın sırası, ayarlar.tr bağlam_seç).
 TR_func nicemli_seç(verilen: TR_String?, ayardaki: TR_String?, yol: TR_String) -> NicemliSeçim {
     TR_var v = verilen
     TR_if v != TR_none {

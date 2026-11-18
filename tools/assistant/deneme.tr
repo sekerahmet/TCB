@@ -4,6 +4,7 @@
 # `bekleme_ms` sözün sonundan, öbürleri `t0`'dan (VAD'ın kararı, sözün sonu + 608 ms); metin turunda VAD yoktur,
 # `bekleme_ms` 608 fazladır. Kayıt kullanıcının sesidir: klasör bir deponun ve bulut klasörlerinin dışında olur.
 TR_import "zincir"
+TR_import "yuva" # utc_yazısı (konuşma kaydının klasörü)
 TR_import "nicemli" # nicemli_hâli (tur satırı)
 
 TR_const _SAAT_FARKI_SN = 10800 # TSS, UTC+3
@@ -167,4 +168,38 @@ TR_func en_büyük_kalem(o: TR_Dict[TR_String, TR_Float], sesli: TR_Bool) -> TR_
     TR_var en = 0
     TR_for i TR_in 0..değerler.TR_length { TR_if değerler[i] > değerler[en] { en = i } }
     TR_return "- en büyük kalem (ortancalarla): \(adlar[en]), \(değerler[en]) ms\n"
+}
+
+TR_const _TSS_MS = 10800000 # UTC+3
+
+# kayıt_klasörü: konuşma kaydının klasörü: `<Dost klasörü>/kayit/<YYYYMMDD-HHMMSS>` (açılışın TSS saati).
+TR_func kayıt_klasörü(dost: TR_String, ms: TR_Int) -> TR_String {
+    TR_var u = utc_yazısı(ms + _TSS_MS)
+    TR_var ad = u[0..4] + u[5..7] + u[8..10] + "-" + u[11..13] + u[14..16] + u[17..19]
+    TR_return TR_String(TR_Path(dost, "kayit", ad))
+}
+
+# Kayıt: konuşma kaydı (`recording`): deneme kaydının biçimi (deneme.tr, `Deneme`), kesitsiz: WAV yok, yalnız metin ve
+# süreler. Klasör ilk yazılan turda kurulur. Tur, kayıt turun başında da sonunda da açıksa yazılır: açma bir sonraki
+# turdan, kapatma hemen geçerli. Kaydın kendi hatası turu bozmaz.
+TR_struct Kayıt {
+    klasör: TR_String
+    başlık: TR_JSON
+    d: Deneme? = TR_none
+
+    TR_func yaz(baştan: TR_Bool, sonda: TR_Bool, t: Tur, kaynak: TR_String, t0: TR_Int, son: TR_String, kod: TR_String) {
+        TR_if TR_not (baştan TR_and sonda) { TR_return }
+        TR_if TR_self.d == TR_none {
+            TR_try {
+                TR_var yeni = Deneme(klasör: TR_self.klasör, başı: şimdi())
+                yeni.başla(TR_self.başlık)
+                TR_self.d = yeni
+            } TR_catch h {
+                TR_print("KAYIT HATASI:", h)
+                TR_return
+            }
+        }
+        TR_var d = TR_self.d
+        TR_if d != TR_none { d.tur(t, kaynak, TR_none, t0, son, kod) }
+    }
 }

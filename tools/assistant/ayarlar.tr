@@ -1,7 +1,7 @@
 # TR 4
-# Dost'un ayar dosyası (tek tık kurulumu): yolu, okunması, yazılması ve kurulumun işi (`kur`). Denetim katalog.tr'nin
+# Dost'un ayar dosyası (tek tık kurulumu): yolu, okunması, yazılması, bağlamın seçimi ve kurulumun işi (`kur`). Denetim katalog.tr'nin
 # `ayar_denetle`'sidir: okunan her ayar ondan geçer. Bu modül katalog.tr'yi aktarır; katalog.tr bunu aktarmaz (döngü
-# yok, 11.3). kur.tr komut olarak kullanır, asistan.tr ayarı okur; katalog_test.tr sınar (README, "Kurulum").
+# yok, 11.3). kur.tr komut olarak kullanır, asistan.tr ayarı okur; katalog_test.tr ve ayarlar_test.tr sınar (README, "Kurulum").
 
 TR_import "katalog"
 
@@ -125,3 +125,48 @@ TR_func kur(katalog_yolu: TR_String, ayar_verilen: TR_String, yer: TR_String?, t
         }
         TR_return satırlar
     }
+
+# bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.
+TR_func bağlam_oku(metin: TR_String) -> TR_Int {
+    TR_var n = 0
+    TR_try { n = TR_Int(metin) } TR_catch _e { TR_throw TR_Message("H8173", metin) }
+    TR_return n
+}
+
+# bağlam_seç: `--bağlam` verildiyse o (0 ya da eksi H8173: sessizce 8192 alınmaz), yoksa ayarın `context`'i, yoksa
+# 8192. "Verilmedi" yalnız seçeneğin hiç yazılmamasıdır (`TR_none`; tasarımın defteri 58).
+TR_func bağlam_seç(verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
+    TR_var v = verilen
+    TR_if v != TR_none {
+        TR_if v <= 0 { TR_throw TR_Message("H8173", "\(v)") }
+        TR_return v
+    }
+    TR_var a = ayar
+    TR_if a != TR_none { TR_return a.bağlam }
+    TR_return ÖNTANIMLI_BAĞLAM
+}
+
+# bağlam_sınırı: dil modelinin `context_max`'ı; model katalogda yoksa (seçili değilse) dil modellerinin en büyüğü;
+# katalogda dil modeli yoksa 0 (Dost katalog K-9: ekranın sınırı seçili modelinkidir).
+TR_func bağlam_sınırı(k: Katalog, dil_modeli: TR_String) -> TR_Int {
+    TR_var en = 0
+    TR_for g TR_in k.girdiler {
+        TR_if g.tür != "language_model" { TR_continue }
+        TR_if g.kimlik == dil_modeli { TR_return g.bağlam_sınırı }
+        TR_if g.bağlam_sınırı > en { en = g.bağlam_sınırı }
+    }
+    TR_return en
+}
+
+# bağlam_belirle: bağlam_seç'in değeri, dil modellerinin en büyük `context_max`'ıyla sınırlı (tasarımın defteri 62,
+# 63). `--bağlam` ya da ayarın `context`'i bütün sınırları aşarsa H8174 (`source` `option`, `setting`); öntanımlı
+# 8192 en büyük sınıra iner, hata vermez. Seçili modelin sınırını aşan bağlam açılışta hata değildir: önbellek
+# yüklenen modelin sınırıyla kurulur (yuva.tr, `önbellek_bağlamı`).
+TR_func bağlam_belirle(k: Katalog, verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
+    TR_var b = bağlam_seç(verilen, ayar)
+    TR_var en = bağlam_sınırı(k, "")
+    TR_if b <= en { TR_return b }
+    TR_if verilen != TR_none { TR_throw TR_Message("H8174", "option", b, en) }
+    TR_if ayar != TR_none { TR_throw TR_Message("H8174", "setting", b, en) }
+    TR_return en
+}
