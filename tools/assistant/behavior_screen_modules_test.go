@@ -151,7 +151,7 @@ func TestPageIgnoresUnknownCatalogFieldsAndKinds(t *testing.T) {
 	data := `{"entries":[{"id":"a","kind":"language_model","name":"A","installed":true,"downloaded":true,"bytes":5,` +
 		`"memory_bytes":7,"fit":"tight","size_bytes":5,"license":{"name":"x"}},` +
 		`{"id":"b","kind":"language_model","name":"B","installed":false,"bytes":"9"},` +
-		`{"id":"c","kind":"voice","name":"C","installed":true,"languages":["tr",3]},` +
+		`{"id":"c","kind":"voice","name":"C","installed":true,"languages":["tr",3],"selected_for":["tr",false]},` +
 		`{"id":"d","kind":"image_model","name":"D","installed":true},{"kind":"language_model","name":"E"},"bozuk",null,` +
 		`{"id":"f","kind":"language_model","installed":"true","fit":"huge"}],"extra":1}`
 	output := nodeBlock(t, eventsModule, "Katalog", "const all = catalogEntries(JSON.parse(process.argv[2]));\n"+
@@ -160,16 +160,54 @@ func TestPageIgnoresUnknownCatalogFieldsAndKinds(t *testing.T) {
 	if err := json.Unmarshal(output, &got); err != nil {
 		t.Fatalf("node output %q: %v", output, err)
 	}
-	a := `{"bytes":5,"downloaded":true,"fit":"tight","id":"a","installed":true,"kind":"language_model","languages":[],"memory_bytes":7,"name":"A"}`
+	a := `{"bytes":5,"downloaded":true,"fit":"tight","id":"a","installed":true,"kind":"language_model","languages":[],"memory_bytes":7,"name":"A","selected_for":[]}`
 	want := `[` + a + `,` +
-		`{"bytes":null,"downloaded":false,"fit":"","id":"b","installed":false,"kind":"language_model","languages":[],"memory_bytes":null,"name":"B"},` +
-		`{"bytes":null,"downloaded":false,"fit":"","id":"c","installed":true,"kind":"voice","languages":["tr"],"memory_bytes":null,"name":"C"},` +
-		`{"bytes":null,"downloaded":false,"fit":"","id":"f","installed":false,"kind":"language_model","languages":[],"memory_bytes":null,"name":"f"}]`
+		`{"bytes":null,"downloaded":false,"fit":"","id":"b","installed":false,"kind":"language_model","languages":[],"memory_bytes":null,"name":"B","selected_for":[]},` +
+		`{"bytes":null,"downloaded":false,"fit":"","id":"c","installed":true,"kind":"voice","languages":["tr"],"memory_bytes":null,"name":"C","selected_for":["tr"]},` +
+		`{"bytes":null,"downloaded":false,"fit":"","id":"f","installed":false,"kind":"language_model","languages":[],"memory_bytes":null,"name":"f","selected_for":[]}]`
 	if all, _ := json.Marshal(got.All); string(all) != want {
 		t.Errorf("catalogEntries: %s, want %s", all, want)
 	}
 	if loadable, _ := json.Marshal(got.Loadable); string(loadable) != `[`+a+`]` {
 		t.Errorf("loadableModels: %s, want only the installed chat model", loadable)
+	}
+}
+
+// Ayarların "Yazıdan sese" seçicisi (Dost P-7): konuşma dilinin sesleri katalogun sırasıyla, başka dilin sesi yok;
+// inmemiş ses seçilemez (`missing`); seçili olan sunucunun o dil için seçtiğidir (`selected_for`). Dilin tek sesi varsa
+// seçici sönük ve "tek seçenek" ipucu görünür (js/view.js, renderVoice). Kural js/events.js'in saf fonksiyonundadır
+// (voiceOptions); test onu işaretlerin arasından alıp node ile koşar.
+func TestVoiceSelectListsTheLanguagesVoices(t *testing.T) {
+	entries := `[{"id":"mms","kind":"voice","name":"MMS-TTS tur","installed":true,"languages":["tr"],"selected_for":["tr"]},` +
+		`{"id":"eng","kind":"voice","name":"MMS-TTS eng","installed":true,"languages":["en"],"selected_for":["en"]},` +
+		`{"id":"piper","kind":"voice","name":"Piper dfki","installed":false,"languages":["tr"],"selected_for":[]},` +
+		`{"id":"yaz","kind":"transcriber","name":"Whisper","installed":true,"languages":["tr","en"],"selected_for":[]}]`
+	chosen := `[{"id":"mms","kind":"voice","name":"MMS-TTS tur","installed":true,"languages":["tr"],"selected_for":[]},` +
+		`{"id":"piper","kind":"voice","name":"Piper dfki","installed":true,"languages":["tr"],"selected_for":["tr"]}]`
+	cases := []struct{ name, speech, entries, want string }{
+		{"Turkish: two voices, Piper not downloaded", "tr", entries,
+			`[{"value":"mms","name":"MMS-TTS tur","missing":false,"selected":true},{"value":"piper","name":"Piper dfki","missing":true,"selected":false}]`},
+		{"Piper downloaded and chosen", "tr", chosen,
+			`[{"value":"mms","name":"MMS-TTS tur","missing":false,"selected":false},{"value":"piper","name":"Piper dfki","missing":false,"selected":true}]`},
+		{"English: one voice", "en", entries, `[{"value":"eng","name":"MMS-TTS eng","missing":false,"selected":true}]`},
+		{"unknown language", "de", entries, `[]`},
+	}
+	for _, c := range cases {
+		output := nodeBlock(t, eventsModule, "Katalog", "const entries = catalogEntries({entries: JSON.parse(process.argv[2])});\n"+
+			"process.stdout.write(JSON.stringify(voiceOptions(entries, process.argv[3])));\n", c.entries, c.speech)
+		if string(output) != c.want {
+			t.Errorf("%s: voiceOptions = %s, want %s", c.name, output, c.want)
+		}
+	}
+	view := readFile(t, "tools/assistant/js/view.js")
+	for _, want := range []string{`const voices = voiceOptions(ui.catalog, speech);`, `select.disabled = !usable || voices.length < 2;`,
+		`byId("settingsVoiceOnly").hidden = voices.length > 1;`, `setSetting("voice", `} {
+		if !strings.Contains(view, want) {
+			t.Errorf("js/view.js does not have %s", want)
+		}
+	}
+	if !strings.Contains(markup(t), `<p class="hint" id="settingsVoiceOnly" data-i18n="settings_models_only_one"></p>`) {
+		t.Error("the voice field has no hint for a single voice")
 	}
 }
 

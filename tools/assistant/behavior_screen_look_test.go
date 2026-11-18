@@ -336,8 +336,42 @@ func TestDeviceSelectorFollowsTheMachine(t *testing.T) {
 	}
 }
 
-// Sonucu değiştiren ayarın işareti (15.22a; tek tık S1-20): hesap cihazının altında "Cevabı değiştirebilir", stilde
-// işaretli.
+// Dar pencerede ayarlar bir anda tek bölme gösterir (DENETİM 890 N1, Dost P-9): 640 px'in altında listedeyken gövde,
+// bölmedeyken liste gizlenir ve geri düğmesi görünür; düğme listeye döner, adı ne yaptığını söyler ("Gruplara dön",
+// "Back to groups"). Pencere listeyle açılır.
+func TestNarrowSettingsShowOnePaneAtATime(t *testing.T) {
+	narrow := capture(t, `(?s)@media \(max-width: 640px\) \{(.*?)\n\}`, style(t))
+	for _, want := range []string{`#settingsDialog[data-view="list"] .settings-body { display: none; }`,
+		`#settingsDialog[data-view="panel"] .settings-tabs { display: none; }`,
+		`#settingsDialog[data-view="panel"] .settings-back { display: inline-flex; }`} {
+		if !strings.Contains(narrow, want) {
+			t.Errorf("the narrow rule has no %s", want)
+		}
+	}
+	if !strings.Contains(style(t), `.settings-back { display: none;`) {
+		t.Error("the back button is not hidden on a wide window")
+	}
+	page := markup(t)
+	if !strings.Contains(page, `<dialog class="settings" id="settingsDialog" aria-labelledby="settingsTitle" data-view="list">`) {
+		t.Error("the settings window does not open with the list")
+	}
+	if !strings.Contains(capture(t, `(?s)<button class="btn settings-back" id="settingsBack"(.*?)</button>`, page), `data-i18n="settings_back"`) {
+		t.Error("the back button has no settings_back name")
+	}
+	view := readFile(t, "tools/assistant/js/view.js")
+	if !strings.Contains(view, "byId(\"settingsBack\").addEventListener(\"click\", () => {\n    settingsDialog.dataset.view = \"list\";") {
+		t.Error("the back button does not return to the list")
+	}
+	for file, want := range map[string]string{"tools/assistant/lang/tr.js": `"settings_back": "Gruplara dön",`,
+		"tools/assistant/lang/en.js": `"settings_back": "Back to groups",`} {
+		if !strings.Contains(readFile(t, file), want) {
+			t.Errorf("%s does not name the back button %s", file, want)
+		}
+	}
+}
+
+// Sonucu değiştiren ayarın işareti (15.22a; tek tık S1-20): hesap cihazının altında "Değiştirmek cevabı
+// değiştirebilir" (DENETİM 890 N2), stilde işaretli.
 func TestDeviceSelectorMarksResultChange(t *testing.T) {
 	field := capture(t, `(?s)<label for="settingsDevice"(.*?)</div>`, markup(t))
 	if !strings.Contains(field, `<p class="hint result-mark" data-i18n="settings_changes_answers"></p>`) {

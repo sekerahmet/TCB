@@ -388,7 +388,7 @@ func TestDostWritesTheSettingBeforeTheEvent(t *testing.T) {
 	// Katalog her türü taşır (M1); dil modeli kurulu değil, dosyaları da inmemiş.
 	entries, _ := catalogs[0]["entries"].([]any)
 	entry, _ := entries[0].(map[string]any)
-	if len(entries) != 9 || entry["id"] != "qwen3-4b-q4km" || entry["installed"] != false || entry["downloaded"] != false ||
+	if len(entries) != 10 || entry["id"] != "qwen3-4b-q4km" || entry["installed"] != false || entry["downloaded"] != false ||
 		entry["kind"] != "language_model" || entry["bytes"] != float64(2497280256) {
 		t.Errorf("catalog: %v", entries)
 	}

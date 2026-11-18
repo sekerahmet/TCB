@@ -272,7 +272,8 @@ func TestChatOnlyTurnIsNotVoiced(t *testing.T) {
 		}
 	}
 	work := between("TR_func tur_işi(", "TR_func kimlikleri_yaz(")
-	for _, want := range []string{"sessiz: TR_Bool = TR_false", "cevapla(z, yazı, t0, t, söyleyen(sessiz, (c) => konuşma.söyle(a.ses.TR_synthesize(c))), aktı)",
+	for _, want := range []string{"sessiz: TR_Bool = TR_false", "cevapla(z, yazı, t0, t, söyleyen(sessiz, söyle), aktı)",
+		"TR_var ses = sesi_üret(a, t, c, ekran)",
 		"TR_if sessiz { t.seslendirilen = [] }"} {
 		if !strings.Contains(work, want) {
 			t.Errorf("tur_işi'nde %q yok", want)
@@ -283,6 +284,38 @@ func TestChatOnlyTurnIsNotVoiced(t *testing.T) {
 	}
 	if !strings.Contains(src, "e.yalnız_sohbet = etkin.yalnız_sohbet") {
 		t.Errorf("%s: ekran açılışta ayarın chat_only'sini almıyor", chainProgram)
+	}
+}
+
+// Sesin okuyamadığı cümle turu düşürmez (Dost P-12; DENETİM 897 Ş4): `tur_işi` cümleyi `sesi_üret`'ten geçirir; yalnız
+// H7567 (sesin sözlüğünde olmayan harf: Piper'da Kiril ya da Çin yazısı) yakalanır, öbür hata turu bugünkü gibi düşürür.
+// Atlanan cümle `seslendirilen`'den çıkar, turun `atlanan`'ına girer ve kayda yazılır; ekranlı kipte turun yazıcısıyla
+// ölümcül olmayan `speech_skipped` gider, ekransız kipte günlüğe `SES ATLANDI:`. Ses gerçek model ister (TR_Vits);
+// bağ kaynakta sınanır, davranışı Ahmet'in denemesinde Kiril bir cümleyle.
+func TestSkippedSentenceKeepsTheTurn(t *testing.T) {
+	src := readFile(t, chainProgram)
+	i, j := strings.Index(src, "TR_func sesi_üret("), strings.Index(src, "TR_func kimlikleri_yaz(")
+	if i < 0 || j < i {
+		t.Fatalf("%s: sesi_üret bulunamadı", chainProgram)
+	}
+	skip := src[i:j]
+	for _, want := range []string{"TR_return a.ses.TR_synthesize(c)", `TR_if h.TR_code != "H7567" { TR_throw h }`,
+		"t.seslendirilen = t.seslendirilen[0..n - 1]", "t.atlanan.TR_append(c)",
+		`ekran.e.gönder("error", TR_JSON({"code": "speech_skipped", "values": {}, "fatal": TR_false}))`, `TR_print("SES ATLANDI:", c)`} {
+		if !strings.Contains(skip, want) {
+			t.Errorf("sesi_üret'te %q yok", want)
+		}
+	}
+	if !strings.Contains(readFile(t, "tools/assistant/deneme.tr"), `d["atlanan"] = TR_JSON(t.atlanan)`) {
+		t.Error("deneme.tr: the record has no atlanan")
+	}
+	if !strings.Contains(readFile(t, "tools/assistant/contract.md"), "| `speech_skipped` | |") {
+		t.Error("contract.md: the error table has no speech_skipped")
+	}
+	for _, file := range []string{"tools/assistant/lang/tr.js", "tools/assistant/lang/en.js"} {
+		if !strings.Contains(readFile(t, file), `"error_speech_skipped": "`) {
+			t.Errorf("%s has no error_speech_skipped", file)
+		}
 	}
 }
 

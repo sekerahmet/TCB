@@ -2,7 +2,7 @@
 # Dost'un model kataloğu ve ayarı (tek tık kurulumu, A dilimi). İki dosya da JSON'dur ve `"v": 1` taşır: bilinmeyen
 # alan, eksik alan, yanlış tür, izinli kümede olmayan değer ve bilinmeyen sürüm açık hatadır (H8160–H8174). Modül
 # ayarın JSON'unu denetler (`ayar_denetle`) ve her dil modelinin bu makineye sığıp sığmadığını hesaplar; model
-# yüklemez, ağa çıkmaz. Ayar dosyasının yolu, okunması, yazılması ve kurulum ayarlar.tr'dedir; o bu modülü aktarır, bu
+# yüklemez, ağa çıkmaz. Ayar dosyasının yolu, okunması, yazılması, bağlamın seçimi ve kurulum ayarlar.tr'dedir; o bu modülü aktarır, bu
 # modül hiçbir şey aktarmaz. katalog_test.tr ikisini de sınar (README, "Kurulum").
 
 TR_const SÜRÜM = 1
@@ -36,10 +36,11 @@ TR_struct Girdi {
     ölçüler: TR_List[Ölçü]
 }
 
+# Dil: katalogun bir konuşma dili; `sesler` dilin sesleri, sırayla (ilki öntanımlı; yuva.tr, `dilin_sesi`).
 TR_struct Dil {
     kod: TR_String
     yazıcı: TR_String
-    ses: TR_String
+    sesler: TR_List[TR_String]
 }
 
 TR_struct Katalog {
@@ -58,13 +59,16 @@ TR_struct Ayar {
     nicemli: TR_String? = TR_none # ayarın `quantized_activations`'ı (auto, on, off); yoksa TR_none (nicemli.tr, nicemli_seç)
     yalnız_sohbet: TR_Bool = TR_false # ayarın `chat_only`'si; yoksa kapalı (mikrofon ve ses kapalı, yazıyla sohbet)
     cihaz: TR_String = "cpu" # ayarın `device`'ı (cpu, gpu); bir sonraki açılışta geçerli
+    sesler: TR_Dict[TR_String, TR_String] = {} # ayarın `voices`'u: dil kodu → seçilen ses; yoksa boş
 }
 
 # ayar_kopyası: ayarın bütün alanlarıyla kopyası (oturum.tr bir alanı değiştirip etkin ayarı yeniler; alan düşmez).
 TR_func ayar_kopyası(a: Ayar) -> Ayar {
+    TR_var sesler: TR_Dict[TR_String, TR_String] = {}
+    TR_for kod TR_in a.sesler.TR_keys() { sesler[kod] = a.sesler[kod] }
     TR_return Ayar(dil_modeli: a.dil_modeli, konuşma_dili: a.konuşma_dili, sistem: a.sistem, bağlam: a.bağlam, kapı: a.kapı,
         mikrofon: a.mikrofon, kayıt: a.kayıt, nicemli: a.nicemli, yalnız_sohbet: a.yalnız_sohbet,
-        cihaz: a.cihaz)
+        cihaz: a.cihaz, sesler: sesler)
 }
 
 # Uygunluk: bir dil modelinin bu makinedeki gereken belleği ve sınıfı (`fits`, `tight`, `too_large`; bağlam modelin
@@ -132,7 +136,7 @@ TR_func alan_örneği(alan: TR_String) -> TR_String {
         "kv": "\"kv\": {\"layers\": 36, \"kv_heads\": 8, \"head_dim\": 128}", "layers": "\"layers\": 36", "kv_heads": "\"kv_heads\": 8",
         "head_dim": "\"head_dim\": 128", "measured": "\"measured\": []", "context": "\"context\": 8192", "private_bytes": "\"private_bytes\": 0",
         "measured_on": "\"measured_on\": \"colab-cpu-highram-linux\"", "code": "\"code\": \"tr\"", "whisper_language": "\"whisper_language\": \"tr\"",
-        "transcriber": "\"transcriber\": \"whisper-small\"", "voice": "\"voice\": \"mms-tts-tur\"", "system_prompt": "\"system_prompt\": {\"source\": \"catalog\"}",
+        "transcriber": "\"transcriber\": \"whisper-small\"", "voices": "\"voices\": [\"mms-tts-tur\"]", "system_prompt": "\"system_prompt\": {\"source\": \"catalog\"}",
         "language_model": "\"language_model\": \"qwen3-4b-q4km\"", "speech_language": "\"speech_language\": \"tr\"",
         "source_kind": "\"source\": \"catalog\"", "text": "\"text\": \"…\"", "language": "\"language\": \"tr\"", "device": "\"device\": \"cpu\"",
         "port": "\"port\": 47863", "machine": "\"machine\": {\"memory_bytes\": 17179869184, \"memory_source\": \"option\"}",
@@ -304,11 +308,19 @@ TR_func _girdi(dosya: TR_String, j: TR_JSON, yol: TR_String) -> Girdi {
     TR_return g
 }
 
+# _dil: bir konuşma dili; `voices` en az bir sesin kimliğidir, boş liste H8164 (emsal boş `files`).
 TR_func _dil(dosya: TR_String, j: TR_JSON, yol: TR_String) -> Dil {
-    TR_var alanlar = ["code", "whisper_language", "transcriber", "voice", "system_prompt"]
+    TR_var alanlar = ["code", "whisper_language", "transcriber", "voices", "system_prompt"]
     _nesne(dosya, j, yol, alanlar, alanlar)
-    TR_for a TR_in alanlar { _metin(dosya, j, yol, a) }
-    TR_return Dil(kod: TR_String(j["code"]), yazıcı: TR_String(j["transcriber"]), ses: TR_String(j["voice"]))
+    TR_for a TR_in ["code", "whisper_language", "transcriber", "system_prompt"] { _metin(dosya, j, yol, a) }
+    TR_var l = _dizi(dosya, j, yol, "voices")
+    TR_if l.TR_length == 0 { TR_throw TR_Message("H8164", dosya, _alt(yol, "voices[0]"), alan_örneği("voices")) }
+    TR_var sesler: TR_List[TR_String] = []
+    TR_for i TR_in 0..l.TR_length {
+        _tip(dosya, l[i], _alt(yol, "voices[\(i)]"), "string")
+        sesler.TR_append(TR_String(l[i]))
+    }
+    TR_return Dil(kod: TR_String(j["code"]), yazıcı: TR_String(j["transcriber"]), sesler: sesler)
 }
 
 TR_func girdi_bul(k: Katalog, kimlik: TR_String) -> Girdi? {
@@ -326,7 +338,7 @@ TR_func _türdekiler(k: Katalog, tür: TR_String) -> TR_List[TR_String] {
     TR_return l
 }
 
-# _gösterilen: dilin `transcriber`'ı ya da `voice`'u katalogda o türde bir girdi olmalı (H8169).
+# _gösterilen: dilin `transcriber`'ı ya da `voices`'undaki bir ses katalogda o türde bir girdi olmalı (H8169).
 TR_func _gösterilen(k: Katalog, yol: TR_String, kimlik: TR_String, tür: TR_String) {
     TR_var g = girdi_bul(k, kimlik)
     TR_if g == TR_none { TR_throw TR_Message("H8169", yol, kimlik, "missing_entry") }
@@ -348,7 +360,12 @@ TR_func _tutarlılık(k: Katalog) {
     }
     TR_for i TR_in 0..k.diller.TR_length {
         _gösterilen(k, "languages[\(i)].transcriber", k.diller[i].yazıcı, "transcriber")
-        _gösterilen(k, "languages[\(i)].voice", k.diller[i].ses, "voice")
+        TR_var sesler = k.diller[i].sesler
+        TR_for j TR_in 0..sesler.TR_length {
+            TR_var y = "languages[\(i)].voices[\(j)]"
+            _gösterilen(k, y, sesler[j], "voice")
+            TR_if sesler[0..j].TR_contains(sesler[j]) { TR_throw TR_Message("H8169", y, sesler[j], "duplicate_id") }
+        }
     }
 }
 
@@ -374,6 +391,28 @@ TR_func _ayar_kimliği(k: Katalog, alan: TR_String, kimlik: TR_String, tür: TR_
     TR_if g.tür != tür { TR_throw TR_Message("H8168", alan, kimlik, "wrong_kind", _sıra(uyanlar)) }
 }
 
+# _ayar_sesleri: ayarın isteğe bağlı `voices`'u (dil kodu → ses kimliği). Katalogda olmayan dil kodu H8163; dilin
+# seslerinde olmayan kimlik H8168 (`voices.<kod>`; katalogda yoksa `not_in_catalog`, ses değilse `wrong_kind`, başka
+# dilin sesiyse `other`), uyanlar dilin sesleri.
+TR_func _ayar_sesleri(dosya: TR_String, j: TR_JSON, k: Katalog) -> TR_Dict[TR_String, TR_String] {
+    TR_var d: TR_Dict[TR_String, TR_String] = {}
+    TR_if j.TR_get("voices") == TR_none { TR_return d }
+    _nesne(dosya, j["voices"], "voices", [dl.kod TR_for dl TR_in k.diller], [])
+    TR_for dl TR_in k.diller {
+        TR_if j["voices"].TR_get(dl.kod) == TR_none { TR_continue }
+        TR_var alan = "voices.\(dl.kod)"
+        TR_var kimlik = _metin(dosya, j["voices"], "voices", dl.kod)
+        TR_if TR_not dl.sesler.TR_contains(kimlik) {
+            TR_var neden = "other"
+            TR_var g = girdi_bul(k, kimlik)
+            TR_if g == TR_none { neden = "not_in_catalog" } TR_else TR_if g.tür != "voice" { neden = "wrong_kind" }
+            TR_throw TR_Message("H8168", alan, kimlik, neden, _sıra(dl.sesler))
+        }
+        d[dl.kod] = kimlik
+    }
+    TR_return d
+}
+
 TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
     TR_var y = "system_prompt"
     _tip(dosya, j, y, "object")
@@ -389,12 +428,13 @@ TR_func _sistem_iletisi(dosya: TR_String, j: TR_JSON) {
 
 # ayar_denetle: ayar dosyasının JSON'unun bütünü denetlenir (`yol` iletide görünür); ayarın tek denetimi budur:
 # ayarlar.tr'nin `ayar_oku`'su okuduğunu ondan geçirir. `microphone` (metin), `recording` ve `chat_only` (true/false)
-# ve `quantized_activations` (auto, on, off) isteğe bağlıdır: olmayan eski dosya da okunur; bilinmeyen alan yine H8163.
+# ve `quantized_activations` (auto, on, off) ve `voices` (`_ayar_sesleri`) isteğe bağlıdır: olmayan eski dosya da
+# okunur; bilinmeyen alan yine H8163.
 # `device` `cpu` ya da `gpu`; `machine.gpu` (kartın özeti, `_kart`) isteğe bağlıdır.
 TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
     _sürüm(yol, j)
     TR_var alanlar = ["v", "language_model", "speech_language", "system_prompt", "context", "device", "port", "machine"]
-    _nesne(yol, j, "", alanlar + ["microphone", "recording", "quantized_activations", "chat_only"], alanlar)
+    _nesne(yol, j, "", alanlar + ["microphone", "recording", "quantized_activations", "chat_only", "voices"], alanlar)
     TR_var lm = _metin(yol, j, "", "language_model")
     _ayar_kimliği(k, "language_model", lm, "language_model")
     TR_var dil = _metin(yol, j, "", "speech_language")
@@ -424,52 +464,7 @@ TR_func ayar_denetle(yol: TR_String, j: TR_JSON, k: Katalog) -> Ayar {
         sohbet = TR_Bool(j["chat_only"])
     }
     TR_return Ayar(dil_modeli: lm, konuşma_dili: dil, sistem: j["system_prompt"], bağlam: bağlam, kapı: kapı, mikrofon: mikrofon, kayıt: kayıt,
-        nicemli: nicemli, yalnız_sohbet: sohbet, cihaz: cihaz)
-}
-
-# bağlam_oku: komut satırının `--bağlam` metni; sayı değilse H8173.
-TR_func bağlam_oku(metin: TR_String) -> TR_Int {
-    TR_var n = 0
-    TR_try { n = TR_Int(metin) } TR_catch _e { TR_throw TR_Message("H8173", metin) }
-    TR_return n
-}
-
-# bağlam_seç: `--bağlam` verildiyse o (0 ya da eksi H8173: sessizce 8192 alınmaz), yoksa ayarın `context`'i, yoksa
-# 8192. "Verilmedi" yalnız seçeneğin hiç yazılmamasıdır (`TR_none`; tasarımın defteri 58).
-TR_func bağlam_seç(verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
-    TR_var v = verilen
-    TR_if v != TR_none {
-        TR_if v <= 0 { TR_throw TR_Message("H8173", "\(v)") }
-        TR_return v
-    }
-    TR_var a = ayar
-    TR_if a != TR_none { TR_return a.bağlam }
-    TR_return ÖNTANIMLI_BAĞLAM
-}
-
-# bağlam_sınırı: dil modelinin `context_max`'ı; model katalogda yoksa (seçili değilse) dil modellerinin en büyüğü;
-# katalogda dil modeli yoksa 0 (Dost katalog K-9: ekranın sınırı seçili modelinkidir).
-TR_func bağlam_sınırı(k: Katalog, dil_modeli: TR_String) -> TR_Int {
-    TR_var en = 0
-    TR_for g TR_in k.girdiler {
-        TR_if g.tür != "language_model" { TR_continue }
-        TR_if g.kimlik == dil_modeli { TR_return g.bağlam_sınırı }
-        TR_if g.bağlam_sınırı > en { en = g.bağlam_sınırı }
-    }
-    TR_return en
-}
-
-# bağlam_belirle: bağlam_seç'in değeri, dil modellerinin en büyük `context_max`'ıyla sınırlı (tasarımın defteri 62,
-# 63). `--bağlam` ya da ayarın `context`'i bütün sınırları aşarsa H8174 (`source` `option`, `setting`); öntanımlı
-# 8192 en büyük sınıra iner, hata vermez. Seçili modelin sınırını aşan bağlam açılışta hata değildir: önbellek
-# yüklenen modelin sınırıyla kurulur (yuva.tr, `önbellek_bağlamı`).
-TR_func bağlam_belirle(k: Katalog, verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
-    TR_var b = bağlam_seç(verilen, ayar)
-    TR_var en = bağlam_sınırı(k, "")
-    TR_if b <= en { TR_return b }
-    TR_if verilen != TR_none { TR_throw TR_Message("H8174", "option", b, en) }
-    TR_if ayar != TR_none { TR_throw TR_Message("H8174", "setting", b, en) }
-    TR_return en
+        nicemli: nicemli, yalnız_sohbet: sohbet, cihaz: cihaz, sesler: _ayar_sesleri(yol, j, k))
 }
 
 TR_func kv_baytı(g: Girdi) -> TR_Int {
@@ -491,8 +486,9 @@ TR_func _küçük_bellek(k: Katalog, kimlik: TR_String) -> Bellek {
 # küçük_bellek: küçük modelin çalışırken gereken belleği (`catalog`'un `memory_bytes`'ı; yuva.tr, katalog_olayı).
 TR_func küçük_bellek(k: Katalog, kimlik: TR_String) -> TR_Int { TR_return _küçük_bellek(k, kimlik).bayt }
 
-# küçükler: dil modeline eklenen takım: `vad` girdisi, dilin `transcriber`'ı ve `voice`'u (TCB, defter 53). Dil
-# ayarın `speech_language`'ıdır; ayar yoksa dillerin en büyük toplamı.
+# küçükler: dil modeline eklenen takım: `vad` girdisi, dilin `transcriber`'ı ve sesi (TCB, defter 53). Dil ayarın
+# `speech_language`'ıdır; ayar yoksa dillerin en büyük toplamı. Ses ayarın o dil için seçtiğidir (`sesler`; çağıran
+# kurulu olmayan seçimi çıkarır, yuva.tr `kurulu_seçimler`); seçim yoksa dilin seslerinin en büyüğü (Dost P-2).
 TR_func küçükler(k: Katalog, ayar: Ayar?) -> Bellek {
     TR_var vad = _küçük_bellek(k, _türdekiler(k, "vad")[0])
     TR_var a = ayar
@@ -500,7 +496,13 @@ TR_func küçükler(k: Katalog, ayar: Ayar?) -> Bellek {
     TR_for d TR_in k.diller {
         TR_if a != TR_none TR_and a.konuşma_dili != d.kod { TR_continue }
         TR_var y = _küçük_bellek(k, d.yazıcı)
-        TR_var s = _küçük_bellek(k, d.ses)
+        TR_var s = Bellek(bayt: -1, ölçülü: TR_false)
+        TR_var seçim = TR_if a == TR_none { TR_none } TR_else { a.sesler.TR_get(d.kod) }
+        TR_for kimlik TR_in d.sesler {
+            TR_var b = _küçük_bellek(k, kimlik)
+            TR_if seçim == kimlik { s = b }
+            TR_if seçim == TR_none TR_and b.bayt > s.bayt { s = b }
+        }
         TR_var b = Bellek(bayt: vad.bayt + y.bayt + s.bayt, ölçülü: vad.ölçülü TR_and y.ölçülü TR_and s.ölçülü)
         TR_if b.bayt > en.bayt { en = b }
     }

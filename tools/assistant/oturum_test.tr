@@ -305,3 +305,60 @@ TR_test "katalog kartta: modeller kartta kurulduysa uygunluk kartın belleğiyle
     o.kart = 2147483648
     TR_assert_equal("too_large", uyum()) # 2 GiB'lik kart
 }
+
+TR_test "oturum: voice ayarı yazılır, catalog yeniden gider; başka dilin sesi invalid_value, inmemiş ses not_installed" {
+    TR_var o = _oturum()
+    o.e.ses_cevabı = ses_cevapları(o.kj, o.klasör, "tr")
+    TR_var ayar = (v: TR_String) => TR_json_string(karar(o.e, Komut(kimlik: "k-\(v)", tür: "settings_set", veri: TR_JSON({"key": "voice", "value": v}))))
+    TR_var p = "piper-tr-dfki-medium"
+    TR_assert(ayar(p).TR_contains("\"reason\":\"not_installed\"")) # sınamada sesin dosyası inmez
+    TR_assert(ayar("mms-tts-eng").TR_contains("\"reason\":\"invalid_value\"")) # başka dilin sesi
+    TR_assert(ayar("yok").TR_contains("\"reason\":\"invalid_value\""))
+    TR_assert(TR_json_string(karar(o.e, Komut(kimlik: "s", tür: "settings_set", veri: TR_JSON({"key": "voice", "value": 5})))).TR_contains("invalid_value"))
+    TR_assert(o.e.ayar_istendi == TR_none)
+    o.e.ses_cevabı = {p: TR_JSON({})} # kurulu sayılır
+    o.e.tur = "t-1"
+    TR_assert(ayar(p).TR_contains("turn_busy"))
+    o.e.tur = ""
+    TR_assert(ayar(p).TR_contains("accepted"))
+    o.e.ayar_istendi = TR_none
+    TR_var önce = o.e.giden.TR_length
+    o.ayarı_uygula("voice", TR_JSON(p))
+    TR_assert_equal(p, TR_String(dosya_oku(o.ayar_dosyası, "ayar")["voices"]["tr"]))
+    TR_assert_equal(p, o.etkin.sesler["tr"])
+    TR_var giden = o.e.giden[önce..o.e.giden.TR_length]
+    TR_assert_equal(["catalog", "settings"], [TR_String(g["type"]) TR_for g TR_in giden])
+    TR_assert_equal(p, TR_String(giden[1]["data"]["voices"]["tr"]))
+    # Hiçbir ses kurulu değil: Türkçenin sesi listenin ilki, Piper (P-4, P-10); languages sesin bulunduğu diller.
+    TR_var l = TR_List(giden[0]["data"]["entries"])
+    TR_var seçilen = (id: TR_String) => TR_json_string([x TR_for x TR_in l TR_if TR_String(x["id"]) == id][0]["selected_for"])
+    TR_assert_equal(["[]", "[\"tr\"]", "[\"en\"]"], [seçilen("mms-tts-tur"), seçilen(p), seçilen("mms-tts-eng")])
+    TR_assert_equal("[\"tr\"]", TR_json_string([x TR_for x TR_in l TR_if TR_String(x["id"]) == p][0]["languages"]))
+    TR_assert([x TR_for x TR_in l TR_if TR_String(x["id"]) == "whisper-small"][0].TR_get("selected_for") == TR_none)
+}
+
+TR_test "oturum: voice sesi değiştirir, geçmiş ve önbellek kalır; yüklenemezse eski ses ve eski ayar" {
+    TR_var o = _oturum()
+    TR_var p = "piper-tr-dfki-medium"
+    TR_var t = Takım(giriş: "qwen3-4b-q4km", dil_modeli: "d.gguf", yazıcı: "y", vad: "v", ses: ses_yolu(o.kj, o.klasör, "mms-tts-tur"), dil: "tr", sistem: "s")
+    o.y.takım = t
+    o.ses_değiştirici = (yt) => "ses okunamadı"
+    o.ayarı_uygula("voice", TR_JSON(p))
+    TR_var g = _son(o.e)
+    TR_assert_equal(["error", "model_load_failed", "tr_TR-dfki-medium.onnx"], [TR_String(g["type"]), TR_String(g["data"]["code"]), TR_String(g["data"]["values"]["model"])])
+    TR_assert_equal("{}", TR_json_string(dosya_oku(o.ayar_dosyası, "ayar")["voices"]))
+    TR_assert_equal(0, o.etkin.sesler.TR_length)
+    TR_assert_equal(t.ses, o.y.takım.ses)
+    # Yüklenince yuvanın takımı yalnız sesiyle değişir: dil modeli, sistem iletisi aynı (sesi_uygula konuşmayı sıfırlamaz).
+    o.ses_değiştirici = (yt) => (dil_değiştir(o.y, yt, (x) => {}) {})
+    o.ayarı_uygula("voice", TR_JSON(p))
+    TR_assert_equal(p, TR_String(dosya_oku(o.ayar_dosyası, "ayar")["voices"]["tr"]))
+    TR_assert_equal(p, o.etkin.sesler["tr"])
+    TR_assert_equal(TR_String(TR_Path(o.klasör, "modeller", p, "tr_TR-dfki-medium.onnx")), o.y.takım.ses)
+    TR_assert_equal(["d.gguf", "s", "tr"], [o.y.takım.dil_modeli, o.y.takım.sistem, o.y.takım.dil])
+    TR_assert_equal("settings", TR_String(_son(o.e)["type"]))
+    # Aynı ses yeniden seçilirse yüklenmez.
+    o.ses_değiştirici = (yt) => "çağrılmamalıydı"
+    o.ayarı_uygula("voice", TR_JSON(p))
+    TR_assert_equal("settings", TR_String(_son(o.e)["type"]))
+}

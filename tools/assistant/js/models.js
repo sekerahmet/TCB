@@ -72,12 +72,15 @@ function slowDownload(samples, total, now) {
 }
 
 /**
- * Ayarın takımındaki girdi: dil modeli ayardan, yazıcı ve ses konuşma dilinden (`languages`), VAD katalogun ilkidir.
+ * Ayarın takımındaki girdi: dil modeli ayardan, yazıcı konuşma dilinden (`languages`), ses konuşma dilinin seçili sesi
+ * (`selected_for`; P dilimi, P-6; seçim gelmediyse dilin ilk sesi), VAD katalogun ilkidir.
  * @param {string} kind @param {any[]} catalog @param {Record<string, unknown>} settings
  */
 function teamOf(kind, catalog, settings) {
   if (kind === "language_model") return catalog.find((e) => e.id === settings.language_model);
   if (kind === "vad") return catalog.find((e) => e.kind === "vad");
+  const chosen = kind === "voice" ? catalog.find((e) => e.kind === kind && (e.selected_for || []).includes(settings.speech_language)) : undefined;
+  if (chosen) return chosen;
   return catalog.find((e) => e.kind === kind && e.languages.includes(settings.speech_language));
 }
 

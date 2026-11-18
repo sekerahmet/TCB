@@ -1,7 +1,8 @@
 # TR 4
 # Ekranın sunucusu (contract.md, sürüm 2): sayfayı ve dil dosyalarını sunar, akışı ve komut yolunu açar, belirteci
-# üretip dosyaya yazar. Ekran (`Ekran`, `Komut`, kararlar) ekran.tr'dedir; bu modül onu aktarır, ekran.tr bunu
-# aktarmaz (döngü yok, 11.3). asistan.tr ve screen_demo.tr sunucuyu buradan açar.
+# üretip dosyaya yazar; mikrofonların listesini ffmpeg'in çıktısından okur (`mikrofon_listesi`). Ekran (`Ekran`,
+# `Komut`, kararlar) ekran.tr'dedir; bu modül onu aktarır, ekran.tr bunu aktarmaz (döngü yok, 11.3). asistan.tr ve
+# screen_demo.tr sunucuyu buradan açar.
 
 TR_import "ekran"
 TR_import "esleme"
@@ -124,4 +125,22 @@ TR_func belirteçle_aç(e: Ekran, kapı: TR_Int, dosya: TR_String) -> TR_HTTPSer
         TR_throw h
     }
     TR_return s
+}
+
+# mikrofon_listesi: ffmpeg'in `-sources dshow` çıktısındaki ses aygıtlarının adları, sırasıyla (`devices`). İlk dolu
+# satır `Auto-detected sources for dshow:` değilse TR_none: liste okunamadı (Windows dışında dshow yok). Aygıt satırı
+# `  <kimlik> [<ad>] (<tür>)`; türünde `audio` geçen satırın adı ilk `[` ile son `] (` arasıdır (adda ayraç olabilir).
+TR_func mikrofon_listesi(çıktı: TR_String) -> TR_List[TR_String]? {
+    TR_var satırlar = [s.TR_strip() TR_for s TR_in çıktı.TR_lines() TR_if s.TR_strip() != ""]
+    TR_if satırlar.TR_length == 0 TR_or satırlar[0] != "Auto-detected sources for dshow:" { TR_return TR_none }
+    TR_var adlar: TR_List[TR_String] = []
+    TR_for s TR_in satırlar[1..satırlar.TR_length] {
+        TR_var parçalar = s.TR_split("] (")
+        TR_var n = parçalar.TR_length
+        TR_if n < 2 TR_or TR_not s.TR_ends_with(")") TR_or TR_not parçalar[n - 1].TR_contains("audio") { TR_continue }
+        TR_var baş = parçalar[0..n - 1].TR_join("] (")
+        TR_var ayraç = baş.TR_index_of("[")
+        TR_if ayraç != TR_none { adlar.TR_append(baş[ayraç + 1..baş.TR_length]) }
+    }
+    TR_return adlar
 }

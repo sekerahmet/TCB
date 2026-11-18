@@ -20,17 +20,25 @@ function createMockModels(host) {
     entry("mock-model-large", "language_model", 5027783488, 16900000000, { fit: "too_large", downloaded: false }),
     entry("mock-transcriber", "transcriber", 969481381, 990814208, { languages: ["tr", "en"] }),
     entry("mock-voice-tr", "voice", 145233756, 253636608, { languages: ["tr"] }),
+    entry("mock-voice-piper", "voice", 63206254, 103784448, { languages: ["tr"], downloaded: false }),
     entry("mock-voice-en", "voice", 145229853, 252952576, { languages: ["en"], downloaded: false }),
     entry("mock-vad", "vad", 1239748, 1257472),
     { id: "mock-image", kind: "image_model", name: "mock-image", installed: true },
   ] };
   /** @param {string} id */
   const find = (id) => catalog.entries.find((e) => e.id === id);
-  /** Ayarın konuşma dilinin parçaları: VAD ve dilin yazıcısı ile sesi. */
-  const parts = () => catalog.entries.filter((e) => e.kind === "vad" || ((e.kind === "transcriber" || e.kind === "voice") && e.languages.includes(settings.speech_language)));
+  /** Dilin sesi (P dilimi, P-4): ayarın inmiş seçimi, yoksa dilin ilk inmiş sesi, yoksa ilki. @param {string} lang */
+  const voiceOf = (lang) => {
+    const voices = catalog.entries.filter((e) => e.kind === "voice" && e.languages.includes(lang));
+    const chosen = voices.find((e) => e.id === (settings.voices || {})[lang] && e.downloaded);
+    return chosen || voices.find((e) => e.downloaded) || voices[0];
+  };
+  /** Ayarın konuşma dilinin parçaları: VAD, dilin yazıcısı ve sesi. */
+  const parts = () => catalog.entries.filter((e) => e.kind === "vad" || (e.kind === "transcriber" && e.languages.includes(settings.speech_language)) || e === voiceOf(settings.speech_language));
   function refresh() {
     const team = parts().every((e) => e.downloaded);
     for (const e of catalog.entries) if (e.kind !== "image_model") e.installed = e.downloaded && (e.kind !== "language_model" || team);
+    for (const e of catalog.entries) if (e.kind === "voice") e.selected_for = e.languages.filter((/** @type {string} */ l) => voiceOf(l) === e);
     emit("catalog", catalog);
   }
   let pendingMic = false;
@@ -111,6 +119,7 @@ function createMockModels(host) {
     device: (value) => value === "cpu" || value === "gpu",
     quantized_activations: (value) => ["auto", "on", "off"].includes(value),
     language_model: (value) => Boolean(find(str(value))),
+    voice: (value) => typeof value === "string",
   };
 
   return {
@@ -184,7 +193,16 @@ function createMockModels(host) {
             || (key === "quantized_activations" && data.value === "on" && settings.device === "gpu");
           if (clash) return rejected("setting_invalid", { key, reason: "invalid_value" });
           if (key === "language_model" && !(/** @type {any} */ (find(data.value))).installed) return rejected("setting_invalid", { key, reason: "not_installed" });
-          if (["language_model", "speech_language", "chat_only"].includes(key) && host.turn()) return rejected("turn_busy", { turn_id: host.turn() });
+          const voice = key === "voice" ? find(data.value) : undefined;
+          if (key === "voice" && !(voice && voice.kind === "voice" && voice.languages.includes(settings.speech_language))) return rejected("setting_invalid", { key, reason: "invalid_value" });
+          if (key === "voice" && !(/** @type {any} */ (voice)).downloaded) return rejected("setting_invalid", { key, reason: "not_installed" });
+          if (["language_model", "speech_language", "chat_only", "voice"].includes(key) && host.turn()) return rejected("turn_busy", { turn_id: host.turn() });
+          if (key === "voice") {
+            settings.voices = { ...(settings.voices || {}), [settings.speech_language]: data.value };
+            refresh();
+            emit("settings", settings);
+            return accepted;
+          }
           settings[key] = data.value;
           if (key === "chat_only" && data.value === true) {
             pendingMic = false;

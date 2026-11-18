@@ -2,89 +2,23 @@
 # Katalog ve ayarın modelsiz sınaması: her ileti kodu (H8160–H8174) ve H8168, H8169'un her `reason` dalı, uygunluk
 # hesabı, öneri, ayarın yazılması ve depodaki katalog.json'un kendisi. Testler iletinin metnini değil kodunu ve
 # dilden bağımsız metnini (`TR_String(e)`, iletiyi kuran çağrı) sınar (8.3, 8.5). Ayar dosyasının fonksiyonları
-# ayarlar.tr'de; testleri burada, çünkü ortak örnekler (`_örnek_katalog`, `_dosya`, …) bu dosyaya özeldir (11.7).
+# ayarlar.tr'de; testleri burada, bağlamın seçimi ayarlar_test.tr'de. Ortak örnekler (`örnek_katalog`, `dosya`, …)
+# catalog_helpers.tr'de.
 TR_import "katalog"
 TR_import "ayarlar"
-
-# _örnek_katalog: sınamanın katalogu; sayılar elle hesaplanabilsin diye yuvarlak. Dil modeli 8192 bağlamla ölçülü.
-TR_func _örnek_katalog() -> TR_String {
-    TR_var r = "0123456789abcdef0123456789abcdef01234567"
-    TR_var h = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    TR_var g: TR_JSON = {"v": 1, "entries": [
-        {"id": "qwen3-4b-q4km", "kind": "language_model", "family": "qwen3", "context_max": 40960, "name": "Qwen3 4B Q4_K_M",
-            "source": {"host": "huggingface", "repo": "Qwen/Qwen3-4B-GGUF", "revision": r,
-                "files": [{"path": "Qwen3-4B-Q4_K_M.gguf", "bytes": 2497280256, "sha256": h, "target": "Qwen3-4B-Q4_K_M.gguf"}]},
-            "license": {"name": "Apache-2.0", "url": "https://example.org/l", "gated": TR_false},
-            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-            "memory": {"weights_bytes": 2497280256, "kv": {"layers": 36, "kv_heads": 8, "head_dim": 128},
-                "measured": [{"context": 8192, "private_bytes": 5000000000, "measured_on": "sınama"}]}},
-        {"id": "whisper-small", "kind": "transcriber", "name": "Whisper small",
-            "source": {"host": "huggingface", "repo": "openai/whisper-small", "revision": r,
-                "files": [{"path": "model.safetensors", "bytes": 1000, "sha256": h, "target": "model.safetensors"}]},
-            "license": {"name": "MIT", "url": "https://example.org/l", "gated": TR_false},
-            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-            "memory": {"weights_bytes": 1000, "measured": [{"context": 0, "private_bytes": 600000000, "measured_on": "sınama"}]}},
-        {"id": "silero-vad-16k", "kind": "vad", "name": "Silero VAD 16 kHz",
-            "source": {"host": "github", "repo": "snakers4/silero-vad", "revision": r,
-                "files": [{"path": "silero_vad_16k.safetensors", "bytes": 100, "sha256": h, "target": "silero_vad_16k.safetensors"}]},
-            "license": {"name": "MIT", "url": "https://example.org/l", "gated": TR_false},
-            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-            "memory": {"weights_bytes": 100, "measured": [{"context": 0, "private_bytes": 10000000, "measured_on": "sınama"}]}},
-        {"id": "mms-tts-tur", "kind": "voice", "name": "MMS-TTS tur",
-            "source": {"host": "huggingface", "repo": "facebook/mms-tts-tur", "revision": r,
-                "files": [{"path": "model.safetensors", "bytes": 200, "sha256": h, "target": "model.safetensors"}]},
-            "license": {"name": "CC-BY-NC-4.0", "url": "https://example.org/l", "gated": TR_false},
-            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-            "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 300000000, "measured_on": "sınama"}]}},
-        {"id": "mms-tts-eng", "kind": "voice", "name": "MMS-TTS eng",
-            "source": {"host": "huggingface", "repo": "facebook/mms-tts-eng", "revision": r,
-                "files": [{"path": "model.safetensors", "bytes": 200, "sha256": h, "target": "model.safetensors"}]},
-            "license": {"name": "CC-BY-NC-4.0", "url": "https://example.org/l", "gated": TR_false},
-            "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
-            "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 400000000, "measured_on": "sınama"}]}}],
-        "languages": [
-            {"code": "tr", "whisper_language": "tr", "transcriber": "whisper-small", "voice": "mms-tts-tur", "system_prompt": "a"},
-            {"code": "en", "whisper_language": "en", "transcriber": "whisper-small", "voice": "mms-tts-eng", "system_prompt": "b"}]}
-    TR_return TR_json_string(g)
-}
-
-TR_func _örnek_ayar() -> TR_String {
-    TR_var g: TR_JSON = {"v": 1, "language_model": "qwen3-4b-q4km", "speech_language": "tr", "system_prompt": {"source": "catalog"},
-        "context": 8192, "device": "cpu", "port": 47863, "machine": {"memory_bytes": 17179869184, "memory_source": "option"}}
-    TR_return TR_json_string(g)
-}
-
-# _dosya: metni geçici bir klasöre yazar, yolunu verir.
-TR_func _dosya(ad: TR_String, içerik: TR_String) -> TR_String {
-    TR_var y = TR_String(TR_Path(TR_temp_dir(), ad))
-    TR_write_file(y, içerik)
-    TR_return y
-}
-
-# _değiş: örnekte tam bir yeri değiştirir; eşleşme yoksa sınama yanlış yeri bozuyordur.
-TR_func _değiş(içerik: TR_String, eski: TR_String, yeni: TR_String) -> TR_String {
-    TR_assert(içerik.TR_contains(eski), "örnekte yok: \(eski)")
-    TR_return içerik.TR_replace(eski, yeni)
-}
+TR_import "catalog_helpers"
 
 TR_func _katalog_hatası(eski: TR_String, yeni: TR_String) -> TR_String {
-    TR_var y = _dosya("katalog.json", _değiş(_örnek_katalog(), eski, yeni))
+    TR_var y = dosya("katalog.json", değiş(örnek_katalog(), eski, yeni))
     TR_try { katalog_oku(y) } TR_catch e { TR_return TR_String(e).TR_replace(y, "K") }
     TR_return "hata yok"
 }
 
-TR_func _ayar_hatası(eski: TR_String, yeni: TR_String) -> TR_String {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_var y = _dosya("ayar.json", _değiş(_örnek_ayar(), eski, yeni))
-    TR_try { ayar_oku(y, k) } TR_catch e { TR_return TR_String(e).TR_replace(y, "A") }
-    TR_return "hata yok"
-}
-
 TR_test "örnek katalog ve ayar okunur" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
     TR_assert_equal(5, k.girdiler.TR_length)
     TR_assert_equal(["tr", "en"], [k.diller[0].kod, k.diller[1].kod])
-    TR_var a = ayar_oku(_dosya("ayar.json", _örnek_ayar()), k)
+    TR_var a = ayar_oku(dosya("ayar.json", örnek_ayar()), k)
     TR_assert(a != TR_none)
 }
 
@@ -97,15 +31,15 @@ TR_test "okunamayan dosya H8160, JSON olmayan H8161; motorun hatası nedendir" {
         # Olmayan dosyada motorun kodu H2132 ("böyle bir dosya ya da klasör yok").
         TR_assert_equal("H2132", e.TR_cause.TR_code)
     }
-    TR_var bozuk = _dosya("katalog.json", "{\"v\": 1,")
+    TR_var bozuk = dosya("katalog.json", "{\"v\": 1,")
     TR_try { katalog_oku(bozuk) } TR_catch e {
         TR_assert_equal("H8161", e.TR_code)
         TR_assert(e.TR_cause != TR_none)
     }
     TR_assert_equal("H8161", TR_error_code { katalog_oku(bozuk) })
     # Örnekteki `<ölçüden>` tırnaksızdır: kopyalanan örnek JSON olarak okunmaz.
-    TR_assert_equal("H8161", TR_error_code { katalog_oku(_dosya("k.json", "{\"private_bytes\": <ölçüden>}")) })
-    TR_assert_equal("H8160", TR_error_code { ayar_oku(TR_String(TR_temp_dir()), katalog_oku(_dosya("katalog.json", _örnek_katalog()))) })
+    TR_assert_equal("H8161", TR_error_code { katalog_oku(dosya("k.json", "{\"private_bytes\": <ölçüden>}")) })
+    TR_assert_equal("H8160", TR_error_code { ayar_oku(TR_String(TR_temp_dir()), katalog_oku(dosya("katalog.json", örnek_katalog()))) })
 }
 
 TR_test "H8160'ın önerisi dosyanın seçeneğini verir" {
@@ -118,20 +52,20 @@ TR_test "H8160'ın önerisi dosyanın seçeneğini verir" {
 TR_test "sürüm, bilinmeyen alan, eksik alan ve yanlış tür" {
     TR_assert_equal("Message(\"H8162\", \"K\", 2)", _katalog_hatası("{\"v\":1,", "{\"v\":2,\"yeni\":1,"))
     TR_assert_equal("Message(\"H8164\", \"K\", \"v\", \"\\\"v\\\": 1\")", _katalog_hatası("{\"v\":1,", "{"))
-    TR_assert_equal("H8163", TR_error_code { katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(), "\"name\":\"Whisper small\"", "\"nmae\":\"Whisper small\""))) })
+    TR_assert_equal("H8163", TR_error_code { katalog_oku(dosya("k.json", değiş(örnek_katalog(), "\"name\":\"Whisper small\"", "\"nmae\":\"Whisper small\""))) })
     TR_assert(_katalog_hatası("\"name\":\"Whisper small\"", "\"name\":\"Whisper small\",\"x\":1").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].x\""))
     TR_assert(_katalog_hatası("\"repo\":\"openai/whisper-small\",", "").TR_starts_with("Message(\"H8164\", \"K\", \"entries[1].source.repo\""))
     TR_assert_equal("Message(\"H8165\", \"K\", \"entries[0].memory.weights_bytes\", \"integer\", \"string\")",
         _katalog_hatası("\"weights_bytes\":2497280256", "\"weights_bytes\":\"2497280256\""))
-    TR_assert_equal("Message(\"H8165\", \"K\", \"$\", \"object\", \"array\")", _katalog_hatası(_örnek_katalog(), "[]"))
+    TR_assert_equal("Message(\"H8165\", \"K\", \"$\", \"object\", \"array\")", _katalog_hatası(örnek_katalog(), "[]"))
 }
 
 TR_test "izinli küme: konak, tür, kapılı model (H8166); biçim: revizyon ve sha256 (H8167)" {
     TR_assert_equal("Message(\"H8166\", \"K\", \"entries[2].source.host\", \"`huggingface`, `github`\", \"gitlab\")",
         _katalog_hatası("\"host\":\"github\"", "\"host\":\"gitlab\""))
     TR_assert(_katalog_hatası("\"kind\":\"vad\"", "\"kind\":\"vda\"").TR_starts_with("Message(\"H8166\", \"K\", \"entries[2].kind\""))
-    TR_var kapılı = _değiş(_örnek_katalog(), "\"name\":\"MIT\",\"url\":\"https://example.org/l\",\"gated\":false", "\"name\":\"MIT\",\"url\":\"https://example.org/l\",\"gated\":true")
-    TR_assert_equal("H8166", TR_error_code { katalog_oku(_dosya("k.json", kapılı)) })
+    TR_var kapılı = değiş(örnek_katalog(), "\"name\":\"MIT\",\"url\":\"https://example.org/l\",\"gated\":false", "\"name\":\"MIT\",\"url\":\"https://example.org/l\",\"gated\":true")
+    TR_assert_equal("H8166", TR_error_code { katalog_oku(dosya("k.json", kapılı)) })
     TR_assert_equal("Message(\"H8167\", \"K\", \"entries[0].source.revision\", \"[0-9a-f]{40}\", \"main\")",
         _katalog_hatası("\"repo\":\"Qwen/Qwen3-4B-GGUF\",\"revision\":\"0123456789abcdef0123456789abcdef01234567\"", "\"repo\":\"Qwen/Qwen3-4B-GGUF\",\"revision\":\"main\""))
     TR_assert(_katalog_hatası("\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"", "\"sha256\":\"0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef\"").TR_starts_with("Message(\"H8167\", \"K\", \"entries[0].source.files[0].sha256\""))
@@ -139,8 +73,8 @@ TR_test "izinli küme: konak, tür, kapılı model (H8166); biçim: revizyon ve 
 
 TR_test "H8169'un her dalı" {
     TR_assert_equal("Message(\"H8169\", \"entries[4].id\", \"mms-tts-tur\", \"duplicate_id\")", _katalog_hatası("\"id\":\"mms-tts-eng\"", "\"id\":\"mms-tts-tur\""))
-    TR_assert_equal("Message(\"H8169\", \"languages[1].voice\", \"mms-tts-xyz\", \"missing_entry\")", _katalog_hatası("\"voice\":\"mms-tts-eng\"", "\"voice\":\"mms-tts-xyz\""))
-    TR_assert_equal("Message(\"H8169\", \"languages[0].transcriber\", \"mms-tts-tur\", \"wrong_kind\")", _katalog_hatası("\"transcriber\":\"whisper-small\",\"voice\":\"mms-tts-tur\"", "\"transcriber\":\"mms-tts-tur\",\"voice\":\"mms-tts-tur\""))
+    TR_assert_equal("Message(\"H8169\", \"languages[1].voices[0]\", \"mms-tts-xyz\", \"missing_entry\")", _katalog_hatası("\"voices\":[\"mms-tts-eng\"]", "\"voices\":[\"mms-tts-xyz\"]"))
+    TR_assert_equal("Message(\"H8169\", \"languages[0].transcriber\", \"mms-tts-tur\", \"wrong_kind\")", _katalog_hatası("\"transcriber\":\"whisper-small\",\"voices\":[\"mms-tts-tur\"]", "\"transcriber\":\"mms-tts-tur\",\"voices\":[\"mms-tts-tur\"]"))
     TR_assert_equal("Message(\"H8169\", \"entries[0].memory.measured[0].private_bytes\", \"qwen3-4b-q4km\", \"private_below_weights\")",
         _katalog_hatası("\"private_bytes\":5000000000", "\"private_bytes\":1"))
     TR_assert_equal("Message(\"H8169\", \"entries[0].memory.weights_bytes\", \"qwen3-4b-q4km\", \"weights_not_file_size\")",
@@ -191,16 +125,16 @@ TR_test "aile H8170; öbür türde kv H8163" {
 
 TR_test "ayar: kimlik H8168 (not_in_catalog, wrong_kind), dil, ses alanı H8163, sürüm" {
     TR_assert_equal("Message(\"H8168\", \"language_model\", \"llama-x\", \"not_in_catalog\", \"`qwen3-4b-q4km`\")",
-        _ayar_hatası("\"language_model\":\"qwen3-4b-q4km\"", "\"language_model\":\"llama-x\""))
+        ayar_hatası("\"language_model\":\"qwen3-4b-q4km\"", "\"language_model\":\"llama-x\""))
     TR_assert_equal("Message(\"H8168\", \"language_model\", \"whisper-small\", \"wrong_kind\", \"`qwen3-4b-q4km`\")",
-        _ayar_hatası("\"language_model\":\"qwen3-4b-q4km\"", "\"language_model\":\"whisper-small\""))
+        ayar_hatası("\"language_model\":\"qwen3-4b-q4km\"", "\"language_model\":\"whisper-small\""))
     TR_assert_equal("Message(\"H8168\", \"speech_language\", \"de\", \"not_in_catalog\", \"`tr`, `en`\")",
-        _ayar_hatası("\"speech_language\":\"tr\"", "\"speech_language\":\"de\""))
-    TR_assert(_ayar_hatası("\"device\":\"cpu\"", "\"device\":\"cpu\",\"voice\":\"mms-tts-tur\"").TR_starts_with("Message(\"H8163\", \"A\", \"voice\""))
-    TR_assert_equal("Message(\"H8162\", \"A\", 2)", _ayar_hatası("{\"v\":1,", "{\"v\":2,"))
-    TR_assert(_ayar_hatası("{\"source\":\"catalog\"}", "{\"source\":\"user\"}").TR_starts_with("Message(\"H8164\", \"A\", \"system_prompt.text\""))
-    TR_assert_equal("hata yok", _ayar_hatası("{\"source\":\"catalog\"}", "{\"source\":\"user\",\"text\":\"t\",\"language\":\"en\"}"))
-    TR_assert(_ayar_hatası("\"device\":\"cpu\"", "\"device\":\"cuda\"").TR_starts_with("Message(\"H8166\", \"A\", \"device\""))
+        ayar_hatası("\"speech_language\":\"tr\"", "\"speech_language\":\"de\""))
+    TR_assert(ayar_hatası("\"device\":\"cpu\"", "\"device\":\"cpu\",\"voice\":\"mms-tts-tur\"").TR_starts_with("Message(\"H8163\", \"A\", \"voice\""))
+    TR_assert_equal("Message(\"H8162\", \"A\", 2)", ayar_hatası("{\"v\":1,", "{\"v\":2,"))
+    TR_assert(ayar_hatası("{\"source\":\"catalog\"}", "{\"source\":\"user\"}").TR_starts_with("Message(\"H8164\", \"A\", \"system_prompt.text\""))
+    TR_assert_equal("hata yok", ayar_hatası("{\"source\":\"catalog\"}", "{\"source\":\"user\",\"text\":\"t\",\"language\":\"en\"}"))
+    TR_assert(ayar_hatası("\"device\":\"cpu\"", "\"device\":\"cuda\"").TR_starts_with("Message(\"H8166\", \"A\", \"device\""))
 }
 
 TR_test "ayarın yeri: --ayar, LOCALAPPDATA, ikisi de yoksa H8172" {
@@ -208,11 +142,11 @@ TR_test "ayarın yeri: --ayar, LOCALAPPDATA, ikisi de yoksa H8172" {
     TR_assert_equal(TR_String(TR_Path("C:/Users/x/AppData/Local", "Dost", "ayar.json")), ayar_yolu("", "C:/Users/x/AppData/Local"))
     TR_assert_equal("H8172", TR_error_code { ayar_yolu("", TR_none) })
     TR_assert_equal("H8172", TR_error_code { ayar_yolu("", "") })
-    TR_assert_equal("H8172", TR_error_code { kur(_dosya("katalog.json", _örnek_katalog()), "", TR_none, 17179869184, TR_none, TR_false) })
+    TR_assert_equal("H8172", TR_error_code { kur(dosya("katalog.json", örnek_katalog()), "", TR_none, 17179869184, TR_none, TR_false) })
 }
 
 TR_test "toplam bellek: 0, eksi ve 1 GiB'den küçük H8171; 1 GiB geçer" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
     TR_for v TR_in [0, -1, 1073741823] {
         TR_try { uygunluk(k, TR_none, v, 8192) } TR_catch e { TR_assert_equal("Message(\"H8171\", \"\(v)\")", TR_String(e)) }
         TR_assert_equal("H8171", TR_error_code { uygunluk(k, TR_none, v, 8192) })
@@ -221,29 +155,29 @@ TR_test "toplam bellek: 0, eksi ve 1 GiB'den küçük H8171; 1 GiB geçer" {
 }
 
 TR_test "gereken bellek: ölçülü bağlamda ikinci terim sıfır, küçükte eksi; küçükler ayarın dilinden ya da en büyük dilden" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
     TR_var g = k.girdiler[0]
     TR_var kv = kv_baytı(g)
     TR_assert_equal(294912, kv)
-    TR_var a = ayar_oku(_dosya("ayar.json", _örnek_ayar()), k)
+    TR_var a = ayar_oku(dosya("ayar.json", örnek_ayar()), k)
     TR_var tr = küçükler(k, a)
     TR_assert_equal(600000000 + 10000000 + 300000000, tr.bayt)
     TR_assert_equal(600000000 + 10000000 + 400000000, küçükler(k, TR_none).bayt)
     TR_assert_equal(5000000000 + kv * 8192 + PAY + tr.bayt, gereken(g, 8192, tr))
     TR_assert_equal(2 * kv * 4096, gereken(g, 8192, tr) - gereken(g, 4096, tr))
     # Ölçüsüz dil modeli: ağırlıklar + kv × bağlam; önerilmez.
-    TR_var ölçüsüz = katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(), "\"measured\":[{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]", "\"measured\":[]")))
+    TR_var ölçüsüz = katalog_oku(dosya("k.json", değiş(örnek_katalog(), "\"measured\":[{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]", "\"measured\":[]")))
     TR_assert_equal(2497280256 + kv * 8192 + kv * 8192 + PAY + tr.bayt, gereken(ölçüsüz.girdiler[0], 8192, tr))
     TR_assert_equal("", öneri(uygunluk(ölçüsüz, a, 1099511627776, 8192)))
     # Ölçüsüz küçük model: ağırlıkları sayılır, dil modeli önerilmez.
-    TR_var küçük_ölçüsüz = katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(), "\"measured\":[{\"context\":0,\"private_bytes\":10000000,\"measured_on\":\"sınama\"}]", "\"measured\":[]")))
+    TR_var küçük_ölçüsüz = katalog_oku(dosya("k.json", değiş(örnek_katalog(), "\"measured\":[{\"context\":0,\"private_bytes\":10000000,\"measured_on\":\"sınama\"}]", "\"measured\":[]")))
     TR_assert_equal(600000000 + 100 + 300000000, küçükler(küçük_ölçüsüz, a).bayt)
     TR_assert_equal("", öneri(uygunluk(küçük_ölçüsüz, a, 1099511627776, 8192)))
     TR_assert_equal("qwen3-4b-q4km", öneri(uygunluk(k, a, 1099511627776, 8192)))
 }
 
 TR_test "fit'in eşikleri: gereken tam 0,6 × toplamda fits, bir bayt azında tight; 0,85'in üstü too_large" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
     TR_var n = gereken(k.girdiler[0], 8192, küçükler(k, TR_none))
     TR_var en_az = (n * 100 + 59) // 60
     TR_assert_equal("fits", uygunluk(k, TR_none, en_az, 8192)[0].uyum)
@@ -254,14 +188,14 @@ TR_test "fit'in eşikleri: gereken tam 0,6 × toplamda fits, bir bayt azında ti
     # fits yokken tight olan önerilir; hepsi too_large iken öneri yok (tasarımın defteri 57).
     TR_assert_equal("qwen3-4b-q4km", öneri(uygunluk(k, TR_none, en_az - 1, 8192)))
     TR_assert_equal("", öneri(uygunluk(k, TR_none, sıkı - 1, 8192)))
-    TR_var kat = _dosya("katalog.json", _örnek_katalog())
+    TR_var kat = dosya("katalog.json", örnek_katalog())
     TR_assert_equal("ONERILEN qwen3-4b-q4km fit=tight", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, en_az - 1, TR_none, TR_false)[2])
     TR_assert_equal("ONERILEN yok", kur(kat, TR_String(TR_Path(TR_temp_dir(), "a.json")), TR_none, sıkı - 1, TR_none, TR_false)[2])
 }
 
 TR_test "iki noktalı ölçüde en büyük context'li ölçü alınır" {
-    TR_var tek = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_var iki = katalog_oku(_dosya("k.json", _değiş(_örnek_katalog(),
+    TR_var tek = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var iki = katalog_oku(dosya("k.json", değiş(örnek_katalog(),
         "[{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]",
         "[{\"context\":45,\"private_bytes\":2600000000,\"measured_on\":\"sınama\"},{\"context\":8192,\"private_bytes\":5000000000,\"measured_on\":\"sınama\"}]")))
     TR_var küçük = küçükler(tek, TR_none)
@@ -269,31 +203,8 @@ TR_test "iki noktalı ölçüde en büyük context'li ölçü alınır" {
     TR_assert_equal(gereken(tek.girdiler[0], 4096, küçük), gereken(iki.girdiler[0], 4096, küçük))
 }
 
-TR_test "bağlamın önceliği: seçenek, ayar, 8192" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_var a = ayar_oku(_dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\":4096")), k)
-    TR_assert_equal(2048, bağlam_seç(2048, a))
-    TR_assert_equal(4096, bağlam_seç(TR_none, a))
-    TR_assert_equal(8192, bağlam_seç(TR_none, TR_none))
-    # Verilen 0 ve eksi değer açık hatadır, sessizce 8192 alınmaz (tasarımın defteri 58).
-    TR_for v TR_in [0, -5] {
-        TR_assert_equal("H8173", TR_error_code { bağlam_seç(v, a) })
-        TR_try { bağlam_seç(v, TR_none) } TR_catch e { TR_assert_equal("Message(\"H8173\", \"\(v)\")", TR_String(e)) }
-    }
-    TR_assert_equal(1, bağlam_seç(1, TR_none))
-    TR_assert_equal(4096, bağlam_oku("4096"))
-    TR_assert_equal("H8173", TR_error_code { bağlam_oku("dört") })
-}
-
-TR_test "bağlam_oku: boş metin ve Int64'ü aşan sayı H8173; ileti verilen metni yazar (DENETİM 457 N6)" {
-    TR_for m TR_in ["", "99999999999999999999"] {
-        TR_assert_equal("H8173", TR_error_code { bağlam_oku(m) })
-        TR_try { bağlam_oku(m) } TR_catch e { TR_assert_equal("Message(\"H8173\", \"\(m)\")", TR_String(e)) }
-    }
-}
-
 TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca geçici adla taşınır, eski ayar korunur" {
-    TR_var kat = _dosya("katalog.json", _örnek_katalog())
+    TR_var kat = dosya("katalog.json", örnek_katalog())
     TR_var klasör = TR_temp_dir()
     TR_var ayar = TR_String(TR_Path(klasör, "Dost", "ayar.json"))
     TR_var satırlar = kur(kat, "", TR_String(klasör), 17179869184, TR_none, TR_false)
@@ -320,8 +231,8 @@ TR_test "kur: çıktı satırları; --ayarı_yaz'sız ayara dokunulmaz; yazınca
 
 # kur.tr'nin yeniden koşusu kullanıcının isteğe bağlı seçimlerini öntanımlıya döndürmez (N'nin Bulgu 1'i, TCB 16:47).
 TR_test "ayar_yaz isteğe bağlı alanları korur: microphone, recording ve quantized_activations kalır; olmayan alan yazılmaz" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_var yol = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true,\"quantized_activations\":\"off\""))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var yol = dosya("ayar.json", değiş(örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true,\"quantized_activations\":\"off\""))
     ayar_yaz(yol, k, ayar_oku(yol, k), "qwen3-4b-q4km", 17179869184, 4096)
     TR_var j = TR_json_parse(TR_read_file(yol))
     TR_assert_equal(["Mikrofon (X)", "off"], [TR_String(j["microphone"]), TR_String(j["quantized_activations"])])
@@ -329,7 +240,7 @@ TR_test "ayar_yaz isteğe bağlı alanları korur: microphone, recording ve quan
     TR_assert_equal(4096, TR_Int(j["context"]))
     TR_var a = ayar_oku(yol, k)
     TR_assert(a != TR_none TR_and a.nicemli == "off" TR_and a.kayıt TR_and a.mikrofon == "Mikrofon (X)")
-    TR_var sade = _dosya("ayar.json", _örnek_ayar())
+    TR_var sade = dosya("ayar.json", örnek_ayar())
     ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
     TR_var js = TR_json_parse(TR_read_file(sade))
     TR_assert(js.TR_get("microphone") == TR_none TR_and js.TR_get("recording") == TR_none TR_and js.TR_get("quantized_activations") == TR_none)
@@ -341,7 +252,7 @@ TR_test "kur --ayarı_yaz, depodaki katalogla 32 GiB: ayar yoksa öneri yazılı
     TR_var yeni = TR_String(TR_Path(TR_temp_dir(), "K1", "ayar.json"))
     TR_assert_equal("ONERILEN qwen3-8b-q4km", kur(kat, yeni, TR_none, 34359738368, TR_none, TR_true)[6])
     TR_assert_equal("qwen3-8b-q4km", TR_String(TR_json_parse(TR_read_file(yeni))["language_model"]))
-    TR_var var_olan = _dosya("ayar.json", _örnek_ayar())
+    TR_var var_olan = dosya("ayar.json", örnek_ayar())
     TR_var satırlar = kur(kat, var_olan, TR_none, 34359738368, TR_none, TR_true)
     TR_assert_equal(["ONERILEN qwen3-8b-q4km", "AYAR_YAZILDI \(var_olan)"], [satırlar[6], satırlar[7]])
     TR_assert_equal("qwen3-4b-q4km", TR_String(TR_json_parse(TR_read_file(var_olan))["language_model"]))
@@ -351,7 +262,7 @@ TR_test "depodaki katalog.json okunur ve tutarlıdır" {
     TR_var yol = "tools/assistant/katalog.json"
     TR_var k = katalog_oku(yol)
     TR_assert_equal(["qwen3-4b-q4km", "gemma3-4b-q4km", "gemma3-4b-qat-q40", "qwen3-8b-q4km", "gemma3-12b-q4km", "whisper-small",
-        "silero-vad-16k", "mms-tts-tur", "mms-tts-eng"], [g.kimlik TR_for g TR_in k.girdiler])
+        "silero-vad-16k", "mms-tts-tur", "mms-tts-eng", "piper-tr-dfki-medium"], [g.kimlik TR_for g TR_in k.girdiler])
     TR_assert_equal(["tr", "en"], [k.diller[0].kod, k.diller[1].kod])
     TR_var j = TR_json_parse(TR_read_file(yol))
     TR_for g TR_in j["entries"] {
@@ -359,6 +270,47 @@ TR_test "depodaki katalog.json okunur ve tutarlıdır" {
         TR_assert(TR_String(g["verified"]["trlang"]) != "")
         TR_assert(TR_List(g["memory"]["measured"]).TR_length > 0, TR_String(g["id"]))
     }
+}
+
+TR_test "katalog: Piper girdisi iki dosyasıyla okunur; memory.weights_bytes dosyaların toplamıdır" {
+    TR_var yol = "tools/assistant/katalog.json"
+    TR_var k = katalog_oku(yol)
+    TR_assert_equal(["piper-tr-dfki-medium", "mms-tts-tur"], k.diller[0].sesler) # Piper öntanımlı (P-10, Ahmet 18:26)
+    TR_assert_equal(["mms-tts-eng"], k.diller[1].sesler)
+    TR_var j = TR_json_parse(TR_read_file(yol))
+    TR_var p = [g TR_for g TR_in j["entries"] TR_if TR_String(g["id"]) == "piper-tr-dfki-medium"][0]
+    TR_assert_equal("voice", TR_String(p["kind"]))
+    TR_assert_equal("rhasspy/piper-voices", TR_String(p["source"]["repo"]))
+    TR_assert_equal("e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c", TR_String(p["source"]["revision"]))
+    TR_var hedefler = [TR_String(f["target"]) TR_for f TR_in p["source"]["files"]]
+    # Piper `.onnx.json`'u sesin yolunun yanında `<yol>.json` diye arar (lib/vits.tr, TR_pretrained_vits).
+    TR_assert_equal(["tr_TR-dfki-medium.onnx", "tr_TR-dfki-medium.onnx.json"], hedefler)
+    TR_var toplam = 0
+    TR_for f TR_in p["source"]["files"] { toplam += TR_Int(f["bytes"]) }
+    TR_assert_equal(63206254, toplam)
+    TR_assert_equal(toplam, girdi_bul(k, "piper-tr-dfki-medium").ağırlık)
+    TR_assert_equal(TR_false, TR_Bool(p["license"]["gated"]))
+}
+
+TR_test "katalog: dilin sesleri katalogun ses girdileridir; boş liste, iki kez yazılan ve ses olmayan kimlik hatadır; küçükler seçimsiz dilin en büyük sesini sayar" {
+    TR_var tr = "\"voices\":[\"mms-tts-tur\"]"
+    TR_var yazım = alan_örneği("voices")
+    TR_assert_equal("\"voices\": [\"mms-tts-tur\"]", yazım)
+    TR_assert_equal(TR_String(TR_Message("H8164", "K", "languages[0].voices[0]", yazım)), _katalog_hatası(tr, "\"voices\":[]"))
+    TR_assert_equal("hata yok", _katalog_hatası(tr, yazım))
+    TR_assert_equal("Message(\"H8169\", \"languages[0].voices[1]\", \"mms-tts-tur\", \"duplicate_id\")",
+        _katalog_hatası(tr, "\"voices\":[\"mms-tts-tur\",\"mms-tts-tur\"]"))
+    TR_assert_equal("Message(\"H8169\", \"languages[0].voices[1]\", \"whisper-small\", \"wrong_kind\")",
+        _katalog_hatası(tr, "\"voices\":[\"mms-tts-tur\",\"whisper-small\"]"))
+    TR_assert_equal("Message(\"H8165\", \"K\", \"languages[0].voices[1]\", \"string\", \"integer\")",
+        _katalog_hatası(tr, "\"voices\":[\"mms-tts-tur\",5]"))
+    TR_assert(_katalog_hatası(tr, "\"voice\":\"mms-tts-tur\"").TR_starts_with("Message(\"H8163\", \"K\", \"languages[0].voice\""))
+    # Türkçenin iki sesi: 300 MB ve 400 MB. Seçim yoksa büyüğü, seçim varsa seçilen sayılır.
+    TR_var k = katalog_oku(dosya("katalog.json", değiş(örnek_katalog(), tr, "\"voices\":[\"mms-tts-tur\",\"mms-tts-eng\"]")))
+    TR_var a = ayar_oku(dosya("ayar.json", örnek_ayar()), k)
+    TR_assert_equal(600000000 + 10000000 + 400000000, küçükler(k, a).bayt)
+    TR_var seçili = ayar_oku(dosya("ayar.json", değiş(örnek_ayar(), "\"device\":\"cpu\"", "\"device\":\"cpu\",\"voices\":{\"tr\":\"mms-tts-tur\"}")), k)
+    TR_assert_equal(600000000 + 10000000 + 300000000, küçükler(k, seçili).bayt)
 }
 
 TR_test "depodaki katalogla 8192 bağlamda: Qwen3-4B 16, 24 ve 32 GiB fits; 33,85 GB'ta öneri Qwen3 8B, 16 GiB'de Qwen3 4B" {
@@ -373,23 +325,6 @@ TR_test "depodaki katalogla 8192 bağlamda: Qwen3-4B 16, 24 ve 32 GiB fits; 33,8
     TR_assert_equal(["fits", "tight", "tight", "tight", "too_large", "qwen3-4b-q4km"], [u.uyum TR_for u TR_in küçük] + [öneri(küçük)])
 }
 
-# _dil_modeli: örnek katalogun dil modeli girdisinin metni.
-TR_func _dil_modeli() -> TR_String {
-    TR_return _örnek_katalog().TR_split(",{\"id\":\"whisper-small\"")[0].TR_split("\"entries\":[")[1]
-}
-
-# _iki_dil_modeli: örneğe sınırı `sınır` olan ikinci bir dil modeli (`qwen3-kisa`) ekler; ağırlıkları aynı.
-TR_func _iki_dil_modeli(sınır: TR_Int) -> TR_String {
-    TR_var ikinci = _değiş(_değiş(_dil_modeli(), "\"id\":\"qwen3-4b-q4km\"", "\"id\":\"qwen3-kisa\""),
-        "\"context_max\":40960", "\"context_max\":\(sınır)")
-    TR_return _değiş(_örnek_katalog(), "\"entries\":[", "\"entries\":[\(ikinci),")
-}
-
-# _yok_ayar: var olmayan bir ayar dosyasının yolu (ilk kurulum).
-TR_func _yok_ayar() -> TR_String {
-    TR_return TR_String(TR_Path(TR_temp_dir(), "yok-ayar.json"))
-}
-
 TR_test "context_max: eksik H8164 (yazımı kopyalanınca kalkar), metin H8165, 0 ve eksi H8167, öbür türde H8163" {
     TR_var yazım = alan_örneği("context_max")
     TR_assert_equal("\"context_max\": 40960", yazım)
@@ -402,7 +337,7 @@ TR_test "context_max: eksik H8164 (yazımı kopyalanınca kalkar), metin H8165, 
             _katalog_hatası("\"context_max\":40960", "\"context_max\":\(v)"))
     }
     TR_assert(_katalog_hatası("\"id\":\"whisper-small\",\"kind\":\"transcriber\",", "\"id\":\"whisper-small\",\"kind\":\"transcriber\",\"context_max\":40960,").TR_starts_with("Message(\"H8163\", \"K\", \"entries[1].context_max\""))
-    TR_assert_equal(40960, katalog_oku(_dosya("katalog.json", _örnek_katalog())).girdiler[0].bağlam_sınırı)
+    TR_assert_equal(40960, katalog_oku(dosya("katalog.json", örnek_katalog())).girdiler[0].bağlam_sınırı)
 }
 
 TR_test "katalogun sayıları: 0 ve eksi H8167 (measured[].context yalnız eksi; küçük modellerde 0 geçer)" {
@@ -422,12 +357,12 @@ TR_test "katalogun sayıları: 0 ve eksi H8167 (measured[].context yalnız eksi;
         _katalog_hatası("\"context\":8192", "\"context\":-5"))
     TR_assert_equal("hata yok", _katalog_hatası("\"context\":8192", "\"context\":0"))
     # Depodaki katalogun küçük modelleri 0 taşır (tasarımın defteri 58).
-    TR_assert_equal(9, katalog_oku("tools/assistant/katalog.json").girdiler.TR_length)
+    TR_assert_equal(10, katalog_oku("tools/assistant/katalog.json").girdiler.TR_length)
 }
 
 TR_test "dil modelsiz katalog H8169 (no_language_model); dalın metni öbürlerinden ve other'dan ayrı" {
     TR_assert_equal("Message(\"H8169\", \"entries\", \"language_model\", \"no_language_model\")",
-        _katalog_hatası("\(_dil_modeli()),", ""))
+        _katalog_hatası("\(örnek_dil_modeli()),", ""))
     TR_var anahtarlar = ["duplicate_id", "missing_entry", "wrong_kind", "private_below_weights", "weights_not_file_size", "vad_count",
         "no_language_model", "başka"]
     TR_for dil TR_in ["tr", "en"] {
@@ -442,99 +377,40 @@ TR_test "dil modelsiz katalog H8169 (no_language_model); dalın metni öbürleri
 
 TR_test "ayarın context'i 0 ve eksi H8167; --bağlam verilse de (DENETİM 461 N4)" {
     TR_for v TR_in [0, -5] {
-        TR_assert_equal("Message(\"H8167\", \"A\", \"context\", \"[1-9][0-9]*\", \"\(v)\")", _ayar_hatası("\"context\":8192", "\"context\":\(v)"))
+        TR_assert_equal("Message(\"H8167\", \"A\", \"context\", \"[1-9][0-9]*\", \"\(v)\")", ayar_hatası("\"context\":8192", "\"context\":\(v)"))
     }
-    TR_var kat = _dosya("katalog.json", _örnek_katalog())
-    TR_var ayar = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\":0"))
+    TR_var kat = dosya("katalog.json", örnek_katalog())
+    TR_var ayar = dosya("ayar.json", değiş(örnek_ayar(), "\"context\":8192", "\"context\":0"))
     TR_assert_equal("H8167", TR_error_code { kur(kat, ayar, TR_none, 17179869184, 8192, TR_false) })
 }
 
-TR_test "bağlam sınırı: context_max geçer, bir fazlası ve 1,6·10¹³ H8174 (option); önerisi kopyalanınca kalkar" {
-    TR_var kat = _dosya("katalog.json", _örnek_katalog())
-    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=40960", kur(kat, _yok_ayar(), TR_none, 17179869184, 40960, TR_false)[0])
-    # Son ikisi bugün gereken'in hesabında tam sayı taşması veriyordu (katalog.tr'nin eski :452 ve :444'ü).
-    TR_for v TR_in [40961, 16000000000000, 9223372036854775807] {
-        TR_try { kur(kat, _yok_ayar(), TR_none, 17179869184, v, TR_false) } TR_catch e {
-            TR_assert_equal("Message(\"H8174\", \"option\", \(v), 40960)", TR_String(e))
-            TR_assert(TR_Message("H8174", "option", v, 40960).TR_text("tr").TR_contains("`--bağlam 40960`"))
-            TR_assert(TR_Message("H8174", "option", v, 40960).TR_text("en").TR_contains("`--bağlam 40960`"))
-        }
-        TR_assert_equal("H8174", TR_error_code { kur(kat, _yok_ayar(), TR_none, 17179869184, v, TR_false) })
-    }
-    TR_var k = katalog_oku(kat)
-    TR_assert_equal(40960, bağlam_belirle(k, 40960, TR_none))
-    TR_assert_equal(8192, bağlam_belirle(k, TR_none, TR_none))
-}
-
-TR_test "bağlam sınırı: ayardan gelen bağlam bütün sınırları aşınca H8174 (setting); önerisi kopyalanınca kalkar" {
-    TR_var kat = _dosya("katalog.json", _örnek_katalog())
-    TR_var ayar = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\":40961"))
-    TR_try { kur(kat, ayar, TR_none, 17179869184, TR_none, TR_false) } TR_catch e {
-        TR_assert_equal("Message(\"H8174\", \"setting\", 40961, 40960)", TR_String(e))
-        TR_assert(TR_Message("H8174", "setting", 40961, 40960).TR_text("tr").TR_contains("`\"context\": 40960`"))
-        TR_assert(TR_Message("H8174", "setting", 40961, 40960).TR_text("en").TR_contains("`\"context\": 40960`"))
-    }
-    TR_assert_equal("H8174", TR_error_code { kur(kat, ayar, TR_none, 17179869184, TR_none, TR_false) })
-    TR_var düzelmiş = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"context\":8192", "\"context\": 40960"))
-    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=40960", kur(kat, düzelmiş, TR_none, 17179869184, TR_none, TR_false)[0])
-    # Dalların metni birbirinden ve other'dan ayrı.
-    TR_for dil TR_in ["tr", "en"] {
-        TR_var t = [TR_Message("H8174", "option", 1, 2).TR_text(dil), TR_Message("H8174", "setting", 1, 2).TR_text(dil),
-            TR_Message("H8174", "başka", 1, 2).TR_text(dil)]
-        TR_assert(t[0] != t[1] TR_and t[0] != t[2] TR_and t[1] != t[2], dil)
-    }
-}
-
-TR_test "bağlam sınırı: kısa sınırlı dil modeli too_long, önerilmez; uzun sınırlı önerilir; satırın biçimi" {
-    TR_var kat = _dosya("katalog.json", _iki_dil_modeli(4096))
-    TR_var satırlar = kur(kat, _yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
-    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=8192", satırlar[0])
-    TR_assert_equal("UYGUNLUK qwen3-kisa too_long baglam_siniri=4096", satırlar[1])
-    TR_assert(satırlar[2].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
-    TR_assert_equal("ONERILEN qwen3-4b-q4km", satırlar[3])
-    TR_var l = uygunluk(katalog_oku(kat), TR_none, 17179869184, 8192)
-    TR_assert_equal(["too_long", "fits"], [l[0].uyum, l[1].uyum])
-    TR_assert_equal(0, l[0].gereken)
-    # Bağlam ikisinin sınırının da altındaysa ikisi de hesaplanır.
-    TR_assert_equal(["fits", "fits"], [uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[0].uyum,
-        uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[1].uyum])
-}
-
-TR_test "bağlam sınırı: bütün sınırlar 8192'den küçükse öntanımlı bağlam en büyük sınıra iner, hata yok" {
-    TR_var kat = _dosya("katalog.json", _değiş(_örnek_katalog(), "\"context_max\":40960", "\"context_max\":4096"))
-    TR_var satırlar = kur(kat, _yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
-    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=4096", satırlar[0])
-    TR_assert(satırlar[1].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
-    TR_assert_equal(4096, bağlam_belirle(katalog_oku(kat), TR_none, TR_none))
-}
-
 TR_test "ayarın iki yeni alanı: eski dosya okunur, microphone ve recording okunur; türü yanlışsa H8165, bilinmeyen alan H8163" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_var eski = ayar_oku(_dosya("ayar.json", _örnek_ayar()), k)
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var eski = ayar_oku(dosya("ayar.json", örnek_ayar()), k)
     TR_assert(eski != TR_none TR_and eski.mikrofon == "" TR_and TR_not eski.kayıt)
-    TR_var yeni = ayar_oku(_dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true")), k)
+    TR_var yeni = ayar_oku(dosya("ayar.json", değiş(örnek_ayar(), "\"port\":47863", "\"port\":47863,\"microphone\":\"Mikrofon (X)\",\"recording\":true")), k)
     TR_assert(yeni != TR_none TR_and yeni.mikrofon == "Mikrofon (X)" TR_and yeni.kayıt)
-    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"microphone\":5").TR_starts_with("Message(\"H8165\", \"A\", \"microphone\""))
-    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"recording\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"recording\""))
-    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"mikrofon\":\"x\"").TR_starts_with("Message(\"H8163\", \"A\", \"mikrofon\""))
+    TR_assert(ayar_hatası("\"port\":47863", "\"port\":47863,\"microphone\":5").TR_starts_with("Message(\"H8165\", \"A\", \"microphone\""))
+    TR_assert(ayar_hatası("\"port\":47863", "\"port\":47863,\"recording\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"recording\""))
+    TR_assert(ayar_hatası("\"port\":47863", "\"port\":47863,\"mikrofon\":\"x\"").TR_starts_with("Message(\"H8163\", \"A\", \"mikrofon\""))
 }
 
 TR_test "ayarın quantized_activations'ı: yoksa TR_none, auto, on ve off okunur; başka değer H8166, türü yanlışsa H8165" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_assert(ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).nicemli == TR_none)
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_assert(ayar_oku(dosya("ayar.json", örnek_ayar()), k).nicemli == TR_none)
     TR_for v TR_in ["auto", "on", "off"] {
-        TR_var a = ayar_oku(_dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"quantized_activations\":\"\(v)\"")), k)
+        TR_var a = ayar_oku(dosya("ayar.json", değiş(örnek_ayar(), "\"port\":47863", "\"port\":47863,\"quantized_activations\":\"\(v)\"")), k)
         TR_assert_equal(v, TR_String(a.nicemli))
     }
     TR_for v TR_in ["açık", "true", "", "AUTO"] {
-        TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"quantized_activations\":\"\(v)\"").TR_starts_with("Message(\"H8166\", \"A\", \"quantized_activations\""))
+        TR_assert(ayar_hatası("\"port\":47863", "\"port\":47863,\"quantized_activations\":\"\(v)\"").TR_starts_with("Message(\"H8166\", \"A\", \"quantized_activations\""))
     }
-    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"quantized_activations\":true").TR_starts_with("Message(\"H8165\", \"A\", \"quantized_activations\""))
+    TR_assert(ayar_hatası("\"port\":47863", "\"port\":47863,\"quantized_activations\":true").TR_starts_with("Message(\"H8165\", \"A\", \"quantized_activations\""))
 }
 
 TR_test "ayarı_değiştir: yalnız bir alan değişir, öbürleri kalır; denetimden geçmeyen değer yazılmaz; yazılamazsa dosya aynı" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_var y = _dosya("ayar.json", _örnek_ayar())
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var y = dosya("ayar.json", örnek_ayar())
     TR_var j = ayarı_değiştir(y, k, "context", TR_JSON(4096))
     TR_assert_equal(4096, TR_Int(j["context"]))
     TR_var okunan = dosya_oku(y, "ayar")
@@ -556,39 +432,39 @@ TR_test "ayarı_değiştir: yalnız bir alan değişir, öbürleri kalır; denet
 }
 
 TR_test "yalnız sohbet, ayar (chat_only): yoksa kapalı, true okunur; türü yanlışsa H8165; ayar_yaz açığı korur, kapalıyı yazmaz" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_assert(TR_not ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).yalnız_sohbet)
-    TR_var yol = _dosya("ayar.json", _değiş(_örnek_ayar(), "\"port\":47863", "\"port\":47863,\"chat_only\":true"))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_assert(TR_not ayar_oku(dosya("ayar.json", örnek_ayar()), k).yalnız_sohbet)
+    TR_var yol = dosya("ayar.json", değiş(örnek_ayar(), "\"port\":47863", "\"port\":47863,\"chat_only\":true"))
     TR_var a = ayar_oku(yol, k)
     TR_assert(a.yalnız_sohbet TR_and ayar_kopyası(a).yalnız_sohbet)
-    TR_assert(_ayar_hatası("\"port\":47863", "\"port\":47863,\"chat_only\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"chat_only\""))
+    TR_assert(ayar_hatası("\"port\":47863", "\"port\":47863,\"chat_only\":\"evet\"").TR_starts_with("Message(\"H8165\", \"A\", \"chat_only\""))
     ayar_yaz(yol, k, a, "qwen3-4b-q4km", 17179869184, 4096)
     TR_assert(TR_Bool(TR_json_parse(TR_read_file(yol))["chat_only"]))
-    TR_var sade = _dosya("ayar.json", _örnek_ayar())
+    TR_var sade = dosya("ayar.json", örnek_ayar())
     ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
     TR_assert(TR_json_parse(TR_read_file(sade)).TR_get("chat_only") == TR_none)
 }
 
 TR_test "cihaz, ayar (device): cpu ve gpu okunur, başkası H8166; machine.gpu isteğe bağlı, alanları denetlenir; ayar_yaz yeni ayara cihazı ve kartı yazar, var olanın cihazını korur" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
-    TR_assert_equal("cpu", ayar_oku(_dosya("ayar.json", _örnek_ayar()), k).cihaz)
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_assert_equal("cpu", ayar_oku(dosya("ayar.json", örnek_ayar()), k).cihaz)
     TR_var kart = "\"machine\":{\"memory_bytes\":17179869184,\"memory_source\":\"option\",\"gpu\":{\"name\":\"K\",\"memory_bytes\":8589934592,\"driver_version\":\"12.4\",\"matmul\":\"vendor\"}}"
-    TR_var gpu = _değiş(_değiş(_örnek_ayar(), "\"device\":\"cpu\"", "\"device\":\"gpu\""), "\"machine\":{\"memory_bytes\":17179869184,\"memory_source\":\"option\"}", kart)
-    TR_assert_equal("gpu", ayar_oku(_dosya("ayar.json", gpu), k).cihaz)
-    TR_assert(_ayar_hatası("\"device\":\"cpu\"", "\"device\":\"gpu:0\"").TR_starts_with("Message(\"H8166\", \"A\", \"device\""))
-    TR_assert(_ayar_hatası("\"memory_source\":\"option\"}", "\"memory_source\":\"option\",\"gpu\":{\"name\":\"K\"}}").TR_starts_with("Message(\"H8164\", \"A\", \"machine.gpu.memory_bytes\""))
+    TR_var gpu = değiş(değiş(örnek_ayar(), "\"device\":\"cpu\"", "\"device\":\"gpu\""), "\"machine\":{\"memory_bytes\":17179869184,\"memory_source\":\"option\"}", kart)
+    TR_assert_equal("gpu", ayar_oku(dosya("ayar.json", gpu), k).cihaz)
+    TR_assert(ayar_hatası("\"device\":\"cpu\"", "\"device\":\"gpu:0\"").TR_starts_with("Message(\"H8166\", \"A\", \"device\""))
+    TR_assert(ayar_hatası("\"memory_source\":\"option\"}", "\"memory_source\":\"option\",\"gpu\":{\"name\":\"K\"}}").TR_starts_with("Message(\"H8164\", \"A\", \"machine.gpu.memory_bytes\""))
     TR_var yeni = TR_String(TR_Path(TR_temp_dir(), "yeni-\(TR_time_ms())", "ayar.json"))
     ayar_yaz(yeni, k, TR_none, "qwen3-4b-q4km", 17179869184, 4096, "gpu", TR_JSON({"name": "K", "memory_bytes": 8589934592, "driver_version": "12.4", "matmul": "vendor"}))
     TR_var j = TR_json_parse(TR_read_file(yeni))
     TR_assert_equal(["gpu", "vendor"], [TR_String(j["device"]), TR_String(j["machine"]["gpu"]["matmul"])])
     TR_assert_equal("gpu", ayar_oku(yeni, k).cihaz)
-    TR_var eski = _dosya("ayar.json", _örnek_ayar())
+    TR_var eski = dosya("ayar.json", örnek_ayar())
     ayar_yaz(eski, k, ayar_oku(eski, k), "qwen3-4b-q4km", 17179869184, 4096, "gpu", TR_none)
     TR_assert_equal("cpu", TR_String(TR_json_parse(TR_read_file(eski))["device"]))
 }
 
 TR_test "öntanımlı cihaz: kart yoksa cpu; dil modeli kartın belleğinin 0,6'sına sığıyorsa gpu, sığmıyorsa cpu; bağlam sınırı aşılırsa ya da model yoksa cpu" {
-    TR_var k = katalog_oku(_dosya("katalog.json", _örnek_katalog()))
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
     TR_var g = girdi_bul(k, "qwen3-4b-q4km")
     TR_var n = gereken(g, 4096, küçükler(k, TR_none))
     TR_var sığan = (n * 100 + 59) // 60

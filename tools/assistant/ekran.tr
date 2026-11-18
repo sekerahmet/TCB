@@ -22,10 +22,10 @@ TR_const _TUTULAN_KOMUT = 1024
 TR_const _BÜTÇE = 524288
 TR_const _TUR_BAKIŞI = 0.02 # tur sürerken ana döngünün komutlara bakışı (sn)
 TR_const _ETİKETLER = ["<think>", "</think>", "<tool_call>", "</tool_call>"]
-# `settings_set`'in anahtarları: dil, sistem iletisi ve yalnız sohbet hemen; bağlam, mikrofon ve cihaz bir sonraki
+# `settings_set`'in anahtarları: dil, ses, sistem iletisi ve yalnız sohbet hemen; bağlam, mikrofon ve cihaz bir sonraki
 # açılışta; kayıt kapatılınca hemen, açılınca bir sonraki turdan (tasarım, Aç28).
 TR_const _AYARLAR = ["speech_language", "system_prompt", "context", "microphone", "recording", "language_model", "quantized_activations",
-    "chat_only", "device"]
+    "chat_only", "device", "voice"]
 
 # Komut: işleyicinin bıraktığı, ana döngünün cevapladığı komut.
 TR_struct Komut {
@@ -61,6 +61,7 @@ TR_struct Ekran {
     dil_cevabı: TR_Dict[TR_String, TR_JSON] = {}
     konuşma_dili: TR_String = ""
     ayar_istendi: TR_JSON? = TR_none
+    ses_cevabı: TR_Dict[TR_String, TR_JSON] = {} # konuşma dilinin seslerinin `voice` cevabı (yuva.tr, `ses_cevapları`)
     aygıtlar_istendi: TR_Bool = TR_false # `devices_list` geldi: ana döngü mikrofonları listeler, `devices` gönderir
     bağlam_sınırı: TR_Int = 0 # seçili dil modelinin `context_max`'ı (seçili değilse en büyüğü); 0: katalog yok, sınır yok
     mic: TR_Bool = TR_false # mikrofon gerçekten açık (ilk çerçeve okundu)
@@ -357,9 +358,9 @@ TR_func mikrofon_kararı(e: Ekran, k: Komut) -> TR_JSON {
 
 # ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın
 # istediği değilse ya da öbür ayarla çakışıyorsa `invalid_value` (`setting_invalid`). Bağlam, mikrofon, kayıt, nicemli
-# seçim ve cihaz tur sürerken de kabul edilir (modele dokunmazlar). Dilde, sistem iletisinde, dil modelinde ve yalnız sohbette tur sürüyorsa `turn_busy`;
-# dil katalogda yoksa `unknown_language`; dil modeli katalogda yoksa `invalid_value`, takımı kurulu değilse
-# `not_installed` (ayar yazılmaz); öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana
+# seçim ve cihaz tur sürerken de kabul edilir (modele dokunmazlar). Dilde, seste, sistem iletisinde, dil modelinde ve yalnız sohbette tur sürüyorsa `turn_busy`;
+# dil katalogda yoksa `unknown_language`; dil modeli ya da ses (konuşma dilinin sesi değilse) `invalid_value`, takımı
+# ya da sesi kurulu değilse `not_installed` (ayar yazılmaz); öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana
 # döngü uygular (oturum.tr, `ayarı_uygula`).
 TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
     TR_var anahtar = TR_String(k.veri["key"])
@@ -381,6 +382,10 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
         TR_var c = e.yüklenebilir.TR_get(TR_String(değer))
         TR_if c == TR_none { TR_return geçersiz }
         TR_if c.TR_get("code") != TR_none { TR_return red(k.kimlik, "setting_invalid", TR_JSON({"key": anahtar, "reason": "not_installed"})) }
+    } TR_else TR_if anahtar == "voice" {
+        TR_var c = e.ses_cevabı.TR_get(TR_String(değer))
+        TR_if c == TR_none { TR_return geçersiz }
+        TR_if c.TR_get("code") != TR_none { TR_return red(k.kimlik, TR_String(c["code"]), c["values"]) }
     } TR_else TR_if anahtar == "speech_language" {
         TR_var kod = TR_String(değer)
         TR_var c = e.dil_cevabı.TR_get(kod)
@@ -399,7 +404,7 @@ TR_func ayar_kararı(e: Ekran, k: Komut) -> TR_JSON {
 TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
     TR_var t = TR_Type(değer)
     TR_match anahtar {
-        "speech_language", "language_model" => { TR_return t == TR_String }
+        "speech_language", "language_model", "voice" => { TR_return t == TR_String }
         "quantized_activations" => { TR_return t == TR_String TR_and ["auto", "on", "off"].TR_contains(TR_String(değer)) }
         "device" => { TR_return t == TR_String TR_and ["cpu", "gpu"].TR_contains(TR_String(değer)) }
         "system_prompt" => { TR_return sistem_iletisi_mi(değer) }
@@ -407,24 +412,6 @@ TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
         "microphone" => { TR_return t == TR_String TR_and TR_String(değer) != "" }
         _ => { TR_return t == TR_Bool }
     }
-}
-
-# mikrofon_listesi: ffmpeg'in `-sources dshow` çıktısındaki ses aygıtlarının adları, sırasıyla (`devices`). İlk dolu
-# satır `Auto-detected sources for dshow:` değilse TR_none: liste okunamadı (Windows dışında dshow yok). Aygıt satırı
-# `  <kimlik> [<ad>] (<tür>)`; türünde `audio` geçen satırın adı ilk `[` ile son `] (` arasıdır (adda ayraç olabilir).
-TR_func mikrofon_listesi(çıktı: TR_String) -> TR_List[TR_String]? {
-    TR_var satırlar = [s.TR_strip() TR_for s TR_in çıktı.TR_lines() TR_if s.TR_strip() != ""]
-    TR_if satırlar.TR_length == 0 TR_or satırlar[0] != "Auto-detected sources for dshow:" { TR_return TR_none }
-    TR_var adlar: TR_List[TR_String] = []
-    TR_for s TR_in satırlar[1..satırlar.TR_length] {
-        TR_var parçalar = s.TR_split("] (")
-        TR_var n = parçalar.TR_length
-        TR_if n < 2 TR_or TR_not s.TR_ends_with(")") TR_or TR_not parçalar[n - 1].TR_contains("audio") { TR_continue }
-        TR_var baş = parçalar[0..n - 1].TR_join("] (")
-        TR_var ayraç = baş.TR_index_of("[")
-        TR_if ayraç != TR_none { adlar.TR_append(baş[ayraç + 1..baş.TR_length]) }
-    }
-    TR_return adlar
 }
 
 # sistem_iletisi_mi: `{"source": "catalog"}` ya da `{"source": "user", "text": <metin>, "language": <metin>}`.

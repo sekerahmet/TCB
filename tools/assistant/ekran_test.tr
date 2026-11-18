@@ -9,6 +9,7 @@ TR_import "ayarlar"
 TR_import "yuva"
 TR_import "zincir"
 TR_import "oturum"
+TR_import "deneme"
 
 # Üreteç: belirlenimci sözde rastgele sayılar (doğrusal eşlenik), tohumla aynı dizi.
 TR_struct Üreteç {

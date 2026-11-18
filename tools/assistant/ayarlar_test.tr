@@ -1,0 +1,121 @@
+# TR 4
+# Ayar dosyasının modelsiz sınaması: bağlamın seçimi (`bağlam_oku`, `bağlam_seç`, `bağlam_belirle`) ve dil
+# modellerinin bağlam sınırı (H8173, H8174) ve ayarın ses seçimi (`voices`, H8163, H8168; Dost P-3). Ortak örnekler
+# catalog_helpers.tr'de; ayarın öbür alanlarının okunması, yazılması ve denetimi katalog_test.tr'de.
+TR_import "katalog"
+TR_import "ayarlar"
+TR_import "catalog_helpers"
+
+TR_test "bağlamın önceliği: seçenek, ayar, 8192" {
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var a = ayar_oku(dosya("ayar.json", değiş(örnek_ayar(), "\"context\":8192", "\"context\":4096")), k)
+    TR_assert_equal(2048, bağlam_seç(2048, a))
+    TR_assert_equal(4096, bağlam_seç(TR_none, a))
+    TR_assert_equal(8192, bağlam_seç(TR_none, TR_none))
+    # Verilen 0 ve eksi değer açık hatadır, sessizce 8192 alınmaz (tasarımın defteri 58).
+    TR_for v TR_in [0, -5] {
+        TR_assert_equal("H8173", TR_error_code { bağlam_seç(v, a) })
+        TR_try { bağlam_seç(v, TR_none) } TR_catch e { TR_assert_equal("Message(\"H8173\", \"\(v)\")", TR_String(e)) }
+    }
+    TR_assert_equal(1, bağlam_seç(1, TR_none))
+    TR_assert_equal(4096, bağlam_oku("4096"))
+    TR_assert_equal("H8173", TR_error_code { bağlam_oku("dört") })
+}
+
+TR_test "bağlam_oku: boş metin ve Int64'ü aşan sayı H8173; ileti verilen metni yazar (DENETİM 457 N6)" {
+    TR_for m TR_in ["", "99999999999999999999"] {
+        TR_assert_equal("H8173", TR_error_code { bağlam_oku(m) })
+        TR_try { bağlam_oku(m) } TR_catch e { TR_assert_equal("Message(\"H8173\", \"\(m)\")", TR_String(e)) }
+    }
+}
+
+TR_test "bağlam sınırı: context_max geçer, bir fazlası ve 1,6·10¹³ H8174 (option); önerisi kopyalanınca kalkar" {
+    TR_var kat = dosya("katalog.json", örnek_katalog())
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=40960", kur(kat, yok_ayar(), TR_none, 17179869184, 40960, TR_false)[0])
+    # Son ikisi bugün gereken'in hesabında tam sayı taşması veriyordu (katalog.tr'nin eski :452 ve :444'ü).
+    TR_for v TR_in [40961, 16000000000000, 9223372036854775807] {
+        TR_try { kur(kat, yok_ayar(), TR_none, 17179869184, v, TR_false) } TR_catch e {
+            TR_assert_equal("Message(\"H8174\", \"option\", \(v), 40960)", TR_String(e))
+            TR_assert(TR_Message("H8174", "option", v, 40960).TR_text("tr").TR_contains("`--bağlam 40960`"))
+            TR_assert(TR_Message("H8174", "option", v, 40960).TR_text("en").TR_contains("`--bağlam 40960`"))
+        }
+        TR_assert_equal("H8174", TR_error_code { kur(kat, yok_ayar(), TR_none, 17179869184, v, TR_false) })
+    }
+    TR_var k = katalog_oku(kat)
+    TR_assert_equal(40960, bağlam_belirle(k, 40960, TR_none))
+    TR_assert_equal(8192, bağlam_belirle(k, TR_none, TR_none))
+}
+
+TR_test "bağlam sınırı: ayardan gelen bağlam bütün sınırları aşınca H8174 (setting); önerisi kopyalanınca kalkar" {
+    TR_var kat = dosya("katalog.json", örnek_katalog())
+    TR_var ayar = dosya("ayar.json", değiş(örnek_ayar(), "\"context\":8192", "\"context\":40961"))
+    TR_try { kur(kat, ayar, TR_none, 17179869184, TR_none, TR_false) } TR_catch e {
+        TR_assert_equal("Message(\"H8174\", \"setting\", 40961, 40960)", TR_String(e))
+        TR_assert(TR_Message("H8174", "setting", 40961, 40960).TR_text("tr").TR_contains("`\"context\": 40960`"))
+        TR_assert(TR_Message("H8174", "setting", 40961, 40960).TR_text("en").TR_contains("`\"context\": 40960`"))
+    }
+    TR_assert_equal("H8174", TR_error_code { kur(kat, ayar, TR_none, 17179869184, TR_none, TR_false) })
+    TR_var düzelmiş = dosya("ayar.json", değiş(örnek_ayar(), "\"context\":8192", "\"context\": 40960"))
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=40960", kur(kat, düzelmiş, TR_none, 17179869184, TR_none, TR_false)[0])
+    # Dalların metni birbirinden ve other'dan ayrı.
+    TR_for dil TR_in ["tr", "en"] {
+        TR_var t = [TR_Message("H8174", "option", 1, 2).TR_text(dil), TR_Message("H8174", "setting", 1, 2).TR_text(dil),
+            TR_Message("H8174", "başka", 1, 2).TR_text(dil)]
+        TR_assert(t[0] != t[1] TR_and t[0] != t[2] TR_and t[1] != t[2], dil)
+    }
+}
+
+TR_test "bağlam sınırı: kısa sınırlı dil modeli too_long, önerilmez; uzun sınırlı önerilir; satırın biçimi" {
+    TR_var kat = dosya("katalog.json", iki_dil_modeli(4096))
+    TR_var satırlar = kur(kat, yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=8192", satırlar[0])
+    TR_assert_equal("UYGUNLUK qwen3-kisa too_long baglam_siniri=4096", satırlar[1])
+    TR_assert(satırlar[2].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
+    TR_assert_equal("ONERILEN qwen3-4b-q4km", satırlar[3])
+    TR_var l = uygunluk(katalog_oku(kat), TR_none, 17179869184, 8192)
+    TR_assert_equal(["too_long", "fits"], [l[0].uyum, l[1].uyum])
+    TR_assert_equal(0, l[0].gereken)
+    # Bağlam ikisinin sınırının da altındaysa ikisi de hesaplanır.
+    TR_assert_equal(["fits", "fits"], [uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[0].uyum,
+        uygunluk(katalog_oku(kat), TR_none, 17179869184, 4096)[1].uyum])
+}
+
+TR_test "bağlam sınırı: bütün sınırlar 8192'den küçükse öntanımlı bağlam en büyük sınıra iner, hata yok" {
+    TR_var kat = dosya("katalog.json", değiş(örnek_katalog(), "\"context_max\":40960", "\"context_max\":4096"))
+    TR_var satırlar = kur(kat, yok_ayar(), TR_none, 17179869184, TR_none, TR_false)
+    TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=4096", satırlar[0])
+    TR_assert(satırlar[1].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
+    TR_assert_equal(4096, bağlam_belirle(katalog_oku(kat), TR_none, TR_none))
+}
+
+TR_test "ayar: voices isteğe bağlı; H8168'in üç nedeni ve bilinmeyen dil hatadır" {
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var a = ayar_oku(dosya("ayar.json", örnek_ayar()), k)
+    TR_assert(a != TR_none TR_and a.sesler.TR_length == 0)
+    TR_var yer = "\"device\":\"cpu\""
+    TR_var seçili = ayar_oku(dosya("ayar.json", değiş(örnek_ayar(), yer, "\(yer),\"voices\":{\"tr\":\"mms-tts-tur\"}")), k)
+    TR_assert(seçili != TR_none TR_and seçili.sesler["tr"] == "mms-tts-tur" TR_and seçili.sesler.TR_get("en") == TR_none)
+    TR_assert_equal("hata yok", ayar_hatası(yer, "\(yer),\"voices\":{}"))
+    TR_assert(ayar_hatası(yer, "\(yer),\"voices\":{\"de\":\"mms-tts-tur\"}").TR_starts_with("Message(\"H8163\", \"A\", \"voices.de\", \"`tr`, `en`\""))
+    TR_assert_equal("Message(\"H8168\", \"voices.tr\", \"yok\", \"not_in_catalog\", \"`mms-tts-tur`\")",
+        ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":\"yok\"}"))
+    TR_assert_equal("Message(\"H8168\", \"voices.tr\", \"whisper-small\", \"wrong_kind\", \"`mms-tts-tur`\")",
+        ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":\"whisper-small\"}"))
+    TR_assert_equal("Message(\"H8168\", \"voices.tr\", \"mms-tts-eng\", \"other\", \"`mms-tts-tur`\")",
+        ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":\"mms-tts-eng\"}"))
+    TR_assert_equal("Message(\"H8165\", \"A\", \"voices.tr\", \"string\", \"integer\")", ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":5}"))
+    TR_assert_equal("Message(\"H8165\", \"A\", \"voices\", \"object\", \"array\")", ayar_hatası(yer, "\(yer),\"voices\":[]"))
+}
+
+TR_test "ayar: kur.tr'nin yeniden yazımı voices'u korur" {
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var yol = dosya("ayar.json", değiş(örnek_ayar(), "\"device\":\"cpu\"", "\"device\":\"cpu\",\"voices\":{\"en\":\"mms-tts-eng\"}"))
+    ayar_yaz(yol, k, ayar_oku(yol, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_var j = TR_json_parse(TR_read_file(yol))
+    TR_assert_equal("mms-tts-eng", TR_String(j["voices"]["en"]))
+    TR_var a = ayar_oku(yol, k)
+    TR_assert(a != TR_none TR_and a.sesler["en"] == "mms-tts-eng")
+    TR_var sade = dosya("ayar.json", örnek_ayar())
+    ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_assert(TR_json_parse(TR_read_file(sade)).TR_get("voices") == TR_none)
+}
