@@ -58,7 +58,7 @@ func (k *fileReader) integer(p []byte) bool {
 // missing ne okunurken oluşan okuma hatasını anlatır.
 func (k *fileReader) missing(ne any) error {
 	if k.failure != nil && !errors.Is(k.failure, io.EOF) && !errors.Is(k.failure, io.ErrUnexpectedEOF) {
-		return messages.New(messages.H6600, ne, k.failure)
+		return messages.New(messages.H6600, ne, messages.SystemError("", k.failure))
 	}
 	return messages.New(messages.H6601, ne)
 }

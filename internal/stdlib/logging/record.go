@@ -348,7 +348,7 @@ func (g *Log) Len() (int64, error) {
 	defer g.mu.Unlock()
 	b, err := os.Stat(g.fullPath)
 	if err != nil {
-		return 0, err
+		return 0, turkish.FileError("", g.path, messages.H2100, err)
 	}
 	return b.Size(), nil
 }

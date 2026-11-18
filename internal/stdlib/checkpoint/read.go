@@ -208,9 +208,9 @@ func digestMatches(name string, want fileDigest, nBytes int64, digest string) er
 	return nil
 }
 
-// readReason bir dosyanın okunamama nedenini Türkçe söyler.
+// readReason bir dosyanın okunamama nedenini kodlu ileti olarak döndürür.
 func readReason(name string, err error) error {
-	return messages.New(messages.H6600, name, turkish.FileErrorReason(name, err))
+	return messages.New(messages.H6600, name, messages.SystemError(name, err))
 }
 
 // checkMatch şimdiki nesnelerin kayıttakilerle aynı olduğunu ve her birinin kaydına

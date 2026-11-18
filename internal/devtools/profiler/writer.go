@@ -87,10 +87,10 @@ func (y *statusWriter) put(g *Snapshot, final bool) error {
 		if !y.direct && !final {
 			return nil // geçici: önceki tam dosya kalır, sonraki aralık yeniden dener
 		}
-		y.report(&y.replaceWarned, messages.Text(messages.H8221, y.fpath, err))
+		y.report(&y.replaceWarned, messages.Text(messages.H8221, y.fpath, messages.SystemError(y.fpath, err)))
 	}
 	if err := os.WriteFile(y.fpath, data, 0o644); err != nil {
-		y.report(&y.writeWarned, messages.Text(messages.H8222, y.fpath, err))
+		y.report(&y.writeWarned, messages.Text(messages.H8222, y.fpath, messages.SystemError(y.fpath, err)))
 		return err
 	}
 	y.writeWarned = false

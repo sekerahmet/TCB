@@ -188,7 +188,7 @@ func checkFile(code codes.Code, given string) (string, error) {
 	}
 	abs, err := filepath.Abs(given)
 	if err != nil {
-		return "", messages.New(messages.H7501, fn, given, err)
+		return "", messages.New(messages.H7501, fn, given, messages.SystemError(given, err))
 	}
 	if onWindows {
 		if err := checkWindowsFile(code, given, abs); err != nil {

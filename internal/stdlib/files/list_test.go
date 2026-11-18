@@ -1,7 +1,9 @@
 package files
 
 import (
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -85,5 +87,38 @@ func TestListDoesNotEnterLinks(t *testing.T) {
 	}
 	if got := mustRunTR(t, `TR_list_dir("v", "dongu/*.npy")`); got != "[v/dongu/a.npy]" {
 		t.Errorf("adıyla yazılan bağlantı: %s", got)
+	}
+}
+
+func TestListDirUnreadableWarningCarriesNoSystemText(t *testing.T) {
+	g := &walker{}
+	g.markUnreadable(filepath.Join("v", "yasak"), os.ErrPermission)
+	trWarn := messages.TextIn("tr", messages.H7137, "klasörü_listele()", g.unreadableCount, g.firstUnreadable, messages.SystemError(g.firstUnreadable, g.firstErr))
+	enWarn := messages.TextIn("en", messages.H7137, "list_dir()", g.unreadableCount, g.firstUnreadable, messages.SystemError(g.firstUnreadable, g.firstErr))
+	if !strings.Contains(trWarn, "erişim izni yok") || strings.Contains(strings.ToLower(trWarn), "permission denied") {
+		t.Fatalf("TR H7137 uyarısı beklenmedik: %q", trWarn)
+	}
+	if !strings.Contains(enWarn, "permission denied") || strings.Contains(enWarn, "erişim izni yok") {
+		t.Fatalf("EN H7137 uyarısı beklenmedik: %q", enWarn)
+	}
+
+	if runtime.GOOS != "windows" && os.Geteuid() != 0 {
+		k := tmpWork(t)
+		write(t, filepath.Join(k, "v", "acik.txt"), "x")
+		blocked := filepath.Join(k, "v", "kapali")
+		if err := os.MkdirAll(blocked, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(blocked, 0); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(blocked, 0o755) })
+		s := runTR(t, "", `TR_list_dir("v", "**")`)
+		if s.failure != nil {
+			t.Fatalf("okunamayan alt klasör yalnız uyarmalı: %v", s.failure)
+		}
+		if !strings.Contains(s.warning, "Uyarı:") || strings.Contains(strings.ToLower(s.warning), "permission denied") {
+			t.Fatalf("H7137 uyarısında ham sistem metni ya da eksik uyarı: %q", s.warning)
+		}
 	}
 }

@@ -130,3 +130,39 @@ func TestReplaceFailureSkipsInterval(t *testing.T) {
 		t.Errorf("son rapor yazılmadı: %v", s)
 	}
 }
+
+func TestStatusWriterSystemErrorWarnings(t *testing.T) {
+	dir := t.TempDir()
+	old := replace
+	replace = func(string, string) error { return os.ErrPermission }
+	defer func() { replace = old }()
+
+	var replaceWarns []string
+	y := &statusWriter{
+		fpath:   filepath.Join(dir, StatusFileName),
+		warning: func(m string) { replaceWarns = append(replaceWarns, m) },
+	}
+	if err := y.writeFinal(&Snapshot{Format: FormatName, Seconds: 1}); err != nil {
+		t.Fatalf("doğrudan yedek yazma başarılı olmalıydı: %v", err)
+	}
+	if len(replaceWarns) != 1 || !strings.Contains(replaceWarns[0], "erişim izni yok") || strings.Contains(strings.ToLower(replaceWarns[0]), "permission denied") {
+		t.Fatalf("H8221 uyarısı beklenmedik: %v", replaceWarns)
+	}
+
+	var writeWarns []string
+	yDir := &statusWriter{
+		fpath:   t.TempDir(),
+		direct:  true,
+		warning: func(m string) { writeWarns = append(writeWarns, m) },
+	}
+	if err := yDir.write(&Snapshot{Format: FormatName, Seconds: 2}); err == nil {
+		t.Fatal("klasör yoluna doğrudan yazma hata vermeliydi")
+	}
+	if len(writeWarns) != 1 {
+		t.Fatalf("1 H8222 uyarısı bekleniyordu: %v", writeWarns)
+	}
+	low := strings.ToLower(writeWarns[0])
+	if strings.Contains(low, "is a directory") || strings.Contains(low, "access is denied") || strings.Contains(low, "incorrect function") {
+		t.Fatalf("H8222 uyarısında ham sistem metni: %q", writeWarns[0])
+	}
+}

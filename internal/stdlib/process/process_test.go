@@ -2,10 +2,13 @@ package process
 
 import (
 	"math"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -151,6 +154,46 @@ func TestParseErrorCodes(t *testing.T) {
 		for _, c := range d.want {
 			if !messages.Has(err, c) {
 				t.Errorf("%.40v: %s bekleniyordu: %v", d.arg, c, err)
+			}
+		}
+	}
+}
+
+type testPath string
+
+func (p testPath) Type() interp.ValueType { return "Path" }
+func (p testPath) Inspect() string        { return string(p) }
+func (p testPath) IsTruthy() bool         { return true }
+func (p testPath) FilePath() string       { return string(p) }
+
+func TestProcessStartSystemErrorsCarryNoSystemText(t *testing.T) {
+	badExe := filepath.Join(t.TempDir(), "bozuk.exe")
+	if err := os.WriteFile(badExe, []byte("not an executable"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := interp.New()
+	st := &State{}
+	args := []interp.Value{testPath(filepath.ToSlash(badExe)), &interp.ListVal{}}
+
+	for _, call := range []struct {
+		name string
+		fn   func() (interp.Value, error)
+	}{
+		{"runProcess", func() (interp.Value, error) { return st.runProcess(m, args, nil) }},
+		{"spawnProcess", func() (interp.Value, error) { return st.spawnProcess(m, args, nil) }},
+	} {
+		_, err := call.fn()
+		if !messages.Has(err, messages.H7501) || !messages.HasSystemError(err) {
+			t.Fatalf("%s: H7501 ve kodlu sistem hatası bekleniyordu: %v", call.name, err)
+		}
+		root, ok := messages.Root(err)
+		if !ok || root.Code == messages.H7501 {
+			t.Fatalf("%s: kök kod H7501'in iç nedenine inmeliydi, gelen: %v (%v)", call.name, root, ok)
+		}
+		for _, lang := range []string{"tr", "en"} {
+			low := strings.ToLower(messages.ErrorIn(err, lang))
+			if strings.Contains(low, "valid win32 application") || strings.Contains(low, "exec format error") || (lang == "tr" && strings.Contains(low, "permission denied")) {
+				t.Fatalf("%s (%s) ham işletim sistemi metni sızdırdı: %q", call.name, lang, low)
 			}
 		}
 	}

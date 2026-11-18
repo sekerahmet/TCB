@@ -3,6 +3,7 @@ package gpu
 import (
 	"fmt"
 	"math/rand"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -148,6 +149,16 @@ func TestGemmLibrarySearchPath(t *testing.T) {
 			if !strings.HasPrefix(c, "/") {
 				t.Fatalf("LD_LIBRARY_PATH=%q iken göreli aday: %q", ld, c)
 			}
+		}
+	}
+	missing := filepath.Join(t.TempDir(), "olmayan_cublasLt.dll")
+	if _, openErr := ltOpen(missing); openErr == nil {
+		t.Fatalf("olmayan kitaplık açıldı: %s", missing)
+	} else {
+		note := messages.Text(messages.H4027, missing, messages.SystemError(missing, openErr))
+		low := strings.ToLower(note)
+		if strings.Contains(low, "the specified module could not be found") || strings.Contains(low, "cannot open shared object") {
+			t.Fatalf("H4027 notu ham sistem metni taşıyor: %q", note)
 		}
 	}
 }

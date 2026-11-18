@@ -39,6 +39,9 @@ var rename = os.Rename
 // konmuş): yazma hatası değildir, yeniden denemekle geçmez; hemen bildirilir.
 type collectError struct{ error }
 
+func (c collectError) MessageText(lang string) string { return messages.ErrorIn(c.error, lang) }
+func (c collectError) Unwrap() error                  { return c.error }
+
 // panicValue çekirdekten gelen bir paniğin (ör. cihaz belleği) hatasıdır; metin paniğin
 // kendi iletisidir (fmt.Errorf("%v", r) ile aynı).
 type panicValue struct{ v any }
@@ -83,10 +86,10 @@ func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 	if err := interp.WriteAtomic(filepath.Join(kn.dir, latestFile), func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(latestRecord{Version: formatVersion, Step: kn.step, Dir: name})
 	}); err != nil {
-		m.WriteOutput(m.Err, messages.Text(messages.H7481, fn, latestFile, turkish.FileErrorReason(latestFile, err))+"\n")
+		m.WriteOutput(m.Err, messages.Text(messages.H7481, fn, latestFile, messages.SystemError(latestFile, err))+"\n")
 	}
 	if err := kn.deleteOld(name); err != nil {
-		m.WriteOutput(m.Err, messages.Text(messages.H7482, fn, turkish.FileErrorReason(kn.shown, err))+"\n")
+		m.WriteOutput(m.Err, messages.Text(messages.H7482, fn, messages.SystemError(kn.shown, err))+"\n")
 	}
 	return shown, nil
 }

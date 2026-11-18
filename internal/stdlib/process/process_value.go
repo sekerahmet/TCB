@@ -230,7 +230,7 @@ func (p *Process) result(m *interp.VM, fn any) (interp.Value, error) {
 	}
 	state := p.job.cmd.ProcessState
 	if state == nil {
-		return nil, messages.New(messages.H7501, fn, p.call.name, p.job.waitErr)
+		return nil, messages.New(messages.H7501, fn, p.call.name, messages.SystemError(p.call.name, p.job.waitErr))
 	}
 	if err := p.call.endError(fn, state, p.tail.text(m.Mask)); err != nil {
 		return nil, err

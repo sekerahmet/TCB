@@ -54,3 +54,4 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_lock_threshold_test.go`: kilidi bırakma eşiklerinin (öğe öğe 2^23, adım 2^20) dayanağı; her işlem ve boyda doğrudan ve kilit bırakılarak süre, tek görevde ve başka görev canlıyken (10.2; ölçmek için `go test ./internal/stdlib/ml -run TestUnlockThresholdCost -v`)
 - `behavior_callback_lock_test.go`: TR koduna geri çağrılar (`ApplyFunction`) yalnız `applyFunction`'dan, kilit tutularak yapılır; kilitsiz bölgeden yapılan geri çağrı kilidi geri alır (10.2, S-kilit adım 4)
 - `behavior_safetensors_header_test.go`: safetensors başlığının katı okunması (alan adları, yinelenen anahtar, null, vekil kaçışı)
+- `behavior_system_errors_test.go`: cihaz durumu ve tensör dosyası okuma hatalarında işletim sistemi metninin TR değerine sızmaması

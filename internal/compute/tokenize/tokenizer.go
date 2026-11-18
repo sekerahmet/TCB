@@ -114,19 +114,19 @@ const DefaultCacheCapacity = 1 << 17
 func Load(path string) (*Tokenizer, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, messages.New(messages.H5272, err)
+		return nil, messages.New(messages.H5272, messages.SystemError(path, err))
 	}
 	defer f.Close()
 	head := make([]byte, len(gguf.Magic))
 	if _, err := io.ReadFull(f, head); err == nil && string(head) == gguf.Magic {
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
-			return nil, messages.New(messages.H5272, err)
+			return nil, messages.New(messages.H5272, messages.SystemError(path, err))
 		}
 		return loadGGUF(f)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, messages.New(messages.H5272, err)
+		return nil, messages.New(messages.H5272, messages.SystemError(path, err))
 	}
 	return Parse(data)
 }

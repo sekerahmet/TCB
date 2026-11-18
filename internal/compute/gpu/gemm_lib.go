@@ -106,7 +106,7 @@ func ltOpenCandidates() ([]*ltLibrary, []string) {
 			if l, err := ltOpen(open); err == nil {
 				a.candidates = append(a.candidates, l)
 			} else {
-				a.notes = append(a.notes, messages.Text(messages.H4027, open, err))
+				a.notes = append(a.notes, messages.Text(messages.H4027, open, messages.SystemError(open, err)))
 			}
 		}
 		var others []*ltLibrary

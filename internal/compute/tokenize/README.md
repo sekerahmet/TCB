@@ -29,3 +29,4 @@ paralel kodlama tek tek kodlamayla aynıdır. Denetim: `TestUncachedAndLong`, `T
 ## Testler
 
 - `behavior_pretokenizer_budget_test.go`: ön bölücü zincirinde büyümenin bir kez düşülmesi ve parça başına ayırma yapılmaması
+- `behavior_system_errors_test.go`: parçalayıcı dosyası okuma hatalarında işletim sistemi metninin değere sızmaması

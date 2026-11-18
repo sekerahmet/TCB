@@ -48,14 +48,14 @@ func decodeGGUF(r *bufio.Reader, size int64) ([]fileEntry, error) {
 	for _, t := range f.Tensors {
 		start := f.DataStart + int64(t.Offset)
 		if _, err := io.CopyN(io.Discard, r, start-at); err != nil {
-			return nil, messages.New(messages.H6653, t.Name, err)
+			return nil, messages.New(messages.H6653, t.Name, messages.SystemError("", err))
 		}
 		g, err := readGGUFTensor(r, t)
 		if messages.Has(err, messages.H6686) {
 			return nil, err
 		}
 		if err != nil {
-			return nil, messages.New(messages.H6653, t.Name, err)
+			return nil, messages.New(messages.H6653, t.Name, messages.SystemError("", err))
 		}
 		out = append(out, g)
 		at = start + int64(t.Size)

@@ -20,7 +20,7 @@ const fromSystemDir = 0x00000800
 func openLib() (library, error) {
 	loader := syscall.NewLazyDLL("kernel32.dll").NewProc("LoadLibraryExW")
 	if err := loader.Find(); err != nil {
-		return nil, messages.New(messages.H4000, err)
+		return nil, messages.New(messages.H4000, messages.SystemError("kernel32.dll", err))
 	}
 	ad, err := syscall.UTF16PtrFromString("nvcuda.dll")
 	if err != nil {
@@ -28,7 +28,7 @@ func openLib() (library, error) {
 	}
 	h, _, e := loader.Call(uintptr(unsafe.Pointer(ad)), 0, fromSystemDir)
 	if h == 0 {
-		return nil, messages.New(messages.H4001, "nvcuda.dll", e)
+		return nil, messages.New(messages.H4001, "nvcuda.dll", messages.SystemError("nvcuda.dll", e))
 	}
 	return &windowsLibrary{h: syscall.Handle(h)}, nil
 }
