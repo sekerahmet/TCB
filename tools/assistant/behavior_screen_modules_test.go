@@ -212,7 +212,10 @@ func TestSetupOffersTheDownloadedChatModels(t *testing.T) {
 	}
 }
 
-const modelsModule = "tools/assistant/js/models.js"
+const (
+	modelsModule = "tools/assistant/js/models.js"
+	viewModule   = "tools/assistant/js/view.js"
+)
 
 // Kurulum kartının "bitince kendiliğinden belleğe alınır" notu yalnız bu iniş ayarın takımını tamamlayacaksa doğrudur:
 // sunucu indirme bitince yalnız ayarın takımı bu inişle kurulu hâle geldiyse yükler (oturum.tr, indirme_bitti; DENETİM
@@ -382,5 +385,32 @@ func TestDownloadRowShowsSpeedAndSlow(t *testing.T) {
 		if !strings.Contains(code, want) {
 			t.Errorf("the page has no %q: the running row shows its speed and the slow note", want)
 		}
+	}
+}
+
+// "Başka model seç" Ayarlar'ı sohbet modelinin kategorisinde, dişli ilk kategoride açar (tasarım dost-ayar-kategori
+// A-3). İki giriş açık sarmalayıcıyla bağlanır: tıklama olayı kategori yerine geçmez; verilmeyen ya da bilinmeyen kimlik
+// ilk kategoriye düşer. Listede oklar bir adım gider (uçta öbür uca döner), Home ve End uçlara. Kural js/view.js'in saf
+// bloğundadır ("Ayar grupları"); dar ekranda dişli önce listeyi, "Başka model seç" doğrudan paneli açar.
+func TestOtherModelOpensTheModelCategory(t *testing.T) {
+	output := nodeBlock(t, viewModule, "Ayar grupları", "process.stdout.write(JSON.stringify([\n"+
+		"  settingsCategory(\"chat_model\"), settingsCategory(undefined), settingsCategory(\"nope\"), settingsCategory({type: \"click\"}),\n"+
+		"  categoryAfterKey(\"speech\", \"ArrowDown\"), categoryAfterKey(\"performance\", \"ArrowDown\"),\n"+
+		"  categoryAfterKey(\"speech\", \"ArrowUp\"), categoryAfterKey(\"audio\", \"Home\"), categoryAfterKey(\"audio\", \"End\"),\n"+
+		"  categoryAfterKey(\"audio\", \"a\"),\n]));\n")
+	want := `["chat_model","speech","speech","speech","chat_model","speech","performance","speech","performance",null]`
+	if string(output) != want {
+		t.Errorf("the category rules: %s, want %s", output, want)
+	}
+	view := readFile(t, viewModule)
+	for _, want := range []string{`byId("setupOther").addEventListener("click", () => openSettings("chat_model"));`,
+		`byId("settingsOpen").addEventListener("click", () => openSettings());`,
+		`showCategory(settingsCategory(category));`, `settingsDialog.dataset.view = category === undefined ? "list" : "panel";`} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view.js has no %q", want)
+		}
+	}
+	if strings.Contains(view, `"click", openSettings)`) {
+		t.Error("openSettings is bound to a click directly: the event would arrive as the category")
 	}
 }
