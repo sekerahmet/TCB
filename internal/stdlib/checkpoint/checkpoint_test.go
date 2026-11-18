@@ -397,4 +397,11 @@ TR_Checkpoint("kosu2", {"w": w})
 	if strings.Contains(lowLoad, "is a directory") || strings.Contains(lowLoad, "access is denied") || strings.Contains(lowLoad, "incorrect function") {
 		t.Fatalf("kontrol noktası okuma hatasında ham sistem metni: %q", lowLoad)
 	}
+	// Neden kodlu köktür (DENETİM 899 Ş1): her dilde çevrilir, TR_LANG'da donmaz.
+	if root, ok := messages.Root(loadErr); !ok || root.Code != messages.H2130 {
+		t.Fatalf("kontrol noktası okuma hatasının kök kodu = %v (%v), H2130 bekleniyordu", root, ok)
+	}
+	if enLoad := messages.ErrorIn(loadErr, "en"); enLoad == messages.ErrorIn(loadErr, "tr") || strings.Contains(strings.ToLower(enLoad), "incorrect function") {
+		t.Fatalf("kontrol noktası okuma hatası İngilizceye çevrilmiyor: %q", enLoad)
+	}
 }

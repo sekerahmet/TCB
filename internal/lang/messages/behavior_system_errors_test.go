@@ -361,7 +361,7 @@ func isFormatReaderCall(e ast.Expr) bool {
 
 func isRawErrorField(e ast.Expr) bool {
 	sel, ok := e.(*ast.SelectorExpr)
-	return ok && (sel.Sel.Name == "failure" || sel.Sel.Name == "waitErr")
+	return ok && (sel.Sel.Name == "failure" || sel.Sel.Name == "waitErr" || sel.Sel.Name == "firstErr")
 }
 
 func isIdentExpr(e ast.Expr) bool { _, ok := e.(*ast.Ident); return ok }
