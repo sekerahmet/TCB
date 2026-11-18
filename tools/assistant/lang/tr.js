@@ -124,6 +124,7 @@ assistantLanguages.tr = {
   "error_not_ready": "Modeller hazır değil: kurulu değil ya da hâlâ yükleniyor.",
   "error_mic_unavailable": "Mikrofon açılamadı.",
   "error_model_load_failed": "Model yüklenemedi: {model}",
+  "error_speech_skipped": "Bir cümle seslendirilmedi: ses bu yazının harflerini okuyamıyor. Cümle ekranda yazılı.",
   "error_out_of_memory": "Bellek yetmedi: {needed_bytes} gerekiyor.",
   "error_unknown_entry": "Katalogda böyle bir model yok: {entry_id}",
   "error_not_installed": "Bu modelin dosyaları kurulu değil: {entry_id}",

@@ -58,7 +58,7 @@ TR_test "deneme kaydı: her tur JSONL'e bir satır ve kesitin WAV'ı; özet her 
     TR_assert_equal("gpu", TR_String(satırlar[0]["cihaz"]))
     TR_var s1 = satırlar[1]
     TR_for a TR_in ["kayit", "tur", "saat", "kaynak", "son", "kesit_basi_ms", "kesit_sonu_ms", "soz_ms", "wav", "duyulan", "giden",
-        "cevap", "dusunce", "seslendirilen", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn", "nicemli"] {
+        "cevap", "dusunce", "seslendirilen", "atlanan", "bekleme_ms", "yazi_ms", "ilk_parca_ms", "toplam_ms", "cevap_ms", "geride_ms", "token_sn", "nicemli"] {
             TR_assert(s1.TR_keys().TR_contains(a))
         }
     TR_assert(TR_not s1.TR_keys().TR_contains("hata_kodu"))

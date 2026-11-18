@@ -111,6 +111,7 @@ TR_struct Deneme {
         d["cevap"] = TR_JSON(t.cevap)
         d["dusunce"] = TR_JSON(t.düşünce)
         d["seslendirilen"] = TR_JSON(t.seslendirilen)
+        d["atlanan"] = TR_JSON(t.atlanan)
         TR_var süreler = [t.bekleme_ms, t.yazı_ms, t.ilk_parça_ms, t.çalma_ms, t.cevap_ms, t.geride_ms]
         TR_for i TR_in 0.._DENEME_SÜRELERİ.TR_length { d[_DENEME_SÜRELERİ[i]] = TR_JSON(süreler[i]) }
         d["token_sn"] = TR_JSON(token_hızı(t))

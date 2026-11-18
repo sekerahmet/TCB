@@ -287,6 +287,7 @@ Sunucudan gelenler:
 | `not_ready` | | Modeller kurulu değilken ya da yüklenirken yeni tur istendi |
 | `mic_unavailable` | | Mikrofon açılamadı |
 | `model_load_failed` | `model` | Model yüklenemedi |
+| `speech_skipped` | | Bir cümle seslendirilmedi: ses onun harflerini okuyamıyor (Piper'da Kiril ya da Çin yazısı); tur sürer, cümle ekranda kalır. Ölümcül değil |
 | `out_of_memory` | `needed_bytes` | Bellek yetmedi |
 | `unknown_entry` | `entry_id` | Katalogda yok |
 | `not_installed` | `entry_id` | Yüklenecek dosyalar yok |

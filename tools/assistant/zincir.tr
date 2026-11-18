@@ -54,6 +54,7 @@ TR_struct Tur {
     cevap: TR_String = "" # cevabın içeriği; durdurulan turda o ana kadar çözülen metin
     düşünce: TR_String = "" # cevabın düşünce alanı (zincir düşünmeden kurulu: boş)
     seslendirilen: TR_List[TR_String] = [] # ses üretimine giden cümleler
+    atlanan: TR_List[TR_String] = [] # sesin okuyamadığı için seslendirilmeyen cümleler (asistan.tr, `sesi_üret`)
 }
 
 TR_func olcu_yaz(t: Tur) {

@@ -214,7 +214,7 @@ TR_func tur_aç(z: Zincir, kesit: TR_Tensor?, çalma_sonrası: TR_Bool, geride: 
 
 # tur_işi: turun kendisi, sözün yazısından son çalmanın bitmesine; hatası çağırana gider. Söz boşsa TR_none (tur
 # yok). Metin turunda (`söz`) yazıya çevirme yoktur. Ekranlı kipte cevabın metni `ekran`'a akar. `sessiz`'de (yalnız
-# sohbet) cevap seslendirilmez: kayıtta seslendirilen cümle yoktur.
+# sohbet) cevap seslendirilmez: kayıtta seslendirilen cümle yoktur. Sesin okuyamadığı cümle atlanır (`sesi_üret`).
 TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz: TR_String?, t0: TR_Int, ekran: Yazıcı?,
     sessiz: TR_Bool = TR_false) -> TR_String? {
     TR_var z = a.z
@@ -231,7 +231,11 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     TR_var aktı = (m: TR_String) => {
         TR_if ekran != TR_none { ekran.ilerle(m) }
     }
-    TR_var içerik = cevapla(z, yazı, t0, t, söyleyen(sessiz, (c) => konuşma.söyle(a.ses.TR_synthesize(c))), aktı)
+    TR_var söyle = (c: TR_String) => {
+        TR_var ses = sesi_üret(a, t, c, ekran)
+        TR_if ses != TR_none { konuşma.söyle(ses) }
+    }
+    TR_var içerik = cevapla(z, yazı, t0, t, söyleyen(sessiz, söyle), aktı)
     TR_if sessiz { t.seslendirilen = [] }
     TR_if içerik == TR_none {
         TR_print("söz boş: tur yok")
@@ -240,6 +244,26 @@ TR_func tur_işi(a: Asistan, t: Tur, konuşma: Konuşma, kesit: TR_Tensor?, söz
     z.tur = t.sıra
     konuşma.bitir()
     TR_return içerik
+}
+
+# sesi_üret: cümlenin sesi (Dost P-12). Sesin sözlüğünde olmayan harf (H7567: Piper'da Kiril ya da Çin yazısı) cümleyi
+# atlar, tur sürer: cümle `seslendirilen`'den `atlanan`'a geçer (kayıt), ekranlı kipte ölümcül olmayan `speech_skipped`
+# gider, ekransız kipte günlüğe `SES ATLANDI:` yazılır; metin ekranda kalır. Öbür hatalar turu bugünkü gibi düşürür.
+TR_func sesi_üret(a: Asistan, t: Tur, c: TR_String, ekran: Yazıcı?) -> TR_Sound? {
+    TR_try {
+        TR_return a.ses.TR_synthesize(c)
+    } TR_catch h {
+        TR_if h.TR_code != "H7567" { TR_throw h }
+    }
+    TR_var n = t.seslendirilen.TR_length
+    TR_if n > 0 TR_and t.seslendirilen[n - 1] == c { t.seslendirilen = t.seslendirilen[0..n - 1] }
+    t.atlanan.TR_append(c)
+    TR_if ekran != TR_none {
+        ekran.e.gönder("error", TR_JSON({"code": "speech_skipped", "values": {}, "fatal": TR_false}))
+    } TR_else {
+        TR_print("SES ATLANDI:", c)
+    }
+    TR_return TR_none
 }
 
 TR_func kimlikleri_yaz(z: Zincir) {

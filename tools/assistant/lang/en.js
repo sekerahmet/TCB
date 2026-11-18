@@ -124,6 +124,7 @@ assistantLanguages.en = {
   "error_not_ready": "The models are not ready: not installed, or still loading.",
   "error_mic_unavailable": "The microphone could not be opened.",
   "error_model_load_failed": "The model could not be loaded: {model}",
+  "error_speech_skipped": "A sentence was not read aloud: the voice cannot read its letters. The sentence is shown on screen.",
   "error_out_of_memory": "Not enough memory: {needed_bytes} needed.",
   "error_unknown_entry": "There is no such model in the catalog: {entry_id}",
   "error_not_installed": "This model's files are not installed: {entry_id}",
