@@ -57,7 +57,7 @@ func TestValueAllocations(t *testing.T) {
 	d := New(tensor.Zeros(100, 40))
 	alloc := testing.AllocsPerRun(5, func() { _, _ = d.valueList() })
 	if alloc > 10 {
-		t.Fatalf(".değer %v ayırma yaptı; önceden ayrılmış dilimler bekleniyordu", alloc)
+		t.Fatalf(".TR_tolist %v ayırma yaptı; önceden ayrılmış dilimler bekleniyordu", alloc)
 	}
 }
 

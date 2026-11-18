@@ -13,7 +13,7 @@ TR_backward(TR_sum(w * TR_Tensor([3.0, 0.0])) + TR_sum(b * 4))
 TR_print(TR_clip_grad([w, b], TR_max: 1.0).TR_tolist)
 TR_print(w.TR_grad.TR_tolist, b.TR_grad.TR_tolist)
 TR_print(TR_clip_grad([w, b]))`)
-	// Kırpma öncesi norm 0 boyutlu tensördür; sayısı .değer ile okunur.
+	// Kırpma öncesi norm 0 boyutlu tensördür; sayısı .TR_tolist ile okunur.
 	want := "5.0\n[0.6, 0.0] [0.8]\nTensor(1.0000)\n"
 	if out != want {
 		t.Fatalf("gradyan_kırp:\n%q\nbeklenen:\n%q", out, want)

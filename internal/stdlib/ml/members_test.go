@@ -8,7 +8,7 @@ import (
 )
 
 // Görünüm metotları (şekillendir, devrik, eksenleri_sırala, dilim) ve bitiştir TR_Int tensörün
-// (token kimlikleri, argmax) cinsini korur: .değer Tam verir. Cinsler karışmaz (15.7, 15.49).
+// (token kimlikleri, argmax) cinsini korur: .TR_tolist Tam verir. Cinsler karışmaz (15.7, 15.49).
 func TestViewsKeepInts(t *testing.T) {
 	out := mustRun(t, `TR_var i = TR_argmax(TR_Tensor([[1.0, 5.0, 0.0], [7.0, 2.0, 9.0]]), TR_dim: 0)
 TR_var m = i.TR_reshape([3, 1])

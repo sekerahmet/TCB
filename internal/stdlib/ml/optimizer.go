@@ -244,7 +244,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 		return nil, err
 	}
 	// Norm 0 boyutlu tensördür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program
-	// ancak norm okununca (.değer, yazdırma) bekler.
+	// ancak norm okununca (.TR_tolist, yazdırma) bekler.
 	if strict {
 		// Önce kırpmadan (sınır +∞: ölçek yok) norm alınır ve denetlenir; hata verilirse
 		// gradyanlar değişmemiştir (PyTorch clip_grad_norm_ de error_if_nonfinite'te önce

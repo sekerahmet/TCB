@@ -184,7 +184,7 @@ func panicReasonError(err error) error {
 // argMax verilen eksende en büyük elemanın indeksini verir: argmax(x, eksen: -1). Eksen
 // verilmezse bütün öğeler üstünde çalışır ve satır sırasıyla düzleştirilmiş indeksi 0 boyutlu
 // tensörde verir (15.19). Sonuç her zaman TR_Int ("int64") tensörüdür (o eksen kaldırılmış
-// şekilde) ve türev izlemez: .değer Tam (ya da Tam listesi) verir, böylece liste indeksi
+// şekilde) ve türev izlemez: .TR_tolist Tam (ya da Tam listesi) verir, böylece liste indeksi
 // olarak doğrudan kullanılabilir; sonuç gömme(...) ve
 // çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir; −0.0 0.0'dan küçüktür, NaN varsa ilk NaN (15.22b).
