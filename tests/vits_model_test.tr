@@ -64,6 +64,10 @@ TR_test "VITS sese_çevir 16 kHz ses verir, aynı metin aynı sesi" {
     TR_assert_equal(16000, a.TR_sample_rate)
     TR_assert_equal(1, a.TR_samples.TR_shape[0])
     TR_assert(TR_equal(a.TR_samples, model.TR_synthesize("İz").TR_samples))
+    # Dost cevabı cümle cümle konuşturur: araya başka cümle girince de aynı cümle aynı sesi verir (gürültü her
+    # çağrıda aynı tohumdan, programın paylaşılan üretecinden değil).
+    model.TR_synthesize("Kış")
+    TR_assert(TR_equal(a.TR_samples, model.TR_synthesize("İz").TR_samples))
     TR_var yol = TR_String(TR_Path(TR_temp_dir(), "iz.wav"))
     TR_write_wav(yol, a)
     TR_assert_equal(a.TR_samples.TR_shape, TR_read_wav(yol).TR_samples.TR_shape)

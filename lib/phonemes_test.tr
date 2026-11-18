@@ -1,13 +1,101 @@
 # TR 4
-# tr/phonemes testleri: bu sürümde çevirici olmadığının açık hatası. Koşturma: trlang test lib
+# tr/phonemes testleri: Türkçe çevirici. Beklenen fonemler tasarımın kurallarından ve Wikipedia'nın `Turkish phonology`
+# maddesinden (oldid 1384242891) elle yazıldı; espeak-ng'den alınmadı. Koşturma: trlang test lib
 TR_import "tr/phonemes"
 
-TR_test "fonemlere_çevir bu sürümde her dilde H7559 verir, ileti dili söyler" {
-    TR_assert_equal("H7559", TR_error_code { TR_phonemize("merhaba", TR_language: "tr") })
+TR_func tr(metin: TR_String) -> TR_List[TR_String] { TR_return TR_phonemize(metin, TR_language: "tr") }
+
+TR_test "fonemlere_çevir Türkçe dışında H7559 verir, ileti çeviricisi olan dili söyler" {
     TR_assert_equal("H7559", TR_error_code { TR_phonemize("hello", TR_language: "en") })
+    TR_assert_equal("H7559", TR_error_code { TR_phonemize("merhaba", TR_language: "tr_TR") })
     TR_try {
         TR_phonemize("", TR_language: "de")
     } TR_catch e {
         TR_assert(e.TR_text("tr").TR_contains("\"de\" dili için fonem çevirici yok"), e.TR_text("tr"))
+        TR_assert(e.TR_text("tr").TR_contains("diller: tr"), e.TR_text("tr"))
     }
+}
+
+TR_test "Türkçe fonemler cümle başına bir dizi, noktalama kalır" {
+    TR_assert_equal(["buɟˈøn havˈa ɟyzˈæl.", "sˈæn ɟældˈɪn mi?"], tr("Bugün hava güzel. Sen geldin mi?"))
+    TR_assert_equal(["evˈɛt, ɟældˈɪm."], tr("Evet, geldim."))
+    TR_assert_equal(["ɟældˈɪm.", "ɟældˈɪn."], tr("Geldim… Geldin..."))
+    TR_assert_equal(["sˈæn"], tr("sen"))
+}
+
+TR_test "boş ve yalnız noktalamalı metin boş liste" {
+    TR_assert_equal([], tr(""))
+    TR_assert_equal([], tr("...!?"))
+    TR_assert_equal([], tr(" 😊 \"\" "))
+}
+
+TR_test "küçültme, kesme ve okunmayan işaretler" {
+    TR_assert_equal(["ɯʃˈɯk ˈɪzmɪrdɛ mɛrhabˈa"], tr("Işık İzmir'de \"merhaba\" 😄"))
+    TR_assert_equal(["pelˈɛ taksˈi"], tr("Pelé taxi"))
+    TR_assert_equal(["røzɟˈar halˈa"], tr("rüzgâr hâlâ"))
+}
+
+TR_test "ünlüsüz sözcük ve büyük harfli kısaltma harf adlarıyla okunur" {
+    TR_assert_equal(["tˌɛbˌɛmˌɛmˈɛ"], tr("TBMM"))
+    TR_assert_equal(["ɟˌɛpˌɛˈʊ ˌapˌɛˈi"], tr("GPU API"))
+    TR_assert_equal(["ɟˌɛpˌɛujˈʊ"], tr("GPU'yu"))
+    TR_assert_equal(["natˈɔ"], tr("NATO"))
+    TR_assert_equal(["kˌɛɟˈɛ"], tr("kg"))
+}
+
+TR_test "Türkçe fonemler başvuru sözcükleri verir: ünlüler" {
+    TR_assert_equal(["kændˈi ɛkmˈɛk bɪr okˈʊɫ kitˈap"], tr("kendi ekmek bir okul kitap"))
+    TR_assert_equal(["sˈøt yzˈøm ɟˈœz doɫˈʊ"], tr("süt üzüm göz dolu"))
+    TR_assert_equal(["teʃekːˈør kuɫɫˈan ellˈi"], tr("teşekkür kullan elli"))
+}
+
+TR_test "Türkçe fonemler başvuru sözcükleri verir: ünsüzler ve ğ" {
+    TR_assert_equal(["ɟedʒˈɛ kalˈæm ɫalˈɛ kˈar kaɾˈa"], tr("gece kalem lale kar kara"))
+    TR_assert_equal(["dˈaː ˈaːtʃ dejˈɪl œːɾɛtmˈæn joːˈʊrt"], tr("dağ ağaç değil öğretmen yoğurt"))
+    TR_assert_equal(["kaːˈɯt ɯʃˈɯː"], tr("kâğıt ışığı"))
+}
+
+TR_test "vurgu ekleri: -yor, -arak, -ince, olumsuz -mA, -mAz, -DIr, -ken, geniş ve gelecek zamandan sonra kişi eki" {
+    TR_assert_equal(["ɟelˈijɔr ɟˈælmijɔr japˈamɯjɔrsʊn"], tr("geliyor gelmiyor yapamıyorsun"))
+    TR_assert_equal(["ɟelˈeɾɛk ɟelˈɪndʒɛ ɟælmˈɛz"], tr("gelerek gelince gelmez"))
+    TR_assert_equal(["vˈardɯr ɟelˈɪrkæn ˈɔɫmamaɫɯsɯn aɫmaɫˈɯsɯn"], tr("vardır gelirken olmamalısın almalısın"))
+    TR_assert_equal(["edˈeɾɪm ɟidˈɛrsɪn ɟidedʒˈejɪm tʃɯkˈarsan"], tr("ederim gidersin gideceğim çıkarsan"))
+    TR_assert_equal(["ɟɪtsˈɛ ɟittˈi"], tr("gitse gitti"))
+}
+
+TR_test "vurgu listesi: belirteç, akrabalık, yer adı, alıntı; vurgusuz sözcükler" {
+    TR_assert_equal(["ʃˈɪmdi ˈannɛ hˈaɫa"], tr("şimdi anne hala"))
+    TR_assert_equal(["ˈankaɾa ɪstˈanbʊɫ tˈørkijɛ ˈankaɾaja"], tr("Ankara İstanbul Türkiye Ankara'ya"))
+    TR_assert_equal(["ɫokˈanta pˈændʒeɾɛ"], tr("lokanta pencere"))
+    TR_assert_equal(["vɛ ilɛ bʊ ɟˈælmijɔr musʊn?"], tr("ve ile bu gelmiyor musun?"))
+    TR_assert_equal(["bɪr ɟˈøn"], tr("bir gün"))
+}
+
+TR_test "sayılar okunur: tam, binlik, ondalık, saat, yüzde, ek" {
+    TR_assert_equal(["ikˈi bˈɪn jɪrmˈi aɫtˈɯ"], tr("2026"))
+    TR_assert_equal(["bˈɪn ikˈi jˈøz ellˈi"], tr("1.250"))
+    TR_assert_equal(["ˈøtʃ vɪrɟˈøl bˈɛʃ sɯfˈɯr vɪrɟˈøl sɯfˈɯr bˈɛʃ"], tr("3,5 0,05"))
+    TR_assert_equal(["bˈɪr nɔktˈa bˈɛʃ"], tr("1.5"))
+    TR_assert_equal(["ˈɔn dˈœrt otˈʊz dokˈʊz sɯfˈɯr bˈɛʃ ˈɔn dˈœrt"], tr("14:30 09:05 14:00"))
+    TR_assert_equal(["jøzdˈɛ jɪrmˈi bˈɛʃ"], tr("%25"))
+    TR_assert_equal(["saˈat ˈɔn dˈœrt otʊzdˈa"], tr("Saat 14:30'da"))
+    TR_assert_equal(["bˈɪr mɪljˈɔn sɯfˈɯr"], tr("1000000 0"))
+    TR_assert_equal(["sɯfˈɯr sɯfˈɯr jedˈi"], tr("007"))
+}
+
+TR_test "saat noktayla, sıra sayısı, kısaltma, aralık, büyük harfli kısaltma" {
+    TR_assert_equal(["ˈɔn dˈœrt otˈʊz"], tr("14.30"))
+    TR_assert_equal(["ytʃøndʒˈy maddˈɛ dejɪʃtˈi."], tr("3. madde değişti."))
+    TR_assert_equal(["ˈøtʃ.", "maddˈɛ."], tr("3. Madde."))
+    TR_assert_equal(["dɔktˈɔr ajʃˈɛ ɟældˈi."], tr("Dr. Ayşe geldi."))
+    TR_assert_equal(["kitapɫˈar vɛ bænzeɾˈi aɫɯndˈɯ."], tr("Kitaplar vb. alındı."))
+    TR_assert_equal(["ikˈi bˈɪn jɪrmˈi bˈɛʃ, ikˈi bˈɪn jɪrmˈi aɫtˈɯ"], tr("2025-2026"))
+    TR_assert_equal(["ɛksˈi jedˈi sɯdʒakɫˈɯk ɛksˈi bˈɛʃ bˈɛʃ"], tr("-7 sıcaklık -5 (-5)"))
+}
+
+TR_test "sayının sınırları: 15 basamak sözcükle, 16 basamak rakam rakam" {
+    TR_assert_equal(["bˈɪr trɪljˈɔn"], tr("1000000000000"))
+    TR_assert_equal(["bˈɪr ikˈi ˈøtʃ dˈœrt bˈɛʃ aɫtˈɯ jedˈi sekˈɪz dokˈʊz sɯfˈɯr bˈɪr ikˈi ˈøtʃ dˈœrt bˈɛʃ aɫtˈɯ"], tr("1234567890123456"))
+    # 999 999 999 999 999: beş öbek "dokuz yüz doksan dokuz" ve dört basamak adı (trilyon, milyar, milyon, bin).
+    TR_assert_equal(24, tr("999999999999999")[0].TR_split(" ").TR_length)
 }
