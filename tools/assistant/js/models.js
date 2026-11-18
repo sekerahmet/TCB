@@ -6,7 +6,6 @@
 
 /** Pencerenin grupları, sırasıyla; katalogun öbür türlerini ekran yok sayar (events.js'nin catalogEntries'i). */
 const MODEL_KINDS = ["language_model", "transcriber", "voice", "vad"];
-const ACTIVE_DOWNLOADS = ["queued", "running", "verifying"];
 const SLOW_CHECK_MS = 5000; // inen iş varken satırlar bu aralıkla yeniden çizilir: bayt gelmese de "yavaş" görünsün
 
 // İndirme düğmelerinin simgeleri: renkten başka iz (F1b): İndir aşağı ok, Sürdür dönüş oku, Sil çöp kutusu.
@@ -32,6 +31,9 @@ function svgIcon(d) {
 // ---------- Satırın işi ----------
 // rowStatus ve slowDownload saf fonksiyondur; Go testleri (TestDownloadRowShowsOnlyItsOwnJob,
 // TestDownloadRowShowsSpeedAndSlow) bu iki işaretin arasını node ile koşar.
+
+/** Sürmekte olan indirmenin durumları: sırada, iniyor, doğrulanıyor (düşen ve iptal edilen değil). */
+const ACTIVE_DOWNLOADS = ["queued", "running", "verifying"];
 
 /**
  * Satırın durumu yalnız kendi girdisinin işinden gelir: sohbetin İndir'inin sıraya koyduğu ortak parça (yazıcı, ses,
@@ -92,15 +94,18 @@ function inUse(entry, catalog, settings, state, loading) {
 }
 
 /**
- * İnen girdi ayarın takımında mı (dil modeli, konuşma dilinin yazıcısı ve sesi, VAD). Sunucu indirme bitince yalnız
- * ayarın takımı kurulu hâle geldiyse onu yükler; başka bir girdi inince yüklemez (contract.md, "Yükleme"; katalog
- * dilimi K-11).
- * @param {string} id @param {any[]} catalog @param {Record<string, unknown>} settings
+ * Bu iniş ayarın takımını (dil modeli, konuşma dilinin yazıcısı ve sesi, VAD) tamamlar mı: takımın dört girdisi
+ * katalogda, inen girdi onlardan biri, öbürlerinin her biri ya inmiş (`downloaded`, girdinin kendi dosyaları) ya da
+ * sırada (`ACTIVE_DOWNLOADS`). Sunucu indirme bitince yalnız ayarın takımı bu inişle kurulu hâle geldiyse onu yükler
+ * (contract.md, "Yükleme"; oturum.tr, indirme_bitti; DENETİM 880 N1).
+ * @param {string} id @param {any[]} catalog @param {Record<string, unknown>} settings @param {Record<string, any>} downloads
  */
-function partOfTeam(id, catalog, settings) {
-  return ["language_model", "transcriber", "voice", "vad"].some((kind) => {
-    const entry = teamOf(kind, catalog, settings);
-    return entry !== undefined && entry.id === id;
+function completesTeam(id, catalog, settings, downloads) {
+  const team = ["language_model", "transcriber", "voice", "vad"].map((kind) => teamOf(kind, catalog, settings));
+  if (team.some((entry) => entry === undefined) || !team.some((entry) => entry.id === id)) return false;
+  return team.every((entry) => {
+    const job = downloads[entry.id];
+    return entry.id === id || entry.downloaded === true || (job !== undefined && ACTIVE_DOWNLOADS.includes(job.state));
   });
 }
 // ---------- Satırın işi sonu ----------

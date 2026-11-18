@@ -220,9 +220,9 @@ func TestModelsDialogNamesEveryKind(t *testing.T) {
 	}
 }
 
-// Nicemli etkinleştirmenin seçicisi (N2) ayarların "Kullanılan modeller" bölümündedir: üç değer, `settings_set`.
-func TestQuantizedSelectorIsInModels(t *testing.T) {
-	group := capture(t, `(?s)<section class="box" aria-labelledby="settingsGroupModels">(.*?)</section>`, markup(t))
+// Nicemli etkinleştirmenin seçicisi (N2) ayarların "Hız ve bellek" kategorisindedir: üç değer, `settings_set`.
+func TestQuantizedSelectorIsInSpeedAndMemory(t *testing.T) {
+	group := block(t, "section", "settingsPanel_performance")
 	selector := capture(t, `(?s)<select id="settingsQuantized">(.*?)</select>`, group)
 	for _, value := range []string{"auto", "on", "off"} {
 		if !strings.Contains(selector, `<option value="`+value+`" data-i18n="settings_quantized_`+value+`"></option>`) {
@@ -304,11 +304,11 @@ func TestChatOnlyHidesTalk(t *testing.T) {
 	}
 }
 
-// Hesap cihazı (tasarım dost-sohbet-gpu T6): Ayarlar'da Kullanılan modeller bölümünde; değerler `session`'ın
+// Hesap cihazı (tasarım dost-sohbet-gpu T6): Ayarlar'da "Hız ve bellek" kategorisinde; değerler `session`'ın
 // `compute_devices`'ından: kart yoksa "Ekran kartı" seçilemez ve not durur; nicemli "Açık" ile kart birlikte seçilmez;
 // ayar kart deyip modeller işlemcideyse not durur. Seçim `settings_set device` gönderir.
 func TestDeviceSelectorFollowsTheMachine(t *testing.T) {
-	group := capture(t, `(?s)<section class="box" aria-labelledby="settingsGroupModels">(.*?)</section>`, markup(t))
+	group := block(t, "section", "settingsPanel_performance")
 	selector := capture(t, `(?s)<select id="settingsDevice">(.*?)</select>`, group)
 	for _, value := range []string{"cpu", "gpu"} {
 		if !strings.Contains(selector, `<option value="`+value+`" data-i18n="settings_device_`+value+`"></option>`) {
@@ -345,5 +345,83 @@ func TestDeviceSelectorMarksResultChange(t *testing.T) {
 	}
 	if !strings.Contains(style(t), `.result-mark::before {`) {
 		t.Error("the style has no result-mark")
+	}
+}
+
+// Ayarlar penceresinin kategorileri `js/view.js`'nin SETTINGS_CATEGORIES listesidir (tasarım dost-ayar-kategori A-0,
+// A-2): sekmeler listeden çizilir; her kimliğin işaretlemede, listedeki sırayla, bir paneli (`tabpanel`,
+// `data-category`) ve panelin başlığında iki dilin sözlüğünde duran `settings_group_<kimlik>` adı var. Liste dikey
+// sekme listesidir, adı sözlükten; oklar gezer. Seçim saklanmaz (TestScreenPairsOnlyThroughTheFragment).
+func TestSettingsCategoriesAreTabs(t *testing.T) {
+	code := script(t)
+	list := matches(`"([a-z_]+)",`, capture(t, `(?s)const SETTINGS_CATEGORIES = \[(.*?)\];`, code))
+	panels := matches(`<section class="box" id="settingsPanel_[a-z_]+" data-category="([a-z_]+)" role="tabpanel"`, markup(t))
+	if len(list) == 0 || strings.Join(list, ",") != strings.Join(panels, ",") {
+		t.Errorf("SETTINGS_CATEGORIES %v and the panels %v differ", list, panels)
+	}
+	words := dictionary(t)
+	for _, id := range list {
+		if tag := openTag(t, "settingsPanel_"+id); !strings.Contains(tag, `data-category="`+id+`"`) {
+			t.Errorf("the panel of %s says %s", id, tag)
+		}
+		if !strings.Contains(block(t, "section", "settingsPanel_"+id), `data-i18n="settings_group_`+id+`"`) {
+			t.Errorf("the panel of %s has no heading settings_group_%s", id, id)
+		}
+		for language, table := range words {
+			if table["settings_group_"+id] == "" {
+				t.Errorf("%s has no name for the category %s (settings_group_%s)", language, id, id)
+			}
+		}
+	}
+	tabs := openTag(t, "settingsTabs")
+	for _, want := range []string{`role="tablist"`, `aria-orientation="vertical"`, `data-i18n="settings_categories" data-i18n-attr="aria-label"`} {
+		if !strings.Contains(tabs, want) {
+			t.Errorf("the category list has no %s: %s", want, tabs)
+		}
+	}
+	for _, want := range []string{`tab.setAttribute("role", "tab");`, "tab.setAttribute(\"aria-controls\", `settingsPanel_${id}`);",
+		"tab.dataset.i18n = `settings_group_${id}`;", `tab.setAttribute("aria-selected", String(id === category));`,
+		"byId(`settingsPanel_${id}`).hidden = id !== category;", "const next = categoryAfterKey(id, event.key);"} {
+		if !strings.Contains(code, want) {
+			t.Errorf("the page has no %q", want)
+		}
+	}
+}
+
+// Her ayar tam bir kategoridedir (tasarım dost-ayar-kategori A-1, A-6): Ayarlar'ın gövdesindeki denetimler türüyle
+// sayılır (select, input, textarea, button), 13 tane; her biri tam bir panelde ve kendi kategorisinde. Denetime bağlı
+// ipuçları onunla aynı paneldedir. Pencereyi yeniden açma dipnotu panellerin dışındadır, her kategoride görünür.
+func TestEverySettingIsInOneCategory(t *testing.T) {
+	want := map[string]string{"settingsLanguage": "speech", "settingsSystemPrompt": "speech",
+		"settingsModel": "chat_model", "settingsContext": "chat_model", "settingsModels": "chat_model",
+		"settingsMicrophone": "audio", "devicesRefresh": "audio", "settingsTranscriber": "audio", "settingsVoice": "audio",
+		"settingsVad": "audio", "settingsRecording": "audio", "settingsDevice": "performance", "settingsQuantized": "performance"}
+	hints := map[string]string{"settingsModelNote": "settingsModel", "settingsModelNone": "settingsModel",
+		"settingsDeviceNoGpu": "settingsDevice", "settingsDeviceMissing": "settingsDevice",
+		"devicesEmpty": "settingsMicrophone", "recordingNote": "settingsRecording"}
+	page := markup(t)
+	body := capture(t, `(?s)<div class="settings-body" id="settingsBox">(.*?)<div class="settings-foot">`, page)
+	controls := matches(`<(?:select|input|textarea|button)\b[^>]*\bid="([A-Za-z]+)"`, body)
+	if all := regexp.MustCompile(`<(?:select|input|textarea|button)\b`).FindAllString(body, -1); len(all) != len(controls) || len(controls) != len(want) {
+		t.Errorf("the settings have %d controls, %d with an id; want %d: %v", len(all), len(controls), len(want), controls)
+	}
+	where := map[string][]string{}
+	for _, m := range regexp.MustCompile(`(?s)<section class="box" id="settingsPanel_([a-z_]+)"[^>]*>(.*?)</section>`).FindAllStringSubmatch(body, -1) {
+		for _, id := range matches(`\bid="([A-Za-z]+)"`, m[2]) {
+			where[id] = append(where[id], m[1])
+		}
+	}
+	for _, id := range controls {
+		if got := where[id]; len(got) != 1 || got[0] != want[id] {
+			t.Errorf("%s is in %v; want only %q", id, got, want[id])
+		}
+	}
+	for hint, control := range hints {
+		if got := where[hint]; len(got) != 1 || len(where[control]) != 1 || got[0] != where[control][0] {
+			t.Errorf("%s is in %v, its control %s in %v", hint, got, control, where[control])
+		}
+	}
+	if !strings.Contains(capture(t, `(?s)<div class="settings-foot">(.*?)</div>`, page), `data-i18n="settings_restart_note"`) {
+		t.Error("the restart note is not under the panels")
 	}
 }

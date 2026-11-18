@@ -167,9 +167,13 @@
   </div>
 </aside>
 
-<dialog class="settings" id="settingsDialog" aria-labelledby="settingsTitle">
+<dialog class="settings" id="settingsDialog" aria-labelledby="settingsTitle" data-view="list">
   <div class="settings-inner">
     <div class="settings-head">
+      <button class="btn settings-back" id="settingsBack" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        <span data-i18n="settings_back"></span>
+      </button>
       <h2 id="settingsTitle" data-i18n="settings_title"></h2>
       <button class="btn btn-icon" id="settingsClose" type="button">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -177,84 +181,90 @@
       </button>
     </div>
     <p class="settings-error" id="settingsError" role="alert" hidden></p>
-    <div class="settings-body" id="settingsBox">
-      <section class="box" aria-labelledby="settingsGroupSpeech">
-        <h3 class="label" id="settingsGroupSpeech" data-i18n="settings_group_speech"></h3>
-        <div class="field">
-          <label for="settingsLanguage" data-i18n="settings_language"></label>
-          <select id="settingsLanguage"></select>
-        </div>
-        <div class="field">
-          <label for="settingsSystemPrompt" data-i18n="settings_system_prompt"></label>
-          <textarea class="input" id="settingsSystemPrompt" rows="4"></textarea>
-        </div>
-      </section>
-      <section class="box" aria-labelledby="settingsGroupModels">
-        <h3 class="label" id="settingsGroupModels" data-i18n="settings_group_models"></h3>
-        <div class="field">
-          <label for="settingsModel" data-i18n="settings_model"></label>
-          <select id="settingsModel"></select>
-          <p class="hint" id="settingsModelNote" data-i18n="settings_models_change_note"></p>
-          <p class="hint" id="settingsModelNone" data-i18n="settings_models_none" hidden></p>
-        </div>
-        <div class="field">
-          <label for="settingsTranscriber" data-i18n="kind_transcriber"></label>
-          <select id="settingsTranscriber" disabled></select>
-          <p class="hint" data-i18n="settings_models_only_one"></p>
-        </div>
-        <div class="field">
-          <label for="settingsVoice" data-i18n="kind_voice"></label>
-          <select id="settingsVoice" disabled></select>
-          <p class="hint" data-i18n="settings_models_only_one"></p>
-        </div>
-        <div class="field">
-          <label for="settingsVad" data-i18n="kind_vad"></label>
-          <select id="settingsVad" disabled></select>
-          <p class="hint" data-i18n="settings_models_only_one"></p>
-        </div>
-        <div class="field">
-          <label for="settingsQuantized" data-i18n="settings_quantized"></label>
-          <select id="settingsQuantized">
-            <option value="auto" data-i18n="settings_quantized_auto"></option>
-            <option value="on" data-i18n="settings_quantized_on"></option>
-            <option value="off" data-i18n="settings_quantized_off"></option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="settingsContext" data-i18n="settings_context"></label>
-          <input class="input" id="settingsContext" type="number" min="1" step="1" inputmode="numeric">
-        </div>
-        <div class="field">
-          <label for="settingsDevice" data-i18n="settings_device"></label>
-          <select id="settingsDevice">
-            <option value="cpu" data-i18n="settings_device_cpu"></option>
-            <option value="gpu" data-i18n="settings_device_gpu"></option>
-          </select>
-          <p class="hint result-mark" data-i18n="settings_changes_answers"></p>
-          <p class="hint" id="settingsDeviceNoGpu" data-i18n="settings_device_no_gpu" hidden></p>
-          <p class="hint" id="settingsDeviceMissing" data-i18n="error_compute_device_unavailable" hidden></p>
-        </div>
-        <button class="btn" id="settingsModels" type="button" data-i18n="setup_open_models"></button>
-      </section>
-      <section class="box" aria-labelledby="settingsGroupAudio">
-        <h3 class="label" id="settingsGroupAudio" data-i18n="settings_group_audio"></h3>
-        <div class="field">
-          <label for="settingsMicrophone" data-i18n="settings_microphone"></label>
-          <div class="row-line">
-            <select id="settingsMicrophone"></select>
-            <button class="btn" id="devicesRefresh" type="button">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
-              <span data-i18n="devices_refresh"></span>
-            </button>
+    <div class="settings-main">
+      <div class="settings-tabs" id="settingsTabs" role="tablist" aria-orientation="vertical" data-i18n="settings_categories" data-i18n-attr="aria-label"></div>
+      <div class="settings-body" id="settingsBox">
+        <section class="box" id="settingsPanel_speech" data-category="speech" role="tabpanel" aria-labelledby="settingsGroupSpeech" hidden>
+          <h3 class="label" id="settingsGroupSpeech" data-i18n="settings_group_speech"></h3>
+          <div class="field">
+            <label for="settingsLanguage" data-i18n="settings_language"></label>
+            <select id="settingsLanguage"></select>
           </div>
-          <p class="hint" id="devicesEmpty" data-i18n="devices_empty" hidden></p>
-        </div>
-        <div class="toggle-line">
-          <label for="settingsRecording" data-i18n="settings_recording"></label>
-          <input class="switch-input" id="settingsRecording" type="checkbox" role="switch">
-        </div>
-        <p class="hint" id="recordingNote" data-i18n="settings_recording_note" hidden></p>
-      </section>
+          <div class="field">
+            <label for="settingsSystemPrompt" data-i18n="settings_system_prompt"></label>
+            <textarea class="input" id="settingsSystemPrompt" rows="4"></textarea>
+          </div>
+        </section>
+        <section class="box" id="settingsPanel_chat_model" data-category="chat_model" role="tabpanel" aria-labelledby="settingsGroupChatModel" hidden>
+          <h3 class="label" id="settingsGroupChatModel" data-i18n="settings_group_chat_model"></h3>
+          <div class="field">
+            <label for="settingsModel" data-i18n="settings_model"></label>
+            <select id="settingsModel"></select>
+            <p class="hint" id="settingsModelNote" data-i18n="settings_models_change_note"></p>
+            <p class="hint" id="settingsModelNone" data-i18n="settings_models_none" hidden></p>
+          </div>
+          <div class="field">
+            <label for="settingsContext" data-i18n="settings_context"></label>
+            <input class="input" id="settingsContext" type="number" min="1" step="1" inputmode="numeric">
+          </div>
+          <button class="btn" id="settingsModels" type="button" data-i18n="setup_open_models"></button>
+        </section>
+        <section class="box" id="settingsPanel_audio" data-category="audio" role="tabpanel" aria-labelledby="settingsGroupAudio" hidden>
+          <h3 class="label" id="settingsGroupAudio" data-i18n="settings_group_audio"></h3>
+          <div class="field">
+            <label for="settingsMicrophone" data-i18n="settings_microphone"></label>
+            <div class="row-line">
+              <select id="settingsMicrophone"></select>
+              <button class="btn" id="devicesRefresh" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
+                <span data-i18n="devices_refresh"></span>
+              </button>
+            </div>
+            <p class="hint" id="devicesEmpty" data-i18n="devices_empty" hidden></p>
+          </div>
+          <div class="field">
+            <label for="settingsTranscriber" data-i18n="kind_transcriber"></label>
+            <select id="settingsTranscriber" disabled></select>
+            <p class="hint" data-i18n="settings_models_only_one"></p>
+          </div>
+          <div class="field">
+            <label for="settingsVoice" data-i18n="kind_voice"></label>
+            <select id="settingsVoice" disabled></select>
+            <p class="hint" data-i18n="settings_models_only_one"></p>
+          </div>
+          <div class="field">
+            <label for="settingsVad" data-i18n="kind_vad"></label>
+            <select id="settingsVad" disabled></select>
+            <p class="hint" data-i18n="settings_models_only_one"></p>
+          </div>
+          <div class="toggle-line">
+            <label for="settingsRecording" data-i18n="settings_recording"></label>
+            <input class="switch-input" id="settingsRecording" type="checkbox" role="switch">
+          </div>
+          <p class="hint" id="recordingNote" data-i18n="settings_recording_note" hidden></p>
+        </section>
+        <section class="box" id="settingsPanel_performance" data-category="performance" role="tabpanel" aria-labelledby="settingsGroupPerformance" hidden>
+          <h3 class="label" id="settingsGroupPerformance" data-i18n="settings_group_performance"></h3>
+          <div class="field">
+            <label for="settingsDevice" data-i18n="settings_device"></label>
+            <select id="settingsDevice">
+              <option value="cpu" data-i18n="settings_device_cpu"></option>
+              <option value="gpu" data-i18n="settings_device_gpu"></option>
+            </select>
+            <p class="hint result-mark" data-i18n="settings_changes_answers"></p>
+            <p class="hint" id="settingsDeviceNoGpu" data-i18n="settings_device_no_gpu" hidden></p>
+            <p class="hint" id="settingsDeviceMissing" data-i18n="error_compute_device_unavailable" hidden></p>
+          </div>
+          <div class="field">
+            <label for="settingsQuantized" data-i18n="settings_quantized"></label>
+            <select id="settingsQuantized">
+              <option value="auto" data-i18n="settings_quantized_auto"></option>
+              <option value="on" data-i18n="settings_quantized_on"></option>
+              <option value="off" data-i18n="settings_quantized_off"></option>
+            </select>
+          </div>
+        </section>
+      </div>
     </div>
     <div class="settings-foot">
       <p class="hint" data-i18n="settings_restart_note"></p>

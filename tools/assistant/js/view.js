@@ -113,7 +113,7 @@ function renderTeam() {
 }
 
 // Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla);
-// "bitince kendiliğinden belleğe alınır" yalnız inen girdi ayarın takımındaysa (`partOfTeam`, katalog dilimi K-11).
+// "bitince kendiliğinden belleğe alınır" yalnız bu iniş ayarın takımını tamamlayacaksa (`completesTeam`, DENETİM 880 N1).
 // Yükleme düştüyse "<ad> belleğe alınamadı", Yeniden dene (`model_load`) ve Başka model seç (ayarlar). Yükle yok.
 // Ayarın dil modeli inmemiş ama başka bir sohbet modeli kuruluysa (`setupChoice`) kart bunu söyler; Modelleri aç ve
 // Başka model seç ikisi de görünür (katalog dilimi K-10).
@@ -130,7 +130,7 @@ function renderSetup() {
   else if (choose) bind(byId("setupHeading"), "setup_chosen_missing", { model: nameOf(chosen) });
   else bind(byId("setupHeading"), "setup_start");
   if (failed) bind(note, "setup_load_failed_note");
-  else if (job) bind(note, partOfTeam(str(job.entry_id), ui.catalog, ui.settings) ? "setup_downloading" : "setup_downloading_other", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
+  else if (job) bind(note, completesTeam(str(job.entry_id), ui.catalog, ui.settings, ui.downloads) ? "setup_downloading" : "setup_downloading_other", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
   else if (choose) bind(note, "setup_chosen_missing_note");
   note.hidden = !failed && !job && !choose;
   byId("setupModels").hidden = failed;
@@ -157,7 +157,7 @@ function fillSelect(select, items, chosen) {
 // Ayarlar: ayar dosyası varken (`settings` geldi), kurulum dışında; yükleme düştüyse ya da ayarın dil modeli inmemişken
 // başka bir sohbet modeli kuruluysa kurulumda da (kartın "Başka model seç"i). Değerler sunucudan gelir; her değişiklik
 // bir `settings_set`'tir, sunucu reddederse değer sunucununkine döner.
-// "Kullanılan modeller": yalnız sohbet seçilir, takımı kurulu girdilerden; seçim hemen geçerlidir (takım yeniden
+// Sohbet modeli: yalnız sohbet seçilir, takımı kurulu girdilerden; seçim hemen geçerlidir (takım yeniden
 // hazırlanır), Yükle yok. Yazıcı, ses ve VAD bu dil için tek seçenekli sönük seçicidir.
 function renderSettings() {
   const chosen = str(ui.settings.language_model);
@@ -301,9 +301,85 @@ async function submit() {
 // odak kapanınca dişli düğmesine döner. Pencere ayarın yalnız yeridir; komutlar ve olaylar aynı.
 const settingsDialog = /** @type {HTMLDialogElement} */ (byId("settingsDialog"));
 
-function openSettings() {
+// ---------- Ayar grupları ----------
+/**
+ * Ayarlar penceresinin kategorileri, sırasıyla. Her kimliğin index.html'de `data-category`'li bir paneli ve iki dilde
+ * `settings_group_<kimlik>` adı vardır; yeni kategori buraya bir satırdır (README, "Değiştirmek").
+ */
+const SETTINGS_CATEGORIES = [
+  "speech",
+  "chat_model",
+  "audio",
+  "performance",
+];
+
+/** Açılacak kategori: verilmeyen ya da bilinmeyen kimlik ilk kategoriye düşer. @param {unknown} category */
+function settingsCategory(category) {
+  return typeof category === "string" && SETTINGS_CATEGORIES.includes(category) ? category : SETTINGS_CATEGORIES[0];
+}
+
+/**
+ * Listede tuşla gidilen kategori: oklar bir adım (uçta öbür uca döner), Home ve End uçlar; öbür tuş `null`.
+ * @param {string} current @param {string} key
+ */
+function categoryAfterKey(current, key) {
+  const at = SETTINGS_CATEGORIES.indexOf(current);
+  const last = SETTINGS_CATEGORIES.length - 1;
+  if (key === "ArrowDown") return SETTINGS_CATEGORIES[at >= last ? 0 : at + 1];
+  if (key === "ArrowUp") return SETTINGS_CATEGORIES[at <= 0 ? last : at - 1];
+  if (key === "Home") return SETTINGS_CATEGORIES[0];
+  if (key === "End") return SETTINGS_CATEGORIES[last];
+  return null;
+}
+// ---------- Ayar grupları sonu ----------
+
+/** Seçili kategori: sekmesi seçili ve odaklanabilir, paneli açık; öbürleri kapalı. @param {string} category */
+function showCategory(category) {
+  for (const id of SETTINGS_CATEGORIES) {
+    const tab = byId(`settingsTab_${id}`);
+    tab.setAttribute("aria-selected", String(id === category));
+    tab.tabIndex = id === category ? 0 : -1;
+    byId(`settingsPanel_${id}`).hidden = id !== category;
+  }
+}
+
+/** Sekmeleri listeden çizer; adları panellerin başlığıyla aynı anahtardır (applyLanguage boyar). */
+function wireSettingsTabs() {
+  const list = byId("settingsTabs");
+  for (const id of SETTINGS_CATEGORIES) {
+    const tab = el("button", "settings-tab");
+    tab.type = "button";
+    tab.id = `settingsTab_${id}`;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-controls", `settingsPanel_${id}`);
+    tab.dataset.i18n = `settings_group_${id}`;
+    tab.addEventListener("click", () => {
+      showCategory(id);
+      settingsDialog.dataset.view = "panel";
+    });
+    tab.addEventListener("keydown", (event) => {
+      const next = categoryAfterKey(id, event.key);
+      if (next === null) return;
+      event.preventDefault();
+      showCategory(next);
+      byId(`settingsTab_${next}`).focus();
+    });
+    list.append(tab);
+  }
+  byId("settingsBack").addEventListener("click", () => {
+    settingsDialog.dataset.view = "list";
+    const selected = list.querySelector('[aria-selected="true"]');
+    if (selected) /** @type {HTMLElement} */ (selected).focus();
+  });
+  showCategory(SETTINGS_CATEGORIES[0]);
+}
+
+/** @param {string} [category] verilmezse liste açılır (dar ekranda önce liste); verilirse o kategori */
+function openSettings(category) {
   if (settingsDialog.open) return;
   byId("settingsError").hidden = true;
+  showCategory(settingsCategory(category));
+  settingsDialog.dataset.view = category === undefined ? "list" : "panel";
   settingsDialog.showModal();
   byId("settingsOpen").setAttribute("aria-expanded", "true");
 }
@@ -373,7 +449,7 @@ function wire() {
   byId("modeText").addEventListener("click", () => chooseChatOnly(true));
   byId("setupModels").addEventListener("click", openModels);
   byId("setupRetry").addEventListener("click", () => command("model_load", { entry_id: str(ui.settings.language_model) }));
-  byId("setupOther").addEventListener("click", openSettings);
+  byId("setupOther").addEventListener("click", () => openSettings("chat_model"));
   byId("settingsModels").addEventListener("click", openModels);
   byId("speechLanguage").addEventListener("change", () => {
     const value = /** @type {HTMLSelectElement} */ (byId("speechLanguage")).value;
@@ -403,7 +479,8 @@ function wire() {
   });
   byId("focusButton").addEventListener("click", () => setFocusMode(true));
   byId("focusExit").addEventListener("click", () => setFocusMode(false));
-  byId("settingsOpen").addEventListener("click", openSettings);
+  byId("settingsOpen").addEventListener("click", () => openSettings());
+  wireSettingsTabs();
   byId("settingsClose").addEventListener("click", closeSettings);
   settingsDialog.addEventListener("click", (event) => {
     if (event.target === settingsDialog) closeSettings();
