@@ -317,3 +317,84 @@ func TestRunFolderOnlyInTheWorkingDirectory(t *testing.T) {
 		t.Errorf("programın koşu klasörü değişmemeli: %d → %d girdi", len(before), len(after))
 	}
 }
+
+func TestCheckpointSystemErrorsCarryNoSystemText(t *testing.T) {
+	_ = reporoot.Root()
+	work := t.TempDir()
+	t.Chdir(work)
+
+	out, err := run(t, `
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var g = TR_Logger("kayit.jsonl")
+TR_var kn = TR_Checkpoint("kosu", {"w": w, "g": g})
+g.TR_close()
+TR_remove("kayit.jsonl")
+kn.TR_update(1)
+TR_try {
+    kn.TR_save()
+} TR_catch e {
+    TR_print(e.TR_code)
+    TR_print(TR_String(e))
+    TR_print(e.TR_text("tr"))
+}
+`)
+	if err != nil {
+		t.Fatalf("beklenmeyen çalışma hatası: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) < 3 || lines[0] != "H2132" {
+		t.Fatalf("silinen günlükte kök kod H2132 bekleniyordu, çıktı: %q", out)
+	}
+	lowOut := strings.ToLower(out)
+	if strings.Contains(lowOut, strings.ToLower(filepath.ToSlash(work))) || strings.Contains(lowOut, "no such file") || strings.Contains(lowOut, "cannot find") {
+		t.Fatalf("günlük hatasında tam disk yolu ya da sistem metni sızdı: %q", out)
+	}
+	checkCheckpointLatestWarningAndDigest(t, work)
+}
+
+func checkCheckpointLatestWarningAndDigest(t *testing.T, work string) {
+	t.Helper()
+	if _, err := run(t, `
+TR_var w = TR_Tensor([2.0], TR_requires_grad: TR_true)
+TR_var kn = TR_Checkpoint("kosu2", {"w": w})
+kn.TR_update(1)
+kn.TR_save()
+`); err != nil {
+		t.Fatalf("ilk kayıt başarısız: %v", err)
+	}
+	latest := filepath.Join(work, "kosu2", "checkpoints", "latest.json")
+	_ = os.Remove(latest)
+	if err := os.Mkdir(latest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	warnOut, err := run(t, `
+TR_var w = TR_Tensor([2.0], TR_requires_grad: TR_true)
+TR_var kn = TR_Checkpoint("kosu2", {"w": w})
+kn.TR_update(2)
+kn.TR_save()
+`)
+	if err != nil {
+		t.Fatalf("latest.json uyarısı kaydı durdurmamalı: %v", err)
+	}
+	lowWarn := strings.ToLower(warnOut)
+	if !strings.Contains(warnOut, "latest.json") || strings.Contains(lowWarn, "is a directory") || strings.Contains(lowWarn, "access is denied") || strings.Contains(lowWarn, "cannot") {
+		t.Fatalf("H7481 uyarısında sistem metni ya da eksik dosya adı: %q", warnOut)
+	}
+
+	digestPath := filepath.Join(work, "kosu2", "checkpoints", "step_0000000002", "digest.json")
+	_ = os.Remove(digestPath)
+	if err := os.Mkdir(digestPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_, loadErr := run(t, `
+TR_var w = TR_Tensor([2.0], TR_requires_grad: TR_true)
+TR_Checkpoint("kosu2", {"w": w})
+`)
+	if loadErr == nil {
+		t.Fatal("bozuk digest.json klasörü yükleme hatası vermeliydi")
+	}
+	lowLoad := strings.ToLower(messages.ErrorIn(loadErr, "tr"))
+	if strings.Contains(lowLoad, "is a directory") || strings.Contains(lowLoad, "access is denied") || strings.Contains(lowLoad, "incorrect function") {
+		t.Fatalf("kontrol noktası okuma hatasında ham sistem metni: %q", lowLoad)
+	}
+}

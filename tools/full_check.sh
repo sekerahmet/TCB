@@ -151,6 +151,7 @@ repo_scans=(
 	TestLibraryModulesDoNotReadTheCommandLine
 	TestMeasurementReferencesExist
 	TestMessageArgsAreNotMessageFragments
+	TestMessagesCarryNoRawSystemErrors
 	TestRepoTRFilesPassCheck
 	TestRepoTRFilesShow
 	TestSizesMatchTheLayoutTest

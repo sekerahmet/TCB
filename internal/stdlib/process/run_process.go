@@ -70,7 +70,7 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	c.WaitDelay = stopGrace
 	j, err := startJob(c)
 	if err != nil {
-		return nil, messages.New(messages.H7501, fn, call.name, err)
+		return nil, messages.New(messages.H7501, fn, call.name, messages.SystemError(call.name, err))
 	}
 	defer j.release()
 	d.track(j)
@@ -98,7 +98,7 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	// Boruyu tutan torun programın sonucunu değiştirmez: okunan çıktı verilir, sonucu çıkış kodu
 	// belirler (exec.ErrWaitDelay).
 	if c.ProcessState == nil {
-		return nil, messages.New(messages.H7501, fn, call.name, j.waitErr)
+		return nil, messages.New(messages.H7501, fn, call.name, messages.SystemError(call.name, j.waitErr))
 	}
 	if err := call.endError(fn, c.ProcessState, tail.text(m.Mask)); err != nil {
 		return nil, err

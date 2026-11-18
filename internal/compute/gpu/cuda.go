@@ -142,7 +142,7 @@ func loadCUDA() *cudaLibrary {
 		c.k = k
 		for i, ad := range cudaFuncNames {
 			if c.fn[i], err = k.find(ad); err != nil {
-				c.failure = messages.New(messages.H4004, ad, err)
+				c.failure = messages.New(messages.H4004, ad, messages.SystemError("", err))
 				return
 			}
 		}

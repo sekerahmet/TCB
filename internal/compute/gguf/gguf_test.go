@@ -52,13 +52,15 @@ func TestDecodeHoldsToSize(t *testing.T) {
 	}
 }
 
-// TestDecodeReportsReadErrors: akışın hatası dosyanın bitmesi sayılmaz, ileti yeri ve hatayı söyler.
+// TestDecodeReportsReadErrors: akışın hatası dosyanın bitmesi sayılmaz, ileti yeri ve kodlu nedeni söyler.
 func TestDecodeReportsReadErrors(t *testing.T) {
 	data := (&gguftest.Builder{}).KV("a", uint32(1)).Bytes()
-	broken := io.MultiReader(bytes.NewReader(data[:30]), iotest.ErrReader(errors.New("disk bozuk")))
+	diskErr := errors.New("disk bozuk")
+	broken := io.MultiReader(bytes.NewReader(data[:30]), iotest.ErrReader(diskErr))
 	_, err := gguf.Decode(broken, int64(len(data)))
-	if !messages.Has(err, messages.H6677) || !strings.Contains(err.Error(), "disk bozuk") {
-		t.Errorf("hata %v", err)
+	root, ok := messages.Root(err)
+	if !messages.Has(err, messages.H6677) || !ok || root.Code != messages.H2629 || !errors.Is(err, diskErr) || strings.Contains(err.Error(), "disk bozuk") {
+		t.Errorf("hata %v (kök %v)", err, root)
 	}
 }
 

@@ -24,7 +24,7 @@ func openLib() (library, error) {
 		}
 		last = err
 	}
-	return nil, messages.New(messages.H4001, "libcuda.so.1", last)
+	return nil, messages.New(messages.H4001, "libcuda.so.1", messages.SystemError("libcuda.so.1", last))
 }
 
 func (l *linuxLibrary) find(ad string) (uintptr, error) { return purego.Dlsym(l.handle, ad) }

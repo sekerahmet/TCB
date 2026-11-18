@@ -117,7 +117,7 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 			err = g.readFloats(r, count)
 		}
 		if err != nil {
-			return nil, messages.New(messages.H6653, e.name, err)
+			return nil, messages.New(messages.H6653, e.name, messages.SystemError("", err))
 		}
 		out = append(out, g)
 	}

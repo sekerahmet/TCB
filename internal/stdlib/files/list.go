@@ -10,7 +10,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // listBuiltin klasörü_listele([klasör = "."], [kalıp = "*"]) yerleşiğidir: kalıba uyan
@@ -53,7 +52,7 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	}
 	if g.unreadableCount > 0 {
 		m.WriteOutput(m.Err, messages.Text(messages.H7137,
-			fn, g.unreadableCount, g.firstUnreadable, turkish.FileErrorReason(g.firstUnreadable, g.firstErr))+"\n")
+			fn, g.unreadableCount, g.firstUnreadable, messages.SystemError(g.firstUnreadable, g.firstErr))+"\n")
 	}
 	basePath := clean(base)
 	if resolved != filepath.FromSlash(base) {

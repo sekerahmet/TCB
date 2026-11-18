@@ -136,20 +136,25 @@ func setupFn(order int) tensor.Backend {
 	return save(newBackend(tensor.GPU(order), s))
 }
 
-// Status sürücünün yüklenme durumunu açıklar (teşhis: GPU neden görünmüyor).
-func Status() string {
+// StatusMessage sürücünün yüklenme durumunu kodlu ileti olarak döndürür (teşhis: GPU neden görünmüyor).
+func StatusMessage() *messages.Error {
 	n := deviceCount()
 	if n == 0 {
 		if err := readSetupError(); err != nil {
-			return messages.Text(messages.H4021, err)
+			return messages.New(messages.H4021, err)
 		}
-		return messages.Text(messages.H4022)
+		return messages.New(messages.H4022)
 	}
 	if !tensor.HasDevice(tensor.GPU(0)) {
-		return messages.Text(messages.H4023, n, readSetupError())
+		return messages.New(messages.H4023, n, readSetupError())
 	}
 	be := tensor.BackendFor(tensor.GPU(0)).(*backend)
-	return messages.Text(messages.H4024, n, be.sr.cardName(), tensor.ByteSize(be.sr.totalMemory()), be.gemmPath())
+	return messages.New(messages.H4024, n, be.sr.cardName(), tensor.ByteSize(be.sr.totalMemory()), be.gemmPath())
+}
+
+// Status sürücünün yüklenme durumunu açıklar (teşhis: GPU neden görünmüyor).
+func Status() string {
+	return StatusMessage().Error()
 }
 
 func newBackend(dev tensor.Device, sr driver) *backend {

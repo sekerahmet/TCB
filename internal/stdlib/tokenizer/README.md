@@ -16,3 +16,9 @@ Denetim: `TestStepLimitAndWarning`, `TestLoadErrors`.
 **Uzun iş yorumlayıcıyı kilitlemez.** Dosya yükleme ve liste kodlama/çözme yorumlayıcı kilidi
 bırakılarak yapılır; toplu işler paralel koşar ama sonuç sırası girdi sırasıdır.
 Denetim: `TestHeavyWorkReleasesLock` (ağır çağrılar `Blocking`/`maybeRelease` içindedir; kaynak taraması), `TestEncodeDecodeSameAsGo` (toplu sonuç sırası).
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_system_errors_test.go`: `TR_fn_load_tokenizer` dosya ve GGUF okuma hatalarında işletim sistemi metninin TR değerine sızmaması

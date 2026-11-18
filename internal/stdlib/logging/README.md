@@ -38,3 +38,4 @@ Denetim: `TestStepHookCostsOneAtomicRead` (kanca yalnızca `atomic.Pointer.Load`
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_format_names_test.go`: günlüğün ve `progress.json`'un anahtarlarının, kayıt türlerinin ve dosya adının dilden bağımsız İngilizce tanımlayıcı olması (dondurulmuş liste ve sürüm)
+- `behavior_system_errors_test.go`: günlük boyutu okuma hatasında işletim sistemi metninin ve tam disk yolunun değere sızmaması

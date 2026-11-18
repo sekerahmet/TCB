@@ -112,7 +112,7 @@ type ggufModel struct {
 func loadGGUF(f *os.File) (*Tokenizer, error) {
 	info, err := f.Stat()
 	if err != nil {
-		return nil, messages.New(messages.H5272, err)
+		return nil, messages.New(messages.H5272, messages.SystemError(f.Name(), err))
 	}
 	file, err := gguf.Decode(bufio.NewReaderSize(f, 1<<20), info.Size())
 	if err != nil {

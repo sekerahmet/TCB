@@ -69,7 +69,7 @@ func (d *State) spawnProcess(m *interp.VM, args []interp.Value, named map[string
 	}
 	p := &Process{state: d, call: call, line: line, buffer: buffer, tail: &stderrTail{longest: m.LongestSecret}}
 	if err := p.start(); err != nil {
-		return nil, messages.New(messages.H7501, fn, call.name, err)
+		return nil, messages.New(messages.H7501, fn, call.name, messages.SystemError(call.name, err))
 	}
 	return p, nil
 }

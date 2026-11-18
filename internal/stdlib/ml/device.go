@@ -69,7 +69,7 @@ func availableDevice(fn any, v interp.Value) (tensor.Device, error) {
 	if !tensor.HasDevice(dev) {
 		names := strings.Join(deviceNames(), ", ")
 		if dev.Kind == tensor.KindGPU {
-			return dev, messages.New(messages.H6813, dev, names, codes.NameRef(codes.FnDevices), gpu.Status())
+			return dev, messages.New(messages.H6813, dev, names, codes.NameRef(codes.FnDevices), gpu.StatusMessage())
 		}
 		return dev, messages.New(messages.H6812, dev, names, codes.NameRef(codes.FnDevices))
 	}

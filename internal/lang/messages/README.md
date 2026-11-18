@@ -112,3 +112,4 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_message_fragments_test.go`: bir ileti çağrısına başka bir `messages.Text(...)` parça olarak verilmez (cümle tek şablondur)
 - `behavior_localized_errors_test.go`: `Error()` uygulayan her hata türü `MessageText(lang)` de uygular (`messages.Localized`); başka dilde (`ErrorIn`, yakalanan hata için `ValueLanguage`) kurulan ileti bütünüyle o dilde yazılır, katalog hiçbir hatayı `TR_LANG` metnine düşürmez
 - `behavior_english_complete_test.go`: tr.json'daki her ileti kodunun en.json'da İngilizce metni vardır
+- `behavior_system_errors_test.go`: test dışı Go kodunda aynı işlevdeki işletim sistemi ve GÇ hatalarının `messages.SystemError` ya da `turkish.FileError` geçmeden ileti yuvalarına verilmemesi (kaynak taraması; başka işlevden dönen ham hatalar paketlerin kendi testlerindedir)

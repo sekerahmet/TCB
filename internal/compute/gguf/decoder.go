@@ -27,7 +27,7 @@ func (d *decoder) bytes(kind string, p []byte) bool {
 		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 			d.err = messages.New(messages.H6658, kind, d.offset)
 		} else {
-			d.err = messages.New(messages.H6677, d.offset, err)
+			d.err = messages.New(messages.H6677, d.offset, messages.SystemError("", err))
 		}
 		return false
 	}
