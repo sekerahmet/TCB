@@ -194,6 +194,11 @@ func init() {
 // çok iş parçacıklı, çok ayırmalı küçük işlemlerde bu, sayaçların yükünü üçe katlıyordu.
 var activeNo int32
 
+// preparedNo son counterStart'ın kaydının numarasıdır; newKernel onu çekirdeğe alıp sıfırlar
+// (Kernel.Abandon). activeNo'dan ayrıdır: onu kilitsiz çalışan başka çekirdeğin finish'i
+// sıfırlayabilir; bunu yalnız kilit altında çağrılan counterStart yazar.
+var preparedNo int32
+
 // recordNo (cihaz, yön, işlem) kaydının numarasıdır (0 "yok" anlamına gelir: +1).
 func recordNo(c, direction int, is OpKind) int32 { return int32(c<<9|direction<<8|int(is)) + 1 }
 
@@ -235,6 +240,7 @@ func counterStart(be Backend, is OpKind) (s counterMeasure) {
 	k := &counters[deviceNo(be)&1][0][is]
 	add64(&k.call, 1)
 	write32i(&activeNo, k.no)
+	write32i(&preparedNo, k.no)
 	if add32(&k.back, -1) <= 0 {
 		s.k = k
 	}

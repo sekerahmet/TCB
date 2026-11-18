@@ -92,6 +92,44 @@ func TestGateWaitsForTheUnlockedKernelWhileHoldingTheLock(t *testing.T) {
 	<-finished
 }
 
+// Kural (H1 profil payı A-5): izin alamayıp bırakılan hazırlık çağrıyı saymaz ve etkin işlemi
+// bırakmaz; yeniden hazırlanıp çalışan çekirdek bir kez sayılır. Sayaçsız kurulan çekirdeğin
+// (release.go'nun boş çekirdeği) bırakılması bir şey değiştirmez.
+func TestKernelAbandonUncountsPreparation(t *testing.T) {
+	a, b := ramp(8, 8), ramp(8, 8)
+	first, k1 := MatMulKernel(a, b, Float32)
+	if !k1.TryAcquire() {
+		t.Fatal("ilk çarpım izin alamadı")
+	}
+	call, _, _, _ := counterDiff(false, OpKindMatMul, func() {
+		_, k := MatMulKernel(first, b, Float32) // k1'in yazdığı depoyu okur
+		if k.TryAcquire() {
+			t.Fatal("yazılan depoya okuma izni verildi")
+		}
+		k.Abandon()
+		if is, _, running := ActiveOp(); running {
+			t.Errorf("bırakılan hazırlıktan sonra etkin işlem kaldı: %v", is)
+		}
+		empty := newKernel(BackendFor(CPU), nil, nil, nil, func() {})
+		if empty.counted != 0 {
+			t.Errorf("sayaçsız çekirdek hazırlık numarası aldı: %d", empty.counted)
+		}
+		empty.Abandon()
+	})
+	if call != 0 {
+		t.Errorf("bırakılan hazırlık %d çağrı bıraktı, beklenen 0", call)
+	}
+	k1.Run()
+	k1.End()
+	call, _, _, _ = counterDiff(false, OpKindMatMul, func() {
+		_, k := MatMulKernel(first, b, Float32)
+		runKernelWithin(t, k)
+	})
+	if call != 1 {
+		t.Errorf("yeniden hazırlanan çarpım %d kez sayıldı, beklenen 1", call)
+	}
+}
+
 // Kural (S-kilit, tasarım (6)): kilitsiz işlem depolarını tutar; başka görev son başlığı bıraksa da
 // depo, işlem bitene dek arka uca dönmez.
 func TestKernelHoldsItsStorages(t *testing.T) {

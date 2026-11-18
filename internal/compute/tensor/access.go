@@ -67,12 +67,15 @@ type Kernel struct {
 	// çakışmada yinelenebildiğinden böyle durum hazırlıkta değişmez. nil olabilirler. Depo iadesi
 	// end'dedir, gövdede olamaz: iade kapıdan geçer, gövde tuttuğu izni bekleyip kilitlenirdi.
 	begin, end func()
+	// counted hazırlıkta sayılan kaydın numarasıdır (preparedNo; 0: yok); Abandon onu geri alır.
+	counted int32
 }
 
 // newKernel çekirdeği kurar; holds çalışırken tutulacak tensörlerdir. Yazılan depo okunanlardan
-// çıkarılır (yerinde işlem: a += a).
+// çıkarılır (yerinde işlem: a += a). Hazırlığın counterStart'ı çekirdeğe yazılır.
 func newKernel(be Backend, writes, reads []Storage, holds []*Tensor, run func()) *Kernel {
-	k := &Kernel{be: be, writes: writes, run: run}
+	k := &Kernel{be: be, writes: writes, run: run, counted: read32i(&preparedNo)}
+	write32i(&preparedNo, 0)
 	for _, t := range holds {
 		if !containsStorage(k.holds, t.storage) {
 			k.holds = append(k.holds, t.storage)
@@ -139,6 +142,17 @@ func (k *Kernel) ShareProcessors() { k.share = true }
 // kilidi bırakılmışken çağrılır; dönünce kilit geri alınır ve çekirdek yeniden hazırlanır
 // (girdiler bu arada değişmiş olabilir).
 func (k *Kernel) WaitFree() { waitFree(k.writes, k.reads) }
+
+// Abandon izin alamayan ve yeniden hazırlanacak çekirdeğin hazırlıkta sayılan çağrısını geri alır
+// ve etkin işlemi sıfırlar; çağrı bir kez sayılır, bekleyiş tensör işlemi sayılmaz. Etkin işlem
+// tek olduğundan o an kilitsiz çalışan başka çekirdeğinki de silinir. begin'i olan çekirdeğin
+// (iyileştirici) sayacı begin'dedir, hazırlıkta değil.
+func (k *Kernel) Abandon() {
+	if n := k.counted - 1; n >= 0 && k.begin == nil {
+		add64(&counters[(n>>9)&1][(n>>8)&1][n&255].call, -1)
+		write32i(&activeNo, 0)
+	}
+}
 
 // Run izinleri alınmış çekirdeği çalıştırır ve izinleri bırakır; kilitsiz çağrılabilir.
 func (k *Kernel) Run() {
