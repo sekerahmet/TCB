@@ -158,7 +158,7 @@ function fillSelect(select, items, chosen) {
 // başka bir sohbet modeli kuruluysa kurulumda da (kartın "Başka model seç"i). Değerler sunucudan gelir; her değişiklik
 // bir `settings_set`'tir, sunucu reddederse değer sunucununkine döner.
 // Sohbet modeli: yalnız sohbet seçilir, takımı kurulu girdilerden; seçim hemen geçerlidir (takım yeniden
-// hazırlanır), Yükle yok. Yazıcı, ses ve VAD bu dil için tek seçenekli sönük seçicidir.
+// hazırlanır), Yükle yok. Yazıcı ve VAD bu dil için tek seçenekli sönük seçicidir; ses `renderVoice`'tadır.
 function renderSettings() {
   const chosen = str(ui.settings.language_model);
   const shown = Object.keys(ui.settings).length > 0 && (ui.state !== "setup" || ui.loadFailed !== "" || setupChoice(chosen, ui.catalog));
@@ -179,10 +179,11 @@ function renderSettings() {
   modelSelect.disabled = !usable || installed.length === 0;
   byId("settingsModelNote").hidden = installed.length === 0;
   byId("settingsModelNone").hidden = installed.length > 0;
-  for (const [kind, id] of [["transcriber", "settingsTranscriber"], ["voice", "settingsVoice"], ["vad", "settingsVad"]]) {
+  for (const [kind, id] of [["transcriber", "settingsTranscriber"], ["vad", "settingsVad"]]) {
     const entry = teamEntry(kind);
     fillSelect(byId(id), entry ? [{ value: entry.id, text: entryLabel(entry) }] : [], entry ? entry.id : "");
   }
+  renderVoice(usable, current);
   const quantized = /** @type {HTMLSelectElement} */ (byId("settingsQuantized"));
   quantized.value = str(ui.settings.quantized_activations) || "auto";
   quantized.disabled = !usable;
@@ -210,6 +211,19 @@ function renderSettings() {
     ui.devicesAsked = true;
     command("devices_list", {});
   }
+}
+
+// Yazıdan sese (P dilimi, P-7): konuşma dilinin sesleri sırayla; inmemiş ses seçilemez ve "(indirilmedi)" der. Dilin tek
+// sesi varsa seçici sönük ve "Bu dil için tek seçenek" görünür; birden çoksa seçici açılır, ipucu gizlenir.
+/** @param {boolean} usable @param {string} speech */
+function renderVoice(usable, speech) {
+  const voices = voiceOptions(ui.catalog, speech);
+  const chosen = voices.find((v) => v.selected);
+  const items = voices.map((o) => ({ value: o.value, text: o.missing ? t("settings_model_missing", { model: o.name }) : o.name, disabled: o.missing }));
+  const select = /** @type {HTMLSelectElement} */ (byId("settingsVoice"));
+  fillSelect(select, items, chosen ? chosen.value : "");
+  select.disabled = !usable || voices.length < 2;
+  byId("settingsVoiceOnly").hidden = voices.length > 1;
 }
 
 // Hesap cihazı (tasarım dost-sohbet-gpu T6): kart yoksa "Ekran kartı" seçilemez ve not durur; kartta nicemlinin
@@ -457,6 +471,7 @@ function wire() {
   });
   byId("settingsLanguage").addEventListener("change", () => setSetting("speech_language", /** @type {HTMLSelectElement} */ (byId("settingsLanguage")).value));
   byId("settingsModel").addEventListener("change", () => setSetting("language_model", /** @type {HTMLSelectElement} */ (byId("settingsModel")).value));
+  byId("settingsVoice").addEventListener("change", () => setSetting("voice", /** @type {HTMLSelectElement} */ (byId("settingsVoice")).value));
   byId("settingsDevice").addEventListener("change", () => setSetting("device", /** @type {HTMLSelectElement} */ (byId("settingsDevice")).value));
   byId("settingsQuantized").addEventListener("change", () => setSetting("quantized_activations", /** @type {HTMLSelectElement} */ (byId("settingsQuantized")).value));
   byId("settingsContext").addEventListener("change", () => setSetting("context", Number(/** @type {HTMLInputElement} */ (byId("settingsContext")).value)));

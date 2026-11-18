@@ -60,12 +60,14 @@ on("devices", (d) => {
 
 // ---------- Katalog ----------
 // catalogEntries: `catalog` olayının girdileri (contract.md), bilinen dört türden; bilinmeyen alan ve bilinmeyen `kind`
-// yok sayılır. Sayı olmayan boy ve bellek `null`, bilinmeyen uyum boş, metin olmayan dil düşer.
+// yok sayılır. Sayı olmayan boy ve bellek `null`, bilinmeyen uyum boş, metin olmayan dil düşer (`languages`,
+// `selected_for`).
 /** @param {any} data */
 function catalogEntries(data) {
   const kinds = ["language_model", "transcriber", "voice", "vad"];
   const fits = ["fits", "tight", "too_large", "too_long"];
   const count = (/** @type {unknown} */ v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const codes = (/** @type {unknown} */ v) => (Array.isArray(v) ? v.filter((/** @type {unknown} */ l) => typeof l === "string") : []);
   const entries = data && Array.isArray(data.entries) ? data.entries : [];
   return entries
     .filter((entry) => entry && kinds.includes(entry.kind) && typeof entry.id === "string" && entry.id !== "")
@@ -78,8 +80,17 @@ function catalogEntries(data) {
       bytes: count(entry.bytes),
       memory_bytes: count(entry.memory_bytes),
       fit: fits.includes(entry.fit) ? entry.fit : "",
-      languages: Array.isArray(entry.languages) ? entry.languages.filter((/** @type {unknown} */ l) => typeof l === "string") : [],
+      languages: codes(entry.languages),
+      selected_for: codes(entry.selected_for),
     }));
+}
+// voiceOptions: ayarların ses seçicisi (P dilimi, P-7): konuşma dilinin sesleri, katalogun sırasıyla; inmemiş ses seçilemez
+// (`missing`). Seçili olan sunucunun o dil için seçtiğidir (`selected_for`).
+/** @param {any[]} entries @param {string} speech */
+function voiceOptions(entries, speech) {
+  return entries
+    .filter((entry) => entry.kind === "voice" && entry.languages.includes(speech))
+    .map((entry) => ({ value: entry.id, name: entry.name, missing: !entry.installed, selected: entry.selected_for.includes(speech) }));
 }
 // loadableModels: ayarların seçebildiği sohbet modelleri: takımı kurulu dil modelleri (`settings_set language_model`
 // kurulu olmayanı `not_installed` ile reddeder).
