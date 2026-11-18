@@ -29,6 +29,8 @@ type queryOpts struct {
 	goTests          bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
 	byDistance       bool   // changed --go-tests: satırın sonunda near ya da far, önce yakınlar
 	asJSON           bool   // untested: JSON çıktı
+	// staleGraph: graf bu sorguda ağaçtan eski kaldı (loadGraph); changed --go-tests depo taramaları listesini karşılaştırmaz.
+	staleGraph bool
 }
 
 // runQuery grafiği okuyan komutları çalıştırır: query, path, who-uses, tests-for, untested, changed, callees,
@@ -120,16 +122,19 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	}
 	switch {
 	case !noRebuild:
-		if g = refresh(g, o.root, path, o.stderr); g == nil {
+		if g, o.staleGraph = refresh(g, o.root, path, o.stderr); g == nil {
 			return nil, exitFail
 		}
 	case g.Extractor != extractorRevision:
 		fmt.Fprintf(o.stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
 		fmt.Fprintln(o.stderr, staleNoRebuild)
+		o.staleGraph = true
 	case g.Stamp != "":
-		if now, err := sourceStamp(o.root); err == nil && now != g.Stamp {
+		now, err := sourceStamp(o.root)
+		if err == nil && now != g.Stamp {
 			fmt.Fprintln(o.stderr, staleNoRebuild)
 		}
+		o.staleGraph = err != nil || now != g.Stamp
 	}
 	for _, w := range g.Warnings {
 		if strings.HasPrefix(w, trSkipped) { // Go cevapları tam; .tr kodu ve TR bağları yok
@@ -147,7 +152,7 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 	}
 	if cmd == "changed" { // adı değil, git revizyonu alır
 		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests, withoutSelfTests: o.withoutSelfTests,
-			byDistance: o.byDistance},
+			byDistance: o.byDistance, staleGraph: o.staleGraph},
 			names[0], o.stdout, o.stderr)
 	}
 	if cmd == "query" && len(names) == 1 && names[0] == "-" { // grep çıktısı: her satıra içeren düğüm

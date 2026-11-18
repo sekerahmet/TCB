@@ -12,7 +12,8 @@
 //	go run ./tools/codegraph who-uses H2100        // everything that uses a message/name code
 //	go run ./tools/codegraph tests-for interp.VM.Run
 //
-// Exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous name (candidates are listed), 4 not found.
+// Exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous name (candidates are listed), 4 not found, 5 the repo_scans lists of
+// tools/full_check.sh disagree with the graph (changed --go-tests; repo_scans.go).
 //
 // Layer: tools (tools); not shipped to users.
 package main
@@ -35,6 +36,7 @@ const (
 	exitUsage     = 2
 	exitAmbiguous = 3
 	exitNotFound  = 4
+	exitScanList  = 5 // changed --go-tests: tam denetimin depo taramaları listeleri graftan ayrışıyor (repo_scans.go)
 )
 
 const usage = `usage: codegraph <command> [flags] [args]
@@ -57,7 +59,7 @@ const usage = `usage: codegraph <command> [flags] [args]
 
 query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --list, --by-package, --min N, --in X, --tests, --base B, --by-distance, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
-exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found
+exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found, 5 the repo_scans lists of tools/full_check.sh disagree with the graph (changed --go-tests)
 `
 
 func main() {

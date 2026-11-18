@@ -21,6 +21,8 @@ type changeOpts struct {
 	withoutSelfTests bool
 	// byDistance: goTests'in her satırının sonunda near ya da far, önce yakınlar (changed_distance.go; codegraph 7 B1).
 	byDistance bool
+	// staleGraph: graf ağaçtan eski (queryOpts.staleGraph); depo taramaları listesi karşılaştırılmaz (repo_scans.go).
+	staleGraph bool
 }
 
 // runChanged ref'in (dal ya da a..b / a...b aralığı) değişikliklerini grafiğin düğümlerine eşler:
@@ -62,7 +64,8 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 		} else {
 			ix.printGoTests(stdout, main, o.byDistance)
 		}
-		return exitOK
+		// Seçimden sonra tam denetimin depo taramaları listeleri graftaki taramalarla karşılaştırılır (repo_scans.go).
+		return checkRepoScans(o.root, ix.g, o.staleGraph, stderr)
 	}
 	fmt.Fprintf(stdout, "changed %s: %d hunks in %d files\n  mapping: %s\n", rng, len(hs), len(main.files), mapping)
 	ix.printTouched(stdout, main, o.limit)

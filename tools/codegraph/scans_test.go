@@ -1,12 +1,12 @@
 package main
 
 import (
+	"cmp"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"maps"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -281,89 +281,21 @@ func TestFullCheckRepoScansMatchesScanNodes(t *testing.T) {
 	t.Parallel()
 	repoRule(t)
 	root, _, g := repoGraph(t)
-	data, err := os.ReadFile(filepath.Join(root, "tools/full_check.sh"))
-	if err != nil {
-		t.Fatal(err)
+	// Okuma ve beklenen küme changed --go-tests'in denetimiyle ortaktır (repo_scans.go): kip aynı eksiği commit'ten önce söyler.
+	l, err := readRepoScanLists(root)
+	if l == nil {
+		t.Fatalf("tools/full_check.sh: cannot check the repo_scans list: %v", cmp.Or(err, os.ErrNotExist))
 	}
-	script := strings.ReplaceAll(string(data), "\r\n", "\n")
-	gotTests := parseBashArray(t, script, "repo_scans")
-	gotPkgs := parseBashArray(t, script, "repo_scan_pkgs")
-	layoutMatch := regexp.MustCompile(`(?m)^\s*go test [^\n]*-short(?: -count=1)? ((?:\./\S+\s*)+)[^\n]*\n\s*\[ "\$\{PIPESTATUS\[0\]\}" -eq 0 \] \|\| fail "düzen kuralları"`).FindStringSubmatch(script)
-	if layoutMatch == nil {
-		t.Fatal("tools/full_check.sh: could not locate layout-rules go test line")
-	}
-	wholePkgs := strings.Fields(layoutMatch[1])
-	isWholeLayoutPkg := func(dir string) bool {
-		for _, p := range wholePkgs {
-			clean := strings.TrimPrefix(p, "./")
-			if strings.HasSuffix(clean, "/...") {
-				prefix := strings.TrimSuffix(clean, "...")
-				if strings.HasPrefix(dir+"/", prefix) {
-					return true
-				}
-				continue
-			}
-			if strings.TrimSuffix(clean, "/") == dir {
-				return true
-			}
-		}
-		return false
-	}
-	if !regexp.MustCompile(`(?s)repo_scans\[@\].*"\$\{repo_scan_pkgs\[@\]\}"[^\n]*\n\s*\[ "\$\{PIPESTATUS\[0\]\}" -eq 0 \] \|\| fail "depo taramaları"`).MatchString(script) {
-		t.Fatal("tools/full_check.sh: depo taramaları step must run ${repo_scans[@]} across \"${repo_scan_pkgs[@]}\"")
-	}
-
-	byID := map[string]*Node{}
-	for i := range g.Nodes {
-		byID[g.Nodes[i].ID] = &g.Nodes[i]
-	}
-	wantTestsSet := map[string]bool{}
-	wantPkgsSet := map[string]bool{}
-	for _, e := range g.Edges {
-		if e.Kind != edgeScans {
-			continue
-		}
-		sc, tn := byID[e.To], byID[e.From]
-		if sc == nil || sc.Kind != kindScan || tn == nil {
-			continue
-		}
-		name := tn.Name[strings.LastIndex(tn.Name, ".")+1:]
-		if !strings.HasPrefix(name, "Test") {
-			continue
-		}
-		dir := path.Dir(tn.File)
-		if isWholeLayoutPkg(dir) {
-			continue
-		}
-		wantTestsSet[name] = true
-		wantPkgsSet["./"+dir] = true
-	}
-	wantTests := slices.Sorted(maps.Keys(wantTestsSet))
-	wantPkgs := slices.Sorted(maps.Keys(wantPkgsSet))
-	slices.Sort(gotTests)
-	slices.Sort(gotPkgs)
+	tests, pkgs := repoScanWant(g, l)
+	wantTests := slices.Sorted(maps.Keys(tests))
+	wantPkgs := slices.Sorted(maps.Keys(pkgs))
+	gotTests, gotPkgs := slices.Sorted(slices.Values(l.tests)), slices.Sorted(slices.Values(l.pkgs))
 	if !slices.Equal(gotTests, wantTests) {
 		t.Errorf("tools/full_check.sh repo_scans mismatch:\n  got (%d):  %v\n  want (%d): %v", len(gotTests), gotTests, len(wantTests), wantTests)
 	}
 	if !slices.Equal(gotPkgs, wantPkgs) {
 		t.Errorf("tools/full_check.sh repo_scan_pkgs mismatch:\n  got (%d):  %v\n  want (%d): %v", len(gotPkgs), gotPkgs, len(wantPkgs), wantPkgs)
 	}
-}
-
-func parseBashArray(t *testing.T, script, name string) []string {
-	t.Helper()
-	m := regexp.MustCompile(`(?ms)^` + regexp.QuoteMeta(name) + `=\(\s*(.*?)\s*\)`).FindStringSubmatch(script)
-	if m == nil {
-		t.Fatalf("tools/full_check.sh: array %s not found", name)
-	}
-	var out []string
-	for _, line := range strings.Split(m[1], "\n") {
-		if i := strings.IndexByte(line, '#'); i >= 0 {
-			line = line[:i]
-		}
-		out = append(out, strings.Fields(line)...)
-	}
-	return out
 }
 
 // packageDirFiles: tool paketinin testleri kendi klasörünü listeler: yardımcı reporoot.ReadDir(".") ile test dışı .go

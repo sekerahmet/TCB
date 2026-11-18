@@ -37,6 +37,12 @@ var turkishLiteralAllowed = map[string]string{
 	// Kitaplığın 4c'yi bekleyen tipsiz yerleri adla tutulur (6.1, 7.1): adlar lib/ dosyalarındaki kullanıcı adlarıdır; liste 4c'de kalkar.
 	"internal/lang/checker/library_exceptions.go": "gömülü kitaplığın istisnalı yerlerinin adları (lib/ dosyalarındaki kullanıcı adları); 4c'de kalkar",
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
+	// Codegraph tam denetim betiğinin depo taramaları listelerini okur (repo_scans.go): adım satırlarını betiğin Türkçe
+	// fail metinleriyle bulur, bulamayınca o satırı adıyla anar.
+	"tools/codegraph/repo_scans.go:(?m)^\\s*go test [^\\n]*-short(?: -count=1)? ((?:\\./\\S+\\s*)+)[^\\n]*\\n\\s*\\[ \"\\$\\{PIPESTATUS\\[0\\]\\}\" -eq 0 \\] \\|\\| fail \"düzen kuralları\"": "tam denetim betiğinin Türkçe adım satırlarını (fail \"düzen kuralları\", \"depo taramaları\") arayan desenler ve S5'in bu satırları anan nedenleri; betiğin metni, ad ya da ileti değil",
+	"tools/codegraph/repo_scans.go:(?s)repo_scans\\[@\\].*\"\\$\\{repo_scan_pkgs\\[@\\]\\}\"[^\\n]*\\n\\s*\\[ \"\\$\\{PIPESTATUS\\[0\\]\\}\" -eq 0 \\] \\|\\| fail \"depo taramaları\"":        "tam denetim betiğinin Türkçe adım satırlarını (fail \"düzen kuralları\", \"depo taramaları\") arayan desenler ve S5'in bu satırları anan nedenleri; betiğin metni, ad ya da ileti değil",
+	"tools/codegraph/repo_scans.go:the layout-rules go test line (… || fail \"düzen kuralları\") not found":                                                                                    "tam denetim betiğinin Türkçe adım satırlarını (fail \"düzen kuralları\", \"depo taramaları\") arayan desenler ve S5'in bu satırları anan nedenleri; betiğin metni, ad ya da ileti değil",
+	"tools/codegraph/repo_scans.go:the depo taramaları step does not run ${repo_scans[@]} across \"${repo_scan_pkgs[@]}\"":                                                                     "tam denetim betiğinin Türkçe adım satırlarını (fail \"düzen kuralları\", \"depo taramaları\") arayan desenler ve S5'in bu satırları anan nedenleri; betiğin metni, ad ya da ileti değil",
 }
 
 // turkishLiteralSkipDirs taranmayan klasörlerdir: Türkçenin dilbilgisi paketi (ek ve harf
