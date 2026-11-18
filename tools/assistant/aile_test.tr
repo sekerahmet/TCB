@@ -1,0 +1,122 @@
+# TR 4
+# Zincirin aileye göre sohbet biçimi (aile.tr): her ailenin biçimi, ısıtması, beklenen öneki, etiketleri ve cevabı;
+# bilinmeyen aile. Parçalayıcılar depodaki küçük deneme parçalayıcılarıdır; aileyi GGUF'ta kitaplığın seçtiğini
+# cmd/trlang/e2e/behavior_assistant_family_test.go sınar.
+TR_import "tr/chat"
+TR_import "aile"
+TR_import "zincir" # beklenen_önek, ortak_önek
+TR_import "katalog" # AİLELER
+
+TR_const _SİSTEM = "Kısa ve Türkçe cevap ver."
+
+TR_func parçalayıcı(aile: TR_String) -> TR_Tokenizer {
+    TR_if aile == "gemma3" { TR_return TR_load_tokenizer("../../tests/data/gemma3_chat") }
+    TR_if aile == "qwen3" { TR_return TR_load_tokenizer("../../tests/data/qwen3_chat/tokenizer.json") }
+    TR_throw "\(aile) ailesinin deneme parçalayıcısı yok: aile_test.tr'nin parçalayıcı'sına ekleyin"
+}
+
+TR_func ileti(r: TR_Role, m: TR_String) -> TR_ChatMessage { TR_return TR_ChatMessage(TR_role: r, TR_content: m) }
+
+TR_func ilk_tur(aile: TR_String, p: TR_Tokenizer, soru: TR_String) -> TR_List[TR_Int] {
+    TR_return aile_biçimi(aile, p, [ileti(TR_Role.TR_System, _SİSTEM), ileti(TR_Role.TR_User, soru)], TR_true)
+}
+
+TR_test "AİLELER'in her ailesinin biçimi var ve biçim ailenin ilk parçalarıyla başlar" {
+    TR_assert_equal(["gemma3", "qwen3"], AİLELER)
+    TR_var baş = {"qwen3": "<|im_start|>system", "gemma3": "<bos><start_of_turn>user"}
+    TR_for aile TR_in AİLELER {
+        TR_var p = parçalayıcı(aile)
+        TR_var çözülen = p.TR_decode(ilk_tur(aile, p, "Merhaba"), TR_special_tokens: TR_true)
+        TR_assert(çözülen.TR_starts_with(TR_String(baş[aile])))
+    }
+}
+
+TR_test "bilinmeyen aile H8170: dosyada da elle kurulan zincirde de" {
+    TR_assert_equal("H8170", TR_error_code { aile_denetle("m.gguf", "llama") })
+    TR_assert_equal("H8170", TR_error_code { aile_denetle("m.gguf", "") })
+    TR_assert_equal("H8170", TR_error_code { aile_denetle("m.gguf", "Gemma3") })
+    TR_var p = parçalayıcı("qwen3")
+    TR_assert_equal("H8170", TR_error_code { aile_biçimi("llama", p, [ileti(TR_Role.TR_User, "a")], TR_true) })
+    TR_assert_equal("H8170", TR_error_code { aile_başlığı("qwen") })
+    TR_var e = TR_error_code { aile_cevabı("", p, []) }
+    TR_assert_equal("H8170", e)
+    aile_denetle("m.gguf", "gemma3")
+    aile_denetle("m.gguf", "qwen3")
+}
+
+# Gemma 3 sistem iletisini tek başına biçimlemez (H7183): ısıtma iki ilk turun ortak önekidir, her ilk turun önekidir.
+TR_test "her ailenin ısıtması ilk turun önekidir" {
+    TR_assert_equal("H7183", TR_error_code { aile_biçimi("gemma3", parçalayıcı("gemma3"), [ileti(TR_Role.TR_System, _SİSTEM)], TR_false) })
+    TR_var sorular = ["Merhaba, nasılsın?", "Üç artı dört kaç eder?", "\"Tırnaklı\" bir soru", "  boşluklu soru  ", "a", "b", "Explain it in English."]
+    TR_for aile TR_in AİLELER {
+        TR_var p = parçalayıcı(aile)
+        TR_var ısıtma = aile_ısıtması(aile, p, _SİSTEM)
+        TR_assert(ısıtma.TR_length > 0)
+        TR_for soru TR_in sorular {
+            TR_var ilk = ilk_tur(aile, p, soru)
+            TR_assert(ısıtma.TR_length < ilk.TR_length)
+            TR_assert_equal(ısıtma, ilk[0..ısıtma.TR_length])
+        }
+    }
+    TR_var q = parçalayıcı("qwen3")
+    TR_assert_equal(aile_biçimi("qwen3", q, [ileti(TR_Role.TR_System, _SİSTEM)], TR_false), aile_ısıtması("qwen3", q, _SİSTEM))
+}
+
+# İkinci tur: önbellekte ilk turun istemi ve üretilen cevap var (durma kimliği önbelleğe okunmaz, zincir.tr üret).
+TR_test "beklenen önek her ailede ikinci turda tutar" {
+    TR_for aile TR_in AİLELER {
+        TR_var p = parçalayıcı(aile)
+        TR_var geçmiş = [ileti(TR_Role.TR_System, _SİSTEM), ileti(TR_Role.TR_User, "Üç artı dört kaç eder?")]
+        TR_var önbellekte = aile_biçimi(aile, p, geçmiş, TR_true) + p.TR_encode("Yedi eder.", TR_special_tokens: TR_false)
+        TR_var cevap, hatalar = aile_cevabı(aile, p, p.TR_encode("Yedi eder.", TR_special_tokens: TR_false))
+        TR_assert_equal(0, hatalar.TR_length)
+        geçmiş.TR_append(cevap)
+        geçmiş.TR_append(ileti(TR_Role.TR_User, "Peki ya beş artı iki?"))
+        TR_var ortak = ortak_önek(önbellekte, aile_biçimi(aile, p, geçmiş, TR_true))
+        TR_var beklenen = beklenen_önek(aile, p, geçmiş, 2)
+        TR_assert(beklenen > 0)
+        TR_assert(ortak >= beklenen)
+    }
+    TR_assert_equal("model\n", aile_başlığı("gemma3"))
+    TR_assert_equal("assistant\n", aile_başlığı("qwen3"))
+}
+
+TR_test "akışın etiketleri: Qwen3'te düşünce ve araç çağrısı, Gemma 3'te yeni sıra" {
+    TR_var q = parçalayıcı("qwen3")
+    TR_assert_equal([q.TR_token_id(e) TR_for e TR_in ["<think>", "</think>", "<tool_call>", "</tool_call>"]], aile_etiketleri("qwen3", q))
+    TR_var g = parçalayıcı("gemma3")
+    TR_assert_equal([g.TR_token_id("<start_of_turn>")], aile_etiketleri("gemma3", g))
+    TR_for aile TR_in AİLELER {
+        TR_for k TR_in aile_etiketleri(aile, parçalayıcı(aile)) { TR_assert(k != TR_none) }
+    }
+}
+
+# Model cevabın ardından yeni sıra açarsa (`<start_of_turn>`) sonrası söylenmez ve geçmişe girmez; hata satırı kalır.
+TR_test "Gemma'nın cevabı yeni sırada kesilir, hatası H7186" {
+    TR_var p = parçalayıcı("gemma3")
+    TR_var gövde = p.TR_encode("Yedi eder.", TR_special_tokens: TR_false)
+    TR_var cevap, hatalar = aile_cevabı("gemma3", p, gövde + [p.TR_token_id("<start_of_turn>")] + p.TR_encode("user\nBaşka", TR_special_tokens: TR_false))
+    TR_assert_equal("Yedi eder.", cevap.TR_content)
+    TR_assert_equal(1, hatalar.TR_length)
+    TR_assert_equal("H7186", TR_error_code { TR_throw hatalar[0] })
+    TR_var tam, yok = aile_cevabı("gemma3", p, gövde + [p.TR_token_id("<end_of_turn>")])
+    TR_assert_equal("Yedi eder.", tam.TR_content)
+    TR_assert_equal(0, yok.TR_length)
+    TR_var boş, boş_hata = aile_cevabı("gemma3", p, [p.TR_token_id("<start_of_turn>")])
+    TR_assert_equal("", boş.TR_content)
+    TR_assert_equal(1, boş_hata.TR_length)
+}
+
+TR_test "Qwen3'ün cevabında sondaki <|im_end|> atılır" {
+    TR_var p = parçalayıcı("qwen3")
+    TR_var gövde = p.TR_encode("Yedi eder.", TR_special_tokens: TR_false)
+    TR_var cevap, hatalar = aile_cevabı("qwen3", p, gövde + [p.TR_token_id("<|im_end|>")])
+    TR_assert_equal("Yedi eder.", cevap.TR_content)
+    TR_assert_equal(0, hatalar.TR_length)
+}
+
+# Dost katalog K-9: önbellek yüklenen modelin sınırını (TR_config["bağlam"]) aşmaz; altındaki bağlam değişmez.
+TR_test "önbellek_bağlamı: istenen modelin sınırını aşarsa sınır, aşmazsa istenen" {
+    TR_var m = TR_GPT(16, TR_context: 64, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 1)
+    TR_assert_equal([64, 64, 32], [önbellek_bağlamı(65, m), önbellek_bağlamı(64, m), önbellek_bağlamı(32, m)])
+}

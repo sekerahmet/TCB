@@ -6,9 +6,9 @@
 # modül hiçbir şey aktarmaz. katalog_test.tr ikisini de sınar (README, "Kurulum").
 
 TR_const SÜRÜM = 1
-# A'nın sohbet aileleri: D1'in listesi dışarıya açık değil (lib/pretrained.tr'nin `_sohbet_tablosu()`); D1 Teslim B
-# iki listeyi karşılaştıran testi ekler.
-TR_const AİLELER = ["qwen3"]
+# Dost'un sohbet aileleri; her birinin biçimi aile.tr'dedir. Kitaplığın tablosu dışarıya açık değil
+# (lib/model_family.tr'nin `_sohbet_tablosu()`); her ailenin orada olduğunu TestAssistantFamiliesAreInTheChatTable sınar.
+TR_const AİLELER = ["gemma3", "qwen3"]
 TR_const _TÜRLER = ["language_model", "transcriber", "vad", "voice"]
 TR_const _KONAKLAR = ["huggingface", "github"]
 TR_const _GİB = 1073741824
@@ -447,15 +447,25 @@ TR_func bağlam_seç(verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
     TR_return ÖNTANIMLI_BAĞLAM
 }
 
-# bağlam_belirle: bağlam_seç'in değeri, dil modellerinin en büyük `context_max`'ıyla sınırlı (tasarımın defteri 62,
-# 63). `--bağlam` ya da ayarın `context`'i bütün sınırları aşarsa H8174 (`source` `option`, `setting`); öntanımlı
-# 8192 en büyük sınıra iner, hata vermez.
-TR_func bağlam_belirle(k: Katalog, verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
-    TR_var b = bağlam_seç(verilen, ayar)
+# bağlam_sınırı: dil modelinin `context_max`'ı; model katalogda yoksa (seçili değilse) dil modellerinin en büyüğü;
+# katalogda dil modeli yoksa 0 (Dost katalog K-9: ekranın sınırı seçili modelinkidir).
+TR_func bağlam_sınırı(k: Katalog, dil_modeli: TR_String) -> TR_Int {
     TR_var en = 0
     TR_for g TR_in k.girdiler {
-        TR_if g.tür == "language_model" TR_and g.bağlam_sınırı > en { en = g.bağlam_sınırı }
+        TR_if g.tür != "language_model" { TR_continue }
+        TR_if g.kimlik == dil_modeli { TR_return g.bağlam_sınırı }
+        TR_if g.bağlam_sınırı > en { en = g.bağlam_sınırı }
     }
+    TR_return en
+}
+
+# bağlam_belirle: bağlam_seç'in değeri, dil modellerinin en büyük `context_max`'ıyla sınırlı (tasarımın defteri 62,
+# 63). `--bağlam` ya da ayarın `context`'i bütün sınırları aşarsa H8174 (`source` `option`, `setting`); öntanımlı
+# 8192 en büyük sınıra iner, hata vermez. Seçili modelin sınırını aşan bağlam açılışta hata değildir: önbellek
+# yüklenen modelin sınırıyla kurulur (yuva.tr, `önbellek_bağlamı`).
+TR_func bağlam_belirle(k: Katalog, verilen: TR_Int?, ayar: Ayar?) -> TR_Int {
+    TR_var b = bağlam_seç(verilen, ayar)
+    TR_var en = bağlam_sınırı(k, "")
     TR_if b <= en { TR_return b }
     TR_if verilen != TR_none { TR_throw TR_Message("H8174", "option", b, en) }
     TR_if ayar != TR_none { TR_throw TR_Message("H8174", "setting", b, en) }
@@ -499,18 +509,24 @@ TR_func küçükler(k: Katalog, ayar: Ayar?) -> Bellek {
 }
 
 # gereken: need = ölçü(c₀) + kv × (bağlam − c₀) + geçici + pay + küçükler; ölçü yoksa ağırlıklar + kv × bağlam.
-# geçici = kv × bağlam: tur hatasında yeni önbellek eskisi ölmeden ayrılır (zincir.tr, geri_al).
+# geçici = kv × bağlam: tur hatasında yeni önbellek eskisi ölmeden ayrılır (zincir.tr, geri_al). Küçükler hariç
+# toplam en küçük bağlamlı ölçünün (nokta 1) altına inmez: c₀'dan geriye kv'yle inen doğru küçük bağlamda modelin
+# ısıtılmış belleğini eksik sayardı (DENETİM 863 N1).
 TR_func gereken(g: Girdi, bağlam: TR_Int, küçük: Bellek) -> TR_Int {
     TR_var kv = kv_baytı(g)
     TR_var taban = g.ağırlık + kv * bağlam
+    TR_var en_az = 0
     TR_if g.ölçüler.TR_length > 0 {
         TR_var c = g.ölçüler[0]
+        TR_var a = g.ölçüler[0]
         TR_for ö TR_in g.ölçüler {
             TR_if ö.bağlam > c.bağlam { c = ö }
+            TR_if ö.bağlam < a.bağlam { a = ö }
         }
         taban = c.özel + kv * (bağlam - c.bağlam)
+        en_az = a.özel
     }
-    TR_return taban + kv * bağlam + PAY + küçük.bayt
+    TR_return TR_max(taban + kv * bağlam + PAY, en_az) + küçük.bayt
 }
 
 # uygunluk: her dil modelinin sınıfı. `need ≤ 0,6 × toplam` fits, `≤ 0,85 × toplam` tight, üstü too_large; bağlam

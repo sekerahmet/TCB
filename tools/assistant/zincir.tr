@@ -1,14 +1,15 @@
 # TR 4
 # Sesli yardımcının zinciri, programdan ayrı: tur, üretim, önbellek, cümleler (asistan.tr kullanır, zincir_test.tr sınar).
 # Önbellek turdan tura korunur: yeni turun kimlikleri önbellektekilerle ortak önek kadar karşılaştırılır, önbellek o
-# kadara kırpılır, yalnız kalan okunur. Önceki turun boş düşünce bloğu yeni dizide yazılmaz (24.2), bu yüzden ortak
-# önek önceki asistan başlığının sonunda biter.
+# kadara kırpılır, yalnız kalan okunur. Ortak önek önceki asistan başlığının sonunda biter (Qwen3'te önceki turun boş
+# düşünce bloğu yeni dizide yazılmaz, 24.2). Sohbet biçimi modelin ailesinindir (aile.tr).
 
 TR_import "tr/audio"
 TR_import "tr/chat"
 TR_import "tr/pretrained"
 TR_import "tr/vad"
 TR_import "nicemli" # nicemli_hatasını_at, NicemliSeçim (ısıt)
+TR_import "aile"
 
 TR_const _ÇERÇEVE = 512
 TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
@@ -67,6 +68,8 @@ TR_struct Zincir {
     en_çok: TR_Int
     bağlam: TR_Int
     önbelleksiz: TR_Bool
+    aile: TR_String # sohbet biçiminin adı (aile.tr); öntanımı yok
+    durma: TR_List[TR_Int] # ailenin durma kimlikleri, kitaplıktan (`TR_eos_tokens()`); öntanımı yok
     nicemli: TR_Bool = TR_false # çözülmüş nicemli etkinleştirme: çağrılar `TR_quantized_activations` bloğunda da (model_çağrısı)
     seçim: NicemliSeçim? = TR_none # nicemli'nin geldiği seçim, yalnız ısıtmanın hata metni için; yoksa komut satırından açık
     geçmiş: TR_List[TR_ChatMessage] = []
@@ -101,13 +104,12 @@ TR_func istem_oku(z: Zincir, k: TR_List[TR_Int], ö: TR_KVCache?) -> TR_Tensor {
 }
 
 # ısıt: sistem iletisini konuşmanın başında, ilk sözden önce önbelleğe okur; ilk tur yalnız kullanıcının iletisini
-# okur. Sistem iletisinin tek başına biçimi sistem + kullanıcı biçiminin önekidir (24; zincir_test sınar), ortak önek
-# onu bulur. Önbelleksiz kipte bir şey yapmaz. Hata olursa (nicemli hata dışında) ısıtma yokmuş gibi sürer: önbellek boşaltılır, ilk tur
+# okur. Isıtmanın kimlikleri her ilk turun önekidir (aile_ısıtması; aile_test sınar), ortak önek onu bulur. Önbelleksiz kipte bir şey yapmaz. Hata olursa (nicemli hata dışında) ısıtma yokmuş gibi sürer: önbellek boşaltılır, ilk tur
 # sistem iletisini de okur; sonuç aynı, yalnız yavaş.
 TR_func ısıt(z: Zincir) {
     TR_var ö = z.önbellek
     TR_if z.önbelleksiz TR_or ö == TR_none { TR_return }
-    TR_var kimlikler = TR_qwen3_format(z.p, [TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: z.sistem)], TR_add_generation_prompt: TR_false)
+    TR_var kimlikler = aile_ısıtması(z.aile, z.p, z.sistem)
     z.okunan = []
     z.ısıtılan = 0
     TR_var başla = şimdi()
@@ -143,10 +145,10 @@ TR_func önbellek_kur(model: TR_GPT, bağlam: TR_Int) -> TR_KVCache { TR_return 
 
 # beklenen_önek: geçmişin `son_asistan` sıradaki asistan iletisinin başlığının bittiği konum (yoksa 0). Önceki
 # turun boş düşünce bloğu yeni dizide yazılmaz; ortak önek en az buraya kadar sürmelidir (B.4).
-TR_func beklenen_önek(p: TR_Tokenizer, geçmiş: TR_List[TR_ChatMessage], son_asistan: TR_Int) -> TR_Int {
+TR_func beklenen_önek(aile: TR_String, p: TR_Tokenizer, geçmiş: TR_List[TR_ChatMessage], son_asistan: TR_Int) -> TR_Int {
     TR_if son_asistan < 0 { TR_return 0 }
-    TR_var önce = TR_qwen3_format(p, geçmiş[0..son_asistan], TR_add_generation_prompt: TR_false)
-    TR_return önce.TR_length + 1 + p.TR_encode("assistant\n", TR_special_tokens: TR_false).TR_length
+    TR_var önce = aile_biçimi(aile, p, geçmiş[0..son_asistan], TR_false)
+    TR_return önce.TR_length + 1 + p.TR_encode(aile_başlığı(aile), TR_special_tokens: TR_false).TR_length
 }
 
 TR_func ortak_önek(a: TR_List[TR_Int], b: TR_List[TR_Int]) -> TR_Int {
@@ -156,7 +158,7 @@ TR_func ortak_önek(a: TR_List[TR_Int], b: TR_List[TR_Int]) -> TR_Int {
     TR_return i
 }
 
-# Üretim: açgözlü seçim; `<|im_end|>` ya da `<|endoftext|>`'te ya da en çok parçada durur.
+# Üretim: açgözlü seçim; ailenin durma kimliklerinde (`Zincir.durma`) ya da en çok parçada durur.
 TR_struct Üretim {
     kimlikler: TR_List[TR_Int] = []
     farklar: TR_List[TR_Float] = [] # her adımda en iyi iki logitin farkı
@@ -185,7 +187,7 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur, her: (TR_Int, TR_In
     t.önek = ortak
     t.yeniden_okunan = kimlikler.TR_length - ortak
     t.istem = kimlikler.TR_length
-    TR_var dur = [z.p.TR_token_id("<|im_end|>"), z.p.TR_token_id("<|endoftext|>")]
+    TR_var dur = z.durma
     TR_var ü = Üretim()
     TR_no_grad { # dil modelinin çağrıları `model_çağrısı`'nda; `her` (sesi kuran geri çağrı) onun dışında
         TR_var kalan = kimlikler[ortak..kimlikler.TR_length]
@@ -265,8 +267,8 @@ TR_struct CümleAkışı {
     }
 }
 
-TR_func cümle_akışı(p: TR_Tokenizer) -> CümleAkışı {
-    TR_return CümleAkışı(p: p, etiketler: [p.TR_token_id(e) TR_for e TR_in ["<think>", "</think>", "<tool_call>", "</tool_call>"]])
+TR_func cümle_akışı(p: TR_Tokenizer, aile: TR_String) -> CümleAkışı {
+    TR_return CümleAkışı(p: p, etiketler: aile_etiketleri(aile, p))
 }
 
 TR_func _sesli(m: TR_String) -> TR_Bool {
@@ -295,18 +297,18 @@ TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_Str
         söyle(c)
     }
     z.geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: yazı.TR_strip()))
-    TR_var kimlikler = TR_qwen3_format(z.p, z.geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+    TR_var kimlikler = aile_biçimi(z.aile, z.p, z.geçmiş, TR_true)
     TR_if kimlikler.TR_length + z.en_çok > z.bağlam {
         TR_print("önbellek dolacak (\(kimlikler.TR_length) + \(z.en_çok) > \(z.bağlam)): yeni konuşma başlıyor")
         TR_var soru = z.geçmiş[z.geçmiş.TR_length - 1]
         z.yeni_konuşma()
         z.geçmiş.TR_append(soru)
         t.yeni_konuşma = 1
-        kimlikler = TR_qwen3_format(z.p, z.geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+        kimlikler = aile_biçimi(z.aile, z.p, z.geçmiş, TR_true)
     }
-    t.beklenen_önek = beklenen_önek(z.p, z.geçmiş, z.son_asistan)
+    t.beklenen_önek = beklenen_önek(z.aile, z.p, z.geçmiş, z.son_asistan)
     TR_if z.son_asistan < 0 { t.beklenen_önek = TR_max(t.beklenen_önek, z.ısıtılan) } # ilk tur: ısıtılan sistem iletisi
-    TR_var akış = cümle_akışı(z.p)
+    TR_var akış = cümle_akışı(z.p, z.aile)
     # İlk parçanın anı ve o ana kadarki metin her adımda Tur'a yazılır: durdurulan (iptal edilen) turun kaydında da
     # bulunur. Cevap bitince ikisi cevabın kendisiyle yazılır.
     TR_var ü = üret(z, kimlikler, t, (k, an) => {
@@ -324,9 +326,7 @@ TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_Str
         TR_print("ÖNEK_KISA tur=\(t.sıra) önek=\(t.önek) beklenen=\(t.beklenen_önek)")
     }
     z.kimlik_satırları += TR_json_string({"tur": t.sıra, "ids": ü.kimlikler, "farklar": ü.farklar, "anlar_ms": [a - t0 TR_for a TR_in ü.anlar]}) + "\n"
-    TR_var gövde = ü.kimlikler
-    TR_if gövde.TR_length > 0 TR_and gövde[gövde.TR_length - 1] == z.p.TR_token_id("<|im_end|>") { gövde = gövde[0..gövde.TR_length - 1] }
-    TR_var cevap, hatalar = TR_qwen3_reply(z.p, gövde)
+    TR_var cevap, hatalar = aile_cevabı(z.aile, z.p, ü.kimlikler)
     TR_for h TR_in hatalar { TR_print("CEVAP HATASI:", h) }
     TR_var kalan = akış.bitir(cevap.TR_content)
     TR_if t.ilk_cümle_ms < 0 TR_and ü.anlar.TR_length > 0 { t.ilk_cümle_ms = ü.anlar[ü.anlar.TR_length - 1] - t0 }

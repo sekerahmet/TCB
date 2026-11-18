@@ -27,7 +27,7 @@
       },
       "verified": {
         "trlang": "0.2.0",
-        "date": "2026-11-11",
+        "date": "2026-11-17",
         "gates": []
       },
       "memory": {
@@ -40,12 +40,212 @@
         "measured": [
           {
             "context": 45,
-            "private_bytes": 2641043456,
+            "private_bytes": 4275568640,
             "measured_on": "colab-cpu-highram-linux"
           },
           {
             "context": 7981,
-            "private_bytes": 8834437120,
+            "private_bytes": 5270364160,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemma3-4b-q4km",
+      "kind": "language_model",
+      "family": "gemma3",
+      "context_max": 131072,
+      "name": "Gemma 3 4B Q4_K_M",
+      "source": {
+        "host": "huggingface",
+        "repo": "bartowski/google_gemma-3-4b-it-GGUF",
+        "revision": "71506238f970075ca85125cd749c28b1b0eee84e",
+        "files": [
+          {
+            "path": "google_gemma-3-4b-it-Q4_K_M.gguf",
+            "bytes": 2489758112,
+            "sha256": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+            "target": "google_gemma-3-4b-it-Q4_K_M.gguf"
+          }
+        ]
+      },
+      "license": {
+        "name": "gemma",
+        "url": "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/blob/71506238f970075ca85125cd749c28b1b0eee84e/README.md",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-17",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 2489758112,
+        "kv": {
+          "layers": 34,
+          "kv_heads": 4,
+          "head_dim": 256
+        },
+        "measured": [
+          {
+            "context": 40,
+            "private_bytes": 4778090496,
+            "measured_on": "colab-cpu-highram-linux"
+          },
+          {
+            "context": 7981,
+            "private_bytes": 5930160128,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemma3-4b-qat-q40",
+      "kind": "language_model",
+      "family": "gemma3",
+      "context_max": 131072,
+      "name": "Gemma 3 4B QAT Q4_0",
+      "source": {
+        "host": "huggingface",
+        "repo": "AnteriorAI/gemma-3-4b-it-qat-q4_0-gguf",
+        "revision": "e7ac0af23a1a9c8dc35f63ff24262971cfe68e47",
+        "files": [
+          {
+            "path": "gemma-3-4b-it-q4_0.gguf",
+            "bytes": 3155051328,
+            "sha256": "76aed0a8285b83102f18b5d60e53c70d09eb4e9917a20ce8956bd546452b56e2",
+            "target": "gemma-3-4b-it-q4_0.gguf"
+          }
+        ]
+      },
+      "license": {
+        "name": "gemma",
+        "url": "https://huggingface.co/AnteriorAI/gemma-3-4b-it-qat-q4_0-gguf/blob/e7ac0af23a1a9c8dc35f63ff24262971cfe68e47/README.md",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-17",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 3155051328,
+        "kv": {
+          "layers": 34,
+          "kv_heads": 4,
+          "head_dim": 256
+        },
+        "measured": [
+          {
+            "context": 40,
+            "private_bytes": 5782044672,
+            "measured_on": "colab-cpu-highram-linux"
+          },
+          {
+            "context": 7981,
+            "private_bytes": 6809886720,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "qwen3-8b-q4km",
+      "kind": "language_model",
+      "family": "qwen3",
+      "context_max": 40960,
+      "name": "Qwen3 8B Q4_K_M",
+      "source": {
+        "host": "huggingface",
+        "repo": "Qwen/Qwen3-8B-GGUF",
+        "revision": "7c41481f57cb95916b40956ab2f0b139b296d974",
+        "files": [
+          {
+            "path": "Qwen3-8B-Q4_K_M.gguf",
+            "bytes": 5027783488,
+            "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+            "target": "Qwen3-8B-Q4_K_M.gguf"
+          }
+        ]
+      },
+      "license": {
+        "name": "apache-2.0",
+        "url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/blob/7c41481f57cb95916b40956ab2f0b139b296d974/LICENSE",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-17",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 5027783488,
+        "kv": {
+          "layers": 36,
+          "kv_heads": 8,
+          "head_dim": 128
+        },
+        "measured": [
+          {
+            "context": 45,
+            "private_bytes": 6810578944,
+            "measured_on": "colab-cpu-highram-linux"
+          },
+          {
+            "context": 7981,
+            "private_bytes": 7772499968,
+            "measured_on": "colab-cpu-highram-linux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemma3-12b-q4km",
+      "kind": "language_model",
+      "family": "gemma3",
+      "context_max": 131072,
+      "name": "Gemma 3 12B Q4_K_M",
+      "source": {
+        "host": "huggingface",
+        "repo": "ggml-org/gemma-3-12b-it-GGUF",
+        "revision": "ec0cbabd8dbff316f659876a50202295c3c4a314",
+        "files": [
+          {
+            "path": "gemma-3-12b-it-Q4_K_M.gguf",
+            "bytes": 7300574976,
+            "sha256": "7bb69bff3f48a7b642355d64a90e481182a7794707b3133890646b1efa778ff5",
+            "target": "gemma-3-12b-it-Q4_K_M.gguf"
+          }
+        ]
+      },
+      "license": {
+        "name": "gemma",
+        "url": "https://huggingface.co/ggml-org/gemma-3-12b-it-GGUF/blob/ec0cbabd8dbff316f659876a50202295c3c4a314/README.md",
+        "gated": false
+      },
+      "verified": {
+        "trlang": "0.2.0",
+        "date": "2026-11-17",
+        "gates": []
+      },
+      "memory": {
+        "weights_bytes": 7300574976,
+        "kv": {
+          "layers": 48,
+          "kv_heads": 8,
+          "head_dim": 256
+        },
+        "measured": [
+          {
+            "context": 40,
+            "private_bytes": 11919009792,
+            "measured_on": "colab-cpu-highram-linux"
+          },
+          {
+            "context": 7981,
+            "private_bytes": 14991945728,
             "measured_on": "colab-cpu-highram-linux"
           }
         ]

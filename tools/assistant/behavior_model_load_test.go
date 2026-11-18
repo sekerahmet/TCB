@@ -121,7 +121,7 @@ func TestDostStartsWithoutModels(t *testing.T) {
 		{"c-7", "settings_set", `{"key":"speech_language","value":"xx"}`, "unknown_language"},
 		// Bağlamın üst sınırı katalogun en büyük context_max'ıdır: modelsiz açılışta da tanımlı.
 		{"c-8", "settings_set", `{"key":"context","value":4096}`, "accepted"},
-		{"c-9", "settings_set", `{"key":"context","value":40961}`, "setting_invalid"},
+		{"c-9", "settings_set", `{"key":"context","value":131073}`, "setting_invalid"},
 	} {
 		if got := s.command(t, c.id, c.typ, c.data); got != c.want {
 			t.Errorf("%s %s: %s, beklenen %s", c.typ, c.data, got, c.want)
@@ -156,5 +156,24 @@ func TestDostReportsAnInterruptedLoad(t *testing.T) {
 				t.Errorf("işaret silinmedi: %v", err)
 			}
 		})
+	}
+}
+
+// Dost katalog K-9: ekranın bağlam sınırı seçili dil modelinindir (depodaki katalog): Qwen3 seçiliyken 40960'ını
+// aşan bağlam yazılmaz, Gemma 3 seçiliyken yazılır. Modeller kurulu değil; ayar yine okunur.
+func TestDostContextLimitFollowsTheSelectedModel(t *testing.T) {
+	for _, c := range []struct{ model, want string }{{"qwen3-4b-q4km", "setting_invalid"}, {"gemma3-4b-q4km", "accepted"}} {
+		dost := filepath.Join(t.TempDir(), "Dost")
+		if err := os.MkdirAll(dost, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		settings := `{"v":1,"language_model":"` + c.model + `","speech_language":"tr","system_prompt":{"source":"catalog"},"context":8192,"device":"cpu","port":47863,"machine":{"memory_bytes":17179869184,"memory_source":"option"}}`
+		if err := os.WriteFile(filepath.Join(dost, "ayar.json"), []byte(settings), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		s := startDost(t, dost)
+		if got := s.command(t, "c-1", "settings_set", `{"key":"context","value":40961}`); got != c.want {
+			t.Errorf("%s seçiliyken context 40961: %s, beklenen %s", c.model, got, c.want)
+		}
 	}
 }
