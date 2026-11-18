@@ -35,9 +35,7 @@ func gemmaChatGGUF(t *testing.T, dir string, over map[string]any, declared map[s
 	g := gemmaTiny{dim: 64, headDim: 256}
 	b := g.ggufFileWith(g.weights(1), over)
 	tokens := []string{"<pad>", "<eos>", "<bos>", "<unk>", "<start_of_turn>", "<end_of_turn>"}
-	for _, s := range strings.Split("abcdefghijklmnopqrstuvwxyz0123456789ABC▁", "") {
-		tokens = append(tokens, s)
-	}
+	tokens = append(tokens, strings.Split("abcdefghijklmnopqrstuvwxyz0123456789ABC▁", "")...)
 	tokens = append(tokens, "\n", "\n\n")
 	kinds := make([]int32, len(tokens))
 	scores := make([]float32, len(tokens))
