@@ -832,11 +832,39 @@ commit_layout_stop() {
 	rm -f "$commit_layout_out" "$commit_layout_res" "$commit_layout_res.tmp"
 }
 
+# codegraph_bin bu koşunun codegraph ikilisinin yolunu bin'e yazar; veremezse bin boştur ve çağıran go run yoluna döner.
+# İkili yalnız bu koşuda derlendiyse (codegraph_built=1; "help" verilince, ön denetimde, buna bakılmaz) ya da bu çağrının
+# `codegraph help`'i .codegraph/last-codegraph'ı yazdıysa verilir. Kanca yol değişmediyse dosyaya dokunmaz, derleme
+# düşünce ya da önbellekte ikili bulamayınca yazmaz (tools/edithook/codegraph.go): dosya help'ten önce geçici ada taşınır,
+# help geçmezse ya da yazmazsa geri konur. Neden: go run codegraph'ın çıkış kodunu 1'e çevirir, depo taraması
+# listesinin 5'i kaybolurdu; eski bir ikili de yeni denetimi bilmeden sessizce koşardı (codegraph tarama listesi K6,
+# DENETİM 885 Ş1).
+codegraph_bin() {
+	local last=.codegraph/last-codegraph prev=""
+	bin=""
+	if [ "${1:-}" != help ] && [ "${codegraph_built:-}" = 1 ] && [ -f "$last" ]; then
+		IFS= read -r bin <"$last" || true
+	else
+		if [ -f "$last" ]; then
+			prev="$last.kip$$"
+			mv -f "$last" "$prev" || return 0
+		fi
+		if go run ./tools/edithook codegraph help >/dev/null 2>&1 && [ -f "$last" ]; then
+			IFS= read -r bin <"$last" || true
+			[ -z "$prev" ] || rm -f "$prev"
+		elif [ -n "$prev" ]; then
+			mv -f "$prev" "$last"
+		fi
+	fi
+	bin=${bin%$'\r'}
+	[ -n "$bin" ] && [ -f "$bin" ] || bin=""
+}
+
 # commit_light_tests seçimi codegraph'tan alır: taban HEAD, yani commit'e girecek fark (çalışma ağacı ve izlenmeyen
 # dosyalar dahil), dalın bütünü değil. codegraph'ın repoRule'suz testleri, tools/codegraph ve
 # internal/devtools/codeindex dışındaki değişiklikte seçime girmez; sayıları "G4'e kaldı" satırındadır (codegraph
 # dilim 6, D6-3). Ön denetimin seçimi (selected_tests) onları da alır. Bu koşuda codegraph derlendiyse (commit kipinde spec_refs_check, öbür
-# kiplerde dups_check) o ikili koşar.
+# kiplerde dups_check) o ikili, değilse codegraph_bin'in derlediği ikili koşar; kod 5'te kip depo taraması listesinde durur.
 commit_light_tests() {
 	local out errfile bin="" code=0
 	errfile=$(mktemp)
@@ -848,14 +876,18 @@ commit_light_tests() {
 			return
 		}
 	fi
-	if [ "${codegraph_built:-}" = 1 ] && [ -f .codegraph/last-codegraph ]; then
-		IFS= read -r bin <.codegraph/last-codegraph || true
-		bin=${bin%$'\r'}
-	fi
-	if [ -n "$bin" ] && [ -f "$bin" ]; then
+	codegraph_bin
+	if [ -n "$bin" ]; then
 		out=$("$bin" changed --go-tests --by-distance --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
 	else
 		out=$(go run ./tools/edithook codegraph changed --go-tests --by-distance --without-codegraph-self-tests --base HEAD HEAD 2>"$errfile") || code=$?
+	fi
+	# Kod 5 ya da (go run yolunda kod 1'e döner) codegraph'ın durma satırı: depo taraması listesi graftan ayrışıyor.
+	if [ "$code" -eq 5 ] || { [ "$code" -ne 0 ] && grep -q '^codegraph: the commit check stops here' "$errfile"; }; then
+		cat "$errfile"
+		rm -f "$errfile"
+		fail "depo taraması listesi eksik: codegraph'ın yukarıdaki satırlarındaki adları tools/full_check.sh'e ekleyin ya da silin"
+		return
 	fi
 	if [ "$code" -ne 0 ]; then
 		head -20 "$errfile"
@@ -1102,14 +1134,28 @@ selected_tests() {
 			return
 		}
 	fi
-	# codegraph kancanın yolundan koşar (tools/edithook/codegraph.go): ağaç derlenmezken son derlenen sürümün
-	# cevabı, uyarısıyla; uyarı gösterilir, codegraph'ın öbür hata çıktısı yalnız düşünce.
-	out=$(go run ./tools/edithook codegraph changed --go-tests --base "$base" HEAD 2>"$errfile") || {
+	# codegraph bu çağrıda derlenen ikiliyle koşar (codegraph_bin help); derleme düşerse kancanın yolundan
+	# (tools/edithook/codegraph.go): son derlenen sürümün cevabı, uyarısıyla; uyarı gösterilir, codegraph'ın öbür hata
+	# çıktısı yalnız düşünce. Kod 5 depo taraması listesinin graftan ayrışmasıdır (commit_light_tests gibi).
+	local bin code=0
+	codegraph_bin help
+	if [ -n "$bin" ]; then
+		out=$("$bin" changed --go-tests --base "$base" HEAD 2>"$errfile") || code=$?
+	else
+		out=$(go run ./tools/edithook codegraph changed --go-tests --base "$base" HEAD 2>"$errfile") || code=$?
+	fi
+	if [ "$code" -eq 5 ] || { [ "$code" -ne 0 ] && grep -q '^codegraph: the commit check stops here' "$errfile"; }; then
+		cat "$errfile"
+		rm -f "$errfile"
+		fail "depo taraması listesi eksik: codegraph'ın yukarıdaki satırlarındaki adları tools/full_check.sh'e ekleyin ya da silin"
+		return
+	fi
+	if [ "$code" -ne 0 ]; then
 		head -20 "$errfile"
 		rm -f "$errfile"
 		fail "codegraph changed --go-tests çalışmadı"
 		return
-	}
+	fi
 	grep -A5 -E '^warning: codegraph does not build|rebuild failed' "$errfile"
 	rm -f "$errfile"
 	local -A full=() seen=()

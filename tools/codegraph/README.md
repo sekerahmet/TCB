@@ -107,7 +107,8 @@ graph is stale, unless the edit brings the content back to what the graph was bu
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names
-on stderr; for `path`: no path).
+on stderr; for `path`: no path), `5` the `repo_scans` lists of `tools/full_check.sh` disagree with the graph
+(`changed --go-tests`, see `changed`).
 
 A name is resolved in this order, first tier with a match wins: node id (with or without its
 `kind:` prefix), exact name (`messages.New`, `H2100`, `interp.VM.Interrupt`), name ending at a `.`
@@ -364,7 +365,14 @@ line that contains the name (`-L :Mask:internal/lang/interp/output.go` follows t
   line: the changed tests, the tests of the changed code, the subprocess tests, and the tests that read, walk or scan any changed file (a data
   file the graph does not parse, such as `planning_questions.txt`, maps to no node, its readers are still listed); the pre-check and the full check
   (`tools/full_check.sh`) run them (`TestChangedGoTestsSelectsTheTestsOfAChangedDataFile`); an untracked file is in neither (DENETİM 2026-10-26:
-  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). `--by-distance` keeps the same
+  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). After the selection `--go-tests`
+  compares the `repo_scans` and `repo_scan_pkgs` lists of `tools/full_check.sh` with the graph's scan tests, the
+  comparison of `TestFullCheckRepoScansMatchesScanNodes` (`repo_scans.go`): a missing test or package is named with the
+  line to add and where, an extra name with the line to remove, and the exit code is 5, so the commit mode stops on a
+  new scan the list lacks before G4 does (four G4 rounds in 2026-11-14 – 2026-11-18). No `tools/full_check.sh` (fixture
+  repositories): no comparison; a script whose lists or steps cannot be found: exit 1 with the reason; a stale graph
+  (the rebuild failed, the stamp could not be read, `--no-rebuild`): the comparison is skipped with a warning
+  (`TestChangedGoTestsStopsWhenTheRepoScanListLacksATest`). `--by-distance` keeps the same
   tests and ends each line with `near` or `far`, all near tests first (`changed_distance.go`): near are the changed
   tests, the tests in a changed Go file's own `_test.go`, the tests about a changed declaration, direct tests, chains of
   at most 2 steps, the tests that read, walk or scan a changed file, and the fixture runners of these; far are chains of
@@ -800,6 +808,8 @@ package took 154.7 s in one process and 53.9 s with its tests spread over four (
   stamp and automatic rebuild, finding the repository root, the two git commands and the dictionary-history
   scan `deleted` reads.
 - `changed_distance_test.go`: `changed --go-tests --by-distance` gives the plain form's tests, near before far.
+- `repo_scans_test.go`: `changed --go-tests` names a test or package the repository scan lists of `tools/full_check.sh`
+  lack (with the line to add) or an extra name, and exits 5; no script, an unreadable script and a stale graph.
 - `main_test.go`: the help text, the retired commands (`explain`, `history`, `package-state`, `time-ceilings`, `captures`) naming their
   replacement, and every test
   of the package calling `t.Parallel()` first.

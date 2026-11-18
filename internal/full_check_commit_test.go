@@ -42,7 +42,7 @@ func commitPrelude(t *testing.T) string {
 		parts = append(parts, m)
 	}
 	for _, name := range []string{"commit_plan", "commit_run_chunks", "commit_settle", "commit_selection", "commit_record",
-		"commit_counts", "commit_kind", "commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "commit_light_tests",
+		"commit_counts", "commit_kind", "commit_passed_line", "watch_failures", "watched_ok", "spec_refs_check", "codegraph_bin", "commit_light_tests",
 		"commit_layout_start", "commit_layout_failed", "commit_layout_finish", "commit_layout_stop", "children", "stop_tree",
 		"stop_siblings"} {
 		m := regexp.MustCompile(`(?ms)^` + name + `\(\) \{\n.*?^\}$`).FindString(script)
@@ -240,6 +240,51 @@ func TestCommitModeRunsNoDupsAndBuildsCodegraphOnce(t *testing.T) {
 	// Seçime girmeyen codegraph testlerinin sayısı codegraph'ın standart hatasından "G4'e kaldı" satırına gelir (D6-3, S7).
 	if want := "G4'e kaldı (seçime girmeyen 7 codegraph testi)"; !strings.Contains(out, want) {
 		t.Errorf("çıktıda yok: %q\n%s", want, out)
+	}
+}
+
+// Kural (tools/full_check.sh, --kip=commit; codegraph tarama listesi K6, DENETİM 885 Ş1): kip codegraph'ı ikiliyle çağırır
+// (go run çıkış kodunu 1 yapar); kod 5'te (depo taraması listesi) standart hatanın tamamı ve durma satırı basılır. İkili
+// yalnız bu koşuda derlendiyse ya da bu çağrının `codegraph help`'i last-codegraph'ı yazdıysa koşar: eski bir
+// last-codegraph'ın ikilisi koşmaz, go run yoluna dönülür ve dosya yerine konur.
+func TestCommitModeStopsOnTheRepoScanListWithAFreshCodegraph(t *testing.T) {
+	dir, env := fakeGo(t, nil)
+	built := filepath.ToSlash(filepath.Join(dir, "bin", "codegraph-built"))
+	last, cgArgs := filepath.Join(dir, ".codegraph", "last-codegraph"), filepath.Join(dir, "fake", "cg_args")
+	write := func(name, body string) {
+		if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(last), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write("bin/go", "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$FAKE_GO_DIR/args\"\n"+
+		"case \"$* ${HELP_WRITES:-}\" in *'codegraph help 1') echo '"+built+"' >.codegraph/last-codegraph ;; esac\n")
+	write("bin/codegraph-built", "#!/usr/bin/env bash\necho \"$*\" >>\"$FAKE_GO_DIR/cg_args\"\n"+
+		"for i in $(seq 24); do echo \"line $i\" >&2; done\necho 'codegraph: the commit check stops here (line 25)' >&2\nexit 5\n")
+	write(".codegraph/graph.json", "{}\n")
+	stop := "!! KALDI: depo taraması listesi eksik: codegraph'ın yukarıdaki satırlarındaki adları tools/full_check.sh'e ekleyin ya da silin\n"
+	for _, c := range []struct {
+		name, src string
+		ran       bool
+	}{{"bu koşuda derlendi", "codegraph_built=1\n", true}, {"help yolu yazdı", "export HELP_WRITES=1\n", true},
+		{"eski last-codegraph", "", false}} {
+		os.Remove(cgArgs)
+		os.Remove(filepath.Join(dir, "fake", "args"))
+		write(".codegraph/last-codegraph", built+"\n")
+		out := runCommitBash(t, dir, env, c.src+"commit_light_tests\n")
+		_, err := os.Stat(cgArgs)
+		stopped := strings.Contains(out, "line 1\n") && strings.Contains(out, "(line 25)\n") && strings.Contains(out, stop)
+		if ran := err == nil; ran != c.ran || stopped != c.ran {
+			t.Errorf("%s: ikili koştu %v, durdu %v; beklenen %v:\n%s", c.name, ran, stopped, c.ran, out)
+		}
+		if args := strings.Join(fakeArgs(t, dir), "\n"); !c.ran && !strings.Contains(args, "run ./tools/edithook codegraph changed") {
+			t.Errorf("%s: go run yoluna dönülmedi: %q", c.name, args)
+		}
+		if b, _ := os.ReadFile(last); strings.TrimSpace(string(b)) != built {
+			t.Errorf("%s: last-codegraph yerinde değil: %q", c.name, b)
+		}
 	}
 }
 
