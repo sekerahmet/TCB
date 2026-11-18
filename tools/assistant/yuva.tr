@@ -186,15 +186,66 @@ TR_func _dil(kj: TR_JSON, kod: TR_String) -> TR_JSON {
     TR_return dil
 }
 
-# takım_girdileri: takımın girdileri, sırasıyla: dil modeli, konuşma dilinin yazıcısı, ilk VAD, dilin sesi. İndirme
-# (`model_download`) dil modeliyle birlikte bunları sıraya koyar.
-TR_func takım_girdileri(k: Katalog, kj: TR_JSON, giriş: TR_String, konuşma_dili: TR_String) -> TR_List[TR_String] {
-    TR_var dil = _dil(kj, konuşma_dili)
+# dilin_sesleri: katalogun `kod` dilinin sesleri, sırasıyla (ilki öntanımlı).
+TR_func dilin_sesleri(kj: TR_JSON, kod: TR_String) -> TR_List[TR_String] {
+    TR_return [TR_String(s) TR_for s TR_in _dil(kj, kod)["voices"]]
+}
+
+# dilin_sesi: `kod` dilinin sesi (Dost P-4): ayarın o dil için seçtiği ses kuruluysa o; değilse dilin seslerinden ilk
+# kurulu olan; hiçbiri kurulu değilse ilki. Kurulu olmayan seçim yok sayılır ama ayarda kalır: ses yeniden inince
+# seçim döner. Takım, indirme sırası, dilin cevapları, `catalog` ve dil değişimi sesi buradan alır.
+TR_func dilin_sesi(kj: TR_JSON, klasör: TR_String, a: Ayar, kod: TR_String) -> TR_String {
+    TR_var sesler = dilin_sesleri(kj, kod)
+    TR_var seçim = a.sesler.TR_get(kod)
+    TR_if seçim != TR_none TR_and sesler.TR_contains(seçim) TR_and kurulu(kj, klasör, seçim) { TR_return seçim }
+    TR_for s TR_in sesler {
+        TR_if kurulu(kj, klasör, s) { TR_return s }
+    }
+    TR_return sesler[0]
+}
+
+# yedek_ses: `kod` dilinin `giriş` dışındaki ilk kurulu sesi; yoksa TR_none (seçili ses silinirken Dost ona geçer).
+TR_func yedek_ses(kj: TR_JSON, klasör: TR_String, kod: TR_String, giriş: TR_String) -> TR_String? {
+    TR_for s TR_in dilin_sesleri(kj, kod) {
+        TR_if s != giriş TR_and kurulu(kj, klasör, s) { TR_return s }
+    }
+    TR_return TR_none
+}
+
+# kurulu_seçimler: ayarın kopyası, `sesler`'inde yalnız kurulu seçimlerle (bellek hesabı kurulu olmayan seçimi
+# saymaz; katalog.tr, `küçükler`).
+TR_func kurulu_seçimler(kj: TR_JSON, klasör: TR_String, a: Ayar) -> Ayar {
+    TR_var b = ayar_kopyası(a)
+    b.sesler = {}
+    TR_for kod TR_in a.sesler.TR_keys() {
+        TR_if kurulu(kj, klasör, a.sesler[kod]) { b.sesler[kod] = a.sesler[kod] }
+    }
+    TR_return b
+}
+
+# ses_yolu: ses girdisinin yolu (Dost P-5): ilk dosyası `.onnx` ise o dosya (Piper; `.onnx.json`'u yanında arar,
+# lib/vits.tr), değilse girdinin klasörü (MMS).
+TR_func ses_yolu(kj: TR_JSON, klasör: TR_String, kimlik: TR_String) -> TR_String {
+    TR_var g = _ham(kj, kimlik)
+    TR_var ilk = TR_if g == TR_none { "" } TR_else { TR_String(g["source"]["files"][0]["target"]) }
+    TR_if ilk.TR_ends_with(".onnx") { TR_return TR_String(TR_Path(girdi_klasörü(klasör, kimlik), ilk)) }
+    TR_return girdi_klasörü(klasör, kimlik)
+}
+
+# ses_takımı: takımın sesi `yol` olan kopyası; öbür modeller aynı (sesin değişmesi, Dost P-11).
+TR_func ses_takımı(t: Takım, yol: TR_String) -> Takım {
+    TR_return Takım(giriş: t.giriş, dil_modeli: t.dil_modeli, yazıcı: t.yazıcı, vad: t.vad, ses: yol, dil: t.dil, sistem: t.sistem)
+}
+
+# takım_girdileri: takımın girdileri, sırasıyla: dil modeli, konuşma dilinin yazıcısı, ilk VAD, dilin sesi
+# (`dilin_sesi`). İndirme (`model_download`) dil modeliyle birlikte bunları sıraya koyar.
+TR_func takım_girdileri(k: Katalog, kj: TR_JSON, klasör: TR_String, giriş: TR_String, a: Ayar) -> TR_List[TR_String] {
+    TR_var dil = _dil(kj, a.konuşma_dili)
     TR_var vad = ""
     TR_for e TR_in k.girdiler {
         TR_if e.tür == "vad" TR_and vad == "" { vad = e.kimlik }
     }
-    TR_return [giriş, TR_String(dil["transcriber"]), vad, TR_String(dil["voices"][0])]
+    TR_return [giriş, TR_String(dil["transcriber"]), vad, dilin_sesi(kj, klasör, a, a.konuşma_dili)]
 }
 
 # takım_kur: `giriş` dil modeli ve ayarın konuşma dili için yüklenecek takım. Dil modeli katalogda değilse
@@ -203,7 +254,7 @@ TR_func takım_kur(k: Katalog, kj: TR_JSON, klasör: TR_String, giriş: TR_Strin
     TR_var g = girdi_bul(k, giriş)
     TR_if g == TR_none TR_or g.tür != "language_model" { TR_return Kurulum(kod: "unknown_entry", değerler: TR_JSON({"entry_id": giriş})) }
     TR_var dil = _dil(kj, a.konuşma_dili)
-    TR_var kimlikler = takım_girdileri(k, kj, giriş, a.konuşma_dili)
+    TR_var kimlikler = takım_girdileri(k, kj, klasör, giriş, a)
     TR_var yazıcı = kimlikler[1]
     TR_var vad = kimlikler[2]
     TR_var ses = kimlikler[3]
@@ -212,7 +263,7 @@ TR_func takım_kur(k: Katalog, kj: TR_JSON, klasör: TR_String, giriş: TR_Strin
     }
     TR_var sistem = TR_if TR_String(a.sistem["source"]) == "user" { TR_String(a.sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }
     TR_return Kurulum(takım: Takım(giriş: giriş, dil_modeli: _tek_dosya(kj, klasör, giriş), yazıcı: girdi_klasörü(klasör, yazıcı),
-        vad: _tek_dosya(kj, klasör, vad), ses: girdi_klasörü(klasör, ses), dil: TR_String(dil["whisper_language"]), sistem: sistem))
+        vad: _tek_dosya(kj, klasör, vad), ses: ses_yolu(kj, klasör, ses), dil: TR_String(dil["whisper_language"]), sistem: sistem))
 }
 
 # takım_ayarı: takımın kurulduğu ayar; ayar dosyası yoksa (ilk kurulum) katalogun ilk dili ve dilin sistem iletisi.
@@ -237,13 +288,15 @@ TR_func yüklenebilirler(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar) -
 # katalog_olayı: `catalog`'un girdileri (contract.md): her türün `id`, `kind`, `name`, `installed` (dil modelinde takım:
 # `model_load`'un cevabı; öbürlerinde girdinin kendi dosyaları), `downloaded` (girdinin kendi dosyaları), `bytes`,
 # `memory_bytes` (dil modelinde ayarın bağlamı ve dili için `gereken`); dil modelinde makinenin belleği biliniyorsa
-# `fit` (`uygunluk`), yazıcı ve seste `languages`. `toplam` 1 GiB'den küçükse (bilinmiyor) `fit` yok.
+# `fit` (`uygunluk`), yazıcı ve seste `languages`; seste ayrıca `selected_for`: sesin seçildiği diller (`dilin_sesi`,
+# Dost P-6). Bellek ayarın kurulu ses seçimiyle (`kurulu_seçimler`). `toplam` 1 GiB'den küçükse (bilinmiyor) `fit` yok.
 TR_func katalog_olayı(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar, yüklenebilir: TR_Dict[TR_String, TR_JSON],
     bağlam: TR_Int, toplam: TR_Int) -> TR_List[TR_JSON] {
-        TR_var küçük = küçükler(k, a)
+        TR_var kurulu_ayar = kurulu_seçimler(kj, klasör, a)
+        TR_var küçük = küçükler(k, kurulu_ayar)
         TR_var uyum: TR_Dict[TR_String, TR_String] = {}
         TR_if toplam >= 1073741824 {
-            TR_for u TR_in uygunluk(k, a, toplam, bağlam) { uyum[u.kimlik] = u.uyum }
+            TR_for u TR_in uygunluk(k, kurulu_ayar, toplam, bağlam) { uyum[u.kimlik] = u.uyum }
         }
         TR_var l: TR_List[TR_JSON] = []
         TR_for g TR_in kj["entries"] {
@@ -267,6 +320,9 @@ TR_func katalog_olayı(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar, yü
             TR_if tür == "transcriber" TR_or tür == "voice" {
                 d["languages"] = TR_JSON([dl.kod TR_for dl TR_in k.diller TR_if dl.yazıcı == kimlik TR_or dl.sesler.TR_contains(kimlik)])
             }
+            TR_if tür == "voice" {
+                d["selected_for"] = TR_JSON([dl.kod TR_for dl TR_in k.diller TR_if dilin_sesi(kj, klasör, a, dl.kod) == kimlik])
+            }
             l.TR_append(TR_JSON(d))
         }
         TR_return l
@@ -274,7 +330,7 @@ TR_func katalog_olayı(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar, yü
 
 # dil_cevapları: her konuşma dilinin `settings_set {key: speech_language}` cevabı: boş nesne ya da hata kodu ve
 # değerleri. Kullanıcının sistem iletisi başka dil içinse `setting_invalid` (`system_prompt_language`; ekran soruyu
-# sorar); dilin yazıcısı ya da sesi kurulu değilse `not_installed` (dil değişmez).
+# sorar); dilin yazıcısı ya da sesi (`dilin_sesi`) kurulu değilse `not_installed` (dil değişmez).
 TR_func dil_cevapları(kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_String, TR_JSON] {
     TR_var d: TR_Dict[TR_String, TR_JSON] = {}
     TR_for dil TR_in kj["languages"] {
@@ -284,7 +340,7 @@ TR_func dil_cevapları(kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_S
             d[kod] = TR_JSON({"code": "setting_invalid", "values": {"key": "speech_language", "reason": "system_prompt_language"}})
             TR_continue
         }
-        TR_for kimlik TR_in [TR_String(dil["transcriber"]), TR_String(dil["voices"][0])] {
+        TR_for kimlik TR_in [TR_String(dil["transcriber"]), dilin_sesi(kj, klasör, a, kod)] {
             TR_if TR_not kurulu(kj, klasör, kimlik) TR_and TR_Dict(d[kod]).TR_length == 0 {
                 d[kod] = TR_JSON({"code": "not_installed", "values": {"entry_id": kimlik}})
             }
@@ -293,16 +349,29 @@ TR_func dil_cevapları(kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_S
     TR_return d
 }
 
-# dil_takımı: takımın konuşma dili `kod` olan kopyası: yazıcı, ses, Whisper'ın dili ve (katalogdan geliyorsa) sistem
-# iletisi yeni dilin; dil modeli ve VAD aynı.
-TR_func dil_takımı(t: Takım, kj: TR_JSON, klasör: TR_String, sistem: TR_JSON, kod: TR_String) -> Takım {
+# ses_cevapları: konuşma dilinin her sesinin `settings_set {key: voice}` cevabı (Dost P-6): kuruluysa boş nesne,
+# değilse `setting_invalid` (`reason` `not_installed`). Dilin sesi olmayan kimliğin cevabı yoktur (`invalid_value`).
+TR_func ses_cevapları(kj: TR_JSON, klasör: TR_String, kod: TR_String) -> TR_Dict[TR_String, TR_JSON] {
+    TR_var d: TR_Dict[TR_String, TR_JSON] = {}
+    TR_for s TR_in dilin_sesleri(kj, kod) {
+        d[s] = TR_if kurulu(kj, klasör, s) { TR_JSON({}) } TR_else {
+            TR_JSON({"code": "setting_invalid", "values": {"key": "voice", "reason": "not_installed"}}) }
+    }
+    TR_return d
+}
+
+# dil_takımı: takımın `a` ayarının konuşma diliyle kopyası: yazıcı, ses (`dilin_sesi`), Whisper'ın dili ve (katalogdan
+# geliyorsa) sistem iletisi yeni dilin; dil modeli ve VAD aynı.
+TR_func dil_takımı(t: Takım, kj: TR_JSON, klasör: TR_String, a: Ayar) -> Takım {
+    TR_var sistem = a.sistem
+    TR_var kod = a.konuşma_dili
     TR_var dil = kj["languages"][0]
     TR_for d TR_in kj["languages"] {
         TR_if TR_String(d["code"]) == kod { dil = d }
     }
     TR_var ileti = TR_if TR_String(sistem["source"]) == "user" { TR_String(sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }
     TR_return Takım(giriş: t.giriş, dil_modeli: t.dil_modeli, yazıcı: girdi_klasörü(klasör, TR_String(dil["transcriber"])), vad: t.vad,
-        ses: girdi_klasörü(klasör, TR_String(dil["voices"][0])), dil: TR_String(dil["whisper_language"]), sistem: ileti)
+        ses: ses_yolu(kj, klasör, dilin_sesi(kj, klasör, a, kod)), dil: TR_String(dil["whisper_language"]), sistem: ileti)
 }
 
 # dil_değiştir: konuşma dilini değiştirir. Yeni dilin modelleri eskiler yerinde dururken `iş` ile yüklenir; `iş` düşerse
@@ -337,6 +406,17 @@ TR_func dili_uygula(y: Yuva, a: Asistan, eski: Takım, yeni: Takım) -> TR_Strin
         a.z.sistem = yeni.sistem
         a.z.yeni_konuşma()
         ısıt(a.z)
+    }
+}
+
+# sesi_uygula: yüklü asistanın sesi `yeni` takımınki olur (Dost P-11): yeni ses eskisi yerindeyken yüklenir
+# (dil_değiştir), sonra tek atamayla yerleşir. Geçmiş, sistem iletisi ve önbellek kalır (dili_uygula'nın sıfırlayan
+# adımları bu yola girmez). Yüklenemezse hiçbir şey değişmez, hata metin olarak döner.
+TR_func sesi_uygula(y: Yuva, a: Asistan, yeni: Takım) -> TR_String? {
+    TR_var yeni_ses: TR_Vits? = TR_none
+    TR_return dil_değiştir(y, yeni, (t) => { yeni_ses = TR_pretrained_vits(t.ses) }) {
+        TR_var ses = yeni_ses
+        TR_if ses != TR_none { a.ses = ses }
     }
 }
 

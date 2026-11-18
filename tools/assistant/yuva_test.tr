@@ -16,9 +16,10 @@ TR_func _ham_katalog() -> TR_JSON {
         {"id": "yaz", "kind": "transcriber", "source": {"revision": "r", "files": [_dosya("config.json", 2), _dosya("model.safetensors", 3)]}},
         {"id": "vad", "kind": "vad", "source": {"revision": "r", "files": [_dosya("vad.safetensors", 1)]}},
         {"id": "ses-tr", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
-        {"id": "ses-en", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}}],
+        {"id": "ses-en", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
+        {"id": "piper-tr", "kind": "voice", "source": {"revision": "r", "files": [_dosya("p.onnx", 3), _dosya("p.onnx.json", 1)]}}],
         "languages": [
-            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voices": ["ses-tr"], "system_prompt": "Türkçe cevap ver."},
+            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voices": ["ses-tr", "piper-tr"], "system_prompt": "Türkçe cevap ver."},
             {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voices": ["ses-en"], "system_prompt": "Answer in English."}]})
 }
 
@@ -189,14 +190,14 @@ TR_test "dil_cevapları: kullanıcının başka dil için iletisi system_prompt_
 TR_test "dil_takımı: yeni dilin yazıcısı, sesi, Whisper dili ve katalogun iletisi; dil modeli ve VAD aynı" {
     TR_var d = _klasör()
     TR_var t = Takım(giriş: "dm", dil_modeli: "dm.gguf", yazıcı: "eski-yaz", vad: "vad.safetensors", ses: "eski-ses", dil: "tr", sistem: "Türkçe cevap ver.")
-    TR_var y = dil_takımı(t, _ham_katalog(), d, TR_JSON({"source": "catalog"}), "en")
+    TR_var y = dil_takımı(t, _ham_katalog(), d, _ayar("en", TR_JSON({"source": "catalog"})))
     TR_assert_equal("dm.gguf", y.dil_modeli)
     TR_assert_equal("vad.safetensors", y.vad)
     TR_assert_equal(TR_String(TR_Path(d, "modeller", "yaz")), y.yazıcı)
     TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-en")), y.ses)
     TR_assert_equal("en", y.dil)
     TR_assert_equal("Answer in English.", y.sistem)
-    TR_assert_equal("Brief.", dil_takımı(t, _ham_katalog(), d, TR_JSON({"source": "user", "text": "Brief.", "language": "en"}), "en").sistem)
+    TR_assert_equal("Brief.", dil_takımı(t, _ham_katalog(), d, _ayar("en", TR_JSON({"source": "user", "text": "Brief.", "language": "en"}))).sistem)
 }
 
 TR_test "dil_değiştir: yeni modeller yüklenemezse hiçbir şey değişmez; yüklenirse uygulanır ve takım yuvaya girer" {
@@ -251,4 +252,64 @@ TR_test "gereken: Qwen3-4B'de bağlam 128'de küçükler hariç nokta 1'in altı
     TR_assert(gereken(g, 128, hiç) >= g.ölçüler[0].özel)
     TR_assert_equal(4275568640, gereken(g, 128, hiç))
     TR_assert_equal(5270364160 + 294912 * (8192 - 7981) + 294912 * 8192 + PAY, gereken(g, 8192, hiç))
+}
+
+TR_test "ses: kurulu seçim, yoksa ilk kurulu, yoksa ilk; seçili ses silinince öbür kurulu ses, yeniden inince seçim; başka dile geçince o dilin sesi" {
+    TR_var d = _klasör()
+    TR_var kj = _ham_katalog()
+    TR_var a = _ayar("tr", TR_JSON({"source": "catalog"}))
+    TR_assert_equal(["ses-tr", "piper-tr"], dilin_sesleri(kj, "tr"))
+    TR_assert_equal("ses-tr", dilin_sesi(kj, d, a, "tr")) # hiçbiri kurulu değil: ilki
+    a.sesler["tr"] = "piper-tr"
+    TR_assert_equal("ses-tr", dilin_sesi(kj, d, a, "tr")) # seçim kurulu değil: yok sayılır
+    _kur(d, "piper-tr")
+    TR_assert_equal("piper-tr", dilin_sesi(kj, d, a, "tr"))
+    TR_assert_equal("piper-tr", dilin_sesi(kj, d, _ayar("tr", TR_JSON({"source": "catalog"})), "tr")) # seçimsiz: ilk kurulu
+    _kur(d, "ses-tr")
+    TR_assert_equal("ses-tr", dilin_sesi(kj, d, _ayar("tr", TR_JSON({"source": "catalog"})), "tr"))
+    TR_assert_equal("piper-tr", dilin_sesi(kj, d, a, "tr"))
+    TR_assert_equal("ses-tr", yedek_ses(kj, d, "tr", "piper-tr"))
+    TR_assert(yedek_ses(kj, d, "en", "ses-en") == TR_none)
+    # Seçili ses silinince öbür kurulu ses; seçim ayarda kalır, ses yeniden inince döner.
+    TR_remove(TR_String(TR_Path(girdi_klasörü(d, "piper-tr"), "p.onnx")))
+    TR_assert_equal("ses-tr", dilin_sesi(kj, d, a, "tr"))
+    TR_assert_equal("piper-tr", a.sesler["tr"])
+    TR_assert_equal(0, kurulu_seçimler(kj, d, a).sesler.TR_length)
+    _kur(d, "piper-tr")
+    TR_assert_equal("piper-tr", dilin_sesi(kj, d, a, "tr"))
+    TR_assert_equal(1, kurulu_seçimler(kj, d, a).sesler.TR_length)
+    # Başka dile geçince o dilin sesi; dil_takımı ve takım_girdileri de buradan alır.
+    _kur(d, "ses-en")
+    TR_assert_equal("ses-en", dilin_sesi(kj, d, a, "en"))
+    TR_var t = Takım(giriş: "dm", dil_modeli: "dm.gguf", yazıcı: "y", vad: "v", ses: "s", dil: "tr", sistem: "")
+    TR_var en = _ayar("en", TR_JSON({"source": "catalog"}))
+    en.sesler = a.sesler
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-en")), dil_takımı(t, kj, d, en).ses)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "piper-tr", "p.onnx")), dil_takımı(t, kj, d, a).ses)
+    TR_assert_equal("piper-tr", takım_girdileri(_katalog(), kj, d, "dm", a)[3])
+    TR_assert_equal("ses-en", takım_girdileri(_katalog(), kj, d, "dm", en)[3])
+    # Dilin cevapları seçilen sesi sınar; sesin cevapları kurulu olmayanı not_installed sayar.
+    _kur(d, "yaz")
+    TR_assert_equal(["{}", "{}"], [TR_json_string(dil_cevapları(kj, d, a)[k]) TR_for k TR_in ["tr", "en"]])
+    TR_var c = ses_cevapları(kj, d, "tr")
+    TR_assert_equal(["{}", "{}"], [TR_json_string(c["ses-tr"]), TR_json_string(c["piper-tr"])])
+    TR_remove(TR_String(TR_Path(girdi_klasörü(d, "ses-tr"), "model.safetensors")))
+    TR_assert_equal("not_installed", TR_String(ses_cevapları(kj, d, "tr")["ses-tr"]["values"]["reason"]))
+    TR_assert(ses_cevapları(kj, d, "tr").TR_get("ses-en") == TR_none)
+}
+
+TR_test "takım: Piper sesinin yolu .onnx dosyası; .onnx.json'u eksik ses kurulu değil" {
+    TR_var d = _klasör()
+    TR_var kj = _ham_katalog()
+    TR_for kimlik TR_in ["dm", "yaz", "vad", "piper-tr"] { _kur(d, kimlik) }
+    TR_var a = _ayar("tr", TR_JSON({"source": "catalog"}))
+    TR_var c = takım_kur(_katalog(), kj, d, "dm", a)
+    TR_assert_equal("", c.kod)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "piper-tr", "p.onnx")), c.takım.ses)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-tr")), ses_yolu(kj, d, "ses-tr"))
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "piper-tr", "p.onnx")), ses_takımı(c.takım, ses_yolu(kj, d, "piper-tr")).ses)
+    TR_remove(TR_String(TR_Path(girdi_klasörü(d, "piper-tr"), "p.onnx.json")))
+    TR_assert(TR_not kurulu(kj, d, "piper-tr"))
+    c = takım_kur(_katalog(), kj, d, "dm", a)
+    TR_assert_equal("not_installed", c.kod)
 }

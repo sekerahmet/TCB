@@ -446,7 +446,10 @@ TR_func ekranlı_kip() -> TR_Int {
     e.konuşma_dili = etkin.konuşma_dili
     e.dil_modeli = etkin.dil_modeli
     e.yalnız_sohbet = etkin.yalnız_sohbet
-    TR_if TR_not elle { e.dil_cevabı = dil_cevapları(kj, klasör, etkin) }
+    TR_if TR_not elle {
+        e.dil_cevabı = dil_cevapları(kj, klasör, etkin)
+        e.ses_cevabı = ses_cevapları(kj, klasör, etkin.konuşma_dili)
+    }
     TR_var o = Oturum(e: e, k: k, kj: kj, klasör: klasör, etkin: etkin, ayar_verisi: ayar_verisi, y: Yuva(), yüklü: Yüklü(),
         en_çok_tur: TR_Int(ayar["en_çok_tur"]), kuyruk_ms: _KUYRUK_MS, çerçeve_bayt: _ÇERÇEVE_BAYT, açılış: şimdi(),
         kur: asistan_kur, mikrofon_aç: mikrofon_aç, ayar_dosyası: ayar_dosyası, aygıtlar: mikrofonları_oku,
