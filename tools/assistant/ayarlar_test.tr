@@ -1,7 +1,7 @@
 # TR 4
 # Ayar dosyasının modelsiz sınaması: bağlamın seçimi (`bağlam_oku`, `bağlam_seç`, `bağlam_belirle`) ve dil
-# modellerinin bağlam sınırı (H8173, H8174). Ortak örnekler catalog_helpers.tr'de; ayarın okunması, yazılması ve
-# denetimi katalog_test.tr'de.
+# modellerinin bağlam sınırı (H8173, H8174) ve ayarın ses seçimi (`voices`, H8163, H8168; Dost P-3). Ortak örnekler
+# catalog_helpers.tr'de; ayarın öbür alanlarının okunması, yazılması ve denetimi katalog_test.tr'de.
 TR_import "katalog"
 TR_import "ayarlar"
 TR_import "catalog_helpers"
@@ -86,4 +86,36 @@ TR_test "bağlam sınırı: bütün sınırlar 8192'den küçükse öntanımlı 
     TR_assert_equal("MAKINE toplam_bayt=17179869184 kaynak=elle baglam=4096", satırlar[0])
     TR_assert(satırlar[1].TR_starts_with("UYGUNLUK qwen3-4b-q4km fits "))
     TR_assert_equal(4096, bağlam_belirle(katalog_oku(kat), TR_none, TR_none))
+}
+
+TR_test "ayar: voices isteğe bağlı; H8168'in üç nedeni ve bilinmeyen dil hatadır" {
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var a = ayar_oku(dosya("ayar.json", örnek_ayar()), k)
+    TR_assert(a != TR_none TR_and a.sesler.TR_length == 0)
+    TR_var yer = "\"device\":\"cpu\""
+    TR_var seçili = ayar_oku(dosya("ayar.json", değiş(örnek_ayar(), yer, "\(yer),\"voices\":{\"tr\":\"mms-tts-tur\"}")), k)
+    TR_assert(seçili != TR_none TR_and seçili.sesler["tr"] == "mms-tts-tur" TR_and seçili.sesler.TR_get("en") == TR_none)
+    TR_assert_equal("hata yok", ayar_hatası(yer, "\(yer),\"voices\":{}"))
+    TR_assert(ayar_hatası(yer, "\(yer),\"voices\":{\"de\":\"mms-tts-tur\"}").TR_starts_with("Message(\"H8163\", \"A\", \"voices.de\", \"`tr`, `en`\""))
+    TR_assert_equal("Message(\"H8168\", \"voices.tr\", \"yok\", \"not_in_catalog\", \"`mms-tts-tur`\")",
+        ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":\"yok\"}"))
+    TR_assert_equal("Message(\"H8168\", \"voices.tr\", \"whisper-small\", \"wrong_kind\", \"`mms-tts-tur`\")",
+        ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":\"whisper-small\"}"))
+    TR_assert_equal("Message(\"H8168\", \"voices.tr\", \"mms-tts-eng\", \"other\", \"`mms-tts-tur`\")",
+        ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":\"mms-tts-eng\"}"))
+    TR_assert_equal("Message(\"H8165\", \"A\", \"voices.tr\", \"string\", \"integer\")", ayar_hatası(yer, "\(yer),\"voices\":{\"tr\":5}"))
+    TR_assert_equal("Message(\"H8165\", \"A\", \"voices\", \"object\", \"array\")", ayar_hatası(yer, "\(yer),\"voices\":[]"))
+}
+
+TR_test "ayar: kur.tr'nin yeniden yazımı voices'u korur" {
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var yol = dosya("ayar.json", değiş(örnek_ayar(), "\"device\":\"cpu\"", "\"device\":\"cpu\",\"voices\":{\"en\":\"mms-tts-eng\"}"))
+    ayar_yaz(yol, k, ayar_oku(yol, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_var j = TR_json_parse(TR_read_file(yol))
+    TR_assert_equal("mms-tts-eng", TR_String(j["voices"]["en"]))
+    TR_var a = ayar_oku(yol, k)
+    TR_assert(a != TR_none TR_and a.sesler["en"] == "mms-tts-eng")
+    TR_var sade = dosya("ayar.json", örnek_ayar())
+    ayar_yaz(sade, k, ayar_oku(sade, k), "qwen3-4b-q4km", 17179869184, 4096)
+    TR_assert(TR_json_parse(TR_read_file(sade)).TR_get("voices") == TR_none)
 }

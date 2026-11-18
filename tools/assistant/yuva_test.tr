@@ -18,8 +18,8 @@ TR_func _ham_katalog() -> TR_JSON {
         {"id": "ses-tr", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
         {"id": "ses-en", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}}],
         "languages": [
-            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voice": "ses-tr", "system_prompt": "Türkçe cevap ver."},
-            {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voice": "ses-en", "system_prompt": "Answer in English."}]})
+            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voices": ["ses-tr"], "system_prompt": "Türkçe cevap ver."},
+            {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voices": ["ses-en"], "system_prompt": "Answer in English."}]})
 }
 
 TR_func _katalog() -> Katalog {

@@ -59,7 +59,7 @@ TR_func kart_belleği() -> TR_Int {
 }
 
 # ayar_yaz: öneriyi ayar olarak yazar (`ayar_dosyasına_yaz`). Var olan ayarın dil modeli, dili, sistem iletisi, kapısı,
-# cihazı ve isteğe bağlı alanları (`microphone`, `recording`, `quantized_activations`, `chat_only`) korunur: kur.tr'nin
+# cihazı ve isteğe bağlı alanları (`microphone`, `recording`, `quantized_activations`, `chat_only`, `voices`) korunur: kur.tr'nin
 # yeniden koşusu kullanıcının seçimini öntanımlıya ya da öneriye döndürmez (N'nin Bulgu 1'i; dil modeli Dost katalog
 # K-1, TCB 22:49). Ayar yoksa dil modeli `dil_modeli` (öneri), cihaz `cihaz`'dır; cihaz `gpu` ise `machine.gpu`
 # kartın özetidir (`kart`).
@@ -89,6 +89,7 @@ TR_func ayar_yaz(yol: TR_String, k: Katalog, ayar: Ayar?, dil_modeli: TR_String,
         TR_var n = a.nicemli
         TR_if n != TR_none { d["quantized_activations"] = TR_JSON(n) }
         TR_if a.yalnız_sohbet { d["chat_only"] = TR_JSON(TR_true) }
+        TR_if a.sesler.TR_length > 0 { d["voices"] = TR_JSON(a.sesler) }
     }
     ayar_dosyasına_yaz(yol, TR_JSON(d))
 }

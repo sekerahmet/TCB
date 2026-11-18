@@ -194,7 +194,7 @@ TR_func takım_girdileri(k: Katalog, kj: TR_JSON, giriş: TR_String, konuşma_di
     TR_for e TR_in k.girdiler {
         TR_if e.tür == "vad" TR_and vad == "" { vad = e.kimlik }
     }
-    TR_return [giriş, TR_String(dil["transcriber"]), vad, TR_String(dil["voice"])]
+    TR_return [giriş, TR_String(dil["transcriber"]), vad, TR_String(dil["voices"][0])]
 }
 
 # takım_kur: `giriş` dil modeli ve ayarın konuşma dili için yüklenecek takım. Dil modeli katalogda değilse
@@ -265,7 +265,7 @@ TR_func katalog_olayı(k: Katalog, kj: TR_JSON, klasör: TR_String, a: Ayar, yü
                 d["memory_bytes"] = TR_JSON(küçük_bellek(k, kimlik))
             }
             TR_if tür == "transcriber" TR_or tür == "voice" {
-                d["languages"] = TR_JSON([dl.kod TR_for dl TR_in k.diller TR_if dl.yazıcı == kimlik TR_or dl.ses == kimlik])
+                d["languages"] = TR_JSON([dl.kod TR_for dl TR_in k.diller TR_if dl.yazıcı == kimlik TR_or dl.sesler.TR_contains(kimlik)])
             }
             l.TR_append(TR_JSON(d))
         }
@@ -284,7 +284,7 @@ TR_func dil_cevapları(kj: TR_JSON, klasör: TR_String, a: Ayar) -> TR_Dict[TR_S
             d[kod] = TR_JSON({"code": "setting_invalid", "values": {"key": "speech_language", "reason": "system_prompt_language"}})
             TR_continue
         }
-        TR_for kimlik TR_in [TR_String(dil["transcriber"]), TR_String(dil["voice"])] {
+        TR_for kimlik TR_in [TR_String(dil["transcriber"]), TR_String(dil["voices"][0])] {
             TR_if TR_not kurulu(kj, klasör, kimlik) TR_and TR_Dict(d[kod]).TR_length == 0 {
                 d[kod] = TR_JSON({"code": "not_installed", "values": {"entry_id": kimlik}})
             }
@@ -302,7 +302,7 @@ TR_func dil_takımı(t: Takım, kj: TR_JSON, klasör: TR_String, sistem: TR_JSON
     }
     TR_var ileti = TR_if TR_String(sistem["source"]) == "user" { TR_String(sistem["text"]) } TR_else { TR_String(dil["system_prompt"]) }
     TR_return Takım(giriş: t.giriş, dil_modeli: t.dil_modeli, yazıcı: girdi_klasörü(klasör, TR_String(dil["transcriber"])), vad: t.vad,
-        ses: girdi_klasörü(klasör, TR_String(dil["voice"])), dil: TR_String(dil["whisper_language"]), sistem: ileti)
+        ses: girdi_klasörü(klasör, TR_String(dil["voices"][0])), dil: TR_String(dil["whisper_language"]), sistem: ileti)
 }
 
 # dil_değiştir: konuşma dilini değiştirir. Yeni dilin modelleri eskiler yerinde dururken `iş` ile yüklenir; `iş` düşerse

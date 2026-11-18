@@ -59,8 +59,8 @@ TR_func _ham_katalog() -> TR_JSON {
         _girdi("ses-tr", "voice", [_dosya("ses-tr", "model.safetensors", "ses")]),
         _girdi("ses-en", "voice", [_dosya("ses-en", "model.safetensors", "voice")])],
         "languages": [
-            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voice": "ses-tr", "system_prompt": "Türkçe cevap ver."},
-            {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voice": "ses-en", "system_prompt": "Answer in English."}]})
+            {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voices": ["ses-tr"], "system_prompt": "Türkçe cevap ver."},
+            {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voices": ["ses-en"], "system_prompt": "Answer in English."}]})
 }
 
 TR_func _katalog(kj: TR_JSON) -> Katalog {
@@ -455,7 +455,7 @@ TR_func _iki_modelli() -> TR_JSON {
 TR_func _yüklemedeki_oturum(d: Düzen) -> Oturum {
     d.kj = _iki_modelli()
     TR_var o = _oturum(d)
-    o.k = Katalog(girdiler: o.k.girdiler, diller: [Dil(kod: "tr", yazıcı: "yaz", ses: "ses-tr"), Dil(kod: "en", yazıcı: "yaz", ses: "ses-en")])
+    o.k = Katalog(girdiler: o.k.girdiler, diller: [Dil(kod: "tr", yazıcı: "yaz", sesler: ["ses-tr"]), Dil(kod: "en", yazıcı: "yaz", sesler: ["ses-en"])])
     TR_for g TR_in ["dm", "dm2", "ses-en"] { TR_assert_equal("accepted", _karar(o, "model_download", TR_JSON({"entry_id": g}))) }
     _indir_bitir(o)
     TR_var yol = TR_String(TR_Path(d.klasör, "ayar.json"))

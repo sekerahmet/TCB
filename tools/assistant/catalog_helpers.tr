@@ -1,7 +1,9 @@
 # TR 4
 # Katalog ve ayar testlerinin ortak örnekleri (katalog_test.tr ve ayarlar_test.tr aktarır): sınamanın katalogu ve
-# ayarı, geçici dosya, örnekte tam bir yerin değiştirilmesi, ikinci dil modelli katalog ve olmayan ayar dosyası. Test
-# bloğu taşımaz; adlar `_`'siz, çünkü `_`'li ad aktaran dosyadan görünmez (11.7).
+# ayarı, geçici dosya, örnekte tam bir yerin değiştirilmesi, ikinci dil modelli katalog, olmayan ayar dosyası ve
+# bozulan ayarın hatası. Test bloğu taşımaz; adlar `_`'siz, çünkü `_`'li ad aktaran dosyadan görünmez (11.7).
+TR_import "katalog"
+TR_import "ayarlar"
 
 # örnek_katalog: sınamanın katalogu; sayılar elle hesaplanabilsin diye yuvarlak. Dil modeli 8192 bağlamla ölçülü.
 TR_func örnek_katalog() -> TR_String {
@@ -40,8 +42,8 @@ TR_func örnek_katalog() -> TR_String {
             "verified": {"trlang": "0", "date": "2026-11-11", "gates": []},
             "memory": {"weights_bytes": 200, "measured": [{"context": 0, "private_bytes": 400000000, "measured_on": "sınama"}]}}],
         "languages": [
-            {"code": "tr", "whisper_language": "tr", "transcriber": "whisper-small", "voice": "mms-tts-tur", "system_prompt": "a"},
-            {"code": "en", "whisper_language": "en", "transcriber": "whisper-small", "voice": "mms-tts-eng", "system_prompt": "b"}]}
+            {"code": "tr", "whisper_language": "tr", "transcriber": "whisper-small", "voices": ["mms-tts-tur"], "system_prompt": "a"},
+            {"code": "en", "whisper_language": "en", "transcriber": "whisper-small", "voices": ["mms-tts-eng"], "system_prompt": "b"}]}
     TR_return TR_json_string(g)
 }
 
@@ -79,4 +81,12 @@ TR_func iki_dil_modeli(sınır: TR_Int) -> TR_String {
 # yok_ayar: var olmayan bir ayar dosyasının yolu (ilk kurulum).
 TR_func yok_ayar() -> TR_String {
     TR_return TR_String(TR_Path(TR_temp_dir(), "yok-ayar.json"))
+}
+
+# ayar_hatası: örnek ayarda tam bir yeri değiştirip okur; hatanın metni (dosyanın yolu `A`) ya da "hata yok".
+TR_func ayar_hatası(eski: TR_String, yeni: TR_String) -> TR_String {
+    TR_var k = katalog_oku(dosya("katalog.json", örnek_katalog()))
+    TR_var y = dosya("ayar.json", değiş(örnek_ayar(), eski, yeni))
+    TR_try { ayar_oku(y, k) } TR_catch e { TR_return TR_String(e).TR_replace(y, "A") }
+    TR_return "hata yok"
 }
