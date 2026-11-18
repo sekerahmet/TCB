@@ -409,24 +409,6 @@ TR_func ayar_değeri_mi(anahtar: TR_String, değer: TR_JSON) -> TR_Bool {
     }
 }
 
-# mikrofon_listesi: ffmpeg'in `-sources dshow` çıktısındaki ses aygıtlarının adları, sırasıyla (`devices`). İlk dolu
-# satır `Auto-detected sources for dshow:` değilse TR_none: liste okunamadı (Windows dışında dshow yok). Aygıt satırı
-# `  <kimlik> [<ad>] (<tür>)`; türünde `audio` geçen satırın adı ilk `[` ile son `] (` arasıdır (adda ayraç olabilir).
-TR_func mikrofon_listesi(çıktı: TR_String) -> TR_List[TR_String]? {
-    TR_var satırlar = [s.TR_strip() TR_for s TR_in çıktı.TR_lines() TR_if s.TR_strip() != ""]
-    TR_if satırlar.TR_length == 0 TR_or satırlar[0] != "Auto-detected sources for dshow:" { TR_return TR_none }
-    TR_var adlar: TR_List[TR_String] = []
-    TR_for s TR_in satırlar[1..satırlar.TR_length] {
-        TR_var parçalar = s.TR_split("] (")
-        TR_var n = parçalar.TR_length
-        TR_if n < 2 TR_or TR_not s.TR_ends_with(")") TR_or TR_not parçalar[n - 1].TR_contains("audio") { TR_continue }
-        TR_var baş = parçalar[0..n - 1].TR_join("] (")
-        TR_var ayraç = baş.TR_index_of("[")
-        TR_if ayraç != TR_none { adlar.TR_append(baş[ayraç + 1..baş.TR_length]) }
-    }
-    TR_return adlar
-}
-
 # sistem_iletisi_mi: `{"source": "catalog"}` ya da `{"source": "user", "text": <metin>, "language": <metin>}`.
 TR_func sistem_iletisi_mi(j: TR_JSON) -> TR_Bool {
     TR_if TR_not nesne(j) { TR_return TR_false }
