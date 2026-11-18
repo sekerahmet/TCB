@@ -1,9 +1,13 @@
 # TR 4
 # Yuvanın, kurulu takımın ve yükleme işaretinin modelsiz sınaması (yuva.tr). Katalog elle kurulur: dosyalar birkaç
-# baytlık "x"; katalogun sha256'sı bu içerikten. Kaydın ve karmanın ayrıntısı indirme_test.tr'de.
+# baytlık "x"; katalogun sha256'sı bu içerikten. Oturumun ses yolu da bu fikstürle sınanır (DENETİM 911 Ş1). Kaydın ve karmanın ayrıntısı indirme_test.tr'de.
 TR_import "katalog"
 TR_import "ayarlar"
 TR_import "yuva"
+TR_import "zincir"
+TR_import "ekran"
+TR_import "screen_helpers"
+TR_import "oturum"
 
 TR_func _dosya(target: TR_String, bayt: TR_Int) -> TR_JSON {
     TR_return TR_JSON({"path": target, "target": target, "bytes": bayt, "sha256": TR_sha256(TR_Bytes("x" * bayt))})
@@ -11,13 +15,13 @@ TR_func _dosya(target: TR_String, bayt: TR_Int) -> TR_JSON {
 
 TR_func _ham_katalog() -> TR_JSON {
     TR_return TR_JSON({"entries": [
-        {"id": "dm", "kind": "language_model", "source": {"revision": "r", "files": [_dosya("dm.gguf", 4)]}},
-        {"id": "dm2", "kind": "language_model", "source": {"revision": "r", "files": [_dosya("dm2.gguf", 4)]}},
-        {"id": "yaz", "kind": "transcriber", "source": {"revision": "r", "files": [_dosya("config.json", 2), _dosya("model.safetensors", 3)]}},
-        {"id": "vad", "kind": "vad", "source": {"revision": "r", "files": [_dosya("vad.safetensors", 1)]}},
-        {"id": "ses-tr", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
-        {"id": "ses-en", "kind": "voice", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
-        {"id": "piper-tr", "kind": "voice", "source": {"revision": "r", "files": [_dosya("p.onnx", 3), _dosya("p.onnx.json", 1)]}}],
+        {"id": "dm", "kind": "language_model", "name": "dm", "source": {"revision": "r", "files": [_dosya("dm.gguf", 4)]}},
+        {"id": "dm2", "kind": "language_model", "name": "dm2", "source": {"revision": "r", "files": [_dosya("dm2.gguf", 4)]}},
+        {"id": "yaz", "kind": "transcriber", "name": "yaz", "source": {"revision": "r", "files": [_dosya("config.json", 2), _dosya("model.safetensors", 3)]}},
+        {"id": "vad", "kind": "vad", "name": "vad", "source": {"revision": "r", "files": [_dosya("vad.safetensors", 1)]}},
+        {"id": "ses-tr", "kind": "voice", "name": "ses-tr", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
+        {"id": "ses-en", "kind": "voice", "name": "ses-en", "source": {"revision": "r", "files": [_dosya("model.safetensors", 2)]}},
+        {"id": "piper-tr", "kind": "voice", "name": "piper-tr", "source": {"revision": "r", "files": [_dosya("p.onnx", 3), _dosya("p.onnx.json", 1)]}}],
         "languages": [
             {"code": "tr", "whisper_language": "tr", "transcriber": "yaz", "voices": ["ses-tr", "piper-tr"], "system_prompt": "Türkçe cevap ver."},
             {"code": "en", "whisper_language": "en", "transcriber": "yaz", "voices": ["ses-en"], "system_prompt": "Answer in English."}]})
@@ -312,4 +316,74 @@ TR_test "takım: Piper sesinin yolu .onnx dosyası; .onnx.json'u eksik ses kurul
     TR_assert(TR_not kurulu(kj, d, "piper-tr"))
     c = takım_kur(_katalog(), kj, d, "dm", a)
     TR_assert_equal("not_installed", c.kod)
+}
+
+TR_func _kur_yok(t: Takım) -> Asistan { TR_throw "sınamada model yüklenmez" }
+TR_func _mikrofon_yok(b: TR_Int) -> TR_Process { TR_throw "sınamada mikrofon yok" }
+TR_func _tur_yok(a: Asistan, k: TR_Tensor?, s: TR_String?, t0: TR_Int, b: TR_Bool, g: TR_Int, i: () -> TR_NoneType,
+    kd: (Tur, TR_String, TR_Int, TR_String, TR_String) -> TR_NoneType) -> ÇalmaAralığı { TR_return ÇalmaAralığı() }
+
+# _sesli_oturum: fikstür katalogla, takımı Dost klasöründe kurulu ve yuvada yüklü bir oturum (ses ses-tr). Ses değişimi
+# model yüklemeden yuvanın takımını değiştirir (`ses_değiştirici`; gerçek yol `sesi_uygula`).
+TR_func _sesli_oturum(d: TR_String) -> Oturum {
+    TR_for kimlik TR_in ["dm", "yaz", "vad", "ses-tr"] { _kur(d, kimlik) }
+    TR_var k = _katalog()
+    k.diller = [Dil(kod: "tr", yazıcı: "yaz", sesler: ["ses-tr", "piper-tr"]), Dil(kod: "en", yazıcı: "yaz", sesler: ["ses-en"])]
+    TR_var kj = _ham_katalog()
+    TR_var a = _ayar("tr", TR_JSON({"source": "catalog"}))
+    TR_var t = takım_kur(k, kj, d, "dm", a).takım
+    TR_var o = Oturum(e: ekran(), k: k, kj: kj, klasör: d, etkin: a, ayar_verisi: TR_none, y: Yuva(takım: t), yüklü: Yüklü(),
+        en_çok_tur: 0, kuyruk_ms: 0, çerçeve_bayt: 1024, açılış: 0, kur: _kur_yok, mikrofon_aç: _mikrofon_yok, tur: _tur_yok)
+    o.ses_değiştirici = (yt) => (dil_değiştir(o.y, yt, (x) => {}) {})
+    o.e.yüklenebilir = yüklenebilirler(k, kj, d, a) # açılıştaki gibi: takım kurulu, iniş yeniden yükletmez
+    o.e.kayıt = TR_true # gönderilen olaylar `e.giden`'de
+    TR_return o
+}
+
+TR_test "oturum: seçili ses inince yüklü ses ona geçer (tur bitince); silinince dilin öbür sesine geçer, setup yok; ayrışma kalmaz" {
+    TR_var d = _klasör()
+    TR_var o = _sesli_oturum(d)
+    TR_var piper = TR_String(TR_Path(d, "modeller", "piper-tr", "p.onnx"))
+    TR_var mms = TR_String(TR_Path(d, "modeller", "ses-tr"))
+    o.etkin.sesler["tr"] = "piper-tr" # seçim var, ses inmemiş: yok sayılır
+    TR_assert_equal(mms, o.y.takım.ses)
+    TR_assert(TR_not o.yüklü_takımda("piper-tr"))
+    # Piper iner: tur sürerken ses değişmez, tur bitince geçer.
+    _kur(d, "piper-tr")
+    o.e.tur = "t-1"
+    o.indirme_bitti()
+    o.işle()
+    TR_assert_equal(mms, o.y.takım.ses)
+    o.e.tur = ""
+    o.işle()
+    TR_assert_equal(piper, o.y.takım.ses)
+    TR_assert(o.yüklü_takımda("piper-tr") TR_and TR_not o.yüklü_takımda("ses-tr"))
+    TR_var son = [g TR_for g TR_in o.e.giden TR_if TR_String(g["type"]) == "catalog"]
+    TR_var l = TR_List(son[son.TR_length - 1]["data"]["entries"])
+    TR_assert_equal("[\"tr\"]", TR_json_string([x TR_for x TR_in l TR_if TR_String(x["id"]) == "piper-tr"][0]["selected_for"]))
+    # Seçili ve yüklü Piper silinir: dilin öbür kurulu sesine geçilir, takım kalır, durum setup olmaz; seçim ayarda kalır.
+    o.modeli_sil("piper-tr")
+    TR_assert(o.y.takım != TR_none)
+    TR_assert_equal(mms, o.y.takım.ses)
+    TR_assert(TR_not kurulu(o.kj, d, "piper-tr"))
+    TR_assert_equal("piper-tr", o.etkin.sesler["tr"])
+    TR_assert_equal(0, [g TR_for g TR_in o.e.giden TR_if TR_String(g["type"]) == "state" TR_and TR_String(g["data"]["state"]) == "setup"].TR_length)
+    # Yeniden inince seçim döner, yüklü ses de.
+    _kur(d, "piper-tr")
+    o.indirme_bitti()
+    o.işle()
+    TR_assert_equal(piper, o.y.takım.ses)
+}
+
+TR_test "oturum: yüklü olmayan sesi silmek takımı bırakmaz; dilin tek kurulu sesini silmek bırakır" {
+    TR_var d = _klasör()
+    TR_var o = _sesli_oturum(d)
+    _kur(d, "piper-tr") # kurulu, seçili değil (seçimsiz dilde ilk kurulu ses ses-tr)
+    TR_assert(TR_not o.yüklü_takımda("piper-tr"))
+    o.modeli_sil("piper-tr")
+    TR_assert(o.y.takım != TR_none)
+    TR_assert_equal(TR_String(TR_Path(d, "modeller", "ses-tr")), o.y.takım.ses)
+    TR_assert(o.yüklü_takımda("ses-tr"))
+    o.modeli_sil("ses-tr") # dilin başka kurulu sesi yok: takım bırakılır
+    TR_assert(o.y.takım == TR_none)
 }

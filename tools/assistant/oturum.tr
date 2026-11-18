@@ -44,6 +44,7 @@ TR_struct Oturum {
     silinecek: TR_String? = TR_none # kabul edilmiş `model_delete`; ana döngü siler (`modeli_sil`)
     bağlam: TR_Int = 0 # açılışın bağlamı (asistan.tr, `bağlam_belirle`); 0: ayarın `context`'i (`catalog`'un belleği)
     ses_değiştirici: ((Takım) -> TR_String?)? = TR_none # yalnız sınama: `ses_yükle`'nin yerine
+    ses_bekliyor: TR_Bool = TR_false # kurulum ya da silme oldu: tur yokken ses dilin sesine eşitlenir (`sesi_eşitle`)
     kart: TR_Int = 0 # modeller kartta kurulduysa kartın belleği (`catalog`'un uygunluğu onunla); işlemcideyse 0
 
     TR_func cevaplanan() -> TR_Int {
@@ -328,6 +329,7 @@ TR_struct Oturum {
             TR_self.modeli_sil(silinecek)
         }
         TR_self.indirme_adımı()
+        TR_if TR_self.ses_bekliyor TR_and e.tur == "" TR_and e.metin == TR_none { TR_self.sesi_eşitle() }
     }
 
     # istekleri_işle: bekleyen komutlar ve kabul edilen ayarlar geliş sırasıyla. Ayar bekliyorken `komutları_işle` komut
@@ -420,7 +422,19 @@ TR_struct Oturum {
         TR_self.e.dil_cevabı = dil_cevapları(TR_self.kj, TR_self.klasör, TR_self.etkin)
         TR_self.e.ses_cevabı = ses_cevapları(TR_self.kj, TR_self.klasör, TR_self.etkin.konuşma_dili)
         TR_self.e.yüklenebilir = yüklenebilirler(TR_self.k, TR_self.kj, TR_self.klasör, TR_self.etkin)
+        TR_self.ses_bekliyor = TR_true
         TR_self.kataloğu_gönder()
+    }
+
+    # sesi_eşitle: kurulum ya da silme dilin sesini (`dilin_sesi`) değiştirdiyse yüklü ses ona geçer, sıfırlamadan
+    # (`ses_yükle`; DENETİM 911 Ş1). `işle` tur yokken çağırır; böylece `selected_for` her an konuşan sestir.
+    TR_func sesi_eşitle() {
+        TR_self.ses_bekliyor = TR_false
+        TR_var t = TR_self.y.takım
+        TR_if t == TR_none { TR_return }
+        TR_var yol = ses_yolu(TR_self.kj, TR_self.klasör, dilin_sesi(TR_self.kj, TR_self.klasör, TR_self.etkin, TR_self.etkin.konuşma_dili))
+        TR_if yol == t.ses TR_or TR_self.ses_yükle(ses_takımı(t, yol)) == TR_none { TR_return }
+        TR_self.e.gönder("error", TR_JSON({"code": "model_load_failed", "values": {"model": TR_Path(yol).TR_name}, "fatal": TR_false}))
     }
 
     # indirme_bitti: indiricinin bitişi (indirme.tr, `bitti`). Ayarın dil modelinin takımı bu inişle kurulu hâle geldiyse
@@ -452,7 +466,8 @@ TR_struct Oturum {
         TR_if t == TR_none { TR_return TR_false }
         TR_if t.giriş == giriş { TR_return TR_true }
         TR_if t.giriş == "" { TR_return TR_false }
-        TR_return takım_girdileri(TR_self.k, TR_self.kj, TR_self.klasör, t.giriş, TR_self.etkin).TR_contains(giriş)
+        TR_if t.ses == ses_yolu(TR_self.kj, TR_self.klasör, giriş) { TR_return TR_true } # ses yüklü takımınki (DENETİM 911 Ş1)
+        TR_return takım_girdileri(TR_self.k, TR_self.kj, TR_self.klasör, t.giriş, TR_self.etkin)[0..3].TR_contains(giriş)
     }
 
     # yüklemeyi_yaz: kullanıcının başarılı `model_load`'u ayarın dil modelini dosyaya yazar (açılıştaki kendiliğinden

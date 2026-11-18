@@ -201,7 +201,7 @@ TR_func dilin_sesleri(kj: TR_JSON, kod: TR_String) -> TR_List[TR_String] {
 
 # dilin_sesi: `kod` dilinin sesi (Dost P-4): ayarın o dil için seçtiği ses kuruluysa o; değilse dilin seslerinden ilk
 # kurulu olan; hiçbiri kurulu değilse ilki. Kurulu olmayan seçim yok sayılır ama ayarda kalır: ses yeniden inince
-# seçim döner. Takım, indirme sırası, dilin cevapları, `catalog` ve dil değişimi sesi buradan alır.
+# seçim döner; model yüklüyse yüklü ses de ona geçer (oturum.tr, `sesi_eşitle`). Takım, indirme sırası, dilin cevapları, `catalog` ve dil değişimi sesi buradan alır.
 TR_func dilin_sesi(kj: TR_JSON, klasör: TR_String, a: Ayar, kod: TR_String) -> TR_String {
     TR_var sesler = dilin_sesleri(kj, kod)
     TR_var seçim = a.sesler.TR_get(kod)
@@ -384,7 +384,8 @@ TR_func dil_takımı(t: Takım, kj: TR_JSON, klasör: TR_String, a: Ayar) -> Tak
 
 # dil_değiştir: konuşma dilini değiştirir. Yeni dilin modelleri eskiler yerinde dururken `iş` ile yüklenir; `iş` düşerse
 # hiçbir şey değişmez, hata metin olarak döner (ekranda `model_load_failed`). Yüklenirse `uygula` yenileri eskilerin
-# yerine koyar (tek atama; önbellek ve geçmiş sıfırlanır) ve yeni takım yuvaya girer.
+# yerine koyar (tek atama) ve yeni takım yuvaya girer. Dil değişiminde `dili_uygula`'nın `uygula`'sı önbelleği ve
+# geçmişi sıfırlar; ses değişiminde `sesi_uygula`'nınki sıfırlamaz.
 TR_func dil_değiştir(y: Yuva, t: Takım, iş: (Takım) -> TR_NoneType, uygula: () -> TR_NoneType) -> TR_String? {
     TR_try {
         iş(t)

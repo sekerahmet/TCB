@@ -136,7 +136,7 @@ TR_func alan_örneği(alan: TR_String) -> TR_String {
         "kv": "\"kv\": {\"layers\": 36, \"kv_heads\": 8, \"head_dim\": 128}", "layers": "\"layers\": 36", "kv_heads": "\"kv_heads\": 8",
         "head_dim": "\"head_dim\": 128", "measured": "\"measured\": []", "context": "\"context\": 8192", "private_bytes": "\"private_bytes\": 0",
         "measured_on": "\"measured_on\": \"colab-cpu-highram-linux\"", "code": "\"code\": \"tr\"", "whisper_language": "\"whisper_language\": \"tr\"",
-        "transcriber": "\"transcriber\": \"whisper-small\"", "voices": "\"voices\": [\"mms-tts-tur\"]","system_prompt": "\"system_prompt\": {\"source\": \"catalog\"}",
+        "transcriber": "\"transcriber\": \"whisper-small\"", "voices": "\"voices\": [\"mms-tts-tur\"]", "system_prompt": "\"system_prompt\": {\"source\": \"catalog\"}",
         "language_model": "\"language_model\": \"qwen3-4b-q4km\"", "speech_language": "\"speech_language\": \"tr\"",
         "source_kind": "\"source\": \"catalog\"", "text": "\"text\": \"…\"", "language": "\"language\": \"tr\"", "device": "\"device\": \"cpu\"",
         "port": "\"port\": 47863", "machine": "\"machine\": {\"memory_bytes\": 17179869184, \"memory_source\": \"option\"}",

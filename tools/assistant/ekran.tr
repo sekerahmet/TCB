@@ -358,7 +358,7 @@ TR_func mikrofon_kararı(e: Ekran, k: Komut) -> TR_JSON {
 
 # ayar_kararı: `settings_set`'in cevabı. Anahtar listede (`_AYARLAR`) değilse `unknown_key`, değerin türü anahtarın
 # istediği değilse ya da öbür ayarla çakışıyorsa `invalid_value` (`setting_invalid`). Bağlam, mikrofon, kayıt, nicemli
-# seçim ve cihaz tur sürerken de kabul edilir (modele dokunmazlar). Dilde, sistem iletisinde, dil modelinde ve yalnız sohbette tur sürüyorsa `turn_busy`;
+# seçim ve cihaz tur sürerken de kabul edilir (modele dokunmazlar). Dilde, seste, sistem iletisinde, dil modelinde ve yalnız sohbette tur sürüyorsa `turn_busy`;
 # dil katalogda yoksa `unknown_language`; dil modeli ya da ses (konuşma dilinin sesi değilse) `invalid_value`, takımı
 # ya da sesi kurulu değilse `not_installed` (ayar yazılmaz); öbür retler dilin önceden hesaplanmış cevabındadır. Kabul edilen değişikliği ana
 # döngü uygular (oturum.tr, `ayarı_uygula`).
