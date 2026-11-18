@@ -214,24 +214,36 @@ func TestSetupOffersTheDownloadedChatModels(t *testing.T) {
 
 const modelsModule = "tools/assistant/js/models.js"
 
-// Kurulum kartının "bitince kendiliğinden belleğe alınır" notu yalnız inen girdi ayarın takımındaysa doğrudur: sunucu
-// indirme bitince yalnız ayarın takımı kurulu hâle geldiyse yükler (oturum.tr, indirme_bitti; katalog dilimi K-11,
-// DENETİM 878 N2). Kural js/models.js'in saf işlevindedir (partOfTeam).
+// Kurulum kartının "bitince kendiliğinden belleğe alınır" notu yalnız bu iniş ayarın takımını tamamlayacaksa doğrudur:
+// sunucu indirme bitince yalnız ayarın takımı bu inişle kurulu hâle geldiyse yükler (oturum.tr, indirme_bitti; DENETİM
+// 878 N2, 880 N1). Kural js/models.js'in saf işlevindedir (completesTeam): takımın öbür girdileri inmiş (`downloaded`)
+// ya da sırada (queued, running, verifying) olmalı; düşen (failed) iş sayılmaz.
 func TestSetupNoteSaysLoadOnlyForTheTeam(t *testing.T) {
-	catalog := `[{"id":"big","kind":"language_model","languages":[]},{"id":"small","kind":"language_model","languages":[]},` +
-		`{"id":"whisper","kind":"transcriber","languages":["tr","en"]},{"id":"tts-tur","kind":"voice","languages":["tr"]},` +
-		`{"id":"tts-eng","kind":"voice","languages":["en"]},{"id":"vad","kind":"vad","languages":[]}]`
+	catalog := `[{"id":"big","kind":"language_model","languages":[],"downloaded":false},` +
+		`{"id":"small","kind":"language_model","languages":[],"downloaded":true},` +
+		`{"id":"whisper","kind":"transcriber","languages":["tr","en"],"downloaded":true},` +
+		`{"id":"tts-tur","kind":"voice","languages":["tr"],"downloaded":true},` +
+		`{"id":"tts-eng","kind":"voice","languages":["en"],"downloaded":false},{"id":"vad","kind":"vad","languages":[],"downloaded":true}]`
 	output := nodeBlock(t, modelsModule, "Satırın işi", "const catalog = JSON.parse(process.argv[2]);\n"+
-		"const settings = {language_model: \"big\", speech_language: \"tr\"};\nconst out = {};\n"+
-		"for (const id of [\"big\", \"small\", \"whisper\", \"tts-tur\", \"tts-eng\", \"vad\", \"gone\"]) out[id] = partOfTeam(id, catalog, settings);\n"+
-		"process.stdout.write(JSON.stringify(out));\n", catalog)
-	want := `{"big":true,"small":false,"whisper":true,"tts-tur":true,"tts-eng":false,"vad":true,"gone":false}`
+		"const settings = {language_model: \"big\", speech_language: \"tr\"};\nconst none = {};\n"+
+		"const out = {\n"+
+		"  big_others_downloaded: completesTeam(\"big\", catalog, settings, none),\n"+
+		"  whisper_model_running: completesTeam(\"whisper\", catalog, settings, {big: {state: \"running\"}}),\n"+
+		"  whisper_model_missing: completesTeam(\"whisper\", catalog, settings, none),\n"+
+		"  whisper_model_failed: completesTeam(\"whisper\", catalog, settings, {big: {state: \"failed\"}}),\n"+
+		"  vad_no_settings: completesTeam(\"vad\", catalog, {}, none),\n"+
+		"  small: completesTeam(\"small\", catalog, settings, none),\n"+
+		"  tts_eng: completesTeam(\"tts-eng\", catalog, settings, none),\n"+
+		"  gone: completesTeam(\"gone\", catalog, settings, none),\n"+
+		"};\nprocess.stdout.write(JSON.stringify(out));\n", catalog)
+	want := `{"big_others_downloaded":true,"whisper_model_running":true,"whisper_model_missing":false,` +
+		`"whisper_model_failed":false,"vad_no_settings":false,"small":false,"tts_eng":false,"gone":false}`
 	if string(output) != want {
-		t.Errorf("partOfTeam: %s, want %s", output, want)
+		t.Errorf("completesTeam: %s, want %s", output, want)
 	}
 	if view := readFile(t, "tools/assistant/js/view.js"); !strings.Contains(view,
-		`partOfTeam(str(job.entry_id), ui.catalog, ui.settings) ? "setup_downloading" : "setup_downloading_other"`) {
-		t.Error("the setup card's download note does not ask partOfTeam")
+		`completesTeam(str(job.entry_id), ui.catalog, ui.settings, ui.downloads) ? "setup_downloading" : "setup_downloading_other"`) {
+		t.Error("the setup card's download note does not ask completesTeam")
 	}
 }
 

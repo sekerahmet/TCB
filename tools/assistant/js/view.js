@@ -113,7 +113,7 @@ function renderTeam() {
 }
 
 // Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla);
-// "bitince kendiliğinden belleğe alınır" yalnız inen girdi ayarın takımındaysa (`partOfTeam`, katalog dilimi K-11).
+// "bitince kendiliğinden belleğe alınır" yalnız bu iniş ayarın takımını tamamlayacaksa (`completesTeam`, DENETİM 880 N1).
 // Yükleme düştüyse "<ad> belleğe alınamadı", Yeniden dene (`model_load`) ve Başka model seç (ayarlar). Yükle yok.
 // Ayarın dil modeli inmemiş ama başka bir sohbet modeli kuruluysa (`setupChoice`) kart bunu söyler; Modelleri aç ve
 // Başka model seç ikisi de görünür (katalog dilimi K-10).
@@ -130,7 +130,7 @@ function renderSetup() {
   else if (choose) bind(byId("setupHeading"), "setup_chosen_missing", { model: nameOf(chosen) });
   else bind(byId("setupHeading"), "setup_start");
   if (failed) bind(note, "setup_load_failed_note");
-  else if (job) bind(note, partOfTeam(str(job.entry_id), ui.catalog, ui.settings) ? "setup_downloading" : "setup_downloading_other", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
+  else if (job) bind(note, completesTeam(str(job.entry_id), ui.catalog, ui.settings, ui.downloads) ? "setup_downloading" : "setup_downloading_other", { model: nameOf(str(job.entry_id)), percent: new Intl.NumberFormat(language, { style: "percent" }).format(percentOf(job) / 100) });
   else if (choose) bind(note, "setup_chosen_missing_note");
   note.hidden = !failed && !job && !choose;
   byId("setupModels").hidden = failed;
