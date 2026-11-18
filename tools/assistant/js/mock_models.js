@@ -126,7 +126,7 @@ function createMockModels(host) {
       settings.speech_language = "tr";
       this.publish();
     },
-    /** Seçili model inmemiş, öbür sohbet modeli kurulu (Dost katalog K-10): kart seçtirir. */
+    /** Seçili model inmemiş, öbür sohbet modeli kurulu (katalog dilimi K-10): kart seçtirir. */
     chosenMissing() {
       this.reset(false);
       settings.language_model = "mock-model-large";

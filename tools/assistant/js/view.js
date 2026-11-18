@@ -115,7 +115,7 @@ function renderTeam() {
 // Kurulum kartı (`setup`): konuşma dili ve Modeller; inerken inen işin adı ve yüzdesi (ortak parça kendi adıyla).
 // Yükleme düştüyse "<ad> belleğe alınamadı", Yeniden dene (`model_load`) ve Başka model seç (ayarlar). Yükle yok.
 // Ayarın dil modeli inmemiş ama başka bir sohbet modeli kuruluysa (`setupChoice`) kart bunu söyler; Modelleri aç ve
-// Başka model seç ikisi de görünür (Dost katalog K-10).
+// Başka model seç ikisi de görünür (katalog dilimi K-10).
 function renderSetup() {
   const box = byId("setupBox");
   box.hidden = ui.state !== "setup";

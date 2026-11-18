@@ -88,7 +88,7 @@ function loadableModels(entries) {
   return entries.filter((entry) => entry.kind === "language_model" && entry.installed);
 }
 // setupChoice: kurulumda ayarın dil modeli kurulu değil ama başka bir sohbet modeli kurulu: kart bunu söyler ve
-// ayarlardan seçtirir (Dost katalog K-10; sunucu kurulumda da kurulu takımlı `settings_set language_model`'i yükler).
+// ayarlardan seçtirir (katalog dilimi K-10; sunucu kurulumda da kurulu takımlı `settings_set language_model`'i yükler).
 /** @param {string} chosen @param {any[]} entries */
 function setupChoice(chosen, entries) {
   const entry = entries.find((e) => e.id === chosen);
