@@ -8,6 +8,7 @@
 #   katalogdakine, diskteki boyu ve değişme zamanı kayıttakine eşit. Kayıt yoksa ya da disk tutmuyorsa dosyalar karılır
 #   (`kurulu`); indirme ve kayıt indirme.tr'dedir.
 TR_import "katalog"
+TR_import "tr/vad" # Yüklü'nün kesicisi ve algılayıcısı
 TR_import "tr/vits"
 TR_import "tr/whisper"
 TR_import "zincir"
@@ -41,6 +42,13 @@ TR_struct Asistan {
     yazıcı: TR_Whisper
     ses: TR_Vits
     dil: TR_String
+}
+
+# Yüklü: ekranlı kipte yuvanın modeli: asistan ve VAD (oturumun tek alanı; yuva.tr takımı tutar).
+TR_struct Yüklü {
+    a: Asistan? = TR_none
+    kesici: TR_SpeechSplitter? = TR_none
+    algılayıcı: TR_VoiceDetector? = TR_none
 }
 
 # Yuva: yüklü takım; boşken TR_none.
@@ -523,4 +531,11 @@ TR_func yükle(y: Yuva, klasör: TR_String, t: Takım, boşalt: () -> TR_NoneTyp
 TR_func bağlam_olayı(istenen: TR_Int, kurulan: TR_Int) -> TR_JSON? {
     TR_if kurulan >= istenen { TR_return TR_none }
     TR_return TR_JSON({"code": "context_limited", "values": {"context": istenen, "limit": kurulan}, "fatal": TR_false})
+}
+
+# söyleyen: turun cümlelerini söyleyen işlev; yalnız sohbette (`sessiz`) hiçbir şey söylemez: cümle sese çevrilmez ve
+# çalınmaz, `speaking` olmaz (asistan.tr, `ekran_turu`).
+TR_func söyleyen(sessiz: TR_Bool, söyle: (TR_String) -> TR_NoneType) -> (TR_String) -> TR_NoneType {
+    TR_if sessiz { TR_return (_) => {} }
+    TR_return söyle
 }

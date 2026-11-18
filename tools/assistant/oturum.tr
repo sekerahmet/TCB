@@ -12,13 +12,6 @@ TR_import "zincir"
 TR_import "deneme"
 TR_import "indirme"
 
-# Yüklü: ekranlı kipte yuvanın modeli: asistan ve VAD (oturumun tek alanı; yuva.tr takımı tutar).
-TR_struct Yüklü {
-    a: Asistan? = TR_none
-    kesici: TR_SpeechSplitter? = TR_none
-    algılayıcı: TR_VoiceDetector? = TR_none
-}
-
 # Oturum: ekranlı kipin durumu. Alanlarını yalnız ana döngü yazar. Komutların kararı ana döngüdedir (`işle`):
 # çerçeveler arasında, mikrofon kapalıyken 50 ms'de bir, tur sürerken `tur_yürüt`'ün bakışında. Döngü `dinle`'dir;
 # metin turları ve mikrofonun açılması `ara`'dadır.
@@ -587,11 +580,4 @@ TR_struct Oturum {
         }
         TR_return TR_self.cevaplanan()
     }
-}
-
-# söyleyen: turun cümlelerini söyleyen işlev; yalnız sohbette (`sessiz`) hiçbir şey söylemez: cümle sese çevrilmez ve
-# çalınmaz, `speaking` olmaz (asistan.tr, `ekran_turu`).
-TR_func söyleyen(sessiz: TR_Bool, söyle: (TR_String) -> TR_NoneType) -> (TR_String) -> TR_NoneType {
-    TR_if sessiz { TR_return (_) => {} }
-    TR_return söyle
 }
