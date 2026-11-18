@@ -276,7 +276,7 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
 
 Satırın `file`ı ana programın dışındaysa (aktarılan modül) boştur: örnek yalnızca fonksiyon adını ve satırı bilir. `measured`, süresi ölçülen çağrı sayısıdır: panikle biten çağrı dışında her CPU ve GPU çağrısı ölçülür; dış (özel) işlemin geri hesabında 0'dır, süresi içindeki işlemlerin satırlarındadır. Canlı CPU tensör baytı ayrıca izlenmez (CPU tensörleri Go yığınındadır); `cpu_tensor_alloc_bytes` ayırma akışıdır.
 
-**Maliyet** (ölçüm yöntemi: taban ve dalın test ikilileri aynı koşuda, sırası turdan tura dönerek; Colab CPU High-RAM, `RT-2026-11-18-HIGHRAM-H1-1`): sayaçların işlem başına yükü (sayma, etkin işlem, iki saat okuması) 23,9 ns (`BenchmarkCounterStartStop`); 16 elemanlı tensörlerle `BenchmarkCounterSmallAdd` (işlem başına 1 259 ns) %5,2, `BenchmarkCounterSmallForwardBackward` (9,0 µs) %0,6. Yük amd64'te ölçüldü; öbür işlemcilerde ölçülmedi. Örnekleme açıkken çağrı yoğun TR kodu ~2 kat yavaşlar (hata ayıklayıcı yuvası doluyken yorumlayıcı fonksiyon ortamlarını havuzlamaz).
+**Maliyet** (ölçüm yöntemi: taban ve dalın test ikilileri aynı koşuda, sırası turdan tura dönerek; Colab CPU High-RAM, `RT-2026-11-18-HIGHRAM-H1-2`): sayaçların işlem başına yükü (sayma, etkin işlem, iki saat okuması) 27,1 ns (`BenchmarkCounterStartStop`); 16 elemanlı tensörlerle `BenchmarkCounterSmallAdd` (işlem başına 1 548 ns) %1,0, `BenchmarkCounterSmallForwardBackward` (13,0 µs) %5,1, aralıklar çakışıyor. Yük amd64'te ölçüldü; öbür işlemcilerde ölçülmedi. Örnekleme açıkken çağrı yoğun TR kodu ~2 kat yavaşlar (hata ayıklayıcı yuvası doluyken yorumlayıcı fonksiyon ortamlarını havuzlamaz).
 
 ## Testlerin yeri
 
