@@ -121,12 +121,12 @@ func TestKernelAbandonUncountsPreparation(t *testing.T) {
 	}
 	k1.Run()
 	k1.End()
-	call, _, _, _ = counterDiff(false, OpKindMatMul, func() {
+	call, measured, _, _ := counterDiff(false, OpKindMatMul, func() {
 		_, k := MatMulKernel(first, b, Float32)
 		runKernelWithin(t, k)
 	})
-	if call != 1 {
-		t.Errorf("yeniden hazırlanan çarpım %d kez sayıldı, beklenen 1", call)
+	if call != 1 || measured != 1 {
+		t.Errorf("yeniden hazırlanan çarpım: %d çağrı, %d ölçüm; beklenen 1 ve 1", call, measured)
 	}
 }
 

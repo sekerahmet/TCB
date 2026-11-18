@@ -3,10 +3,10 @@ package tensor
 import "testing"
 
 // Profil sayaçlarının ek yükünü ölçen küçük tensörlü kıyaslar: her işlem birkaç yüz
-// nanosaniye sürer, sayaçların payı en çok burada görünür. Önce/sonra ölçümü için aynı
-// dosya sayaçsız sürümde de derlenir (yalnızca dışa açık işlemleri çağırır):
+// nanosaniye sürer, sayaçların payı en çok burada görünür. Önce/sonra ölçümünde iki
+// sürümün test ikilileri aynı koşuda, sırası turdan tura dönerek koşar:
 //
-//	go test -run XXX -bench SayacKucuk -count 6 ./internal/compute/tensor/
+//	go test -run XXX -bench BenchmarkCounter -count 3 ./internal/compute/tensor/
 
 func BenchmarkCounterSmallAdd(b *testing.B) {
 	x := New(make([]float32, 16), 4, 4)
@@ -17,8 +17,8 @@ func BenchmarkCounterSmallAdd(b *testing.B) {
 	}
 }
 
-// BenchmarkCounterStartStop bir işlemin sayaç yükünün kendisidir (sayma, etkin işlem, 1/32
-// olasılıkla saat okuması); yalnızca sayaçlı sürümde derlenir.
+// BenchmarkCounterStartStop bir işlemin sayaç yükünün kendisidir (sayma, etkin işlem, iki saat
+// okuması).
 func BenchmarkCounterStartStop(b *testing.B) {
 	be := Backend(cpuBackend{})
 	for i := 0; i < b.N; i++ {

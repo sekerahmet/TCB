@@ -75,58 +75,46 @@ func TestCounterBackwardNodeName(t *testing.T) {
 	}
 }
 
-// Uzun işlemin (ilk çağrı her zaman ölçülür) sonraki bütün çağrıları da ölçülür.
-func TestCounterLargeOpMeasuredEachCall(t *testing.T) {
-	k := &counters[0][0][OpKindMatMul]
-	k.back, k.wt = 0, 0 // işlem türü ilk kez çalışıyormuş gibi (önceki testlerin küçük çarpımları)
-	a := New(make([]float32, 128*128), 128, 128)
-	call, measurement, _, dur := counterDiff(false, OpKindMatMul, func() {
-		for i := 0; i < 3; i++ {
-			MatMul(a, a)
-		}
-	})
-	if call != 3 || measurement != 3 {
-		t.Errorf("büyük matris çarpımı: %d çağrı, %d ölçüm; beklenen 3 ve 3", call, measurement)
-	}
-	if dur <= 0 {
-		t.Errorf("büyük matris çarpımının süresi %v, sıfırdan büyük olmalı", dur)
-	}
-}
-
-// Kısa işlemlerde süre örneklenir: her çağrı p = 1/ornekAraligi olasılıkla ölçülür ve ölçülen
-// süre 1/p ile ağırlıklanır. Ağırlıkların toplamı çağrı sayısının yansız tahminidir; ölçülen
-// çağrı sayısı n·p civarındadır. Uzun işlemde (uzunIslemTik) her çağrı ölçülür.
-func TestCounterSampleWeights(t *testing.T) {
+// Kural (H1 profil payı A-1): CPU'da her çağrının süresi ölçülür; kısa ve uzun çağrılar
+// karışınca da toplam süre çağrıların sürelerinin toplamıdır (örnekleme yok: kısa bir
+// ölçümden sonraki uzun çağrı ne kat kat yazılır ne atlanır). Gerçek çarpımda ileri ve geri
+// yönde her çağrı ölçülür.
+func TestCounterMeasuresEveryCPUCall(t *testing.T) {
 	k := &counters[0][0][OpKindOther]
 	identity := *k
 	*k = counterRecord{no: identity.no}
 	defer func() { *k = identity }()
-	const n = 64000
-	var total, measured int64
-	for i := 0; i < n; i++ {
+	// Kısa, uzun, kısa, uzun, uzun: ilk kısa çağrıdan sonra dört çağrı. Uzun çağrı saati geriye
+	// alınarak bilinen tık kadar sürmüş sayılır.
+	const long = 10_000_000
+	lengths := []int64{0, long, 0, long, long}
+	for _, d := range lengths {
 		s := counterStart(cpuBackend{}, OpKindOther).start()
-		if s.k != nil {
-			total += s.weight
-			measured++
-		}
+		s.begin -= d
 		s.finish()
 	}
-	// Ölçülen çağrı sayısı Binom(n, 1/32): ortalama 2000, standart sapma ~44.
-	if measured < n/sampleRange*85/100 || measured > n/sampleRange*115/100 {
-		t.Errorf("%d çağrının %d'i ölçüldü; p = 1/%d ile ~%d beklenir", n, measured, sampleRange, n/sampleRange)
+	if k.call != 5 || k.measurement != 5 {
+		t.Errorf("%d çağrı, %d ölçüm; beklenen 5 ve 5", k.call, k.measurement)
 	}
-	if total < n*85/100 || total > n*115/100 {
-		t.Errorf("ağırlıkların toplamı %d; çağrı sayısının (%d) yansız tahmini olmalı", total, n)
+	// Alt sınır bilinen sürelerin toplamı; üstü, beş çağrının kendi süresi için geniş bir pay.
+	if k.dur < 3*long || k.dur > 3*long+long/2 {
+		t.Errorf("toplam süre %d tık, beklenen %d tık (üç uzun çağrı) ile biraz fazlası", k.dur, 3*long)
 	}
-	// Uzun işlem: son ölçüm sınırı aşınca her çağrı ölçülür.
-	nextMeasure(k, longOpTicks)
-	for i := 0; i < 5; i++ {
-		s := counterStart(cpuBackend{}, OpKindOther).start()
-		if s.k == nil || s.weight != 1 {
-			t.Fatalf("uzun işlemin %d. çağrısı ölçülmedi (ağırlık %d)", i+1, s.weight)
+
+	w := New([]float32{1, 2, 3, 4, 5, 6}, 2, 3).SetRequiresGrad(true)
+	x := New([]float32{1, 0, 2, 1, 0, 1}, 3, 2)
+	var loss *Tensor
+	call, measured, _, _ := counterDiff(false, OpKindMatMul, func() {
+		for i := 0; i < 3; i++ {
+			loss = MatMul(w, x).Reshape(-1).SumAll()
 		}
-		s.begin -= longOpTicks // uzun sürmüş gibi
-		s.finish()
+	})
+	if call != 3 || measured != 3 {
+		t.Errorf("ileri matris çarpımı: %d çağrı, %d ölçüm; beklenen 3 ve 3", call, measured)
+	}
+	call, measured, _, _ = counterDiff(true, OpKindMatMul, func() { loss.Backward() })
+	if call != 1 || measured != 1 {
+		t.Errorf("geri matris çarpımı: %d çağrı, %d ölçüm; beklenen 1 ve 1", call, measured)
 	}
 }
 
