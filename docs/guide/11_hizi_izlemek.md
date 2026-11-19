@@ -24,7 +24,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`TR_co
 
 **GPU.** GPU kullanan programda iki komut GPU'nun kernel ölçümünü de açar: kernellerin cihazda geçen süresi (`kerneller %63 meşgul`), adım başına GPU süresi ve en pahalı kernel aileleri (`carpim`, `dikkat_satir`, `cok_adamw` ...). GPU işleri eşzamansızdır: tensör tablosunda GPU işlemlerinin süresi konakta geçen başlatma süresidir, programın GPU'yu beklediği zaman `konağa okuma` satırında görünür (`.TR_tolist`, yazdırma, `ç.TR_update({"loss": kayıp})`). Çekirdek ölçümü her başlatmaya iki zamanlama olayı ekler; GPU'yu tam hızda ölçmek için ölçümsüz bir koşuyla karşılaştırın. `TR_cmd_profile` raporu GPU süresini ayrıca işleme ve satıra göre verir (`GPU süresi satıra göre`): GPU'da satır tablosundaki süre konakta geçen başlatma ve beklemedir, GPU'yu asıl meşgul eden satır bu tablodadır; geri yöndeki çekirdekler ileri satırında, `geri %` ile.
 
-**Bellek.** Go yığını (CPU tensörleri dahil), CPU tensör işlemlerinin adım başına ayırdığı bellek, GPU'da tensörlerin kullandığı, sürücüden ayrılmış ve en yüksek (tepe) bellek; çöp toplayıcının kaç kez çalıştığı ve programı ne kadar durdurduğu. `TR_cmd_profile` raporu ayrıca GPU belleğinin tepesinde canlı olan tensörleri onları ayıran satıra göre sıralar (PyTorch'un bellek anlık görüntüsünün karşılığı): hangi satırın tepe belleğin ne kadarını tuttuğu görünür. Geri yayılımda ayrılan gradyanlar `TR_backward(...)` satırında sayılır; aktarılan modüldeki satır `dosya:satır` diye yazılır.
+**Bellek.** Çöp toplayıcının öbeği (CPU tensörleri dahil), CPU tensör işlemlerinin adım başına ayırdığı bellek, GPU'da tensörlerin kullandığı, sürücüden ayrılmış ve en yüksek (tepe) bellek; çöp toplayıcının kaç kez çalıştığı, programı ne kadar durdurduğu ve işlemcinin ne kadarını aldığı (pay: toplayıcının süresi, işlemcinin boşta olmayan süresine bölünür). `TR_cmd_profile` raporu ayrıca GPU belleğinin tepesinde canlı olan tensörleri onları ayıran satıra göre sıralar (PyTorch'un bellek anlık görüntüsünün karşılığı): hangi satırın tepe belleğin ne kadarını tuttuğu görünür. Geri yayılımda ayrılan gradyanlar `TR_backward(...)` satırında sayılır; aktarılan modüldeki satır `dosya:satır` diye yazılır.
 
 ## `trlang watch`
 
@@ -41,14 +41,14 @@ Sıcak satırlar (öz süre)             pay tensörde
   41_gpt.tr:49                       %39      %99  TR_backward(kayıp)
   optimizers.tr:53                   %21      %96  X = a * X + (b * A + c * (A @ A)) @ X
   ...
-Bellek     Go yığını 7,5 MB · CPU tensör ayırması 10,2 MB/adım
-Çöp top.   423 kez, toplam duraklama 113 ms (son 5 sn: 165 kez, 54,7 ms)
+Bellek     çöp toplayıcının öbeği 7,5 MB · CPU tensör ayırması 10,2 MB/adım
+Çöp top.   423 kez, toplam duraklama 113 ms, pay %4,0 (son 5 sn: 165 kez, 54,7 ms, pay %5,0)
 ```
 
 Tablonun hız satırları **son 5 saniyenin** ölçüleridir; program bitince bütün koşunun raporu yazılır. Terminalde tablo ekranın üstünde yeniden çizilir; programınızın kendi çıktısı (yazdır, ilerleme çubuğu, hatalar) tabloyla karışmasın diye bir dosyaya yazılır, son satırları tablonun altında görünür ve program bitince yeniden gösterilir. Dosyanın yerini `--output yol.txt` ile seçebilirsiniz (verilmezse geçici klasördedir; tablo yolunu yazar). Çıktı bir terminal değilse (bir dosyaya yönlendirildiyse ya da not defteri hücresindeyse) programın çıktısı olduğu gibi akar ve 10 saniyede bir tek satırlık özet eklenir:
 
 ```text
-⏱ 10 sn · adım 607/1 500 · 15,8 ms/adım · tensör %96 (matris çarpımı (@) %44, geri · matris çarpımı (@) %24, dikkat %3,7) · satır 41_gpt.tr:49 %37 · Go yığını 9,1 MB · çöp toplama 361 (84,3 ms)
+⏱ 10 sn · adım 607/1 500 · 15,8 ms/adım · tensör %96 (matris çarpımı (@) %44, geri · matris çarpımı (@) %24, dikkat %3,7) · satır 41_gpt.tr:49 %37 · çöp toplayıcının öbeği 9,1 MB · çöp toplama 361 (84,3 ms, pay %4,0)
 ```
 
 Ctrl+C her zamanki gibi programı nazikçe durdurur (kontrol noktası varsa kaydedilir); rapor yine yazılır.

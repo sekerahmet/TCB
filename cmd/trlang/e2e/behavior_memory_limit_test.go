@@ -1,12 +1,15 @@
 package e2e
 
 import (
+	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -156,5 +159,98 @@ func TestChildProcessTakesTheSameMemoryLimit(t *testing.T) {
 	childLimit, ok2 := machineLimit(t, string(child))
 	if !ok1 || !ok2 || parentLimit != want || childLimit != want {
 		t.Errorf("başlatan %q, çocuk %q; ikisi de %d bekleniyordu", r.Stdout, child, want)
+	}
+}
+
+// collectorWarning H8894'ün başıdır (sınama süreci Türkçedir).
+const collectorWarning = "⚠️ Çöp toplayıcının işlemci payı son 10 saniyede "
+
+// runLong trlang'ı ortama env eklenmiş olarak, testkit.RunBinary'nin iki dakikasından uzun bir sınırla
+// çalıştırır; çalışma zamanının değişkenleri ortamdan çıkarılır.
+func runLong(t *testing.T, dir string, limit time.Duration, env []string, args ...string) (stdout, stderr string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), limit)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, trBinary, args...)
+	cmd.Dir = dir
+	cmd.Env = append(testkit.WithoutRuntimeVariables(os.Environ()), env...)
+	var out, errOut strings.Builder
+	cmd.Stdout, cmd.Stderr = &out, &errOut
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("trlang %v: %v\n%s", args, err, errOut.String())
+	}
+	return out.String(), errOut.String()
+}
+
+// Kural (19.12a, "Süreç tavana yaklaştıkça çöp toplayıcı sıklaşır"): canlı öbeğin altında kalan tavanla
+// 14 saniye ayıran program toplayıcının payı uyarısını bir kez alır ve sonuna kadar çalışır; uyarı
+// tavanı kopyalanınca çalışan biçimde yazar.
+func TestTightMemoryLimitWarnsAboutTheCollector(t *testing.T) {
+	if testing.Short() {
+		t.Skip("uzun: program 14 sn çalışır")
+	}
+	t.Parallel()
+	dir := t.TempDir()
+	writeTR(t, dir, "program.tr", `TR_var tut = TR_zeros([5000000])
+TR_var baş = TR_monotonic_ns()
+TR_for i TR_in 0..1000000000 {
+    TR_if TR_monotonic_ns() - baş > 14000000000 {
+        TR_break
+    }
+    TR_var g = TR_zeros([100000])
+}
+TR_print(tut.TR_shape)
+`)
+	const memCap = "8000000"
+	stdout, stderr := runLong(t, dir, time.Minute, []string{"TR_MEMORY_LIMIT=" + memCap}, "program.tr")
+	if strings.TrimSpace(stdout) != "[5000000]" {
+		t.Errorf("program sonuna kadar çalışmadı: %q", stdout)
+	}
+	var lines []string
+	for _, line := range strings.Split(stderr, "\n") {
+		if strings.HasPrefix(line, collectorWarning) {
+			lines = append(lines, line)
+		}
+	}
+	if len(lines) != 1 || !strings.Contains(lines[0], "(TR_MEMORY_LIMIT="+memCap+";") {
+		t.Errorf("tek toplayıcı uyarısı bekleniyordu, tavanıyla:\n%s", stderr)
+	}
+}
+
+// gcTraceStart gctrace satırının toplama anıdır: "gc 12 @121.004s".
+var gcTraceStart = regexp.MustCompile(`(?m)^gc \d+ @([0-9.]+)s`)
+
+// Kural (19.12a; tasarımın C "Uyarı"sı): bekleyen süreçte Go iki dakikada bir toplama zorlar; işlemcinin az
+// kullanıldığı pencerede bu toplamanın payı büyüse de bellek tavandan uzaktır, uyarı çıkmaz. Ön koşul:
+// gctrace'e göre 120. saniyeden sonra bir toplama olmuştur.
+func TestIdleProgramWithAMemoryLimitDoesNotWarn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("uzun: program 130 sn bekler")
+	}
+	t.Parallel()
+	dir := t.TempDir()
+	writeTR(t, dir, "program.tr", `TR_var liste = []
+TR_for i TR_in 0..1000000 {
+    liste.TR_append([i])
+}
+TR_sleep(130)
+TR_print("bitti")
+`)
+	stdout, stderr := runLong(t, dir, 4*time.Minute,
+		[]string{"TR_MEMORY_LIMIT=4294967296", "GODEBUG=gctrace=1"}, "program.tr")
+	if strings.TrimSpace(stdout) != "bitti" {
+		t.Errorf("program bitmedi: %q", stdout)
+	}
+	forced := false
+	for _, m := range gcTraceStart.FindAllStringSubmatch(stderr, -1) {
+		if at, err := strconv.ParseFloat(m[1], 64); err == nil && at >= 120 {
+			forced = true
+		}
+	}
+	if !forced {
+		t.Fatalf("ön koşul: 120. saniyeden sonra toplama yok, test bekleyen süreci sınamadı:\n%s", stderr)
+	}
+	if strings.Contains(stderr, collectorWarning) {
+		t.Errorf("bekleyen süreçte toplayıcı uyarısı çıktı:\n%s", stderr)
 	}
 }

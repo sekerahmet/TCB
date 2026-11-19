@@ -67,8 +67,8 @@ func ScreenLines(g *Snapshot, e Screen) []string {
 	s = append(s, "")
 	add(messages.Text(messages.H8266, nBytes(int64(g.Memory.GoHeap)),
 		allocRate(p.CPUTensorAlloc, p.Step, p.Seconds), gpuMemory(g.GPU)))
-	add(messages.Text(messages.H8267, g.GC.Count, durationText(g.GC.PauseSec),
-		durationText(p.Seconds), p.GCCount, durationText(p.PauseSec)))
+	add(messages.Text(messages.H8267, g.GC.Count, durationText(g.GC.PauseSec), percent(g.GC.CPUShare),
+		durationText(p.Seconds), p.GCCount, durationText(p.PauseSec), percent(p.GCCPUShare)))
 	if e.OutputFile != "" || len(e.LastOutput) > 0 {
 		s = append(s, "")
 		add(messages.Text(messages.H8268, e.OutputFile))
@@ -211,6 +211,6 @@ func SummaryLine(g *Snapshot) string {
 	if g.Window != nil && len(g.Window.Lines) > 0 {
 		b.WriteString(" · " + messages.Text(messages.H8281, linePos(g.Window.Lines[0]), percent(g.Window.Lines[0].Share)))
 	}
-	b.WriteString(" · " + messages.Text(messages.H8282, nBytes(int64(g.Memory.GoHeap)), g.GC.Count, durationText(g.GC.PauseSec)))
+	b.WriteString(" · " + messages.Text(messages.H8282, nBytes(int64(g.Memory.GoHeap)), g.GC.Count, durationText(g.GC.PauseSec), percent(g.GC.CPUShare)))
 	return b.String()
 }

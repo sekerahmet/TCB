@@ -32,17 +32,21 @@ func TestLimitSubtractsMemoryOutsideTheHeap(t *testing.T) {
 		t.Errorf("Limit() = %d, %v; %d, true bekleniyordu", n, ok, gib)
 	}
 	for _, s := range []struct {
-		add, want int64
+		add, want, outside int64
 	}{
-		{300 * mib, gib - 300*mib},
-		{100 * mib, gib - 400*mib},
-		{-300 * mib, gib - 100*mib},
-		{2 * gib, 0},
-		{-2*gib - 100*mib, gib},
+		{300 * mib, gib - 300*mib, 300 * mib},
+		{100 * mib, gib - 400*mib, 400 * mib},
+		{-300 * mib, gib - 100*mib, 100 * mib},
+		{2 * gib, 0, 2*gib + 100*mib},
+		{-2*gib - 100*mib, gib, 0},
 	} {
 		AddExternal(s.add)
 		if got := debug.SetMemoryLimit(-1); got != s.want {
 			t.Errorf("AddExternal(%d): Go'nun sınırı %d, %d bekleniyordu", s.add, got, s.want)
+		}
+		// Toplayıcının uyarısı öbek dışını Outside'dan yazar.
+		if got := Outside(); got != s.outside {
+			t.Errorf("AddExternal(%d): Outside() = %d, %d bekleniyordu", s.add, got, s.outside)
 		}
 	}
 }

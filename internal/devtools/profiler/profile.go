@@ -297,6 +297,7 @@ type snap struct {
 	sampleTime time.Duration
 	sample     int64
 	memory     runtime.MemStats
+	cpu        CollectorTime
 	gpu        gpuSnap
 }
 
@@ -312,6 +313,7 @@ func (p *Profile) takeSnap() snap {
 		a.positions, a.sampleTime, a.sample = p.smp.snapshot()
 	}
 	runtime.ReadMemStats(&a.memory)
+	a.cpu = ReadCollectorTime()
 	a.gpu = takeGPUSnap()
 	return a
 }

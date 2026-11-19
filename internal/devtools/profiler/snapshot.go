@@ -5,7 +5,7 @@ import (
 )
 
 // ============================================================================
-// Profil biçimi (sürüm 6): canlı durum (profile.json) ve rapor (speed.json) aynı yapıdadır
+// Profil biçimi (sürüm 7): canlı durum (profile.json) ve rapor (speed.json) aynı yapıdadır
 // ============================================================================
 //
 // Anahtarlar ve sabit değerler ("live", "forward" ...) dosya biçiminin parçasıdır: dilden
@@ -16,7 +16,7 @@ import (
 // FormatName ve FormatVersion dosyanın kimliğidir.
 const (
 	FormatName    = "tr-profile"
-	FormatVersion = 6
+	FormatVersion = 7
 )
 
 // Snapshot bir programın profilinin anlık görüntüsüdür (canlı ya da son rapor).
@@ -220,6 +220,8 @@ type MemoryInfo struct {
 type GCInfo struct {
 	Count    uint32  `json:"count"`
 	PauseSec float64 `json:"pause_seconds"`
+	// CPUShare toplayıcının kullanılan işlemcideki payıdır (sürüm 7; collector.go).
+	CPUShare float64 `json:"cpu_share"`
 }
 
 // WindowInfo son saniyelerin ölçüleridir (canlı tabloyla aynı).
@@ -233,6 +235,8 @@ type WindowInfo struct {
 	Lines       []LineInfo `json:"lines,omitempty"`
 	GCCount     uint32     `json:"gc_count"`
 	PauseSec    float64    `json:"pause_seconds"`
+	// GCCPUShare toplayıcının pencerede kullanılan işlemcideki payıdır (sürüm 7).
+	GCCPUShare float64 `json:"gc_cpu_share"`
 	// CPUTensorAlloc pencerede CPU tensör işlemlerinin ayırdığı bayttır.
 	CPUTensorAlloc int64 `json:"cpu_tensor_alloc_bytes"`
 	// GPU çekirdeklerinin pencerede cihazda geçen süresi, pencere içindeki payı (GPU'nun

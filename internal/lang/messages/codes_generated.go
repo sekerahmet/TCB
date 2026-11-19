@@ -2130,8 +2130,8 @@ const (
 	H8233 Code = 8233 // Adımlar: {count} adım · {ms} ms/adım · {rate} adım/sn
 	H8234 Code = 8234 // Zaman: tensör işlemleri {share} ({duration}, {calls} çağrı, {bytes} ayrıldı) · geri kalanı {rest} (TR kodu, bekleme, çöp toplama)
 	H8235 Code = 8235 // Örnekleme: {interval} aralıkla {samples} örnek; tensör işlemindeki payı {share}
-	H8236 Code = 8236 // Bellek: Go yığını {heap} (Go'nun sistemden aldığı {sys}) · CPU tensör ayırması {alloc} toplam{gpu}
-	H8237 Code = 8237 // Çöp toplama: {count} kez, toplam duraklama {pause}
+	H8236 Code = 8236 // Bellek: çöp toplayıcının öbeği {heap} (Go'nun sistemden aldığı {sys}) · CPU tensör ayırması {alloc} toplam{gpu}
+	H8237 Code = 8237 // Çöp toplama: {count} kez, toplam duraklama {pause}, işlemci payı {share}
 	H8238 Code = 8238 // {ops}: yok
 	H8239 Code = 8239 // süre
 	H8240 Code = 8240 // pay
@@ -2154,8 +2154,8 @@ const (
 	H8263 Code = 8263 // Adım       {count} · {ms} ms/adım · {rate} adım/sn{remaining}
 	H8264 Code = 8264 // Zaman      tensör işlemleri {share} · geri kalanı (TR kodu, bekleme) {rest}   (son {window})
 	H8265 Code = 8265 // GPU        {gpu}
-	H8266 Code = 8266 // Bellek     Go yığını {heap} · CPU tensör ayırması {alloc}{gpu}
-	H8267 Code = 8267 // Çöp top.   {count} kez, toplam duraklama {pause} (son {window}: {windowCount} kez, {windowPause})
+	H8266 Code = 8266 // Bellek     çöp toplayıcının öbeği {heap} · CPU tensör ayırması {alloc}{gpu}
+	H8267 Code = 8267 // Çöp top.   {count} kez, toplam duraklama {pause}, pay {share} (son {window}: {windowCount} kez, {windowPause}, pay {windowShare})
 	H8268 Code = 8268 // Programın çıktısı (tamamı: {file})
 	H8269 Code = 8269 // {ops} (en pahalı)
 	H8270 Code = 8270 // çağrı/sn
@@ -2170,7 +2170,7 @@ const (
 	H8279 Code = 8279 // {device} canlı {live} (ayrılmış {allocated}, tepe {peak})
 	H8280 Code = 8280 // adım {count}
 	H8281 Code = 8281 // satır {pos} {share}
-	H8282 Code = 8282 // Go yığını {heap} · çöp toplama {count} ({pause})
+	H8282 Code = 8282 // çöp toplayıcının öbeği {heap} · çöp toplama {count} ({pause}, pay {share})
 	H8283 Code = 8283 // GPU belleğinin tepesinde ({peak}) canlı tensörler, ayıran satıra göre (geri yayılımda ayrılanlar geri yayılımı başlatan satırdadır):
 	H8284 Code = 8284 // yerinde yazma
 	H8285 Code = 8285 // adımlı kopya
@@ -2387,6 +2387,7 @@ const (
 	H8891 Code = 8891 // {name}={value|q} birim almaz, değer bayt cinsinden yazılır: {name}={bytes}
 	H8892 Code = 8892 // {name}={value|q} birim almaz ve bu birim iki türlü okunur; değer bayt cinsinden yazılır: 10'un kuvvetleriyle {name}={decimal}, 2'nin kuvvetleriyle {name}={binary}
 	H8893 Code = 8893 // {vars}: TR'nin değil, uygulamanın çalışma zamanının {count, plural, one {ayarı} other {ayarları}}; GOMEMLIMIT öbek dışındaki belleği (yüklenen ağırlıklar) saymaz. Sürecin bellek tavanı {name} ile verilir, bayt cinsinden: 6 GiB için {name}=6442450944
+	H8894 Code = 8894 // Çöp toplayıcının işlemci payı son {window} saniyede {share}: süreç bellek tavanına yakın ({name}={limit}; çöp toplayıcının öbeği {heap}, öbek dışı {outside} bayt). Program yavaşlıyor; tavanı yükseltin ya da programın belleğini azaltın
 	H8895 Code = 8895 // {vars}: TR'nin değil, uygulamanın çalışma zamanının {count, plural, one {ayarı} other {ayarları}}
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )
