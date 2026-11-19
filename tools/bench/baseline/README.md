@@ -61,6 +61,14 @@ python3 -I tools/bench/baseline/run.py --rows --out "$TR_RECORD_DIR"
 
 Koşu `go run ./tools/record --name h1-baseline-<makine>-<bölüm> --out <Drive>/TR_dili/olcumler -- python3 -I tools/bench/baseline/run.py …` ile sarılır. Sabit sesler (O-7) bir kez, HIGHRAM'de `--make-sounds` ile üretilir: TR'nin sesi, sonra ffmpeg'le 16 kHz tek kanal 16 bit (Whisper'ın hızı; Piper 22 050 Hz konuşur); sha256'larıyla (`sounds/sounds.json`) her makineye taşınır; sesler yoksa ya da tutmazsa S5 ve S8 sona kalır.
 
+## Makine başına hazır betikler (`machines/`)
+
+`machines/<laptop|highram|l4|g4>/` altında her ölçü ve model için tek betik durur (Ahmet 2026-11-19 22:56, 23:01): betik o makinede o ölçüyü kurulumdan kayda kadar tek başına koşar, başında satırlarının gittiği `docs/measurements` dosyası yazar. Klasöre yalnız gerçek makinede bir kez düzgün çalışmış betik girer. Dizüstünün betikleri ortak başı `machines/laptop/lib.sh`'tan alır: `trlang` ve `record` bu commit'ten derlenir, makine ve güç planı kayda yazılır, ölçü `run.py --machine laptop` ile `tools/record` altında koşar. Yollar ortam değişkenlerindendir (`OLCU_MODELLER`, `OLCU_IS`, `OLCU_KAYIT`; öntanımlıları kullanıcının klasörü altında). Asıl ölçü ölçü penceresinde koşar.
+
+```bash
+bash tools/bench/baseline/machines/laptop/empty-program.sh
+```
+
 ## `cpu_baseline.sh` ile ilişkisi
 
 [`../cpu_baseline.sh`](../cpu_baseline.sh) karakter modelini ve çekirdekleri 1, 2, 4, 8 iş parçacığıyla ölçer: iş parçacığına göre ölçeklenmeyi gösterir. Bu set makine başına tek sayıyla, emsaliyle aynı koşulda ölçer: TR'nin o makinedeki yerini gösterir.
