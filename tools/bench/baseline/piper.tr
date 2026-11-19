@@ -8,6 +8,7 @@
 #   Fonem çevirisi ölçüye girmez (emsal onnxruntime da kimliklerle başlar). Her cümle ayrı üretilir ve tepesi 1'e
 #   normlanır (`_konuş`); cümle başına süre, ilk cümlenin süresi (ilk sese kadar) ve toplam ses/hesap yazılır.
 #   --noise zero gürültü ölçeklerini 0 yapar (ölçü ve O-7'nin Türkçe sesleri), --noise model sesin ölçekleriyle üretir.
+#   --write_ids çeviricinin kimliklerini kimlik dosyasının biçiminde yazar (emsal onları okur; Türkçe S7).
 #   --check_ids kimlik dosyasının fonemlerini sesin sözlüğüyle yeniden çevirir ve dosyadaki kimliklerle karşılaştırır
 #   (A-4, HIGHRAM'in uyuşma geçişi); üretim yapmaz.
 #   --wav verilirse cümleler arada --gap_s saniye sessizlikle tek dosyaya yazılır (O-7; sessizlik ölçüye girmez).
@@ -17,7 +18,7 @@ TR_import "tr/audio"
 TR_import "tr/phonemes"
 TR_import "tr/vits"
 
-TR_var opt = TR_command_line({"model": "", "texts": "", "set": "text_to_speech", "language": "tr", "ids": "", "check_ids": TR_false, "noise": "zero", "wav": "", "gap_s": 0.0, "device": "cpu"})
+TR_var opt = TR_command_line({"model": "", "texts": "", "set": "text_to_speech", "language": "tr", "ids": "", "write_ids": "", "check_ids": TR_false, "noise": "zero", "wav": "", "gap_s": 0.0, "device": "cpu"})
 
 TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
 
@@ -60,8 +61,18 @@ TR_if ids_file != "" {
     }
     TR_if given != sentences { TR_throw "\(ids_file)'s sentences are not \(texts)'s \(group).\(language) sentences; make the file again (tools/bench/baseline/README.md, A-11)" }
 } TR_else {
+    TR_var rows: TR_List[TR_JSON] = []
     TR_for text TR_in sentences {
-        TR_for p TR_in TR_phonemize(text, TR_language: voice.TR_voice_language) { ids.TR_append(voice._kimlikler(p)) }
+        TR_var pieces = TR_phonemize(text, TR_language: voice.TR_voice_language)
+        TR_for p TR_in pieces { ids.TR_append(voice._kimlikler(p)) }
+        TR_if pieces.TR_length == 1 { rows.TR_append(TR_JSON({"text": TR_JSON(text), "phonemes": TR_JSON(pieces[0]), "ids": TR_JSON(ids[ids.TR_length - 1])})) }
+    }
+    # --write_ids TR'nin kimliklerini emsalin okuyacağı biçimde yazar (references.py piper; Türkçe S7). Cümle başına
+    # tek fonem parçası gerekir: emsal cümleyi kimlik dizisiyle eşler.
+    TR_var out = TR_String(opt["write_ids"])
+    TR_if out != "" {
+        TR_if rows.TR_length != sentences.TR_length { TR_throw "--write_ids needs one phoneme piece per sentence; \(group).\(language) has sentences that split" }
+        TR_write_file(out, TR_json_string(TR_JSON({"made_by": TR_JSON("piper.tr, TR_phonemize"), "sentences": TR_JSON(rows)})))
     }
 }
 

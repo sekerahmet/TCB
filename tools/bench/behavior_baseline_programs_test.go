@@ -2,7 +2,9 @@
 package bench
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -65,6 +67,61 @@ func TestBaselineLoop100Hz(t *testing.T) {
 	}
 	if got["products"] == 0.0 || got["turns_under_load"] == 0.0 {
 		t.Errorf("the load did not run: %v", got)
+	}
+}
+
+// İş parçacığı (O-1): makinenin tek sayısı TR sürecinin gctrace satırındaki "<n> P"'dir, os.cpu_count() değil;
+// her emsalin komutu onu kendi seçeneğinin adıyla taşır, references.py her kitaplığa kendi adıyla verir.
+func TestBaselineThreadRule(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gctrace.txt")
+	line := "gc 1 @0.010s 1%: 0.01+0.5+0.02 ms clock, 0.1+0.2/0.3/0+0.1 ms cpu, 4->4->1 MB, 4 MB goal, 0 MB stacks, 0 MB globals, 97 P\n"
+	if err := os.WriteFile(path, []byte(line), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Procs    int
+		CPUCount int `json:"cpu_count"`
+		Settings struct {
+			Torch         int `json:"torch.set_num_threads"`
+			FasterWhisper struct {
+				CPUThreads int `json:"cpu_threads"`
+				NumWorkers int `json:"num_workers"`
+			} `json:"faster_whisper.WhisperModel"`
+			Onnx struct {
+				Intra int `json:"intra_op_num_threads"`
+				Inter int `json:"inter_op_num_threads"`
+			} `json:"onnxruntime.SessionOptions"`
+		}
+		Commands map[string][]string
+	}
+	selfCheck(t, &got, "threads", path)
+	if got.Procs != 97 || got.CPUCount == 97 {
+		t.Fatalf("procs %d (cpu_count %d), want the gctrace's 97", got.Procs, got.CPUCount)
+	}
+	s := got.Settings
+	if s.Torch != 97 || s.FasterWhisper.CPUThreads != 97 || s.FasterWhisper.NumWorkers != 1 || s.Onnx.Intra != 97 || s.Onnx.Inter != 1 {
+		t.Errorf("library settings %+v, want 97 by each name (inter-op and workers 1)", s)
+	}
+	flags := map[string]string{"llama-bench": "-t", "llama-completion": "-t", "whisper-cli": "-t", "lm": "--threads",
+		"whisper_hf": "--threads", "faster_whisper": "--threads", "mms": "--threads", "piper": "--threads", "matmul": "--threads"}
+	for name, flag := range flags {
+		cmd := strings.Join(got.Commands[name], " ")
+		if !strings.Contains(cmd, " "+flag+" 97") {
+			t.Errorf("%s: %q, want %s 97", name, cmd, flag)
+		}
+	}
+	if len(got.Commands) != len(flags) {
+		t.Errorf("%d reference commands, want %d: %v", len(got.Commands), len(flags), got.Commands)
+	}
+	// references.py sayıyı yalnız thread_settings'ten alır: torch, faster-whisper ve onnxruntime'ın üç yolu.
+	b, err := os.ReadFile("baseline/references.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(b)
+	if strings.Contains(src, "cpu_count") || strings.Count(src, "thread_settings(a.threads)") != 3 {
+		t.Errorf("references.py: cpu_count %v, thread_settings(a.threads) %d times; want no cpu_count and the three library paths",
+			strings.Contains(src, "cpu_count"), strings.Count(src, "thread_settings(a.threads)"))
 	}
 }
 

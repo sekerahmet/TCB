@@ -253,6 +253,26 @@ def _run_side(question, side, index, log, machine):
     return {"run": run, "result": parse_result(run["stdout"])}
 
 
+REFERENCES = os.path.join(BASE, "references.py")
+# The thread option of each reference, by its own name (O-1); references.py passes --threads on to each library
+# by that library's name (thread_settings: torch.set_num_threads, faster-whisper cpu_threads, onnxruntime intra_op).
+THREAD_FLAGS = {"llama-bench": "-t", "llama-completion": "-t", "whisper-cli": "-t", "lm": "--threads",
+                "whisper_hf": "--threads", "faster_whisper": "--threads", "mms": "--threads", "piper": "--threads",
+                "matmul": "--threads"}
+
+
+def reference_cmd(name, threads, binary=None, argv=()):
+    """The command of one reference with the machine's thread number; the only place the number is given."""
+    t = [THREAD_FLAGS[name], str(threads)]
+    if name == "llama-bench":
+        return [binary, *argv, "-r", "1", "--no-warmup", *t, "-o", "json"]
+    if name == "llama-completion":
+        return [binary, *argv, "--temp", "0", *t]
+    if name == "whisper-cli":
+        return [binary, *argv, "-bs", "1", "-bo", "1", "-nf", *t]
+    return [sys.executable, "-I", REFERENCES, name, *t, *argv]
+
+
 def threads_from_tr(cmd, env=None):
     """The thread number of this machine: the P field of the TR process's gctrace (O-1), and its live heap."""
     e = dict(env or os.environ)
@@ -276,6 +296,13 @@ def _self_check(name, arg):
             parts = json.load(f)
         return {"proc": parse_proc_status(parts["proc"]), "gpu": parse_nvidia_smi(parts["gpu"]),
                 "gctrace": parse_gctrace(parts["gctrace"])}
+    if name == "threads":
+        with open(arg, encoding="utf-8") as f:
+            n = parse_gctrace(f.read())["procs"]
+        r = subprocess.run([sys.executable, "-I", REFERENCES, "threads", str(n)], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL)
+        return {"procs": n, "cpu_count": os.cpu_count(), "settings": json.loads(r.stdout),
+                "commands": {name: reference_cmd(name, n, binary=name) for name in THREAD_FLAGS}}
     if name == "agreement":
         say = lambda text: [sys.executable, "-I", "-c", f"print('BASELINE ' + {json.dumps(json.dumps({'text': text}))})"]
         side = lambda n, t: {"name": n, "cmd": say(t), "measure": lambda res, run: run["wall_ms"]}
