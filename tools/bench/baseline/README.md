@@ -28,6 +28,7 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 - **Bellek:** Linux'ta `VmHWM` (sayaç, `ru_maxrss` ile karşılaştırılır) ve `RssAnon`'un 10 ms'lik örneklemesinin en büyüğü; Windows'ta `PeakWorkingSetSize` ve `PeakPagefileUsage`; GPU'da `nvidia-smi` 1 sn'de bir. Bir taraf birden çok süreçse (S1'de llama-bench'in iki koşusu) her alanın en büyüğü.
 - **Uyuşma:** Colab makinelerinde ölçüden önce ayrı bir geçiş (`--agreement`) her sorunun uyuşmasını bir kez dener; GPU makinelerinde önce onnxruntime'ın CUDA sağlayıcısı, HIGHRAM'de kimlik dosyası (`piper.tr --check_ids`). Dizüstünde ayrı geçiş yoktur: ısınma koşusu uyuşma koşusudur. Uyuşmazlık, hata veren koşu ya da dizüstünde %20'yi aşan yabancı yük o soruda durdurur, çıkış kodu 3.
 - **Kayıt:** `--out` klasörüne `log.jsonl` (her koşu, öncesi ve sonrası süreç listesi), `metrics.json` (anahtar başına ölçüler, oranlar, hüküm, bellek), `agreement.json`. `--skip-done` `metrics.json`'daki anahtarları atlar. `--rows` satır taslağını yazar; satırın her sayısı `metrics.json`'dan doğrulanır.
+- **Taban (`--base-trlang <yol>`):** her sorunun TR tarafı aynı programın taban ikilisiyle (main'in derlemesi; çağıran derler) koşan tarafa karşı ölçülür: ısınma, sıra ve yük denetimi aynı, oran dal/taban, anahtar `<soru>/base` (S5'te dil başına `S5/tr/base`); uyuşma geçişi ve Dost'un özel koşuları yoktur (`TestBaselineBaseTrlang`).
 
 ## Sorular
 
