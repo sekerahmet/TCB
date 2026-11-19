@@ -1,0 +1,162 @@
+# TR 4
+# Temel ölçü seti S1–S3 (tools/bench/baseline/README.md): dil modelinin okuma ve üretim hızı, Dost'un yolundan
+# (TR_pretrained_gguf, kapasiteli önbellek, TR_vendor_matmul ve TR_quantized_activations blokları).
+#   --mode speed: boş önbellekte --prompt token okunur (tek çağrı), sonra o derinlikten --gen adım açgözlü üretilir.
+#   --mode depth: --depths derinliklerin her birinde korunan önbelleğin üstüne --depth_prompt token okunur (S3).
+#   --mode agree: --text'in kendisi okunur ve --agree_tokens token açgözlü üretilir.
+#   --mode forced: --text ile llama.cpp'nin açgözlü cevabı (--given, llama-completion'ın çıktısı) tek okumada; her
+#     konumda TR'nin en olası token'ı ve llama.cpp'nin token'ına göre logit farkı, işlemcide ε (S1'in uyuşması, B14).
+# Süreç içi ısınma yok: ölçmeden önce hiçbir şey koşmaz (setin ısınması süreç başınadır, run.py).
+# --model bir GGUF dosyası, --folder bir Hugging Face klasörüdür (config.json, tokenizer.json, bir ya da
+# birçok *.safetensors parçası; parçalar tek sözlükte birleşir, TR_pretrained_model yalnız model.safetensors'ı okur).
+# Sonuç son satırdadır: BASELINE {json}.
+TR_import "tr/pretrained"
+TR_import "tr/hugging_face"
+
+TR_var opt = TR_command_line({"model": "", "folder": "", "dtype": "bf16", "mode": "speed", "quantized": "auto", "device": "cpu", "prompt": 512, "gen": 128, "depths": "700,4100", "depth_prompt": 40, "agree_tokens": 32, "text": "", "given": ""})
+
+TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
+
+TR_func call(q: TR_Bool, f: () -> TR_Tensor) -> TR_Tensor {
+    TR_if q { TR_return TR_vendor_matmul { TR_quantized_activations { f() } } }
+    TR_return TR_vendor_matmul { f() }
+}
+
+# read: k parçalarını önbelleğin üstüne okur, son konumun logit'ini verir; TR_argmax hesabın bitmesini bekletir.
+TR_func read(q: TR_Bool, model: TR_GPT, k: TR_List[TR_Int], c: TR_KVCache) -> TR_Int {
+    TR_var l = call(q) { model.TR_logits(model.TR_hidden_states([k], TR_cache: c).TR_slice(1, k.TR_length - 1, k.TR_length))[0][0] }
+    TR_return TR_argmax(l, TR_dim: -1).TR_tolist
+}
+
+# forced_logits: seq'i boş önbellekte tek çağrıda okur, at'tan başlayan n konumun logit'lerini verir ([n, sözlük]).
+TR_func forced_logits(q: TR_Bool, model: TR_GPT, seq: TR_List[TR_Int], at: TR_Int, n: TR_Int) -> TR_Tensor {
+    TR_var c = model.TR_build_cache(TR_capacity: seq.TR_length + 8)
+    TR_return call(q) { model.TR_logits(model.TR_hidden_states([seq], TR_cache: c).TR_slice(1, at, at + n))[0] }
+}
+
+TR_func step(q: TR_Bool, model: TR_GPT, x: TR_Int, c: TR_KVCache) -> TR_Int {
+    TR_var l = call(q) { model.TR_logits(model.TR_hidden_states([[x]], TR_cache: c))[0][0] }
+    TR_return TR_argmax(l, TR_dim: -1).TR_tolist
+}
+
+# load_folder: parçalı ya da tek dosyalı Hugging Face klasörünü açık API'yle kurar.
+TR_func load_folder(folder: TR_String, dtype: TR_String) -> TR_GPT {
+    TR_var config = TR_json_parse(TR_read_file(TR_Path(folder, "config.json")))
+    TR_var model = TR_build_pretrained_model(config, TR_weight_dtype: dtype)
+    TR_var weights: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_var parts = [TR_String(p) TR_for p TR_in TR_list_dir(folder, "*.safetensors")].TR_sort()
+    TR_if parts.TR_length == 0 { TR_throw "--folder \(folder) has no *.safetensors file. Example: --folder Qwen3-4B" }
+    TR_for p TR_in parts {
+        TR_var t = TR_load_tensors(p)
+        TR_for name TR_in t.TR_keys() { weights[name] = t[name] }
+    }
+    TR_load_parameters(model, TR_map_hugging_face(weights, config))
+    TR_return model
+}
+
+TR_var mode = TR_String(opt["mode"])
+TR_if TR_not ["speed", "depth", "agree", "forced"].TR_contains(mode) { TR_throw "--mode is speed, depth, agree or forced, not \(mode). Example: --mode speed" }
+TR_var device = TR_String(opt["device"])
+TR_var choice = TR_String(opt["quantized"])
+TR_if TR_not ["auto", "on", "off"].TR_contains(choice) { TR_throw "--quantized is auto, on or off, not \(choice). Example: --quantized auto" }
+# Nicemli etkinleştirme Dost'unki gibi seçilir (tools/assistant/nicemli.tr): auto işlemcide açık, GPU'da kapalı (15.41).
+TR_var q = TR_if choice == "auto" { device == "cpu" } TR_else { choice == "on" }
+TR_if q TR_and device != "cpu" { TR_throw "--quantized on runs only on the CPU (15.41), device \(device). Example: --quantized auto" }
+TR_var gguf = TR_String(opt["model"])
+TR_var folder = TR_String(opt["folder"])
+TR_if (gguf == "") == (folder == "") { TR_throw "give exactly one of --model (a GGUF file) and --folder (a Hugging Face folder). Example: --model Qwen3-4B-Q4_K_M.gguf" }
+TR_var text = TR_String(opt["text"])
+TR_if text == "" { TR_throw "--text is empty; run.py passes texts.json's language_model text. Example: --text \"Bir gün\"" }
+
+TR_default_device(device)
+TR_var t0 = now_us()
+TR_var tok = TR_if gguf != "" { TR_load_tokenizer(gguf) } TR_else { TR_load_tokenizer(folder) }
+TR_var model = TR_if gguf != "" { TR_pretrained_gguf(gguf) } TR_else { load_folder(folder, TR_String(opt["dtype"])) }
+TR_var load_ms = (now_us() - t0) / 1000.0
+
+TR_var P = TR_Int(opt["prompt"])
+TR_var G = TR_Int(opt["gen"])
+TR_var DP = TR_Int(opt["depth_prompt"])
+TR_var A = TR_Int(opt["agree_tokens"])
+TR_var depths = [TR_Int(s) TR_for s TR_in TR_String(opt["depths"]).TR_split(",")]
+TR_var need = TR_if mode == "speed" { P + G } TR_else TR_if mode == "depth" { depths[depths.TR_length - 1] + DP } TR_else { 0 }
+TR_var k: TR_List[TR_Int] = []
+TR_var once = tok.TR_encode(text)
+TR_for k.TR_length < TR_max(need, 1) {
+    TR_for x TR_in once { k.TR_append(x) }
+}
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"mode": TR_JSON(mode), "device": TR_JSON(device), "quantized": TR_JSON(q), "load_ms": TR_JSON(load_ms)}
+# put: sonucun bir alanını yazar (sözlükte + yoktur).
+TR_func put(r: TR_Dict[TR_String, TR_JSON], fields: TR_Dict[TR_String, TR_JSON]) {
+    TR_for name TR_in fields.TR_keys() { r[name] = fields[name] }
+}
+
+TR_no_grad {
+    TR_if mode == "speed" {
+        TR_var c = model.TR_build_cache(TR_capacity: P + G + 8)
+        TR_var b = now_us()
+        TR_var x = read(q, model, k[0..P], c)
+        TR_var read_ms = (now_us() - b) / 1000.0
+        TR_var made: TR_List[TR_Int] = []
+        b = now_us()
+        TR_for i TR_in 0..G {
+            made.TR_append(x)
+            x = step(q, model, x, c)
+        }
+        TR_var gen_ms = (now_us() - b) / 1000.0
+        put(result, {"prompt_tokens": TR_JSON(P), "prompt_ms": TR_JSON(read_ms), "gen_tokens": TR_JSON(G), "gen_depth": TR_JSON(P), "gen_ms": TR_JSON(gen_ms), "tokens": TR_JSON(made[0..TR_min(32, G)])})
+    }
+    TR_if mode == "depth" {
+        TR_var c = model.TR_build_cache(TR_capacity: depths[depths.TR_length - 1] + DP + 8)
+        TR_var rows: TR_List[TR_JSON] = []
+        TR_for D TR_in depths {
+            c.TR_truncate(0)
+            TR_var filled = 0
+            TR_for filled < D {
+                TR_var end = TR_min(filled + 512, D)
+                read(q, model, k[filled..end], c)
+                filled = end
+            }
+            TR_var b = now_us()
+            TR_var x = read(q, model, k[D..D + DP], c)
+            rows.TR_append(TR_JSON({"depth": D, "prompt_tokens": DP, "prompt_ms": (now_us() - b) / 1000.0, "first": x}))
+        }
+        put(result, {"depths": TR_JSON(rows)})
+    }
+    TR_if mode == "agree" {
+        TR_var c = model.TR_build_cache(TR_capacity: once.TR_length + A + 8)
+        TR_var x = read(q, model, once, c)
+        TR_var made: TR_List[TR_Int] = []
+        TR_for i TR_in 0..A {
+            made.TR_append(x)
+            TR_if i < A - 1 { x = step(q, model, x, c) }
+        }
+        put(result, {"prompt_tokens": TR_JSON(once.TR_length), "tokens": TR_JSON(made), "text": TR_JSON(tok.TR_decode(made))})
+    }
+    TR_if mode == "forced" {
+        # --given llama-completion'ın çıktısıdır: istemin metni, sonra açgözlü cevap. Cevap tek başına TR'nin
+        # parçalayıcısıyla bölünür (istemle birlikte bölmek sınırdaki token'ları birleştirebilir); ilk --agree_tokens
+        # token llama.cpp'nin dizisidir. llama-completion üretilen kimlikleri basmaz.
+        TR_var out = TR_read_file(TR_String(opt["given"]))
+        TR_if TR_not out.TR_starts_with(text) TR_or out.TR_length == text.TR_length { TR_throw "--given does not begin with --text and an answer; give llama-completion's output, which prints the prompt. Example: --given llama_completion.txt" }
+        TR_var answer = tok.TR_encode(out[text.TR_length..out.TR_length])
+        TR_var P0 = once.TR_length
+        TR_var n = TR_min(answer.TR_length, A)
+        TR_var given = answer[0..n]
+        TR_var lq = forced_logits(q, model, once + given[0..n - 1], P0 - 1, n)
+        TR_var rows: TR_List[TR_JSON] = []
+        TR_for i TR_in 0..n {
+            TR_var best = TR_argmax(lq[i], TR_dim: -1).TR_tolist
+            TR_var gap = lq[i][best].TR_tolist - lq[i][given[i]].TR_tolist
+            rows.TR_append(TR_JSON({"llama": given[i], "tr": best, "gap": gap}))
+        }
+        put(result, {"prompt_tokens": TR_JSON(P0), "given_tokens": TR_JSON(n), "positions": TR_JSON(rows)})
+        # ε: aynı konumlarda öbür yolun (nicemli ↔ nicemsiz) logitleriyle en büyük mutlak fark, Q4'ün kendi gürültüsü (B14).
+        # Nicemli etkinleştirme yalnız işlemcidedir (15.41); GPU'da ε yazılmaz.
+        TR_if device == "cpu" {
+            TR_var lo = forced_logits(TR_not q, model, once + given[0..n - 1], P0 - 1, n)
+            put(result, {"epsilon": TR_JSON(TR_max(TR_abs(lq - lo)).TR_tolist)})
+        }
+    }
+}
+TR_print("BASELINE \(TR_json_string(result))")

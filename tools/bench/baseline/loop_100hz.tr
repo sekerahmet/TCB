@@ -1,0 +1,58 @@
+# TR 4
+# Temel ölçü seti S13'ün 100 Hz döngüsü (tools/bench/baseline/README.md, roadmap "Hız": kaçan tur hedefi 0).
+#   Bir TR_async görevi --load_s saniye boyunca --size² matris çarpar (her çarpımın sonucundan bir öğe okunur; GPU'da
+#   hesap kartta, --device). Ana döngü --period_ms'lik turlarla TR_monotonic_ns ve TR_sleep'le --turns tur döner:
+#   i'inci turun sınırı başlangıç + (i + 1) · period'dur; tur kendi sınırından sonra uyanırsa kaçan turdur.
+#   Yükün sürdüğü turlar ayrıca sayılır. Kaçan turun değeri makinenin yüküne bağlıdır.
+# Sonuç son satırdadır: BASELINE {json}.
+TR_var opt = TR_command_line({"turns": 1000, "period_ms": 10, "load_s": 2.0, "size": 512, "device": "cpu"})
+
+TR_var turns = TR_Int(opt["turns"])
+TR_if turns < 1 { TR_throw "--turns is at least 1, not \(turns). Example: --turns 1000" }
+TR_var period = TR_Int(opt["period_ms"]) * 1000000
+TR_if period < 1 { TR_throw "--period_ms is at least 1, not \(TR_Int(opt["period_ms"])). Example: --period_ms 10" }
+TR_var load_ns = TR_Int(TR_Float(opt["load_s"]) * 1e9)
+TR_var n = TR_Int(opt["size"])
+TR_var device = TR_String(opt["device"])
+TR_default_device(device)
+
+TR_var products = 0
+TR_var checksum = 0.0
+TR_var load_end = 0
+TR_var start = TR_monotonic_ns()
+# Yük: görev load_ns boyunca çarpar; sonuç okunarak hesabın bitmesi beklenir.
+TR_var load = TR_async {
+    TR_var a = TR_randn([n, n], TR_seed: 1)
+    TR_var b = TR_randn([n, n], TR_seed: 2)
+    TR_no_grad {
+        TR_for TR_monotonic_ns() - start < load_ns {
+            TR_var c = a @ b
+            checksum += c[0][0].TR_tolist
+            products += 1
+        }
+    }
+    load_end = TR_monotonic_ns()
+}
+
+TR_var missed = 0
+TR_var missed_under_load = 0
+TR_var turns_under_load = 0
+TR_var worst_late_ns = 0
+TR_for i TR_in 0..turns {
+    TR_var woke = TR_monotonic_ns()
+    TR_var late = woke - (start + i * period)
+    TR_if late > worst_late_ns { worst_late_ns = late }
+    TR_var under = load_end == 0
+    TR_if under { turns_under_load += 1 }
+    TR_if woke > start + (i + 1) * period {
+        missed += 1
+        TR_if under { missed_under_load += 1 }
+    }
+    TR_var wait = start + (i + 1) * period - TR_monotonic_ns()
+    TR_if wait > 0 { TR_sleep(wait / 1e9) }
+}
+load.TR_wait()
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "turns": TR_JSON(turns), "period_ms": TR_JSON(TR_Int(opt["period_ms"])),
+    "missed": TR_JSON(missed), "turns_under_load": TR_JSON(turns_under_load), "missed_under_load": TR_JSON(missed_under_load),
+    "worst_late_ms": TR_JSON(worst_late_ns / 1e6), "products": TR_JSON(products), "size": TR_JSON(n), "load_s": TR_JSON(TR_Float(opt["load_s"]))}
+TR_print("BASELINE \(TR_json_string(result))")

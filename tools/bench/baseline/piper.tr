@@ -1,0 +1,130 @@
+# TR 4
+# Temel ölçü seti S7 (tools/bench/baseline/README.md): Piper sesiyle yazıyı konuşmaya çevirme, TR'nin VITS yolundan
+# (TR_pretrained_vits, sesin fonem kimlikleriyle `_konuş`; S1 K7'nin ölçü programının yolu, olc_tr.tr).
+#   Cümleler --texts dosyasının --set ve --language alanından okunur ("key" adı gizli sayılır, mms.tr). Kimlikler iki yoldan gelir:
+#   - --ids verilmezse TR'nin fonem çeviricisi (TR_phonemize, sesin dili) ve sesin sözlüğü (`_kimlikler`);
+#   - --ids verilirse kimlik dosyası (english_phoneme_ids.json, A-4): dosyadaki cümleler --texts'teki cümlelerle
+#     aynı sırada aynı olmalıdır, değilse program durur (metin değişince dosya sessizce eskimez).
+#   Fonem çevirisi ölçüye girmez (emsal onnxruntime da kimliklerle başlar). Her cümle ayrı üretilir ve tepesi 1'e
+#   normlanır (`_konuş`); cümle başına süre, ilk cümlenin süresi (ilk sese kadar) ve toplam ses/hesap yazılır.
+#   --noise zero gürültü ölçeklerini 0 yapar (ölçü ve O-7'nin Türkçe sesleri), --noise model sesin ölçekleriyle üretir.
+#   --write_ids çeviricinin kimliklerini kimlik dosyasının biçiminde yazar (emsal onları okur; Türkçe S7).
+#   --check_ids kimlik dosyasının fonemlerini sesin sözlüğüyle yeniden çevirir ve dosyadaki kimliklerle karşılaştırır
+#   (A-4, HIGHRAM'in uyuşma geçişi); üretim yapmaz.
+#   --wav verilirse cümleler arada --gap_s saniye sessizlikle tek dosyaya yazılır (O-7; sessizlik ölçüye girmez).
+# Açılış süresi TR_pretrained_vits'tir. Süreç içi ısınma yok (setin ısınması süreç başınadır, run.py).
+# Sonuç son satırdadır: BASELINE {json}.
+TR_import "tr/audio"
+TR_import "tr/phonemes"
+TR_import "tr/vits"
+
+TR_var opt = TR_command_line({"model": "", "texts": "", "set": "text_to_speech", "language": "tr", "ids": "", "write_ids": "", "check_ids": TR_false, "noise": "zero", "wav": "", "gap_s": 0.0, "device": "cpu"})
+
+TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
+
+TR_var path = TR_String(opt["model"])
+TR_if path == "" { TR_throw "--model is empty; give a Piper voice (.onnx with its .onnx.json). Example: --model tr_TR-dfki-medium.onnx" }
+TR_var texts = TR_String(opt["texts"])
+TR_if texts == "" { TR_throw "--texts is empty; run.py passes tools/bench/baseline/texts.json. Example: --texts tools/bench/baseline/texts.json" }
+TR_var noise = TR_String(opt["noise"])
+TR_if TR_not ["zero", "model"].TR_contains(noise) { TR_throw "--noise is zero or model, not \(noise). Example: --noise zero" }
+TR_var group = TR_String(opt["set"])
+TR_var language = TR_String(opt["language"])
+TR_var sentences: TR_List[TR_String] = []
+# Alan ya cümle listesidir ya da tek paragraftır (speech_to_text); paragraf ". "de cümlelerine bölünür (mms.tr).
+TR_var chosen = TR_json_parse(TR_read_file(texts))[group][language]
+TR_if TR_Type(chosen) == TR_String {
+    TR_for s TR_in TR_String(chosen).TR_split(". ") { sentences.TR_append(s.TR_strip(".") + ".") }
+} TR_else {
+    TR_for s TR_in chosen { sentences.TR_append(TR_String(s)) }
+}
+TR_if sentences.TR_length == 0 { TR_throw "\(texts) has no sentence under \(group).\(language). Example: --set text_to_speech --language tr" }
+TR_var ids_file = TR_String(opt["ids"])
+TR_var check = TR_Bool(opt["check_ids"])
+TR_if check TR_and ids_file == "" { TR_throw "--check_ids needs --ids. Example: --ids tools/bench/baseline/english_phoneme_ids.json --check_ids" }
+TR_var device = TR_String(opt["device"])
+
+TR_default_device(device)
+TR_var t0 = now_us()
+TR_var voice = TR_pretrained_vits(path)
+TR_var load_ms = (now_us() - t0) / 1000.0
+TR_if noise == "zero" {
+    voice._gürültü = 0.0
+    voice._süre_gürültüsü = 0.0
+}
+
+# Kimlikler: dosyadan (cümleler texts.json'unkilerle aynı olmalı) ya da TR'nin çeviricisinden.
+TR_var ids: TR_List[TR_List[TR_Int]] = []
+# Alıcının adı bir dosyanın adı olmaz (phonemes: lib/phonemes.tr; codegraph'ın üye yazımı belirsizleşir).
+TR_var given_phonemes: TR_List[TR_String] = []
+TR_if ids_file != "" {
+    TR_var rows = TR_json_parse(TR_read_file(ids_file))["sentences"]
+    TR_var given: TR_List[TR_String] = []
+    TR_for row TR_in rows {
+        given.TR_append(TR_String(row["text"]))
+        given_phonemes.TR_append(TR_String(row["phonemes"]))
+        ids.TR_append([TR_Int(x) TR_for x TR_in row["ids"]])
+    }
+    TR_if given != sentences { TR_throw "\(ids_file)'s sentences are not \(texts)'s \(group).\(language) sentences; make the file again (tools/bench/baseline/README.md, A-11)" }
+} TR_else {
+    TR_var rows: TR_List[TR_JSON] = []
+    TR_for text TR_in sentences {
+        TR_var pieces = TR_phonemize(text, TR_language: voice.TR_voice_language)
+        TR_for p TR_in pieces { ids.TR_append(voice._kimlikler(p)) }
+        TR_if pieces.TR_length == 1 { rows.TR_append(TR_JSON({"text": TR_JSON(text), "phonemes": TR_JSON(pieces[0]), "ids": TR_JSON(ids[ids.TR_length - 1])})) }
+    }
+    # --write_ids TR'nin kimliklerini emsalin okuyacağı biçimde yazar (references.py piper; Türkçe S7). Cümle başına
+    # tek fonem parçası gerekir: emsal cümleyi kimlik dizisiyle eşler.
+    TR_var out = TR_String(opt["write_ids"])
+    TR_if out != "" {
+        TR_if rows.TR_length != sentences.TR_length { TR_throw "--write_ids needs one phoneme piece per sentence; \(group).\(language) has sentences that split" }
+        TR_write_file(out, TR_json_string(TR_JSON({"made_by": TR_JSON("piper.tr, TR_phonemize"), "sentences": TR_JSON(rows)})))
+    }
+}
+
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "language": TR_JSON(language), "noise": TR_JSON(noise), "load_ms": TR_JSON(load_ms)}
+# put: sonucun alanlarını yazar (sözlükte + yoktur).
+TR_func put(r: TR_Dict[TR_String, TR_JSON], fields: TR_Dict[TR_String, TR_JSON]) {
+    TR_for name TR_in fields.TR_keys() { r[name] = fields[name] }
+}
+
+TR_if check {
+    TR_var bad: TR_List[TR_Int] = []
+    TR_for i, p TR_in given_phonemes {
+        TR_if voice._kimlikler(p) != ids[i] { bad.TR_append(i) }
+    }
+    put(result, {"mode": TR_JSON("check_ids"), "sentences": TR_JSON(given_phonemes.TR_length), "mismatched": TR_JSON(bad), "ids_match": TR_JSON(bad.TR_length == 0)})
+} TR_else {
+    TR_var rows: TR_List[TR_JSON] = []
+    TR_var waves: TR_List[TR_Tensor] = []
+    TR_var total_ms = 0.0
+    TR_var samples = 0
+    TR_var rate = 0
+    TR_no_grad {
+        TR_for k TR_in ids {
+            TR_var b = now_us()
+            TR_var sound = voice._konuş([k])
+            TR_var n = sound.TR_samples.TR_shape[1]
+            TR_var ms = (now_us() - b) / 1000.0
+            total_ms = total_ms + ms
+            samples = samples + n
+            rate = sound.TR_sample_rate
+            waves.TR_append(sound.TR_samples)
+            rows.TR_append(TR_JSON({"ms": TR_JSON(ms), "samples": TR_JSON(n), "ids": TR_JSON(k.TR_length)}))
+        }
+    }
+    TR_var audio_s = TR_Float(samples) / TR_Float(rate)
+    TR_var wav = TR_String(opt["wav"])
+    TR_if wav != "" {
+        TR_var gap = TR_zeros([1, TR_Int(TR_Float(opt["gap_s"]) * rate)])
+        TR_var parts: TR_List[TR_Tensor] = []
+        TR_for i, w TR_in waves {
+            TR_if i > 0 { parts.TR_append(gap) }
+            parts.TR_append(w)
+        }
+        TR_write_wav(wav, TR_Sound(TR_samples: TR_concat(parts, TR_dim: 1), TR_sample_rate: rate))
+    }
+    put(result, {"mode": TR_JSON("speak"), "sentences": TR_JSON(rows), "first_ms": rows[0]["ms"], "total_ms": TR_JSON(total_ms), "samples": TR_JSON(samples),
+        "sample_rate": TR_JSON(rate), "audio_s": TR_JSON(audio_s), "audio_per_compute": TR_JSON(audio_s / (total_ms / 1000.0))})
+}
+TR_print("BASELINE \(TR_json_string(result))")
