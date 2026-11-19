@@ -1,0 +1,12 @@
+{
+ "S1/qwen3-4b-q4km": {
+  "epsilon": 1.2810297,
+  "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": true
+ },
+ "S3/qwen3-4b-q4km": {
+  "epsilon": 1.2810297,
+  "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": true
+ }
+}
