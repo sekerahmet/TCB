@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -61,6 +62,62 @@ func q8GGUF(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return file
+}
+
+// dostSoundsCheck questions.py'yi sahte koşturucuyla yükler: make_sounds'un ffmpeg komutlarını ve logged_turns'ün kaydını basar.
+const dostSoundsCheck = `
+import importlib.util, json, os, sys, tempfile, types
+sys.stdout.reconfigure(encoding="utf-8")
+spec = importlib.util.spec_from_file_location("questions", "baseline/questions.py")
+qs = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(qs)
+d, cmds, log = tempfile.mkdtemp(), [], []
+def run_once(cmd):
+    if cmd[0] == "ffmpeg" and "-version" in cmd:
+        return {"rc": 0, "stdout": "ffmpeg version test", "stderr": ""}
+    out = cmd[-1] if cmd[0] == "ffmpeg" else cmd[cmd.index("--wav") + 1]
+    open(out, "wb").write(b"x")
+    if cmd[0] == "ffmpeg":
+        cmds.append(cmd)
+    return {"rc": 0, "stdout": "", "stderr": ""}
+rp = types.SimpleNamespace(run_once=run_once, Stop=RuntimeError)
+ctx = types.SimpleNamespace(rp=rp, sound=lambda n: os.path.join(d, n), model=lambda m: m, folder=lambda m: m,
+                            tr=lambda p, *a: ["trlang", p, *map(str, a)], log=log.append)
+qs.make_sounds(ctx)
+pads = {os.path.basename(c[-1]): [x for x in c if x.startswith("apad=")] for c in cmds}
+r = qs.logged_turns(ctx, "S8/tr", "SÖZ: Merhaba nasılsın?\nOLCU tur=1 ilk_ses_ms=5937\nSÖZ: Bugün günlerden ne?\nOLCU tur=2 ilk_ses_ms=6751\n")
+print(json.dumps({"pads": pads, "turns": len(r["turns"]), "log": log[-1]}, ensure_ascii=False))
+`
+
+// Dost'un sesleri (S8) sorular arasındakiyle aynı sessizlikle biter: sahte mikrofonun dosyası bitince Dost son soruyu
+// ancak ardındaki sessizlikle kapatır (B'de G4: 10 sorudan 9 tur, BC6). S5'in sesleri değişmez (sha256'ları A-11'inki).
+// Her S8 koşusunun turları ve duyulan sorular kayda yazılır: eksik tur kayıttan okunur.
+func TestBaselineDostSounds(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", dostSoundsCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got struct {
+		Pads  map[string][]string
+		Turns int
+		Log   struct {
+			Question  string
+			OlcuTurns int `json:"olcu_turns"`
+			Heard     []string
+		}
+	}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	for name, want := range map[string]int{"turn_tr.wav": 1, "turn_en.wav": 1, "stt_tr.wav": 0, "stt_en.wav": 0} {
+		if p := got.Pads[name]; len(p) != want || (want == 1 && p[0] != "apad=pad_dur=48.0") {
+			t.Errorf("%s: ffmpeg pad %v, want %d (48 s, the gap between the questions)", name, p, want)
+		}
+	}
+	if got.Turns != 2 || got.Log.Question != "S8/tr" || got.Log.OlcuTurns != 2 ||
+		!reflect.DeepEqual(got.Log.Heard, []string{"Merhaba nasılsın?", "Bugün günlerden ne?"}) {
+		t.Errorf("logged turns: %+v", got)
+	}
 }
 
 // --quantized auto Dost'un kuralıyla seçer (tools/assistant/nicemli.tr, nicemli_çöz): işlemcide yalnız nicemlenmiş

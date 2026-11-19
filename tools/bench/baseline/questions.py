@@ -407,6 +407,15 @@ def parse_olcu(stdout):
     return {"turns": turns}
 
 
+def logged_turns(ctx, key, stdout):
+    """parse_olcu, and every run's turns go to the log with the heard questions (Dost's "SÖZ:" lines): which turn is
+    missing is read from the record (BC6)."""
+    r = parse_olcu(stdout)
+    heard = [line[len("SÖZ:"):].strip() for line in stdout.splitlines() if line.startswith("SÖZ:")]
+    ctx.log({"question": key, "olcu_turns": len(r["turns"]), "heard": heard, "turns": r["turns"]})
+    return r
+
+
 def _number(v):
     if v in ("true", "false"):
         return v == "true"
@@ -460,7 +469,8 @@ def q_dost(ctx, q):
         if q == "S8":
             cmd = base + ["--kip", "canlı", "--sahte_mikrofon", ctx.sound(f"turn_{lang}.wav"), "--çalıcı", PLAYER,
                           "--en_çok_tur", "10", "--cihaz", ctx.tr_device]
-            out.append(item(f"S8/{lang}", side("TR", [cmd], turn_measures, parse=parse_olcu), alone_runs=3))
+            out.append(item(f"S8/{lang}", side("TR", [cmd], turn_measures, parse=lambda s, k=f"S8/{lang}": logged_turns(ctx, k, s)),
+                            alone_runs=3))
         elif q == "S9":
             out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=base, lang=lang: screen_turns(ctx, base, lang)))
         elif q == "S10":
@@ -707,8 +717,11 @@ def make_sounds(ctx):
                                    "--noise", noise, "--wav", voice_wav, "--gap_s", gap))
         if r["rc"] != 0:
             raise ctx.rp.Stop(f"sound {name}: {r['stderr'][-400:]}")
-        r = ctx.rp.run_once(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", voice_wav, "-ar", str(SOUND_RATE), "-ac", "1",
-                             "-c:a", "pcm_s16le", ctx.sound(name)])
+        # Dost's sounds (S8) end with the same silence as between the questions: the fake microphone's file ends, and
+        # Dost closes a turn only after silence, so without it the last question had no turn (B, G4: 9 of 10; BC6).
+        pad = ["-af", f"apad=pad_dur={gap}"] if group == "voice_turn" else []
+        r = ctx.rp.run_once(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", voice_wav, *pad, "-ar", str(SOUND_RATE),
+                             "-ac", "1", "-c:a", "pcm_s16le", ctx.sound(name)])
         if r["rc"] != 0:
             raise ctx.rp.Stop(f"sound {name}: ffmpeg failed: {r['stderr'][-400:]}")
         os.remove(voice_wav)
