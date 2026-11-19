@@ -29,8 +29,8 @@ var runtimeVariables = []string{"GOGC", "GOMEMLIMIT", "GODEBUG", "GOMAXPROCS", "
 // memoryRuntimeVariables tavanın yerine yazılan değişkenlerdir: uyarı onlar için tavanı önerir (H8893).
 var memoryRuntimeVariables = []string{"GOGC", "GOMEMLIMIT"}
 
-// applyMemorySettings TR_MEMORY_LIMIT verilmişse tavanı kurar; değer geçersizse hatayı döner ve
-// program başlamaz. Sonra ortamdaki çalışma zamanı değişkenlerini stderr'e tek satırla yazar.
+// applyMemorySettings TR_MEMORY_LIMIT verilmişse tavanı kurar ve toplayıcının payını izleyeni başlatır
+// (collector_share.go); değer geçersizse hatayı döner ve program başlamaz. Sonra ortamdaki çalışma zamanı değişkenlerini stderr'e tek satırla yazar.
 func applyMemorySettings(stderr io.Writer) error {
 	if v, ok := codes.EnvValue(codes.EnvMemoryLimit); ok {
 		n, err := parseMemoryLimit(v)
@@ -38,6 +38,7 @@ func applyMemorySettings(stderr io.Writer) error {
 			return err
 		}
 		sysmem.SetLimit(n)
+		watchCollectorShare(stderr, n)
 	}
 	if line, ok := runtimeVariablesWarning(os.LookupEnv); ok {
 		fmt.Fprintln(stderr, "⚠️ "+line)

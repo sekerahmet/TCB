@@ -25,7 +25,7 @@ func sampleSnapshot() *Snapshot {
 }
 
 // Canlı ekran: adım hızı penceredendir; GPU satırı meşguliyet, adım başına GPU süresi ve
-// aileler; bellek satırı Go yığını, CPU tensör ayırması (adım başına) ve GPU belleği.
+// aileler; bellek satırı çöp toplayıcının öbeği, CPU tensör ayırması (adım başına) ve GPU belleği.
 func TestScreenLines(t *testing.T) {
 	lines := ScreenLines(sampleSnapshot(), Screen{Width: 200, OutputFile: "c.txt", LastOutput: []string{"adım 300"}})
 	text := strings.Join(lines, "\n")
@@ -35,7 +35,7 @@ func TestScreenLines(t *testing.T) {
 		"matris çarpımı (@)", "ms/adım", "çağrı/adım",
 		"kerneller %75 meşgul · 30,0 ms/adım · carpim %60 · dikkat %30",
 		"egit.tr:12", "TR_backward(kayıp)",
-		"Go yığını 200,0 MB", "CPU tensör ayırması 1,0 MB/adım", "GPU canlı 3,0 GB (ayrılmış 4,0 GB, tepe 3,0 GB)",
+		"çöp toplayıcının öbeği 200,0 MB", "CPU tensör ayırması 1,0 MB/adım", "GPU canlı 3,0 GB (ayrılmış 4,0 GB, tepe 3,0 GB)",
 		"Programın çıktısı (tamamı: c.txt)", "│ adım 300",
 	} {
 		if !strings.Contains(text, p) {

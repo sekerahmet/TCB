@@ -42,7 +42,8 @@ func (p *Profile) setup(a snap, before *snap, last bool) *Snapshot {
 	g.GPU = p.gpuInfo(a.gpu)
 	g.Memory = p.memoryInfo(a)
 	g.GC = GCInfo{Count: a.memory.NumGC - p.base.memory.NumGC,
-		PauseSec: float64(a.memory.PauseTotalNs-p.base.memory.PauseTotalNs) / 1e9}
+		PauseSec: float64(a.memory.PauseTotalNs-p.base.memory.PauseTotalNs) / 1e9,
+		CPUShare: CollectorShare(p.base.cpu, a.cpu)}
 	if p.smp != nil {
 		g.Sampling = p.samplingInfo(a.positions, nil, a.sampleTime, a.sample)
 		if last {
@@ -103,6 +104,7 @@ func (p *Profile) window(a snap, before *snap) *WindowInfo {
 	gpuWindow(w, a.gpu, before.gpu, dur)
 	w.GCCount = a.memory.NumGC - before.memory.NumGC
 	w.PauseSec = float64(a.memory.PauseTotalNs-before.memory.PauseTotalNs) / 1e9
+	w.GCCPUShare = CollectorShare(before.cpu, a.cpu)
 	return w
 }
 

@@ -237,11 +237,11 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
 
 **Canlı tablo** (`screen.go`): standart hata bir terminalse tablo ekranın başından denetim dizileriyle yeniden çizilir (Windows'ta konsolun sanal terminal kipi açılır; `live_windows.go`). Programın standart çıkışı ve hatası bir boruya alınır (`capture.go`): tamamı bir dosyaya yazılır, son satırları tablonun altında görünür, program bitince yeniden yazılır; boru terminal olmadığından ilerleme çubuğu düz satır kipine geçer. Terminal değilse çıktı olduğu gibi akar, 10 saniyede bir tek satırlık özet eklenir.
 
-**Dosya biçimi** (`snapshot.go`): `profile.json` (canlı, iş klasöründe) ve `speed.json` / `trlang profile --json` (son rapor) aynı yapıdadır. Anahtarlar ve sabit değerler (`live`, `forward` ...) dosya biçiminin parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır, çevrilmez (dil tanımı 17.3); işlemlerin `code` alanı değişmez anahtardır, `name` insana gösterilen addır. Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 6 (sürüm 1'e göre `tensor` altında `implicit` (2), satırların `backward_share` (3), adımın `source` ve evreleri (4), `gpu` altında `ops` ve `lines` (5) eklendi; 6'da anahtarlar Türkçeden İngilizce tanımlayıcılara geçti):
+**Dosya biçimi** (`snapshot.go`): `profile.json` (canlı, iş klasöründe) ve `speed.json` / `trlang profile --json` (son rapor) aynı yapıdadır. Anahtarlar ve sabit değerler (`live`, `forward` ...) dosya biçiminin parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır, çevrilmez (dil tanımı 17.3); işlemlerin `code` alanı değişmez anahtardır, `name` insana gösterilen addır. Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 7 (sürüm 1'e göre `tensor` altında `implicit` (2), satırların `backward_share` (3), adımın `source` ve evreleri (4), `gpu` altında `ops` ve `lines` (5) eklendi; 6'da anahtarlar Türkçeden İngilizce tanımlayıcılara geçti; 7'de `gc` altında `cpu_share`, `window` altında `gc_cpu_share` eklendi):
 
 ```jsonc
 {
-  "format": "tr-profile", "version": 6, "kind": "live",         // "live" ya da "report"
+  "format": "tr-profile", "version": 7, "kind": "live",         // "live" ya da "report"
   "program": "egit.tr", "start": "2026-10-19T08:49:12.511+03:00",
   "time": "2026-10-19T08:49:24.511+03:00", "seconds": 12.0, "done": false,
   "exit_code": 0,                                          // yalnızca bitince
@@ -266,15 +266,15 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
       "backward_share": 0.64}],
     "functions": [{"name": "dikleştir", "seconds": 3.9, "share": 0.33}]},
   "memory": {"go_heap_bytes": 7864320, "go_sys_bytes": 44564480, "cpu_tensor_alloc_bytes": 7642211100},
-  "gc": {"count": 423, "pause_seconds": 0.113},
+  "gc": {"count": 423, "pause_seconds": 0.113, "cpu_share": 0.04},
   "window": {"seconds": 5.0, "step": 292, "ms_per_step": 17.1, "steps_per_second": 58.3,   // yalnızca canlıda
-    "tensor_share": 0.96, "ops": [], "lines": [], "gc_count": 165,
+    "tensor_share": 0.96, "ops": [], "lines": [], "gc_count": 165, "gc_cpu_share": 0.05,
     "pause_seconds": 0.055, "cpu_tensor_alloc_bytes": 2980000000,
     "gpu_seconds": 0, "gpu_share": 0, "gpu_families": []}
 }
 ```
 
-Satırın `file`ı ana programın dışındaysa (aktarılan modül) boştur: örnek yalnızca fonksiyon adını ve satırı bilir. `measured`, süresi ölçülen çağrı sayısıdır: panikle biten çağrı dışında her CPU ve GPU çağrısı ölçülür; dış (özel) işlemin geri hesabında 0'dır, süresi içindeki işlemlerin satırlarındadır. Canlı CPU tensör baytı ayrıca izlenmez (CPU tensörleri Go yığınındadır); `cpu_tensor_alloc_bytes` ayırma akışıdır.
+Satırın `file`ı ana programın dışındaysa (aktarılan modül) boştur: örnek yalnızca fonksiyon adını ve satırı bilir. `measured`, süresi ölçülen çağrı sayısıdır: panikle biten çağrı dışında her CPU ve GPU çağrısı ölçülür; dış (özel) işlemin geri hesabında 0'dır, süresi içindeki işlemlerin satırlarındadır. Canlı CPU tensör baytı ayrıca izlenmez (CPU tensörleri Go yığınındadır); `cpu_tensor_alloc_bytes` ayırma akışıdır. `cpu_share` çöp toplayıcının kullanılan işlemcideki payıdır (toplayıcının süresi, işlemcinin boşta olmayan süresine bölünür).
 
 **Maliyet** (ölçüm yöntemi: taban ve dalın test ikilileri aynı koşuda, sırası turdan tura dönerek; Colab CPU High-RAM, `RT-2026-11-18-HIGHRAM-H1-2`): sayaçların işlem başına yükü (sayma, etkin işlem, iki saat okuması) `BenchmarkCounterStartStop`'ta ölçüldü; 16 elemanlı tensörlerle `BenchmarkCounterSmallAdd`'de ve `BenchmarkCounterSmallForwardBackward`'da payı küçük, aralıklar çakışıyor. Yük amd64'te ölçüldü; öbür işlemcilerde ölçülmedi. Örnekleme açıkken çağrı yoğun TR kodu belirgin yavaşlar (ölçünün commit'i yazılmamış, güncel ölçü yok; hata ayıklayıcı yuvası doluyken yorumlayıcı fonksiyon ortamlarını havuzlamaz).
 

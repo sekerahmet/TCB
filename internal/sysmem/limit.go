@@ -50,6 +50,14 @@ func Limit() (int64, bool) {
 	return limit.cap, limit.cap > 0
 }
 
+// Outside öbek dışı blokların sayımıdır, bayt (tavan verilmese de sayılır). trlang'ın toplayıcı
+// uyarısı onu yazar (19.12a).
+func Outside() int64 {
+	limit.Lock()
+	defer limit.Unlock()
+	return limit.outside
+}
+
 // AddExternal öbek dışı bellek sayımına n bayt ekler (bırakılınca eksi n). Tavan varsa Go'nun
 // sınırı yeni toplama göre yeniden kurulur.
 func AddExternal(n int64) {

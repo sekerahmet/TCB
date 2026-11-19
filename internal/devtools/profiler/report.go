@@ -52,7 +52,7 @@ func ReportText(g *Snapshot) string {
 	b.WriteString("\n")
 	write(messages.Text(messages.H8236,
 		nBytes(int64(g.Memory.GoHeap)), nBytes(int64(g.Memory.GoSys)), nBytes(g.Memory.CPUTensorAlloc), gpuMemory(g.GPU)))
-	write(messages.Text(messages.H8237, g.GC.Count, durationText(g.GC.PauseSec)))
+	write(messages.Text(messages.H8237, g.GC.Count, durationText(g.GC.PauseSec), percent(g.GC.CPUShare)))
 	return b.String()
 }
 
