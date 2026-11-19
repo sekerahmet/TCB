@@ -2,29 +2,43 @@
  "S1/qwen3-4b-q4km": {
   "epsilon": 1.2810297,
   "epsilon_source": "measured here, quantized and unquantized path",
-  "ok": true
+  "ok": true,
+  "commit": "0236a817"
  },
  "S3/qwen3-4b-q4km": {
   "epsilon": 1.2810297,
   "epsilon_source": "measured here, quantized and unquantized path",
-  "ok": true
+  "ok": true,
+  "commit": "0236a817"
  },
  "S1/gemma3-4b-q4km": {
-  "epsilon": 3.7661057,
+  "epsilon": 3.5365086,
   "epsilon_source": "measured here, quantized and unquantized path",
-  "ok": false,
-  "commit": "238fc620"
+  "ok": true,
+  "commit": "0236a817"
  },
  "S1/qwen3-8b-q4km": {
   "epsilon": 1.9416008,
   "epsilon_source": "measured here, quantized and unquantized path",
   "ok": true,
-  "commit": "238fc620"
+  "commit": "0236a817"
  },
  "S1/gemma3-12b-q4km": {
-  "epsilon": 1.7940836,
+  "epsilon": 1.7428452,
   "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": true,
+  "commit": "0236a817"
+ },
+ "S1/qwen3-4b-q8": {
+  "epsilon": 0.0,
+  "epsilon_source": "by rule: no quantized path for these weights (15.53a)",
   "ok": false,
-  "commit": "238fc620"
+  "commit": "0236a817"
+ },
+ "S1/gemma3-4b-qat-q40": {
+  "epsilon": 0.648468,
+  "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": true,
+  "commit": "0236a817"
  }
 }
