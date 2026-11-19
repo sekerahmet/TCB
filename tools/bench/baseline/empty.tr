@@ -1,0 +1,3 @@
+# TR 4
+# Temel ölçü seti S14 (tools/bench/baseline/README.md): boş program. `trlang empty.tr`'nin açılıp kapanma süresini
+# run.py duvar saatiyle ölçer. Program bir şey yapmaz ve bir şey yazmaz: sonuç satırı yoktur (S14 çıktı okumaz).
