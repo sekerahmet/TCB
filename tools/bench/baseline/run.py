@@ -18,7 +18,7 @@ The method is fixed before any run (tools/bench/baseline/README.md):
   given to each reference by name;
 - memory: Linux VmHWM (counter, checked against ru_maxrss) and RssAnon (sampled every 10 ms);
   Windows PeakWorkingSetSize and PeakPagefileUsage (counters); GPU nvidia-smi every 1 s.
-A disagreement, a failed run or (on the laptop) foreign load over 20 % stops with exit code 3.
+A disagreement, a failed run or (on the laptop) foreign load over 20 % for 60 s (the runner itself not counted) stops with exit code 3.
 """
 import argparse, json, os, re, shutil, statistics, subprocess, sys, tempfile, threading, time
 
@@ -206,12 +206,65 @@ def _cpu_times():
     return t(kernel) + t(user) - t(idle), t(kernel) + t(user)
 
 
+def _own_cpu():
+    """CPU seconds of this runner and its finished children (its own process tree: not foreign load)."""
+    t = os.times()
+    return t.user + t.system + t.children_user + t.children_system
+
+
+# Units of _cpu_times per CPU second: /proc/stat counts clock ticks, GetSystemTimes 100 ns.
+_CPU_UNIT = (os.sysconf("SC_CLK_TCK") if hasattr(os, "sysconf") and sys.platform.startswith("linux") else 10_000_000)
+
+
 def foreign_load(seconds=1.0):
-    """The busy share (%) of the machine over `seconds` while this runner starts nothing."""
+    """The busy share (%) of the machine over `seconds` while this runner starts nothing, without the runner's own
+    process tree (on the laptop it counted itself; tani 2026-11-20: 1.5–5.7 CPU s of python in each window)."""
     b0, t0 = _cpu_times()
+    o0 = _own_cpu()
     time.sleep(seconds)
     b1, t1 = _cpu_times()
-    return 100.0 * (b1 - b0) / max(t1 - t0, 1)
+    own = (_own_cpu() - o0) * _CPU_UNIT
+    return 100.0 * max(b1 - b0 - own, 0) / max(t1 - t0, 1)
+
+
+def top_process():
+    """The process with the most CPU over a short window (the reason when the machine stays busy), or None without psutil."""
+    try:
+        import psutil
+    except ImportError:
+        return None
+    me = os.getpid()
+    procs = [p for p in psutil.process_iter(["name"]) if p.pid not in (0, me)]
+    for p in procs:
+        try:
+            p.cpu_percent(None)
+        except psutil.Error:
+            pass
+    time.sleep(0.5)
+    best = None
+    for p in procs:
+        try:
+            c = p.cpu_percent(None)
+        except psutil.Error:
+            continue
+        if best is None or c > best[1]:
+            best = (p.info["name"], c)
+    return f"{best[0]} {best[1]:.0f} %" if best else None
+
+
+def wait_for_quiet(question, log, measure=foreign_load, limit=None, wait=60.0, clock=time.monotonic, top=top_process):
+    """Before a laptop run: the foreign load under the limit, waiting at most `wait` seconds for it to fall (TCB
+    2026-11-20: Windows Defender scans after each run); if it stays high the question stops with the busiest process."""
+    limit = FOREIGN_LOAD_LIMIT if limit is None else limit
+    start = clock()
+    while True:
+        load = measure()
+        if load <= limit:
+            return load
+        if clock() - start >= wait:
+            busiest = top()
+            log({"question": question, "foreign_load": load, "waited_s": round(clock() - start, 1), "busiest": busiest})
+            raise Stop(f"{question}: foreign load {load:.0f} % before the run, still after {wait:.0f} s (busiest: {busiest})")
 
 
 def process_list():
@@ -289,10 +342,8 @@ def _run_side(question, side, index, log, machine, cmds=None):
     parse = side.get("agree_parse") if cmds and "agree_parse" in side else side.get("parse", parse_result)
     cmds = cmds or side.get("cmds") or [side["cmd"]]
     if machine == "laptop":
-        load = foreign_load()
+        load = wait_for_quiet(question, log)
         log({"question": question, "side": side["name"], "index": index, "foreign_load": load})
-        if load > FOREIGN_LOAD_LIMIT:
-            raise Stop(f"{question}: foreign load {load:.0f} % before the run")
     runs, results = [], []
     for cmd in cmds:
         log({"question": question, "side": side["name"], "index": index, "processes_before": process_list()})

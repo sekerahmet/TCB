@@ -438,3 +438,71 @@ func TestBaselineFastestPiperAndSilentScreen(t *testing.T) {
 		t.Errorf("Dost's screen mode player %q, want the silent %q", got.ScreenPlayer, got.Player)
 	}
 }
+
+// quietCheck wait_for_quiet'i sahte yük ve sahte saatle, foreign_load'ı sahte sayaçlarla sınar.
+const quietCheck = `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+out = {}
+now = [0.0]
+def seq(values):
+    it = iter(values)
+    def measure():
+        now[0] += 10.0
+        return next(it)
+    return measure
+logged = []
+out["falls"] = rp.wait_for_quiet("Q", logged.append, measure=seq([90, 50, 15]), clock=lambda: now[0], top=lambda: "x 99 %")
+now[0] = 0.0
+try:
+    rp.wait_for_quiet("Q", logged.append, measure=seq([90] * 20), clock=lambda: now[0], top=lambda: "MsMpEng.exe 80 %")
+    out["stays"] = "no stop"
+except rp.Stop as e:
+    out["stays"] = str(e)
+out["logged"] = logged
+rp.time.sleep = lambda s: None
+rp._CPU_UNIT = 10_000_000
+for name, own in (("own", 0.5), ("foreign", 0.0)):
+    times = [(0, 0), (5_000_000, 200_000_000)]  # the machine: 0.5 CPU s busy of 20 CPU s
+    owns = [0.0, own]
+    rp._cpu_times = lambda: times.pop(0)
+    rp._own_cpu = lambda: owns.pop(0)
+    out[name] = rp.foreign_load(1.0)
+print(json.dumps(out))
+`
+
+// Yük denetimi (TCB 2026-11-20; tanı: Windows Defender her koşudan sonra tarar, koşturucu kendini sayıyordu): yük
+// eşiğin altına inerse beklenip ölçülür, 60 sn'de inmezse soru en çok yük yapan süreçle durur; koşturucunun kendi
+// işlemci süresi yabancı yük sayılmaz.
+func TestBaselineWaitsForQuiet(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", quietCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got struct {
+		Falls   float64
+		Stays   string
+		Logged  []map[string]any
+		Own     float64
+		Foreign float64
+	}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if got.Falls != 15 {
+		t.Errorf("load falling 90, 50, 15: got %v, want 15 after waiting", got.Falls)
+	}
+	if !strings.Contains(got.Stays, "after 60 s") || !strings.Contains(got.Stays, "MsMpEng.exe") {
+		t.Errorf("load staying 90: %q, want a stop after 60 s naming the busiest process", got.Stays)
+	}
+	if len(got.Logged) != 1 || got.Logged[0]["busiest"] != "MsMpEng.exe 80 %" {
+		t.Errorf("log %v, want one line with the busiest process", got.Logged)
+	}
+	if got.Own != 0 || got.Foreign != 2.5 {
+		t.Errorf("0.5 CPU s busy of 20: foreign load %v when the runner did it, %v when another process did; want 0 and 2.5",
+			got.Own, got.Foreign)
+	}
+}
