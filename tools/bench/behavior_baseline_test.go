@@ -254,18 +254,17 @@ func TestBaselineTextsExist(t *testing.T) {
 		t.Error("language_model.tr is empty")
 	}
 	// İngilizce Piper'ın kimlik dosyası (A-4) texts.json'un İngilizce cümlelerinin kimlikleridir: metin değişince
-	// dosya sessizce eskimez. Dosya A-11'in Colab sınamasında üretilir ve ayrı commit'le girer; o commit'e kadar yoktur.
+	// dosya sessizce eskimez. Dosya A-11'in Colab sınamasında `prepare.sh phonemes` ile üretildi (piper-phonemize 1.1.0).
+	// Her kimlik dizisi Piper'ın biçimindedir: `^` (1) ile başlar, `$` (2) ile biter.
 	b, err = os.ReadFile("baseline/english_phoneme_ids.json")
-	if os.IsNotExist(err) {
-		t.Log("baseline/english_phoneme_ids.json is not made yet (A-11)")
-		return
-	}
 	if err != nil {
 		t.Fatal(err)
 	}
 	var ids struct {
-		Sentences []struct {
+		PiperPhonemize string `json:"piper_phonemize"`
+		Sentences      []struct {
 			Text string `json:"text"`
+			IDs  []int  `json:"ids"`
 		} `json:"sentences"`
 	}
 	if err := json.Unmarshal(b, &ids); err != nil {
@@ -274,6 +273,12 @@ func TestBaselineTextsExist(t *testing.T) {
 	var got []string
 	for _, s := range ids.Sentences {
 		got = append(got, s.Text)
+		if len(s.IDs) < 3 || s.IDs[0] != 1 || s.IDs[len(s.IDs)-1] != 2 {
+			t.Errorf("ids of %q: %v, want ^ (1) first and $ (2) last", s.Text, s.IDs)
+		}
+	}
+	if ids.PiperPhonemize != "1.1.0" {
+		t.Errorf("piper_phonemize %q, want 1.1.0 (A-4)", ids.PiperPhonemize)
 	}
 	if !reflect.DeepEqual(got, texts.TextToSpeech["en"]) {
 		t.Errorf("english_phoneme_ids.json sentences %q, want texts.json's text_to_speech.en %q", got, texts.TextToSpeech["en"])
