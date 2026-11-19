@@ -273,3 +273,52 @@ func TestBaselineQuantizedAuto(t *testing.T) {
 		}
 	}
 }
+
+// nglCheck dört makinede S1 ve S3'ün llama.cpp komutlarındaki -ngl değerlerini basar (ölçü ve uyuşma komutları).
+const nglCheck = `
+import importlib.util, json, os, sys, tempfile
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+qs = rp.load_questions()
+work = tempfile.mkdtemp()
+json.dump({"trlang": "trlang", "whisper_cli": "whisper-cli", "llama_bench": "llama-bench", "llama_completion": "llama-completion",
+           "go_compare": "g"}, open(os.path.join(work, "tools.json"), "w"))
+out = {}
+for machine in ("highram", "l4cpu", "l4gpu", "g4"):
+    ctx = qs.Ctx(rp, machine, 4, work, lambda r: None, dry=True)
+    got = []
+    for q in ("S1", "S3"):
+        for it in qs.items(ctx, q):
+            for c in it["ref"]["cmds"] + it.get("ref_agree", []):
+                if c[0] in ("llama-bench", "llama-completion"):
+                    got.append(str(c[c.index("-ngl") + 1]) if "-ngl" in c else "none")
+    out[machine] = got
+print(json.dumps(out))
+`
+
+// llama.cpp'nin öntanımlısı bütün katmanları GPU'ya koyar (-ngl -1; b12124 llama.h); L4'ün llama.cpp'si CUDA'lıdır ve
+// l4cpu aynı makinededir: işlemci sorusunda emsal GPU'da koşuyordu (BC20, Ahmet'in sorusu). S1 ve S3'ün her llama-bench ve
+// llama-completion komutu işlemci makinesinde -ngl 0, GPU makinesinde -ngl 99 taşır.
+func TestBaselineLlamaGPULayers(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", nglCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got map[string][]string
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	for machine, want := range map[string]string{"highram": "0", "l4cpu": "0", "l4gpu": "99", "g4": "99"} {
+		if len(got[machine]) == 0 {
+			t.Errorf("%s: no llama.cpp command in S1 and S3", machine)
+		}
+		for _, v := range got[machine] {
+			if v != want {
+				t.Errorf("%s: llama.cpp -ngl %s, want %s (%v)", machine, v, want, got[machine])
+				break
+			}
+		}
+	}
+}

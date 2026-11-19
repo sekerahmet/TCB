@@ -107,7 +107,9 @@ class Ctx:
         return self.rp.reference_cmd(name, self.threads, binary=binary, argv=[str(a) for a in argv])
 
     def ngl(self):
-        return ["-ngl", "99"] if self.gpu else []
+        # İşlemci makinesinde de açık 0: llama.cpp'nin öntanımlısı -1, "bütün katmanlar GPU'da" (b12124 llama.h); L4'ün
+        # llama.cpp'si CUDA'lıdır, l4cpu'da emsal GPU'da koşuyordu (BC20).
+        return ["-ngl", "99" if self.gpu else "0"]
 
 
 def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None):
