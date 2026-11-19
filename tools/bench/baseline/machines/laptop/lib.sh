@@ -63,6 +63,7 @@ olcu_kos() {
 olcu_model() {
   "$PY" -I "$(dirname "${BASH_SOURCE[0]}")/model.py" "$REPO" "$IS" "$MODELLER" "${LOCALAPPDATA:-}/Dost/modeller" "$1" ||
     { olcu "model $1 hazır değil"; exit 2; }
+  sleep 20  # sha256 hesabının yükü insin: koşturucunun yük denetimi koşudan önce ölçer
 }
 
 # olcu_surum <paket>...: emsalin Python paketlerinin sürümü ve torch'un aygıtı kayda (<ad>-makine.txt'nin yanına).
