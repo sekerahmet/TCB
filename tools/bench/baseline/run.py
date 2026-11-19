@@ -530,7 +530,10 @@ def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
     if ctx.machine == "highram":  # A-4: the English ids file against the voice's own mapping, once
         r = run_once(ctx.tr("piper.tr", "--model", ctx.model("piper-en-lessac-medium"), "--texts", qs.TEXTS, "--language",
                             "en", "--ids", qs.IDS_EN, "--check_ids"))
-        if r["rc"] != 0 or not parse_result(r["stdout"])["ids_match"]:
+        if r["rc"] != 0:  # A-11's fifth test: the English voice was not prepared and the stop said nothing
+            raise Stop(f"piper.tr --check_ids failed (exit {r['rc']}); is piper-en-lessac-medium prepared? "
+                       f"{r['stderr'].strip()[-400:]}")
+        if not parse_result(r["stdout"])["ids_match"]:
             raise Stop(f"english_phoneme_ids.json does not match the voice's mapping: {r['stdout'][-400:]}")
     for q in order_:
         for it in qs.items(ctx, q):
