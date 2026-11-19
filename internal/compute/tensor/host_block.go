@@ -14,8 +14,8 @@ import (
 // Öbek dışı blok: dosyadan gelen büyük ağırlıklar (15.53)
 // ============================================================================
 //
-// Ağırlık Go öbeğinde durunca çöp toplayıcının hedefi onunla büyür: 200 yüzdesinde canlının 3 katı,
-// 4B modelinde 8 463 MB. Hedefi süreç genelinde kısan ayar (GOMEMLIMIT, SetGCPercent) aynı programdaki
+// Ağırlık Go öbeğinde durunca çöp toplayıcının hedefi onunla büyür: hedef canlının katıdır (Go'nun
+// 100'ünde iki katı); 4B modelinde, trlang'ın hedefi 200'ken, 8 463 MB'tı. Hedefi süreç genelinde kısan ayar (GOMEMLIMIT, SetGCPercent) aynı programdaki
 // eğitimi de yavaşlatır; blok süreç ayarı istemez. Bellek anonimdir, dosya eşlemesi değil: dosya
 // kısaltılınca eşlemeye erişim süreci düşürür.
 //

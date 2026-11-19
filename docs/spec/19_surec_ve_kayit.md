@@ -162,4 +162,4 @@ TR_if m.TR_os == "windows" { TR_print("Windows") }
 - Tavan süreç başınadır: ortamı alan alt süreç (21.6) aynı tavanı kendisi için alır; tavan iki sürecin toplamı değildir.
 - Uygulamanın çalışma zamanına ait ortam değişkenleri dilin ayarı değildir; verilirlerse kodlu uyarı verilir.
 - Çöp toplayıcının ayarı programın türüne göre gizlice seçilmez; programın tek bellek ayarı bu tavandır.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestTrlangKeepsTheGoCollectorTarget` (tek bellek ayarı); tavan: henüz uygulanmadı.

@@ -17,7 +17,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/lib"
 	"os"
-	"runtime/debug"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -29,19 +28,8 @@ func init() { interp.SetLibrary(lib.Files) }
 
 const Version = "0.2.0"
 
-// gcTarget çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
-// büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
-// büyük ara tensör ayırır; 100'de karakter modeli adım başına ~0,8 toplama yapıyordu.
-// Ölçüm (examples/tr/36_karakter_modeli.tr, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
-// hızlı, ortanca −0,9…−1,5 ms/adım (~%6); tepe bellek 71 → 105 MB. Kullanıcının GOGC
-// env değişkeni her zaman önceliklidir.
-const gcTarget = 200
-
-func setGCTarget() {
-	if _, given := os.LookupEnv("GOGC"); !given {
-		debug.SetGCPercent(gcTarget)
-	}
-}
+// trlang çöp toplayıcının hedefini seçmez: Go'nun 100'ü kalır. Ayar programın türüne göre gizlice
+// seçilmez; programın tek bellek ayarı bellek tavanıdır (dil tanımı 19.12a).
 
 func main() {
 	// Geçersiz TR_LANG: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
@@ -49,13 +37,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
-	// Ortam değişkenleri her yazım dilinin adıyla verilebilir (TR_GPU_SYNC = TR_GPU_SYNC);
-	// hesap çekirdeği kimlik adını (TR_env_GPU_SYNC) okur. İki ad ayrı değerle verilmişse durulur.
+	// Ortam değişkenleri kimliğin adıyla verilir (TR_GPU_SYNC); bir gösterim dilinin adı (TR_GPU_ESZAMANLI)
+	// H8875'le durdurur (17.9). Hesap çekirdeği kimlik adını (TR_env_GPU_SYNC) okur.
 	if err := codes.ExportEnvironment(); err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
-	setGCTarget()
 	// Bu .exe 'trlang build' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, found, err := findEmbeddedPackage(); found {
 		if err != nil {
