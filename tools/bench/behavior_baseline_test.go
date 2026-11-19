@@ -496,8 +496,8 @@ func voiceRun(t *testing.T, name string, got map[string]any, sentences int, rate
 	return rows
 }
 
-// MMS (S6) ve Piper (S7) programları: cümleler texts.json'dan, gürültü 0; MMS'in WAV'ı cümleler arasında
-// sessizlikle yazılır; Piper kimlik dosyasıyla konuşur ve cümleleri texts.json'unkiler olmayan dosyayla durur.
+// MMS (S6) ve Piper (S7) programları: cümleler texts.json'dan (liste ya da paragraf), gürültü 0; MMS'in WAV'ı
+// cümleler arasında sessizlikle yazılır; Piper kimlik dosyasıyla konuşur ve cümleleri texts.json'unkiler olmayan dosyayla durur.
 func TestBaselineVoices(t *testing.T) {
 	dir := t.TempDir()
 	wav := filepath.Join(dir, "mms.wav")
@@ -506,6 +506,10 @@ func TestBaselineVoices(t *testing.T) {
 	if st, err := os.Stat(wav); err != nil || st.Size() != 44+2*(int64(mms["samples"].(float64))+2*8000) {
 		t.Errorf("mms wav: %v, want 44 header bytes and 16-bit samples with two 0.5 s gaps", err)
 	}
+	// speech_to_text tek paragraftır; program onu ". "de cümlelerine böler (O-7'nin S5 sesi; A-11'in ikinci
+	// sınaması liste beklenen yerde metinle durmuştu).
+	stt := program(t, "baseline/mms.tr", "--model", reporoot.Path("tests/data/vits_tiny"), "--texts", "baseline/texts.json", "--set", "speech_to_text", "--language", "en")
+	voiceRun(t, "mms speech_to_text", stt, 5, 16000)
 	b, err := os.ReadFile("baseline/texts.json")
 	if err != nil {
 		t.Fatal(err)

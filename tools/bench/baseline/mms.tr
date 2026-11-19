@@ -31,7 +31,14 @@ TR_if TR_not ["zero", "model"].TR_contains(noise) { TR_throw "--noise is zero or
 TR_var group = TR_String(opt["set"])
 TR_var language = TR_String(opt["language"])
 TR_var sentences: TR_List[TR_String] = []
-TR_for s TR_in TR_json_parse(TR_read_file(texts))[group][language] { sentences.TR_append(TR_String(s)) }
+# Alan ya cümle listesidir (text_to_speech, voice_turn) ya da tek paragraftır (speech_to_text, O-7'nin ~30 sn'lik
+# sesi); paragraf ". "de cümlelerine bölünür, cümleler arasına --gap_s girer.
+TR_var chosen = TR_json_parse(TR_read_file(texts))[group][language]
+TR_if TR_Type(chosen) == TR_String {
+    TR_for s TR_in TR_String(chosen).TR_split(". ") { sentences.TR_append(s.TR_strip(".") + ".") }
+} TR_else {
+    TR_for s TR_in chosen { sentences.TR_append(TR_String(s)) }
+}
 TR_if sentences.TR_length == 0 { TR_throw "\(texts) has no sentence under \(group).\(language). Example: --set text_to_speech --language tr" }
 TR_var device = TR_String(opt["device"])
 

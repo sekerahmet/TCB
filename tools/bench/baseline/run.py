@@ -229,9 +229,9 @@ def _measures(value):
 def run_pair(question, tr, ref, agree, log, machine):
     """Warm-up and the ABBA runs of TR against one reference.
 
-    tr and ref are dicts {"name", "cmd" or "cmds", "env", "measure", "warm"?, "parse"?}: one run of a side is its
-    commands in order, each in its own process; measure(results, runs) gives ms (smaller is better), one number or a
-    dict of named values, each with its own ratios and verdict. "warm" are other commands for the warm-up (on the
+    tr and ref are dicts {"name", "cmd" or "cmds", "env", "measure", "warm"?, "parse"?, "agree_parse"?}: one run
+    of a side is its commands in order, each in its own process; measure(results, runs) gives ms (smaller is
+    better), one number or a dict of named values, each with its own ratios and verdict. "warm" are other commands for the warm-up (on the
     laptop the agreement commands, O-4 N3). agree(tr_results, ref_results) on the warm-up returns None or the
     reason the outputs disagree; None as agree skips it (the agreement pass ran before, O-4)."""
     sides = {"TR": tr, "E": ref}
@@ -278,6 +278,9 @@ def memory_of(runs):
 
 
 def _run_side(question, side, index, log, machine, cmds=None):
+    # Agreement commands (cmds given) read their output with the side's "agree_parse" when it has one (S1:
+    # llama-completion's text, not llama-bench's JSON).
+    parse = side.get("agree_parse") if cmds and "agree_parse" in side else side.get("parse", parse_result)
     cmds = cmds or side.get("cmds") or [side["cmd"]]
     if machine == "laptop":
         load = foreign_load()
@@ -293,7 +296,7 @@ def _run_side(question, side, index, log, machine, cmds=None):
         if run["rc"] != 0:
             raise Stop(f"{question}: {side['name']} failed (exit {run['rc']}): {run['stderr'].strip()[-400:]}")
         runs.append(run)
-        results.append(side.get("parse", parse_result)(run["stdout"]))
+        results.append(parse(run["stdout"]))
     return {"runs": runs, "results": results}
 
 
@@ -368,7 +371,10 @@ def _self_check(name, arg):
         say = lambda text: [sys.executable, "-I", "-c", f"print('BASELINE ' + {json.dumps(json.dumps({'text': text}))})"]
         side = lambda n, t: {"name": n, "cmd": say(t), "measure": lambda res, runs: runs[0]["wall_ms"]}
         same = lambda a, b: None if a[0]["text"] == b[0]["text"] else f"{a[0]['text']!r} != {b[0]['text']!r}"
-        run_pair("check", side("tr", "a"), side("ref", "b"), same, lambda rec: None, "check")
+        # The reference's agreement command prints plain text, read with its agree_parse (S1's llama-completion).
+        plain = [sys.executable, "-I", "-c", "print('b')"]
+        ref = dict(side("ref", "b"), warm=[plain], agree_parse=lambda out: {"text": out.strip()})
+        run_pair("check", side("tr", "a"), ref, same, lambda rec: None, "check")
         return {"stopped": False}
     raise SystemExit(f"unknown self check {name!r}")
 

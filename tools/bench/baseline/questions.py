@@ -110,10 +110,12 @@ def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_run
             "runs": alone_runs, "custom": custom}
 
 
-def side(name, cmds, measure, parse=None, env=None):
+def side(name, cmds, measure, parse=None, env=None, agree_parse=None):
     s = {"name": name, "cmds": cmds, "measure": measure}
     if parse:
         s["parse"] = parse
+    if agree_parse:
+        s["agree_parse"] = agree_parse
     if env:
         s["env"] = env
     return s
@@ -167,7 +169,7 @@ def q_language(ctx, q):
             ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 512, "-n", 0, *ctx.ngl()]),
                                      ctx.ref("llama-bench", lb, ["-m", g, "-p", 0, "-n", 128, "-d", 512, *ctx.ngl()])],
                        lambda r, runs: {"prompt_ms": r[0]["avg_ns"] / 1e6, "gen_ms": r[1]["avg_ns"] / 1e6},
-                       parse=parse_llama_bench)
+                       parse=parse_llama_bench, agree_parse=raw)
             out.append(item(f"S1/{m}", tr, ref, agree_tokens_text,
                             [ctx.tr("language_model.tr", "--model", g, "--mode", "agree", "--text", text,
                                     "--device", ctx.tr_device, *quant)],
