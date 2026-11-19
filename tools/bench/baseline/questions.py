@@ -304,15 +304,16 @@ def q_whisper(ctx, q):
         pick = lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]}
         refs = [("faster-whisper-float32", side("faster-whisper float32", [fw("float32")], pick)),
                 ("faster-whisper-int8", side("faster-whisper int8", [fw("int8")], pick)),
-                ("transformers", side("transformers", [ctx.ref("whisper_hf", argv=["--model", ctx.folder("whisper-small"),
-                                                                                  "--audio", wav, "--device", ctx.torch_device,
-                                                                                  "--language", lang])], pick)),
                 ("whisper.cpp", side("whisper.cpp f16", [ctx.ref("whisper-cli", ctx.tools["whisper_cli"],
                                                                  ["-m", ctx.model("ggml-small"), "-f", wav, "-l", lang, "-nt",
                                                                   *([] if ctx.gpu else ["-ng"])])],
                                      lambda r, runs: {"transcribe_ms": whisper_cpp_ms(runs[0]["stderr"])},
                                      parse=lambda s: {"text": s.strip()}))]
-        f32 = {name: ref["cmds"][0] for name, ref in refs if name in F32_REFERENCES}
+        # transformers hız emsali değil (TCB 2026-11-20 00:15), kendi kalemi yok; float32'si B15'in sınırını kurar ve her
+        # kalemin uyuşmasında bir kez koşar (s5_agreement).
+        hf = ctx.ref("whisper_hf", argv=["--model", ctx.folder("whisper-small"), "--audio", wav, "--device", ctx.torch_device,
+                                         "--language", lang])
+        f32 = {"faster-whisper-float32": refs[0][1]["cmds"][0], "transformers": hf}
         for name, ref in refs:
             key = f"S5/{lang}/{name}"
             out.append(item(key, tr, ref, s5_agreement(ctx, key, name, f32, source), tr["cmds"], ref["cmds"]))

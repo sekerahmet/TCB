@@ -4,6 +4,7 @@
 #   OLCU_MODELLER  modellerin klasörü (öntanımlı $USERPROFILE/models)
 #   OLCU_IS        iş klasörü (öntanımlı $USERPROFILE/TR_olcu/is): bin/, tools.json, models/
 #   OLCU_KAYIT     kayıt kökü (öntanımlı $USERPROFILE/TR_olcu/kayit)
+#   OLCU_SESLER    O-7'nin sabit seslerinin klasörü (öntanımlı $USERPROFILE/TR_olcu/sesler; Colab'daki A-11'in sounds/'u)
 # Asıl ölçü ölçü penceresinde koşar (YAN_DAL bölüm 7); pencere dışındaki koşu denemedir, sayısı kullanılmaz.
 set -u
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)
@@ -73,10 +74,26 @@ olcu_model() {
     { olcu "model $1 hazır değil"; exit 2; }
 }
 
+# olcu_ses <dosya=sha256>...: sabit sesler OLCU_SESLER'den iş klasörünün sounds/'una, sha256 denetimiyle; tutmazsa ölçü yok
+# (sesler her makinede aynı baytlar; sha256'lar A-11'in sounds.json'undan).
+olcu_ses() {
+  local kaynak=${OLCU_SESLER:-$USERPROFILE/TR_olcu/sesler} kv dosya want got
+  mkdir -p "$IS/sounds"
+  for kv in "$@"; do
+    dosya=${kv%%=*}; want=${kv#*=}
+    [ -f "$kaynak/$dosya" ] || { olcu "ses yok: $kaynak/$dosya"; exit 2; }
+    got=$(sha256sum < "$kaynak/$dosya" | cut -c1-64)
+    [ "$got" = "$want" ] || { olcu "ses $dosya sha256 tutmadı: $got"; exit 2; }
+    cp "$kaynak/$dosya" "$IS/sounds/$dosya"
+    echo "ses $dosya: sha256 ${got:0:12} tuttu"
+  done
+}
+
 # olcu_surum <paket>...: emsalin Python paketlerinin sürümü ve torch'un aygıtı kayda (<ad>-makine.txt'nin yanına).
 olcu_surum() {
   "$PY" -I -c "
 import importlib, sys
+sys.stdout.reconfigure(encoding='utf-8')  # Windows'ta yönlendirilmiş çıktı cp1254'tü: 'aygıtı' bozuk basılıyordu
 for m in sys.argv[1:]:
     try:
         mod = importlib.import_module(m)

@@ -140,9 +140,19 @@ ctx = qs.Ctx(rp, "g4", 4, work, lambda r: None, dry=True)
 out = {}
 for it in qs.items(ctx, "S5"):
     out[it["key"]] = {"ref": it["ref"]["cmds"][0][:2], "tr": it["tr"]["cmds"][0][:1]}
+import types
+ran = []  # transformers has no item (TCB 2026-11-20); its command runs inside the agreement
+cpp = [it for it in qs.items(ctx, "S5") if it["key"] == "S5/tr/whisper.cpp"][0]
+ctx.rp = types.SimpleNamespace(run_once=lambda c: ran.append(c) or {"rc": 0, "stdout": 'BASELINE {"text": "a"}', "stderr": ""},
+                               parse_result=rp.parse_result)
+ctx.seen_texts = {}
+cpp["agree"]([{"text": "a"}], [{"text": "a"}])
+ctx.rp = rp
+for c in ran:
+    if "whisper_hf" in c:
+        out["S5/tr/transformers"] = out["S5/en/transformers"] = {"ref": c[:2], "tr": []}
 lc = qs.items(ctx, "S1")[0]["ref_agree"][0]
 out["S1 -n"] = {"ref": [str(lc[lc.index("-n") + 1])], "tr": []}
-import types
 pos = [{"llama": 5, "tr": 5, "gap": 0.0}] * 32
 said = 'BASELINE ' + json.dumps({"positions": pos, "epsilon": 0.0, "epsilon_note": "no quantized path for these weights (15.53a)"})
 gpu = types.SimpleNamespace(tmp=work, gpu=True, epsilon_from=None, log=lambda r: None, extra={},
@@ -340,6 +350,26 @@ func TestCharModelPrintsUTF8(t *testing.T) {
 	}
 	if !strings.Contains(string(out), "model şunu yazdı:") {
 		t.Errorf("char_model.py printed no sample:\n%s", out)
+	}
+}
+
+// Emsallerin çıktısı her konsolda UTF-8'dir: koşturucu UTF-8 okur, Windows'ta boru cp1254'tür (dizüstünde S5'in uyuşması
+// Türkçe harfler bozulunca 58 sözcük ayrı çıktı, 2026-11-20). Sınama: çıktı ASCII'ye zorlanır; düzeltmesiz UnicodeEncodeError.
+func TestBaselineReferencesPrintUTF8(t *testing.T) {
+	check := `
+import importlib.util, io, sys
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="ascii")
+spec = importlib.util.spec_from_file_location("references", "baseline/references.py")
+refs = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(refs)
+refs.emit({"text": "Küçük bir kasabada"})
+`
+	out, err := exec.Command(python(t), "-I", "-c", check).CombinedOutput()
+	if err != nil {
+		t.Fatalf("references.py's emit with an ASCII console: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), `"text": "Küçük bir kasabada"`) {
+		t.Errorf("emit printed %q, want the text in UTF-8", out)
 	}
 }
 

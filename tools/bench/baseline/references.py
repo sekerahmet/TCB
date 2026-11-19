@@ -28,6 +28,9 @@ def now_ms():
 
 
 def emit(result):
+    # Koşturucu çıktıyı UTF-8 okur (run.py run_once); Windows'ta borunun kodlaması cp1254'tür ve `python -I`
+    # PYTHONIOENCODING'i yok sayar: dizüstünde Whisper'ın Türkçe metni bozuldu, S5'in uyuşması 58 sözcük ayrı çıktı.
+    sys.stdout.reconfigure(encoding="utf-8")
     print("BASELINE " + json.dumps(result, ensure_ascii=False))
 
 

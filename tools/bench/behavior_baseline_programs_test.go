@@ -145,8 +145,15 @@ func TestBaselineQuestions(t *testing.T) {
 	// S5'in uyuşma işlevleri sonra, uyuşma geçişinde koşar; her biri kendi kaleminin adıyla yazar (A-11'de hepsi "en"di).
 	var labels map[string]string
 	selfCheck(t, &labels, "agree_labels", work)
-	if len(labels) != 8 {
-		t.Errorf("S5 agreement labels %v, want 8 items", labels)
+	// Altı kalem: dil başına faster-whisper float32, int8 ve whisper.cpp; transformers kalem değil, uyuşmanın sınırında
+	// (TCB 2026-11-20 00:15).
+	if len(labels) != 6 {
+		t.Errorf("S5 agreement labels %v, want 6 items", labels)
+	}
+	for key := range labels {
+		if strings.HasSuffix(key, "/transformers") {
+			t.Errorf("S5 item %s: transformers is no speed reference", key)
+		}
 	}
 	for key, label := range labels {
 		if key != label {
