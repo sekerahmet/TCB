@@ -2,16 +2,88 @@
 package bench
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf"
+	"github.com/sekerahmet/TCB/internal/compute/gguf/gguftest"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
+
+// q8GGUF 32 boyutlu, tek katmanlı küçük bir llama GGUF'u yazar: çarpım ağırlıkları ve gömme Q8_0 (blok başına fp16 ölçek
+// 2⁻⁷ ve 32 işaretli kod), normlar F32; parçalayıcı 40 tek harfli token (A'dan başlayarak, gpt2).
+func q8GGUF(t *testing.T) string {
+	t.Helper()
+	const dim, vocab = 32, 40
+	b := &gguftest.Builder{}
+	b.KV("general.architecture", "llama").KV("llama.block_count", uint32(1)).KV("llama.embedding_length", uint32(dim)).
+		KV("llama.feed_forward_length", uint32(dim)).KV("llama.attention.head_count", uint32(1)).
+		KV("llama.attention.head_count_kv", uint32(1)).KV("llama.context_length", uint32(64)).
+		KV("llama.rope.freq_base", float32(10000)).KV("llama.attention.layer_norm_rms_epsilon", float32(1e-5))
+	tokens, kinds := make([]string, vocab), make([]int32, vocab)
+	for i := range tokens {
+		tokens[i], kinds[i] = string(rune('A'+i)), 1
+	}
+	b.KV("tokenizer.ggml.model", "gpt2").KV("tokenizer.ggml.pre", "llama-bpe").KV("tokenizer.ggml.tokens", tokens).
+		KV("tokenizer.ggml.token_type", kinds).KV("tokenizer.ggml.merges", []string{}).KV("tokenizer.ggml.bos_token_id", uint32(0))
+	seed := uint32(7)
+	q8 := func(rows int) []byte { // satır başına bir blok: fp16 ölçek (0x2000 = 2⁻⁷), 32 kod (-20..20)
+		out := make([]byte, 0, rows*34)
+		for range rows {
+			out = binary.LittleEndian.AppendUint16(out, 0x2000)
+			for range dim {
+				seed = seed*1664525 + 1013904223
+				out = append(out, byte(int8(int(seed>>24)%41-20)))
+			}
+		}
+		return out
+	}
+	ones := make([]byte, 0, 4*dim)
+	for range dim {
+		ones = binary.LittleEndian.AppendUint32(ones, math.Float32bits(1))
+	}
+	b.Tensor("token_embd.weight", gguf.TypeQ8_0, []uint64{dim, vocab}, q8(vocab))
+	for _, n := range []string{"output_norm.weight", "blk.0.attn_norm.weight", "blk.0.ffn_norm.weight"} {
+		b.Tensor(n, gguf.TypeF32, []uint64{dim}, ones)
+	}
+	for _, n := range []string{"attn_q", "attn_k", "attn_v", "attn_output", "ffn_gate", "ffn_up", "ffn_down"} {
+		b.Tensor("blk.0."+n+".weight", gguf.TypeQ8_0, []uint64{dim, dim}, q8(dim))
+	}
+	file := filepath.Join(t.TempDir(), "q8.gguf")
+	if err := os.WriteFile(file, b.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return file
+}
+
+// --quantized auto Dost'un kuralıyla seçer (tools/assistant/nicemli.tr, nicemli_çöz): işlemcide yalnız nicemlenmiş
+// çarpım ağırlıklarının hepsi q4_k ya da q6_k olan modelde açık. Q8_0 ağırlıklı modelde auto nicemsiz yolu seçer ve
+// koşar; --quantized on aynı modelde 15.53a'nın hatasını verir (B'de S1/qwen3-4b-q8'in düştüğü yer). Float modelde
+// (hf_tiny) auto kapalıdır.
+func TestBaselineQuantizedAuto(t *testing.T) {
+	model := q8GGUF(t)
+	common := []string{"--model", model, "--text", "ABCDABCD", "--mode", "agree", "--agree_tokens", "2"}
+	auto := program(t, "baseline/language_model.tr", common...)
+	if auto["quantized"] != false {
+		t.Errorf("q8 model, --quantized auto: quantized %v, want false (%v)", auto["quantized"], auto)
+	}
+	if out := programFails(t, "baseline/language_model.tr", append(common, "--quantized", "on")...); !strings.Contains(out, "15.53a") {
+		t.Errorf("q8 model, --quantized on: want 15.53a's error, got %s", out)
+	}
+	data := reporoot.Path("tests/data")
+	folder := copyDir(t, filepath.Join(data, "hf_tiny"), map[string]string{"tokenizer.json": filepath.Join(data, "tokenizer.json")})
+	float := program(t, "baseline/language_model.tr", "--folder", folder, "--text", "Bir gün", "--mode", "agree", "--agree_tokens", "2")
+	if float["quantized"] != false {
+		t.Errorf("float model, --quantized auto: quantized %v, want false", float["quantized"])
+	}
+}
 
 // Temel ölçü setinin S4, S12, S13 ve S14 programları (tools/bench/baseline/README.md); yardımcılar
 // behavior_baseline_test.go'dadır (trlang, program, programFails).

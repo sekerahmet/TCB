@@ -40,6 +40,36 @@ TR_func step(q: TR_Bool, model: TR_GPT, x: TR_Int, c: TR_KVCache) -> TR_Int {
 }
 
 # load_folder: parçalı ya da tek dosyalı Hugging Face klasörünü açık API'yle kurar.
+# matmul_dtypes: modelin çarpım ağırlıklarının türleri (Dost'un _çarpım_türleri'nin aynısı, tools/assistant/nicemli.tr):
+# blokların ve PLE'nin izdüşümleri, çıkış katmanı; paylaşımlı çıkışta gömme tablosu.
+TR_func matmul_dtypes(m: TR_GPT) -> TR_List[TR_String] {
+    TR_var linears: TR_List[TR_Linear?] = [m.TR_logit_layer]
+    TR_if m.TR_ple_context != TR_none { linears = linears + [m.TR_ple_context.TR_context_proj] }
+    TR_for blk TR_in m.TR_blocks {
+        TR_var att = blk.TR_attention
+        TR_var ff = blk.TR_feed_forward
+        linears = linears + [att.TR_q_proj, att.TR_k_proj, att.TR_v_proj, att.TR_kv_proj, att.TR_o_proj, ff.TR_gate_proj, ff.TR_up_proj, ff.TR_gate_up_proj, ff.TR_down_proj]
+        TR_if blk.TR_ple != TR_none { linears = linears + [blk.TR_ple.TR_gate_proj, blk.TR_ple.TR_proj] }
+    }
+    TR_var kinds: TR_List[TR_String] = TR_if m.TR_logit_layer == TR_none { [m.TR_embedding.TR_table.TR_dtype] } TR_else { [] }
+    TR_for lin TR_in linears {
+        TR_if lin != TR_none { kinds = kinds + [lin.TR_weight.TR_dtype] }
+    }
+    TR_return kinds
+}
+
+# suits_quantized: otomatiğin ağırlık koşulu (Dost'un nicemli_uygun'u): nicemlenmiş çarpım ağırlıklarının hepsi q4_k ya da
+# q6_k ve en az biri var; float türleri sayılmaz.
+TR_func suits_quantized(m: TR_GPT) -> TR_Bool {
+    TR_var found = TR_false
+    TR_for t TR_in matmul_dtypes(m) {
+        TR_if ["float32", "float64", "bf16", "fp16"].TR_contains(t) { TR_continue }
+        TR_if TR_not ["q4_k", "q6_k"].TR_contains(t) { TR_return TR_false }
+        found = TR_true
+    }
+    TR_return found
+}
+
 TR_func load_folder(folder: TR_String, dtype: TR_String) -> TR_GPT {
     TR_var config = TR_json_parse(TR_read_file(TR_Path(folder, "config.json")))
     TR_var model = TR_build_pretrained_model(config, TR_weight_dtype: dtype)
@@ -59,9 +89,7 @@ TR_if TR_not ["speed", "depth", "agree", "forced"].TR_contains(mode) { TR_throw 
 TR_var device = TR_String(opt["device"])
 TR_var choice = TR_String(opt["quantized"])
 TR_if TR_not ["auto", "on", "off"].TR_contains(choice) { TR_throw "--quantized is auto, on or off, not \(choice). Example: --quantized auto" }
-# Nicemli etkinleştirme Dost'unki gibi seçilir (tools/assistant/nicemli.tr): auto işlemcide açık, GPU'da kapalı (15.41).
-TR_var q = TR_if choice == "auto" { device == "cpu" } TR_else { choice == "on" }
-TR_if q TR_and device != "cpu" { TR_throw "--quantized on runs only on the CPU (15.41), device \(device). Example: --quantized auto" }
+TR_if choice == "on" TR_and device != "cpu" { TR_throw "--quantized on runs only on the CPU (15.41), device \(device). Example: --quantized auto" }
 TR_var gguf = TR_String(opt["model"])
 TR_var folder = TR_String(opt["folder"])
 TR_if (gguf == "") == (folder == "") { TR_throw "give exactly one of --model (a GGUF file) and --folder (a Hugging Face folder). Example: --model Qwen3-4B-Q4_K_M.gguf" }
@@ -73,6 +101,11 @@ TR_var t0 = now_us()
 TR_var tok = TR_if gguf != "" { TR_load_tokenizer(gguf) } TR_else { TR_load_tokenizer(folder) }
 TR_var model = TR_if gguf != "" { TR_pretrained_gguf(gguf) } TR_else { load_folder(folder, TR_String(opt["dtype"])) }
 TR_var load_ms = (now_us() - t0) / 1000.0
+# Nicemli etkinleştirme Dost'unki gibi seçilir (tools/assistant/nicemli.tr, nicemli_çöz ve nicemli_uygun): auto, işlemcide
+# ve nicemlenmiş çarpım ağırlıklarının hepsi q4_k ya da q6_k olan (en az biri) modelde açık, öbüründe kapalı: q8 ya da q4
+# ağırlıkta blok H6723 verir, float modelde etkisizdir (15.53a); GPU'da kapalı (15.41). Bu kural model yüklendikten sonradır
+# (A-11'den sonra B'de S1/qwen3-4b-q8 auto'da düşüyordu: önce yalnız cihaza bakılıyordu).
+TR_var q = TR_if choice == "auto" { device == "cpu" TR_and suits_quantized(model) } TR_else { choice == "on" }
 
 TR_var P = TR_Int(opt["prompt"])
 TR_var G = TR_Int(opt["gen"])
