@@ -86,7 +86,8 @@ done
 python3 -m pip list > "$WORK/pip_list.txt"
 
 say "modeller (revizyonuyla; sha256 hub'ınkiyle)"
-python3 -I "$ROOT/tools/bench/baseline/run.py" --work "$WORK" --fetch
+# MODELS=ad,ad... yalnız o modelleri indirir (A-11'in sınaması en küçük gerçek modellerle; adlar questions.py'nin MODELS'i)
+python3 -I "$ROOT/tools/bench/baseline/run.py" --work "$WORK" --fetch ${MODELS:+--models "$MODELS"}
 
 if [ "$KIND" = gpu ]; then
   say "S11'in sentetik verisi (tools/gpu/COLAB.md)"

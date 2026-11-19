@@ -191,6 +191,10 @@ func TestBaselineQuestions(t *testing.T) {
 	if _, ok := got["highram"]["S4/qwen3-4b-q4km/7981"]; n != 6 || !ok {
 		t.Errorf("highram: %d S1 models (want 6), S4 qwen3 7981 %v", n, ok)
 	}
+	// --fetch --models yalnız MODELS'in adlarını kabul eder; bilinmeyen ad hiçbir şey indirmeden durur (çıkış 3).
+	if out, code := baseline(t, "--work", work, "--fetch", "--models", "qwen3-4b-q4km,nope"); code != 3 || !strings.Contains(out, "unknown ['nope']") {
+		t.Errorf("--models nope: exit %d, %s", code, out)
+	}
 }
 
 // Okuyucular: Dost'un OLCU satırı ve olay akışının çerçevesi (S8, S9), llama-bench'in JSON'u, eğitim günlüğünün

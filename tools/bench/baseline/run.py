@@ -426,12 +426,13 @@ def run_questions(a):
     if not qs.sounds_ok(ctx):  # O-7: without the fixed sounds S5 and S8 go last; the machine does not wait
         order_ = [q for q in order_ if q not in qs.SOUND_QUESTIONS] + [q for q in order_ if q in qs.SOUND_QUESTIONS]
     try:
+        chosen = lambda it: not a.key or any(it["key"].startswith(k) for k in a.key)
         if a.agreement:
-            agreement_pass(ctx, qs, order_, rec)
+            agreement_pass(ctx, qs, order_, rec, chosen)
         else:
             for q in order_:
                 for it in qs.items(ctx, q):
-                    if a.skip_done and it["key"] in rec.metrics:
+                    if not chosen(it) or (a.skip_done and it["key"] in rec.metrics):
                         continue
                     rec.metrics[it["key"]] = run_item(ctx, it, rec)
                     rec.save()
@@ -445,7 +446,7 @@ def run_questions(a):
     return 0
 
 
-def agreement_pass(ctx, qs, order_, rec):
+def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
     """O-4: each item's agreement once, before any measure (Colab machines); GPU machines check the CUDA provider."""
     if ctx.gpu:
         r = run_once([sys.executable, "-I", "-c", "import onnxruntime, json; print(json.dumps(onnxruntime.get_available_providers()))"])
@@ -458,7 +459,7 @@ def agreement_pass(ctx, qs, order_, rec):
             raise Stop(f"english_phoneme_ids.json does not match the voice's mapping: {r['stdout'][-400:]}")
     for q in order_:
         for it in qs.items(ctx, q):
-            if not it["agree"]:
+            if not it["agree"] or not chosen(it):
                 continue
             got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
                    for s, cmds in ((it["tr"], it["tr_agree"]), (it["ref"], it["ref_agree"]))]
@@ -493,11 +494,17 @@ def run_item(ctx, it, rec):
     return run_pair(it["key"], tr, ref, agree, rec.log, ctx.machine)
 
 
-def fetch(work):
-    """Downloads MODELS at their revisions into work/models and checks each large file's sha256 against the hub's."""
+def fetch(work, only=None):
+    """Downloads MODELS (or the `only` names) at their revisions into work/models; each large file's sha256 is the hub's."""
+    qs = load_questions()
+    unknown = set(only or ()) - set(qs.MODELS)
+    if unknown:
+        raise Stop(f"--models: unknown {sorted(unknown)}; the names are questions.py's MODELS")
     from huggingface_hub import HfApi, hf_hub_download
-    qs, api = load_questions(), HfApi()
+    api = HfApi()
     for name, (repo, rev, files) in qs.MODELS.items():
+        if only and name not in only:
+            continue
         info = {p.path: p for p in api.get_paths_info(repo, files, revision=rev)}
         for file in files:
             path = hf_hub_download(repo, file, revision=rev, local_dir=os.path.join(work, "models", name))
@@ -535,6 +542,8 @@ def main():
     p.add_argument("--out", default=os.environ.get("TR_RECORD_DIR"), help="output folder (default TR_RECORD_DIR)")
     p.add_argument("--rows", action="store_true", help="print draft rows from metrics.json in --out")
     p.add_argument("--fetch", action="store_true", help="download the models into --work (prepare.sh)")
+    p.add_argument("--models", help="with --fetch: only these MODELS names, comma separated")
+    p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")
     p.add_argument("--self-check", nargs="+", metavar="NAME", help=argparse.SUPPRESS)
     a = p.parse_args()
@@ -550,7 +559,11 @@ def main():
     if not a.work:
         p.error("--work is prepare.sh's work folder")
     if a.fetch:
-        fetch(a.work)
+        try:
+            fetch(a.work, a.models.split(",") if a.models else None)
+        except Stop as e:
+            print(f"STOPPED: {e}", flush=True)
+            return STOP
         return 0
     if not a.machine or not a.out:
         p.error("--machine and --out (or TR_RECORD_DIR) are needed")
