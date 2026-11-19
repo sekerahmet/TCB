@@ -141,6 +141,17 @@ func TestBaselineQuestions(t *testing.T) {
 		Agree, Custom bool
 	}
 	selfCheck(t, &got, "items", work)
+	// S5'in uyuşma işlevleri sonra, uyuşma geçişinde koşar; her biri kendi kaleminin adıyla yazar (A-11'de hepsi "en"di).
+	var labels map[string]string
+	selfCheck(t, &labels, "agree_labels", work)
+	if len(labels) != 8 {
+		t.Errorf("S5 agreement labels %v, want 8 items", labels)
+	}
+	for key, label := range labels {
+		if key != label {
+			t.Errorf("S5 item %s logs its agreement as %s", key, label)
+		}
+	}
 	lists := map[string]string{
 		"highram": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14", "l4gpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
 		"l4cpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S14", "g4": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
@@ -249,6 +260,50 @@ func TestBaselineEmpty(t *testing.T) {
 	out, err := exec.Command(trlang(t), "baseline/empty.tr").CombinedOutput()
 	if err != nil || len(out) != 0 {
 		t.Errorf("empty.tr: %v, output %q; want no error and no output", err, out)
+	}
+}
+
+// S5'in uyuşması (TCB'nin B15 kararı): TR'nin her float32 emsale sözcük uzaklığı, öbür float32 emsalin ona
+// uzaklığını aşmaz. whisper.cpp sınır kurmaz: onun "Altyazı M.K." uydurması TR'ninkini geçirmez. Metinler A-11'in
+// dördüncü sınamasındaki ayrılığın kısaltılmışıdır.
+func TestBaselineS5Verdict(t *testing.T) {
+	fw, hf := "Yuvvab boşalınca saatçi kapağı kapattı.", "Yuvva boşalınca, saatçi kapağı kapattı."
+	texts := map[string]string{"faster-whisper-float32": fw, "transformers": hf, "whisper.cpp": hf + " Altyazı M.K."}
+	source := "Yuva boşalınca saatçi kapağı kapattı."
+	cases := []map[string]any{
+		{"tr": fw, "texts": texts, "source": source},                                      // sınama 4: tutar
+		{"tr": "Yuvvab boşaldı saatçi kapağı kapattı.", "texts": texts, "source": source}, // transformers'a 2 > 1
+		{"tr": fw + " Altyazı M.K.", "texts": texts, "source": source},                    // TR'nin uydurması
+		{"tr": fw, "texts": map[string]string{"faster-whisper-float32": fw}, "source": source},
+	}
+	path := filepath.Join(t.TempDir(), "s5.json")
+	b, _ := json.Marshal(cases)
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got []struct {
+		TRDistance map[string]int `json:"tr_distance"`
+		Among      map[string]int `json:"among_references"`
+		Bound      map[string]int
+		Wer        map[string]float64
+		Reason     *string
+	}
+	selfCheck(t, &got, "s5", path)
+	if len(got) != 4 {
+		t.Fatalf("%d verdicts, want 4", len(got))
+	}
+	g := got[0]
+	if g.Reason != nil || g.TRDistance["faster-whisper-float32"] != 0 || g.TRDistance["transformers"] != 1 ||
+		g.TRDistance["whisper.cpp"] != 4 || g.Bound["transformers"] != 1 || g.Bound["faster-whisper-float32"] != 1 {
+		t.Errorf("A-11's case: %+v, want it to hold with TR 0 and 1 from the float32 references, bound 1, whisper.cpp 4", g)
+	}
+	if g.Among["transformers / whisper.cpp"] != 3 || g.Wer["TR"] == 0 {
+		t.Errorf("A-11's case record: %+v, want the references' own distances and the WERs", g)
+	}
+	for i, want := range map[int]string{1: "beyond the float32 references", 2: "beyond the float32 references", 3: "missing"} {
+		if got[i].Reason == nil || !strings.Contains(*got[i].Reason, want) {
+			t.Errorf("case %d: %+v, want a reason with %q", i, got[i], want)
+		}
 	}
 }
 

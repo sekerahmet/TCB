@@ -385,6 +385,22 @@ def _self_check(name, arg):
     if name == "forced":  # S1, S3's agreement verdict (B14) on language_model.tr --mode forced results in a JSON list
         with open(arg, encoding="utf-8") as f:
             return [load_questions().forced_verdict(r) for r in json.load(f)]
+    if name == "agree_labels":  # S5's agreement functions log under their own item's key (A-11: all said "en")
+        logged, qs = [], load_questions()
+        ctx = qs.Ctx(sys.modules[__name__], "highram", 97, arg, logged.append, dry=True)
+
+        class Seen(dict):  # every other float32 reference "has run" and said "a"
+            __contains__ = lambda self, k: True
+            __getitem__ = lambda self, k: "a"
+        ctx.seen_texts = Seen()
+        out = {}
+        for it in qs.items(ctx, "S5"):
+            it["agree"]([{"text": "a"}], [{"text": "a"}])
+            out[it["key"]] = logged[-1]["agreement"]
+        return out
+    if name == "s5":  # S5's verdict (B15) on cases [{"tr", "texts", "source"}] in a JSON list
+        with open(arg, encoding="utf-8") as f:
+            return [load_questions().s5_verdict(c["tr"], c["texts"], c["source"]) for c in json.load(f)]
     if name == "epsilon":  # a GPU machine's ε from an agreement.json (B14): S1/a measured, S1/b taken from elsewhere
         import types
         ctx = types.SimpleNamespace(epsilon_from=arg)

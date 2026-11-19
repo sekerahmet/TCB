@@ -37,7 +37,7 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 | S2 | `language_model.tr --folder` bf16 | `references.py lm` (transformers) | açgözlü token'lar aynı | `prompt_ms`, `gen_ms`, `load_ms` |
 | S3 | `language_model.tr --mode depth` (700, 4 100; 40 token) | `llama-bench -p 40 -n 0 -d 700` ve `-d 4100` | S1'inki, kendi uyuşma koşusuyla | `depth700_ms`, `depth4100_ms` |
 | S4 | `catalog_memory.tr` (her girdi, her ölçülmüş bağlam) | yok | — | `load_ms`, bellek |
-| S5 | `whisper.tr` (tr, en) | faster-whisper float32 ve int8, transformers, whisper.cpp f16 | metin aynı (küçük harf, noktalamasız); int8'de yalnız sözcük hata oranı günlükte | `transcribe_ms` |
+| S5 | `whisper.tr` (tr, en) | faster-whisper float32 ve int8, transformers, whisper.cpp f16 | emsallerin yayılımı (B15): TR'nin her float32 emsale (faster-whisper float32, transformers) sözcük uzaklığı, öbür float32 emsalin ona uzaklığını aşmaz (küçük harf, noktalamasız). int8 ve whisper.cpp f16 sınır kurmaz; kayda bütün uzaklıklar ve kaynağa göre WER'ler yazılır | `transcribe_ms` |
 | S6 | `mms.tr` (tr, en; gürültü 0) | `references.py mms` (float32; kimlikler VITS'in boşluk kuralıyla, `mms_ids`: mms-tts-eng'in dolgu belirteci `k` olduğu için `VitsTokenizer` sondaki `k`'nin boşluğunu düşürür) | cümle başına örnek sayısı ve örnekleme hızı aynı; sentez başına iki rastgele tensör | `total_ms`, `first_ms` |
 | S7 | `piper.tr --ids` (tr: TR'nin çeviricisinin kimlikleri, `--write_ids`; en: `english_phoneme_ids.json`) | `references.py piper` (onnxruntime) | S6'daki gibi | `total_ms`, `first_ms` |
 | S8 | `tools/assistant/asistan.tr --kip canlı --sahte_mikrofon` (O-7'nin 10 soruluk sesi, sessiz çalıcı) | yok | — | `OLCU` satırlarından ilk ses (ortanca, en kötü), cevap, yazı, ilk token |

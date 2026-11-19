@@ -85,7 +85,8 @@ class Ctx:
         with open(TEXTS, encoding="utf-8") as f:
             self.texts = json.load(f)
         self.tmp = tempfile.mkdtemp(prefix="tmp-", dir=work)  # programs made for a run (char model), Dost's token folder
-        self.extra = {}  # an agreement's own record by item key (S1, S3: ε, ties), kept in agreement.json
+        self.extra = {}  # an agreement's own record by item key (S1, S3: ε, ties; S5: distances), kept in agreement.json
+        self.seen_texts = {}  # S5: a reference's text by its command, run once per process for the other items
         self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
 
     def model(self, name, i=0):
@@ -132,15 +133,20 @@ def words(text):
     return " ".join(re.sub(r"[^\w\s']", " ", text.lower()).split())
 
 
-def wer(hyp, ref):
-    """Word error rate of hyp against ref (Levenshtein over words)."""
-    h, r = words(hyp).split(), words(ref).split()
+def word_distance(a, b):
+    """Levenshtein distance over words (words(): lower case, punctuation off, single spaces)."""
+    h, r = words(a).split(), words(b).split()
     d = list(range(len(h) + 1))
     for i, rw in enumerate(r, 1):
         prev, d[0] = d[0], i
         for j, hw in enumerate(h, 1):
             prev, d[j] = d[j], min(d[j] + 1, d[j - 1] + 1, prev + (rw != hw))
-    return d[len(h)] / max(len(r), 1)
+    return d[len(h)]
+
+
+def wer(hyp, ref):
+    """Word error rate of hyp against ref (Levenshtein over words)."""
+    return word_distance(hyp, ref) / max(len(words(ref).split()), 1)
 
 
 # ---------------------------------------------------------------- S1–S3: language models
@@ -277,23 +283,66 @@ def q_whisper(ctx, q):
         fw = lambda ct: ctx.ref("faster_whisper", argv=["--model", ctx.folder("faster-whisper-small"), "--audio", wav,
                                                          "--compute_type", ct, "--device", ctx.torch_device, "--language", lang])
         pick = lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]}
-        refs = [("faster-whisper-float32", side("faster-whisper float32", [fw("float32")], pick), True),
-                ("faster-whisper-int8", side("faster-whisper int8", [fw("int8")], pick), False),
+        refs = [("faster-whisper-float32", side("faster-whisper float32", [fw("float32")], pick)),
+                ("faster-whisper-int8", side("faster-whisper int8", [fw("int8")], pick)),
                 ("transformers", side("transformers", [ctx.ref("whisper_hf", argv=["--model", ctx.folder("whisper-small"),
                                                                                   "--audio", wav, "--device", ctx.torch_device,
-                                                                                  "--language", lang])], pick), True),
+                                                                                  "--language", lang])], pick)),
                 ("whisper.cpp", side("whisper.cpp f16", [ctx.ref("whisper-cli", ctx.tools["whisper_cli"],
                                                                  ["-m", ctx.model("ggml-small"), "-f", wav, "-l", lang, "-nt",
                                                                   *([] if ctx.gpu else ["-ng"])])],
                                      lambda r, runs: {"transcribe_ms": whisper_cpp_ms(runs[0]["stderr"])},
-                                     parse=lambda s: {"text": s.strip()}), True)]
-        for name, ref, exact in refs:
-            def agree(tr_r, ref_r, exact=exact, source=source, name=name):
-                a, b = tr_r[0]["text"], ref_r[0]["text"]
-                ctx.log({"agreement": f"S5/{lang}/{name}", "wer_tr": wer(a, source), "wer_ref": wer(b, source)})
-                return None if not exact or words(a) == words(b) else f"{a!r} != {b!r}"
-            out.append(item(f"S5/{lang}/{name}", tr, ref, agree, tr["cmds"], ref["cmds"]))
+                                     parse=lambda s: {"text": s.strip()}))]
+        f32 = {name: ref["cmds"][0] for name, ref in refs if name in F32_REFERENCES}
+        for name, ref in refs:
+            key = f"S5/{lang}/{name}"
+            out.append(item(key, tr, ref, s5_agreement(ctx, key, name, f32, source), tr["cmds"], ref["cmds"]))
     return out
+
+
+F32_REFERENCES = ("faster-whisper-float32", "transformers")  # B15: only these set S5's bound
+
+
+def s5_verdict(tr, texts, source):
+    """S5's agreement (TCB's B15 decision): TR's word distance to each float32 reference is at most the largest
+    distance of the other float32 references to it. whisper.cpp f16 and faster-whisper int8 do not set the bound
+    (another precision; whisper.cpp's made-up "Altyazı M.K." would widen it); their distances are recorded. Every
+    distance (TR to each reference, the references among themselves) and every WER to the source text is recorded."""
+    names = sorted(texts)
+    f32 = [n for n in F32_REFERENCES if n in texts]
+    tr_distance = {n: word_distance(tr, texts[n]) for n in names}
+    among = {f"{a} / {b}": word_distance(texts[a], texts[b]) for i, a in enumerate(names) for b in names[i + 1:]}
+    bound = {n: max((word_distance(texts[n], texts[o]) for o in f32 if o != n), default=0) for n in f32}
+    over = {n: {"tr": tr_distance[n], "bound": bound[n]} for n in f32 if tr_distance[n] > bound[n]}
+    out = {"tr_distance": tr_distance, "among_references": among, "bound": bound,
+           "wer": {"TR": wer(tr, source), **{n: wer(texts[n], source) for n in names}}}
+    if len(f32) < len(F32_REFERENCES):
+        out["reason"] = f"float32 references missing: {sorted(set(F32_REFERENCES) - set(f32))}"
+    elif over:
+        out["reason"] = f"TR's word distance beyond the float32 references' own: {over}; TR {tr!r}"
+    else:
+        out["reason"] = None
+    return out
+
+
+def s5_agreement(ctx, key, name, f32_cmds, source):
+    """The agreement function of one S5 item: its reference's text, the other float32 references' texts (run here
+    once per process and kept by command) and s5_verdict."""
+    def agree(tr_r, ref_r):
+        texts = {name: ref_r[0]["text"]}
+        for other, cmd in f32_cmds.items():
+            if other not in texts:
+                if tuple(cmd) not in ctx.seen_texts:
+                    r = ctx.rp.run_once(cmd)
+                    if r["rc"] != 0:
+                        return f"{other} failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
+                    ctx.seen_texts[tuple(cmd)] = ctx.rp.parse_result(r["stdout"])["text"]
+                texts[other] = ctx.seen_texts[tuple(cmd)]
+        v = s5_verdict(tr_r[0]["text"], texts, source)
+        ctx.log({"agreement": key, **v})
+        ctx.extra[key] = {k: v[k] for k in ("tr_distance", "among_references", "bound", "wer")}
+        return v["reason"]
+    return agree
 
 
 def whisper_cpp_ms(stderr):
