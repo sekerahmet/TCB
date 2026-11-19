@@ -797,5 +797,6 @@
   "TR_env_GPU_PROFILE": { "name": "TR_GPU_PROFIL", "family": "ortam değişkeni", "description": "1 ise GPU kernel süreleri ölçülür (trlang watch ve trlang profile bunu kendileri açar)." },
   "TR_env_GPU_SYNC": { "name": "TR_GPU_ESZAMANLI", "family": "ortam değişkeni", "description": "1 ise her GPU kernelinden sonra beklenir: bir kernel hatası tam o kernelde bildirilir (yavaştır, hata ararken kullanılır)." },
   "TR_env_JOB_DIR": { "name": "TR_IS_KLASORU", "family": "ortam değişkeni", "description": "Arka plan işinin klasörü: verilince ilerleme çubuğu iş klasörüne progress.json yazar." },
-  "TR_env_LANG": { "name": "TR_DIL", "family": "ortam değişkeni", "description": "Yazım dilini seçer (tr, en): iletiler, yardım ve kodlu dosyanın görünümü bu dildedir; boşsa Türkçe." }
+  "TR_env_LANG": { "name": "TR_DIL", "family": "ortam değişkeni", "description": "Yazım dilini seçer (tr, en): iletiler, yardım ve kodlu dosyanın görünümü bu dildedir; boşsa Türkçe." },
+  "TR_env_MEMORY_LIMIT": { "name": "TR_BELLEK_TAVANI", "family": "ortam değişkeni", "description": "Sürecin bellek tavanı, bayt cinsinden: çöp toplayıcının öbeği ve öbek dışı bloklar birlikte (19.12a)." }
 }

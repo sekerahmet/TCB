@@ -28,9 +28,6 @@ func init() { interp.SetLibrary(lib.Files) }
 
 const Version = "0.2.0"
 
-// trlang çöp toplayıcının hedefini seçmez: Go'nun 100'ü kalır. Ayar programın türüne göre gizlice
-// seçilmez; programın tek bellek ayarı bellek tavanıdır (dil tanımı 19.12a).
-
 func main() {
 	// Geçersiz TR_LANG: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
 	if err := codes.LanguageError(); err != nil {
@@ -40,6 +37,12 @@ func main() {
 	// Ortam değişkenleri kimliğin adıyla verilir (TR_GPU_SYNC); bir gösterim dilinin adı (TR_GPU_ESZAMANLI)
 	// H8875'le durdurur (17.9). Hesap çekirdeği kimlik adını (TR_env_GPU_SYNC) okur.
 	if err := codes.ExportEnvironment(); err != nil {
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
+		os.Exit(2)
+	}
+	// Bellek tavanı (TR_MEMORY_LIMIT, 19.12a) programdan önce kurulur, 'trlang build'in uygulamasında da;
+	// trlang çöp toplayıcının hedefini seçmez, Go'nun 100'ü kalır (memory_limit.go).
+	if err := applyMemorySettings(os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}

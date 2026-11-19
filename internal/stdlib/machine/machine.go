@@ -54,14 +54,9 @@ func read() *Machine {
 	} else {
 		mc.m[codes.MemMemoryTotalBytes] = unreadable(codes.MemMemoryTotalBytes, "total")
 	}
-	switch b, limited, ok := memoryLimit(); {
-	case !ok:
-		mc.m[codes.MemMemoryLimitBytes] = unreadable(codes.MemMemoryLimitBytes, "limit")
-	case limited:
-		mc.m[codes.MemMemoryLimitBytes] = member{v: interp.NewInt(b)}
-	default:
-		mc.m[codes.MemMemoryLimitBytes] = member{v: interp.Null}
-	}
+	b, limited, ok := memoryLimit()
+	memCap, capped := sysmem.Limit()
+	mc.m[codes.MemMemoryLimitBytes] = limitMember(b, limited, ok, memCap, capped)
 	if b, ok := sysmem.Available(); ok {
 		mc.m[codes.MemMemoryAvailableBytes] = member{v: interp.NewInt(clampInt(b))}
 	} else {
@@ -77,6 +72,23 @@ func read() *Machine {
 	mc.m[codes.MemOs] = member{v: &interp.StringVal{Val: osName(runtime.GOOS)}}
 	mc.m[codes.MemArch] = member{v: &interp.StringVal{Val: archName(runtime.GOARCH)}}
 	return mc
+}
+
+// limitMember .TR_memory_limit_bytes'tir (19.12): işletim sisteminin sınırıyla sürecin bellek tavanının
+// (TR_MEMORY_LIMIT, 19.12a) küçüğü. İkisi de yoksa TR_none; sınır okunamıyorsa (macOS) tavan varsa
+// tavan, yoksa H7735.
+func limitMember(osBytes int64, limited, readable bool, memCap int64, capped bool) member {
+	switch {
+	case capped && limited && readable:
+		return member{v: interp.NewInt(min(osBytes, memCap))}
+	case capped:
+		return member{v: interp.NewInt(memCap)}
+	case !readable:
+		return unreadable(codes.MemMemoryLimitBytes, "limit")
+	case limited:
+		return member{v: interp.NewInt(osBytes)}
+	}
+	return member{v: interp.Null}
 }
 
 // unreadable üyenin H7735'idir: item iletinin hangi bilgiyi okuyamadığını seçer, os macOS'ta

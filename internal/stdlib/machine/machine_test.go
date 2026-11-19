@@ -85,3 +85,42 @@ func TestMachineMembers(t *testing.T) {
 		t.Fatalf("makinenin .TR_size'ı olmamalı")
 	}
 }
+
+// Kural (19.12, 19.12a): .TR_memory_limit_bytes işletim sisteminin sınırıyla bellek tavanının küçüğüdür;
+// yalnız biri varsa odur, ikisi de yoksa TR_none. Sınır okunamıyorsa tavan varsa tavan, yoksa H7735.
+func TestMachineMemoryLimitIsTheSmaller(t *testing.T) {
+	const gib = int64(1) << 30
+	for _, c := range []struct {
+		osBytes                  int64
+		limited, readable, capOK bool
+		cap                      int64
+		want                     int64 // -1: TR_none, -2: H7735
+	}{
+		{8 * gib, true, true, true, 6 * gib, 6 * gib},
+		{4 * gib, true, true, true, 6 * gib, 4 * gib},
+		{0, false, true, true, 6 * gib, 6 * gib},
+		{0, false, false, true, 6 * gib, 6 * gib},
+		{8 * gib, true, true, false, 0, 8 * gib},
+		{0, false, true, false, 0, -1},
+		{0, false, false, false, 0, -2},
+	} {
+		m := limitMember(c.osBytes, c.limited, c.readable, c.cap, c.capOK)
+		var got int64
+		switch v := m.v.(type) {
+		case *interp.IntVal:
+			got = v.Val
+		case nil:
+			if e, ok := messages.As(m.err); ok && e.Code == messages.H7735 {
+				got = -2
+			}
+		default:
+			if v == interp.Null {
+				got = -1
+			}
+		}
+		if got != c.want {
+			t.Errorf("sınır %d (var %v, okunur %v), tavan %d (var %v): %d, %d bekleniyordu",
+				c.osBytes, c.limited, c.readable, c.cap, c.capOK, got, c.want)
+		}
+	}
+}

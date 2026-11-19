@@ -153,7 +153,7 @@ TR_print(m.TR_os, m.TR_arch, m.TR_usable_cpus, bellek > 0)
 TR_if m.TR_os == "windows" { TR_print("Windows") }
 ```
 
-- *Test:* TR testi (`tests/surec_ve_kayit_test.tr`, 19.12); denetim `tests/negative/makine_yazimi.tr`; Go: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineOSTable`, `TestMachineCPUFeaturesTable`; sınırla tavanın küçüğü (19.12a): gerekmez, henüz uygulanmadı.
+- *Test:* TR testi (`tests/surec_ve_kayit_test.tr`, 19.12); denetim `tests/negative/makine_yazimi.tr`; Go: `TestMachineSpellingRule`, `TestMachineMemoryLimitCgroup`, `TestMachineOSTable`, `TestMachineCPUFeaturesTable`; sınırla tavanın küçüğü (19.12a): Go: `TestMachineMemoryLimitIsTheSmaller`.
 
 **19.12a** Bellek tavanı. Programı başlatan, sürecin belleğine bir tavan koyabilir: `TR_MEMORY_LIMIT` ortam değişkeni, değeri bayt cinsinden pozitif bir tam sayıdır (6 GiB için `TR_MEMORY_LIMIT=6442450944`). Program içinden tavan konmaz ve değiştirilmez: tavan, durdurmanın süresi gibi (1.8), makinenin ve başlatanın bilgisidir.
 - Tavan sürecin ana belleğini sayar: çöp toplayıcının öbeği ve öbek dışında tutulan bloklar (yüklenen ağırlıklar ve sabit önbelleğin tamponları) birlikte. Kartın belleği sayılmaz. Dosya eşlemeleri (veri kümesinin dosyadan okunan sayfaları) sayılmaz; işletim sistemi onları dosyadan yeniden okuyabilir.
@@ -162,4 +162,4 @@ TR_if m.TR_os == "windows" { TR_print("Windows") }
 - Tavan süreç başınadır: ortamı alan alt süreç (21.6) aynı tavanı kendisi için alır; tavan iki sürecin toplamı değildir.
 - Uygulamanın çalışma zamanına ait ortam değişkenleri dilin ayarı değildir; verilirlerse kodlu uyarı verilir.
 - Çöp toplayıcının ayarı programın türüne göre gizlice seçilmez; programın tek bellek ayarı bu tavandır.
-- *Test:* Go: `TestTrlangKeepsTheGoCollectorTarget` (tek bellek ayarı); tavan: henüz uygulanmadı.
+- *Test:* Go: `TestTrlangKeepsTheGoCollectorTarget` (tek bellek ayarı); tavan: `TestMemoryLimitValue`, `TestInvalidMemoryLimitStopsTheProgram`, `TestMemoryLimitWithAUnitSuggestsBytes`, `TestLimitSubtractsMemoryOutsideTheHeap`, `TestNoLimitLeavesTheGoLimit`, `TestHostBlockCountsTowardTheMemoryLimit`, `TestRuntimeVariablesWarnOnce`, `TestMachineMemoryLimitIsTheSmaller`, `TestChildProcessTakesTheSameMemoryLimit`.

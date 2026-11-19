@@ -736,5 +736,6 @@
   "TR_env_GPU_PROFILE": { "name": "TR_GPU_PROFILE" },
   "TR_env_GPU_SYNC": { "name": "TR_GPU_SYNC" },
   "TR_env_JOB_DIR": { "name": "TR_JOB_DIR" },
-  "TR_env_LANG": { "name": "TR_LANG" }
+  "TR_env_LANG": { "name": "TR_LANG" },
+  "TR_env_MEMORY_LIMIT": { "name": "TR_MEMORY_LIMIT" }
 }

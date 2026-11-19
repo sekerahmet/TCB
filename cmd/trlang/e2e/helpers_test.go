@@ -35,7 +35,11 @@ var trBinary string
 // geçmiş sayılmaz (1.7).
 var skippedSignalTests atomic.Int32
 
+// TestMain trlang'ı bir kez derler; önce çalışma zamanının değişkenlerini ortamdan siler: zorlama
+// koşusunun GOGC=1'i her alt süreçte uyarı satırı olur, çıktıyı tam karşılaştıran testleri düşürürdü
+// (19.12a; testkit.ClearRuntimeVariables).
 func TestMain(m *testing.M) {
+	testkit.ClearRuntimeVariables()
 	dir, err := os.MkdirTemp("", "tr-uctan-uca-*")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "geçici klasör açılamadı:", err)

@@ -43,7 +43,8 @@ var layers = []struct {
 	{"internal/detmath", nil},     // her makinede aynı biti veren matematik; yalnızca standart kitaplığı içe aktarır
 	{"internal/layoutrules", nil}, // düzen kurallarının boyut sınırları; düzen testleri ve tools/ içe aktarır
 	{"lib", nil},                  // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
-	{"cmd/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "lib"}},
+	// cmd/trlang sysmem'le sürecin bellek tavanını kurar (19.12a).
+	{"cmd/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "internal/sysmem", "lib"}},
 	{"tools/", []string{"internal/", "lib", "tools/internal/"}}, // araçların ortak yardımcıları: tools/internal/
 }
 

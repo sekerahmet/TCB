@@ -2378,5 +2378,10 @@
 "H8879": { "param": ["recv"] },
 "H8880": { "param": ["count", "limit", "entry", "steps", "all"] },
 "H8881": { "param": ["count", "limit", "entry", "tests", "steps", "entries", "all"] },
+"H8890": { "param": ["name", "value", "kind"] },
+"H8891": { "param": ["name", "value", "bytes"] },
+"H8892": { "param": ["name", "value", "decimal", "binary"] },
+"H8893": { "param": ["count", "vars", "name"] },
+"H8895": { "param": ["count", "vars"] },
 "H9000": { "param": ["detail"] }
 }
