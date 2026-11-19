@@ -20,7 +20,7 @@ import (
 func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
 	t.Parallel()
 	repoRule(t)
-	const maxUntestedNames = 2 // testdata/untested_names.txt: yalnızca küçülür (onlyShrinks)
+	const maxUntestedNames = 0 // testdata/untested_names.txt: yalnızca küçülür (onlyShrinks)
 	_, _, g := repoGraph(t)    // sınavla paylaşılan yükleme
 	direct := map[string]bool{}
 	for _, e := range g.Edges {
