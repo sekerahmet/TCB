@@ -196,6 +196,15 @@ TR_test "25.1 başvuruyla kıyas farkı görür" {
     TR_assert(TR_not yakın(y, başvuru()))
 }
 
+TR_test "15.17 MLP tam GELU'yla elle kurulan hesapla bit bit aynı" {
+    TR_var b = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar(büyük: TR_true)))._kodlayıcı.bloklar[0]
+    TR_var x = TR_Tensor(değerler(5, _KAYNAK * _BOYUT, 3.0)).TR_reshape([_KAYNAK, _BOYUT])
+    TR_var h = TR_layer_norm(x, TR_weight: b.mlp_normu.ağırlık, TR_bias: b.mlp_normu.sapma) @ b.mlp1.ağırlık + (b.mlp1.sapma ?? TR_zeros([_ARA]))
+    TR_var elle = (a: TR_Bool) => TR_gelu(h, TR_approximate: a) @ b.mlp2.ağırlık + (b.mlp2.sapma ?? TR_zeros([_BOYUT]))
+    TR_assert_equal(elle(TR_false).TR_tolist, b._mlp(x).TR_tolist)
+    TR_assert(elle(TR_true).TR_tolist != b._mlp(x).TR_tolist)
+}
+
 TR_test "25.1 128 Mel açılır" {
     TR_var a = ayar()
     a["num_mel_bins"] = "128"
@@ -488,6 +497,32 @@ TR_test "25.3 tek dilli modelde yalnız en geçerli, dil ve görev parçası gir
     TR_assert_equal([33], model._başlangıç("en", model._süzgeç()))
     TR_assert_equal([33, 35, 37], çeviri_modeli()._başlangıç("tr", çeviri_modeli()._süzgeç()))
     model.TR_transcribe(ses_kur(800), TR_language: "en")
+}
+
+TR_test "25.4 aynı modelle iki eşzamanlı çeviri tek başına çevirilerle aynı" {
+    TR_var model = çeviri_modeli()
+    TR_var sesler, diller = [ses_kur(16000 * 40), ses_kur(16000 * 3)], ["tr", "en"]
+    TR_var tek = [model.TR_transcribe(sesler[i], TR_language: diller[i]) TR_for i TR_in 0..2]
+    TR_var görevler = [TR_async model.TR_transcribe(sesler[i], TR_language: diller[i]) TR_for i TR_in 0..2]
+    TR_for i, g TR_in görevler {
+        TR_var r = g.TR_wait()
+        TR_assert_equal(tek[i].TR_text, r.TR_text)
+        TR_assert_equal([k._parçalar TR_for k TR_in tek[i].TR_segments], [k._parçalar TR_for k TR_in r.TR_segments])
+    }
+}
+
+TR_test "25.6 istem geçişinin iki satırı _çöz'ün tam logitinin aynı satırlarıyla aynı" {
+    TR_var yakın_çözücü = (a: TR_Tensor, b: TR_Tensor) => TR_all_close(a, b, TR_rtol: 1e-4, TR_atol: 1e-4) TR_and TR_mean(TR_abs(a - b)).TR_tolist < 1e-5
+    TR_var model = çeviri_modeli()
+    TR_var s = model._süzgeç()
+    TR_var kod = model._kodla(model._dilim(TR_whisper_log_mel(ses_kur(16000 * 40), TR_n_mels: 80), 0, 3000))
+    TR_var yerler = [0, 0, 4]
+    TR_for i, ilk TR_in [[s.sot], [s.sot, 35, 37], [s.önceki, 5, 6, 7, s.sot, 35, 37]] {
+        TR_var son, sessizlik = model._istem_geç(ilk, yerler[i], s.sessiz, model._başlat(kod), _ÇEVİRİ_DAĞARCIK)
+        TR_var tam = model._çöz(ilk, model._başlat(kod))[0]
+        TR_assert(yakın_çözücü(son, tam[ilk.TR_length - 1]))
+        TR_assert(yakın_çözücü(TR_Tensor([sessizlik]), TR_Tensor([TR_softmax(tam[yerler[i]])[s.sessiz].TR_tolist])))
+    }
 }
 
 TR_test "25.4 aynı model ve aynı ses aynı metni verir" {
