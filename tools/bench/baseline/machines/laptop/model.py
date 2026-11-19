@@ -1,14 +1,15 @@
 """Dizüstü ölçü betiklerinin model bağlayıcısı (machines/laptop/lib.sh olcu_model): questions.py MODELS'taki <ad>'ın
-dosyalarını dizüstünde bulur (OLCU_MODELLER/<ad>/, OLCU_MODELLER/, Dost'un modeller klasörü), iş klasörüne
+dosyalarını dizüstünde yalnız OLCU_MODELLER'de bulur (<ad>/<dosya>, <ad>/<adı>, <adı>; Ahmet'in düzeni: dizüstünün bütün
+modelleri %USERPROFILE%\models altındadır, TCB 23:49), iş klasörüne
 models/<ad>/<dosya> olarak sabit bağlantıyla (olmazsa kopya) koyar ve sha256'yı denetler: Dost'un kataloğu
 (tools/assistant/katalog.json, depo + revision + yol), yoksa Hugging Face üstverisi (LFS dosyasının sha256'sı). LFS
 olmayan küçük dosyanın sha256'sı depoda yazılı değildir; o dosya yalnız varlığıyla geçer ve çıktıda öyle yazılır.
 Bulunamayan ya da sha256'sı tutmayan dosyada çıkış 2: model yok, betik ölçmez. Hiçbir şey indirilmez.
-    python -I model.py <repo> <iş> <modeller> <dost modeller> <ad>
+    python -I model.py <repo> <iş> <modeller> <ad>
 """
 import hashlib, importlib.util, json, os, shutil, sys, urllib.parse, urllib.request
 sys.stdout.reconfigure(encoding="utf-8")
-repo, work, models, dost, ad = sys.argv[1:6]
+repo, work, models, ad = sys.argv[1:5]
 spec = importlib.util.spec_from_file_location("q", os.path.join(repo, "tools", "bench", "baseline", "questions.py"))
 q = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(q)
@@ -37,11 +38,10 @@ need = [f for f in files if (hub, rev, f) not in known]
 online = hub_sha(need) if need else {}
 bad = 0
 for f in files:
-    cands = [os.path.join(models, ad, f), os.path.join(models, ad, os.path.basename(f)), os.path.join(models, os.path.basename(f)),
-             os.path.join(dost, ad, f), os.path.join(dost, ad, os.path.basename(f))]
+    cands = [os.path.join(models, ad, f), os.path.join(models, ad, os.path.basename(f)), os.path.join(models, os.path.basename(f))]
     src = next((c for c in cands if os.path.isfile(c)), None)
     if not src:
-        print(f"YOK {ad}/{f}: aranan {cands[:3]}")
+        print(f"YOK {ad}/{f}: aranan {cands}")
         bad += 1
         continue
     want = known.get((hub, rev, f)) or online.get(f)

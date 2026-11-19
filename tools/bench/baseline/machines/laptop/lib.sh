@@ -59,9 +59,9 @@ olcu_kos() {
 }
 
 # olcu_model <ad>: questions.py MODELS'taki modelin dosyaları iş klasörüne (models/<ad>/), sha256 denetimiyle (model.py).
-# Dizüstünde aranan yerler: OLCU_MODELLER, Dost'un modeller klasörü. Bulunamazsa ya da sha256 tutmazsa ölçü yok.
+# Dizüstünde yalnız OLCU_MODELLER aranır (bütün modeller %USERPROFILE%\models altında). Bulunamazsa ya da sha256 tutmazsa ölçü yok.
 olcu_model() {
-  "$PY" -I "$(dirname "${BASH_SOURCE[0]}")/model.py" "$REPO" "$IS" "$MODELLER" "${LOCALAPPDATA:-}/Dost/modeller" "$1" ||
+  "$PY" -I "$(dirname "${BASH_SOURCE[0]}")/model.py" "$REPO" "$IS" "$MODELLER" "$1" ||
     { olcu "model $1 hazır değil"; exit 2; }
   sleep 20  # sha256 hesabının yükü insin: koşturucunun yük denetimi koşudan önce ölçer
 }
