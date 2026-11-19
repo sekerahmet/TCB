@@ -120,6 +120,58 @@ func TestBaselineDostSounds(t *testing.T) {
 	}
 }
 
+// coldCheck questions.py'nin S10 soğuk kip yardımcılarını basar: dosya listesi, fincore'un okunuşu, atmanın hükmü.
+const coldCheck = `
+import importlib.util, json, os, sys, tempfile
+sys.stdout.reconfigure(encoding="utf-8")
+spec = importlib.util.spec_from_file_location("questions", "baseline/questions.py")
+qs = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(qs)
+d = tempfile.mkdtemp()
+model = os.path.join(d, "m.gguf"); open(model, "wb").write(b"x")
+folder = os.path.join(d, "whisper"); os.makedirs(folder); open(os.path.join(folder, "model.safetensors"), "wb").write(b"x")
+paths = qs.cold_files([model, "asistan.tr", "--dil_modeli", model, "--whisper", folder, "--bağlam", "8192"])
+fake = lambda cmd: {"rc": 0, "stdout": "4096\n0\n12288\n", "stderr": ""}
+fail = lambda cmd: {"rc": 1, "stdout": "", "stderr": "fincore: not found"}
+try:
+    qs.cached_bytes(fail, paths); failed = None
+except RuntimeError as e:
+    failed = str(e)
+print(json.dumps({"model": model in paths, "folder": os.path.join(folder, "model.safetensors") in paths,
+                  "lib": any(p.endswith(os.path.join("lib", "vits.tr")) for p in paths),
+                  "assistant": any(p.endswith(os.path.join("assistant", "asistan.tr")) for p in paths),
+                  "words": any(p in ("--dil_modeli", "8192") for p in paths), "bytes": qs.cached_bytes(fake, paths),
+                  "failed": failed, "dropped": [qs.cold_dropped(b, a) for b, a in ((100000, 9000), (100000, 20000), (0, 0))]}))
+`
+
+// S10'un soğuk kipi (Colab'da /proc/sys salt okunur; TCB 17:45): ekranın açtığı dosyalar önbellekten atılır. Liste trlang'ı,
+// komutun adını verdiği dosyaları ve klasörlerin dosyalarını, lib'in ve tools/assistant'ın TR dosyalarını içerir, öbür
+// sözcükleri içermez; fincore'un baytları toplanır, düşmezse hata verir; onda birin altı "atıldı" sayılır.
+func TestBaselineColdStart(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", coldCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got struct {
+		Model, Folder, Lib, Assistant, Words bool
+		Bytes                                int
+		Failed                               *string
+		Dropped                              []bool
+	}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if !got.Model || !got.Folder || !got.Lib || !got.Assistant || got.Words {
+		t.Errorf("cold files: %+v", got)
+	}
+	if got.Bytes != 16384 || got.Failed == nil || !strings.Contains(*got.Failed, "fincore failed") {
+		t.Errorf("cached bytes %d (want 16384), failure %v", got.Bytes, got.Failed)
+	}
+	if !reflect.DeepEqual(got.Dropped, []bool{true, false, true}) {
+		t.Errorf("dropped %v, want [true false true]", got.Dropped)
+	}
+}
+
 // --quantized auto Dost'un kuralıyla seçer (tools/assistant/nicemli.tr, nicemli_çöz): işlemcide yalnız nicemlenmiş
 // çarpım ağırlıklarının hepsi q4_k ya da q6_k olan modelde açık. Q8_0 ağırlıklı modelde auto nicemsiz yolu seçer ve
 // koşar; --quantized on aynı modelde 15.53a'nın hatasını verir (B'de S1/qwen3-4b-q8'in düştüğü yer). Float modelde

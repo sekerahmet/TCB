@@ -42,7 +42,7 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 | S7 | `piper.tr --ids` (tr: TR'nin çeviricisinin kimlikleri, `--write_ids`; en: `english_phoneme_ids.json`) | `references.py piper` (onnxruntime) | S6'daki gibi | `total_ms`, `first_ms` |
 | S8 | `tools/assistant/asistan.tr --kip canlı --sahte_mikrofon` (O-7'nin 10 soruluk sesi, sessiz çalıcı) | yok | — | `OLCU` satırlarından ilk ses (ortanca, en kötü), cevap, yazı, ilk token |
 | S9 | Dost'un ekranlı kipi, `send_text` ile S8'in soruları | yok | — | `metrics` olayının `first_token_ms`, `tokens_per_second` |
-| S10 | Dost'un ekranlı kipi; Colab'da soğuk (`drop_caches`) ve sıcak, dizüstünde sıcak | yok | — | açılıştan `state` `idle`'a |
+| S10 | Dost'un ekranlı kipi; Colab'da soğuk ve sıcak, dizüstünde sıcak. Soğuk: ekranın açtığı dosyalar (trlang, modeller, katalog, `lib/` ve `tools/assistant/`'ın TR dosyaları) `sync` ve `posix_fadvise(DONTNEED)` ile önbellekten atılır, sistemin önbelleği değil (Colab'da `/proc/sys` salt okunur); önce ve sonra `fincore`'la önbellekteki baytlar kayda, onda birin altına düşmediyse durur | yok | — | açılıştan `state` `idle`'a |
 | S11 | `tools/gpu/rgn512.tr` bf16 ve fp32 (GPU) | `tools/gpu/rgn512.py` derlemesiz ve derlemeli (yalnız bf16: float32 kipi yok) | — | ms/adım |
 | S12 | `matmul.tr` float32 ve bf16, iki çekirdek (GPU) | `references.py matmul` (torch) | birlerle köşe öğesi aynı | `median_ms` |
 | S13 | `tools/bench/tr/{dongu,fib,matris_dongu}.tr`; karakter modeli (300 ve 0 adımın farkı); `loop_100hz.tr` | `tools/bench/go/compare.go`; `tools/bench/py/char_model.py` | sonuç değeri aynı | ms; ms/adım; kaçan tur |

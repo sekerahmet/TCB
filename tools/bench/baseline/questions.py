@@ -580,12 +580,57 @@ def screen_turns(ctx, base, lang):
             "tokens_per_second": statistics.median(r["tokens_per_second"] for r in rows)}, memory
 
 
+def cold_files(base):
+    """S10's cold start (TCB 17:45): the files the screen opens: trlang, every file and folder the command names (the
+    models, the catalog) and lib's and tools/assistant's TR files."""
+    paths = []
+    for a in base:
+        if os.path.isfile(a):
+            paths.append(a)
+        elif os.path.isdir(a):
+            paths += [os.path.join(d, f) for d, _, fs in os.walk(a) for f in fs]
+    for folder in (os.path.join(ROOT, "lib"), os.path.join(ROOT, "tools", "assistant")):
+        paths += [os.path.join(d, f) for d, _, fs in os.walk(folder) for f in fs if f.endswith(".tr")]
+    return sorted(set(paths))
+
+
+def cached_bytes(run_once, paths):
+    """The page cache's bytes of the files: util-linux fincore's RES column in bytes."""
+    r = run_once(["fincore", "--bytes", "--noheadings", "--raw", "--output", "RES", *paths])
+    if r["rc"] != 0:
+        raise RuntimeError(f"fincore failed (exit {r['rc']}): {r['stderr'][-300:]}")
+    return sum(int(x) for x in r["stdout"].split())
+
+
+def cold_dropped(before, after):
+    """The drop worked when at most a tenth of the files' cached bytes is left."""
+    return after <= before // 10
+
+
+def drop_files(ctx, base):
+    """S10 cold: sync, then every file the screen opens leaves the page cache (posix_fadvise DONTNEED; no root). Colab's
+    /proc/sys is read-only, so the whole cache cannot be dropped (B, G4). The cached bytes before and after go to the log;
+    if they did not fall, the measure stops (TCB 17:45)."""
+    paths = cold_files(base)
+    before = cached_bytes(ctx.rp.run_once, paths)
+    subprocess.run(["sync"], check=True)
+    for p in paths:
+        fd = os.open(p, os.O_RDONLY)
+        try:
+            os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
+        finally:
+            os.close(fd)
+    after = cached_bytes(ctx.rp.run_once, paths)
+    ctx.log({"question": "S10 cold", "files": len(paths), "cached_before_bytes": before, "cached_after_bytes": after})
+    if not cold_dropped(before, after):
+        raise ctx.rp.Stop(f"S10 cold: the files' cache fell from {before} to {after} bytes only (fadvise)")
+
+
 def screen_ready(ctx, base, mode):
-    """S10: from the start to the screen's ready state; cold after the page cache is dropped (Linux, root)."""
+    """S10: from the start to the screen's ready state; cold after the screen's files leave the page cache (drop_files:
+    the files, not the whole system cache)."""
     if mode == "cold":
-        subprocess.run(["sync"], check=True)
-        with open("/proc/sys/vm/drop_caches", "w", encoding="ascii") as f:
-            f.write("3\n")
+        drop_files(ctx, base)
     s = Screen(ctx, base)
     try:
         s.listen(s.token())
