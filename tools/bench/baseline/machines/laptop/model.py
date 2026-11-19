@@ -1,6 +1,6 @@
 """Dizüstü ölçü betiklerinin model bağlayıcısı (machines/laptop/lib.sh olcu_model): questions.py MODELS'taki <ad>'ın
 dosyalarını dizüstünde yalnız OLCU_MODELLER'de bulur (<ad>/<dosya>, <ad>/<adı>, <adı>; Ahmet'in düzeni: dizüstünün bütün
-modelleri %USERPROFILE%\models altındadır, TCB 23:49), iş klasörüne
+modelleri %USERPROFILE%/models altındadır, TCB 23:49), iş klasörüne
 models/<ad>/<dosya> olarak sabit bağlantıyla (olmazsa kopya) koyar ve sha256'yı denetler: Dost'un kataloğu
 (tools/assistant/katalog.json, depo + revision + yol), yoksa Hugging Face üstverisi (LFS dosyasının sha256'sı). LFS
 olmayan küçük dosyanın sha256'sı depoda yazılı değildir; o dosya yalnız varlığıyla geçer ve çıktıda öyle yazılır.
