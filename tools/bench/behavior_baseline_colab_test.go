@@ -322,3 +322,23 @@ func TestBaselineLlamaGPULayers(t *testing.T) {
 		}
 	}
 }
+
+// Karakter modelinin PyTorch tarafı çıktısını her konsolda UTF-8 basar: Windows'ta borunun kodlaması cp1254'tür, koşturucu
+// `python -I` ile çağırır ve yalıtılmış kip PYTHONIOENCODING'i yok sayar; dizüstünde S13/char_model düşüyordu (BC1).
+// Sınama: çıktı ASCII'ye zorlanır (PYTHONIOENCODING, -I'sız); düzeltme olmadan üretilen metin UnicodeEncodeError verir.
+func TestCharModelPrintsUTF8(t *testing.T) {
+	py := python(t)
+	if err := exec.Command(py, "-c", "import torch").Run(); err != nil {
+		t.Skip("torch yok")
+	}
+	cmd := exec.Command(py, filepath.Join("tools", "bench", "py", "char_model.py"), "0", "1")
+	cmd.Dir = reporoot.Path(".")
+	cmd.Env = append(os.Environ(), "PYTHONIOENCODING=ascii")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("char_model.py with an ASCII console: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), "model şunu yazdı:") {
+		t.Errorf("char_model.py printed no sample:\n%s", out)
+	}
+}

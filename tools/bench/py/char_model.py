@@ -8,6 +8,10 @@ import re, sys, time
 import torch
 import torch.nn.functional as F
 
+# Çıktı her konsolda UTF-8'dir: Windows'ta borunun kodlaması cp1254'tür ve üretilen metin oraya sığmaz; koşturucu
+# `python -I` ile çağırır, yalıtılmış kip PYTHONIOENCODING'i yok sayar (H1, BC1).
+sys.stdout.reconfigure(encoding="utf-8")
+
 ADIM = int(sys.argv[1]) if len(sys.argv) > 1 else 300
 if len(sys.argv) > 2:
     torch.set_num_threads(int(sys.argv[2]))
