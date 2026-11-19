@@ -1,6 +1,6 @@
 package gpu
 
-import "math"
+import "github.com/sekerahmet/TCB/internal/compute/tensor"
 
 // Tam (erf tabanlı) GELU için PTX yardımcıları. PTX'te erf komutu yoktur; standart normal
 // dağılım işlevi Φ(x) = ½·erfc(−x/√2) iki bölgede hesaplanır (t = |x|/√2):
@@ -16,26 +16,11 @@ import "math"
 // alınır: x²'nin float32 yuvarlama hatası (x = 12'de göreli ~1e-5) ve t = x/√2'nin yuvarlaması
 // üsse girmez.
 
-// erfSmallCoef erf(t) = t·P(t²)'nin katsayıları: 2/√π · (−1)^n / (n!·(2n+1)), n = 0..6.
-var erfSmallCoef = func() []float64 {
-	c := make([]float64, 7)
-	fact := 1.0
-	for n := range c {
-		if n > 0 {
-			fact *= float64(n)
-		}
-		c[n] = 2 / math.Sqrt(math.Pi) * math.Pow(-1, float64(n)) / (fact * float64(2*n+1))
-	}
-	return c
-}()
-
-// erfcxCoef g(z)'nin s = 4z−1 değişkenindeki Chebyshev katsayılarıdır (T0..T12).
-var erfcxCoef = []float64{
-	0.8373258834099423, -0.22580444569265462, -0.06620334093421042, -0.0013181685758215456,
-	0.0017603075264132162, -6.775670679915347e-05, -6.348721004562756e-05,
-	1.1908634561373757e-05, 1.214095428332053e-06, -8.872659073277788e-07,
-	1.1784307464471269e-07, 2.827312170713883e-08, -1.4913116012946786e-08,
-}
+// erfSmallCoef erf(t) = t·P(t²)'nin katsayıları, erfcxCoef g(z)'nin s = 3z−1 değişkenindeki
+// Chebyshev katsayıları (T0..T12). Tek kaynak tensör paketidir: CPU çekirdeği aynı yaklaşımı
+// float64'te kullanır (internal/compute/tensor/cpu_gelu_exact.go).
+var erfSmallCoef = tensor.ErfSeriesCoef[:]
+var erfcxCoef = tensor.ErfcxChebCoef[:]
 
 const (
 	sqrtHalf    = 0.70710678118654752440 // 1/√2
