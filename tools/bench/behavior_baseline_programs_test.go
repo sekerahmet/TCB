@@ -3,6 +3,7 @@ package bench
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -248,5 +249,34 @@ func TestBaselineEmpty(t *testing.T) {
 	out, err := exec.Command(trlang(t), "baseline/empty.tr").CombinedOutput()
 	if err != nil || len(out) != 0 {
 		t.Errorf("empty.tr: %v, output %q; want no error and no output", err, out)
+	}
+}
+
+// MMS emsalinin girdisi (references.py mms_ids): VITS'in boşlukları her karakterin önünde ve sonunda; dolgu belirteci
+// harf olan parçalayıcıda da ("k", mms-tts-eng; A-11 B13: "week" 8 değil 9 kimlik). Emsal paragrafı mms.tr gibi böler;
+// koşturucu bozuk baytta durmaz.
+func TestBaselineMMSIds(t *testing.T) {
+	var got struct {
+		Tokenizer    map[string][]int
+		MmsIds       map[string][]int `json:"mms_ids"`
+		AddBlankKept bool             `json:"add_blank_kept"`
+		Sentences    []string
+		StrayByte    string `json:"stray_byte"`
+	}
+	selfCheck(t, &got, "mms_ids", "baseline/texts.json")
+	if len(got.Tokenizer["week"]) != 8 {
+		t.Errorf("the stand-in tokenizer %v, want transformers' 8 ids for week", got.Tokenizer)
+	}
+	want := map[string][]int{"week": {0, 9, 0, 7, 0, 7, 0, 0, 0}, "kew": {0, 0, 0, 7, 0, 9, 0}, "a wa": {0, 26, 0, 19, 0, 9, 0, 26, 0}}
+	for text, ids := range want {
+		if fmt.Sprint(got.MmsIds[text]) != fmt.Sprint(ids) {
+			t.Errorf("mms_ids(%q) = %v, want %v", text, got.MmsIds[text], ids)
+		}
+	}
+	if !got.AddBlankKept || len(got.Sentences) != 5 || !strings.HasSuffix(got.Sentences[4], "work.") {
+		t.Errorf("add_blank restored %v; sentences %q, want the paragraph's five", got.AddBlankKept, got.Sentences)
+	}
+	if got.StrayByte != "a�b" {
+		t.Errorf("stray byte read as %q, want a, U+FFFD, b", got.StrayByte)
 	}
 }

@@ -38,7 +38,7 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 | S3 | `language_model.tr --mode depth` (700, 4 100; 40 token) | `llama-bench -p 40 -n 0 -d 700` ve `-d 4100` | S1'inki | `depth700_ms`, `depth4100_ms` |
 | S4 | `catalog_memory.tr` (her girdi, her ölçülmüş bağlam) | yok | — | `load_ms`, bellek |
 | S5 | `whisper.tr` (tr, en) | faster-whisper float32 ve int8, transformers, whisper.cpp f16 | metin aynı (küçük harf, noktalamasız); int8'de yalnız sözcük hata oranı günlükte | `transcribe_ms` |
-| S6 | `mms.tr` (tr, en; gürültü 0) | `references.py mms` (float32) | cümle başına örnek sayısı ve örnekleme hızı aynı; sentez başına iki rastgele tensör | `total_ms`, `first_ms` |
+| S6 | `mms.tr` (tr, en; gürültü 0) | `references.py mms` (float32; kimlikler VITS'in boşluk kuralıyla, `mms_ids`: mms-tts-eng'in dolgu belirteci `k` olduğu için `VitsTokenizer` sondaki `k`'nin boşluğunu düşürür) | cümle başına örnek sayısı ve örnekleme hızı aynı; sentez başına iki rastgele tensör | `total_ms`, `first_ms` |
 | S7 | `piper.tr --ids` (tr: TR'nin çeviricisinin kimlikleri, `--write_ids`; en: `english_phoneme_ids.json`) | `references.py piper` (onnxruntime) | S6'daki gibi | `total_ms`, `first_ms` |
 | S8 | `tools/assistant/asistan.tr --kip canlı --sahte_mikrofon` (O-7'nin 10 soruluk sesi, sessiz çalıcı) | yok | — | `OLCU` satırlarından ilk ses (ortanca, en kötü), cevap, yazı, ilk token |
 | S9 | Dost'un ekranlı kipi, `send_text` ile S8'in soruları | yok | — | `metrics` olayının `first_token_ms`, `tokens_per_second` |
@@ -59,7 +59,7 @@ python3 -I tools/bench/baseline/run.py --work /content/w --machine highram --out
 python3 -I tools/bench/baseline/run.py --rows --out "$TR_RECORD_DIR"
 ```
 
-Koşu `go run ./tools/record --name h1-baseline-<makine>-<bölüm> --out <Drive>/TR_dili/olcumler -- python3 -I tools/bench/baseline/run.py …` ile sarılır. Sabit sesler (O-7) bir kez, HIGHRAM'de `--make-sounds` ile üretilir ve sha256'larıyla (`sounds/sounds.json`) her makineye taşınır; sesler yoksa ya da tutmazsa S5 ve S8 sona kalır.
+Koşu `go run ./tools/record --name h1-baseline-<makine>-<bölüm> --out <Drive>/TR_dili/olcumler -- python3 -I tools/bench/baseline/run.py …` ile sarılır. Sabit sesler (O-7) bir kez, HIGHRAM'de `--make-sounds` ile üretilir: TR'nin sesi, sonra ffmpeg'le 16 kHz tek kanal 16 bit (Whisper'ın hızı; Piper 22 050 Hz konuşur); sha256'larıyla (`sounds/sounds.json`) her makineye taşınır; sesler yoksa ya da tutmazsa S5 ve S8 sona kalır.
 
 ## `cpu_baseline.sh` ile ilişkisi
 

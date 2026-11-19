@@ -50,8 +50,11 @@ def torch_setup(a):
 
 
 def sentences(a):
+    """The set's sentences as mms.tr and piper.tr read them: a list as it is, a paragraph split at ". "."""
     with open(a.texts, encoding="utf-8") as f:
         got = json.load(f)[a.set][a.language]
+    if isinstance(got, str):
+        got = [s.strip(".") + "." for s in got.split(". ")]
     if not got:
         raise SystemExit(f"{a.texts} has no sentence under {a.set}.{a.language}")
     return got
@@ -169,6 +172,25 @@ def faster_whisper(a):
 
 # ---------------------------------------------------------------- S6, S7: text to speech
 
+def mms_ids(tok, text):
+    """MMS's input as VITS builds it and TR does (lib/vits.tr _parçala): the tokenizer's characters with the blank
+    (id 0) before, between and after them. VitsTokenizer's own blanks differ when the pad token is a letter
+    (mms-tts-eng: pad "k", id 0): it keeps a "k" as a special token and a "k" at the text's start or end loses its
+    blank ("week" gives 8 ids, not 9; A-11, devir B13). The characters come from the tokenizer without blanks."""
+    blank = tok.add_blank
+    tok.add_blank = False
+    try:
+        chars = tok.convert_tokens_to_ids(tok.tokenize(text))
+    finally:
+        tok.add_blank = blank
+    if not blank:
+        return chars
+    out = [0]
+    for c in chars:
+        out += [c, 0]
+    return out
+
+
 def mms(a):
     """mms.tr's work with transformers' VitsModel; --count_random counts torch.randn and randn_like calls (A-4)."""
     torch, device, sync = torch_setup(a)
@@ -196,7 +218,8 @@ def mms(a):
     with torch.no_grad():
         for text in sentences(a):
             b = now_ms()
-            wave = model(**tok(text, return_tensors="pt").to(device)).waveform[0].float().cpu().numpy()
+            ids = torch.tensor([mms_ids(tok, text)], device=device)
+            wave = model(input_ids=ids, attention_mask=torch.ones_like(ids)).waveform[0].float().cpu().numpy()
             wave = peak(wave)
             rows.append({"ms": now_ms() - b, "samples": int(wave.size)})
     extra = {"versions": versions("torch", "transformers")}

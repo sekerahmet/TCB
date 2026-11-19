@@ -164,7 +164,9 @@ def _windows_peaks(proc):
 
 def run_once(cmd, env=None, timeout=3600):
     """Runs one command in its own process; returns wall time, output, exit code and memory."""
-    with tempfile.TemporaryFile("w+", encoding="utf-8") as out, tempfile.TemporaryFile("w+", encoding="utf-8") as err:
+    # A byte that is not UTF-8 becomes U+FFFD: a tool's stray byte shows in the text, it does not stop the runner.
+    text = dict(mode="w+", encoding="utf-8", errors="replace")
+    with tempfile.TemporaryFile(**text) as out, tempfile.TemporaryFile(**text) as err:
         start = time.perf_counter()
         proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=out, stderr=err, stdin=subprocess.DEVNULL)
         sampler = Sampler(proc)
@@ -271,10 +273,12 @@ def run_alone(question, side, log, machine, runs=5):
     return out
 
 
+MEMORY_KEYS = ("vmhwm_kb", "ru_maxrss_kb", "rss_anon_sampled_kb", "peak_working_set_kb", "peak_pagefile_kb", "gpu_peak_mib")
+
+
 def memory_of(runs):
     """The largest of each memory field over a side's processes (each process measured on its own, O-2)."""
-    keys = ("vmhwm_kb", "ru_maxrss_kb", "rss_anon_sampled_kb", "peak_working_set_kb", "peak_pagefile_kb", "gpu_peak_mib")
-    return {k: max((r[k] for r in runs if r.get(k) is not None), default=None) for k in keys}
+    return {k: max((r[k] for r in runs if r.get(k) is not None), default=None) for k in MEMORY_KEYS}
 
 
 def _run_side(question, side, index, log, machine, cmds=None):
@@ -376,7 +380,48 @@ def _self_check(name, arg):
         ref = dict(side("ref", "b"), warm=[plain], agree_parse=lambda out: {"text": out.strip()})
         run_pair("check", side("tr", "a"), ref, same, lambda rec: None, "check")
         return {"stopped": False}
+    if name == "mms_ids":
+        return _check_mms_ids(arg)
     raise SystemExit(f"unknown self check {name!r}")
+
+
+class _PadLetterTokenizer:
+    """VitsTokenizer's behaviour that B13 found, without transformers: the pad token is the letter "k" (id 0, the blank)
+    and stays a special token, so its own blanks are dropped (tokenize("week") has 8 tokens)."""
+
+    def __init__(self):
+        self.add_blank, self.ids = True, {"k": 0, "w": 9, "e": 7, " ": 19, "a": 26}
+
+    def tokenize(self, text):
+        out = []
+        for part in re.split("(k)", text):
+            if part == "k":
+                out.append("k")
+            elif part:
+                chars = [c for c in part if c in self.ids]
+                out += sum((["k", c] for c in chars), []) + ["k"] if self.add_blank else chars
+        return out
+
+    def convert_tokens_to_ids(self, tokens):
+        return [self.ids[t] for t in tokens]
+
+
+def _check_mms_ids(texts_path):
+    """references.py's mms_ids and sentences: the blanks as VITS puts them, the paragraph split as mms.tr splits it."""
+    import importlib.util
+    import types
+    spec = importlib.util.spec_from_file_location("baseline_references", REFERENCES)
+    ref = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ref)
+    tok = _PadLetterTokenizer()
+    out = {"tokenizer": {t: tok.convert_tokens_to_ids(tok.tokenize(t)) for t in ("week", "kew")},
+           "mms_ids": {t: ref.mms_ids(tok, t) for t in ("week", "kew", "a wa")}, "add_blank_kept": tok.add_blank}
+    a = types.SimpleNamespace(texts=texts_path, set="speech_to_text", language="en")
+    out["sentences"] = ref.sentences(a)
+    # run_once reads a tool's stray byte as U+FFFD instead of stopping (the laptop's cp1254 output, A-11).
+    stray = "import sys; sys.stdout.buffer.write(bytes([97, 252, 98]))"
+    out["stray_byte"] = run_once([sys.executable, "-I", "-c", stray])["stdout"]
+    return out
 
 
 # ---------------------------------------------------------------- the questions (questions.py)
@@ -545,12 +590,18 @@ def rows(out):
                          f"{m['median']:.3f} q3 {m['q3']:.3f} {m['verdict']}" + (" borderline" if m["borderline"] else ""))
             print(line)
         mem = r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"]
-        peaks = {k: max((x.get(k) or 0 for x in mem), default=0) for k in ("vmhwm_kb", "rss_anon_sampled_kb", "gpu_peak_mib")}
+        # Every field memory_of keeps that some run measured: Linux's VmHWM and RssAnon, Windows' peak working set
+        # and pagefile (the laptop, E), the GPU's.
+        peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
+                 if any(x.get(k) is not None for x in mem)}
         print(f"{key} memory TR peaks: {peaks}")
     return 0
 
 
 def main():
+    # The laptop's Python writes a redirected stdout in the locale's code page (cp1254); the texts are UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--machine", choices=MACHINES)
     p.add_argument("--question", action="append", help="S1 … S14; repeat for several (default: the machine's list)")

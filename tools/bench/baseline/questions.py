@@ -7,7 +7,8 @@ Agreement (O-4): on the Colab machines a separate pass runs each item's agreemen
 measure; on the laptop the warm-up runs are the agreement runs (N3). The work folder (prepare.sh) holds
 tools.json (the built programs), models/ (MODELS, each at its revision, sha256 checked) and sounds/ (O-7).
 """
-import hashlib, json, os, re, shutil, socket, statistics, subprocess, sys, tempfile, threading, time, urllib.request
+import hashlib, http.client, json, os, re, shutil, socket, statistics, subprocess, sys, tempfile, threading, time
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
@@ -149,10 +150,17 @@ def parse_llama_bench(stdout):
             "n_depth": rows[0].get("n_depth"), "avg_ts": rows[0]["avg_ts"]}
 
 
-def agree_tokens_text(tr, ref):
+def agree_tokens_text(prompt):
     """S1: TR's 32 greedy tokens' text is in llama-completion's output (it prints the prompt and the answer)."""
-    want = tr[0]["text"]
-    return None if want and want in ref[0]["stdout"] else f"TR {want!r} not in llama-completion's output"
+    def agree(tr, ref):
+        want, out = tr[0]["text"], ref[0]["stdout"]
+        if want and want in out:
+            return None
+        # The reason shows llama.cpp's answer after the prompt and how many characters the two answers share.
+        tail = out.split(prompt, 1)[1] if prompt in out else out[-300:]
+        same = next((i for i, (a, b) in enumerate(zip(want, tail)) if a != b), min(len(want), len(tail)))
+        return f"TR {want!r} not in llama-completion's output; llama.cpp {tail[:300]!r}; first {same} characters agree"
+    return agree
 
 
 def q_language(ctx, q):
@@ -170,7 +178,7 @@ def q_language(ctx, q):
                                      ctx.ref("llama-bench", lb, ["-m", g, "-p", 0, "-n", 128, "-d", 512, *ctx.ngl()])],
                        lambda r, runs: {"prompt_ms": r[0]["avg_ns"] / 1e6, "gen_ms": r[1]["avg_ns"] / 1e6},
                        parse=parse_llama_bench, agree_parse=raw)
-            out.append(item(f"S1/{m}", tr, ref, agree_tokens_text,
+            out.append(item(f"S1/{m}", tr, ref, agree_tokens_text(text),
                             [ctx.tr("language_model.tr", "--model", g, "--mode", "agree", "--text", text,
                                     "--device", ctx.tr_device, *quant)],
                             [ctx.ref("llama-completion", lc, ["-m", g, "-p", text, "-n", 32, "-no-cnv", *ctx.ngl()])]))
@@ -400,13 +408,16 @@ class Screen:
 
         def read():
             buf = ""
-            for line in resp:
-                buf += line.decode("utf-8")
-                if buf.endswith("\n\n"):
-                    stamp = (time.perf_counter() - self.start) * 1000
-                    with self.lock:
-                        self.events += [(stamp, e) for e in parse_sse(buf)]
-                    buf = ""
+            try:
+                for line in resp:
+                    buf += line.decode("utf-8")
+                    if buf.endswith("\n\n"):
+                        stamp = (time.perf_counter() - self.start) * 1000
+                        with self.lock:
+                            self.events += [(stamp, e) for e in parse_sse(buf)]
+                        buf = ""
+            except (OSError, http.client.HTTPException):
+                pass  # the stream ends when the run stops Dost (Windows: connection reset); wait() reads the events
         threading.Thread(target=read, daemon=True).start()
 
     def wait(self, test, timeout=1800, after=0):
@@ -581,17 +592,31 @@ SOUNDS = {  # name: (program, model, texts set, language, gap between sentences 
 }
 
 
+SOUND_RATE = 16000  # Whisper's rate (lib/audio.tr _WHISPER_HIZI); Piper speaks at 22 050 Hz, MMS at 16 000 Hz
+
+
 def make_sounds(ctx):
-    """Makes O-7's sounds with TR's voices (Piper noise 0, MMS the model's noise with the fixed seed) and their sha256."""
+    """Makes O-7's sounds with TR's voices (Piper noise 0, MMS the model's noise with the fixed seed) and their sha256.
+
+    Every sound is 16 kHz mono 16-bit: ffmpeg resamples the voice's WAV (TR has no resampler; lib/audio.tr's message
+    gives the same ffmpeg command). Dost's fake microphone reads any rate through ffmpeg; S5's programs need 16 kHz."""
     os.makedirs(ctx.sound(""), exist_ok=True)
+    r = ctx.rp.run_once(["ffmpeg", "-version"])
+    ctx.log({"sounds_ffmpeg": r["stdout"].splitlines()[0] if r["rc"] == 0 and r["stdout"] else r["stderr"][-200:]})
     sums = {}
     for name, (program, model, group, lang, gap) in SOUNDS.items():
         m = ctx.model(model) if program == "piper.tr" else ctx.folder(model)
         noise = "zero" if program == "piper.tr" else "model"
+        voice_wav = ctx.sound(f"voice_{name}")
         r = ctx.rp.run_once(ctx.tr(program, "--model", m, "--texts", TEXTS, "--set", group, "--language", lang,
-                                   "--noise", noise, "--wav", ctx.sound(name), "--gap_s", gap))
+                                   "--noise", noise, "--wav", voice_wav, "--gap_s", gap))
         if r["rc"] != 0:
             raise ctx.rp.Stop(f"sound {name}: {r['stderr'][-400:]}")
+        r = ctx.rp.run_once(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", voice_wav, "-ar", str(SOUND_RATE), "-ac", "1",
+                             "-c:a", "pcm_s16le", ctx.sound(name)])
+        if r["rc"] != 0:
+            raise ctx.rp.Stop(f"sound {name}: ffmpeg failed: {r['stderr'][-400:]}")
+        os.remove(voice_wav)
         sums[name] = sha256(ctx.sound(name))
     with open(ctx.sound("sounds.json"), "w", encoding="utf-8", newline="") as f:
         json.dump(sums, f, indent=1)
