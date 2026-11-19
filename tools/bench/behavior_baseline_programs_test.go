@@ -177,6 +177,9 @@ func TestBaselineQuestions(t *testing.T) {
 			t.Errorf("%s S1: -ngl %v, agree %v; want -ngl on GPUs only and an agreement", machine, ngl, s1.Agree)
 		}
 		for key, it := range items {
+			if strings.Contains(key, "/ort-") { // S7'nin en hızlı emsal ayarları bilerek başka sayıyla (0, 6; TCB 00:31)
+				continue
+			}
 			for _, cmd := range it.Ref {
 				line := strings.Join(cmd, " ")
 				if (strings.Contains(line, "references.py") || strings.HasPrefix(line, "llama-") || strings.HasPrefix(line, "whisper-cli")) &&

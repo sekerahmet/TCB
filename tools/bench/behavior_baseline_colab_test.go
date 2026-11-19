@@ -387,3 +387,54 @@ func TestBaselineTrialRunsOnce(t *testing.T) {
 		t.Errorf("Dost's custom item: trial %v, measure %v; want 1 and 4 (warm-up + 3)", got["custom true"], got["custom false"])
 	}
 }
+
+// voiceCheck S7'nin kalemlerini ve emsallerinin iş parçacığı sayısını, Dost'un ekran komutunun çalıcısını basar.
+const voiceCheck = `
+import importlib.util, json, os, sys, tempfile
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+qs = rp.load_questions()
+work = tempfile.mkdtemp()
+json.dump({"trlang": "trlang", "go_compare": "g", "whisper_cli": "w", "llama_bench": "b", "llama_completion": "c"},
+          open(os.path.join(work, "tools.json"), "w"))
+open(os.path.join(work, "ids_tr.json"), "w").write("{}")
+qs.piper_ids_tr = lambda ctx: None
+out = {}
+for machine in ("highram", "g4"):
+    ctx = qs.Ctx(rp, machine, 8, work, lambda r: None, dry=True)
+    out[machine] = {it["key"]: it["ref"]["cmds"][0][it["ref"]["cmds"][0].index("--threads") + 1]
+                    for it in qs.items(ctx, "S7") if it["key"].startswith("S7/tr")}
+ctx = qs.Ctx(rp, "laptop", 8, work, lambda r: None, dry=True)
+c = qs.screen_cmd(ctx, "tr")
+out["screen player"] = c[c.index("--çalıcı") + 1] if "--çalıcı" in c else None
+out["PLAYER"] = qs.PLAYER
+print(json.dumps(out, ensure_ascii=False))
+`
+
+// En hızlı emsal (TCB 00:31): işlemci makinesinde S7'ye onnxruntime'ın varsayılanı (--threads 0) ve 6 iş parçacığı da
+// girer, GPU makinesinde girmez. Dost'un ekranlı kipi (S9, S10) sessiz çalıcıyla koşar (BC23: dizüstünde hoparlörden konuştu).
+func TestBaselineFastestPiperAndSilentScreen(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", voiceCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got struct {
+		Highram, G4  map[string]string
+		ScreenPlayer string `json:"screen player"`
+		Player       string `json:"PLAYER"`
+	}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if got.Highram["S7/tr/ort-default"] != "0" || got.Highram["S7/tr/ort-6"] != "6" || got.Highram["S7/tr"] != "8" {
+		t.Errorf("highram S7/tr threads: %v, want the machine's 8, onnxruntime's default 0 and 6", got.Highram)
+	}
+	if len(got.G4) != 1 {
+		t.Errorf("g4 S7/tr items: %v, want only S7/tr (the GPU)", got.G4)
+	}
+	if got.ScreenPlayer == "" || got.ScreenPlayer != got.Player {
+		t.Errorf("Dost's screen mode player %q, want the silent %q", got.ScreenPlayer, got.Player)
+	}
+}

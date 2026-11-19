@@ -399,6 +399,14 @@ def q_voice(ctx, q):
             ref_cmd = ctx.ref("piper", argv=["--model", voice, "--ids", ids, *texts, "--device", ctx.torch_device, "--language", lang])
             out.append(item(f"S7/{lang}", side("TR", [tr_cmd], pick), side("onnxruntime", [ref_cmd], pick),
                             agree_samples, [tr_cmd], [ref_cmd]))
+            # En hızlı emsal (TCB 00:31, Ahmet): işlemcide onnxruntime'ın kendi varsayılanı (intra_op 0) ve 6 iş parçacığı da
+            # koşar (dizüstünde 2026-11-19'da 6 iş parçacığı TR'den öndeydi, TTS-2026-11-19-LAPTOP-S1-1); satır üçünü yazar.
+            if not ctx.gpu:
+                for name, n in (("ort-default", 0), ("ort-6", 6)):
+                    cmd = ctx.rp.reference_cmd("piper", n, argv=[str(x) for x in ["--model", voice, "--ids", ids, *texts,
+                                                                                   "--device", "cpu", "--language", lang]])
+                    out.append(item(f"S7/{lang}/{name}", side("TR", [tr_cmd], pick), side(f"onnxruntime {name}", [cmd], pick),
+                                    agree_samples, [tr_cmd], [cmd]))
     return out
 
 
@@ -478,21 +486,28 @@ def turn_measures(r, runs):
             "answer_ms": med("cevap_ms"), "text_ms": med("yazi_ms"), "first_token_ms": med("ilk_parca_ms")}
 
 
+def screen_cmd(ctx, lang):
+    """Dost's screen mode (S9, S10) with the silent player: the answers are not played on the machine's speaker (BC23: on
+    the laptop S9's trial spoke every answer aloud, four times)."""
+    return ctx.tr(os.path.join(ROOT, "tools", "assistant", "asistan.tr"), *dost_args(ctx, lang)) + ["--çalıcı", PLAYER]
+
+
 def q_dost(ctx, q):
     out = []
     for lang in ("tr", "en"):
         base = ctx.tr(os.path.join(ROOT, "tools", "assistant", "asistan.tr"), *dost_args(ctx, lang))
+        screen = screen_cmd(ctx, lang)
         if q == "S8":
             cmd = base + ["--kip", "canlı", "--sahte_mikrofon", ctx.sound(f"turn_{lang}.wav"), "--çalıcı", PLAYER,
                           "--en_çok_tur", "10", "--cihaz", ctx.tr_device]
             out.append(item(f"S8/{lang}", side("TR", [cmd], turn_measures, parse=lambda s, k=f"S8/{lang}": logged_turns(ctx, k, s)),
                             alone_runs=3))
         elif q == "S9":
-            out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=base, lang=lang: screen_turns(ctx, base, lang)))
+            out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=screen, lang=lang: screen_turns(ctx, base, lang)))
         elif q == "S10":
             for mode in (["warm"] if ctx.machine == "laptop" else ["cold", "warm"]):
                 out.append(item(f"S10/{lang}/{mode}", None, alone_runs=3,
-                                custom=lambda ctx=ctx, base=base, mode=mode: screen_ready(ctx, base, mode)))
+                                custom=lambda ctx=ctx, base=screen, mode=mode: screen_ready(ctx, base, mode)))
     return out
 
 
