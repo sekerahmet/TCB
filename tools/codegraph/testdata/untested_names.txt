@@ -1,3 +1,1 @@
 # Hiçbir testin doğrudan kullanmadığı yerleşik, üye ve adlı argüman kodları: kod <TAB> gerekçe. Liste yalnızca küçülür: satır sayısı test_names_test.go'da sabitlenir (maxUntestedNames).
-TR_arg_weight	açık boşluk: rms_normu(ağırlık:) adlı argümanını yalnızca examples/tr/31_katmanlar.tr geçirir, sınayan test yok; yazılacak
-TR_arg_bias	açık boşluk: katman_normu(sapma:) adlı argümanını yalnızca examples/tr/31_katmanlar.tr geçirir, sınayan test yok; yazılacak

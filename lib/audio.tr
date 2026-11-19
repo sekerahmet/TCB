@@ -297,19 +297,30 @@ TR_func _whisper_sesi(ses: TR_Sound) -> TR_Tensor[TR_Float] {
     TR_return ses.TR_samples[0].TR_to_dtype("float32")
 }
 
+# _whisper_mel_hesapla 23.6'nın log-Mel'ini 480 000 sıfırlık dolgunun bitleriyle verir: STFT sesin değdiği
+# çerçeveleri ve ilk tam sessiz çerçeveyi kapsayan kısa bir dolguda çalışır, sondaki sessiz çerçevelerin hepsi
+# o çerçevenin sütunudur.
+TR_func _whisper_mel_hesapla(örnekler: TR_Tensor[TR_Float], m: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var n = örnekler.TR_shape[0]
+    TR_var çerçeve = n // _WHISPER_ADIMI + _WHISPER_DOLGUSU // _WHISPER_ADIMI
+    TR_var son_sıfır = (n + _WHISPER_FFT // 2 + _WHISPER_ADIMI - 1) // _WHISPER_ADIMI
+    TR_var aktif = son_sıfır + 1
+    TR_var dolgu = son_sıfır * _WHISPER_ADIMI + _WHISPER_FFT // 2 - n
+    TR_var x = TR_concat([örnekler, TR_zeros([dolgu])])
+    TR_var gerçek, sanal = TR_stft(x, _WHISPER_FFT, TR_hop_length: _WHISPER_ADIMI, TR_window: TR_hann_window(_WHISPER_FFT, TR_periodic: TR_true), TR_center: TR_true, TR_pad_mode: "reflect")
+    TR_var g = gerçek.TR_slice(1, 0, aktif)
+    TR_var s = sanal.TR_slice(1, 0, aktif)
+    TR_var güç = g ** 2 + s ** 2
+    TR_var log = TR_log10(TR_clamp(TR_mel_filterbank(TR_sample_rate: _WHISPER_HIZI, TR_n_fft: _WHISPER_FFT, TR_n_mels: m, TR_norm: "slaney", TR_mel_scale: "slaney") @ güç, TR_min: 1e-10))
+    TR_var sınırlı = (TR_maximum(log, TR_max(log) - 8.0) + 4.0) / 4.0
+    TR_var sessiz = sınırlı.TR_slice(1, aktif - 1, aktif)
+    TR_return TR_concat([sınırlı, TR_zeros([m, çerçeve - aktif]) + sessiz], TR_dim: 1)
+}
+
 # whisper_log_mel Whisper'ın `transcribe`'ının log-Mel'ini bir kaydın tamamı için verir (23.6):
 # [m, örnek // 160 + 3000]. Alt sınır kaydın tamamından alınır.
 TR_func TR_whisper_log_mel(ses: TR_Sound, TR_n_mels: TR_Int) -> TR_Tensor[TR_Float] {
     TR_var örnekler = _whisper_sesi(ses)
-    TR_var x = TR_concat([örnekler, TR_zeros([_WHISPER_DOLGUSU])])
-    TR_var pencere = TR_hann_window(_WHISPER_FFT, TR_periodic: TR_true)
-    TR_var gerçek, sanal = TR_stft(x, _WHISPER_FFT, TR_hop_length: _WHISPER_ADIMI, TR_window: pencere, TR_center: TR_true, TR_pad_mode: "reflect")
-    TR_var çerçeve = gerçek.TR_shape[1] - 1
-    TR_var g = gerçek.TR_slice(1, 0, çerçeve)
-    TR_var s = sanal.TR_slice(1, 0, çerçeve)
-    TR_var güç = g ** 2 + s ** 2
-    TR_var süzgeç = TR_mel_filterbank(TR_sample_rate: _WHISPER_HIZI, TR_n_fft: _WHISPER_FFT, TR_n_mels: TR_n_mels, TR_norm: "slaney", TR_mel_scale: "slaney")
-    TR_var log = TR_log10(TR_clamp(süzgeç @ güç, TR_min: 1e-10))
-    TR_var sınırlı = TR_maximum(log, TR_max(log) - 8.0)
-    TR_return (sınırlı + 4.0) / 4.0
+    TR_if örnekler.TR_requires_grad { TR_return _whisper_mel_hesapla(örnekler, TR_n_mels) }
+    TR_return TR_no_grad { _whisper_mel_hesapla(örnekler, TR_n_mels) }
 }

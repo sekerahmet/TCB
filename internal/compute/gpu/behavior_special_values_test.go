@@ -414,3 +414,30 @@ func gradNote(grad bool) string {
 	}
 	return ""
 }
+
+// Kural: tam GELU'nun sıfıra inen sonucu iki aygıtta aynı işaretlidir (15.50, 15.17): ileri yönde
+// x < −1'de (Φ'nin alttan taştığı yer) +0, öbür sıfırlar (±0, çok küçük |x|) x·Φ'nin işaretini
+// taşır; gradyan da iki aygıtta aynı işaretli sıfırdır. Girdiler sonucun float32'de sıfıra indiği
+// aralığın iki ucunu (−15, −38), Φ'nin float64'te sıfır olduğu bölgeyi (−40, −1e30) ve çok küçük
+// eksi girdiyi kapsar.
+func TestGeluExactZeroSignSameOnBothDevices(t *testing.T) {
+	in := []float32{-15, -20, -20.000002, -38, -40, -1e30, negInf, negZero, 0, -1e-45}
+	var fwd, grad [2][]float32
+	for c := range devices {
+		fwd[c] = onDevice(c, in, false, len(in)).GeluExact().Data()
+		grad[c] = gradOf(c, in, []int{len(in)}, true, (*tensor.Tensor).GeluExact)
+	}
+	for i, x := range in {
+		for _, r := range []struct {
+			ad   string
+			a, b float32
+		}{{"ileri", fwd[0][i], fwd[1][i]}, {"türev", grad[0][i], grad[1][i]}} {
+			if math.Float32bits(r.a) != math.Float32bits(r.b) {
+				t.Errorf("gelu_tam %s(%s): CPU %s (%08x), GPU %s (%08x)", r.ad, show(x), show(r.a), math.Float32bits(r.a), show(r.b), math.Float32bits(r.b))
+			}
+		}
+		if x < -1 && fwd[0][i] == 0 && math.Signbit(float64(fwd[0][i])) {
+			t.Errorf("gelu_tam(%s) = -0, beklenen +0", show(x))
+		}
+	}
+}

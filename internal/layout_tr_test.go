@@ -22,6 +22,7 @@ var trBigFiles = map[string]string{
 	"lib/layers.tr":             "katmanlar; bölünmesi status'ta (kod kalitesi, lib/layers.tr)",
 	"tests/tipler_test.tr":      "tiplerin (3) testleri tek dosyada",
 	"lib/vits.tr":               "VITS modeli tek dosyada",
+	"lib/whisper.tr":            "Whisper modeli tek dosyada",
 	"tests/vad_test.tr":         "ses etkinliği bulmanın (25) testleri tek dosyada",
 }
 

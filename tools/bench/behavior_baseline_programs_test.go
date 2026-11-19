@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -419,5 +420,54 @@ func TestBaselineMMSIds(t *testing.T) {
 	}
 	if got.StrayByte != "a�b" {
 		t.Errorf("stray byte read as %q, want a, U+FFFD, b", got.StrayByte)
+	}
+}
+
+// --base-trlang: her sorunun TR tarafı aynı programın taban ikilisiyle (main) koşan tarafa karşı ölçülür, oran
+// dal/taban. S5'in üç emsali dil başına tek taban kalemi verir (S5/tr/base), yalnız TR olan kalem kendi adına
+// "/base" alır, Dost'un özel koşusu (S9) taban kalemi vermez; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk
+// öğesi taban ikilisidir. Taban ve dal aynı ikiliyken oran 1 çevresindedir.
+func TestBaselineBaseTrlang(t *testing.T) {
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Count int
+		Items map[string]struct {
+			TR, Ref [][]string
+			Agree   bool
+		}
+		Pair struct {
+			Key, Reference string
+			Ratios         []float64
+			Median         float64
+		}
+	}
+	selfCheck(t, &got, "base", work)
+	keys := []string{}
+	for k := range got.Items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	if strings.Join(keys, " ") != "S14/empty/base S5/en/base S5/tr/base" || got.Count != 3 {
+		t.Errorf("base items %v (%d before the keyed dict), want S14/empty/base S5/en/base S5/tr/base, 3",
+			keys, got.Count)
+	}
+	for key, it := range got.Items {
+		if len(it.TR) != len(it.Ref) || it.Agree {
+			t.Fatalf("%s: TR %v, base %v, agreement %v", key, it.TR, it.Ref, it.Agree)
+		}
+		for i, c := range it.TR {
+			want := append([]string{"BASE"}, c[1:]...)
+			if c[0] != "trlang" || strings.Join(it.Ref[i], "|") != strings.Join(want, "|") {
+				t.Errorf("%s: base command %v, want %v", key, it.Ref[i], want)
+			}
+		}
+	}
+	p := got.Pair
+	if p.Key != "S0/x/base" || p.Reference != "TR base" || len(p.Ratios) != 5 || p.Median < 0.8 || p.Median > 1.25 {
+		t.Errorf("one program against itself: %+v; want key S0/x/base, 5 ratios, median near 1", p)
 	}
 }

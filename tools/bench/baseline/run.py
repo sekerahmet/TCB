@@ -434,6 +434,21 @@ def _self_check(name, arg):
         ref = dict(side("ref", "b"), warm=[plain], agree_parse=lambda out: {"text": out.strip()})
         run_pair("check", side("tr", "a"), ref, same, lambda rec: None, "check")
         return {"stopped": False}
+    if name == "base":  # --base-trlang: the base items of S5, S9 and S14, and a pair of one program against itself
+        qs = load_questions()
+        ctx = qs.Ctx(sys.modules[__name__], "highram", 97, arg, lambda rec: None, dry=True)
+        # S9 is Dost's custom run (no base side); the count before the keyed dict shows S5's shared TR side gives one
+        # base item per language, not one per reference (DENETİM 943).
+        its = base_items(qs.items(ctx, "S5") + qs.items(ctx, "S9") + qs.items(ctx, "S14"), ctx.tools["trlang"], "BASE")
+        nap = [sys.executable, "-I", "-c", "import time; time.sleep(0.2); print('BASELINE {}')"]
+        side = {"name": "TR", "cmds": [nap], "measure": lambda res, runs: runs[0]["wall_ms"]}
+        same = base_items([{"key": "S0/x/ref", "tr": side, "ref": side, "custom": None, "runs": 5}], sys.executable,
+                          sys.executable)[0]
+        pair = run_pair(same["key"], same["tr"], same["ref"], None, lambda rec: None, "check")
+        return {"count": len(its),
+                "items": {it["key"]: {"tr": it["tr"]["cmds"], "ref": it["ref"]["cmds"], "agree": bool(it["agree"])}
+                          for it in its},
+                "pair": {"key": same["key"], "reference": pair["reference"], **pair["measures"]["ms"]}}
     if name == "mms_ids":
         return _check_mms_ids(arg)
     if name == "forced":  # S1, S3's agreement verdict (B14) on language_model.tr --mode forced results in a JSON list
@@ -560,7 +575,10 @@ def run_questions(a):
             agreement_pass(ctx, qs, order_, rec, chosen)
         else:
             for q in order_:
-                for it in qs.items(ctx, q):
+                its = qs.items(ctx, q)
+                if a.base_trlang:
+                    its = base_items(its, ctx.tools["trlang"], a.base_trlang)
+                for it in its:
                     if not chosen(it) or (a.skip_done and it["key"] in rec.metrics):
                         continue
                     if a.trial and it["ref"] is not None:  # a trial of a pair is its agreement pass (--agreement)
@@ -609,6 +627,24 @@ def agree_item(ctx, it, rec):
     if reason:
         raise Stop(f"{it['key']}: {it['tr']['name']} and {other['name']} disagree: {reason}")
     print(f"{it['key']}: agree", flush=True)
+
+
+def base_items(items, trlang, base):
+    """--base-trlang: each item's TR side against the same TR program run by the base build (main); the warm-up,
+    the ABBA order and the load checks stay, the ratio is branch/base. Items sharing a TR side (S5's three
+    references) give one base item, keyed by the TR side's key with "base" as its last part (S5/tr/base); a TR-only
+    item gets "/base" after its key. Dost's custom runs have no base side."""
+    out, seen = [], set()
+    for it in items:
+        if it["custom"] or it["tr"] is None or json.dumps(it["tr"]["cmds"]) in seen:
+            continue
+        seen.add(json.dumps(it["tr"]["cmds"]))
+        key = (it["key"].rsplit("/", 1)[0] if it["ref"] is not None else it["key"]) + "/base"
+        cmds = [[base, *c[1:]] if c and c[0] == trlang else c for c in it["tr"]["cmds"]]
+        ref = dict(it["tr"], name="TR base", cmds=cmds)
+        out.append({"key": key, "tr": it["tr"], "ref": ref, "agree": None, "tr_agree": None, "ref_agree": None,
+                    "runs": it["runs"], "custom": None, "check": None})
+    return out
 
 
 def run_item(ctx, it, rec, trial=False):
@@ -714,6 +750,8 @@ def main():
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
     p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")
+    p.add_argument("--base-trlang", help="a base trlang (main's build): each question's TR side against the same "
+                                          "program run by it, ratio branch/base, keys <question>/base")
     p.add_argument("--self-check", nargs="+", metavar="NAME", help=argparse.SUPPRESS)
     a = p.parse_args()
     if a.self_check:
