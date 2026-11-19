@@ -76,26 +76,32 @@ func geluExactBackwardKernel(gx, gr, x *float32, n int)
 // geluExactForwardVec y = x·Φ(x) (tam GELU); yöntem ve taşınabilir eşi geluExactForwardGo'dadır,
 // iki yol bit bit aynıdır.
 func geluExactForwardVec(y, x []float32) {
-	if !hasAVX2 {
+	switch {
+	case !hasAVX2:
 		geluExactForwardGo(y, x)
-		return
+	case geluKernelLen(len(x), y):
+		geluExactForwardKernel(&y[0], &x[0], len(x))
 	}
-	if len(x) == 0 {
-		return
-	}
-	_ = y[len(x)-1]
-	geluExactForwardKernel(&y[0], &x[0], len(x))
 }
 
 // geluExactBackwardVec gx += g·(Φ(x) + x·φ(x)); taşınabilir eşi geluExactBackwardGo.
 func geluExactBackwardVec(gx, g, x []float32) {
-	if !hasAVX2 {
+	switch {
+	case !hasAVX2:
 		geluExactBackwardGo(gx, g, x)
-		return
+	case geluKernelLen(len(gx), g, x):
+		geluExactBackwardKernel(&gx[0], &g[0], &x[0], len(gx))
 	}
-	if len(gx) == 0 {
-		return
+}
+
+// geluKernelLen çekirdeğe n öğe verilebilir mi: n = 0'da çağrı yoktur; öbür dilimlerin ilk n öğesi
+// vardır (yoksa Go'nun sınır denetimi paniğe düşer, çekirdek dilimin dışını okumaz).
+func geluKernelLen(n int, others ...[]float32) bool {
+	if n == 0 {
+		return false
 	}
-	_, _ = g[len(gx)-1], x[len(gx)-1]
-	geluExactBackwardKernel(&gx[0], &g[0], &x[0], len(gx))
+	for _, s := range others {
+		_ = s[n-1]
+	}
+	return true
 }
