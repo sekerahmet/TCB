@@ -3,21 +3,110 @@ package bench
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Temel ölçü setinin koşturucusu (baseline/run.py) ve programları: yöntem ölçüden önce run.py'de
 // yazılıdır; bu testler yöntemin her kuralını küçük girdilerle sınar (tools/bench/baseline/README.md).
 
+var (
+	trlangOnce sync.Once
+	trlangDir  string
+	trlangPath string
+	trlangErr  error
+)
+
+// TestMain trlang'ı bir kez geçici klasöre derleyen testlerden sonra o klasörü siler.
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if trlangDir != "" {
+		os.RemoveAll(trlangDir)
+	}
+	os.Exit(code)
+}
+
+// trlang builds cmd/trlang once into a temporary folder (cmd/trlang/e2e/helpers_test.go's way) and returns it.
+func trlang(t *testing.T) string {
+	t.Helper()
+	trlangOnce.Do(func() {
+		if trlangDir, trlangErr = os.MkdirTemp("", "baseline-trlang"); trlangErr != nil {
+			return
+		}
+		name := "trlang"
+		if runtime.GOOS == "windows" {
+			name += ".exe"
+		}
+		trlangPath = filepath.Join(trlangDir, name)
+		out, err := exec.Command("go", "build", "-o", trlangPath, "github.com/sekerahmet/TCB/cmd/trlang").CombinedOutput()
+		if err != nil {
+			trlangErr = fmt.Errorf("go build: %v\n%s", err, out)
+		}
+	})
+	if trlangErr != nil {
+		t.Fatal(trlangErr)
+	}
+	return trlangPath
+}
+
+// program runs a baseline .tr program (its path from this folder, written whole so codegraph links the
+// file to the test) and decodes its BASELINE line.
+func program(t *testing.T, name string, args ...string) map[string]any {
+	t.Helper()
+	cmd := exec.Command(trlang(t), append([]string{name}, args...)...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	last := strings.TrimSpace(lines[len(lines)-1])
+	var v map[string]any
+	if !strings.HasPrefix(last, "BASELINE ") || json.Unmarshal([]byte(last[len("BASELINE "):]), &v) != nil {
+		t.Fatalf("%s: no BASELINE line:\n%s", name, out)
+	}
+	return v
+}
+
+// copyDir copies the files of a test data folder (and extra files) into a new temporary folder.
+func copyDir(t *testing.T, src string, extra map[string]string) string {
+	t.Helper()
+	dst := t.TempDir()
+	entries, err := reporoot.ReadDir(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{}
+	for _, e := range entries {
+		files[e.Name()] = filepath.Join(src, e.Name())
+	}
+	for name, from := range extra {
+		files[name] = from
+	}
+	for name, from := range files {
+		b, err := os.ReadFile(from)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dst, name), b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dst
+}
+
 // baseline runs baseline/run.py with the arguments; the exit code is returned with the output.
 func baseline(t *testing.T, args ...string) (string, int) {
 	t.Helper()
-	cmd := exec.Command(python(t), append([]string{"-I", filepath.Join("baseline", "run.py")}, args...)...)
+	cmd := exec.Command(python(t), append([]string{"-I", "baseline/run.py"}, args...)...)
 	out, err := cmd.Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -127,7 +216,7 @@ func TestBaselineAgreementStops(t *testing.T) {
 
 // Sabit metinler: S5'in iki metni, S6–S7'nin dil başına üç cümlesi, S8'in dil başına on sorusu.
 func TestBaselineTextsExist(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join("baseline", "texts.json"))
+	b, err := os.ReadFile("baseline/texts.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,5 +242,33 @@ func TestBaselineTextsExist(t *testing.T) {
 	}
 	if texts.LanguageModel["tr"] == "" {
 		t.Error("language_model.tr is empty")
+	}
+}
+
+// Dil modeli programı üç kipte koşar; parçalı klasör yolu (her *.safetensors birleşir) tek dosyalı
+// küçük modelle sınanır, üretilen token sayısı istenen kadardır ve uyuşma kipi metni de yazar.
+func TestBaselineLanguageModel(t *testing.T) {
+	data := reporoot.Path("tests/data")
+	folder := copyDir(t, filepath.Join(data, "hf_tiny"), map[string]string{"tokenizer.json": filepath.Join(data, "tokenizer.json")})
+	common := []string{"--folder", folder, "--text", "Bir gün saat durdu.", "--prompt", "4", "--gen", "27"}
+	speed := program(t, "baseline/language_model.tr", append(common, "--mode", "speed")...)
+	for _, field := range []string{"load_ms", "prompt_ms", "gen_ms"} {
+		if _, ok := speed[field].(float64); !ok {
+			t.Errorf("speed: %s missing: %v", field, speed)
+		}
+	}
+	if toks, _ := speed["tokens"].([]any); len(toks) != 27 || speed["gen_depth"] != 4.0 {
+		t.Errorf("speed: %d tokens from depth %v, want 27 from 4", len(toks), speed["gen_depth"])
+	}
+	depth := program(t, "baseline/language_model.tr", append(common, "--mode", "depth", "--depths", "8,16", "--depth_prompt", "4")...)
+	if rows, _ := depth["depths"].([]any); len(rows) != 2 {
+		t.Errorf("depth: %v, want two depths", depth["depths"])
+	}
+	agree := program(t, "baseline/language_model.tr", append(common, "--mode", "agree", "--agree_tokens", "5")...)
+	if toks, _ := agree["tokens"].([]any); len(toks) != 5 {
+		t.Errorf("agree: %v, want 5 tokens", agree["tokens"])
+	}
+	if _, ok := agree["text"].(string); !ok {
+		t.Errorf("agree: no text: %v", agree)
 	}
 }
