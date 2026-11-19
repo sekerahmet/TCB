@@ -1863,7 +1863,7 @@
 "H7554": "{@pretrained_vits}: tensor {weight|q} is {dtype|q}; a weight must be float32, fp16 or bf16, quantized weights do not open",
 "H7555": "{@pretrained_vits}: tensor {weight|q} has shape {given}, by `config.json` it must be {expected}",
 "H7556": "{@pretrained_vits}: unknown tensor {weight|q}",
-"H7557": "{@pretrained_vits}: {field|q} cannot be {given}: {case, select, positive {sizes are greater than zero} heads {the head count must divide `hidden_size`} other {this library opens single speaker VITS with the stochastic duration predictor: a Hugging Face folder with a character tokenizer or a Piper voice}}",
+"H7557": "{@pretrained_vits}: {field|q} cannot be {given}: {case, select, positive {sizes are greater than zero} heads {the head count must divide `hidden_size`} kernel {the WaveNet kernel size must be odd; a Piper voice does not write it in the `.onnx.json`, it is read from the shape of the prior flow's weight} other {this library opens single speaker VITS with the stochastic duration predictor: a Hugging Face folder with a character tokenizer or a Piper voice}}",
 "H7558": "{@pretrained_vits}: {file|q} could not be opened as a Piper voice: {json|q} is not beside it; a Piper voice opens from the `.onnx` file and the `.onnx.json` of the same name",
 "H7559": "{@phonemize}: there is no phonemizer for {language|q}; languages with a phonemizer in this TR version: {supported}",
 "H7560": "{@qwen3_format}: with `{#add_generation_prompt}: {#true}` write whether the model thinks: `{#add_generation_prompt}: {#true}, {#enable_thinking}: {#false}` (24.2)",

@@ -1868,7 +1868,7 @@ const (
 	H7554 Code = 7554 // {@pretrained_vits}: {weight|q} tensörü {dtype|q} türünde; ağırlık float32, fp16 ya da bf16 olmalıdır, nicemli ağırlık açılmaz
 	H7555 Code = 7555 // {@pretrained_vits}: {weight|q} tensörünün şekli {given}, `config.json`'a göre {expected} olmalıdır
 	H7556 Code = 7556 // {@pretrained_vits}: tanınmayan tensör {weight|q}
-	H7557 Code = 7557 // {@pretrained_vits}: {field|q} {given} olamaz: {case, select, positive {boyutlar sıfırdan büyüktür} heads {bakış sayısı `hidden_size`'ı bölmelidir} other {bu kitaplık tek konuşmacılı, olasılıklı süre öngörücülü VITS'i açar: karakter parçalayıcılı Hugging Face klasörü ya da Piper sesi}}
+	H7557 Code = 7557 // {@pretrained_vits}: {field|q} {given} olamaz: {case, select, positive {boyutlar sıfırdan büyüktür} heads {bakış sayısı `hidden_size`'ı bölmelidir} kernel {WaveNet çekirdeği tek sayı olmalıdır; Piper sesinde bu değer `.onnx.json`'da yazmaz, öncül akışın ağırlığının şeklinden okunur} other {bu kitaplık tek konuşmacılı, olasılıklı süre öngörücülü VITS'i açar: karakter parçalayıcılı Hugging Face klasörü ya da Piper sesi}}
 	H7558 Code = 7558 // {@pretrained_vits}: {file|q} Piper sesi olarak açılamadı: yanında {json|q} yok; Piper sesi `.onnx` dosyası ve aynı adlı `.onnx.json` ile açılır
 	H7559 Code = 7559 // {@phonemize}: {language|q} dili için fonem çevirici yok; bu TR sürümünde çeviricisi olan diller: {supported}
 	H7560 Code = 7560 // {@qwen3_format}: `{#add_generation_prompt}: {#true}` ile modelin düşünüp düşünmeyeceği yazılır: `{#add_generation_prompt}: {#true}, {#enable_thinking}: {#false}` (24.2)
