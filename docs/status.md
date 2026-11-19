@@ -548,8 +548,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 
 ### 13.7
 
-- **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik); `TR_where(TR_true, 2, 3)` denetimden geçip çalışırken hata veriyor [ölçüldü: DENETİM istek 81, `30b44b01` ve main `51b75f0a`] (15'in yan değişikliği, uygulanmadı). Tensörde `TR_is_finite` `TR_fuse` içinde float32 0/1 kalıyor (15.16a).
-- **Yapılacaklar (E ve D, Ö3; sahip D1, yeni kimlik ister; DENETİM istek 81, 184, 229 N5: yokluğu açık hata, `TR_where` çalışırken hata veriyor, sessiz yanlış değil):** `TR_is_finite(TR_Tensor([1, 2]))` hatasız, 13.7 yalnız `TR_Float` diyor (`TR_is_nan` bunu kopyalamaz); `TR_is_nan`'ın sayı ve tensör imzası; TR testi. `TR_where`'in tanımdaki imzası ve açıklaması düzeldi, mantık ve sayı koşulu denetim hatası (`tests/negative/kosullu_kosul.tr`; DIL UZMANI iş 7).
+- **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik; 15'in yan değişikliği, uygulanmadı); `TR_where`'in mantık ve sayı koşulu (`TR_where(TR_true, 2, 3)`, `TR_where(1, 2, 3)`) denetim hatası, ileti `TR_if`'i öneriyor; mantık tensörüyle çalışıyor [ölçüldü: `9f9d0617`'den derlenen trlang'ın check ve run komutları, 11:50:10 +0300; `a_where_mantik.tr`, `b_where_sayi.tr`, `c_isnan.tr`, `f_where_olumlu.tr`]. Tensörde `TR_is_finite` `TR_fuse` içinde float32 0/1 kalıyor, dışında mantık (15.16a) [ölçüldü: aynı, `e_fuse_isfinite.tr`]. Eski ölçü (`TR_where(TR_true, 2, 3)` çalışırken hata): DENETİM istek 81, `30b44b01` ve main `51b75f0a`.
+- **Yapılacaklar (E ve D, Ö3; sahip D1, yeni kimlik ister; DENETİM istek 81, 184, 229 N5: yokluğu açık hata, sessiz yanlış değil; `TR_where`'in sayı koşulu bugün denetim hatası):** `TR_is_finite(TR_Tensor([1, 2]))` hatasız [ölçüldü: aynı trlang, `d_isfinite_int.tr`, çıktı mantık tensörü, iki öğe de doğru], 13.7 yalnız `TR_Float` diyor (`TR_is_nan` bunu kopyalamaz); `TR_is_nan`'ın sayı ve tensör imzası; `TR_is_nan` eklenince fuse'ta da çalışır (15.44, 15.16a); TR testi. `TR_where`'in tanımdaki imzası ve açıklaması düzeldi, mantık ve sayı koşulu denetim hatası (`tests/negative/kosullu_kosul.tr`; DIL UZMANI iş 7).
 
 ### 13.8
 
