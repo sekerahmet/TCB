@@ -8,5 +8,23 @@
   "epsilon": 1.2810297,
   "epsilon_source": "measured here, quantized and unquantized path",
   "ok": true
+ },
+ "S1/gemma3-4b-q4km": {
+  "epsilon": 3.7661057,
+  "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": false,
+  "commit": "238fc620"
+ },
+ "S1/qwen3-8b-q4km": {
+  "epsilon": 1.9416008,
+  "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": true,
+  "commit": "238fc620"
+ },
+ "S1/gemma3-12b-q4km": {
+  "epsilon": 1.7940836,
+  "epsilon_source": "measured here, quantized and unquantized path",
+  "ok": false,
+  "commit": "238fc620"
  }
 }
