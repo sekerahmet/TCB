@@ -39,6 +39,9 @@ online = hub_sha(need) if need else {}
 bad = 0
 for f in files:
     cands = [os.path.join(models, ad, f), os.path.join(models, ad, os.path.basename(f)), os.path.join(models, os.path.basename(f))]
+    # Klasör adı koşturucununkinden farklı olabilir (dizüstünde silero-vad, koşturucuda silero-vad-16k): alt klasörlerde adıyla.
+    cands += sorted(os.path.join(models, d, os.path.basename(f)) for d in os.listdir(models)
+                    if os.path.isdir(os.path.join(models, d)))
     src = next((c for c in cands if os.path.isfile(c)), None)
     if not src:
         print(f"YOK {ad}/{f}: aranan {cands}")

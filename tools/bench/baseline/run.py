@@ -258,9 +258,11 @@ def run_pair(question, tr, ref, agree, log, machine):
     return out
 
 
-def run_alone(question, side, log, machine, runs=5):
-    """A question without a reference (S4, S8–S10, S14): one warm-up, then `runs` runs; median and range."""
-    _run_side(question, side, "warmup", log, machine)
+def run_alone(question, side, log, machine, runs=5, warm=True):
+    """A question without a reference (S4, S8–S10, S14): one warm-up, then `runs` runs; median and range.
+    A trial (--trial) is one run without the warm-up."""
+    if warm:
+        _run_side(question, side, "warmup", log, machine)
     values, memory = [], []
     for i in range(runs):
         r = _run_side(question, side, i, log, machine)
@@ -509,7 +511,9 @@ def run_questions(a):
                 for it in qs.items(ctx, q):
                     if not chosen(it) or (a.skip_done and it["key"] in rec.metrics):
                         continue
-                    rec.metrics[it["key"]] = run_item(ctx, it, rec)
+                    if a.trial and it["ref"] is not None:  # a trial of a pair is its agreement pass (--agreement)
+                        continue
+                    rec.metrics[it["key"]] = run_item(ctx, it, rec, trial=a.trial)
                     rec.save()
                     print(f"{it['key']}: done", flush=True)
     except Stop as e:
@@ -550,21 +554,24 @@ def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
             print(f"{it['key']}: agree", flush=True)
 
 
-def run_item(ctx, it, rec):
-    """One item: a custom run (Dost's screen), TR alone, or the ABBA pair; on the laptop the warm-up agrees (N3)."""
+def run_item(ctx, it, rec, trial=False):
+    """One item: a custom run (Dost's screen), TR alone, or the ABBA pair; on the laptop the warm-up agrees (N3).
+    trial (--trial): an item without a reference runs once, without the warm-up: the script, the models and the device are
+    tried, the number is not used (the laptop's scripts; a trial of an item with a reference is the agreement pass)."""
     if it["custom"]:
         values, memory = [], []
-        for i in range(it["runs"] + 1):  # the first is the warm-up
+        warm = 0 if trial else 1
+        for i in range(1 if trial else it["runs"] + 1):  # the first is the warm-up, but not in a trial
             v, m = it["custom"]()
-            rec.log({"question": it["key"], "index": "warmup" if i == 0 else i - 1, "result": v, "memory": m})
-            if i:
+            rec.log({"question": it["key"], "index": "warmup" if i < warm else i - warm, "result": v, "memory": m})
+            if i >= warm:
                 values.append(v)
                 memory.append(m)
         return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
                                                                         "median": statistics.median(v[k] for v in values)}
                                                                     for k in values[0]}}
     if it["ref"] is None:
-        return run_alone(it["key"], it["tr"], rec.log, ctx.machine, it["runs"])
+        return run_alone(it["key"], it["tr"], rec.log, ctx.machine, 1 if trial else it["runs"], warm=not trial)
     tr, ref, agree = it["tr"], it["ref"], None
     if ctx.machine == "laptop" and it["agree"]:
         tr, ref, agree = dict(tr, warm=it["tr_agree"]), dict(ref, warm=it["ref_agree"]), it["agree"]
@@ -635,6 +642,8 @@ def main():
     p.add_argument("--question", action="append", help="S1 … S14; repeat for several (default: the machine's list)")
     p.add_argument("--skip-done", action="store_true", help="skip questions already in the output folder")
     p.add_argument("--agreement", action="store_true", help="the agreement pass (O-4; Colab machines, before measuring)")
+    p.add_argument("--trial", action="store_true", help="a trial: items without a reference run once without the warm-up "
+                                                       "(the number is not used; Ahmet 2026-11-20)")
     p.add_argument("--work", help="prepare.sh's work folder: tools.json, models/, sounds/")
     p.add_argument("--out", default=os.environ.get("TR_RECORD_DIR"), help="output folder (default TR_RECORD_DIR)")
     p.add_argument("--rows", action="store_true", help="print draft rows from metrics.json in --out")

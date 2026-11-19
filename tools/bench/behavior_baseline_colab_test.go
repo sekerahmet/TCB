@@ -342,3 +342,48 @@ func TestCharModelPrintsUTF8(t *testing.T) {
 		t.Errorf("char_model.py printed no sample:\n%s", out)
 	}
 }
+
+// trialCheck --trial'ın koşu sayısını basar: emsalsiz kalem ve özel kalem (Dost'un ekranı) birer kez, ısınmasız.
+const trialCheck = `
+import importlib.util, json, sys, types
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+calls = []
+rp._run_side = lambda q, side, index, log, machine: calls.append(index) or {"results": [1.0], "runs": [{}]}
+side = {"measure": lambda results, runs: {"ms": results[0]}}
+out = {}
+for trial in (False, True):
+    calls.clear()
+    it = {"key": "S14/empty", "custom": None, "ref": None, "tr": side, "runs": 5}
+    rp.run_item(types.SimpleNamespace(machine="laptop"), it, types.SimpleNamespace(log=lambda r: None), trial=trial)
+    out["alone %s" % str(trial).lower()] = list(calls)
+    n = []
+    it = {"key": "S9/tr", "custom": lambda: n.append(1) or ({"ms": 1.0}, {}), "ref": None, "tr": side, "runs": 3}
+    rp.run_item(types.SimpleNamespace(machine="laptop"), it, types.SimpleNamespace(log=lambda r: None), trial=trial)
+    out["custom %s" % str(trial).lower()] = len(n)
+print(json.dumps(out))
+`
+
+// Deneme (Ahmet 2026-11-20: "böyle 5 er 10 ar denem mi olur"): --trial'da emsalsiz kalem ve Dost'un özel kalemi birer kez,
+// ısınmasız koşar; ölçüde ısınma ve koşu sayısı yerinde kalır.
+func TestBaselineTrialRunsOnce(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", trialCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if a, _ := got["alone true"].([]any); len(a) != 1 || a[0] != 0.0 {
+		t.Errorf("trial, item without a reference: runs %v, want one run without the warm-up", got["alone true"])
+	}
+	if a, _ := got["alone false"].([]any); len(a) != 6 || a[0] != "warmup" {
+		t.Errorf("measure, item without a reference: runs %v, want the warm-up and 5 runs", got["alone false"])
+	}
+	if got["custom true"] != 1.0 || got["custom false"] != 4.0 {
+		t.Errorf("Dost's custom item: trial %v, measure %v; want 1 and 4 (warm-up + 3)", got["custom true"], got["custom false"])
+	}
+}

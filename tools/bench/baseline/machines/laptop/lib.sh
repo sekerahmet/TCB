@@ -47,12 +47,20 @@ olcu_makine() {
 olcu_kos() {
   local ad=$1 soru=$2; shift 2
   local r="$KAYIT/run-$ad"; mkdir -p "$r"
-  # OLCU_DENEME=1: yalnız uyuşma geçişi (her taraf bir koşu): komut, model ve aygıt sınanır, ölçü yok (prova, 2 dk sınırı).
-  [ "${OLCU_DENEME:-}" = 1 ] && set -- "$@" --agreement
-  olcu "$ad: $soru${OLCU_DENEME:+ (deneme: yalnız uyuşma)}"
-  (cd "$REPO" && "$IS/bin/record.exe" --out "$KAYIT" --name "h1-laptop-$ad" -- \
-    "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" --question "$soru" "$@")
-  local rc=$?
+  sleep 20  # derlemenin ve sha256 hesabının yükü insin: koşturucunun yük denetimi koşudan önce ölçer
+  local kos="$PY -I tools/bench/baseline/run.py --work $IS --machine laptop --out $r --question $soru"
+  local rc
+  if [ "${OLCU_DENEME:-}" = 1 ]; then
+    # Deneme (Ahmet 2026-11-20): her şey bir kez. Emsali olan kalem uyuşma geçişiyle (her taraf bir koşu), emsalsiz kalem
+    # --trial ile (tek koşu, ısınmasız) sınanır: betik, model ve aygıt; sayı kullanılmaz.
+    olcu "$ad: $soru (deneme: her kalem bir kez)"
+    (cd "$REPO" && $kos "$@" --agreement && $kos "$@" --trial)
+    rc=$?
+  else
+    olcu "$ad: $soru"
+    (cd "$REPO" && "$IS/bin/record.exe" --out "$KAYIT" --name "h1-laptop-$ad" -- $kos "$@")
+    rc=$?
+  fi
   olcu "$ad çıkışı: $rc"
   (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --rows --out "$r")
   return $rc
@@ -63,7 +71,6 @@ olcu_kos() {
 olcu_model() {
   "$PY" -I "$(dirname "${BASH_SOURCE[0]}")/model.py" "$REPO" "$IS" "$MODELLER" "$1" ||
     { olcu "model $1 hazır değil"; exit 2; }
-  sleep 20  # sha256 hesabının yükü insin: koşturucunun yük denetimi koşudan önce ölçer
 }
 
 # olcu_surum <paket>...: emsalin Python paketlerinin sürümü ve torch'un aygıtı kayda (<ad>-makine.txt'nin yanına).
