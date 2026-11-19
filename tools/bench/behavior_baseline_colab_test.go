@@ -363,6 +363,17 @@ for trial in (False, True):
     it = {"key": "S9/tr", "custom": lambda: n.append(1) or ({"ms": 1.0}, {}), "ref": None, "tr": side, "runs": 3}
     rp.run_item(types.SimpleNamespace(machine="laptop"), it, types.SimpleNamespace(log=lambda r: None), trial=trial)
     out["custom %s" % str(trial).lower()] = len(n)
+agreed = []
+rp.agree_item = lambda ctx, it, rec: agreed.append(ctx.machine)
+it = {"key": "S6/tr", "custom": None, "ref": None, "agree": lambda a, b: None, "tr": side, "runs": 5}
+rec = types.SimpleNamespace(log=lambda r: None, agreement={})
+rp.run_item(types.SimpleNamespace(machine="laptop"), it, rec, trial=True)
+try:
+    rp.run_item(types.SimpleNamespace(machine="highram"), it, rec, trial=True)
+    out["check highram"] = "no stop"
+except rp.Stop as e:
+    out["check highram"] = str(e)
+out["check agreed"] = agreed
 print(json.dumps(out))
 `
 
@@ -385,6 +396,14 @@ func TestBaselineTrialRunsOnce(t *testing.T) {
 	}
 	if got["custom true"] != 1.0 || got["custom false"] != 4.0 {
 		t.Errorf("Dost's custom item: trial %v, measure %v; want 1 and 4 (warm-up + 3)", got["custom true"], got["custom false"])
+	}
+	// Hız emsali olmayan ama uyuşması olan kalem (S2, S6; transformers yalnız uyuşmada): dizüstü uyuşmayı önce kendisi
+	// koşar, Colab makinesi uyuşma geçişi olmadan durur.
+	if a, _ := got["check agreed"].([]any); len(a) != 1 || a[0] != "laptop" {
+		t.Errorf("check item: agreed on %v, want the laptop only", got["check agreed"])
+	}
+	if s, _ := got["check highram"].(string); !strings.Contains(s, "no agreement yet") {
+		t.Errorf("check item on highram without the agreement pass: %q, want a stop", got["check highram"])
 	}
 }
 

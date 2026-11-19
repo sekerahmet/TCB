@@ -139,6 +139,7 @@ func TestBaselineQuestions(t *testing.T) {
 	var got map[string]map[string]struct {
 		TR, Ref       [][]string
 		Agree, Custom bool
+		Check         *string
 	}
 	selfCheck(t, &got, "items", work)
 	// S5'in uyuşma işlevleri sonra, uyuşma geçişinde koşar; her biri kendi kaleminin adıyla yazar (A-11'de hepsi "en"di).
@@ -186,6 +187,16 @@ func TestBaselineQuestions(t *testing.T) {
 					!strings.Contains(line, " 97") {
 					t.Errorf("%s %s: %q has no thread number", machine, key, line)
 				}
+			}
+		}
+		// transformers hiçbir soruda hız emsali değil (TCB 2026-11-20 00:15): S2 ve S6'da yalnız uyuşmada koşar, ABBA'da yok.
+		for key, it := range items {
+			if !strings.HasPrefix(key, "S2/") && !strings.HasPrefix(key, "S6/") {
+				continue
+			}
+			if it.Ref != nil || !it.Agree || it.Check == nil || *it.Check != "transformers" {
+				t.Errorf("%s %s: reference %v, agree %v, check %v; want no speed reference and transformers only in the agreement",
+					machine, key, it.Ref, it.Agree, it.Check)
 			}
 		}
 		_, cold := items["S10/tr/cold"]

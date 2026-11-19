@@ -421,7 +421,8 @@ def _self_check(name, arg):
             ctx = qs.Ctx(sys.modules[__name__], machine, 97, arg, lambda rec: None, dry=True)
             out[machine] = {it["key"]: {"tr": it["tr"]["cmds"] if it["tr"] else None,
                                         "ref": it["ref"]["cmds"] if it["ref"] else None,
-                                        "agree": bool(it["agree"]), "custom": bool(it["custom"])}
+                                        "agree": bool(it["agree"]), "custom": bool(it["custom"]),
+                                        "check": it["check"]["name"] if it["check"] else None}
                             for q in qs.QUESTIONS[machine] for it in qs.items(ctx, q)}
         return out
     if name == "agreement":
@@ -592,17 +593,22 @@ def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
             raise Stop(f"english_phoneme_ids.json does not match the voice's mapping: {r['stdout'][-400:]}")
     for q in order_:
         for it in qs.items(ctx, q):
-            if not it["agree"] or not chosen(it):
-                continue
-            got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
-                   for s, cmds in ((it["tr"], it["tr_agree"]), (it["ref"], it["ref_agree"]))]
-            reason = it["agree"](*got)
-            # The agreement's own record (S1, S3: ε, agreeing positions, ties) goes with the verdict (B14).
-            rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason, **ctx.extra.pop(it["key"], {})}
-            rec.save()
-            if reason:
-                raise Stop(f"{it['key']}: {it['tr']['name']} and {it['ref']['name']} disagree: {reason}")
-            print(f"{it['key']}: agree", flush=True)
+            if it["agree"] and chosen(it):
+                agree_item(ctx, it, rec)
+
+
+def agree_item(ctx, it, rec):
+    """One item's agreement: TR against its reference, or against its check when it has no speed reference (S2, S6)."""
+    other = it["ref"] or it["check"]
+    got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
+           for s, cmds in ((it["tr"], it["tr_agree"]), (other, it["ref_agree"]))]
+    reason = it["agree"](*got)
+    # The agreement's own record (S1, S3: ε, agreeing positions, ties) goes with the verdict (B14).
+    rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason, **ctx.extra.pop(it["key"], {})}
+    rec.save()
+    if reason:
+        raise Stop(f"{it['key']}: {it['tr']['name']} and {other['name']} disagree: {reason}")
+    print(f"{it['key']}: agree", flush=True)
 
 
 def run_item(ctx, it, rec, trial=False):
@@ -621,12 +627,17 @@ def run_item(ctx, it, rec, trial=False):
         return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
                                                                         "median": statistics.median(v[k] for v in values)}
                                                                     for k in values[0]}}
+    agreed = lambda: rec.agreement.get(it["key"], {}).get("ok")
     if it["ref"] is None:
+        if it.get("agree") and not agreed():  # a check without a speed reference (S2, S6): agree first; the laptop does it here
+            if ctx.machine != "laptop":
+                raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
+            agree_item(ctx, it, rec)
         return run_alone(it["key"], it["tr"], rec.log, ctx.machine, 1 if trial else it["runs"], warm=not trial)
     tr, ref, agree = it["tr"], it["ref"], None
     if ctx.machine == "laptop" and it["agree"]:
         tr, ref, agree = dict(tr, warm=it["tr_agree"]), dict(ref, warm=it["ref_agree"]), it["agree"]
-    elif it["agree"] and not rec.agreement.get(it["key"], {}).get("ok"):
+    elif it["agree"] and not agreed():
         raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
     return run_pair(it["key"], tr, ref, agree, rec.log, ctx.machine)
 

@@ -1,7 +1,8 @@
-# Yazıyı sese çevirme, MMS İngilizce (S6/en), dizüstü: texts.json'un üç cümlesi, gürültü 0, cümle başına tepe normlama; TR
-# (mms.tr) ile transformers VitsModel, ABBA 10 koşu, uyuşma aynı dalga boyu. Satır: docs/measurements/text-to-speech.md,
-# "Dizüstü i7-13700H". Taraflar: ikisi işlemcide; model facebook/mms-tts-eng (sha256 Dost'un kataloğundan).
-# Not: emsal süreç içi ısınmasız ilk çağrılarla ölçülür (Colab'da şüpheli işaretli, TCB 22:45); satır bunu yazar.
+# Yazıyı sese çevirme, MMS İngilizce (S6/en), dizüstü: texts.json'un üç cümlesi, gürültü 0, cümle başına tepe normlama;
+# TR (mms.tr), 1 ısınma + 5 koşu. Emsal yok (en hızlısı aranıyor: sherpa-onnx'in MMS ONNX modelleri; TCB 2026-11-20:
+# transformers hız emsali değil); transformers VitsModel yalnız uyuşmada (aynı dalga boyu, iki rastgele tensör).
+# Satır: docs/measurements/text-to-speech.md, "Dizüstü i7-13700H". İşlemcide; model facebook/mms-tts-eng (sha256 Dost'un
+# kataloğundan). Deneme kipinde uyuşma ve TR bir kez.
 #   bash tools/bench/baseline/machines/laptop/text-to-speech-mms-en.sh
 . "$(dirname "$0")/lib.sh"
 olcu_kur

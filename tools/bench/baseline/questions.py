@@ -112,9 +112,11 @@ class Ctx:
         return ["-ngl", "99" if self.gpu else "0"]
 
 
-def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None):
+def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None):
+    # check: yalnız uyuşmada koşan başvuru (ref yokken): doğruluğun başvurusudur ama en hızlısı değildir, ABBA'da koşmaz ve
+    # satıra oranı girmez (TCB 2026-11-20 00:15: transformers hiçbir soruda hız emsali değil; S2, S6).
     return {"key": key, "tr": tr, "ref": ref, "agree": agree, "tr_agree": tr_agree, "ref_agree": ref_agree,
-            "runs": alone_runs, "custom": custom}
+            "runs": alone_runs, "custom": custom, "check": check}
 
 
 def side(name, cmds, measure, parse=None, env=None, agree_parse=None):
@@ -250,8 +252,9 @@ def q_language(ctx, q):
                                                     "--device", ctx.torch_device])
         pick = lambda r, runs: {"prompt_ms": r[0]["prompt_ms"], "gen_ms": r[0]["gen_ms"], "load_ms": r[0]["load_ms"]}
         same = lambda tr, ref: None if tr[0]["tokens"] == ref[0]["tokens"] else f"{tr[0]['tokens']} != {ref[0]['tokens']}"
-        out.append(item("S2/qwen3-4b-bf16", side("TR", [tr_cmd("speed")], pick), side("transformers", [ref_cmd("speed")], pick),
-                        same, [tr_cmd("agree")], [ref_cmd("agree")]))
+        # Emsal yok (en hızlısı aranıyor: llama.cpp BF16); transformers yalnız uyuşmada (TCB 00:15).
+        out.append(item("S2/qwen3-4b-bf16", side("TR", [tr_cmd("speed")], pick), None, same, [tr_cmd("agree")],
+                        [ref_cmd("agree")], check=side("transformers", [ref_cmd("agree")], pick)))
     if q == "S3":
         g = ctx.model("qwen3-4b-q4km")
         tr = side("TR", [ctx.tr("language_model.tr", "--model", g, "--mode", "depth", "--text", text, "--device", ctx.tr_device)],
@@ -390,8 +393,10 @@ def q_voice(ctx, q):
             m = ctx.folder(f"mms-tts-{'tur' if lang == 'tr' else 'eng'}")
             tr_cmd = ctx.tr("mms.tr", "--model", m, *texts, "--language", lang, "--device", ctx.tr_device)
             ref_argv = ["--model", m, *texts, "--device", ctx.torch_device, "--language", lang]
-            out.append(item(f"S6/{lang}", side("TR", [tr_cmd], pick), side("transformers", [ctx.ref("mms", argv=ref_argv)], pick),
-                            agree_samples, [tr_cmd], [ctx.ref("mms", argv=ref_argv + ["--count_random"])]))
+            # Emsal yok (en hızlısı aranıyor: sherpa-onnx'in MMS ONNX modelleri); transformers yalnız uyuşmada (TCB 00:15).
+            counted = [ctx.ref("mms", argv=ref_argv + ["--count_random"])]
+            out.append(item(f"S6/{lang}", side("TR", [tr_cmd], pick), None, agree_samples, [tr_cmd], counted,
+                            check=side("transformers", counted, pick)))
         else:
             voice = ctx.model("piper-tr-dfki-medium" if lang == "tr" else "piper-en-lessac-medium")
             ids = IDS_EN if lang == "en" else os.path.join(ctx.work, "ids_tr.json")
