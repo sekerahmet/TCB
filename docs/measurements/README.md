@@ -66,8 +66,12 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | G4GPU | Colab G4, GPU | GPU |
 | HIGHRAM | Colab CPU High-RAM | işlemci |
 | CPU | Colab CPU | işlemci |
+| GHAWIN | GitHub Actions, Windows | işlemci |
+| GHALINUX | GitHub Actions, Linux | işlemci |
 
 Dizüstünün belleği iki 16 GB DDR5-4800 modülüdür; çift kanalsa teorik bant 76,8 GB/sn, kanal sayısı ölçülmedi (`Win32_PhysicalMemory`, 2026-11-01; eski `docs/measurements.md`'den).
+
+GitHub Actions'ın iki makinesi (`GHAWIN`, `GHALINUX`) sabit değildir: runner görüntüsü (`windows-latest`, `ubuntu-latest`) aynı kalsa da donanım koşudan koşuya değişir. Bu satırların Aygıt'ı görüntünün adını taşır, Kaynak'ı CI koşusunun kimliğini ve commit'i yazar; kıyas yalnız aynı koşunun işleri arasında yapılır, iki koşunun süresi makine kıyası sayılmaz (TCB 2026-11-19 12:09).
 
 ## Oturumlar
 
