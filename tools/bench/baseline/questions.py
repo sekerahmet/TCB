@@ -61,6 +61,7 @@ QUANTIZED_OFF = {"gemma3-4b-qat-q40"}  # "düz kip" (set S1)
 # ---------------------------------------------------------------- machines (set; slices B–E)
 
 GPU_MACHINES = {"l4gpu", "g4"}
+FW_LIBS = os.environ.get("BASELINE_FW_LIBS")  # CUDA 12's library folders for faster-whisper only (q_whisper; BC3)
 QUESTIONS = {
     "highram": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S13", "S14"],
     "l4gpu": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"],
@@ -190,8 +191,12 @@ def agree_forced(ctx, key, forced_cmd):
         r = ctx.rp.run_once(forced_cmd + ["--given", path])
         if r["rc"] != 0:
             return f"TR's forced read failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
-        eps, source = highram_epsilon(ctx, key) if ctx.gpu else (None, "measured here, quantized and unquantized path")
-        v = dict(forced_verdict(ctx.rp.parse_result(r["stdout"]), eps), epsilon_source=source)
+        res = ctx.rp.parse_result(r["stdout"])
+        if res.get("epsilon_note"):  # no quantized path for these weights (Q8_0): ε is 0 by rule, on any device (TCB 17:57)
+            eps, source = res["epsilon"], f"by rule: {res['epsilon_note']}"
+        else:
+            eps, source = highram_epsilon(ctx, key) if ctx.gpu else (None, "measured here, quantized and unquantized path")
+        v = dict(forced_verdict(res, eps), epsilon_source=source)
         ctx.log({"agreement": key, "tr_greedy": tr[0].get("text"), **v})
         ctx.extra[key] = {k: v[k] for k in ("epsilon", "epsilon_source", "positions", "agree", "ties", "apart")}
         return v["reason"]
@@ -213,7 +218,9 @@ def lm_agreement(ctx, key, g, quant, text):
     """S1, S3: agree function and the two sides' agreement commands (TR's own greedy text, llama-completion's)."""
     tr_cmd = lambda mode: ctx.tr("language_model.tr", "--model", g, "--mode", mode, "--text", text, "--device", ctx.tr_device,
                                  *quant)
-    lc = ctx.ref("llama-completion", ctx.tools["llama_completion"], ["-m", g, "-p", text, "-n", 32, "-no-cnv", *ctx.ngl()])
+    # 33 token, karşılaştırılan 32: llama-completion üretimden sonra boş satır basar ("\n\n"); cevap yeniden bölününce son
+    # token onunla birleşebilir (G4: "**" + "\n\n" = 56177, BC9). Birleşme yalnız karşılaştırılmayan 33.'yü bozar.
+    lc = ctx.ref("llama-completion", ctx.tools["llama_completion"], ["-m", g, "-p", text, "-n", 33, "-no-cnv", *ctx.ngl()])
     return agree_forced(ctx, key, tr_cmd("forced")), [tr_cmd("agree")], [lc]
 
 
@@ -280,8 +287,12 @@ def q_whisper(ctx, q):
         source = ctx.texts["speech_to_text"][lang]
         tr = side("TR", [ctx.tr("whisper.tr", "--model", ctx.folder("whisper-small"), "--audio", wav, "--language", lang,
                                 "--device", ctx.tr_device)], lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]})
-        fw = lambda ct: ctx.ref("faster_whisper", argv=["--model", ctx.folder("faster-whisper-small"), "--audio", wav,
-                                                         "--compute_type", ct, "--device", ctx.torch_device, "--language", lang])
+        # faster-whisper's ctranslate2 wants CUDA 12's cuBLAS and cuDNN; a GPU machine without them gets them from the run
+        # script, which names their folders in BASELINE_FW_LIBS. Only faster-whisper's process sees them: in one process
+        # with torch's own cuDNN the versions mix (B, G4: "cuDNN sublibrary version mismatch"; BC3).
+        libs = ["env", f"LD_LIBRARY_PATH={FW_LIBS}"] if FW_LIBS else []
+        fw = lambda ct: libs + ctx.ref("faster_whisper", argv=["--model", ctx.folder("faster-whisper-small"), "--audio", wav,
+                                                                "--compute_type", ct, "--device", ctx.torch_device, "--language", lang])
         pick = lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]}
         refs = [("faster-whisper-float32", side("faster-whisper float32", [fw("float32")], pick)),
                 ("faster-whisper-int8", side("faster-whisper int8", [fw("int8")], pick)),

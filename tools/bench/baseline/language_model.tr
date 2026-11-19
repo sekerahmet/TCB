@@ -70,6 +70,19 @@ TR_func suits_quantized(m: TR_GPT) -> TR_Bool {
     TR_return found
 }
 
+# blocks_quantized: nicemli etkinleştirme bloğu bu modelin çarpımlarını kaldırır mı (15.53a): nicemlenmiş çarpım
+# ağırlıklarının hepsi q4, q4_k ya da q6_k ve en az biri var. Otomatiğin kuralından (suits_quantized) geniştir: QAT Q4_0
+# --quantized off'la koşar ama ε'u ölçülür.
+TR_func blocks_quantized(m: TR_GPT) -> TR_Bool {
+    TR_var found = TR_false
+    TR_for t TR_in matmul_dtypes(m) {
+        TR_if ["float32", "float64", "bf16", "fp16"].TR_contains(t) { TR_continue }
+        TR_if TR_not ["q4", "q4_k", "q6_k"].TR_contains(t) { TR_return TR_false }
+        found = TR_true
+    }
+    TR_return found
+}
+
 TR_func load_folder(folder: TR_String, dtype: TR_String) -> TR_GPT {
     TR_var config = TR_json_parse(TR_read_file(TR_Path(folder, "config.json")))
     TR_var model = TR_build_pretrained_model(config, TR_weight_dtype: dtype)
@@ -171,8 +184,15 @@ TR_no_grad {
         # parçalayıcısıyla bölünür (istemle birlikte bölmek sınırdaki token'ları birleştirebilir); ilk --agree_tokens
         # token llama.cpp'nin dizisidir. llama-completion üretilen kimlikleri basmaz.
         TR_var out = TR_read_file(TR_String(opt["given"]))
-        TR_if TR_not out.TR_starts_with(text) TR_or out.TR_length == text.TR_length { TR_throw "--given does not begin with --text and an answer; give llama-completion's output, which prints the prompt. Example: --given llama_completion.txt" }
-        TR_var answer = tok.TR_encode(out[text.TR_length..out.TR_length])
+        # Başa boşluk koyan parçalayıcıda (QAT Gemma'nın GGUF'u) llama-completion istemi bir boşlukla basar (B, HIGHRAM).
+        TR_var cut = TR_if out.TR_starts_with(text) { text.TR_length } TR_else TR_if out.TR_starts_with(" " + text) { text.TR_length + 1 } TR_else { -1 }
+        TR_if cut < 0 TR_or out.TR_length == cut { TR_throw "--given does not begin with --text and an answer; give llama-completion's output, which prints the prompt. Example: --given llama_completion.txt" }
+        # Cevap dizinin ortasıdır: parçalayıcının sınır parçaları (Gemma'da BOS, boş metnin kodu) atılır; 16.2'nin
+        # TR_boundary_tokens: TR_false'u henüz yok (B'de Gemma'nın ilk konumu BOS'tu, fark 31).
+        TR_var edges = tok.TR_encode("")
+        TR_var answer = tok.TR_encode(out[cut..out.TR_length])
+        TR_if edges.TR_length > 0 TR_and answer.TR_length > 0 TR_and answer[0] == edges[0] { answer = answer[1..answer.TR_length] }
+        TR_if edges.TR_length > 1 TR_and answer.TR_length > 0 TR_and answer[answer.TR_length - 1] == edges[edges.TR_length - 1] { answer = answer[0..answer.TR_length - 1] }
         TR_var P0 = once.TR_length
         TR_var n = TR_min(answer.TR_length, A)
         TR_var given = answer[0..n]
@@ -185,8 +205,13 @@ TR_no_grad {
         }
         put(result, {"prompt_tokens": TR_JSON(P0), "given_tokens": TR_JSON(n), "positions": TR_JSON(rows)})
         # ε: aynı konumlarda öbür yolun (nicemli ↔ nicemsiz) logitleriyle en büyük mutlak fark, Q4'ün kendi gürültüsü (B14).
-        # Nicemli etkinleştirme yalnız işlemcidedir (15.41); GPU'da ε yazılmaz.
-        TR_if device == "cpu" {
+        # Nicemli etkinleştirme yalnız işlemcidedir (15.41); GPU'da ε yazılmaz. Öbür yol yalnız blok modelin bütün
+        # nicemlenmiş ağırlıklarını kaldırıyorsa koşar (15.53a: q4, q4_k, q6_k); kaldırmıyorsa (q8, float) nicemli yol yoktur,
+        # iki yol aynıdır ve ε 0'dır (TCB 17:29; B'de S1/qwen3-4b-q8'in ε adımı 15.53a'yla düşüyordu).
+        # GPU'da da: nicemli yolu olmayan ağırlıkta ε kuralla 0'dır, HIGHRAM'in ölçüsü gerekmez (TCB 17:57).
+        TR_if TR_not blocks_quantized(model) {
+            put(result, {"epsilon": TR_JSON(0.0), "epsilon_note": TR_JSON("no quantized path for these weights (15.53a)")})
+        } TR_else TR_if device == "cpu" {
             TR_var lo = forced_logits(TR_not q, model, once + given[0..n - 1], P0 - 1, n)
             put(result, {"epsilon": TR_JSON(TR_max(TR_abs(lq - lo)).TR_tolist)})
         }
