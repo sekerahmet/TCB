@@ -102,11 +102,14 @@ Emsallerin ve ortamın makine başına geçerli sürümü. Yeni sürümle ölçe
 | güç | LAPTOP | Dengeli |
 | Vantage | LAPTOP | Performance |
 | onnxruntime | LAPTOP | 1.31.1 |
+| onnxruntime (sistem Python'u) | LAPTOP | 1.29.0 |
 | torch | LAPTOP | 2.6.0+cpu |
 | transformers | LAPTOP | 5.2.0 |
 | onnxruntime | HIGHRAM | 1.31.1 |
 | torch | HIGHRAM | 2.14.1+cpu |
 | transformers | HIGHRAM | 5.22.1 |
+
+Dizüstünde onnxruntime iki Python ortamında ayrı sürümde: `onnxruntime` Piper ortamınınkidir (S1'in Piper ölçüleri), `onnxruntime (sistem Python'u)` sistem Python'ununki (TTS-2026-11-19-LAPTOP-S1-1). Satır ölçtüğü ortamın adını yazar; komut adı ve makineyi birlikte eşler.
 
 ## Kim yazar
 
