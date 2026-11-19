@@ -1,0 +1,49 @@
+# TR 4
+# Temel ölçü seti S12 (tools/bench/baseline/README.md): kare matris çarpımı, TR'nin kendi çekirdeği (--kernel tr)
+# ya da TR_vendor_matmul bloğu (--kernel vendor; 15.53b), float32 ya da bf16.
+#   --size kenar (öntanımı 4096), --repeat ölçülen çarpım sayısı. Her çarpımın süresi eşitleme dahildir: sonucun bir
+#   öğesi okunur (.TR_tolist), GPU'da hesap bitmeden okuma dönmez. Süreç içi ısınma yok: ilk çarpım first_ms'tir,
+#   median_ms bütün ölçülenlerin ortancasıdır (setin ısınması süreç başınadır, run.py).
+#   --fill random (öntanımı, sabit tohum) ya da ones: birlerle sonucun her öğesi kenardır (test bunu denetler).
+# Sonuç son satırdadır: BASELINE {json}.
+TR_var opt = TR_command_line({"size": 4096, "dtype": "float32", "kernel": "tr", "repeat": 5, "fill": "random", "device": "cpu"})
+
+TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
+
+TR_var n = TR_Int(opt["size"])
+TR_if n < 1 { TR_throw "--size is the matrix edge, at least 1, not \(n). Example: --size 4096" }
+TR_var dtype = TR_String(opt["dtype"])
+TR_if TR_not ["float32", "bf16"].TR_contains(dtype) { TR_throw "--dtype is float32 or bf16, not \(dtype). Example: --dtype bf16" }
+TR_var kernel = TR_String(opt["kernel"])
+TR_if TR_not ["tr", "vendor"].TR_contains(kernel) { TR_throw "--kernel is tr or vendor, not \(kernel). Example: --kernel vendor" }
+TR_var fill = TR_String(opt["fill"])
+TR_if TR_not ["random", "ones"].TR_contains(fill) { TR_throw "--fill is random or ones, not \(fill). Example: --fill random" }
+TR_var R = TR_Int(opt["repeat"])
+TR_if R < 1 { TR_throw "--repeat is at least 1, not \(R). Example: --repeat 5" }
+TR_var device = TR_String(opt["device"])
+
+TR_default_device(device)
+TR_var a = TR_if fill == "ones" { TR_ones([n, n], TR_dtype: dtype) } TR_else { TR_randn([n, n], TR_dtype: dtype, TR_seed: 1) }
+TR_var b = TR_if fill == "ones" { TR_ones([n, n], TR_dtype: dtype) } TR_else { TR_randn([n, n], TR_dtype: dtype, TR_seed: 2) }
+
+# multiply: bir çarpım ve sonucun köşe öğesi (okuma eşitlemedir).
+TR_func multiply() -> TR_Float {
+    TR_var c = TR_if kernel == "vendor" { TR_vendor_matmul { a @ b } } TR_else { a @ b }
+    TR_return c[n - 1][n - 1].TR_tolist
+}
+
+TR_var times: TR_List[TR_Float] = []
+TR_var corner = 0.0
+TR_no_grad {
+    TR_for _ TR_in 0..R {
+        TR_var t = now_us()
+        corner = multiply()
+        times.TR_append((now_us() - t) / 1000.0)
+    }
+}
+TR_var median = TR_median(times)
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"size": TR_JSON(n), "dtype": TR_JSON(dtype), "kernel": TR_JSON(kernel), "device": TR_JSON(device),
+    "fill": TR_JSON(fill), "times_ms": TR_JSON(times), "first_ms": TR_JSON(times[0]), "median_ms": TR_JSON(median), "corner": TR_JSON(corner)}
+# Saatin adımından kısa çarpımda süre 0 okunur (Windows'ta ~0,5 ms; devir B11): hız ancak ölçülen süreyle yazılır.
+TR_if median > 0.0 { result["gflops"] = TR_JSON(2.0 * n * n * n / (median / 1000.0) / 1e9) }
+TR_print("BASELINE \(TR_json_string(result))")

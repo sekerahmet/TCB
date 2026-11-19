@@ -1,0 +1,111 @@
+# TR 4
+# Temel ölçü seti S4 (tools/bench/baseline/README.md): kataloğun bir girdisinin özel belleği, kataloğun kendi
+# bağlamında. Belleği run.py sürecin dışından ölçer (O-2); bu program girdiyi Dost'un yolundan kurar ve bağlamı doldurur.
+#   --catalog Dost'un kataloğu (tools/assistant/katalog.json), --entry girdinin kimliği, --path girdinin dosyası ya da
+#   klasörü, --context girdinin `memory.measured[].context` değerlerinden biri (her bağlam ayrı süreçte ölçülür).
+#   Katalog Dost'un okuyucusuyla (katalog.tr, katalog_oku) okunur: bozuk katalog Dost'taki hatayla durur.
+#   Dil modeli asistan.tr'nin asistan_kur'unun adımlarıyla kurulur: TR_pretrained_gguf, gguf_ailesi, nicemli_çöz
+#   (öntanımlı seçim), Zincir (bağlam önbellek_bağlamı(ÖNTANIMLI_BAĞLAM)), yeni_konuşma, ısıt. Sistem iletisi kataloğun
+#   --language dilininkidir. Isıtmanın token sayısı kataloğun küçük bağlamıdır (Qwen 45, Gemma 40); --context daha
+#   büyükse önbellek --text'in token'larıyla o derinliğe doldurulur (Dost katalog ölçüsünün yolu, 256'lık okumalarla).
+#   Öbür türler kendi yükleyicisiyle açılır (TR_pretrained_whisper, TR_pretrained_vad, TR_pretrained_vits); bağlamları 0.
+#   takım_kur (yuva.tr) kullanılmaz: o yalnız Dost klasöründeki kurulum kayıtlarından dosya yolu çözer, yükleme yapmaz.
+#   --hold_s verilirse program hazır durumda o kadar bekler (sabit durumun örneklemesi için).
+# Sonuç son satırdadır: BASELINE {json}.
+TR_import "tr/audio"
+TR_import "tr/pretrained"
+TR_import "tr/vad"
+TR_import "tr/vits"
+TR_import "tr/whisper"
+TR_import "../../assistant/aile"
+TR_import "../../assistant/katalog"
+TR_import "../../assistant/nicemli"
+TR_import "../../assistant/zincir"
+
+TR_const _ADIM = 256
+
+TR_var opt = TR_command_line({"catalog": "", "entry": "", "path": "", "context": -1, "language": "tr", "text": "", "hold_s": 0.0, "device": "cpu"})
+
+TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
+
+TR_var catalog = TR_String(opt["catalog"])
+TR_if catalog == "" { TR_throw "--catalog is empty; give Dost's catalog. Example: --catalog tools/assistant/katalog.json" }
+TR_var entry = TR_String(opt["entry"])
+TR_var path = TR_String(opt["path"])
+TR_if path == "" { TR_throw "--path is empty; give the entry's file or folder. Example: --path Qwen3-4B-Q4_K_M.gguf" }
+TR_var context = TR_Int(opt["context"])
+TR_var device = TR_String(opt["device"])
+TR_var k = katalog_oku(catalog)
+TR_var g = girdi_bul(k, entry)
+TR_if g == TR_none { TR_throw "--entry \(entry) is not in \(catalog). Example: --entry qwen3-4b-q4km" }
+TR_var contexts = [m.bağlam TR_for m TR_in g.ölçüler]
+TR_if TR_not contexts.TR_contains(context) { TR_throw "--context \(context) is not one of \(entry)'s measured contexts \(contexts). Example: --context \(contexts[0])" }
+
+TR_default_device(device)
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"entry": TR_JSON(entry), "kind": TR_JSON(g.tür), "context": TR_JSON(context), "device": TR_JSON(device)}
+# put: sonucun alanlarını yazar (sözlükte + yoktur).
+TR_func put(r: TR_Dict[TR_String, TR_JSON], fields: TR_Dict[TR_String, TR_JSON]) {
+    TR_for name TR_in fields.TR_keys() { r[name] = fields[name] }
+}
+
+# system: kataloğun --language dilinin sistem iletisi.
+TR_func system(file: TR_String, code: TR_String) -> TR_String {
+    TR_for l TR_in TR_json_parse(TR_read_file(file))["languages"] {
+        TR_if TR_String(l["code"]) == code { TR_return TR_String(l["system_prompt"]) }
+    }
+    TR_throw "--language \(code) is not a language of \(file). Example: --language tr"
+}
+
+# hold: hazır durumda --hold_s bekler; argüman beklenen değeri yaşatır (çağıranın modeli beklemede bellekte kalır).
+TR_func hold(alive: TR_Int) {
+    TR_var s = TR_Float(opt["hold_s"])
+    TR_if s > 0.0 { TR_sleep(s) }
+}
+
+# loaded: bağlamı olmayan türün sonucu; bekleme yükleyicinin dalında.
+TR_func loaded(t0: TR_Int) {
+    put(result, {"load_ms": TR_JSON((now_us() - t0) / 1000.0), "filled": TR_JSON(0)})
+    hold(0)
+}
+
+TR_var t0 = now_us()
+TR_if g.tür == "language_model" {
+    TR_var model = TR_pretrained_gguf(path)
+    TR_var family, stops = gguf_ailesi(path, model)
+    TR_var q = nicemli_çöz(NicemliSeçim(), TR_default_device(), model)
+    TR_var z = Zincir(p: TR_load_tokenizer(path), model: model, sistem: system(catalog, TR_String(opt["language"])), en_çok: 160,
+        bağlam: önbellek_bağlamı(ÖNTANIMLI_BAĞLAM, model), önbelleksiz: TR_false, aile: family, durma: stops, nicemli: q)
+    z.yeni_konuşma()
+    TR_var load_ms = (now_us() - t0) / 1000.0
+    ısıt(z)
+    TR_if context < z.ısıtılan { TR_throw "--context \(context) is below the warm-up's \(z.ısıtılan) tokens: the catalog's measured context is stale (\(entry))" }
+    TR_var c = z.önbellek
+    TR_if context > z.ısıtılan {
+        TR_var text = TR_String(opt["text"])
+        TR_if text == "" { TR_throw "--text is empty; run.py passes texts.json's language_model text. Example: --text \"Bir gün\"" }
+        TR_var pieces = z.p.TR_encode(text, TR_special_tokens: TR_false)
+        TR_for c.TR_position < context {
+            TR_var n = TR_min(_ADIM, context - c.TR_position)
+            TR_var read: TR_List[TR_Int] = []
+            TR_for read.TR_length < n { read.TR_append(pieces[(c.TR_position + read.TR_length) % pieces.TR_length]) }
+            TR_no_grad { istem_oku(z, read, c) }
+        }
+    }
+    put(result, {"load_ms": TR_JSON(load_ms), "warmed": TR_JSON(z.ısıtılan), "filled": TR_JSON(c.TR_position), "quantized": TR_JSON(q), "family": TR_JSON(family)})
+    hold(z.önbellek.TR_position)
+} TR_else {
+    # Model beklemenin sonuna kadar yaşar: bekleme dalın içindedir.
+    TR_if g.tür == "transcriber" {
+        TR_var m = TR_pretrained_whisper(path)
+        loaded(t0)
+    }
+    TR_if g.tür == "vad" {
+        TR_var m = TR_pretrained_vad(path)
+        loaded(t0)
+    }
+    TR_if g.tür == "voice" {
+        TR_var m = TR_pretrained_vits(path)
+        loaded(t0)
+    }
+}
+TR_print("BASELINE \(TR_json_string(result))")

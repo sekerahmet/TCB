@@ -1,0 +1,48 @@
+{
+  "about": "Fixed texts of the baseline measurement set (tools/bench/baseline/README.md). Changing a text changes every measurement that uses it: the sounds made from these texts and english_phoneme_ids.json must be made again.",
+  "speech_to_text": {
+    "tr": "Küçük bir kasabada yaşayan yaşlı bir saatçi, her sabah dükkânını açmadan önce kasabanın bütün saatlerini kurardı. Bir gün meydandaki büyük saat durdu ve kimse nedenini bilemedi. Saatçi merdiveni dayadı, kapağı açtı ve içeride bir kuş yuvası buldu. Kuşlar uçup gidene kadar saati onarmadı. O hafta kasabada herkes zamanı güneşe bakarak öğrendi ve kimse işine geç kalmadı. Yuva boşalınca saatçi dişlileri temizledi, saati yeniden kurdu ve kapağı kapattı.",
+    "en": "An old clockmaker who lived in a small town wound every clock in the town each morning before he opened his shop. One day the large clock in the square stopped, and nobody could tell why. The clockmaker leaned his ladder against the tower, opened the cover, and found a bird's nest inside. He did not repair the clock until the birds had flown away. That week everyone in town told the time by looking at the sun, and nobody was late for work."
+  },
+  "text_to_speech": {
+    "tr": [
+      "Bugün hava güzel, akşam yürüyüşe çıkabiliriz.",
+      "Toplantı saat üçte başlıyor, lütfen notlarını yanında getir.",
+      "Kütüphanedeki yeni kitaplar gelecek hafta raflara konacak."
+    ],
+    "en": [
+      "The weather is nice today, so we can go for a walk this evening.",
+      "The meeting starts at three, please bring your notes with you.",
+      "The new books in the library will be put on the shelves next week."
+    ]
+  },
+  "voice_turn": {
+    "tr": [
+      "Merhaba, nasılsın?",
+      "Bugün günlerden ne?",
+      "Bana kısa bir şaka anlatır mısın?",
+      "Türkiye'nin başkenti neresidir?",
+      "On iki ile yedinin toplamı kaçtır?",
+      "Çay mı kahve mi daha sağlıklı?",
+      "Bir dakikada kaç saniye vardır?",
+      "Yağmurlu bir günde ne yapabilirim?",
+      "En uzun nehir hangisidir?",
+      "Teşekkürler, görüşmek üzere."
+    ],
+    "en": [
+      "Hello, how are you?",
+      "What day is it today?",
+      "Can you tell me a short joke?",
+      "What is the capital of France?",
+      "What is twelve plus seven?",
+      "Is tea or coffee healthier?",
+      "How many seconds are there in a minute?",
+      "What can I do on a rainy day?",
+      "Which river is the longest?",
+      "Thank you, see you later."
+    ]
+  },
+  "language_model": {
+    "tr": "Küçük bir kasabada yaşayan yaşlı bir saatçi, her sabah dükkânını açmadan önce kasabanın bütün saatlerini kurardı. Bir gün meydandaki büyük saat durdu ve kimse nedenini bilemedi. Saatçi merdiveni dayadı, kapağı açtı ve içeride bir kuş yuvası buldu. "
+  }
+}

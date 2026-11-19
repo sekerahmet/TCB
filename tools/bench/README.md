@@ -158,6 +158,10 @@ python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF
 python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF16TrainStep --plain   # hizasız kollar da
 ```
 
+## Temel ölçü seti
+
+[`baseline/`](baseline/README.md): TR'nin hızı ve belleği her makinede emsalleriyle, tek yöntemle (S1–S14); hız ve bellek ölçüsü bu koşturucuyla yapılır, testleri `behavior_baseline_test.go` ve `behavior_baseline_programs_test.go`.
+
 ## CPU temel ölçümü
 
 [`cpu_baseline.sh`](cpu_baseline.sh) karakter modelini (1, 2, 4, 8 iş parçacığı), dil kıyasını ve tensör
