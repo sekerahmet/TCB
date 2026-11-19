@@ -127,6 +127,7 @@ func TestBaselineDostSounds(t *testing.T) {
 const fwLibsCheck = `
 import importlib.util, json, os, sys, tempfile
 os.environ["BASELINE_FW_LIBS"] = "/cu12/cublas/lib:/cu12/cudnn/lib"
+os.environ["LD_LIBRARY_PATH"] = "/usr/lib64-nvidia"
 spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
 rp = importlib.util.module_from_spec(spec)
 sys.modules["run"] = rp
@@ -172,7 +173,7 @@ func TestBaselineFasterWhisperLibs(t *testing.T) {
 	if q := got["S1 q8 gpu"].Ref; len(q) != 3 || q[0] != "None" || q[1] != "0.0" || !strings.HasPrefix(q[2], "by rule:") {
 		t.Errorf("S1 q8 on a GPU machine: %v, want agreement with ε 0 by rule", q)
 	}
-	want := []string{"env", "LD_LIBRARY_PATH=/cu12/cublas/lib:/cu12/cudnn/lib"}
+	want := []string{"env", "LD_LIBRARY_PATH=/cu12/cublas/lib:/cu12/cudnn/lib:/usr/lib64-nvidia"} // sürücünün yolu kalır
 	for _, lang := range []string{"tr", "en"} {
 		for name, libs := range map[string]bool{"faster-whisper-float32": true, "faster-whisper-int8": true, "transformers": false, "whisper.cpp": false} {
 			c, ok := got["S5/"+lang+"/"+name]
@@ -183,7 +184,8 @@ func TestBaselineFasterWhisperLibs(t *testing.T) {
 	}
 }
 
-// coldCheck questions.py'nin S10 soğuk kip yardımcılarını basar: dosya listesi, fincore'un okunuşu, atmanın hükmü.
+// coldCheck questions.py'nin S10 soğuk kip yardımcılarını basar: dosya listesi, atmanın hükmü; Linux'ta mincore'un
+// baytları gerçek bir dosyada (okununca önbellekte, fadvise'tan sonra düşmüş).
 const coldCheck = `
 import importlib.util, json, os, sys, tempfile
 sys.stdout.reconfigure(encoding="utf-8")
@@ -191,35 +193,35 @@ spec = importlib.util.spec_from_file_location("questions", "baseline/questions.p
 qs = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qs)
 d = tempfile.mkdtemp()
-model = os.path.join(d, "m.gguf"); open(model, "wb").write(b"x")
+model = os.path.join(d, "m.gguf"); open(model, "wb").write(os.urandom(4 << 20))
 folder = os.path.join(d, "whisper"); os.makedirs(folder); open(os.path.join(folder, "model.safetensors"), "wb").write(b"x")
 paths = qs.cold_files([model, "asistan.tr", "--dil_modeli", model, "--whisper", folder, "--bağlam", "8192"])
-fake = lambda cmd: {"rc": 0, "stdout": "4096\n0\n12288\n", "stderr": ""}
-fail = lambda cmd: {"rc": 1, "stdout": "", "stderr": "fincore: not found"}
-try:
-    qs.cached_bytes(fail, paths); failed = None
-except RuntimeError as e:
-    failed = str(e)
-print(json.dumps({"model": model in paths, "folder": os.path.join(folder, "model.safetensors") in paths,
-                  "lib": any(p.endswith(os.path.join("lib", "vits.tr")) for p in paths),
-                  "assistant": any(p.endswith(os.path.join("assistant", "asistan.tr")) for p in paths),
-                  "words": any(p in ("--dil_modeli", "8192") for p in paths), "bytes": qs.cached_bytes(fake, paths),
-                  "failed": failed, "dropped": [qs.cold_dropped(b, a) for b, a in ((100000, 9000), (100000, 20000), (0, 0))]}))
+out = {"model": model in paths, "folder": os.path.join(folder, "model.safetensors") in paths,
+       "lib": any(p.endswith(os.path.join("lib", "vits.tr")) for p in paths),
+       "assistant": any(p.endswith(os.path.join("assistant", "asistan.tr")) for p in paths),
+       "words": any(p in ("--dil_modeli", "8192") for p in paths),
+       "dropped": [qs.cold_dropped(b, a) for b, a in ((100000, 9000), (100000, 20000), (0, 0))], "linux": sys.platform == "linux"}
+if out["linux"]:
+    open(model, "rb").read()
+    before = qs.cached_bytes([model])
+    fd = os.open(model, os.O_RDONLY); os.fsync(fd); os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED); os.close(fd)
+    out["before"], out["after"] = before, qs.cached_bytes([model])
+print(json.dumps(out))
 `
 
 // S10'un soğuk kipi (Colab'da /proc/sys salt okunur; TCB 17:45): ekranın açtığı dosyalar önbellekten atılır. Liste trlang'ı,
 // komutun adını verdiği dosyaları ve klasörlerin dosyalarını, lib'in ve tools/assistant'ın TR dosyalarını içerir, öbür
-// sözcükleri içermez; fincore'un baytları toplanır, düşmezse hata verir; onda birin altı "atıldı" sayılır.
+// sözcükleri içermez; onda birin altı "atıldı" sayılır. Linux'ta mincore'un baytları: okunan 4 MB'lık dosya önbellekte,
+// fadvise'tan sonra onda birin altında (Colab'da fincore yok; G4'te S10 onun yüzünden düştü).
 func TestBaselineColdStart(t *testing.T) {
 	out, err := exec.Command(python(t), "-I", "-c", coldCheck).Output()
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	var got struct {
-		Model, Folder, Lib, Assistant, Words bool
-		Bytes                                int
-		Failed                               *string
-		Dropped                              []bool
+		Model, Folder, Lib, Assistant, Words, Linux bool
+		Dropped                                     []bool
+		Before, After                               int
 	}
 	if err := json.Unmarshal(out, &got); err != nil {
 		t.Fatalf("%v\n%s", err, out)
@@ -227,11 +229,11 @@ func TestBaselineColdStart(t *testing.T) {
 	if !got.Model || !got.Folder || !got.Lib || !got.Assistant || got.Words {
 		t.Errorf("cold files: %+v", got)
 	}
-	if got.Bytes != 16384 || got.Failed == nil || !strings.Contains(*got.Failed, "fincore failed") {
-		t.Errorf("cached bytes %d (want 16384), failure %v", got.Bytes, got.Failed)
-	}
 	if !reflect.DeepEqual(got.Dropped, []bool{true, false, true}) {
 		t.Errorf("dropped %v, want [true false true]", got.Dropped)
+	}
+	if got.Linux && (got.Before < 4<<20/2 || got.After > got.Before/10) {
+		t.Errorf("mincore: %d bytes cached after reading 4 MB, %d after fadvise; want most, then under a tenth", got.Before, got.After)
 	}
 }
 

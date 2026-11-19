@@ -290,7 +290,10 @@ def q_whisper(ctx, q):
         # faster-whisper's ctranslate2 wants CUDA 12's cuBLAS and cuDNN; a GPU machine without them gets them from the run
         # script, which names their folders in BASELINE_FW_LIBS. Only faster-whisper's process sees them: in one process
         # with torch's own cuDNN the versions mix (B, G4: "cuDNN sublibrary version mismatch"; BC3).
-        libs = ["env", f"LD_LIBRARY_PATH={FW_LIBS}"] if FW_LIBS else []
+        # The folders go before the process's own LD_LIBRARY_PATH, never instead of it: Colab finds the driver's libcuda
+        # through it, and without it ctranslate2 said "CUDA driver version is insufficient" (G4, third cell).
+        path = ":".join(x for x in (FW_LIBS, os.environ.get("LD_LIBRARY_PATH")) if x)
+        libs = ["env", f"LD_LIBRARY_PATH={path}"] if FW_LIBS else []
         fw = lambda ct: libs + ctx.ref("faster_whisper", argv=["--model", ctx.folder("faster-whisper-small"), "--audio", wav,
                                                                 "--compute_type", ct, "--device", ctx.torch_device, "--language", lang])
         pick = lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]}
@@ -605,12 +608,35 @@ def cold_files(base):
     return sorted(set(paths))
 
 
-def cached_bytes(run_once, paths):
-    """The page cache's bytes of the files: util-linux fincore's RES column in bytes."""
-    r = run_once(["fincore", "--bytes", "--noheadings", "--raw", "--output", "RES", *paths])
-    if r["rc"] != 0:
-        raise RuntimeError(f"fincore failed (exit {r['rc']}): {r['stderr'][-300:]}")
-    return sum(int(x) for x in r["stdout"].split())
+def cached_bytes(paths):
+    """The page cache's bytes of the files (Linux): each file is mapped and mincore(2) says which pages are resident.
+    Colab has no util-linux fincore (G4, second cell: "No such file or directory: 'fincore'")."""
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.mmap.restype = ctypes.c_void_p
+    libc.mmap.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_long]
+    libc.mincore.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p]
+    libc.munmap.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+    page, total, failed = os.sysconf("SC_PAGE_SIZE"), 0, ctypes.c_void_p(-1).value
+    for p in paths:
+        size = os.path.getsize(p)
+        if size == 0:
+            continue
+        fd = os.open(p, os.O_RDONLY)
+        try:
+            addr = libc.mmap(None, size, 1, 1, fd, 0)  # PROT_READ, MAP_SHARED
+            if addr in (None, failed):
+                raise OSError(ctypes.get_errno(), f"mmap {p}")
+            try:
+                vec = (ctypes.c_ubyte * ((size + page - 1) // page))()
+                if libc.mincore(ctypes.c_void_p(addr), size, vec) != 0:
+                    raise OSError(ctypes.get_errno(), f"mincore {p}")
+                total += sum(b & 1 for b in bytes(vec)) * page
+            finally:
+                libc.munmap(ctypes.c_void_p(addr), size)
+        finally:
+            os.close(fd)
+    return total
 
 
 def cold_dropped(before, after):
@@ -623,7 +649,7 @@ def drop_files(ctx, base):
     /proc/sys is read-only, so the whole cache cannot be dropped (B, G4). The cached bytes before and after go to the log;
     if they did not fall, the measure stops (TCB 17:45)."""
     paths = cold_files(base)
-    before = cached_bytes(ctx.rp.run_once, paths)
+    before = cached_bytes(paths)
     subprocess.run(["sync"], check=True)
     for p in paths:
         fd = os.open(p, os.O_RDONLY)
@@ -631,7 +657,7 @@ def drop_files(ctx, base):
             os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
         finally:
             os.close(fd)
-    after = cached_bytes(ctx.rp.run_once, paths)
+    after = cached_bytes(paths)
     ctx.log({"question": "S10 cold", "files": len(paths), "cached_before_bytes": before, "cached_after_bytes": after})
     if not cold_dropped(before, after):
         raise ctx.rp.Stop(f"S10 cold: the files' cache fell from {before} to {after} bytes only (fadvise)")
