@@ -26,7 +26,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; ekrana göre 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
 | 9 | 2026-11-06 | Arena AI, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; TCB koştu: 18 testin 18'i geçti; bilmediği kökte sözcüğü olduğu gibi veriyor |
 | 10 | 2026-11-06 | GLM, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; 610 köklük sözlük; TCB koştu: 18 testin 18'i geçti |
-| 11 | 2026-11-18 | Gemini 4 Carbon, Antigravity | Piper sesini TR'de onnxruntime hızına çıkarmak; motora dokunmadan, ses bozulmadan | ajan kullanıcının bilgisayarında kendi kopyasında çalıştı, yalnız `lib/vits.tr`'yi değiştirdi, var olan testler geçti; hız: S1'in ölçüsü bekleniyor; ses kulakla aynı (Ahmet dinledi), dalga yuvarlama mertebesinde farklı (DENETİM 920); kod S1'in tasarımıyla depoya giriyor. İstem depo adresiydi, `AGENTS.md` değil |
+| 11 | 2026-11-18 | Gemini 4 Carbon, Antigravity | Piper sesini TR'de onnxruntime hızına çıkarmak; motora dokunmadan, ses bozulmadan | ajan kullanıcının bilgisayarında kendi kopyasında çalıştı, yalnız `lib/vits.tr`'yi değiştirdi, var olan testler geçti; hız: TTS-2026-11-19-LAPTOP-S1-1; ses kulakla aynı (Ahmet dinledi), dalga yuvarlama mertebesinde farklı (DENETİM 920); kod S1'in tasarımıyla main'de (1200a6cc). İstem depo adresiydi, `AGENTS.md` değil |
 
 ## Yarış
 
