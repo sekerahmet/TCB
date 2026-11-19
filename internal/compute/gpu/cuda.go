@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/sysmem"
 )
 
 // ============================================================================
@@ -318,8 +319,14 @@ func (s *cudaDriver) allocate(byteN uint64) (uint64, result) {
 
 func (s *cudaDriver) release(addr uint64) result { return s.call(fMemFree, uintptr(addr)) }
 
+// hostAlloc sayfası kilitli konak belleği ayırır (hazırlık halkası, memory.go). Bellek Go öbeğinin
+// dışındadır ve süreç boyunca durur: bellek tavanına bir kez sayılır (19.12a). Benzetim sürücüsünün
+// halkası Go öbeğindedir, sayılmaz.
 func (s *cudaDriver) hostAlloc(byteN int) (unsafe.Pointer, result) {
 	r := s.call(fMemAllocHost, uintptr(unsafe.Pointer(&s.output.indicator)), uintptr(byteN))
+	if r == succeeded {
+		sysmem.AddExternal(int64(byteN))
+	}
 	return s.output.indicator, r
 }
 

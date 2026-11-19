@@ -797,5 +797,6 @@
   "TR_env_GPU_PROFILE": { "kind": "command", "example": "TR_GPU_PROFILE=1 trlang run eğit.tr" },
   "TR_env_GPU_SYNC": { "kind": "command", "example": "TR_GPU_SYNC=1 trlang run eğit.tr" },
   "TR_env_JOB_DIR": { "kind": "command", "example": "TR_JOB_DIR=isler/egitim trlang run eğit.tr" },
-  "TR_env_LANG": { "kind": "command", "example": "TR_LANG=en trlang help" }
+  "TR_env_LANG": { "kind": "command", "example": "TR_LANG=en trlang help" },
+  "TR_env_MEMORY_LIMIT": { "kind": "command", "example": "TR_MEMORY_LIMIT=6442450944 trlang run sohbet.tr" }
 }

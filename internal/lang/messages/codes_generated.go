@@ -2383,5 +2383,10 @@ const (
 	H8879 Code = 8879 // [`{recv}` içe aktarılan modülse: bu üyesi yok]
 	H8880 Code = 8880 // {limit} adım sınırının ötesinde, klasörünün içinde: {count} test daha ona `{entry}` üzerinden ulaşıyor ({steps} adımdan başlayarak); `trlang index tested_by {entry} {all}` onları listeler
 	H8881 Code = 8881 // {limit} adım sınırının ötesinde, klasörünün içinde: {count} test daha ona ulaşıyor; {tests} tanesi `{entry}` üzerinden ({steps} adımdan başlayarak), kalanı {entries} giriş daha üzerinden; `trlang index tested_by {entry} {all}` o {tests} testi listeler
+	H8890 Code = 8890 // {kind, select, toolarge {{name}={value|q} çok büyük: değer en çok 9223372036854775807 bayttır} other {{name}={value|q} geçersiz: değer bayt cinsinden pozitif bir tam sayıdır (6 GiB için {name}=6442450944)}}
+	H8891 Code = 8891 // {name}={value|q} birim almaz, değer bayt cinsinden yazılır: {name}={bytes}
+	H8892 Code = 8892 // {name}={value|q} birim almaz ve bu birim iki türlü okunur; değer bayt cinsinden yazılır: 10'un kuvvetleriyle {name}={decimal}, 2'nin kuvvetleriyle {name}={binary}
+	H8893 Code = 8893 // {vars}: TR'nin değil, uygulamanın çalışma zamanının {count, plural, one {ayarı} other {ayarları}}; GOMEMLIMIT öbek dışındaki belleği (yüklenen ağırlıklar) saymaz. Sürecin bellek tavanı {name} ile verilir, bayt cinsinden: 6 GiB için {name}=6442450944
+	H8895 Code = 8895 // {vars}: TR'nin değil, uygulamanın çalışma zamanının {count, plural, one {ayarı} other {ayarları}}
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

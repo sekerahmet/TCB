@@ -11,12 +11,8 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
-
-// runtimeVariables Go'nun çalışma zamanının ortam değişkenleridir (go1.27.4 src/runtime/extern.go):
-// dilin ayarı değildirler (19.12a). Test sürecinin ortamından gelen değer ölçüyü bozmasın diye
-// alt sürecin ortamından çıkarılırlar.
-var runtimeVariables = []string{"GOGC", "GOMEMLIMIT", "GODEBUG", "GOMAXPROCS", "GORACE", "GOTRACEBACK"}
 
 // gcTraceLine gctrace'in toplama satırıdır: "A->B->C MB, D MB goal"; C toplamadan sonra canlı öbek,
 // D bir sonraki toplamanın hedefi değil bu toplamanın hedefidir: önceki toplamanın canlısından kurulur.
@@ -31,7 +27,7 @@ func TestTrlangKeepsTheGoCollectorTarget(t *testing.T) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, trBinary, "36_karakter_modeli.tr")
 	cmd.Dir = dir
-	cmd.Env = append(withoutRuntimeVariables(os.Environ()), "GODEBUG=gctrace=1")
+	cmd.Env = append(testkit.WithoutRuntimeVariables(os.Environ()), "GODEBUG=gctrace=1")
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
@@ -56,22 +52,4 @@ func TestTrlangKeepsTheGoCollectorTarget(t *testing.T) {
 	if pairs < 10 {
 		t.Fatalf("önceki canlısı 16 MB'yi aşan %d toplama çifti var, en az 10 gerekir (%d toplama satırı)", pairs, len(live))
 	}
-}
-
-// withoutRuntimeVariables ortamdan çalışma zamanının değişkenlerini çıkarır.
-func withoutRuntimeVariables(env []string) []string {
-	var out []string
-	for _, e := range env {
-		name, _, _ := strings.Cut(e, "=")
-		keep := true
-		for _, v := range runtimeVariables {
-			if strings.EqualFold(name, v) {
-				keep = false
-			}
-		}
-		if keep {
-			out = append(out, e)
-		}
-	}
-	return out
 }

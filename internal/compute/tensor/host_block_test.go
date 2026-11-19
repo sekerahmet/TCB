@@ -6,11 +6,14 @@ import (
 	"math"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/sysmem"
 )
 
 // hostSize blok eşiğinin üstünde, q8 bloğunun katı bir öğe sayısıdır (float32'de 2 MiB).
@@ -253,6 +256,28 @@ func TestHostBlockIsReleasedAndPressureBounds(t *testing.T) {
 	}
 	if n := settleHostMemory(func(n int64) bool { return n == 0 }); n != 0 {
 		t.Fatalf("toplamadan sonra %d bayt canlı", n)
+	}
+}
+
+// Kural (19.12a): öbek dışı blok bellek tavanına sayılır: blok ayrılınca Go'nun sınırı bloğun boyu
+// kadar küçülür, blok bırakılınca geri gelir.
+func TestHostBlockCountsTowardTheMemoryLimit(t *testing.T) {
+	needBlock(t, hostBlockMin)
+	settleHostMemory(func(n int64) bool { return n == 0 })
+	sysmem.SetLimit(8 << 30)
+	t.Cleanup(func() { sysmem.SetLimit(0) })
+	base := debug.SetMemoryLimit(-1)
+	const size = 64 << 20
+	b := NewHostBlock(size)
+	if got := debug.SetMemoryLimit(-1); got != base-size {
+		t.Errorf("blok ayrılınca Go'nun sınırı %d, %d bekleniyordu", got, base-size)
+	}
+	runtime.KeepAlive(b)
+	if n := settleHostMemory(func(n int64) bool { return n == 0 }); n != 0 {
+		t.Fatalf("toplamadan sonra %d bayt canlı", n)
+	}
+	if got := debug.SetMemoryLimit(-1); got != base {
+		t.Errorf("blok bırakılınca Go'nun sınırı %d, %d bekleniyordu", got, base)
 	}
 }
 

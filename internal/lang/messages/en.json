@@ -2378,5 +2378,10 @@
 "H8879": "[if `{recv}` is an imported module: it has no such member]",
 "H8880": "beyond the {limit}-step limit, inside its folder: {count} more tests reach it through `{entry}` (from {steps} steps); `trlang index tested_by {entry} {all}` lists them",
 "H8881": "beyond the {limit}-step limit, inside its folder: {count} more tests reach it, {tests} of them through `{entry}` (from {steps} steps) and the rest through {entries} more entries; `trlang index tested_by {entry} {all}` lists those {tests}",
+"H8890": "{kind, select, toolarge {{name}={value|q} is too large: the value is at most 9223372036854775807 bytes} other {{name}={value|q} is not valid: the value is a positive whole number of bytes ({name}=6442450944 for 6 GiB)}}",
+"H8891": "{name}={value|q} takes no unit; write the value in bytes: {name}={bytes}",
+"H8892": "{name}={value|q} takes no unit, and this unit has two readings; write the value in bytes: powers of 10 {name}={decimal}, powers of 2 {name}={binary}",
+"H8893": "{vars}: {count, plural, one {a setting} other {settings}} of the implementation's runtime, not of TR; GOMEMLIMIT does not count memory outside the heap (loaded weights). The process's memory cap is given with {name}, in bytes: {name}=6442450944 for 6 GiB",
+"H8895": "{vars}: {count, plural, one {a setting} other {settings}} of the implementation's runtime, not of TR",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

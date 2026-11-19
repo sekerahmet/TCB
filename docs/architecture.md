@@ -22,7 +22,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 | `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/detmath`, `internal/sysmem` |
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
 | `cmd/trlang` | `trlang` komutu | hepsi (`internal/reporoot` dışında) |
-| `internal/sysmem` | Makinenin fiziksel belleği sorgusu | hiçbiri |
+| `internal/sysmem` | Makinenin fiziksel belleği sorgusu ve sürecin bellek tavanı (19.12a) | hiçbiri |
 | `internal/detmath` | Her makinede aynı biti veren matematik fonksiyonları | hiçbiri |
 | `internal/layoutrules` | Dosya ve fonksiyon boyu sınırlarının tek kaynağı (düzen testleri ve araçlar okur) | hiçbiri |
 | `internal/reporoot`, `lib` | Testlerin depo kökü yardımcısı; kitaplığın gömme dosyası | hiçbiri |

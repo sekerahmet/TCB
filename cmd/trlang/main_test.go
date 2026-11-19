@@ -31,7 +31,10 @@ var (
 	exeError error
 )
 
+// TestMain çalışma zamanının değişkenlerini ortamdan siler: zorlama koşusunun GOGC=1'i alt süreçlerde
+// uyarı satırı olurdu (19.12a; testkit.ClearRuntimeVariables).
 func TestMain(m *testing.M) {
+	testkit.ClearRuntimeVariables()
 	code := m.Run()
 	if exeDir != "" {
 		os.RemoveAll(exeDir)

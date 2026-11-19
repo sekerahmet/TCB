@@ -806,6 +806,7 @@ const (
 	EnvGpuSync                  Code = 797 // TR_env_GPU_SYNC: TR_GPU_SYNC · TR_GPU_ESZAMANLI
 	EnvJobDir                   Code = 798 // TR_env_JOB_DIR: TR_JOB_DIR · TR_IS_KLASORU
 	EnvLang                     Code = 799 // TR_env_LANG: TR_LANG · TR_DIL
+	EnvMemoryLimit              Code = 800 // TR_env_MEMORY_LIMIT: TR_MEMORY_LIMIT · TR_BELLEK_TAVANI
 )
 
 // identities is every code's identity, indexed by the code.
@@ -1609,6 +1610,7 @@ var identities = [...]string{
 	EnvGpuSync:                  "TR_env_GPU_SYNC",
 	EnvJobDir:                   "TR_env_JOB_DIR",
 	EnvLang:                     "TR_env_LANG",
+	EnvMemoryLimit:              "TR_env_MEMORY_LIMIT",
 }
 
 // libraryModules is the module of every library code (the module field of definitions.json).

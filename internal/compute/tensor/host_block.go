@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/sysmem"
 )
 
 // ============================================================================
@@ -15,9 +17,11 @@ import (
 // ============================================================================
 //
 // Ağırlık Go öbeğinde durunca çöp toplayıcının hedefi onunla büyür: hedef canlının katıdır (Go'nun
-// 100'ünde iki katı); 4B modelinde, trlang'ın hedefi 200'ken, 8 463 MB'tı. Hedefi süreç genelinde kısan ayar (GOMEMLIMIT, SetGCPercent) aynı programdaki
-// eğitimi de yavaşlatır; blok süreç ayarı istemez. Bellek anonimdir, dosya eşlemesi değil: dosya
-// kısaltılınca eşlemeye erişim süreci düşürür.
+// 100'ünde iki katı); 4B modelinde, trlang'ın hedefi 200'ken, 8 463 MB'tı. Hedefi süreç genelinde
+// kısan ayar (GOMEMLIMIT, SetGCPercent) aynı programdaki eğitimi de yavaşlatır; blok süreç ayarı
+// istemez. Bellek tavanı (TR_MEMORY_LIMIT, 19.12a) bloğu sayar: blok ayrılınca Go'ya kalan pay küçülür
+// (sysmem.AddExternal); arkadaki yedek sayfa (hostTail) sayılmaz, yazılmadığı için bellekte yer
+// tutmaz. Bellek anonimdir, dosya eşlemesi değil: dosya kısaltılınca eşlemeye erişim süreci düşürür.
 //
 // Ömür: çöp toplayıcı bu belleğe bakan dilimi görmez, yalnız bloğun kendisini görür. Depo bloğu
 // tutar (cpuStorage.block); blok erişilmez olunca bellek geri verilir, adres verilmez: aralık erişime
@@ -112,9 +116,11 @@ func newHostBlock(n int, lim hostLimit, spent *hostSpent) *HostBlock {
 	spent.blocks.Add(1)
 	spent.address.Add(int64(n))
 	hostMemory.live.Add(int64(n))
+	sysmem.AddExternal(int64(n))
 	runtime.AddCleanup(b, func(c hostCleanup) {
 		free()
 		hostMemory.live.Add(-c.size)
+		sysmem.AddExternal(-c.size)
 		hostUnregister(c.id)
 	}, hostCleanup{size: int64(n), id: hostRegister(b, n)})
 	return b

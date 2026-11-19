@@ -165,6 +165,7 @@ Ortam değişkenleri (kimlik adıyla yazılır ve okunur, 17.9):
 | `TR_JOB_DIR` | Arka plan işinin klasörü: ilerleme çubuğu oraya `progress.json` yazar | `TR_JOB_DIR=isler/egitim trlang examples/tr/28_egitim_dongusu.tr` |
 | `TR_GPU_SYNC` | `1` ise her GPU kernelinden sonra beklenir; kernel hatası tam yerinde bildirilir (yavaş) | `TR_GPU_SYNC=1 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 | `TR_GPU_PROFILE` | `1` ise GPU kernel süreleri ölçülür (`watch` ve `profile` kendileri açar) | `TR_GPU_PROFILE=1 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_MEMORY_LIMIT` | Sürecin bellek tavanı, bayt cinsinden: çöp toplayıcının öbeği ve öbek dışı bloklar birlikte (19.12a) | `TR_MEMORY_LIMIT=6442450944 trlang examples/tr/36_karakter_modeli.tr` |
 | `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 trlang examples/tr/23_tensor.tr` |
 | `TR_GPU_CUBLASLT` | `TR_vendor_matmul` bloğunda kullanılacak cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 

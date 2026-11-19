@@ -12,7 +12,7 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 | Hesap çekirdeği | `compute/` | Tensörler, otomatik türev, CPU ve GPU arka uçları, veri hattı, parçalayıcı | `compute/`, ileti kataloğu `lang/messages` ve `sysmem/` |
 | Standart kitaplık | `stdlib/` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler (ml, dosyalar, günlük, kontrol noktası ...) | `lang/`, `compute/`, `stdlib/` |
 | Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı, kod dizini, Go modül yükleyici (`tools/impact` ve `tools/codegraph` ortak kullanır) | `lang/`, `compute/`, `stdlib/`, `devtools/` |
-| Sistem belleği | `sysmem/` | Makinenin toplam fiziksel belleğini işletim sisteminden okuma | hiçbir iç paket |
+| Sistem belleği | `sysmem/` | Makinenin toplam fiziksel belleğini işletim sisteminden okuma ve sürecin bellek tavanı (19.12a) | hiçbir iç paket |
 | Test yardımcısı | `reporoot/` | Testlerin depo kökünü bulması | hiçbir iç paket |
 | Düzen kuralları | `layoutrules/` | Dosya ve fonksiyon boyu sınırlarının ve istisnalarının tek kaynağı (düzen testleri ve `tools/codegraph` okur) | hiçbir iç paket |
 | Test yardımcısı | `testkit/`, `testkit/trrun/` | Paketler arası ortak test yardımcıları (dosya yazma, ikili çalıştırma, TR programı çalıştırma) | `testkit`: yalnızca `reporoot`; `trrun`: `lang/` ve `stdlib/files` (geçici klasörlerin temizliği) |
