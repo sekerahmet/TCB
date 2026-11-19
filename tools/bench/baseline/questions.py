@@ -51,6 +51,9 @@ MODELS = {
                                ["en/en_US/lessac/medium/en_US-lessac-medium.onnx",
                                 "en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"]),
 }
+# Hosts other than the Hugging Face hub: Silero VAD comes from the project's GitHub repository, as in Dost's catalog
+# (tools/assistant/katalog.json "host": "github"; indirme.tr katalog_adresi: raw.githubusercontent.com).
+GITHUB = {"silero-vad-16k"}
 S1_MODELS = ["qwen3-4b-q4km", "qwen3-4b-q8", "gemma3-4b-q4km", "gemma3-4b-qat-q40", "qwen3-8b-q4km", "gemma3-12b-q4km"]
 QUANTIZED_OFF = {"gemma3-4b-qat-q40"}  # "düz kip" (set S1)
 

@@ -500,18 +500,30 @@ def fetch(work, only=None):
     unknown = set(only or ()) - set(qs.MODELS)
     if unknown:
         raise Stop(f"--models: unknown {sorted(unknown)}; the names are questions.py's MODELS")
+    import urllib.request
     from huggingface_hub import HfApi, hf_hub_download
     api = HfApi()
+    with open(qs.CATALOG, encoding="utf-8") as f:  # Dost's catalog: each file's sha256 (Dost checks the same numbers)
+        known = {(e["source"]["repo"], e["source"]["revision"], x["path"]): x["sha256"]
+                 for e in json.load(f)["entries"] for x in e["source"]["files"]}
     for name, (repo, rev, files) in qs.MODELS.items():
         if only and name not in only:
             continue
-        info = {p.path: p for p in api.get_paths_info(repo, files, revision=rev)}
+        folder = os.path.join(work, "models", name)
+        hub = {} if name in qs.GITHUB or all((repo, rev, x) in known for x in files) else \
+            {p.path: getattr(p, "lfs", None) for p in api.get_paths_info(repo, files, revision=rev)}
         for file in files:
-            path = hf_hub_download(repo, file, revision=rev, local_dir=os.path.join(work, "models", name))
-            lfs = getattr(info.get(file), "lfs", None)
-            if lfs is not None and qs.sha256(path) != lfs.sha256:
-                raise Stop(f"{name}/{file}: sha256 is not the hub's at {rev}")
-            print(f"{name}/{file}: {os.path.getsize(path)} bytes" + (" sha256 ok" if lfs is not None else ""), flush=True)
+            if name in qs.GITHUB:
+                path = os.path.join(folder, file)
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                urllib.request.urlretrieve(f"https://raw.githubusercontent.com/{repo}/{rev}/{file}", path)
+            else:
+                path = hf_hub_download(repo, file, revision=rev, local_dir=folder)
+            want = known.get((repo, rev, file)) or getattr(hub.get(file), "sha256", None)
+            if want is not None and qs.sha256(path) != want:
+                raise Stop(f"{name}/{file}: sha256 is not the {'catalog' if (repo, rev, file) in known else 'hub'}'s at {rev}")
+            source = "catalog" if (repo, rev, file) in known else "hub" if want else None
+            print(f"{name}/{file}: {os.path.getsize(path)} bytes" + (f" sha256 ok ({source})" if source else ""), flush=True)
 
 
 def rows(out):
