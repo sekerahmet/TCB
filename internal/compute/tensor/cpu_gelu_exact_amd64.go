@@ -39,6 +39,11 @@ var gelu64Const = func() (t [geluTabRows * 4]float64) {
 	return
 }()
 
+// geluMinusOne32 ileri çekirdeğin sıfır işareti eşiği (x < −1), sekiz float32.
+//
+//lint:ignore U1000 cpu_gelu_exact_amd64.s okur
+var geluMinusOne32 = [8]float32{-1, -1, -1, -1, -1, -1, -1, -1}
+
 // Tablonun satırları (uzaklık 32·satır; cpu_gelu_exact_amd64.s'nin başındaki liste).
 const (
 	geluTabAbs = iota

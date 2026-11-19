@@ -17,8 +17,11 @@ import "math"
 // Bunun için çarp-topla yalnız math.FMA ile yazılır (Go derleyicisi a*b + c'yi kendiliğinden
 // birleştirebilir) ve geri yönde çarpım birikimden ayrı yuvarlanır.
 //
-// Uçlar: NaN girdi olduğu gibi çıkar; +∞ → +∞, −∞ → +0, türev ±∞'da 1 ve +0. Sıfırın işareti doğru
-// yuvarlanmış değerinkidir: negatif sonlu x'te sıfıra inen sonuç ve türev −0'dır (x·0'ın işareti).
+// Uçlar: NaN girdi olduğu gibi çıkar; +∞ → +∞, −∞ → +0, türev ±∞'da 1 ve +0. İleri yönde x < −1'de
+// sıfıra inen sonuç +0'dır, öbür sıfırlar (±0 girdi, çok küçük |x|) x·Φ'nin işaretini taşır (GPU'nun
+// sonucuyla aynı, dil tanımı 15.50). Türev çarpanında
+// negatif sonlu x'te sıfıra inen değer −0'dır (x·0'ın işareti); gradyan +0'dan biriktiği için
+// kullanıcıya +0 görünür.
 
 // ErfSeriesCoef erf(t) = t·P(t²)'nin katsayıları: 2/√π · (−1)^n / (n!·(2n+1)), n = 0..6. GPU'nun
 // PTX yolu da bunları kullanır (tek kaynak).
@@ -130,7 +133,9 @@ func geluSignedZero(x, d float64) float64 {
 	return z
 }
 
-// geluExactForwardGo y = float32(x·Φ(x)); x·Φ NaN iken (−∞·0) +0, NaN girdi olduğu gibi.
+// geluExactForwardGo y = float32(x·Φ(x)); x·Φ NaN iken (−∞·0) +0, NaN girdi olduğu gibi. x < −1'de
+// sıfıra inen sonuç +0'dır (orada sıfır Φ'nin alttan taşmasından gelir; GPU Φ = 0'da +0 verir, 15.50);
+// öbür sıfırlar (±0 ve çok küçük |x|) x·Φ'nin işaretini taşır.
 func geluExactForwardGo(y, x []float32) {
 	for i, v := range x {
 		if v != v {
@@ -143,7 +148,11 @@ func geluExactForwardGo(y, x []float32) {
 		if r != r {
 			r = 0
 		}
-		y[i] = float32(r)
+		f := float32(r)
+		if f == 0 && v < -1 {
+			f = 0
+		}
+		y[i] = f
 	}
 }
 

@@ -9,7 +9,8 @@ import (
 // Tam GELU çekirdeklerinin ölçütü (dil tanımı 15.17, "Hesap yolu"): başvuru bugüne kadarki float64
 // yoldur, float32'ye bir kez yuvarlanmış; ileri her sonlu float32'de en çok 1 ulp, türev en çok
 // 1 ulp, x ∈ [−1, −0,5]'te (türevin sıfırı x ≈ −0,7518 çevresinde, d iki terimin farkıdır) 1 ulp
-// ya da 2^-28 mutlak. Uçlar bit bit; sıfırın işareti doğru yuvarlanmış değerinkidir. Bütün
+// ya da 2^-28 mutlak. Uçlar bit bit; ileri yönde x < −1'de sıfıra inen sonuç +0'dır, öbür sıfırlar
+// x·Φ'nin işaretini taşır (GPU ile aynı, 15.50); türev çarpanında negatif sonlu x'te sıfır −0'dır. Bütün
 // float32'lerin taraması testte değil, Colab'da bir kez koşar; burada seyrek bir örneklem ve
 // zor bölgeler sınanır.
 
@@ -53,9 +54,13 @@ func geluUlp(a, b float32) int64 {
 	return d
 }
 
-// geluZeroSign sıfıra inen sonucun beklenen işareti: negatif sonlu x'te ve −0'da −0, öbürlerinde
+// geluZeroSign sıfıra inen ileri sonucun beklenen işareti: −0 girdide ve −1 ≤ x < 0'da (çok küçük
+// |x|, x·Φ'nin işareti) −0; x < −1'de ve öbürlerinde +0.
+func geluZeroSign(x float32) bool { return math.Signbit(float64(x)) && x >= -1 }
+
+// geluSlopeZeroSign sıfıra inen türev çarpanının beklenen işareti: negatif sonlu x'te −0, öbürlerinde
 // (−∞ dahil) +0.
-func geluZeroSign(x float32) bool { return math.Signbit(float64(x)) && !math.IsInf(float64(x), -1) }
+func geluSlopeZeroSign(x float32) bool { return x < 0 && !math.IsInf(float64(x), -1) }
 
 // geluRun ileri değeri ve türev çarpanını verir. Türev geri yönden okunur: gx −0'dan başlar,
 // −0 + d = d olduğu için sıfırın işareti de korunur.
@@ -96,10 +101,11 @@ func geluCheck(t *testing.T, xs []float32) (tabanli int) {
 			tabanli++
 		}
 		for _, c := range []struct {
-			ad string
-			v  float32
-		}{{"ileri", y[i]}, {"türev", d[i]}} {
-			if c.v == 0 && math.Signbit(float64(c.v)) != geluZeroSign(x) {
+			ad  string
+			v   float32
+			neg bool
+		}{{"ileri", y[i], geluZeroSign(x)}, {"türev", d[i], geluSlopeZeroSign(x)}} {
+			if c.v == 0 && math.Signbit(float64(c.v)) != c.neg {
 				t.Fatalf("gelu_exact %s(%g): sıfırın işareti yanlış (%08x)", c.ad, x, math.Float32bits(c.v))
 			}
 		}
@@ -114,7 +120,7 @@ func TestGeluExactKernelMatchesReference(t *testing.T) {
 	edges := []float32{0, float32(math.Copysign(0, -1)), posInf32, negInf32, nan, -nan,
 		math.Float32frombits(0x7fc00001), math.Float32frombits(0xffa00000),
 		1e-45, -1e-45, 1e-38, -1e-38, 0.5, -0.5, 0.7071067, -0.7071068, -0.7518, 1, -1,
-		12, -12, 13, -13, 19.999998, -19.999998, 20, -20, 20.000002, -20.000002, -38, -40, 40,
+		12, -12, 13, -13, -15, -1e-45, 19.999998, -19.999998, 20, -20, 20.000002, -20.000002, -38, -40, 40,
 		-1e30, 1e30, math.MaxFloat32, -math.MaxFloat32}
 	geluCheck(t, edges)
 	y, d := geluRun(edges)
@@ -127,13 +133,13 @@ func TestGeluExactKernelMatchesReference(t *testing.T) {
 			}
 		}
 	}
-	// −0 korunur; x < −20'de (Φ = 0) sonuç ve türev −0, −∞'da +0.
+	// −0 korunur; x < −1'de sıfıra inen ileri sonuç +0, türev çarpanı negatif sonlu x'te −0.
 	for i, x := range edges {
 		if math.Float32bits(x) == 0x80000000 && math.Float32bits(y[i]) != 0x80000000 {
 			t.Errorf("gelu_exact(−0) = %08x, beklenen −0", math.Float32bits(y[i]))
 		}
-		if (x == -20.000002 || x == -38 || x == -40) && (math.Float32bits(y[i]) != 0x80000000 || math.Float32bits(d[i]) != 0x80000000) {
-			t.Errorf("gelu_exact(%g) = %08x, türev %08x; beklenen −0 ve −0", x, math.Float32bits(y[i]), math.Float32bits(d[i]))
+		if (x == -20.000002 || x == -38 || x == -40) && (math.Float32bits(y[i]) != 0 || math.Float32bits(d[i]) != 0x80000000) {
+			t.Errorf("gelu_exact(%g) = %08x, türev %08x; beklenen +0 ve −0", x, math.Float32bits(y[i]), math.Float32bits(d[i]))
 		}
 	}
 

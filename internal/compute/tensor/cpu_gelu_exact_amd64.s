@@ -90,8 +90,8 @@
 	VCMPPD       $1, 64(R10), Y2, Y9; \
 	VBLENDVPD    Y9, Y5, Y3, Y1
 
-// YF4: Y0 = x, Y1 = Φ için dst = float32(x·Φ); x·Φ NaN iken (−∞·0) +0. Negatif sonlu x'te
-// Φ = 0 ise x·Φ = −0 kalır (geluExactForwardGo).
+// YF4: Y0 = x, Y1 = Φ için dst = float32(x·Φ); x·Φ NaN iken (−∞·0) +0. Sıfıra inen sonucun
+// işaretini SEKIZ_Y düzeltir (geluExactForwardGo).
 #define YF4(dst) \
 	VMULPD     Y1, Y0, Y3;     \
 	VCMPPD     $3, Y3, Y3, Y4; \
@@ -114,8 +114,9 @@
 	VBLENDVPD   Y10, Y9, Y3, Y3;    \
 	VCVTPD2PSY  Y3, dst
 
-// SEKIZ_Y: Y11'deki 8 float32 için Y12 = ileri değer; NaN girdi olduğu gibi geçer.
-// Y0-Y10 ve Y13 bozulur.
+// SEKIZ_Y: Y11'deki 8 float32 için Y12 = ileri değer; x < −1'de sıfıra inen sonuç +0 (öbür
+// sıfırlar x·Φ'nin işaretini taşır); NaN girdi olduğu gibi geçer. Y0-Y10 ve Y13 bozulur, R11 =
+// ·geluMinusOne32.
 #define SEKIZ_Y \
 	VCVTPS2PD    X11, Y0;           \
 	PHI64;                          \
@@ -125,6 +126,12 @@
 	PHI64;                          \
 	YF4(X13);                       \
 	VINSERTF128  $1, X13, Y12, Y12; \
+	VXORPS       Y0, Y0, Y0;        \
+	VCMPPS       $0, Y0, Y12, Y1;   \
+	VMOVUPS      (R11), Y2;         \
+	VCMPPS       $1, Y2, Y11, Y2;   \
+	VANDPS       Y2, Y1, Y1;        \
+	VANDNPS      Y12, Y1, Y12;      \
 	VCMPPS       $3, Y11, Y11, Y13; \
 	VBLENDVPS    Y13, Y11, Y12, Y12
 
@@ -155,6 +162,7 @@ TEXT ·geluExactForwardKernel(SB), NOSPLIT, $0-24
 	MOVQ x+8(FP), SI
 	MOVQ n+16(FP), BX
 	LEAQ ·gelu64Const(SB), R10
+	LEAQ ·geluMinusOne32(SB), R11
 	MOVQ BX, DX
 	SHRQ $3, BX
 	ANDQ $7, DX
