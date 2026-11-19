@@ -1,0 +1,36 @@
+# TR 4
+# Temel ölçü seti S5 (tools/bench/baseline/README.md): konuşmayı yazıya çevirme, TR'nin Whisper yolundan
+# (TR_pretrained_whisper, TR_transcribe; açgözlü, temperature 0, beam_size yok: lib/whisper.tr'nin başı).
+#   --model Hugging Face biçimindeki Whisper klasörü, --audio 16 kHz WAV dosyası (O-7'nin sabit sesi).
+#   Açılış süresi TR_pretrained_whisper'dır; çevirme süresi WAV okunduktan sonra TR_transcribe'dır.
+# Süreç içi ısınma yok: ölçmeden önce hiçbir şey koşmaz (setin ısınması süreç başınadır, run.py).
+# Sonuç son satırdadır: BASELINE {json}; uyuşma (O-4) metin alanıyla yapılır.
+TR_import "tr/audio"
+TR_import "tr/whisper"
+
+TR_var opt = TR_command_line({"model": "", "audio": "", "language": "tr", "device": "cpu"})
+
+TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
+
+TR_var folder = TR_String(opt["model"])
+TR_if folder == "" { TR_throw "--model is empty; give a Whisper folder in the Hugging Face layout. Example: --model whisper-small" }
+TR_var audio = TR_String(opt["audio"])
+TR_if audio == "" { TR_throw "--audio is empty; give the set's 16 kHz WAV file. Example: --audio stt_tr.wav" }
+TR_var language = TR_String(opt["language"])
+TR_if TR_not ["tr", "en"].TR_contains(language) { TR_throw "--language is tr or en, not \(language). Example: --language tr" }
+TR_var device = TR_String(opt["device"])
+
+TR_default_device(device)
+TR_var t0 = now_us()
+TR_var model = TR_pretrained_whisper(folder)
+TR_var load_ms = (now_us() - t0) / 1000.0
+TR_var sound = TR_read_wav(audio)
+TR_var audio_s = TR_Float(sound.TR_samples.TR_shape[1]) / TR_Float(sound.TR_sample_rate)
+
+TR_var b = now_us()
+TR_var r = TR_no_grad { model.TR_transcribe(sound, TR_language: language) }
+TR_var transcribe_ms = (now_us() - b) / 1000.0
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "language": TR_JSON(language), "load_ms": TR_JSON(load_ms),
+    "audio_s": TR_JSON(audio_s), "transcribe_ms": TR_JSON(transcribe_ms), "audio_per_compute": TR_JSON(audio_s / (transcribe_ms / 1000.0)),
+    "segments": TR_JSON(r.TR_segments.TR_length), "text": TR_JSON(r.TR_text)}
+TR_print("BASELINE \(TR_json_string(result))")

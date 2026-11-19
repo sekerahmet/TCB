@@ -1,0 +1,80 @@
+# TR 4
+# Temel ölçü seti S6 (tools/bench/baseline/README.md): MMS-TTS ile yazıyı konuşmaya çevirme, TR'nin VITS yolundan
+# (TR_pretrained_vits, TR_synthesize). Cümleler --texts dosyasının --set ve --language alanından okunur
+#   (seçeneğin adı "key" değildir: komut satırının "key" değeri gizli sayılır ve çıktıda *** olur).
+#   Her cümle ayrı üretilir; cümle başına süre, ilk cümlenin süresi (ilk sese kadar) ve toplam ses/hesap yazılır.
+#   --noise zero gürültü ölçeklerini 0 yapar (ölçü; S1 K7'nin yolu, olc_tr.tr); --noise model ayarın ölçekleriyle,
+#   sabit tohumla üretir (O-7'nin İngilizce sesleri). Dalga iki tarafta da tepesi 1'e normlanır (emsal aynısını yapar).
+#   --wav verilirse cümleler arada --gap_s saniye sessizlikle tek dosyaya yazılır (O-7; sessizlik ölçüye girmez).
+# Açılış süresi TR_pretrained_vits'tir. Süreç içi ısınma yok (setin ısınması süreç başınadır, run.py).
+# Sonuç son satırdadır: BASELINE {json}.
+TR_import "tr/audio"
+TR_import "tr/vits"
+
+TR_var opt = TR_command_line({"model": "", "texts": "", "set": "text_to_speech", "language": "tr", "noise": "zero", "wav": "", "gap_s": 0.0, "device": "cpu"})
+
+TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
+
+# peak: lib/vits.tr'nin Piper yolundaki tepe normlamasıdır (_tepe_normla); MMS yolu normlamaz, emsal normlar.
+TR_func peak(d: TR_Tensor) -> TR_Tensor {
+    TR_var top = TR_max(TR_abs(d)).TR_tolist
+    TR_if top < 1e-8 { TR_return TR_zeros(d.TR_shape) }
+    TR_return TR_clamp(d / top, TR_min: -1.0, TR_max: 1.0)
+}
+
+TR_var folder = TR_String(opt["model"])
+TR_if folder == "" { TR_throw "--model is empty; give an MMS-TTS folder in the Hugging Face layout. Example: --model mms-tts-tur" }
+TR_var texts = TR_String(opt["texts"])
+TR_if texts == "" { TR_throw "--texts is empty; run.py passes tools/bench/baseline/texts.json. Example: --texts tools/bench/baseline/texts.json" }
+TR_var noise = TR_String(opt["noise"])
+TR_if TR_not ["zero", "model"].TR_contains(noise) { TR_throw "--noise is zero or model, not \(noise). Example: --noise zero" }
+TR_var group = TR_String(opt["set"])
+TR_var language = TR_String(opt["language"])
+TR_var sentences: TR_List[TR_String] = []
+TR_for s TR_in TR_json_parse(TR_read_file(texts))[group][language] { sentences.TR_append(TR_String(s)) }
+TR_if sentences.TR_length == 0 { TR_throw "\(texts) has no sentence under \(group).\(language). Example: --set text_to_speech --language tr" }
+TR_var device = TR_String(opt["device"])
+
+TR_default_device(device)
+TR_var t0 = now_us()
+TR_var voice = TR_pretrained_vits(folder)
+TR_var load_ms = (now_us() - t0) / 1000.0
+TR_if noise == "zero" {
+    voice._gürültü = 0.0
+    voice._süre_gürültüsü = 0.0
+}
+
+TR_var rows: TR_List[TR_JSON] = []
+TR_var waves: TR_List[TR_Tensor] = []
+TR_var total_ms = 0.0
+TR_var samples = 0
+TR_var rate = 0
+TR_no_grad {
+    TR_for text TR_in sentences {
+        TR_var b = now_us()
+        TR_var sound = voice.TR_synthesize(text)
+        TR_var wave = peak(sound.TR_samples)
+        TR_var n = wave.TR_shape[1]
+        TR_var ms = (now_us() - b) / 1000.0
+        total_ms = total_ms + ms
+        samples = samples + n
+        rate = sound.TR_sample_rate
+        waves.TR_append(wave)
+        rows.TR_append(TR_JSON({"ms": TR_JSON(ms), "samples": TR_JSON(n)}))
+    }
+}
+TR_var audio_s = TR_Float(samples) / TR_Float(rate)
+TR_var wav = TR_String(opt["wav"])
+TR_if wav != "" {
+    TR_var gap = TR_zeros([1, TR_Int(TR_Float(opt["gap_s"]) * rate)])
+    TR_var parts: TR_List[TR_Tensor] = []
+    TR_for i, w TR_in waves {
+        TR_if i > 0 { parts.TR_append(gap) }
+        parts.TR_append(w)
+    }
+    TR_write_wav(wav, TR_Sound(TR_samples: TR_concat(parts, TR_dim: 1), TR_sample_rate: rate))
+}
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "language": TR_JSON(language), "noise": TR_JSON(noise), "load_ms": TR_JSON(load_ms),
+    "sentences": TR_JSON(rows), "first_ms": rows[0]["ms"], "total_ms": TR_JSON(total_ms), "samples": TR_JSON(samples), "sample_rate": TR_JSON(rate),
+    "audio_s": TR_JSON(audio_s), "audio_per_compute": TR_JSON(audio_s / (total_ms / 1000.0))}
+TR_print("BASELINE \(TR_json_string(result))")
