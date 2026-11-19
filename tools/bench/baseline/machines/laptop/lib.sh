@@ -13,14 +13,15 @@ KAYIT=${OLCU_KAYIT:-$USERPROFILE/TR_olcu/kayit}
 PY=${PY:-python}
 olcu() { echo "== $(date '+%H:%M:%S %z') $*"; }
 
-# olcu_kur: trlang ve record bu commit'ten; tools.json'a trlang ve verilen araçlar (ad=yol).
+# olcu_kur: trlang, record ve Go karşılaştırma programı (S13 bütün kalemlerini kurarken ister) bu commit'ten;
+# tools.json'a onlar ve verilen araçlar (ad=yol).
 olcu_kur() {
   mkdir -p "$IS/bin" "$KAYIT"
-  (cd "$REPO" && go build -o "$IS/bin/trlang.exe" ./cmd/trlang && go build -o "$IS/bin/record.exe" ./tools/record) ||
-    { olcu "derleme düştü"; exit 2; }
+  (cd "$REPO" && go build -o "$IS/bin/trlang.exe" ./cmd/trlang && go build -o "$IS/bin/record.exe" ./tools/record &&
+    go build -o "$IS/bin/compare.exe" ./tools/bench/go) || { olcu "derleme düştü"; exit 2; }
   "$PY" -I -c "
 import json, sys
-d = {'trlang': sys.argv[1]}
+d = {'trlang': sys.argv[1], 'go_compare': sys.argv[1].replace('trlang.exe', 'compare.exe')}
 for kv in sys.argv[2:]:
     k, v = kv.split('=', 1); d[k] = v
 json.dump(d, open(sys.argv[1].rsplit('/bin/', 1)[0] + '/tools.json', 'w'), indent=1)
