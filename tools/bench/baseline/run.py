@@ -1,9 +1,13 @@
 """Baseline measurement set runner: every question, every side (TR and its references), every run in its own process.
 
-Usage (from the repository root):
-  python -I tools/bench/baseline/run.py --machine highram --question S1 [--skip-done] [--out DIR]
+Usage (from the repository root; prepare.sh makes the work folder):
+  python -I tools/bench/baseline/run.py --work W --fetch                                  (the models, at their revisions)
+  python -I tools/bench/baseline/run.py --work W --machine highram --out DIR --make-sounds (O-7, once, A-11)
+  python -I tools/bench/baseline/run.py --work W --machine highram --out DIR --agreement  (O-4, Colab machines first)
+  python -I tools/bench/baseline/run.py --work W --machine highram --out DIR [--question S1] [--skip-done]
   python -I tools/bench/baseline/run.py --rows --out DIR      (draft rows from metrics.json)
   python -I tools/bench/baseline/run.py --self-check NAME     (the checks behavior_baseline_test.go runs)
+The questions (S1–S14, their commands and the machines' lists) are in questions.py.
 
 The method is fixed before any run (tools/bench/baseline/README.md):
 - order: one warm-up per side, then TR, E, E, TR, TR, E, E, TR, TR, E for each reference (ABBA);
@@ -20,7 +24,7 @@ import argparse, json, os, re, shutil, statistics, subprocess, sys, tempfile, th
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 BASE = os.path.join(ROOT, "tools", "bench", "baseline")
-MACHINES = ["highram", "l4", "g4", "laptop"]
+MACHINES = ["highram", "l4gpu", "l4cpu", "g4", "laptop"]  # L4's GPU and CPU parts run in one session (C-1)
 ORDER = ["TR", "E", "E", "TR", "TR", "E", "E", "TR", "TR", "E"]
 SAMPLE_S = 0.010
 GPU_SAMPLE_S = 1.0
@@ -217,40 +221,80 @@ def process_list():
 
 # ---------------------------------------------------------------- a question
 
-def run_pair(question, tr, ref, agree, log, machine):
-    """Warm-up (the agreement run) and the ABBA runs of TR against one reference.
+def _measures(value):
+    """A side's measure: one number (ms) or a dict of named ms values."""
+    return value if isinstance(value, dict) else {"ms": value}
 
-    tr and ref are dicts {"name", "cmd", "env", "measure"}: measure(result_json, run) -> ms (smaller is better).
-    agree(tr_json, ref_json) returns None or the reason the outputs disagree."""
+
+def run_pair(question, tr, ref, agree, log, machine):
+    """Warm-up and the ABBA runs of TR against one reference.
+
+    tr and ref are dicts {"name", "cmd" or "cmds", "env", "measure", "warm"?, "parse"?}: one run of a side is its
+    commands in order, each in its own process; measure(results, runs) gives ms (smaller is better), one number or a
+    dict of named values, each with its own ratios and verdict. "warm" are other commands for the warm-up (on the
+    laptop the agreement commands, O-4 N3). agree(tr_results, ref_results) on the warm-up returns None or the
+    reason the outputs disagree; None as agree skips it (the agreement pass ran before, O-4)."""
     sides = {"TR": tr, "E": ref}
     first = {}
     for key in order()["warmup"]:
-        first[key] = _run_side(question, sides[key], "warmup", log, machine)
-    reason = agree(first["TR"]["result"], first["E"]["result"])
-    if reason:
-        raise Stop(f"{question}: {tr['name']} and {ref['name']} disagree: {reason}")
+        first[key] = _run_side(question, sides[key], "warmup", log, machine, sides[key].get("warm"))
+    if agree is not None:
+        reason = agree(first["TR"]["results"], first["E"]["results"])
+        if reason:
+            raise Stop(f"{question}: {tr['name']} and {ref['name']} disagree: {reason}")
     times = {"TR": [], "E": []}
+    memory = {"TR": [], "E": []}
     for i, key in enumerate(order()["runs"]):
         r = _run_side(question, sides[key], i, log, machine)
-        times[key].append(sides[key]["measure"](r["result"], r["run"]))
-    ratios = [a / b for a, b in zip(times["TR"], times["E"])]
-    return {"reference": ref["name"], "tr_ms": times["TR"], "ref_ms": times["E"], "ratios": ratios,
-            **verdict(ratios)}
+        times[key].append(_measures(sides[key]["measure"](r["results"], r["runs"])))
+        memory[key].append(memory_of(r["runs"]))
+    out = {"reference": ref["name"], "measures": {}, "memory": memory}
+    for name in times["TR"][0]:
+        tr_ms, ref_ms = [t[name] for t in times["TR"]], [t[name] for t in times["E"]]
+        ratios = [a / b for a, b in zip(tr_ms, ref_ms)]
+        out["measures"][name] = {"tr_ms": tr_ms, "ref_ms": ref_ms, "ratios": ratios, **verdict(ratios)}
+    return out
 
 
-def _run_side(question, side, index, log, machine):
+def run_alone(question, side, log, machine, runs=5):
+    """A question without a reference (S4, S8–S10, S14): one warm-up, then `runs` runs; median and range."""
+    _run_side(question, side, "warmup", log, machine)
+    values, memory = [], []
+    for i in range(runs):
+        r = _run_side(question, side, i, log, machine)
+        values.append(_measures(side["measure"](r["results"], r["runs"])))
+        memory.append(memory_of(r["runs"]))
+    out = {"reference": None, "measures": {}, "memory": memory}
+    for name in values[0]:
+        v = [x[name] for x in values]
+        out["measures"][name] = {"tr_ms": v, "median": statistics.median(v), "min": min(v), "max": max(v)}
+    return out
+
+
+def memory_of(runs):
+    """The largest of each memory field over a side's processes (each process measured on its own, O-2)."""
+    keys = ("vmhwm_kb", "ru_maxrss_kb", "rss_anon_sampled_kb", "peak_working_set_kb", "peak_pagefile_kb", "gpu_peak_mib")
+    return {k: max((r[k] for r in runs if r.get(k) is not None), default=None) for k in keys}
+
+
+def _run_side(question, side, index, log, machine, cmds=None):
+    cmds = cmds or side.get("cmds") or [side["cmd"]]
     if machine == "laptop":
         load = foreign_load()
         log({"question": question, "side": side["name"], "index": index, "foreign_load": load})
         if load > FOREIGN_LOAD_LIMIT:
             raise Stop(f"{question}: foreign load {load:.0f} % before the run")
-    log({"question": question, "side": side["name"], "index": index, "processes_before": process_list()})
-    run = run_once(side["cmd"], side.get("env"))
-    log({"question": question, "side": side["name"], "index": index, "processes_after": process_list(),
-         **{k: v for k, v in run.items() if k not in ("stdout", "stderr")}})
-    if run["rc"] != 0:
-        raise Stop(f"{question}: {side['name']} failed (exit {run['rc']}): {run['stderr'].strip()[-400:]}")
-    return {"run": run, "result": parse_result(run["stdout"])}
+    runs, results = [], []
+    for cmd in cmds:
+        log({"question": question, "side": side["name"], "index": index, "processes_before": process_list()})
+        run = run_once(cmd, side.get("env"))
+        log({"question": question, "side": side["name"], "index": index, "processes_after": process_list(),
+             **{k: v for k, v in run.items() if k not in ("stdout", "stderr")}})
+        if run["rc"] != 0:
+            raise Stop(f"{question}: {side['name']} failed (exit {run['rc']}): {run['stderr'].strip()[-400:]}")
+        runs.append(run)
+        results.append(side.get("parse", parse_result)(run["stdout"]))
+    return {"runs": runs, "results": results}
 
 
 REFERENCES = os.path.join(BASE, "references.py")
@@ -303,13 +347,182 @@ def _self_check(name, arg):
                            stdin=subprocess.DEVNULL)
         return {"procs": n, "cpu_count": os.cpu_count(), "settings": json.loads(r.stdout),
                 "commands": {name: reference_cmd(name, n, binary=name) for name in THREAD_FLAGS}}
+    if name == "parsers":
+        qs = load_questions()
+        with open(arg, encoding="utf-8") as f:
+            parts = json.load(f)
+        return {"olcu": qs.parse_olcu(parts["olcu"]), "sse": qs.parse_sse(parts["sse"]),
+                "llama_bench": qs.parse_llama_bench(parts["llama_bench"]), "ms_per_step": qs.ms_per_step(parts["rgn"]),
+                "whisper_cpp_ms": qs.whisper_cpp_ms(parts["whisper_cpp"]), "wer": qs.wer(*parts["wer"])}
+    if name == "items":
+        qs = load_questions()
+        out = {}
+        for machine in MACHINES:
+            ctx = qs.Ctx(sys.modules[__name__], machine, 97, arg, lambda rec: None, dry=True)
+            out[machine] = {it["key"]: {"tr": it["tr"]["cmds"] if it["tr"] else None,
+                                        "ref": it["ref"]["cmds"] if it["ref"] else None,
+                                        "agree": bool(it["agree"]), "custom": bool(it["custom"])}
+                            for q in qs.QUESTIONS[machine] for it in qs.items(ctx, q)}
+        return out
     if name == "agreement":
         say = lambda text: [sys.executable, "-I", "-c", f"print('BASELINE ' + {json.dumps(json.dumps({'text': text}))})"]
-        side = lambda n, t: {"name": n, "cmd": say(t), "measure": lambda res, run: run["wall_ms"]}
-        same = lambda a, b: None if a["text"] == b["text"] else f"{a['text']!r} != {b['text']!r}"
+        side = lambda n, t: {"name": n, "cmd": say(t), "measure": lambda res, runs: runs[0]["wall_ms"]}
+        same = lambda a, b: None if a[0]["text"] == b[0]["text"] else f"{a[0]['text']!r} != {b[0]['text']!r}"
         run_pair("check", side("tr", "a"), side("ref", "b"), same, lambda rec: None, "check")
         return {"stopped": False}
     raise SystemExit(f"unknown self check {name!r}")
+
+
+# ---------------------------------------------------------------- the questions (questions.py)
+
+def load_questions():
+    """questions.py by its path (python -I puts no script folder on sys.path)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("baseline_questions", os.path.join(BASE, "questions.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class Record:
+    """The output folder: log.jsonl (every run, with the process lists), metrics.json and agreement.json."""
+
+    def __init__(self, out):
+        os.makedirs(out, exist_ok=True)
+        self.out = out
+        self.metrics = self._read("metrics.json")
+        self.agreement = self._read("agreement.json")
+
+    def _read(self, name):
+        try:
+            with open(os.path.join(self.out, name), encoding="utf-8") as f:
+                return json.load(f)
+        except OSError:
+            return {}
+
+    def log(self, rec):
+        with open(os.path.join(self.out, "log.jsonl"), "a", encoding="utf-8", newline="") as f:
+            f.write(json.dumps({"time": time.strftime("%Y-%m-%d %H:%M:%S %z"), **rec}, ensure_ascii=False) + "\n")
+
+    def save(self):
+        for name, value in (("metrics.json", self.metrics), ("agreement.json", self.agreement)):
+            with open(os.path.join(self.out, name), "w", encoding="utf-8", newline="") as f:
+                json.dump(value, f, indent=1, ensure_ascii=False)
+
+
+def run_questions(a):
+    qs = load_questions()
+    rec = Record(a.out)
+    with open(os.path.join(a.work, "tools.json"), encoding="utf-8") as f:
+        trlang = json.load(f)["trlang"]
+    threads = threads_from_tr([trlang, os.path.join(BASE, "matmul.tr"), "--size", "512", "--repeat", "2"])
+    rec.metrics["_machine"] = {"machine": a.machine, "threads": threads["procs"], "threads_source": "gctrace P (O-1)",
+                               "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
+    ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
+    if a.make_sounds:
+        print(json.dumps(qs.make_sounds(ctx)))
+        return 0
+    order_ = a.question or qs.QUESTIONS[a.machine]
+    if not qs.sounds_ok(ctx):  # O-7: without the fixed sounds S5 and S8 go last; the machine does not wait
+        order_ = [q for q in order_ if q not in qs.SOUND_QUESTIONS] + [q for q in order_ if q in qs.SOUND_QUESTIONS]
+    try:
+        if a.agreement:
+            agreement_pass(ctx, qs, order_, rec)
+        else:
+            for q in order_:
+                for it in qs.items(ctx, q):
+                    if a.skip_done and it["key"] in rec.metrics:
+                        continue
+                    rec.metrics[it["key"]] = run_item(ctx, it, rec)
+                    rec.save()
+                    print(f"{it['key']}: done", flush=True)
+    except Stop as e:
+        rec.log({"stopped": str(e)})
+        rec.save()
+        print(f"STOPPED: {e}", flush=True)
+        return STOP
+    rec.save()
+    return 0
+
+
+def agreement_pass(ctx, qs, order_, rec):
+    """O-4: each item's agreement once, before any measure (Colab machines); GPU machines check the CUDA provider."""
+    if ctx.gpu:
+        r = run_once([sys.executable, "-I", "-c", "import onnxruntime, json; print(json.dumps(onnxruntime.get_available_providers()))"])
+        if r["rc"] != 0 or "CUDAExecutionProvider" not in r["stdout"]:
+            raise Stop(f"onnxruntime has no CUDAExecutionProvider: {r['stdout'].strip()} {r['stderr'][-200:]}")
+    if ctx.machine == "highram":  # A-4: the English ids file against the voice's own mapping, once
+        r = run_once(ctx.tr("piper.tr", "--model", ctx.model("piper-en-lessac-medium"), "--texts", qs.TEXTS, "--language",
+                            "en", "--ids", qs.IDS_EN, "--check_ids"))
+        if r["rc"] != 0 or not parse_result(r["stdout"])["ids_match"]:
+            raise Stop(f"english_phoneme_ids.json does not match the voice's mapping: {r['stdout'][-400:]}")
+    for q in order_:
+        for it in qs.items(ctx, q):
+            if not it["agree"]:
+                continue
+            got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
+                   for s, cmds in ((it["tr"], it["tr_agree"]), (it["ref"], it["ref_agree"]))]
+            reason = it["agree"](*got)
+            rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason}
+            rec.save()
+            if reason:
+                raise Stop(f"{it['key']}: {it['tr']['name']} and {it['ref']['name']} disagree: {reason}")
+            print(f"{it['key']}: agree", flush=True)
+
+
+def run_item(ctx, it, rec):
+    """One item: a custom run (Dost's screen), TR alone, or the ABBA pair; on the laptop the warm-up agrees (N3)."""
+    if it["custom"]:
+        values, memory = [], []
+        for i in range(it["runs"] + 1):  # the first is the warm-up
+            v, m = it["custom"]()
+            rec.log({"question": it["key"], "index": "warmup" if i == 0 else i - 1, "result": v, "memory": m})
+            if i:
+                values.append(v)
+                memory.append(m)
+        return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
+                                                                        "median": statistics.median(v[k] for v in values)}
+                                                                    for k in values[0]}}
+    if it["ref"] is None:
+        return run_alone(it["key"], it["tr"], rec.log, ctx.machine, it["runs"])
+    tr, ref, agree = it["tr"], it["ref"], None
+    if ctx.machine == "laptop" and it["agree"]:
+        tr, ref, agree = dict(tr, warm=it["tr_agree"]), dict(ref, warm=it["ref_agree"]), it["agree"]
+    elif it["agree"] and not rec.agreement.get(it["key"], {}).get("ok"):
+        raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
+    return run_pair(it["key"], tr, ref, agree, rec.log, ctx.machine)
+
+
+def fetch(work):
+    """Downloads MODELS at their revisions into work/models and checks each large file's sha256 against the hub's."""
+    from huggingface_hub import HfApi, hf_hub_download
+    qs, api = load_questions(), HfApi()
+    for name, (repo, rev, files) in qs.MODELS.items():
+        info = {p.path: p for p in api.get_paths_info(repo, files, revision=rev)}
+        for file in files:
+            path = hf_hub_download(repo, file, revision=rev, local_dir=os.path.join(work, "models", name))
+            lfs = getattr(info.get(file), "lfs", None)
+            if lfs is not None and qs.sha256(path) != lfs.sha256:
+                raise Stop(f"{name}/{file}: sha256 is not the hub's at {rev}")
+            print(f"{name}/{file}: {os.path.getsize(path)} bytes" + (" sha256 ok" if lfs is not None else ""), flush=True)
+
+
+def rows(out):
+    """Draft rows from metrics.json: each measure's median, range, quartiles, verdict and the memory peaks (O-5)."""
+    rec = Record(out)
+    for key, r in rec.metrics.items():
+        if key.startswith("_"):
+            continue
+        for name, m in r["measures"].items():
+            line = f"{key} {name}: TR median {statistics.median(m['tr_ms']):.3f} range {min(m['tr_ms']):.3f}–{max(m['tr_ms']):.3f}"
+            if r["reference"]:
+                line += (f" | {r['reference']} median {statistics.median(m['ref_ms']):.3f} | ratio q1 {m['q1']:.3f} median "
+                         f"{m['median']:.3f} q3 {m['q3']:.3f} {m['verdict']}" + (" borderline" if m["borderline"] else ""))
+            print(line)
+        mem = r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"]
+        peaks = {k: max((x.get(k) or 0 for x in mem), default=0) for k in ("vmhwm_kb", "rss_anon_sampled_kb", "gpu_peak_mib")}
+        print(f"{key} memory TR peaks: {peaks}")
+    return 0
 
 
 def main():
@@ -317,8 +530,12 @@ def main():
     p.add_argument("--machine", choices=MACHINES)
     p.add_argument("--question", action="append", help="S1 … S14; repeat for several (default: the machine's list)")
     p.add_argument("--skip-done", action="store_true", help="skip questions already in the output folder")
+    p.add_argument("--agreement", action="store_true", help="the agreement pass (O-4; Colab machines, before measuring)")
+    p.add_argument("--work", help="prepare.sh's work folder: tools.json, models/, sounds/")
     p.add_argument("--out", default=os.environ.get("TR_RECORD_DIR"), help="output folder (default TR_RECORD_DIR)")
     p.add_argument("--rows", action="store_true", help="print draft rows from metrics.json in --out")
+    p.add_argument("--fetch", action="store_true", help="download the models into --work (prepare.sh)")
+    p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")
     p.add_argument("--self-check", nargs="+", metavar="NAME", help=argparse.SUPPRESS)
     a = p.parse_args()
     if a.self_check:
@@ -328,7 +545,16 @@ def main():
             print(json.dumps({"stopped": True, "reason": str(e)}))
             return STOP
         return 0
-    p.error("the questions are added in the next steps of slice A")
+    if a.rows:
+        return rows(a.out)
+    if not a.work:
+        p.error("--work is prepare.sh's work folder")
+    if a.fetch:
+        fetch(a.work)
+        return 0
+    if not a.machine or not a.out:
+        p.error("--machine and --out (or TR_RECORD_DIR) are needed")
+    return run_questions(a)
 
 
 if __name__ == "__main__":

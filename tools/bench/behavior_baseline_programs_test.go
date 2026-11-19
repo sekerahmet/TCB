@@ -2,6 +2,7 @@
 package bench
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -122,6 +123,119 @@ func TestBaselineThreadRule(t *testing.T) {
 	if strings.Contains(src, "cpu_count") || strings.Count(src, "thread_settings(a.threads)") != 3 {
 		t.Errorf("references.py: cpu_count %v, thread_settings(a.threads) %d times; want no cpu_count and the three library paths",
 			strings.Contains(src, "cpu_count"), strings.Count(src, "thread_settings(a.threads)"))
+	}
+}
+
+// Soru kaydı (questions.py) her makinede setin sorularını kurar: makinenin listesi, S1'in altı modeli, GPU'da
+// llama.cpp'nin -ngl'si, S4 yalnız HIGHRAM ve dizüstünde, GPU'da S13 yalnız 100 Hz döngüsü, dizüstünde S10 yalnız sıcak;
+// emsal komutları makinenin tek iş parçacığı sayısını taşır.
+func TestBaselineQuestions(t *testing.T) {
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]map[string]struct {
+		TR, Ref       [][]string
+		Agree, Custom bool
+	}
+	selfCheck(t, &got, "items", work)
+	lists := map[string]string{
+		"highram": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14", "l4gpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
+		"l4cpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S14", "g4": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
+		"laptop": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14"}
+	for machine, list := range lists {
+		items := got[machine]
+		seen := map[string]bool{}
+		for key := range items {
+			seen[strings.Split(key, "/")[0]] = true
+		}
+		for _, q := range strings.Fields(list) {
+			if !seen[q] {
+				t.Errorf("%s: no %s item", machine, q)
+			}
+			delete(seen, q)
+		}
+		if len(seen) != 0 {
+			t.Errorf("%s: questions outside its list: %v", machine, seen)
+		}
+		gpu := machine == "l4gpu" || machine == "g4"
+		s1 := items["S1/qwen3-4b-q4km"]
+		if ngl := strings.Contains(strings.Join(s1.Ref[0], " "), "-ngl 99"); ngl != gpu || !s1.Agree {
+			t.Errorf("%s S1: -ngl %v, agree %v; want -ngl on GPUs only and an agreement", machine, ngl, s1.Agree)
+		}
+		for key, it := range items {
+			for _, cmd := range it.Ref {
+				line := strings.Join(cmd, " ")
+				if (strings.Contains(line, "references.py") || strings.HasPrefix(line, "llama-") || strings.HasPrefix(line, "whisper-cli")) &&
+					!strings.Contains(line, " 97") {
+					t.Errorf("%s %s: %q has no thread number", machine, key, line)
+				}
+			}
+		}
+		_, cold := items["S10/tr/cold"]
+		if cold == (machine == "laptop") {
+			t.Errorf("%s: S10 cold %v; the laptop measures warm only", machine, cold)
+		}
+		_, pure := items["S13/fib"]
+		if _, loop := items["S13/loop_100hz"]; strings.Contains(list, "S13") && (!loop || pure == gpu) {
+			t.Errorf("%s: S13 loop %v, fib %v; GPUs run only the loop", machine, loop, pure)
+		}
+	}
+	n := 0
+	for key := range got["highram"] {
+		if strings.HasPrefix(key, "S1/") {
+			n++
+		}
+	}
+	if _, ok := got["highram"]["S4/qwen3-4b-q4km/7981"]; n != 6 || !ok {
+		t.Errorf("highram: %d S1 models (want 6), S4 qwen3 7981 %v", n, ok)
+	}
+}
+
+// Okuyucular: Dost'un OLCU satırı ve olay akışının çerçevesi (S8, S9), llama-bench'in JSON'u, eğitim günlüğünün
+// ms/adım'ı, whisper.cpp'nin süre satırları ve sözcük hata oranı.
+func TestBaselineAssistantParsers(t *testing.T) {
+	sample := map[string]any{
+		"olcu": "başka satır\nOLCU tur=1 soz_ms=900 yazi_ms=410 ilk_parca_ms=620 ilk_cumle_ms=980 cevap_ms=2100 ilk_ses_ms=1300 " +
+			"toplam_ms=1350 calma_sonrasi=false onek=12\n",
+		"sse":         "id: ab-1\ndata: {\"v\":2,\"type\":\"state\",\"data\":{\"state\":\"idle\",\"mic\":false}}\n\nid: ab-2\ndata: {\"v\":2,\"type\":\"metrics\",\"data\":{\"first_token_ms\":910,\"tokens_per_second\":11.2}}\n\n",
+		"llama_bench": "load\n[{\"n_prompt\": 512, \"n_gen\": 0, \"n_depth\": 0, \"avg_ns\": 2500000000, \"avg_ts\": 204.8}]",
+		"rgn":         "adım 10 / 30 | 412 ms/adım\nadım 30 / 30 | 398.5 ms/adım\n",
+		"whisper_cpp": "whisper_print_timings:     load time =   120.50 ms\nwhisper_print_timings:    total time =  3120.50 ms\n",
+		"wer":         []string{"Bir gün saat durdu", "bir gün, saat durmadı."},
+	}
+	b, _ := json.Marshal(sample)
+	path := filepath.Join(t.TempDir(), "sample.json")
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Olcu struct{ Turns []map[string]any }
+		SSE  []struct {
+			Type string
+			Data map[string]any
+		}
+		LlamaBench map[string]float64 `json:"llama_bench"`
+		MsPerStep  map[string]float64 `json:"ms_per_step"`
+		WhisperCpp float64            `json:"whisper_cpp_ms"`
+		Wer        float64
+	}
+	selfCheck(t, &got, "parsers", path)
+	if len(got.Olcu.Turns) != 1 || got.Olcu.Turns[0]["ilk_ses_ms"] != 1300.0 || got.Olcu.Turns[0]["calma_sonrasi"] != false {
+		t.Errorf("OLCU: %v", got.Olcu)
+	}
+	if len(got.SSE) != 2 || got.SSE[0].Data["state"] != "idle" || got.SSE[1].Data["first_token_ms"] != 910.0 {
+		t.Errorf("SSE: %+v", got.SSE)
+	}
+	if got.LlamaBench["avg_ns"] != 2.5e9 || got.LlamaBench["n_prompt"] != 512 {
+		t.Errorf("llama-bench: %v", got.LlamaBench)
+	}
+	if got.MsPerStep["ms_per_step"] != 398.5 || got.WhisperCpp != 3000 {
+		t.Errorf("ms/adım %v, whisper.cpp %v; want the last 398.5 and total − load 3000", got.MsPerStep, got.WhisperCpp)
+	}
+	if !near(got.Wer, 0.25) {
+		t.Errorf("WER %v, want 1 of 4 words (0.25)", got.Wer)
 	}
 }
 
