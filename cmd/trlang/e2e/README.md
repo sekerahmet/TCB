@@ -48,7 +48,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_interrupt_unix_test.go`: kesme testlerinin Unix'te süreç hazırlığı ve sinyal gönderimi
 - `behavior_interrupt_windows_test.go`: kesme testlerinin Windows'ta süreç hazırlığı ve sinyal gönderimi; konsol olayı gönderilemeyip atlanan testlerin sayısı `TestMain` sonunda bir `UYARI` satırıyla yazılır
 - `behavior_library_test.go`: kitaplık modüllerinin yüklenmesi ve GPT eğitim betiğinin duman testi
-- `behavior_memory_limit_test.go`: sürecin bellek tavanı `TR_MEMORY_LIMIT` (19.12a): geçersiz değer programı başlatmaz (çıkış 2), birimli değerin önerdiği bayt yazımı kopyalanınca çalışır, Go çalışma zamanının değişkenleri süreç başında tek satırla söylenir (H8893, H8895), dış program aynı tavanı alır; tavana dayanan program toplayıcının payı uyarısını bir kez alır, bekleyen süreç almaz (H8894; iki uzun test, `-short`'ta atlanır)
+- `behavior_memory_limit_test.go`: sürecin bellek tavanı `TR_MEMORY_LIMIT` (19.12a): geçersiz değer programı başlatmaz (çıkış 2), birimli değerin önerdiği bayt yazımı kopyalanınca çalışır, Go çalışma zamanının değişkenleri süreç başında tek satırla söylenir (H8893, H8895), dış program aynı tavanı alır; tavana dayanan program toplayıcının payı uyarısını bir kez alır, tavandan uzak bekleyen süreç almaz (H8894; iki uzun test, `-short`'ta atlanır)
 - `behavior_process_logging_test.go`: komut satırı seçenekleri, gizli değerlerin çıktıda maskelenmesi ve ilerleme çıktısı
 - `behavior_profile_watch_test.go`: `TR_cmd_profile` ve `TR_cmd_watch` komutları, profil dosyası ve GPU raporu
 - `behavior_speed_test.go`: hız tabanı (madde 15): kodlu dosyada `TR_cmd_check` ve çalıştırmanın süresi (`BenchmarkCheckAndRun`)
