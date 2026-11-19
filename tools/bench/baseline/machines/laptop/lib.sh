@@ -47,11 +47,37 @@ olcu_makine() {
 olcu_kos() {
   local ad=$1 soru=$2; shift 2
   local r="$KAYIT/run-$ad"; mkdir -p "$r"
-  olcu "$ad: $soru"
+  # OLCU_DENEME=1: yalnız uyuşma geçişi (her taraf bir koşu): komut, model ve aygıt sınanır, ölçü yok (prova, 2 dk sınırı).
+  [ "${OLCU_DENEME:-}" = 1 ] && set -- "$@" --agreement
+  olcu "$ad: $soru${OLCU_DENEME:+ (deneme: yalnız uyuşma)}"
   (cd "$REPO" && "$IS/bin/record.exe" --out "$KAYIT" --name "h1-laptop-$ad" -- \
     "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" --question "$soru" "$@")
   local rc=$?
   olcu "$ad çıkışı: $rc"
   (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --rows --out "$r")
   return $rc
+}
+
+# olcu_model <ad>: questions.py MODELS'taki modelin dosyaları iş klasörüne (models/<ad>/), sha256 denetimiyle (model.py).
+# Dizüstünde aranan yerler: OLCU_MODELLER, Dost'un modeller klasörü. Bulunamazsa ya da sha256 tutmazsa ölçü yok.
+olcu_model() {
+  "$PY" -I "$(dirname "${BASH_SOURCE[0]}")/model.py" "$REPO" "$IS" "$MODELLER" "${LOCALAPPDATA:-}/Dost/modeller" "$1" ||
+    { olcu "model $1 hazır değil"; exit 2; }
+}
+
+# olcu_surum <paket>...: emsalin Python paketlerinin sürümü ve torch'un aygıtı kayda (<ad>-makine.txt'nin yanına).
+olcu_surum() {
+  "$PY" -I -c "
+import importlib, sys
+for m in sys.argv[1:]:
+    try:
+        mod = importlib.import_module(m)
+        print(m, getattr(mod, '__version__', '?'))
+    except Exception as e:
+        print(m, 'YOK', type(e).__name__)
+try:
+    import torch; print('torch aygıtı: cpu (cuda', torch.cuda.is_available(), '), iş parçacığı', torch.get_num_threads())
+except Exception:
+    pass
+" "$@" | tee -a "$KAYIT/surumler.txt"
 }
