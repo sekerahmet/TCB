@@ -85,6 +85,8 @@ class Ctx:
         with open(TEXTS, encoding="utf-8") as f:
             self.texts = json.load(f)
         self.tmp = tempfile.mkdtemp(prefix="tmp-", dir=work)  # programs made for a run (char model), Dost's token folder
+        self.extra = {}  # an agreement's own record by item key (S1, S3: ε, ties), kept in agreement.json
+        self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
 
     def model(self, name, i=0):
         return os.path.join(self.work, "models", name, MODELS[name][2][i])
@@ -150,22 +152,68 @@ def parse_llama_bench(stdout):
             "n_depth": rows[0].get("n_depth"), "avg_ts": rows[0]["avg_ts"]}
 
 
-def agree_tokens_text(prompt):
-    """S1: TR's 32 greedy tokens' text is in llama-completion's output (it prints the prompt and the answer)."""
+def forced_verdict(res, epsilon=None):
+    """S1, S3's agreement (TCB's B14 decision): llama.cpp's 32 greedy tokens are read by TR in one pass; every position
+    either agrees (llama.cpp's token is TR's most likely one) or is a tie: TR's best logit is less than ε above the logit
+    of llama.cpp's token. ε is TR's own Q4 noise, the largest |logit| difference of its quantized and unquantized paths
+    at the same positions (language_model.tr --mode forced); measured, recorded, not changed after."""
+    eps = res.get("epsilon") if epsilon is None else epsilon
+    pos = res["positions"]
+    agree = [i for i, p in enumerate(pos) if p["llama"] == p["tr"]]
+    ties = [{"i": i, "gap": p["gap"]} for i, p in enumerate(pos) if p["llama"] != p["tr"] and eps is not None and p["gap"] < eps]
+    apart = [{"i": i, "gap": p["gap"], "llama": p["llama"], "tr": p["tr"]} for i, p in enumerate(pos)
+             if p["llama"] != p["tr"] and (eps is None or p["gap"] >= eps)]
+    out = {"positions": len(pos), "agree": len(agree), "ties": ties, "epsilon": eps, "apart": apart}
+    if eps is None:
+        out["reason"] = "no ε: on a GPU machine give HIGHRAM's agreement.json with --epsilon-from (B14; 15.41)"
+    elif len(pos) != 32:
+        out["reason"] = f"llama.cpp's answer gave {len(pos)} tokens after the prompt, not 32"
+    elif apart:
+        out["reason"] = f"{len(apart)} positions apart beyond ε {eps:.4g}: {apart[:5]}"
+    else:
+        out["reason"] = None
+    return out
+
+
+def agree_forced(ctx, key, forced_cmd):
+    """The agreement function of S1 and S3: TR reads llama-completion's output (--given) and forced_verdict judges."""
     def agree(tr, ref):
-        want, out = tr[0]["text"], ref[0]["stdout"]
-        if want and want in out:
-            return None
-        # The reason shows llama.cpp's answer after the prompt and how many characters the two answers share.
-        tail = out.split(prompt, 1)[1] if prompt in out else out[-300:]
-        same = next((i for i, (a, b) in enumerate(zip(want, tail)) if a != b), min(len(want), len(tail)))
-        return f"TR {want!r} not in llama-completion's output; llama.cpp {tail[:300]!r}; first {same} characters agree"
+        path = os.path.join(ctx.tmp, "llama_completion.txt")
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write(ref[0]["stdout"])
+        r = ctx.rp.run_once(forced_cmd + ["--given", path])
+        if r["rc"] != 0:
+            return f"TR's forced read failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
+        eps, source = highram_epsilon(ctx, key) if ctx.gpu else (None, "measured here, quantized and unquantized path")
+        v = dict(forced_verdict(ctx.rp.parse_result(r["stdout"]), eps), epsilon_source=source)
+        ctx.log({"agreement": key, "tr_greedy": tr[0].get("text"), **v})
+        ctx.extra[key] = {k: v[k] for k in ("epsilon", "epsilon_source", "positions", "agree", "ties", "apart")}
+        return v["reason"]
     return agree
+
+
+def highram_epsilon(ctx, key):
+    """B14 (TCB 15:19): a GPU machine has no quantized path; it takes the same model's ε that HIGHRAM measured on the
+    same prompt and positions (its agreement.json, run.py --epsilon-from), and records where it came from."""
+    if not ctx.epsilon_from:
+        return None, None
+    with open(ctx.epsilon_from, encoding="utf-8") as f:
+        got = json.load(f).get(key) or {}
+    eps = got.get("epsilon") if got.get("epsilon_source", "").startswith("measured here") else None
+    return eps, f"HIGHRAM {ctx.epsilon_from} {key}" if eps is not None else None
+
+
+def lm_agreement(ctx, key, g, quant, text):
+    """S1, S3: agree function and the two sides' agreement commands (TR's own greedy text, llama-completion's)."""
+    tr_cmd = lambda mode: ctx.tr("language_model.tr", "--model", g, "--mode", mode, "--text", text, "--device", ctx.tr_device,
+                                 *quant)
+    lc = ctx.ref("llama-completion", ctx.tools["llama_completion"], ["-m", g, "-p", text, "-n", 32, "-no-cnv", *ctx.ngl()])
+    return agree_forced(ctx, key, tr_cmd("forced")), [tr_cmd("agree")], [lc]
 
 
 def q_language(ctx, q):
     text = ctx.texts["language_model"]["tr"]
-    lb, lc = ctx.tools["llama_bench"], ctx.tools["llama_completion"]
+    lb = ctx.tools["llama_bench"]
     out = []
     if q == "S1":
         for m in S1_MODELS:
@@ -178,10 +226,7 @@ def q_language(ctx, q):
                                      ctx.ref("llama-bench", lb, ["-m", g, "-p", 0, "-n", 128, "-d", 512, *ctx.ngl()])],
                        lambda r, runs: {"prompt_ms": r[0]["avg_ns"] / 1e6, "gen_ms": r[1]["avg_ns"] / 1e6},
                        parse=parse_llama_bench, agree_parse=raw)
-            out.append(item(f"S1/{m}", tr, ref, agree_tokens_text(text),
-                            [ctx.tr("language_model.tr", "--model", g, "--mode", "agree", "--text", text,
-                                    "--device", ctx.tr_device, *quant)],
-                            [ctx.ref("llama-completion", lc, ["-m", g, "-p", text, "-n", 32, "-no-cnv", *ctx.ngl()])]))
+            out.append(item(f"S1/{m}", tr, ref, *lm_agreement(ctx, f"S1/{m}", g, quant, text)))
     if q == "S2":
         f = ctx.folder("qwen3-4b-bf16")
         tr_cmd = lambda mode: ctx.tr("language_model.tr", "--folder", f, "--dtype", "bf16", "--mode", mode, "--text", text,
@@ -197,8 +242,9 @@ def q_language(ctx, q):
         tr = side("TR", [ctx.tr("language_model.tr", "--model", g, "--mode", "depth", "--text", text, "--device", ctx.tr_device)],
                   lambda r, runs: {f"depth{row['depth']}_ms": row["prompt_ms"] for row in r[0]["depths"]})
         ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *ctx.ngl()]) for d in (700, 4100)],
-                   lambda r, runs: {f"depth{x['n_depth']}_ms": x["avg_ns"] / 1e6 for x in r}, parse=parse_llama_bench)
-        out.append(item("S3/qwen3-4b-q4km", tr, ref))  # the model's agreement is S1's
+                   lambda r, runs: {f"depth{x['n_depth']}_ms": x["avg_ns"] / 1e6 for x in r}, parse=parse_llama_bench,
+                   agree_parse=raw)
+        out.append(item("S3/qwen3-4b-q4km", tr, ref, *lm_agreement(ctx, "S3/qwen3-4b-q4km", g, [], text)))  # S1's measure
     return out
 
 

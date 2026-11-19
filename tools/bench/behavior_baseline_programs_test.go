@@ -252,6 +252,71 @@ func TestBaselineEmpty(t *testing.T) {
 	}
 }
 
+// S1 ve S3'ün uyuşması (TCB'nin B14 kararı): 32 konumun her biri ya uyuşur ya başa baştır (TR'nin en iyi logiti
+// llama.cpp'nin token'ınınkinden ε'dan az büyük); ε'suz (GPU), 32'den az token ve ε'u aşan ayrılık durdurur.
+func TestBaselineForcedVerdict(t *testing.T) {
+	rows := func(apartAt int, gap float64) []map[string]any {
+		out := make([]map[string]any, 32)
+		for i := range out {
+			out[i] = map[string]any{"llama": 5, "tr": 5, "gap": 0.0}
+		}
+		if apartAt >= 0 {
+			out[apartAt] = map[string]any{"llama": 5, "tr": 6, "gap": gap}
+		}
+		return out
+	}
+	cases := []map[string]any{
+		{"positions": rows(-1, 0), "epsilon": 1.0},      // hepsi uyuşur
+		{"positions": rows(2, 0.3), "epsilon": 1.0},     // konum 2 başa baş
+		{"positions": rows(2, 1.5), "epsilon": 1.0},     // konum 2 ε'u aşar
+		{"positions": rows(-1, 0)},                      // ε yok (GPU)
+		{"positions": rows(-1, 0)[:31], "epsilon": 1.0}, // 31 token
+	}
+	path := filepath.Join(t.TempDir(), "forced.json")
+	b, _ := json.Marshal(cases)
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got []struct {
+		Agree  int
+		Ties   []map[string]float64
+		Apart  []map[string]float64
+		Reason *string
+	}
+	selfCheck(t, &got, "forced", path)
+	if len(got) != 5 {
+		t.Fatalf("%d verdicts, want 5", len(got))
+	}
+	if got[0].Reason != nil || got[0].Agree != 32 {
+		t.Errorf("all agree: %+v", got[0])
+	}
+	if got[1].Reason != nil || got[1].Agree != 31 || len(got[1].Ties) != 1 || got[1].Ties[0]["i"] != 2 {
+		t.Errorf("a tie at 2: %+v", got[1])
+	}
+	for i, want := range map[int]string{2: "apart beyond ε", 3: "no ε", 4: "31 tokens"} {
+		if got[i].Reason == nil || !strings.Contains(*got[i].Reason, want) {
+			t.Errorf("case %d: %+v, want a reason with %q", i, got[i], want)
+		}
+	}
+	// GPU makinesi ε'u HIGHRAM'in agreement.json'undan alır (TCB 15:19): yalnız orada ölçülmüş olanı, kaynağıyla.
+	agreement := filepath.Join(t.TempDir(), "agreement.json")
+	b, _ = json.Marshal(map[string]any{
+		"S1/a": map[string]any{"ok": true, "epsilon": 2.5, "epsilon_source": "measured here, quantized and unquantized path"},
+		"S1/b": map[string]any{"ok": true, "epsilon": 2.5, "epsilon_source": "HIGHRAM other.json S1/b"},
+	})
+	if err := os.WriteFile(agreement, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var eps map[string][]any
+	selfCheck(t, &eps, "epsilon", agreement)
+	if a := eps["S1/a"]; a[0] != 2.5 || !strings.Contains(fmt.Sprint(a[1]), "S1/a") {
+		t.Errorf("measured ε: %v, want 2.5 with its source", a)
+	}
+	if eps["S1/b"][0] != nil || eps["S1/c"][0] != nil {
+		t.Errorf("ε taken from elsewhere or missing: %v, want none", eps)
+	}
+}
+
 // MMS emsalinin girdisi (references.py mms_ids): VITS'in boşlukları her karakterin önünde ve sonunda; dolgu belirteci
 // harf olan parçalayıcıda da ("k", mms-tts-eng; A-11 B13: "week" 8 değil 9 kimlik). Emsal paragrafı mms.tr gibi böler;
 // koşturucu bozuk baytta durmaz.

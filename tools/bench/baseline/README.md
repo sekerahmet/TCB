@@ -33,9 +33,9 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 
 | Soru | TR | Emsal | Uyuşma | Ölçü |
 | :-- | :-- | :-- | :-- | :-- |
-| S1 | `language_model.tr --mode speed` (6 model; QAT Q4_0 `--quantized off`) | `llama-bench -p 512 -n 0` ve `-p 0 -n 128 -d 512`, `-r 1 --no-warmup -o json` | `--mode agree`'nin 32 açgözlü token'ının metni `llama-completion -n 32 --temp 0`'ın çıktısında | `prompt_ms`, `gen_ms` |
+| S1 | `language_model.tr --mode speed` (6 model; QAT Q4_0 `--quantized off`) | `llama-bench -p 512 -n 0` ve `-p 0 -n 128 -d 512`, `-r 1 --no-warmup -o json` | zorlanmış okuma (B14): `llama-completion -n 32 --temp 0`'ın cevabı `--mode forced`'la TR'ye verilir; 32 konumun her biri ya uyuşur (llama.cpp'nin token'ı TR'nin en olası token'ı) ya başa baştır (TR'nin en iyi logiti o token'ınkinden ε'dan az büyük). ε TR'nin nicemli ve nicemsiz yolunun aynı konumlardaki logitlerinin en büyük mutlak farkıdır; kayda uyuşan sayısı, başa baş konumlar ve farkları, ε yazılır | `prompt_ms`, `gen_ms` |
 | S2 | `language_model.tr --folder` bf16 | `references.py lm` (transformers) | açgözlü token'lar aynı | `prompt_ms`, `gen_ms`, `load_ms` |
-| S3 | `language_model.tr --mode depth` (700, 4 100; 40 token) | `llama-bench -p 40 -n 0 -d 700` ve `-d 4100` | S1'inki | `depth700_ms`, `depth4100_ms` |
+| S3 | `language_model.tr --mode depth` (700, 4 100; 40 token) | `llama-bench -p 40 -n 0 -d 700` ve `-d 4100` | S1'inki, kendi uyuşma koşusuyla | `depth700_ms`, `depth4100_ms` |
 | S4 | `catalog_memory.tr` (her girdi, her ölçülmüş bağlam) | yok | — | `load_ms`, bellek |
 | S5 | `whisper.tr` (tr, en) | faster-whisper float32 ve int8, transformers, whisper.cpp f16 | metin aynı (küçük harf, noktalamasız); int8'de yalnız sözcük hata oranı günlükte | `transcribe_ms` |
 | S6 | `mms.tr` (tr, en; gürültü 0) | `references.py mms` (float32; kimlikler VITS'in boşluk kuralıyla, `mms_ids`: mms-tts-eng'in dolgu belirteci `k` olduğu için `VitsTokenizer` sondaki `k`'nin boşluğunu düşürür) | cümle başına örnek sayısı ve örnekleme hızı aynı; sentez başına iki rastgele tensör | `total_ms`, `first_ms` |

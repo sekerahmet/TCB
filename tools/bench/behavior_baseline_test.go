@@ -311,6 +311,32 @@ func TestBaselineLanguageModel(t *testing.T) {
 	if _, ok := agree["text"].(string); !ok {
 		t.Errorf("agree: no text: %v", agree)
 	}
+	// Zorlanmış okuma (B14): llama-completion'ın çıktısı gibi istem ve cevap. Küçük rastgele modelin kendi metni geri
+	// bölününce aynı token'lara dönmez; cevap düz bir metindir. Her konumda fark (en iyi logit − verilen token'ın
+	// logiti) eksi olamaz, uyuşan konumda 0'dır; işlemcide ε yazılır.
+	given := filepath.Join(t.TempDir(), "given.txt")
+	if err := os.WriteFile(given, []byte("Bir gün saat durdu. Kimse nedenini bilemedi ve saatçi geldi."), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	forced := program(t, "baseline/language_model.tr", append(common, "--mode", "forced", "--agree_tokens", "5", "--given", given)...)
+	rows, _ := forced["positions"].([]any)
+	eps, ok := forced["epsilon"].(float64)
+	if len(rows) != 5 || forced["given_tokens"] != 5.0 || !ok || eps < 0 {
+		t.Fatalf("forced: %v, want 5 rows (--agree_tokens) and ε on the CPU", forced)
+	}
+	for i, r := range rows {
+		p := r.(map[string]any)
+		gap, _ := p["gap"].(float64)
+		if gap < 0 || (p["llama"] == p["tr"]) != (gap == 0) {
+			t.Errorf("forced position %d: %v, want gap ≥ 0 and 0 exactly where the tokens agree", i, p)
+		}
+	}
+	if err := os.WriteFile(given, []byte("Başka bir metin."), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out := programFails(t, "baseline/language_model.tr", append(common, "--mode", "forced", "--given", given)...); !strings.Contains(out, "does not begin with --text and an answer") {
+		t.Errorf("forced with another text: %s", out)
+	}
 }
 
 // whisperModel tests/whisper_model_test.tr'nin çeviri modelini (ağırlıklar formülden, parçalayıcı

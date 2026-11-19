@@ -382,6 +382,13 @@ def _self_check(name, arg):
         return {"stopped": False}
     if name == "mms_ids":
         return _check_mms_ids(arg)
+    if name == "forced":  # S1, S3's agreement verdict (B14) on language_model.tr --mode forced results in a JSON list
+        with open(arg, encoding="utf-8") as f:
+            return [load_questions().forced_verdict(r) for r in json.load(f)]
+    if name == "epsilon":  # a GPU machine's ε from an agreement.json (B14): S1/a measured, S1/b taken from elsewhere
+        import types
+        ctx = types.SimpleNamespace(epsilon_from=arg)
+        return {k: load_questions().highram_epsilon(ctx, k) for k in ("S1/a", "S1/b", "S1/c")}
     raise SystemExit(f"unknown self check {name!r}")
 
 
@@ -470,6 +477,7 @@ def run_questions(a):
     rec.metrics["_machine"] = {"machine": a.machine, "threads": threads["procs"], "threads_source": "gctrace P (O-1)",
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
+    ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
     if a.make_sounds:
         print(json.dumps(qs.make_sounds(ctx)))
         return 0
@@ -515,7 +523,8 @@ def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
             got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
                    for s, cmds in ((it["tr"], it["tr_agree"]), (it["ref"], it["ref_agree"]))]
             reason = it["agree"](*got)
-            rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason}
+            # The agreement's own record (S1, S3: ε, agreeing positions, ties) goes with the verdict (B14).
+            rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason, **ctx.extra.pop(it["key"], {})}
             rec.save()
             if reason:
                 raise Stop(f"{it['key']}: {it['tr']['name']} and {it['ref']['name']} disagree: {reason}")
@@ -613,6 +622,7 @@ def main():
     p.add_argument("--fetch", action="store_true", help="download the models into --work (prepare.sh)")
     p.add_argument("--models", help="with --fetch: only these MODELS names, comma separated")
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
+    p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
     p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")
     p.add_argument("--self-check", nargs="+", metavar="NAME", help=argparse.SUPPRESS)
     a = p.parse_args()
