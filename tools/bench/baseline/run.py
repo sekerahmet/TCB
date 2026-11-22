@@ -18,7 +18,7 @@ The method is fixed before any run (tools/bench/baseline/README.md):
   given to each reference by name;
 - memory: Linux VmHWM (counter, checked against ru_maxrss) and RssAnon (sampled every 10 ms);
   Windows PeakWorkingSetSize and PeakPagefileUsage (counters); GPU nvidia-smi every 1 s.
-A disagreement, a failed run or (on the laptop) foreign load over 20 % stops with exit code 3.
+A disagreement, a failed run or (on the laptop) foreign load over 20 % for 60 s (the runner itself not counted) stops with exit code 3.
 """
 import argparse, json, os, re, shutil, statistics, subprocess, sys, tempfile, threading, time
 
@@ -206,12 +206,65 @@ def _cpu_times():
     return t(kernel) + t(user) - t(idle), t(kernel) + t(user)
 
 
+def _own_cpu():
+    """CPU seconds of this runner and its finished children (its own process tree: not foreign load)."""
+    t = os.times()
+    return t.user + t.system + t.children_user + t.children_system
+
+
+# Units of _cpu_times per CPU second: /proc/stat counts clock ticks, GetSystemTimes 100 ns.
+_CPU_UNIT = (os.sysconf("SC_CLK_TCK") if hasattr(os, "sysconf") and sys.platform.startswith("linux") else 10_000_000)
+
+
 def foreign_load(seconds=1.0):
-    """The busy share (%) of the machine over `seconds` while this runner starts nothing."""
+    """The busy share (%) of the machine over `seconds` while this runner starts nothing, without the runner's own
+    process tree (on the laptop it counted itself; tani 2026-11-20: 1.5–5.7 CPU s of python in each window)."""
     b0, t0 = _cpu_times()
+    o0 = _own_cpu()
     time.sleep(seconds)
     b1, t1 = _cpu_times()
-    return 100.0 * (b1 - b0) / max(t1 - t0, 1)
+    own = (_own_cpu() - o0) * _CPU_UNIT
+    return 100.0 * max(b1 - b0 - own, 0) / max(t1 - t0, 1)
+
+
+def top_process():
+    """The process with the most CPU over a short window (the reason when the machine stays busy), or None without psutil."""
+    try:
+        import psutil
+    except ImportError:
+        return None
+    me = os.getpid()
+    procs = [p for p in psutil.process_iter(["name"]) if p.pid not in (0, me)]
+    for p in procs:
+        try:
+            p.cpu_percent(None)
+        except psutil.Error:
+            pass
+    time.sleep(0.5)
+    best = None
+    for p in procs:
+        try:
+            c = p.cpu_percent(None)
+        except psutil.Error:
+            continue
+        if best is None or c > best[1]:
+            best = (p.info["name"], c)
+    return f"{best[0]} {best[1]:.0f} %" if best else None
+
+
+def wait_for_quiet(question, log, measure=foreign_load, limit=None, wait=60.0, clock=time.monotonic, top=top_process):
+    """Before a laptop run: the foreign load under the limit, waiting at most `wait` seconds for it to fall (TCB
+    2026-11-20: Windows Defender scans after each run); if it stays high the question stops with the busiest process."""
+    limit = FOREIGN_LOAD_LIMIT if limit is None else limit
+    start = clock()
+    while True:
+        load = measure()
+        if load <= limit:
+            return load
+        if clock() - start >= wait:
+            busiest = top()
+            log({"question": question, "foreign_load": load, "waited_s": round(clock() - start, 1), "busiest": busiest})
+            raise Stop(f"{question}: foreign load {load:.0f} % before the run, still after {wait:.0f} s (busiest: {busiest})")
 
 
 def process_list():
@@ -258,9 +311,11 @@ def run_pair(question, tr, ref, agree, log, machine):
     return out
 
 
-def run_alone(question, side, log, machine, runs=5):
-    """A question without a reference (S4, S8–S10, S14): one warm-up, then `runs` runs; median and range."""
-    _run_side(question, side, "warmup", log, machine)
+def run_alone(question, side, log, machine, runs=5, warm=True):
+    """A question without a reference (S4, S8–S10, S14): one warm-up, then `runs` runs; median and range.
+    A trial (--trial) is one run without the warm-up."""
+    if warm:
+        _run_side(question, side, "warmup", log, machine)
     values, memory = [], []
     for i in range(runs):
         r = _run_side(question, side, i, log, machine)
@@ -287,10 +342,8 @@ def _run_side(question, side, index, log, machine, cmds=None):
     parse = side.get("agree_parse") if cmds and "agree_parse" in side else side.get("parse", parse_result)
     cmds = cmds or side.get("cmds") or [side["cmd"]]
     if machine == "laptop":
-        load = foreign_load()
+        load = wait_for_quiet(question, log)
         log({"question": question, "side": side["name"], "index": index, "foreign_load": load})
-        if load > FOREIGN_LOAD_LIMIT:
-            raise Stop(f"{question}: foreign load {load:.0f} % before the run")
     runs, results = [], []
     for cmd in cmds:
         log({"question": question, "side": side["name"], "index": index, "processes_before": process_list()})
@@ -301,7 +354,72 @@ def _run_side(question, side, index, log, machine, cmds=None):
             raise Stop(f"{question}: {side['name']} failed (exit {run['rc']}): {run['stderr'].strip()[-400:]}")
         runs.append(run)
         results.append(parse(run["stdout"]))
+        check_device(question, side["name"], cmd, run, results[-1], log, index)
     return {"runs": runs, "results": results}
+
+
+GPU_BACKENDS = ("CUDA", "Vulkan", "Metal", "SYCL", "HIP", "MUSA", "OpenCL", "CANN")
+
+
+def expected_device(cmd):
+    """Ş2 (DENETİM 944; TCB 2026-11-19 20:39): the device a command asks for, from the command itself: --device's
+    value; llama.cpp's -ngl (0: the processor); whisper-cli's -ng (the processor). None: the command names none."""
+    name = os.path.basename(str(cmd[0])).lower() if cmd else ""
+    if name.startswith("llama-"):
+        return "cpu" if "-ngl" in cmd and str(cmd[cmd.index("-ngl") + 1]) == "0" else "cuda"
+    if name.startswith("whisper-cli"):
+        return "cpu" if "-ng" in cmd else "cuda"
+    if "--device" in cmd:
+        return "cuda" if str(cmd[cmd.index("--device") + 1]).startswith("cuda") else "cpu"
+    return None
+
+
+def actual_device(cmd, run, parsed):
+    """The device a run really used, from its own output, and where it was read: llama-bench's JSON (backends,
+    n_gpu_layers), llama-completion's log (layers offloaded to the GPU), whisper-cli's log (use gpu, the loaded
+    backends), else the result's actual_device (the references: the model's own device; TR's programs: a tensor's own
+    device) or a reference's device. A TR program's device is its command's echo, so trlang's result must name
+    actual_device (DENETİM 948 N1)."""
+    name = os.path.basename(str(cmd[0])).lower()
+    if name.startswith("llama-bench"):
+        row = json.loads(run["stdout"][run["stdout"].index("["):])[0]
+        gpu = (row.get("n_gpu_layers") or 0) > 0 and any(b in str(row.get("backends")) for b in GPU_BACKENDS)
+        return ("cuda" if gpu else "cpu"), f"llama-bench backends {row.get('backends')}, n_gpu_layers {row.get('n_gpu_layers')}"
+    if name.startswith("llama-completion"):
+        m = re.search(r"offloaded (\d+)/(\d+) layers to GPU", run["stderr"])
+        sysinfo = re.search(r"system_info:[^\n]*", run["stderr"])
+        backends = re.findall(r"\| (\w+) :", sysinfo.group(0)) if sysinfo else []
+        if not m and not sysinfo:
+            return None, "llama-completion printed no system_info"
+        gpu = bool(m and int(m.group(1)) > 0)
+        return ("cuda" if gpu else "cpu"), f"llama-completion {m.group(0) if m else 'no layer offloaded'}, backends {backends}"
+    if name.startswith("whisper-cli"):
+        m = re.search(r"use gpu\s*=\s*(\d)", run["stderr"])
+        loaded = re.findall(r"load_backend: loaded (\w+) backend", run["stderr"])
+        if not m:
+            return None, "whisper-cli printed no 'use gpu'"
+        gpu = m.group(1) == "1" and any(b != "CPU" for b in loaded)
+        return ("cuda" if gpu else "cpu"), f"whisper-cli use gpu = {m.group(1)}, loaded {loaded}"
+    if not isinstance(parsed, dict):
+        return None, "the result names no device"
+    d = parsed.get("actual_device") if name.startswith("trlang") else (parsed.get("actual_device") or parsed.get("device"))
+    if not d:
+        return None, "TR's result names no actual_device" if name.startswith("trlang") else "the result names no device"
+    d = str(d).lower()
+    return ("cuda" if d.startswith(("cuda", "gpu")) else "cpu" if d.startswith("cpu") else d), \
+        f"result {'actual_device' if parsed.get('actual_device') else 'device'} {d}"
+
+
+def check_device(question, side, cmd, run, parsed, log, index):
+    """Ş2: every run's real device is read from its own output and logged; a run that did not use the device its
+    command asks for, or does not say, stops the item: a row whose devices are not checked is not written."""
+    want = expected_device(cmd)
+    if want is None:
+        return
+    got, how = actual_device(cmd, run, parsed)
+    log({"question": question, "side": side, "index": index, "device": got, "device_from": how})
+    if got != want:
+        raise Stop(f"{question}: {side}: device mismatch (aygıt uyuşmadı): ran on {got} ({how}), the command asks {want}")
 
 
 REFERENCES = os.path.join(BASE, "references.py")
@@ -314,7 +432,9 @@ THREAD_FLAGS = {"llama-bench": "-t", "llama-completion": "-t", "whisper-cli": "-
 
 def reference_cmd(name, threads, binary=None, argv=()):
     """The command of one reference with the machine's thread number; the only place the number is given."""
-    t = [THREAD_FLAGS[name], str(threads)]
+    # 0 is the library's own default (Ş1's scan): onnxruntime and faster-whisper take 0 themselves; llama.cpp and
+    # whisper-cli get no -t at all.
+    t = [] if threads == 0 and name in ("llama-bench", "llama-completion", "whisper-cli") else [THREAD_FLAGS[name], str(threads)]
     if name == "llama-bench":
         return [binary, *argv, "-r", "1", "--no-warmup", *t, "-o", "json"]
     if name == "llama-completion":
@@ -368,7 +488,8 @@ def _self_check(name, arg):
             ctx = qs.Ctx(sys.modules[__name__], machine, 97, arg, lambda rec: None, dry=True)
             out[machine] = {it["key"]: {"tr": it["tr"]["cmds"] if it["tr"] else None,
                                         "ref": it["ref"]["cmds"] if it["ref"] else None,
-                                        "agree": bool(it["agree"]), "custom": bool(it["custom"])}
+                                        "agree": bool(it["agree"]), "custom": bool(it["custom"]),
+                                        "check": it["check"]["name"] if it["check"] else None}
                             for q in qs.QUESTIONS[machine] for it in qs.items(ctx, q)}
         return out
     if name == "agreement":
@@ -380,16 +501,19 @@ def _self_check(name, arg):
         ref = dict(side("ref", "b"), warm=[plain], agree_parse=lambda out: {"text": out.strip()})
         run_pair("check", side("tr", "a"), ref, same, lambda rec: None, "check")
         return {"stopped": False}
-    if name == "base":  # --base-trlang: the base items of S5 and S14, and a pair of one program against itself
+    if name == "base":  # --base-trlang: the base items of S5, S9 and S14, and a pair of one program against itself
         qs = load_questions()
         ctx = qs.Ctx(sys.modules[__name__], "highram", 97, arg, lambda rec: None, dry=True)
-        its = base_items(qs.items(ctx, "S5") + qs.items(ctx, "S14"), ctx.tools["trlang"], "BASE")
+        # S9 is Dost's custom run (no base side); the count before the keyed dict shows S5's shared TR side gives one
+        # base item per language, not one per reference (DENETİM 943).
+        its = base_items(qs.items(ctx, "S5") + qs.items(ctx, "S9") + qs.items(ctx, "S14"), ctx.tools["trlang"], "BASE")
         nap = [sys.executable, "-I", "-c", "import time; time.sleep(0.2); print('BASELINE {}')"]
         side = {"name": "TR", "cmds": [nap], "measure": lambda res, runs: runs[0]["wall_ms"]}
         same = base_items([{"key": "S0/x/ref", "tr": side, "ref": side, "custom": None, "runs": 5}], sys.executable,
                           sys.executable)[0]
         pair = run_pair(same["key"], same["tr"], same["ref"], None, lambda rec: None, "check")
-        return {"items": {it["key"]: {"tr": it["tr"]["cmds"], "ref": it["ref"]["cmds"], "agree": bool(it["agree"])}
+        return {"count": len(its),
+                "items": {it["key"]: {"tr": it["tr"]["cmds"], "ref": it["ref"]["cmds"], "agree": bool(it["agree"])}
                           for it in its},
                 "pair": {"key": same["key"], "reference": pair["reference"], **pair["measures"]["ms"]}}
     if name == "mms_ids":
@@ -499,6 +623,18 @@ class Record:
 def run_questions(a):
     qs = load_questions()
     rec = Record(a.out)
+    doc = None
+    if a.settings:  # Ş1: the window's scan's choice (en-hizli.json); it goes with the run's record
+        with open(a.settings, encoding="utf-8") as f:
+            doc = json.load(f)
+        rec.log({"settings": {k: v for k, v in doc.items() if not k.startswith("_")}, "settings_file": a.settings,
+                 "scan": doc.get("_scan"), "scan_commit": doc.get("_commit")})
+        reason = None if (a.trial or a.agreement or a.scan) else check_settings(doc, head_commit())
+        if reason:  # a measure, not a trial: only a whole scan of this commit (DENETİM 947 and 948 Ş1)
+            rec.log({"stopped": reason})
+            rec.save()
+            print(f"STOPPED: {reason}", flush=True)
+            return STOP
     with open(os.path.join(a.work, "tools.json"), encoding="utf-8") as f:
         trlang = json.load(f)["trlang"]
     threads = threads_from_tr([trlang, os.path.join(BASE, "matmul.tr"), "--size", "512", "--repeat", "2"])
@@ -506,6 +642,22 @@ def run_questions(a):
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
+    if doc is not None:
+        ctx.settings = {k: v for k, v in doc.items() if not k.startswith("_")}
+    if a.scan:
+        try:
+            return scan_settings(ctx, qs, rec, a.scan, a.out, runs=1 if a.trial else 3)
+        except Stop as e:
+            rec.log({"stopped": str(e)})
+            rec.save()
+            print(f"STOPPED: {e}", flush=True)
+            return STOP
+    for kv in a.epsilon or []:  # BC17: ε for weights without TR's quantized path, written in the run script
+        key, _, value = kv.partition("=")
+        try:
+            ctx.epsilon_given[key] = float(value)
+        except ValueError:
+            raise SystemExit(f"--epsilon wants KEY=NUMBER, not {kv!r}. Example: --epsilon S1/qwen3-4b-q8=2.3770726")
     if a.make_sounds:
         print(json.dumps(qs.make_sounds(ctx)))
         return 0
@@ -524,7 +676,10 @@ def run_questions(a):
                 for it in its:
                     if not chosen(it) or (a.skip_done and it["key"] in rec.metrics):
                         continue
-                    rec.metrics[it["key"]] = run_item(ctx, it, rec)
+                    if a.trial and it["ref"] is not None:
+                        trial_pair(ctx, it, rec)
+                        continue
+                    rec.metrics[it["key"]] = run_item(ctx, it, rec, trial=a.trial)
                     rec.save()
                     print(f"{it['key']}: done", flush=True)
     except Stop as e:
@@ -533,6 +688,89 @@ def run_questions(a):
         print(f"STOPPED: {e}", flush=True)
         return STOP
     rec.save()
+    return 0
+
+
+# Ş1 (DENETİM 944 and 947, TCB 2026-11-22): at the window's start each reference's thread number is chosen by a short
+# scan: the library's default (0), 6 and the machine's logical processors. S1's llama-bench reading (-p 512 -n 0) and
+# generation (-p 0 -n 128 -d 512) are separate groups, each with its own setting (N1: on a hybrid processor the two may
+# differ); S3's llama-bench reads with the reading group's threads and also tries flash attention 0 and 1, at depth 700
+# only. Each setting runs its group's item once to warm, then SCAN_RUNS times; the setting with the shortest median of the
+# measures (summed) is chosen, and the table keeps each measure's median too. The rule is written before the run; the
+# choice and the table go to en-hizli.json and every run's record. A measure takes the file only whole (check_settings).
+SCAN = [("llama.cpp read", "S1", "S1/qwen3-4b-q4km", slice(0, 1)), ("llama.cpp gen", "S1", "S1/qwen3-4b-q4km", slice(1, 2)),
+        ("llama.cpp S3", "S3", "S3/qwen3-4b-q4km", slice(0, 1)),
+        ("faster-whisper float32", "S5", "S5/tr/faster-whisper-float32", None),
+        ("faster-whisper int8", "S5", "S5/tr/faster-whisper-int8", None), ("whisper.cpp", "S5", "S5/tr/whisper.cpp", None),
+        ("onnxruntime", "S7", "S7/tr", None)]
+SCAN_GROUPS = [g for g, _, _, _ in SCAN]
+SCAN_RUNS = 3
+
+
+def head_commit():
+    """The commit the code runs from (git rev-parse HEAD), or None outside a git checkout."""
+    r = subprocess.run(["git", "-C", BASE, "rev-parse", "HEAD"], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def check_settings(doc, commit):
+    """Ş1 (DENETİM 947 and 948): a measure takes en-hizli.json only from a whole scan of its own commit: every group
+    chosen and timed with SCAN_RUNS runs (a trial's file has one run per setting; a scan cut short leaves groups out),
+    scanned at the commit the measure runs (a file left by an earlier window carries its own). The reason, or None."""
+    table = doc.get("_scan", {})
+    missing = [g for g in SCAN_GROUPS if g not in doc]
+    short = [g for g in SCAN_GROUPS if g in doc and table.get(g, {}).get("runs", 0) < SCAN_RUNS]
+    if missing or short:
+        return f"en-hizli.json is not a whole scan: groups missing {missing}, fewer than {SCAN_RUNS} runs {short}"
+    if commit is None or doc.get("_commit") != commit:
+        return f"en-hizli.json was scanned at commit {doc.get('_commit')}, this measure runs {commit}: scan again"
+    return None
+
+
+def time_side(ctx, side, key, log, runs, measure, warm=True):
+    """One setting: the median of the summed measures and each measure's median, after one warm-up run."""
+    if warm:
+        _run_side(key, side, "scan warmup", log, ctx.machine)
+    got = []
+    for i in range(runs):
+        r = _run_side(key, side, f"scan {i}", log, ctx.machine)
+        got.append(measure(r["results"], r["runs"]))
+    return statistics.median(sum(g.values()) for g in got), {k: statistics.median(g[k] for g in got) for k in got[0]}
+
+
+def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS):
+    """Ş1's scan of the named groups; merges into out/en-hizli.json, so a trial can run the groups as separate commands."""
+    path = os.path.join(out, "en-hizli.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            res = json.load(f)
+    except OSError:
+        res = {}
+    table = res.setdefault("_scan", {})
+    for group, q, key, part in SCAN:
+        if group not in groups:
+            continue
+        fa = group == "llama.cpp S3"
+        values = [0, 1] if fa else [0, 6, os.cpu_count()]
+        meds, each = {}, {}
+        for v in values:
+            ctx.settings = {k: x for k, x in res.items() if not k.startswith("_")}
+            ctx.settings[group] = {"flash_attn": v} if fa else {"threads": v}
+            it = next(i for i in qs.items(ctx, q) if i["key"] == key)
+            side = dict(it["ref"], cmds=it["ref"]["cmds"][part]) if part else it["ref"]
+            # One of S1's two llama-bench commands is timed by itself (S1's measure names both commands' results).
+            measure = (lambda r, rs: {"ms": r[0]["avg_ns"] / 1e6}) if part and not fa else side["measure"]
+            meds[v], each[v] = time_side(ctx, side, key, rec.log, runs, measure, warm=runs > 1)
+            print(f"{group} {'flash_attn' if fa else 'threads'} {v}: median {meds[v]:.1f} ms {each[v]}", flush=True)
+        best = min(meds, key=meds.get)
+        res[group] = {"flash_attn": best} if fa else {"threads": best}
+        table[group] = {"medians_ms": {str(k): v for k, v in meds.items()},
+                        "measures_ms": {str(k): v for k, v in each.items()}, "runs": runs, "chosen": best}
+        rec.log({"scan": group, **table[group]})
+        res["_commit"] = head_commit()  # DENETİM 948 Ş1: a measure takes only its own commit's scan
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(res, f, indent=1)
+    print(json.dumps({k: v for k, v in res.items() if not k.startswith("_")}), flush=True)
     return 0
 
 
@@ -552,22 +790,37 @@ def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
             raise Stop(f"english_phoneme_ids.json does not match the voice's mapping: {r['stdout'][-400:]}")
     for q in order_:
         for it in qs.items(ctx, q):
-            if not it["agree"] or not chosen(it):
-                continue
-            got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
-                   for s, cmds in ((it["tr"], it["tr_agree"]), (it["ref"], it["ref_agree"]))]
-            reason = it["agree"](*got)
-            # The agreement's own record (S1, S3: ε, agreeing positions, ties) goes with the verdict (B14).
-            rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason, **ctx.extra.pop(it["key"], {})}
-            rec.save()
-            if reason:
-                raise Stop(f"{it['key']}: {it['tr']['name']} and {it['ref']['name']} disagree: {reason}")
-            print(f"{it['key']}: agree", flush=True)
+            if it["agree"] and chosen(it):
+                agree_item(ctx, it, rec)
+
+
+def trial_pair(ctx, it, rec):
+    """--trial of a pair: its agreement pass (--agreement) tries it when it has an agreement; a pair without one (S13's
+    char model) runs each side once here, or a trial would run nothing and still exit 0 (2026-11-22)."""
+    if it["agree"]:
+        return
+    for s in (it["tr"], it["ref"]):
+        _run_side(it["key"], s, "trial", rec.log, ctx.machine)
+    print(f"{it['key']}: done", flush=True)
+
+
+def agree_item(ctx, it, rec):
+    """One item's agreement: TR against its reference, or against its check when it has no speed reference (S2, S6)."""
+    other = it["ref"] or it["check"]
+    got = [_run_side(it["key"], s, "agreement", rec.log, ctx.machine, cmds)["results"]
+           for s, cmds in ((it["tr"], it["tr_agree"]), (other, it["ref_agree"]))]
+    reason = it["agree"](*got)
+    # The agreement's own record (S1, S3: ε, agreeing positions, ties) goes with the verdict (B14).
+    rec.agreement[it["key"]] = {"ok": reason is None, "reason": reason, **ctx.extra.pop(it["key"], {})}
+    rec.save()
+    if reason:
+        raise Stop(f"{it['key']}: {it['tr']['name']} and {other['name']} disagree: {reason}")
+    print(f"{it['key']}: agree", flush=True)
 
 
 def base_items(items, trlang, base):
     """--base-trlang: each item's TR side against the same TR program run by the base build (main); the warm-up,
-    the ABBA order and the load checks stay, the ratio is branch/base. Items sharing a TR side (S5's four
+    the ABBA order and the load checks stay, the ratio is branch/base. Items sharing a TR side (S5's three
     references) give one base item, keyed by the TR side's key with "base" as its last part (S5/tr/base); a TR-only
     item gets "/base" after its key. Dost's custom runs have no base side."""
     out, seen = [], set()
@@ -579,29 +832,37 @@ def base_items(items, trlang, base):
         cmds = [[base, *c[1:]] if c and c[0] == trlang else c for c in it["tr"]["cmds"]]
         ref = dict(it["tr"], name="TR base", cmds=cmds)
         out.append({"key": key, "tr": it["tr"], "ref": ref, "agree": None, "tr_agree": None, "ref_agree": None,
-                    "runs": it["runs"], "custom": None})
+                    "runs": it["runs"], "custom": None, "check": None})
     return out
 
 
-def run_item(ctx, it, rec):
-    """One item: a custom run (Dost's screen), TR alone, or the ABBA pair; on the laptop the warm-up agrees (N3)."""
+def run_item(ctx, it, rec, trial=False):
+    """One item: a custom run (Dost's screen), TR alone, or the ABBA pair; on the laptop the warm-up agrees (N3).
+    trial (--trial): an item without a reference runs once, without the warm-up: the script, the models and the device are
+    tried, the number is not used (the laptop's scripts; a trial of an item with a reference is the agreement pass)."""
     if it["custom"]:
         values, memory = [], []
-        for i in range(it["runs"] + 1):  # the first is the warm-up
+        warm = 0 if trial else 1
+        for i in range(1 if trial else it["runs"] + 1):  # the first is the warm-up, but not in a trial
             v, m = it["custom"]()
-            rec.log({"question": it["key"], "index": "warmup" if i == 0 else i - 1, "result": v, "memory": m})
-            if i:
+            rec.log({"question": it["key"], "index": "warmup" if i < warm else i - warm, "result": v, "memory": m})
+            if i >= warm:
                 values.append(v)
                 memory.append(m)
         return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
                                                                         "median": statistics.median(v[k] for v in values)}
                                                                     for k in values[0]}}
+    agreed = lambda: rec.agreement.get(it["key"], {}).get("ok")
     if it["ref"] is None:
-        return run_alone(it["key"], it["tr"], rec.log, ctx.machine, it["runs"])
+        if it.get("agree") and not agreed():  # a check without a speed reference (S2, S6): agree first; the laptop does it here
+            if ctx.machine != "laptop":
+                raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
+            agree_item(ctx, it, rec)
+        return run_alone(it["key"], it["tr"], rec.log, ctx.machine, 1 if trial else it["runs"], warm=not trial)
     tr, ref, agree = it["tr"], it["ref"], None
     if ctx.machine == "laptop" and it["agree"]:
         tr, ref, agree = dict(tr, warm=it["tr_agree"]), dict(ref, warm=it["ref_agree"]), it["agree"]
-    elif it["agree"] and not rec.agreement.get(it["key"], {}).get("ok"):
+    elif it["agree"] and not agreed():
         raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
     return run_pair(it["key"], tr, ref, agree, rec.log, ctx.machine)
 
@@ -639,23 +900,36 @@ def fetch(work, only=None):
 
 
 def rows(out):
-    """Draft rows from metrics.json: each measure's median, range, quartiles, verdict and the memory peaks (O-5)."""
+    """Draft rows from metrics.json: each measure's median, range, quartiles, verdict and the memory peaks (O-5); first
+    the row's setting (N2, DENETİM 947): the machine's thread number and the scan's choice the run took (en-hizli.json)."""
     rec = Record(out)
+    m = rec.metrics.get("_machine", {})
+    setting = f"setting: machine threads {m.get('threads')} ({m.get('threads_source')})"
+    try:
+        with open(os.path.join(out, "en-hizli.json"), encoding="utf-8") as f:
+            setting += f"; fastest settings {json.dumps({k: v for k, v in json.load(f).items() if not k.startswith('_')})}"
+    except OSError:
+        setting += "; no en-hizli.json (each reference with the machine's number)"
+    print(setting)
     for key, r in rec.metrics.items():
         if key.startswith("_"):
             continue
         for name, m in r["measures"].items():
             line = f"{key} {name}: TR median {statistics.median(m['tr_ms']):.3f} range {min(m['tr_ms']):.3f}–{max(m['tr_ms']):.3f}"
-            if r["reference"]:
-                line += (f" | {r['reference']} median {statistics.median(m['ref_ms']):.3f} | ratio q1 {m['q1']:.3f} median "
+            if r["reference"]:  # the reference's range too: a row writes both sides' median and range (TCB 22:45)
+                line += (f" | {r['reference']} median {statistics.median(m['ref_ms']):.3f} range {min(m['ref_ms']):.3f}–"
+                         f"{max(m['ref_ms']):.3f} | ratio q1 {m['q1']:.3f} median "
                          f"{m['median']:.3f} q3 {m['q3']:.3f} {m['verdict']}" + (" borderline" if m["borderline"] else ""))
             print(line)
-        mem = r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"]
         # Every field memory_of keeps that some run measured: Linux's VmHWM and RssAnon, Windows' peak working set
-        # and pagefile (the laptop, E), the GPU's.
-        peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
-                 if any(x.get(k) is not None for x in mem)}
-        print(f"{key} memory TR peaks: {peaks}")
+        # and pagefile (the laptop, E), the GPU's. The reference's peaks too, so a row compares the two sides' memory.
+        sides = [("TR", r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"])]
+        if r.get("reference") and isinstance(r["memory"], dict) and r["memory"].get("E"):
+            sides.append((r["reference"], r["memory"]["E"]))
+        for side, mem in sides:
+            peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
+                     if any(x.get(k) is not None for x in mem)}
+            print(f"{key} memory {side} peaks: {peaks}")
     return 0
 
 
@@ -668,6 +942,8 @@ def main():
     p.add_argument("--question", action="append", help="S1 … S14; repeat for several (default: the machine's list)")
     p.add_argument("--skip-done", action="store_true", help="skip questions already in the output folder")
     p.add_argument("--agreement", action="store_true", help="the agreement pass (O-4; Colab machines, before measuring)")
+    p.add_argument("--trial", action="store_true", help="a trial: items without a reference run once without the warm-up "
+                                                       "(the number is not used; Ahmet 2026-11-20)")
     p.add_argument("--work", help="prepare.sh's work folder: tools.json, models/, sounds/")
     p.add_argument("--out", default=os.environ.get("TR_RECORD_DIR"), help="output folder (default TR_RECORD_DIR)")
     p.add_argument("--rows", action="store_true", help="print draft rows from metrics.json in --out")
@@ -675,6 +951,11 @@ def main():
     p.add_argument("--models", help="with --fetch: only these MODELS names, comma separated")
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
+    p.add_argument("--settings", help="the window's scan's choice (en-hizli.json): each reference's fastest setting (Ş1)")
+    p.add_argument("--scan", action="append", choices=SCAN_GROUPS,
+                   help="the window's short scan of a reference's fastest setting, into --out/en-hizli.json (Ş1)")
+    p.add_argument("--epsilon", action="append", metavar="KEY=NUMBER",
+                   help="ε of an item whose weights have no TR quantized path (Q8_0), given before the run (BC17)")
     p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")
     p.add_argument("--base-trlang", help="a base trlang (main's build): each question's TR side against the same "
                                           "program run by it, ratio branch/base, keys <question>/base")

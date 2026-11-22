@@ -117,7 +117,12 @@ func copyDir(t *testing.T, src string, extra map[string]string) string {
 func baseline(t *testing.T, args ...string) (string, int) {
 	t.Helper()
 	cmd := exec.Command(python(t), append([]string{"-I", "baseline/run.py"}, args...)...)
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
 	out, err := cmd.Output()
+	if s := stderr.String(); s != "" { // yalnız düşen testte görünür: boş JSON'un nedeni (2026-11-22, paket koşusunda bir kez)
+		t.Logf("run.py %v stderr:\n%s", args, s[max(0, len(s)-2000):])
+	}
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return string(out), ee.ExitCode()
@@ -132,7 +137,7 @@ func selfCheck(t *testing.T, v any, args ...string) int {
 	t.Helper()
 	out, code := baseline(t, append([]string{"--self-check"}, args...)...)
 	if err := json.Unmarshal([]byte(out), v); err != nil {
-		t.Fatalf("--self-check %v: %v\n%s", args, err, out)
+		t.Fatalf("--self-check %v: exit %d: %v\n%s", args, code, err, out)
 	}
 	return code
 }
@@ -292,6 +297,10 @@ func TestBaselineLanguageModel(t *testing.T) {
 	folder := copyDir(t, filepath.Join(data, "hf_tiny"), map[string]string{"tokenizer.json": filepath.Join(data, "tokenizer.json")})
 	common := []string{"--folder", folder, "--text", "Bir gün saat durdu.", "--prompt", "4", "--gen", "27"}
 	speed := program(t, "baseline/language_model.tr", append(common, "--mode", "speed")...)
+	// Ş2 (DENETİM 947): hesabın gerçek aygıtı bir logit tensörünün kendi aygıtından, --device'ın yankısı değil.
+	if speed["actual_device"] != "cpu" || speed["device"] != "cpu" {
+		t.Errorf("speed: device %v, actual_device %v; want cpu from the logits' own device", speed["device"], speed["actual_device"])
+	}
 	for _, field := range []string{"load_ms", "prompt_ms", "gen_ms"} {
 		if _, ok := speed[field].(float64); !ok {
 			t.Errorf("speed: %s missing: %v", field, speed)
@@ -569,6 +578,9 @@ func TestBaselineVoices(t *testing.T) {
 	}
 	common := []string{"--model", reporoot.Path("tests/data/vits_piper_tiny"), "--texts", "baseline/texts.json", "--ids", ids}
 	piper := program(t, "baseline/piper.tr", append(common, "--language", "en")...)
+	if piper["actual_device"] != "cpu" || mms["actual_device"] != "cpu" { // Ş2: sentezin kendi dalgasının aygıtı
+		t.Errorf("actual_device: piper %v, mms %v; want cpu", piper["actual_device"], mms["actual_device"])
+	}
 	rows := voiceRun(t, "piper", piper, 3, 22050)
 	for _, r := range rows {
 		// Gürültü 0'da aynı kimlikler aynı sayıda örnek verir (O-4'ün uyuşması örnek sayısına da bakar).

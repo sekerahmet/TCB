@@ -140,13 +140,21 @@ func TestBaselineQuestions(t *testing.T) {
 	var got map[string]map[string]struct {
 		TR, Ref       [][]string
 		Agree, Custom bool
+		Check         *string
 	}
 	selfCheck(t, &got, "items", work)
 	// S5'in uyuşma işlevleri sonra, uyuşma geçişinde koşar; her biri kendi kaleminin adıyla yazar (A-11'de hepsi "en"di).
 	var labels map[string]string
 	selfCheck(t, &labels, "agree_labels", work)
-	if len(labels) != 8 {
-		t.Errorf("S5 agreement labels %v, want 8 items", labels)
+	// Altı kalem: dil başına faster-whisper float32, int8 ve whisper.cpp; transformers kalem değil, uyuşmanın sınırında
+	// (TCB 2026-11-20 00:15).
+	if len(labels) != 6 {
+		t.Errorf("S5 agreement labels %v, want 6 items", labels)
+	}
+	for key := range labels {
+		if strings.HasSuffix(key, "/transformers") {
+			t.Errorf("S5 item %s: transformers is no speed reference", key)
+		}
 	}
 	for key, label := range labels {
 		if key != label {
@@ -178,12 +186,25 @@ func TestBaselineQuestions(t *testing.T) {
 			t.Errorf("%s S1: -ngl %v, agree %v; want -ngl on GPUs only and an agreement", machine, ngl, s1.Agree)
 		}
 		for key, it := range items {
+			if strings.Contains(key, "/ort-") { // S7'nin en hızlı emsal ayarları bilerek başka sayıyla (0, 6; TCB 00:31)
+				continue
+			}
 			for _, cmd := range it.Ref {
 				line := strings.Join(cmd, " ")
 				if (strings.Contains(line, "references.py") || strings.HasPrefix(line, "llama-") || strings.HasPrefix(line, "whisper-cli")) &&
 					!strings.Contains(line, " 97") {
 					t.Errorf("%s %s: %q has no thread number", machine, key, line)
 				}
+			}
+		}
+		// transformers hiçbir soruda hız emsali değil (TCB 2026-11-20 00:15): S2 ve S6'da yalnız uyuşmada koşar, ABBA'da yok.
+		for key, it := range items {
+			if !strings.HasPrefix(key, "S2/") && !strings.HasPrefix(key, "S6/") {
+				continue
+			}
+			if it.Ref != nil || !it.Agree || it.Check == nil || *it.Check != "transformers" {
+				t.Errorf("%s %s: reference %v, agree %v, check %v; want no speed reference and transformers only in the agreement",
+					machine, key, it.Ref, it.Agree, it.Check)
 			}
 		}
 		_, cold := items["S10/tr/cold"]
@@ -403,9 +424,9 @@ func TestBaselineMMSIds(t *testing.T) {
 }
 
 // --base-trlang: her sorunun TR tarafı aynı programın taban ikilisiyle (main) koşan tarafa karşı ölçülür, oran
-// dal/taban. S5'in dört emsali dil başına tek taban kalemi verir (S5/tr/base), yalnız TR olan kalem kendi adına
-// "/base" alır; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk öğesi taban ikilisidir. Taban ve dal aynı
-// ikiliyken oran 1 çevresindedir.
+// dal/taban. S5'in üç emsali dil başına tek taban kalemi verir (S5/tr/base), yalnız TR olan kalem kendi adına
+// "/base" alır, Dost'un özel koşusu (S9) taban kalemi vermez; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk
+// öğesi taban ikilisidir. Taban ve dal aynı ikiliyken oran 1 çevresindedir.
 func TestBaselineBaseTrlang(t *testing.T) {
 	work := t.TempDir()
 	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
@@ -413,6 +434,7 @@ func TestBaselineBaseTrlang(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got struct {
+		Count int
 		Items map[string]struct {
 			TR, Ref [][]string
 			Agree   bool
@@ -429,8 +451,9 @@ func TestBaselineBaseTrlang(t *testing.T) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	if strings.Join(keys, " ") != "S14/empty/base S5/en/base S5/tr/base" {
-		t.Errorf("base items %v, want S14/empty/base S5/en/base S5/tr/base", keys)
+	if strings.Join(keys, " ") != "S14/empty/base S5/en/base S5/tr/base" || got.Count != 3 {
+		t.Errorf("base items %v (%d before the keyed dict), want S14/empty/base S5/en/base S5/tr/base, 3",
+			keys, got.Count)
 	}
 	for key, it := range got.Items {
 		if len(it.TR) != len(it.Ref) || it.Agree {

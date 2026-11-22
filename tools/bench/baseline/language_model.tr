@@ -40,6 +40,49 @@ TR_func step(q: TR_Bool, model: TR_GPT, x: TR_Int, c: TR_KVCache) -> TR_Int {
 }
 
 # load_folder: parçalı ya da tek dosyalı Hugging Face klasörünü açık API'yle kurar.
+# matmul_dtypes: modelin çarpım ağırlıklarının türleri (Dost'un _çarpım_türleri'nin aynısı, tools/assistant/nicemli.tr):
+# blokların ve PLE'nin izdüşümleri, çıkış katmanı; paylaşımlı çıkışta gömme tablosu.
+TR_func matmul_dtypes(m: TR_GPT) -> TR_List[TR_String] {
+    TR_var linears: TR_List[TR_Linear?] = [m.TR_logit_layer]
+    TR_if m.TR_ple_context != TR_none { linears = linears + [m.TR_ple_context.TR_context_proj] }
+    TR_for blk TR_in m.TR_blocks {
+        TR_var att = blk.TR_attention
+        TR_var ff = blk.TR_feed_forward
+        linears = linears + [att.TR_q_proj, att.TR_k_proj, att.TR_v_proj, att.TR_kv_proj, att.TR_o_proj, ff.TR_gate_proj, ff.TR_up_proj, ff.TR_gate_up_proj, ff.TR_down_proj]
+        TR_if blk.TR_ple != TR_none { linears = linears + [blk.TR_ple.TR_gate_proj, blk.TR_ple.TR_proj] }
+    }
+    TR_var kinds: TR_List[TR_String] = TR_if m.TR_logit_layer == TR_none { [m.TR_embedding.TR_table.TR_dtype] } TR_else { [] }
+    TR_for lin TR_in linears {
+        TR_if lin != TR_none { kinds = kinds + [lin.TR_weight.TR_dtype] }
+    }
+    TR_return kinds
+}
+
+# suits_quantized: otomatiğin ağırlık koşulu (Dost'un nicemli_uygun'u): nicemlenmiş çarpım ağırlıklarının hepsi q4_k ya da
+# q6_k ve en az biri var; float türleri sayılmaz.
+TR_func suits_quantized(m: TR_GPT) -> TR_Bool {
+    TR_var found = TR_false
+    TR_for t TR_in matmul_dtypes(m) {
+        TR_if ["float32", "float64", "bf16", "fp16"].TR_contains(t) { TR_continue }
+        TR_if TR_not ["q4_k", "q6_k"].TR_contains(t) { TR_return TR_false }
+        found = TR_true
+    }
+    TR_return found
+}
+
+# blocks_quantized: nicemli etkinleştirme bloğu bu modelin çarpımlarını kaldırır mı (15.53a): nicemlenmiş çarpım
+# ağırlıklarının hepsi q4, q4_k ya da q6_k ve en az biri var. Otomatiğin kuralından (suits_quantized) geniştir: QAT Q4_0
+# --quantized off'la koşar ama ε'u ölçülür.
+TR_func blocks_quantized(m: TR_GPT) -> TR_Bool {
+    TR_var found = TR_false
+    TR_for t TR_in matmul_dtypes(m) {
+        TR_if ["float32", "float64", "bf16", "fp16"].TR_contains(t) { TR_continue }
+        TR_if TR_not ["q4", "q4_k", "q6_k"].TR_contains(t) { TR_return TR_false }
+        found = TR_true
+    }
+    TR_return found
+}
+
 TR_func load_folder(folder: TR_String, dtype: TR_String) -> TR_GPT {
     TR_var config = TR_json_parse(TR_read_file(TR_Path(folder, "config.json")))
     TR_var model = TR_build_pretrained_model(config, TR_weight_dtype: dtype)
@@ -59,9 +102,7 @@ TR_if TR_not ["speed", "depth", "agree", "forced"].TR_contains(mode) { TR_throw 
 TR_var device = TR_String(opt["device"])
 TR_var choice = TR_String(opt["quantized"])
 TR_if TR_not ["auto", "on", "off"].TR_contains(choice) { TR_throw "--quantized is auto, on or off, not \(choice). Example: --quantized auto" }
-# Nicemli etkinleştirme Dost'unki gibi seçilir (tools/assistant/nicemli.tr): auto işlemcide açık, GPU'da kapalı (15.41).
-TR_var q = TR_if choice == "auto" { device == "cpu" } TR_else { choice == "on" }
-TR_if q TR_and device != "cpu" { TR_throw "--quantized on runs only on the CPU (15.41), device \(device). Example: --quantized auto" }
+TR_if choice == "on" TR_and device != "cpu" { TR_throw "--quantized on runs only on the CPU (15.41), device \(device). Example: --quantized auto" }
 TR_var gguf = TR_String(opt["model"])
 TR_var folder = TR_String(opt["folder"])
 TR_if (gguf == "") == (folder == "") { TR_throw "give exactly one of --model (a GGUF file) and --folder (a Hugging Face folder). Example: --model Qwen3-4B-Q4_K_M.gguf" }
@@ -73,6 +114,11 @@ TR_var t0 = now_us()
 TR_var tok = TR_if gguf != "" { TR_load_tokenizer(gguf) } TR_else { TR_load_tokenizer(folder) }
 TR_var model = TR_if gguf != "" { TR_pretrained_gguf(gguf) } TR_else { load_folder(folder, TR_String(opt["dtype"])) }
 TR_var load_ms = (now_us() - t0) / 1000.0
+# Nicemli etkinleştirme Dost'unki gibi seçilir (tools/assistant/nicemli.tr, nicemli_çöz ve nicemli_uygun): auto, işlemcide
+# ve nicemlenmiş çarpım ağırlıklarının hepsi q4_k ya da q6_k olan (en az biri) modelde açık, öbüründe kapalı: q8 ya da q4
+# ağırlıkta blok H6723 verir, float modelde etkisizdir (15.53a); GPU'da kapalı (15.41). Bu kural model yüklendikten sonradır
+# (A-11'den sonra B'de S1/qwen3-4b-q8 auto'da düşüyordu: önce yalnız cihaza bakılıyordu).
+TR_var q = TR_if choice == "auto" { device == "cpu" TR_and suits_quantized(model) } TR_else { choice == "on" }
 
 TR_var P = TR_Int(opt["prompt"])
 TR_var G = TR_Int(opt["gen"])
@@ -138,8 +184,15 @@ TR_no_grad {
         # parçalayıcısıyla bölünür (istemle birlikte bölmek sınırdaki token'ları birleştirebilir); ilk --agree_tokens
         # token llama.cpp'nin dizisidir. llama-completion üretilen kimlikleri basmaz.
         TR_var out = TR_read_file(TR_String(opt["given"]))
-        TR_if TR_not out.TR_starts_with(text) TR_or out.TR_length == text.TR_length { TR_throw "--given does not begin with --text and an answer; give llama-completion's output, which prints the prompt. Example: --given llama_completion.txt" }
-        TR_var answer = tok.TR_encode(out[text.TR_length..out.TR_length])
+        # Başa boşluk koyan parçalayıcıda (QAT Gemma'nın GGUF'u) llama-completion istemi bir boşlukla basar (B, HIGHRAM).
+        TR_var cut = TR_if out.TR_starts_with(text) { text.TR_length } TR_else TR_if out.TR_starts_with(" " + text) { text.TR_length + 1 } TR_else { -1 }
+        TR_if cut < 0 TR_or out.TR_length == cut { TR_throw "--given does not begin with --text and an answer; give llama-completion's output, which prints the prompt. Example: --given llama_completion.txt" }
+        # Cevap dizinin ortasıdır: parçalayıcının sınır parçaları (Gemma'da BOS, boş metnin kodu) atılır; 16.2'nin
+        # TR_boundary_tokens: TR_false'u henüz yok (B'de Gemma'nın ilk konumu BOS'tu, fark 31).
+        TR_var edges = tok.TR_encode("")
+        TR_var answer = tok.TR_encode(out[cut..out.TR_length])
+        TR_if edges.TR_length > 0 TR_and answer.TR_length > 0 TR_and answer[0] == edges[0] { answer = answer[1..answer.TR_length] }
+        TR_if edges.TR_length > 1 TR_and answer.TR_length > 0 TR_and answer[answer.TR_length - 1] == edges[edges.TR_length - 1] { answer = answer[0..answer.TR_length - 1] }
         TR_var P0 = once.TR_length
         TR_var n = TR_min(answer.TR_length, A)
         TR_var given = answer[0..n]
@@ -152,11 +205,19 @@ TR_no_grad {
         }
         put(result, {"prompt_tokens": TR_JSON(P0), "given_tokens": TR_JSON(n), "positions": TR_JSON(rows)})
         # ε: aynı konumlarda öbür yolun (nicemli ↔ nicemsiz) logitleriyle en büyük mutlak fark, Q4'ün kendi gürültüsü (B14).
-        # Nicemli etkinleştirme yalnız işlemcidedir (15.41); GPU'da ε yazılmaz.
-        TR_if device == "cpu" {
+        # Nicemli etkinleştirme yalnız işlemcidedir (15.41); GPU'da ε yazılmaz. Öbür yol yalnız blok modelin bütün
+        # nicemlenmiş ağırlıklarını kaldırıyorsa koşar (15.53a: q4, q4_k, q6_k); kaldırmıyorsa (q8, float) nicemli yol yoktur,
+        # iki yol aynıdır ve ε 0'dır (TCB 17:29; B'de S1/qwen3-4b-q8'in ε adımı 15.53a'yla düşüyordu).
+        # GPU'da da: nicemli yolu olmayan ağırlıkta ε kuralla 0'dır, HIGHRAM'in ölçüsü gerekmez (TCB 17:57).
+        TR_if TR_not blocks_quantized(model) {
+            put(result, {"epsilon": TR_JSON(0.0), "epsilon_note": TR_JSON("no quantized path for these weights (15.53a)")})
+        } TR_else TR_if device == "cpu" {
             TR_var lo = forced_logits(TR_not q, model, once + given[0..n - 1], P0 - 1, n)
             put(result, {"epsilon": TR_JSON(TR_max(TR_abs(lq - lo)).TR_tolist)})
         }
     }
 }
+# Ş2 (DENETİM 947): hesabın gerçek aygıtı: ölçülen işten sonra tek token'lık ileri geçişin logit'leri nerede.
+TR_var probe = TR_no_grad { call(q) { model.TR_logits(model.TR_hidden_states([[0]], TR_cache: model.TR_build_cache(TR_capacity: 4))) } }
+put(result, {"actual_device": TR_JSON(probe.TR_device)})
 TR_print("BASELINE \(TR_json_string(result))")

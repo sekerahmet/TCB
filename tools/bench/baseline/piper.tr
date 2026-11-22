@@ -124,7 +124,7 @@ TR_if check {
         }
         TR_write_wav(wav, TR_Sound(TR_samples: TR_concat(parts, TR_dim: 1), TR_sample_rate: rate))
     }
-    put(result, {"mode": TR_JSON("speak"), "sentences": TR_JSON(rows), "first_ms": rows[0]["ms"], "total_ms": TR_JSON(total_ms), "samples": TR_JSON(samples),
-        "sample_rate": TR_JSON(rate), "audio_s": TR_JSON(audio_s), "audio_per_compute": TR_JSON(audio_s / (total_ms / 1000.0))})
+    put(result, {"mode": TR_JSON("speak"), "actual_device": TR_JSON(waves[0].TR_device), "sentences": TR_JSON(rows), "first_ms": rows[0]["ms"], "total_ms": TR_JSON(total_ms), "samples": TR_JSON(samples),
+        "sample_rate": TR_JSON(rate), "audio_s": TR_JSON(audio_s), "audio_per_compute": TR_if total_ms > 0.0 { TR_JSON(audio_s / (total_ms / 1000.0)) } TR_else { TR_JSON(TR_none) }})
 }
 TR_print("BASELINE \(TR_json_string(result))")

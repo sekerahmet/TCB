@@ -1,0 +1,13 @@
+# Uzun bağlamda bellek, Gemma 3 12B Q4_K_M (S4/gemma3-12b-q4km), dizüstü: Dost'un kataloğunun bu girdisi, kataloğun ölçülmüş iki
+# bağlamında (40 ve 7981 token; tools/assistant/katalog.json measured) catalog_memory.tr ile yükleme süresi ve bellek tepesi.
+# Satır: docs/measurements/text-generation.md, "Dizüstü i7-13700H". Taraflar: yalnız TR (emsal yok), işlemcide.
+# Model %USERPROFILE%\models'tan (yeri ve kimliği sources.json'da). 1 ısınma + 5 koşu.
+# Deneme kipinde yalnız 40 token'lık kalem bir kez koşar: 7981 token'ı işlemcide okumak dizüstünde 2 dakikaya sığmaz
+# (Qwen3-4B'nin 2026-11-20 denemesinde 79 sn'de kesildi). İki kalem aynı komutu --context'le ayırır.
+#   bash tools/bench/baseline/machines/laptop/long-context-memory-gemma3-12b-q4km.sh
+. "$(dirname "$0")/lib.sh"
+olcu_kur
+olcu_model gemma3-12b-q4km
+olcu_makine long-context-memory-gemma3-12b-q4km
+if [ "${OLCU_DENEME:-}" = 1 ]; then anahtar=S4/gemma3-12b-q4km/40; else anahtar=S4/gemma3-12b-q4km/; fi
+olcu_kos long-context-memory-gemma3-12b-q4km S4 --key "$anahtar"

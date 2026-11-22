@@ -31,6 +31,9 @@ TR_var b = now_us()
 TR_var r = TR_no_grad { model.TR_transcribe(sound, TR_language: language) }
 TR_var transcribe_ms = (now_us() - b) / 1000.0
 TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "language": TR_JSON(language), "load_ms": TR_JSON(load_ms),
-    "audio_s": TR_JSON(audio_s), "transcribe_ms": TR_JSON(transcribe_ms), "audio_per_compute": TR_JSON(audio_s / (transcribe_ms / 1000.0)),
+    "audio_s": TR_JSON(audio_s), "transcribe_ms": TR_JSON(transcribe_ms), "audio_per_compute": TR_if transcribe_ms > 0.0 { TR_JSON(audio_s / (transcribe_ms / 1000.0)) } TR_else { TR_JSON(TR_none) },
     "segments": TR_JSON(r.TR_segments.TR_length), "text": TR_JSON(r.TR_text)}
+# Ş2 (DENETİM 947): açık yüzünden tensör alınmıyor; yüklemeden sonra varsayılan aygıtta açılan sınama tensörünün aygıtı.
+# Sınır (DENETİM 948): TR_default_device olmayan aygıtta hata verir, bu tensör hep istenen aygıttadır: kayıttır, denetim değil.
+result["actual_device"] = TR_JSON(TR_ones([1]).TR_device)
 TR_print("BASELINE \(TR_json_string(result))")

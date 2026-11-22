@@ -1,0 +1,469 @@
+{
+ "models": {
+  "qwen3-4b-q4km": {
+   "repo": "Qwen/Qwen3-4B-GGUF",
+   "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+   "files": {
+    "Qwen3-4B-Q4_K_M.gguf": {
+     "path": "Qwen3-4B-Q4_K_M.gguf",
+     "size": 2497280256,
+     "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+    }
+   }
+  },
+  "qwen3-4b-q8": {
+   "repo": "Qwen/Qwen3-4B-GGUF",
+   "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+   "files": {
+    "Qwen3-4B-Q8_0.gguf": {
+     "path": "Qwen3-4B-Q8_0.gguf",
+     "size": 4280404704,
+     "sha256": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300"
+    }
+   }
+  },
+  "qwen3-8b-q4km": {
+   "repo": "Qwen/Qwen3-8B-GGUF",
+   "revision": "7c41481f57cb95916b40956ab2f0b139b296d974",
+   "files": {
+    "Qwen3-8B-Q4_K_M.gguf": {
+     "path": "Qwen3-8B-Q4_K_M.gguf",
+     "size": 5027783488,
+     "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785"
+    }
+   }
+  },
+  "gemma3-4b-q4km": {
+   "repo": "bartowski/google_gemma-3-4b-it-GGUF",
+   "revision": "71506238f970075ca85125cd749c28b1b0eee84e",
+   "files": {
+    "google_gemma-3-4b-it-Q4_K_M.gguf": {
+     "path": "google_gemma-3-4b-it-Q4_K_M.gguf",
+     "size": 2489758112,
+     "sha256": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94"
+    }
+   }
+  },
+  "gemma3-4b-qat-q40": {
+   "repo": "AnteriorAI/gemma-3-4b-it-qat-q4_0-gguf",
+   "revision": "e7ac0af23a1a9c8dc35f63ff24262971cfe68e47",
+   "files": {
+    "gemma-3-4b-it-q4_0.gguf": {
+     "path": "gemma-3-4b-it-q4_0.gguf",
+     "size": 3155051328,
+     "sha256": "76aed0a8285b83102f18b5d60e53c70d09eb4e9917a20ce8956bd546452b56e2"
+    }
+   }
+  },
+  "gemma3-12b-q4km": {
+   "repo": "ggml-org/gemma-3-12b-it-GGUF",
+   "revision": "ec0cbabd8dbff316f659876a50202295c3c4a314",
+   "files": {
+    "gemma-3-12b-it-Q4_K_M.gguf": {
+     "path": "gemma-3-12b-it-Q4_K_M.gguf",
+     "size": 7300574976,
+     "sha256": "7bb69bff3f48a7b642355d64a90e481182a7794707b3133890646b1efa778ff5"
+    }
+   }
+  },
+  "qwen3-4b-bf16": {
+   "repo": "Qwen/Qwen3-4B",
+   "revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+   "files": {
+    "config.json": {
+     "path": "qwen3-4b-bf16/config.json",
+     "size": 726,
+     "git_blob": "e49eccdc32f36da9c09cfa0e737084f9e0105e5e"
+    },
+    "generation_config.json": {
+     "path": "qwen3-4b-bf16/generation_config.json",
+     "size": 239,
+     "git_blob": "20a8a9156fc8c3f25295ca067f61fdf120d517c5"
+    },
+    "model.safetensors.index.json": {
+     "path": "qwen3-4b-bf16/model.safetensors.index.json",
+     "size": 32819,
+     "git_blob": "95c0a0059df040d75dc6c396b174382cf61d2f91"
+    },
+    "tokenizer.json": {
+     "path": "qwen3-4b-bf16/tokenizer.json",
+     "size": 11422654,
+     "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+    },
+    "tokenizer_config.json": {
+     "path": "qwen3-4b-bf16/tokenizer_config.json",
+     "size": 9732,
+     "git_blob": "417d038a63fa3de29cfde265caedae14d1a58d92"
+    },
+    "vocab.json": {
+     "path": "qwen3-4b-bf16/vocab.json",
+     "size": 2776833,
+     "git_blob": "4783fe10ac3adce15ac8f358ef5462739852c569"
+    },
+    "merges.txt": {
+     "path": "qwen3-4b-bf16/merges.txt",
+     "size": 1671853,
+     "git_blob": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7"
+    },
+    "model-00001-of-00003.safetensors": {
+     "path": "qwen3-4b-bf16/model-00001-of-00003.safetensors",
+     "size": 3957900840,
+     "sha256": "328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223"
+    },
+    "model-00002-of-00003.safetensors": {
+     "path": "qwen3-4b-bf16/model-00002-of-00003.safetensors",
+     "size": 3987450520,
+     "sha256": "6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5"
+    },
+    "model-00003-of-00003.safetensors": {
+     "path": "qwen3-4b-bf16/model-00003-of-00003.safetensors",
+     "size": 99630640,
+     "sha256": "e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1"
+    }
+   }
+  },
+  "whisper-small": {
+   "repo": "openai/whisper-small",
+   "revision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+   "files": {
+    "config.json": {
+     "path": "whisper-small/config.json",
+     "size": 1967,
+     "git_blob": "113bb3efe3a7396f2ea629eef12637bd8085238d"
+    },
+    "generation_config.json": {
+     "path": "whisper-small/generation_config.json",
+     "size": 3868,
+     "git_blob": "d3823179a367fa912e3b911b3d2e71ab2a028290"
+    },
+    "model.safetensors": {
+     "path": "whisper-small/model.safetensors",
+     "size": 966995080,
+     "sha256": "1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b"
+    },
+    "tokenizer.json": {
+     "path": "whisper-small/tokenizer.json",
+     "size": 2480466,
+     "git_blob": "1e95340ff836fad1b5932e800fb7b8c5e6d78a74"
+    },
+    "tokenizer_config.json": {
+     "path": "whisper-small/tokenizer_config.json",
+     "size": 282683,
+     "git_blob": "d13b786c04765fb1a06492b53587752cd67665ea"
+    },
+    "preprocessor_config.json": {
+     "path": "whisper-small/preprocessor_config.json",
+     "size": 184990,
+     "git_blob": "c2048dfa9fd94a052e62e908d2c4dfb18534b4d2"
+    },
+    "special_tokens_map.json": {
+     "path": "whisper-small/special_tokens_map.json",
+     "size": 2194,
+     "git_blob": "bf69932dca4b3719b59fdd8f6cc1978109509f6c"
+    },
+    "added_tokens.json": {
+     "path": "whisper-small/added_tokens.json",
+     "size": 34604,
+     "git_blob": "e3d256c988462aa153dcabe2aa38b8e9b436c06f"
+    },
+    "normalizer.json": {
+     "path": "whisper-small/normalizer.json",
+     "size": 52666,
+     "git_blob": "dd6ae819ad738ac1a546e9f9282ef325c33b9ea0"
+    },
+    "vocab.json": {
+     "path": "whisper-small/vocab.json",
+     "size": 835550,
+     "git_blob": "d7016e21da8776c8a9d577d0f559600f09a240eb"
+    },
+    "merges.txt": {
+     "path": "whisper-small/merges.txt",
+     "size": 493869,
+     "git_blob": "6038932a2a1f09a66991b1c2adae0d14066fa29e"
+    }
+   }
+  },
+  "faster-whisper-small": {
+   "repo": "Systran/faster-whisper-small",
+   "revision": "536b0662742c02347bc0e980a01041f333bce120",
+   "files": {
+    "config.json": {
+     "path": "faster-whisper-small/config.json",
+     "size": 2370,
+     "git_blob": "e5047537059bd8f182d9ca64c470201585015187"
+    },
+    "model.bin": {
+     "path": "faster-whisper-small/model.bin",
+     "size": 483546902,
+     "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671"
+    },
+    "tokenizer.json": {
+     "path": "faster-whisper-small/tokenizer.json",
+     "size": 2203239,
+     "git_blob": "7818adb6de9fa3064d3ff81226fdd675be1f6344"
+    },
+    "vocabulary.txt": {
+     "path": "faster-whisper-small/vocabulary.txt",
+     "size": 459861,
+     "git_blob": "c9074644d9d1205686f16d411564729461324b75"
+    }
+   }
+  },
+  "ggml-small": {
+   "repo": "ggerganov/whisper.cpp",
+   "revision": "5359861c739e955e79d9a303bcbc70fb988958b1",
+   "files": {
+    "ggml-small.bin": {
+     "path": "ggml-small.bin",
+     "size": 487601967,
+     "sha256": "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
+    }
+   }
+  },
+  "silero-vad-16k": {
+   "repo": "snakers4/silero-vad",
+   "revision": "5cd7945676eb32225748052e2e6a0580e4686a08",
+   "files": {
+    "src/silero_vad/data/silero_vad_16k.safetensors": {
+     "path": "silero-vad/silero_vad_16k.safetensors",
+     "size": 1239748,
+     "sha256": "c59271c284ae9c8335d795d60e0bfdb71aaaceec578d9bd9ffc1b8153c319ea1"
+    }
+   }
+  },
+  "mms-tts-tur": {
+   "repo": "facebook/mms-tts-tur",
+   "revision": "7e364479c307f06733ca865b0a5269e0209cf82d",
+   "files": {
+    "config.json": {
+     "path": "mms-tts-tur/config.json",
+     "size": 1641,
+     "git_blob": "75c29d89c2e11dfbfa6e4fe5ba559ea7dd84451a"
+    },
+    "model.safetensors": {
+     "path": "mms-tts-tur/model.safetensors",
+     "size": 145231352,
+     "sha256": "927a00f1d0a3b3ae41ddd8f0d196be8343ceb2a13599cd6e84ef7e882ca58525"
+    },
+    "vocab.json": {
+     "path": "mms-tts-tur/vocab.json",
+     "size": 476,
+     "git_blob": "4537639bee7e20d511e958757950f1752044bbcb"
+    },
+    "tokenizer_config.json": {
+     "path": "mms-tts-tur/tokenizer_config.json",
+     "size": 287,
+     "git_blob": "a19f313bb0f8c67923e5872d9e6e557da88bf2e1"
+    }
+   }
+  },
+  "mms-tts-eng": {
+   "repo": "facebook/mms-tts-eng",
+   "revision": "c71de0fe7204c83f1c10820a7d696d0b450048ba",
+   "files": {
+    "config.json": {
+     "path": "mms-tts-eng/config.json",
+     "size": 1641,
+     "git_blob": "5f06bace91bc2be88912491d4575ddef044cb273"
+    },
+    "model.safetensors": {
+     "path": "mms-tts-eng/model.safetensors",
+     "size": 145227512,
+     "sha256": "69cf8b651c1493f1801dfd2311c298d694a38357bc9a1e41f410491ea6f0e1be"
+    },
+    "vocab.json": {
+     "path": "mms-tts-eng/vocab.json",
+     "size": 413,
+     "git_blob": "30097ea3f9c56d26292cab7ef5fc56feaa370131"
+    },
+    "tokenizer_config.json": {
+     "path": "mms-tts-eng/tokenizer_config.json",
+     "size": 287,
+     "git_blob": "b6ca2175b8c7e731f3840b9e23018aa393cdb9c6"
+    }
+   }
+  },
+  "piper-tr-dfki-medium": {
+   "repo": "rhasspy/piper-voices",
+   "revision": "e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c",
+   "files": {
+    "tr/tr_TR/dfki/medium/tr_TR-dfki-medium.onnx": {
+     "path": "piper-tr-dfki-medium/tr_TR-dfki-medium.onnx",
+     "size": 63201294,
+     "sha256": "2844717f524ab965d3fe86e60562cbb601d3e456836efcc2196cc3a14112a8fb"
+    },
+    "tr/tr_TR/dfki/medium/tr_TR-dfki-medium.onnx.json": {
+     "path": "piper-tr-dfki-medium/tr_TR-dfki-medium.onnx.json",
+     "size": 4960,
+     "git_blob": "ea4036df5c9e4e07b8c2f42acce4d77d0fb6afdc"
+    }
+   }
+  },
+  "piper-en-lessac-medium": {
+   "repo": "rhasspy/piper-voices",
+   "revision": "e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c",
+   "files": {
+    "en/en_US/lessac/medium/en_US-lessac-medium.onnx": {
+     "path": "piper-en-lessac-medium/en_US-lessac-medium.onnx",
+     "size": 63201294,
+     "sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f"
+    },
+    "en/en_US/lessac/medium/en_US-lessac-medium.onnx.json": {
+     "path": "piper-en-lessac-medium/en_US-lessac-medium.onnx.json",
+     "size": 4885,
+     "git_blob": "c67cea2c9a7a6501d89f7b2cdff411bc49e54a28"
+    }
+   }
+  }
+ },
+ "tools": {
+  "llama.cpp": {
+   "release": "https://github.com/ggml-org/llama.cpp/releases/tag/b12124",
+   "dir": "%USERPROFILE%/tools/llama.cpp/b12124",
+   "version": "build 12124, commit 8bed7cfb9",
+   "files": {
+    "llama-bench.exe": "7da76b5886efe7ba38ed0f615f2e46e96ff36445a2f45f904e5bd06cfa1b6956",
+    "llama-completion.exe": "40d9b65ea0ddba2bc13939c71e64a0e4da2f37071556226d8b034c5dae85ffe7",
+    "ggml-base.dll": "dcf4acd320dc949f7711e755edfbf5b0cdd99b31d61c587ad1bd18a55a0935b1",
+    "ggml-cpu-alderlake.dll": "bd7b3faa954fb21f6eb24d045bc689e8a1ce1eb2458e4fcfef483d4ed252e7d3",
+    "ggml-cpu-cannonlake.dll": "17387b84048d94eab0dd8a8dc0715a290e25b55a735f458d08e1c13fddca670f",
+    "ggml-cpu-cascadelake.dll": "29d0f307be0c04661905cb200356676aa303f879c7473637f41f95477f20ff1f",
+    "ggml-cpu-cooperlake.dll": "af0b8707380850d50dda3ce281e87d394528dce15b0b04a7d36a416139653fe2",
+    "ggml-cpu-haswell.dll": "a7c5fb0a7c4009a94713c5bfbf170ad9d3c06cec55cb74aa9d94b3378a68d813",
+    "ggml-cpu-icelake.dll": "240b8728d8c86419844e67fddd8f2fa1a4a5ecf8ab6da6df7763c24a7a16dece",
+    "ggml-cpu-ivybridge.dll": "7ea21920f62470118c54b3dca9353aa9d5ed17c9132ee1832f7b00f6b4890723",
+    "ggml-cpu-piledriver.dll": "7cd8ec250158bb416c73459df90481abc9cb7c28cf1732602ff37b14c5447791",
+    "ggml-cpu-sandybridge.dll": "40862f1bd08fd9df41a08d7c1e85a1485c6e08e3ae6a049c6dd42232ef61be29",
+    "ggml-cpu-sapphirerapids.dll": "1450be9153c59fe679521d2b9f4a3cb2aeceb057f4d4b07596fbe00149a2fe13",
+    "ggml-cpu-skylakex.dll": "1c546c62082d401404797c728de563601bbda87cf9864659e2426fc1ff80f886",
+    "ggml-cpu-sse42.dll": "9e88b09d3783869ba705b3ef4d80362b2387719a1e0d8d21c875a571df50900b",
+    "ggml-cpu-x64.dll": "d34cf8ab25647850493b5c05b8414d0c464c315518b75de96c9bb1990b3cf308",
+    "ggml-cpu-zen4.dll": "c514a67d2a421746b9c4a1211a65c28d23b27ae4f9b27469d7f71ad9ae47a902",
+    "ggml-rpc.dll": "04c527b0cd9b90bde32163f5102c6d117f82e1ea40b6120742fa98bbd98cc77c",
+    "ggml.dll": "10ff0eb71b37031382d19f6a7f845f92e51349f64e226d94de81a40916b9692f",
+    "libomp.dll": "a12116ba72d1d6820407cf30be23da04ce79d6bb8a71a5ee71759c5a1faa6f1c",
+    "llama-batched-bench-impl.dll": "90981fa3fdf58c8702004969bfcabc873aec56d3dcede53adb048990d5cd53db",
+    "llama-bench-impl.dll": "e4a3a1b120a806bfc68380af0be95a983a89e7e62446e05222f0befdcb873907",
+    "llama-cli-impl.dll": "72381346136df266f5b35bc63d7ea748fe3b4feb1ff0716e280fe5f4f206d3ae",
+    "llama-common.dll": "52c3adf30d0bb73cf47ec23124206eda39da8b35e124054f80a4466aafedb4e4",
+    "llama-completion-impl.dll": "1647e8233bbc1a62fa00c296edb686a0d1e2deecdcb9258c10560508163ac08f",
+    "llama-fit-params-impl.dll": "0c688388e5b34b53e7309d912cf6520696fa9ed9635bf52432d8b21a738d83ef",
+    "llama-perplexity-impl.dll": "f176839e28b5cf75a92f39490834b7e26d203b0ae0242e71af2db7f8d94b3e65",
+    "llama-quantize-impl.dll": "5203b72e226f7ceed0ea5381b332d9ab31dc76b5b99064c805f8672f8bc449a7",
+    "llama-server-impl.dll": "c6e1535988a11e017abebff9036d01d5272b7b13148a21fa893eb643bc384352",
+    "llama.dll": "0f79eb5253209182b65f69f59bf79f4d572325aa24e9f7dd5e7e8bcfe505b17b",
+    "mtmd.dll": "a12d4374cd44fda32475947cf6a4ec90f27ae78ae89681712046674637f5d167"
+   },
+   "asset": "llama-b12124-bin-win-cpu-x64.zip",
+   "asset_sha256": "8fc9a20bf09edf04ecde7af9e4e34e73ba3b0468c4fcdf6993d89295e30d254d"
+  },
+  "whisper.cpp": {
+   "release": "https://github.com/ggml-org/whisper.cpp/releases/tag/b5454",
+   "asset": "whisper-bin-x64.zip",
+   "asset_sha256": "6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb",
+   "dir": "%USERPROFILE%/tools/whisper.cpp/b5454/Release",
+   "version": "whisper.cpp version: 1.9.5",
+   "files": {
+    "whisper-cli.exe": "331dba46d6427105d2b802cdbc7eae916ea1c5abf9b0d3b5cfe460d8db8e4366",
+    "SDL2.dll": "de23db1694a3c7a4a735e7ecd3d214b2023cc2267922c6c35d30c7fc7370d677",
+    "ggml-base.dll": "bede0d6b2d387236ecd2b5dd676d51c8984b5b6e0ae461a12174e9c01345c5f0",
+    "ggml-cpu-alderlake.dll": "d8f5c56ea490394eeae8b271650f2647aecd039a542d6df9e0140726e62a4603",
+    "ggml-cpu-cannonlake.dll": "74127b40abd4f595d9db6af0fa313a02e18ff42fc228bfa05281e7c788dd4507",
+    "ggml-cpu-cascadelake.dll": "4b11c427b844eeac87529af9a8d94b35aad2024666beb2a35e59fe3077e4b81e",
+    "ggml-cpu-haswell.dll": "1306b1014c8118d27234d8ddc0e66ced1f8c8476bf85071595fd182ea9b7263b",
+    "ggml-cpu-icelake.dll": "2b4dc4c66e7d8fe2807283816e9cf3b7f7d0556f59df34069871e37eab8aed40",
+    "ggml-cpu-sandybridge.dll": "04edbdebc01a1d421062a960881a4f34d520d99693999518243f332406444c6e",
+    "ggml-cpu-skylakex.dll": "1774714cf93621406ff35344b54715619a83242ae3e331e44d98a3b35ce801be",
+    "ggml-cpu-sse42.dll": "f060318772c4c2dbac312bbfff6ea700b85dbc502bb38585a7186d06d549301a",
+    "ggml-cpu-x64.dll": "4b4b05caba40d4309b5d710ef74c59ba190516b8489f27bdb1ba11ae33c6e9d3",
+    "ggml.dll": "31fe18616d872af9b6134b47a6dff8072ae4ecbe5df0273f4f8dc36766c9db8e",
+    "llama.dll": "74b7857b05951c0dff4c7baf796205433c84ee40c9bbb0bda3f182d4425ce339",
+    "parakeet.dll": "abe7399d64a67b1ebcb8d33becd07c67cbf186cb0d2bab34a4264feefdc337c4",
+    "whisper.dll": "034396d75bb5720c1851674ff64a96192b58f6927b68d334ebd254ce6cad9674"
+   }
+  }
+ },
+ "python": {
+  "torch": {
+   "version": "2.14.0+cpu",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://download.pytorch.org/whl/cpu",
+   "wheel": "torch-2.14.0+cpu-cp312-cp312-win_amd64.whl",
+   "sha256": "738cd9237bf63443a5e5f9652e5115f7b0510b089636a43d4011e9fccede714f"
+  },
+  "transformers": {
+   "version": "5.17.0",
+   "tags": [
+    "py3-none-any"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "transformers-5.17.0-py3-none-any.whl",
+   "sha256": "78ec1ce21579b38dfb83950a0658cd119f87212a2fcfdff478096ce9d6c03801"
+  },
+  "faster-whisper": {
+   "version": "1.2.1",
+   "tags": [
+    "py3-none-any"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "faster_whisper-1.2.1-py3-none-any.whl",
+   "sha256": "79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7"
+  },
+  "ctranslate2": {
+   "version": "4.8.5",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "ctranslate2-4.8.5-cp312-cp312-win_amd64.whl",
+   "sha256": "16b1478f9dccd3c6eedb7a1b2e23cb2a41f03976266b71afa1bd9019df7c7014"
+  },
+  "onnxruntime": {
+   "version": "1.29.0",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "onnxruntime-1.29.0-cp312-cp312-win_amd64.whl",
+   "sha256": "4acf2b4948b7ede87221ca6332344b8facdc8059d6ac751a7d367d04532b02dd"
+  },
+  "numpy": {
+   "version": "2.1.1",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "numpy-2.1.1-cp312-cp312-win_amd64.whl",
+   "sha256": "3fc5eabfc720db95d68e6646e88f8b399bfedd235994016351b1d9e062c4b270"
+  },
+  "tokenizers": {
+   "version": "0.23.2",
+   "tags": [
+    "cp310-abi3-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "tokenizers-0.23.2-cp310-abi3-win_amd64.whl",
+   "sha256": "2e96f5699d5249c9c64aa8412e044f727aae3a4098cf830f9901ec1afc361cde"
+  },
+  "safetensors": {
+   "version": "0.8.0",
+   "tags": [
+    "cp310-abi3-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+   "sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f"
+  },
+  "psutil": {
+   "version": "7.2.2",
+   "tags": [
+    "cp37-abi3-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "psutil-7.2.2-cp37-abi3-win_amd64.whl",
+   "sha256": "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988"
+  }
+ }
+}

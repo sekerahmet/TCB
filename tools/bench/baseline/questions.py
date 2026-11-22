@@ -61,6 +61,7 @@ QUANTIZED_OFF = {"gemma3-4b-qat-q40"}  # "düz kip" (set S1)
 # ---------------------------------------------------------------- machines (set; slices B–E)
 
 GPU_MACHINES = {"l4gpu", "g4"}
+FW_LIBS = os.environ.get("BASELINE_FW_LIBS")  # CUDA 12's library folders for faster-whisper only (q_whisper; BC3)
 QUESTIONS = {
     "highram": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S13", "S14"],
     "l4gpu": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"],
@@ -88,6 +89,8 @@ class Ctx:
         self.extra = {}  # an agreement's own record by item key (S1, S3: ε, ties; S5: distances), kept in agreement.json
         self.seen_texts = {}  # S5: a reference's text by its command, run once per process for the other items
         self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
+        self.epsilon_given = {}  # item key: ε written in the run script before the run (run.py --epsilon; BC17)
+        self.settings = {}  # Ş1: each reference's fastest setting from the window's scan (run.py --settings)
 
     def model(self, name, i=0):
         return os.path.join(self.work, "models", name, MODELS[name][2][i])
@@ -103,15 +106,32 @@ class Ctx:
         return [self.tools["trlang"], path, *[str(a) for a in args]]
 
     def ref(self, name, binary=None, argv=()):
-        return self.rp.reference_cmd(name, self.threads, binary=binary, argv=[str(a) for a in argv])
+        # Ş1 (DENETİM 944): a reference whose fastest thread number the window's scan chose gets that number (0: the
+        # library's own default); every other one the machine's number (O-1).
+        g = setting_group(name, [str(a) for a in argv])
+        n = self.settings.get(g, {}).get("threads", self.threads) if g else self.threads
+        return self.rp.reference_cmd(name, n, binary=binary, argv=[str(a) for a in argv])
 
     def ngl(self):
-        return ["-ngl", "99"] if self.gpu else []
+        # İşlemci makinesinde de açık 0: llama.cpp'nin öntanımlısı -1, "bütün katmanlar GPU'da" (b12124 llama.h); L4'ün
+        # llama.cpp'si CUDA'lıdır, l4cpu'da emsal GPU'da koşuyordu (BC20).
+        return ["-ngl", "99" if self.gpu else "0"]
 
 
-def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None):
+def setting_group(name, argv):
+    """Ş1: the reference whose setting the scan chooses, by the reference's own name; faster-whisper by compute type."""
+    if name == "faster_whisper" and "--compute_type" in argv:
+        return "faster-whisper " + argv[argv.index("--compute_type") + 1]
+    if name == "llama-bench":  # N1 (DENETİM 947): reading (-n 0, S1 and S3) and generation (-p 0) have their own setting
+        return "llama.cpp gen" if "-p" in argv and argv[argv.index("-p") + 1] == "0" else "llama.cpp read"
+    return {"llama-completion": "llama.cpp read", "whisper-cli": "whisper.cpp", "piper": "onnxruntime"}.get(name)
+
+
+def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None):
+    # check: yalnız uyuşmada koşan başvuru (ref yokken): doğruluğun başvurusudur ama en hızlısı değildir, ABBA'da koşmaz ve
+    # satıra oranı girmez (TCB 2026-11-20 00:15: transformers hiçbir soruda hız emsali değil; S2, S6).
     return {"key": key, "tr": tr, "ref": ref, "agree": agree, "tr_agree": tr_agree, "ref_agree": ref_agree,
-            "runs": alone_runs, "custom": custom}
+            "runs": alone_runs, "custom": custom, "check": check}
 
 
 def side(name, cmds, measure, parse=None, env=None, agree_parse=None):
@@ -181,6 +201,14 @@ def forced_verdict(res, epsilon=None):
     return out
 
 
+def device_checked(ctx, key, side, cmd, run, parsed):
+    """Ş2: a command an agreement function runs itself (TR's forced read, S5's other float32 references) is checked
+    like a side's run: its real device from its own output (run.py check_device)."""
+    check = getattr(ctx.rp, "check_device", None)
+    if check:
+        check(key, side, cmd, run, parsed, ctx.log, "agreement")
+
+
 def agree_forced(ctx, key, forced_cmd):
     """The agreement function of S1 and S3: TR reads llama-completion's output (--given) and forced_verdict judges."""
     def agree(tr, ref):
@@ -190,8 +218,19 @@ def agree_forced(ctx, key, forced_cmd):
         r = ctx.rp.run_once(forced_cmd + ["--given", path])
         if r["rc"] != 0:
             return f"TR's forced read failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
-        eps, source = highram_epsilon(ctx, key) if ctx.gpu else (None, "measured here, quantized and unquantized path")
-        v = dict(forced_verdict(ctx.rp.parse_result(r["stdout"]), eps), epsilon_source=source)
+        res = ctx.rp.parse_result(r["stdout"])
+        device_checked(ctx, key, "TR forced", forced_cmd, r, res)
+        given = getattr(ctx, "epsilon_given", {}).get(key)
+        if res.get("epsilon_note") and given is not None:
+            # TR has no quantized path for these weights (Q8_0), but llama.cpp on the processor quantizes the activations
+            # to 8 bits: ε is not 0 there (BC17). The run script gives the same machine's measured q4km ε before the run
+            # (TCB 2026-11-20 02:29); the record names it.
+            eps, source = given, f"given before the run (--epsilon {key}={given}); {res['epsilon_note']}"
+        elif res.get("epsilon_note"):  # no quantized path for these weights (Q8_0): ε is 0 by rule (TCB 17:57)
+            eps, source = res["epsilon"], f"by rule: {res['epsilon_note']}"
+        else:
+            eps, source = highram_epsilon(ctx, key) if ctx.gpu else (None, "measured here, quantized and unquantized path")
+        v = dict(forced_verdict(res, eps), epsilon_source=source)
         ctx.log({"agreement": key, "tr_greedy": tr[0].get("text"), **v})
         ctx.extra[key] = {k: v[k] for k in ("epsilon", "epsilon_source", "positions", "agree", "ties", "apart")}
         return v["reason"]
@@ -213,7 +252,9 @@ def lm_agreement(ctx, key, g, quant, text):
     """S1, S3: agree function and the two sides' agreement commands (TR's own greedy text, llama-completion's)."""
     tr_cmd = lambda mode: ctx.tr("language_model.tr", "--model", g, "--mode", mode, "--text", text, "--device", ctx.tr_device,
                                  *quant)
-    lc = ctx.ref("llama-completion", ctx.tools["llama_completion"], ["-m", g, "-p", text, "-n", 32, "-no-cnv", *ctx.ngl()])
+    # 33 token, karşılaştırılan 32: llama-completion üretimden sonra boş satır basar ("\n\n"); cevap yeniden bölününce son
+    # token onunla birleşebilir (G4: "**" + "\n\n" = 56177, BC9). Birleşme yalnız karşılaştırılmayan 33.'yü bozar.
+    lc = ctx.ref("llama-completion", ctx.tools["llama_completion"], ["-m", g, "-p", text, "-n", 33, "-no-cnv", *ctx.ngl()])
     return agree_forced(ctx, key, tr_cmd("forced")), [tr_cmd("agree")], [lc]
 
 
@@ -241,13 +282,16 @@ def q_language(ctx, q):
                                                     "--device", ctx.torch_device])
         pick = lambda r, runs: {"prompt_ms": r[0]["prompt_ms"], "gen_ms": r[0]["gen_ms"], "load_ms": r[0]["load_ms"]}
         same = lambda tr, ref: None if tr[0]["tokens"] == ref[0]["tokens"] else f"{tr[0]['tokens']} != {ref[0]['tokens']}"
-        out.append(item("S2/qwen3-4b-bf16", side("TR", [tr_cmd("speed")], pick), side("transformers", [ref_cmd("speed")], pick),
-                        same, [tr_cmd("agree")], [ref_cmd("agree")]))
+        # Emsal yok (en hızlısı aranıyor: llama.cpp BF16); transformers yalnız uyuşmada (TCB 00:15).
+        out.append(item("S2/qwen3-4b-bf16", side("TR", [tr_cmd("speed")], pick), None, same, [tr_cmd("agree")],
+                        [ref_cmd("agree")], check=side("transformers", [ref_cmd("agree")], pick)))
     if q == "S3":
         g = ctx.model("qwen3-4b-q4km")
         tr = side("TR", [ctx.tr("language_model.tr", "--model", g, "--mode", "depth", "--text", text, "--device", ctx.tr_device)],
                   lambda r, runs: {f"depth{row['depth']}_ms": row["prompt_ms"] for row in r[0]["depths"]})
-        ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *ctx.ngl()]) for d in (700, 4100)],
+        fa = ctx.settings.get("llama.cpp S3", {}).get("flash_attn")  # Ş1: the scan's -fa (llama.cpp's default is auto)
+        fa = [] if fa is None else ["-fa", fa]
+        ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *fa, *ctx.ngl()]) for d in (700, 4100)],
                    lambda r, runs: {f"depth{x['n_depth']}_ms": x["avg_ns"] / 1e6 for x in r}, parse=parse_llama_bench,
                    agree_parse=raw)
         out.append(item("S3/qwen3-4b-q4km", tr, ref, *lm_agreement(ctx, "S3/qwen3-4b-q4km", g, [], text)))  # S1's measure
@@ -280,20 +324,28 @@ def q_whisper(ctx, q):
         source = ctx.texts["speech_to_text"][lang]
         tr = side("TR", [ctx.tr("whisper.tr", "--model", ctx.folder("whisper-small"), "--audio", wav, "--language", lang,
                                 "--device", ctx.tr_device)], lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]})
-        fw = lambda ct: ctx.ref("faster_whisper", argv=["--model", ctx.folder("faster-whisper-small"), "--audio", wav,
-                                                         "--compute_type", ct, "--device", ctx.torch_device, "--language", lang])
+        # faster-whisper's ctranslate2 wants CUDA 12's cuBLAS and cuDNN; a GPU machine without them gets them from the run
+        # script, which names their folders in BASELINE_FW_LIBS. Only faster-whisper's process sees them: in one process
+        # with torch's own cuDNN the versions mix (B, G4: "cuDNN sublibrary version mismatch"; BC3).
+        # The folders go before the process's own LD_LIBRARY_PATH, never instead of it: Colab finds the driver's libcuda
+        # through it, and without it ctranslate2 said "CUDA driver version is insufficient" (G4, third cell).
+        path = ":".join(x for x in (FW_LIBS, os.environ.get("LD_LIBRARY_PATH")) if x)
+        libs = ["env", f"LD_LIBRARY_PATH={path}"] if FW_LIBS else []
+        fw = lambda ct: libs + ctx.ref("faster_whisper", argv=["--model", ctx.folder("faster-whisper-small"), "--audio", wav,
+                                                                "--compute_type", ct, "--device", ctx.torch_device, "--language", lang])
         pick = lambda r, runs: {"transcribe_ms": r[0]["transcribe_ms"]}
         refs = [("faster-whisper-float32", side("faster-whisper float32", [fw("float32")], pick)),
                 ("faster-whisper-int8", side("faster-whisper int8", [fw("int8")], pick)),
-                ("transformers", side("transformers", [ctx.ref("whisper_hf", argv=["--model", ctx.folder("whisper-small"),
-                                                                                  "--audio", wav, "--device", ctx.torch_device,
-                                                                                  "--language", lang])], pick)),
                 ("whisper.cpp", side("whisper.cpp f16", [ctx.ref("whisper-cli", ctx.tools["whisper_cli"],
                                                                  ["-m", ctx.model("ggml-small"), "-f", wav, "-l", lang, "-nt",
                                                                   *([] if ctx.gpu else ["-ng"])])],
                                      lambda r, runs: {"transcribe_ms": whisper_cpp_ms(runs[0]["stderr"])},
                                      parse=lambda s: {"text": s.strip()}))]
-        f32 = {name: ref["cmds"][0] for name, ref in refs if name in F32_REFERENCES}
+        # transformers hız emsali değil (TCB 2026-11-20 00:15), kendi kalemi yok; float32'si B15'in sınırını kurar ve her
+        # kalemin uyuşmasında bir kez koşar (s5_agreement).
+        hf = ctx.ref("whisper_hf", argv=["--model", ctx.folder("whisper-small"), "--audio", wav, "--device", ctx.torch_device,
+                                         "--language", lang])
+        f32 = {"faster-whisper-float32": refs[0][1]["cmds"][0], "transformers": hf}
         for name, ref in refs:
             key = f"S5/{lang}/{name}"
             out.append(item(key, tr, ref, s5_agreement(ctx, key, name, f32, source), tr["cmds"], ref["cmds"]))
@@ -336,7 +388,9 @@ def s5_agreement(ctx, key, name, f32_cmds, source):
                     r = ctx.rp.run_once(cmd)
                     if r["rc"] != 0:
                         return f"{other} failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
-                    ctx.seen_texts[tuple(cmd)] = ctx.rp.parse_result(r["stdout"])["text"]
+                    parsed = ctx.rp.parse_result(r["stdout"])
+                    device_checked(ctx, key, other, cmd, r, parsed)
+                    ctx.seen_texts[tuple(cmd)] = parsed["text"]
                 texts[other] = ctx.seen_texts[tuple(cmd)]
         v = s5_verdict(tr_r[0]["text"], texts, source)
         ctx.log({"agreement": key, **v})
@@ -374,8 +428,10 @@ def q_voice(ctx, q):
             m = ctx.folder(f"mms-tts-{'tur' if lang == 'tr' else 'eng'}")
             tr_cmd = ctx.tr("mms.tr", "--model", m, *texts, "--language", lang, "--device", ctx.tr_device)
             ref_argv = ["--model", m, *texts, "--device", ctx.torch_device, "--language", lang]
-            out.append(item(f"S6/{lang}", side("TR", [tr_cmd], pick), side("transformers", [ctx.ref("mms", argv=ref_argv)], pick),
-                            agree_samples, [tr_cmd], [ctx.ref("mms", argv=ref_argv + ["--count_random"])]))
+            # Emsal yok (en hızlısı aranıyor: sherpa-onnx'in MMS ONNX modelleri); transformers yalnız uyuşmada (TCB 00:15).
+            counted = [ctx.ref("mms", argv=ref_argv + ["--count_random"])]
+            out.append(item(f"S6/{lang}", side("TR", [tr_cmd], pick), None, agree_samples, [tr_cmd], counted,
+                            check=side("transformers", counted, pick)))
         else:
             voice = ctx.model("piper-tr-dfki-medium" if lang == "tr" else "piper-en-lessac-medium")
             ids = IDS_EN if lang == "en" else os.path.join(ctx.work, "ids_tr.json")
@@ -383,6 +439,15 @@ def q_voice(ctx, q):
             ref_cmd = ctx.ref("piper", argv=["--model", voice, "--ids", ids, *texts, "--device", ctx.torch_device, "--language", lang])
             out.append(item(f"S7/{lang}", side("TR", [tr_cmd], pick), side("onnxruntime", [ref_cmd], pick),
                             agree_samples, [tr_cmd], [ref_cmd]))
+            # En hızlı emsal (TCB 00:31, Ahmet): işlemcide onnxruntime'ın kendi varsayılanı (intra_op 0) ve 6 iş parçacığı da
+            # koşar (dizüstünde 2026-11-19'da 6 iş parçacığı TR'den öndeydi, TTS-2026-11-19-LAPTOP-S1-1); satır üçünü yazar.
+            # With the window's scan (Ş1) the main item already runs onnxruntime's fastest setting.
+            if not ctx.gpu and "onnxruntime" not in ctx.settings:
+                for name, n in (("ort-default", 0), ("ort-6", 6)):
+                    cmd = ctx.rp.reference_cmd("piper", n, argv=[str(x) for x in ["--model", voice, "--ids", ids, *texts,
+                                                                                   "--device", "cpu", "--language", lang]])
+                    out.append(item(f"S7/{lang}/{name}", side("TR", [tr_cmd], pick), side(f"onnxruntime {name}", [cmd], pick),
+                                    agree_samples, [tr_cmd], [cmd]))
     return out
 
 
@@ -405,6 +470,15 @@ def parse_olcu(stdout):
         if line.startswith("OLCU "):
             turns.append({k: _number(v) for k, v in (p.split("=", 1) for p in line.split()[1:] if "=" in p)})
     return {"turns": turns}
+
+
+def logged_turns(ctx, key, stdout):
+    """parse_olcu, and every run's turns go to the log with the heard questions (Dost's "SÖZ:" lines): which turn is
+    missing is read from the record (BC6)."""
+    r = parse_olcu(stdout)
+    heard = [line[len("SÖZ:"):].strip() for line in stdout.splitlines() if line.startswith("SÖZ:")]
+    ctx.log({"question": key, "olcu_turns": len(r["turns"]), "heard": heard, "turns": r["turns"]})
+    return r
 
 
 def _number(v):
@@ -453,20 +527,28 @@ def turn_measures(r, runs):
             "answer_ms": med("cevap_ms"), "text_ms": med("yazi_ms"), "first_token_ms": med("ilk_parca_ms")}
 
 
+def screen_cmd(ctx, lang):
+    """Dost's screen mode (S9, S10) with the silent player: the answers are not played on the machine's speaker (BC23: on
+    the laptop S9's trial spoke every answer aloud, four times)."""
+    return ctx.tr(os.path.join(ROOT, "tools", "assistant", "asistan.tr"), *dost_args(ctx, lang)) + ["--çalıcı", PLAYER]
+
+
 def q_dost(ctx, q):
     out = []
     for lang in ("tr", "en"):
         base = ctx.tr(os.path.join(ROOT, "tools", "assistant", "asistan.tr"), *dost_args(ctx, lang))
+        screen = screen_cmd(ctx, lang)
         if q == "S8":
             cmd = base + ["--kip", "canlı", "--sahte_mikrofon", ctx.sound(f"turn_{lang}.wav"), "--çalıcı", PLAYER,
                           "--en_çok_tur", "10", "--cihaz", ctx.tr_device]
-            out.append(item(f"S8/{lang}", side("TR", [cmd], turn_measures, parse=parse_olcu), alone_runs=3))
+            out.append(item(f"S8/{lang}", side("TR", [cmd], turn_measures, parse=lambda s, k=f"S8/{lang}": logged_turns(ctx, k, s)),
+                            alone_runs=3))
         elif q == "S9":
-            out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=base, lang=lang: screen_turns(ctx, base, lang)))
+            out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=screen, lang=lang: screen_turns(ctx, base, lang)))
         elif q == "S10":
             for mode in (["warm"] if ctx.machine == "laptop" else ["cold", "warm"]):
                 out.append(item(f"S10/{lang}/{mode}", None, alone_runs=3,
-                                custom=lambda ctx=ctx, base=base, mode=mode: screen_ready(ctx, base, mode)))
+                                custom=lambda ctx=ctx, base=screen, mode=mode: screen_ready(ctx, base, mode)))
     return out
 
 
@@ -570,12 +652,80 @@ def screen_turns(ctx, base, lang):
             "tokens_per_second": statistics.median(r["tokens_per_second"] for r in rows)}, memory
 
 
+def cold_files(base):
+    """S10's cold start (TCB 17:45): the files the screen opens: trlang, every file and folder the command names (the
+    models, the catalog) and lib's and tools/assistant's TR files."""
+    paths = []
+    for a in base:
+        if os.path.isfile(a):
+            paths.append(a)
+        elif os.path.isdir(a):
+            paths += [os.path.join(d, f) for d, _, fs in os.walk(a) for f in fs]
+    for folder in (os.path.join(ROOT, "lib"), os.path.join(ROOT, "tools", "assistant")):
+        paths += [os.path.join(d, f) for d, _, fs in os.walk(folder) for f in fs if f.endswith(".tr")]
+    return sorted(set(paths))
+
+
+def cached_bytes(paths):
+    """The page cache's bytes of the files (Linux): each file is mapped and mincore(2) says which pages are resident.
+    Colab has no util-linux fincore (G4, second cell: "No such file or directory: 'fincore'")."""
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.mmap.restype = ctypes.c_void_p
+    libc.mmap.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_long]
+    libc.mincore.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p]
+    libc.munmap.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+    page, total, failed = os.sysconf("SC_PAGE_SIZE"), 0, ctypes.c_void_p(-1).value
+    for p in paths:
+        size = os.path.getsize(p)
+        if size == 0:
+            continue
+        fd = os.open(p, os.O_RDONLY)
+        try:
+            addr = libc.mmap(None, size, 1, 1, fd, 0)  # PROT_READ, MAP_SHARED
+            if addr in (None, failed):
+                raise OSError(ctypes.get_errno(), f"mmap {p}")
+            try:
+                vec = (ctypes.c_ubyte * ((size + page - 1) // page))()
+                if libc.mincore(ctypes.c_void_p(addr), size, vec) != 0:
+                    raise OSError(ctypes.get_errno(), f"mincore {p}")
+                total += sum(b & 1 for b in bytes(vec)) * page
+            finally:
+                libc.munmap(ctypes.c_void_p(addr), size)
+        finally:
+            os.close(fd)
+    return total
+
+
+def cold_dropped(before, after):
+    """The drop worked when at most a tenth of the files' cached bytes is left."""
+    return after <= before // 10
+
+
+def drop_files(ctx, base):
+    """S10 cold: sync, then every file the screen opens leaves the page cache (posix_fadvise DONTNEED; no root). Colab's
+    /proc/sys is read-only, so the whole cache cannot be dropped (B, G4). The cached bytes before and after go to the log;
+    if they did not fall, the measure stops (TCB 17:45)."""
+    paths = cold_files(base)
+    before = cached_bytes(paths)
+    subprocess.run(["sync"], check=True)
+    for p in paths:
+        fd = os.open(p, os.O_RDONLY)
+        try:
+            os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
+        finally:
+            os.close(fd)
+    after = cached_bytes(paths)
+    ctx.log({"question": "S10 cold", "files": len(paths), "cached_before_bytes": before, "cached_after_bytes": after})
+    if not cold_dropped(before, after):
+        raise ctx.rp.Stop(f"S10 cold: the files' cache fell from {before} to {after} bytes only (fadvise)")
+
+
 def screen_ready(ctx, base, mode):
-    """S10: from the start to the screen's ready state; cold after the page cache is dropped (Linux, root)."""
+    """S10: from the start to the screen's ready state; cold after the screen's files leave the page cache (drop_files:
+    the files, not the whole system cache)."""
     if mode == "cold":
-        subprocess.run(["sync"], check=True)
-        with open("/proc/sys/vm/drop_caches", "w", encoding="ascii") as f:
-            f.write("3\n")
+        drop_files(ctx, base)
     s = Screen(ctx, base)
     try:
         s.listen(s.token())
@@ -707,8 +857,11 @@ def make_sounds(ctx):
                                    "--noise", noise, "--wav", voice_wav, "--gap_s", gap))
         if r["rc"] != 0:
             raise ctx.rp.Stop(f"sound {name}: {r['stderr'][-400:]}")
-        r = ctx.rp.run_once(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", voice_wav, "-ar", str(SOUND_RATE), "-ac", "1",
-                             "-c:a", "pcm_s16le", ctx.sound(name)])
+        # Dost's sounds (S8) end with the same silence as between the questions: the fake microphone's file ends, and
+        # Dost closes a turn only after silence, so without it the last question had no turn (B, G4: 9 of 10; BC6).
+        pad = ["-af", f"apad=pad_dur={gap}"] if group == "voice_turn" else []
+        r = ctx.rp.run_once(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", voice_wav, *pad, "-ar", str(SOUND_RATE),
+                             "-ac", "1", "-c:a", "pcm_s16le", ctx.sound(name)])
         if r["rc"] != 0:
             raise ctx.rp.Stop(f"sound {name}: ffmpeg failed: {r['stderr'][-400:]}")
         os.remove(voice_wav)

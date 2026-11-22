@@ -19,6 +19,7 @@ TR_default_device(device)
 TR_var products = 0
 TR_var checksum = 0.0
 TR_var load_end = 0
+TR_var load_device = ""
 TR_var start = TR_monotonic_ns()
 # Yük: görev load_ns boyunca çarpar; sonuç okunarak hesabın bitmesi beklenir.
 TR_var load = TR_async {
@@ -27,6 +28,7 @@ TR_var load = TR_async {
     TR_no_grad {
         TR_for TR_monotonic_ns() - start < load_ns {
             TR_var c = a @ b
+            TR_if products == 0 { load_device = c.TR_device }
             checksum += c[0][0].TR_tolist
             products += 1
         }
@@ -55,4 +57,6 @@ load.TR_wait()
 TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "turns": TR_JSON(turns), "period_ms": TR_JSON(TR_Int(opt["period_ms"])),
     "missed": TR_JSON(missed), "turns_under_load": TR_JSON(turns_under_load), "missed_under_load": TR_JSON(missed_under_load),
     "worst_late_ms": TR_JSON(worst_late_ns / 1e6), "products": TR_JSON(products), "size": TR_JSON(n), "load_s": TR_JSON(TR_Float(opt["load_s"]))}
+# Ş2 (DENETİM 947 ve 948): yük görevindeki ilk çarpımın aygıtı; çarpım yoksa boş kalır ve koşturucu kalemi durdurur.
+result["actual_device"] = TR_JSON(load_device)
 TR_print("BASELINE \(TR_json_string(result))")

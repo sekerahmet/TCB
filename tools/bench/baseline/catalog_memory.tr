@@ -108,4 +108,7 @@ TR_if g.tür == "language_model" {
         loaded(t0)
     }
 }
+# Ş2 (DENETİM 947): açık yüzünden tensör alınmıyor; yüklemeden sonra varsayılan aygıtta açılan sınama tensörünün aygıtı.
+# Sınır (DENETİM 948): TR_default_device olmayan aygıtta hata verir, bu tensör hep istenen aygıttadır: kayıttır, denetim değil.
+result["actual_device"] = TR_JSON(TR_ones([1]).TR_device)
 TR_print("BASELINE \(TR_json_string(result))")
