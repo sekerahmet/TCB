@@ -6,8 +6,9 @@
 # whisper.cpp: ggml-org/whisper.cpp'nin b5454 Windows x64 işlemci derlemesi (v1.9.5 ile aynı commit d1be6fde; Colab v1.9.5'i
 # kaynaktan derler), yeri OLCU_WHISPER; ikilinin sha256'sı ve sürümü sources.json'da. Modeller ggerganov/whisper.cpp ggml-small, openai/whisper-small ve
 # Systran/faster-whisper-small, %USERPROFILE%\models'tan; ses OLCU_SESLER'den.
-# Deneme kipinde uyuşma geçişi başlar ama 2 dakikaya sığmaz (kurulum ~50 sn, uyuşma dört program): deneme kurulum ve iki
-# tarafın (TR, whisper.cpp) çıkış 0'ıyla geçer; uyuşma pencerede ilk koşu, uyuşmazsa durur, sıradaki kaleme geçilir (TCB 2026-11-20).
+# Deneme kipinde uyuşma geçişi; 2 dakikaya sığmayabilir (kurulum 25–50 sn, uyuşma dört program; 2026-11-20'de sığmadı,
+# 2026-11-22'de İngilizcesi 76 sn'de uyuştu): sığmazsa deneme kurulum ve iki tarafın (TR, whisper.cpp) çıkış 0'ıyla geçer;
+# uyuşma pencerede ilk koşu, uyuşmazsa durur, sıradaki kaleme geçilir (TCB 2026-11-20).
 #   bash tools/bench/baseline/machines/laptop/speech-to-text-whisper-small-en-whisper-cpp.sh
 . "$(dirname "$0")/lib.sh"
 olcu_kur "whisper_cli=$WHISPER/whisper-cli.exe"

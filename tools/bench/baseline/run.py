@@ -662,7 +662,8 @@ def run_questions(a):
                 for it in its:
                     if not chosen(it) or (a.skip_done and it["key"] in rec.metrics):
                         continue
-                    if a.trial and it["ref"] is not None:  # a trial of a pair is its agreement pass (--agreement)
+                    if a.trial and it["ref"] is not None:
+                        trial_pair(ctx, it, rec)
                         continue
                     rec.metrics[it["key"]] = run_item(ctx, it, rec, trial=a.trial)
                     rec.save()
@@ -746,6 +747,16 @@ def agreement_pass(ctx, qs, order_, rec, chosen=lambda it: True):
         for it in qs.items(ctx, q):
             if it["agree"] and chosen(it):
                 agree_item(ctx, it, rec)
+
+
+def trial_pair(ctx, it, rec):
+    """--trial of a pair: its agreement pass (--agreement) tries it when it has an agreement; a pair without one (S13's
+    char model) runs each side once here, or a trial would run nothing and still exit 0 (2026-11-22)."""
+    if it["agree"]:
+        return
+    for s in (it["tr"], it["ref"]):
+        _run_side(it["key"], s, "trial", rec.log, ctx.machine)
+    print(f"{it['key']}: done", flush=True)
 
 
 def agree_item(ctx, it, rec):

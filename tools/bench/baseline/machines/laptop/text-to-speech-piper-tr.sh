@@ -1,5 +1,6 @@
 # Yazıyı sese çevirme, Piper Türkçe (S7/tr), dizüstü: texts.json'un üç cümlesi, TR'nin çeviricisinin kimlikleriyle
-# (piper.tr --write_ids), gürültü 0; TR (piper.tr) ile onnxruntime, ABBA 10 koşu. Satır: docs/measurements/text-to-speech.md,
+# (piper.tr --write_ids), gürültü 0; TR (piper.tr) ile onnxruntime, ABBA 10 koşu; onnxruntime'ın iş parçacığı
+# en-hizli.json'dan (Ş1; ayar dosyasız denemede ayrıca öntanımlı ve 6 iş parçacığı kalemleri). Satır: docs/measurements/text-to-speech.md,
 # "Dizüstü i7-13700H". Taraflar: ikisi işlemcide (onnxruntime CPUExecutionProvider; sağlayıcı emsalin çıktısında).
 # Model rhasspy/piper-voices tr_TR-dfki-medium (yeri ve kimliği sources.json'da), %USERPROFILE%\models\piper-tr-dfki-medium\.
 # Not: emsal süreç içi ısınmasız ilk çağrılarla ölçülür (Colab'da şüpheli işaretli, TCB 22:45); satır bunu yazar.

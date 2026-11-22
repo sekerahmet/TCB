@@ -97,6 +97,36 @@ func TestLaptopFastestSettings(t *testing.T) {
 	}
 }
 
+// Denemede (--trial) uyuşması olmayan eşli kalem (S13'ün karakter modeli) iki tarafını birer kez koşar; uyuşması olan
+// kalemi uyuşma geçişi dener. Düzeltmeden önce böyle bir kalemin denemesi hiçbir şey koşmadan çıkış 0 veriyordu.
+func TestLaptopTrialRunsAPairWithoutAgreement(t *testing.T) {
+	check := `
+import importlib.util, json, sys, types
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+calls = []
+rp._run_side = lambda q, side, index, log, machine: calls.append((q, side["name"], index))
+ctx, rec = types.SimpleNamespace(machine="laptop"), types.SimpleNamespace(log=lambda r: None)
+rp.trial_pair(ctx, {"key": "S13/char_model", "tr": {"name": "TR"}, "ref": {"name": "PyTorch"}, "agree": None}, rec)
+rp.trial_pair(ctx, {"key": "S13/fib", "tr": {"name": "TR"}, "ref": {"name": "Go"}, "agree": lambda a, b: None}, rec)
+print(json.dumps(calls))
+`
+	out, err := exec.Command(python(t), "-I", "-c", check).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var calls [][]string
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &calls); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if len(calls) != 2 || calls[0][1] != "TR" || calls[1][1] != "PyTorch" || calls[0][0] != "S13/char_model" {
+		t.Errorf("trial runs %v, want the char model's two sides once and nothing for the item with an agreement", calls)
+	}
+}
+
 // Ş3 (DENETİM 944): model.py ağa çıkmaz; dosyayı yalnız sources.json'daki yerinde arar (başka klasördeki aynı adlı dosyaya
 // düşmez), boyunu ve kimliğini (LFS'te sha256, küçük dosyada git blob) denetler, bağladığı yolu yazar; tutmazsa çıkış 2.
 func TestLaptopModelBinderUsesOnlyTheSourceFile(t *testing.T) {
