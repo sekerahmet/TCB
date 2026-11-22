@@ -89,6 +89,7 @@ class Ctx:
         self.extra = {}  # an agreement's own record by item key (S1, S3: ε, ties; S5: distances), kept in agreement.json
         self.seen_texts = {}  # S5: a reference's text by its command, run once per process for the other items
         self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
+        self.epsilon_given = {}  # item key: ε written in the run script before the run (run.py --epsilon; BC17)
 
     def model(self, name, i=0):
         return os.path.join(self.work, "models", name, MODELS[name][2][i])
@@ -196,7 +197,13 @@ def agree_forced(ctx, key, forced_cmd):
         if r["rc"] != 0:
             return f"TR's forced read failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
         res = ctx.rp.parse_result(r["stdout"])
-        if res.get("epsilon_note"):  # no quantized path for these weights (Q8_0): ε is 0 by rule, on any device (TCB 17:57)
+        given = getattr(ctx, "epsilon_given", {}).get(key)
+        if res.get("epsilon_note") and given is not None:
+            # TR has no quantized path for these weights (Q8_0), but llama.cpp on the processor quantizes the activations
+            # to 8 bits: ε is not 0 there (BC17). The run script gives the same machine's measured q4km ε before the run
+            # (TCB 2026-11-20 02:29); the record names it.
+            eps, source = given, f"given before the run (--epsilon {key}={given}); {res['epsilon_note']}"
+        elif res.get("epsilon_note"):  # no quantized path for these weights (Q8_0): ε is 0 by rule (TCB 17:57)
             eps, source = res["epsilon"], f"by rule: {res['epsilon_note']}"
         else:
             eps, source = highram_epsilon(ctx, key) if ctx.gpu else (None, "measured here, quantized and unquantized path")

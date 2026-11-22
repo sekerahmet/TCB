@@ -159,6 +159,15 @@ gpu = types.SimpleNamespace(tmp=work, gpu=True, epsilon_from=None, log=lambda r:
                             rp=types.SimpleNamespace(run_once=lambda c: {"rc": 0, "stdout": said, "stderr": ""}, parse_result=rp.parse_result))
 reason = qs.agree_forced(gpu, "S1/qwen3-4b-q8", ["trlang"])([{"text": "x"}], [{"stdout": "x"}])
 out["S1 q8 gpu"] = {"ref": [str(reason), str(gpu.extra["S1/qwen3-4b-q8"]["epsilon"]), gpu.extra["S1/qwen3-4b-q8"]["epsilon_source"]], "tr": []}
+# BC17: the laptop's q8, one position 0.0121 apart (llama 20, TR 425); ε given before the run, and not given
+tie = [{"llama": 5, "tr": 5, "gap": 0.0}] * 2 + [{"llama": 20, "tr": 425, "gap": 0.012117}] + [{"llama": 5, "tr": 5, "gap": 0.0}] * 29
+said = 'BASELINE ' + json.dumps({"positions": tie, "epsilon": 0.0, "epsilon_note": "no quantized path for these weights (15.53a)"})
+for name, given in (("given", {"S1/qwen3-4b-q8": 2.3770726}), ("none", {})):
+    cpu = types.SimpleNamespace(tmp=work, gpu=False, epsilon_from=None, epsilon_given=given, log=lambda r: None, extra={},
+                                rp=types.SimpleNamespace(run_once=lambda c: {"rc": 0, "stdout": said, "stderr": ""}, parse_result=rp.parse_result))
+    reason = qs.agree_forced(cpu, "S1/qwen3-4b-q8", ["trlang"])([{"text": "x"}], [{"stdout": "x"}])
+    e = cpu.extra["S1/qwen3-4b-q8"]
+    out["S1 q8 laptop " + name] = {"ref": [str(reason is None), str(e["epsilon"]), e["epsilon_source"], str(len(e["ties"]))], "tr": []}
 print(json.dumps(out))
 `
 
@@ -182,6 +191,15 @@ func TestBaselineFasterWhisperLibs(t *testing.T) {
 	// GPU'da nicemli yolu olmayan model (Q8_0): ε kuralla 0, HIGHRAM'in dosyası gerekmez (TCB 17:57).
 	if q := got["S1 q8 gpu"].Ref; len(q) != 3 || q[0] != "None" || q[1] != "0.0" || !strings.HasPrefix(q[2], "by rule:") {
 		t.Errorf("S1 q8 on a GPU machine: %v, want agreement with ε 0 by rule", q)
+	}
+	// BC17 (TCB 2026-11-20 02:29): TR'nin nicemli yolu olmayan Q8_0'da llama.cpp işlemcide etkinliği 8 bite nicemler, ε 0
+	// değildir; betik koşudan önce aynı makinenin q4km ε'unu verir (--epsilon), kayıt kaynağını yazar. Verilmezse kural (0).
+	if g := got["S1 q8 laptop given"].Ref; len(g) != 4 || g[0] != "True" || g[1] != "2.3770726" ||
+		!strings.HasPrefix(g[2], "given before the run (--epsilon S1/qwen3-4b-q8=2.3770726)") || g[3] != "1" {
+		t.Errorf("q8 on the laptop with ε given: %v, want agreement, ε 2.3770726 from --epsilon, one tie", g)
+	}
+	if n := got["S1 q8 laptop none"].Ref; len(n) != 4 || n[0] != "False" || n[1] != "0.0" || !strings.HasPrefix(n[2], "by rule:") {
+		t.Errorf("q8 on the laptop without ε: %v, want the rule's ε 0 and the position apart", n)
 	}
 	want := []string{"env", "LD_LIBRARY_PATH=/cu12/cublas/lib:/cu12/cudnn/lib:/usr/lib64-nvidia"} // sürücünün yolu kalır
 	for _, lang := range []string{"tr", "en"} {

@@ -563,6 +563,12 @@ def run_questions(a):
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
+    for kv in a.epsilon or []:  # BC17: ε for weights without TR's quantized path, written in the run script
+        key, _, value = kv.partition("=")
+        try:
+            ctx.epsilon_given[key] = float(value)
+        except ValueError:
+            raise SystemExit(f"--epsilon wants KEY=NUMBER, not {kv!r}. Example: --epsilon S1/qwen3-4b-q8=2.3770726")
     if a.make_sounds:
         print(json.dumps(qs.make_sounds(ctx)))
         return 0
@@ -749,6 +755,8 @@ def main():
     p.add_argument("--models", help="with --fetch: only these MODELS names, comma separated")
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
+    p.add_argument("--epsilon", action="append", metavar="KEY=NUMBER",
+                   help="ε of an item whose weights have no TR quantized path (Q8_0), given before the run (BC17)")
     p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")
     p.add_argument("--base-trlang", help="a base trlang (main's build): each question's TR side against the same "
                                           "program run by it, ratio branch/base, keys <question>/base")
