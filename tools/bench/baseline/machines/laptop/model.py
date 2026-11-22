@@ -22,6 +22,17 @@ def digest(path, git_blob):
     return h.hexdigest()
 
 
+# N3 (DENETİM 947): iş klasöründe önceki bir bağlamadan kalan dosya klasörü okuyan programa görünmesin: önce boşaltılır
+# (yalnız bağlantılar ve kopyalar silinir; OLCU_MODELLER'deki asıllara dokunulmaz).
+bound = os.path.realpath(os.path.join(work, "models", ad))
+try:
+    inside = os.path.commonpath([bound, os.path.realpath(models)]) == os.path.realpath(models)
+except ValueError:  # Windows: iki ayrı sürücü
+    inside = False
+if inside:
+    print(f"İŞ KLASÖRÜ MODELLERİN İÇİNDE: {bound} ({models}); boşaltılmaz, bağlanmaz")
+    sys.exit(2)
+shutil.rmtree(bound, ignore_errors=True)
 bad = 0
 for f, rec in ent["files"].items():
     src = os.path.join(models, *rec["path"].split("/"))

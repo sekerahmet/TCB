@@ -188,9 +188,28 @@ func TestLaptopModelBinderUsesOnlyTheSourceFile(t *testing.T) {
 		}
 		return string(out), code
 	}
+	stale := filepath.Join(work, "models", "m", "old.bin") // N3 (DENETİM 947): önceki bağlamadan kalan dosya
+	if err := os.MkdirAll(filepath.Dir(stale), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(stale, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if out, code := run(src(hex.EncodeToString(sum[:]), false)); code != 0 || !strings.Contains(out, "<- modeller/m/weights.bin, sha256") ||
 		!strings.Contains(out, "<- modeller/m/config.json, git_blob") {
 		t.Errorf("good files: exit %d\n%s", code, out)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Errorf("a file left in work/models/m by an earlier binding is still there: %v", err)
+	}
+	// İş klasörü modellerin içindeyse boşaltma asılları silerdi: bağlayıcı durur, asıl yerinde kalır.
+	inside, err := exec.Command(py, "-I", filepath.Join("baseline", "machines", "laptop", "model.py"), src(hex.EncodeToString(sum[:]), false),
+		filepath.Dir(models), models, "m").CombinedOutput()
+	if e, ok := err.(*exec.ExitError); !ok || e.ExitCode() != 2 || !strings.Contains(string(inside), "İŞ KLASÖRÜ MODELLERİN İÇİNDE") {
+		t.Errorf("work folder holding the models: %v\n%s", err, inside)
+	}
+	if _, err := os.Stat(filepath.Join(models, "m", "weights.bin")); err != nil {
+		t.Errorf("the original model file: %v", err)
 	}
 	if out, code := run(src(strings.Repeat("0", 64), false)); code != 2 || !strings.Contains(out, "SHA256 TUTMADI m/weights.bin") {
 		t.Errorf("wrong sha256: exit %d, want 2\n%s", code, out)
@@ -286,6 +305,22 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 			t.Errorf("sources.json %s: %d backend libraries, release %q, asset %q (%q); want both named with their sha256",
 				name, backend, tool.Release, tool.Asset, tool.AssetSha256)
 		}
+	}
+}
+
+// N2 (DENETİM 947): satır taslağı, satırın zorunlu Ayar alanı için makinenin iş parçacığını ve koşunun aldığı en hızlı
+// ayarı basar.
+func TestLaptopRowsPrintTheSetting(t *testing.T) {
+	out := t.TempDir()
+	if err := os.WriteFile(filepath.Join(out, "metrics.json"), []byte(`{"_machine": {"threads": 20, "threads_source": "gctrace P (O-1)"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "en-hizli.json"), []byte(`{"llama.cpp read": {"threads": 6}, "_scan": {}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, code := baseline(t, "--rows", "--out", out)
+	if code != 0 || !strings.Contains(got, `setting: machine threads 20 (gctrace P (O-1)); fastest settings {"llama.cpp read": {"threads": 6}}`) {
+		t.Errorf("--rows: exit %d\n%s", code, got)
 	}
 }
 

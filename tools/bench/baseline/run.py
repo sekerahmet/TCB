@@ -883,8 +883,17 @@ def fetch(work, only=None):
 
 
 def rows(out):
-    """Draft rows from metrics.json: each measure's median, range, quartiles, verdict and the memory peaks (O-5)."""
+    """Draft rows from metrics.json: each measure's median, range, quartiles, verdict and the memory peaks (O-5); first
+    the row's setting (N2, DENETİM 947): the machine's thread number and the scan's choice the run took (en-hizli.json)."""
     rec = Record(out)
+    m = rec.metrics.get("_machine", {})
+    setting = f"setting: machine threads {m.get('threads')} ({m.get('threads_source')})"
+    try:
+        with open(os.path.join(out, "en-hizli.json"), encoding="utf-8") as f:
+            setting += f"; fastest settings {json.dumps({k: v for k, v in json.load(f).items() if not k.startswith('_')})}"
+    except OSError:
+        setting += "; no en-hizli.json (each reference with the machine's number)"
+    print(setting)
     for key, r in rec.metrics.items():
         if key.startswith("_"):
             continue
