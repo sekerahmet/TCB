@@ -628,8 +628,15 @@ def run_questions(a):
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
     if a.settings:  # Ş1: the window's scan's choice (en-hizli.json); it goes with the run's record
         with open(a.settings, encoding="utf-8") as f:
-            ctx.settings = {k: v for k, v in json.load(f).items() if not k.startswith("_")}
-        rec.log({"settings": ctx.settings, "settings_file": a.settings})
+            doc = json.load(f)
+        ctx.settings = {k: v for k, v in doc.items() if not k.startswith("_")}
+        rec.log({"settings": ctx.settings, "settings_file": a.settings, "scan": doc.get("_scan")})
+        reason = None if (a.trial or a.agreement or a.scan) else check_settings(doc)
+        if reason:  # a measure, not a trial: only a whole scan (DENETİM 947 Ş1)
+            rec.log({"stopped": reason})
+            rec.save()
+            print(f"STOPPED: {reason}", flush=True)
+            return STOP
     if a.scan:
         try:
             return scan_settings(ctx, qs, rec, a.scan, a.out, runs=1 if a.trial else 3)
@@ -677,29 +684,46 @@ def run_questions(a):
     return 0
 
 
-# Ş1 (DENETİM 944, TCB 2026-11-22 13:37): at the window's start each reference's thread number is chosen by a short scan:
-# the library's default (0), 6 and the machine's logical processors; S3's llama-bench also flash attention 0 and 1 at the
-# chosen threads, at depth 700 only. Each setting runs its group's item once to warm, then `runs` times; the setting with
-# the shortest median of the item's measures (summed) is chosen. The rule is written before the run; the table and the
-# choice go to en-hizli.json and every run's record.
-SCAN = [("llama.cpp", "S1", "S1/qwen3-4b-q4km"), ("faster-whisper float32", "S5", "S5/tr/faster-whisper-float32"),
-        ("faster-whisper int8", "S5", "S5/tr/faster-whisper-int8"), ("whisper.cpp", "S5", "S5/tr/whisper.cpp"),
-        ("onnxruntime", "S7", "S7/tr")]
+# Ş1 (DENETİM 944 and 947, TCB 2026-11-22): at the window's start each reference's thread number is chosen by a short
+# scan: the library's default (0), 6 and the machine's logical processors. S1's llama-bench reading (-p 512 -n 0) and
+# generation (-p 0 -n 128 -d 512) are separate groups, each with its own setting (N1: on a hybrid processor the two may
+# differ); S3's llama-bench reads with the reading group's threads and also tries flash attention 0 and 1, at depth 700
+# only. Each setting runs its group's item once to warm, then SCAN_RUNS times; the setting with the shortest median of the
+# measures (summed) is chosen, and the table keeps each measure's median too. The rule is written before the run; the
+# choice and the table go to en-hizli.json and every run's record. A measure takes the file only whole (check_settings).
+SCAN = [("llama.cpp read", "S1", "S1/qwen3-4b-q4km", slice(0, 1)), ("llama.cpp gen", "S1", "S1/qwen3-4b-q4km", slice(1, 2)),
+        ("llama.cpp S3", "S3", "S3/qwen3-4b-q4km", slice(0, 1)),
+        ("faster-whisper float32", "S5", "S5/tr/faster-whisper-float32", None),
+        ("faster-whisper int8", "S5", "S5/tr/faster-whisper-int8", None), ("whisper.cpp", "S5", "S5/tr/whisper.cpp", None),
+        ("onnxruntime", "S7", "S7/tr", None)]
+SCAN_GROUPS = [g for g, _, _, _ in SCAN]
+SCAN_RUNS = 3
 
 
-def time_side(ctx, side, key, log, runs, warm=True):
-    """One setting's median: the side's measures summed per run, after one warm-up run."""
+def check_settings(doc):
+    """Ş1 (DENETİM 947): a measure takes en-hizli.json only from a whole scan: every group chosen and timed with SCAN_RUNS
+    runs (a trial's file has one run per setting; a scan cut short leaves groups out). The reason, or None."""
+    table = doc.get("_scan", {})
+    missing = [g for g in SCAN_GROUPS if g not in doc]
+    short = [g for g in SCAN_GROUPS if g in doc and table.get(g, {}).get("runs", 0) < SCAN_RUNS]
+    if missing or short:
+        return f"en-hizli.json is not a whole scan: groups missing {missing}, fewer than {SCAN_RUNS} runs {short}"
+    return None
+
+
+def time_side(ctx, side, key, log, runs, measure, warm=True):
+    """One setting: the median of the summed measures and each measure's median, after one warm-up run."""
     if warm:
         _run_side(key, side, "scan warmup", log, ctx.machine)
     got = []
     for i in range(runs):
         r = _run_side(key, side, f"scan {i}", log, ctx.machine)
-        got.append(sum(side["measure"](r["results"], r["runs"]).values()))
-    return statistics.median(got)
+        got.append(measure(r["results"], r["runs"]))
+    return statistics.median(sum(g.values()) for g in got), {k: statistics.median(g[k] for g in got) for k in got[0]}
 
 
-def scan_settings(ctx, qs, rec, groups, out, runs=3):
-    """Ş1's scan of the named groups; merges into out/en-hizli.json, so the groups can run as separate commands."""
+def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS):
+    """Ş1's scan of the named groups; merges into out/en-hizli.json, so a trial can run the groups as separate commands."""
     path = os.path.join(out, "en-hizli.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -707,21 +731,25 @@ def scan_settings(ctx, qs, rec, groups, out, runs=3):
     except OSError:
         res = {}
     table = res.setdefault("_scan", {})
-    for group, q, key in SCAN + [("llama.cpp S3", "S3", "S3/qwen3-4b-q4km")]:
+    for group, q, key, part in SCAN:
         if group not in groups:
             continue
-        values = [0, 1] if group == "llama.cpp S3" else [0, 6, os.cpu_count()]
-        meds = {}
+        fa = group == "llama.cpp S3"
+        values = [0, 1] if fa else [0, 6, os.cpu_count()]
+        meds, each = {}, {}
         for v in values:
             ctx.settings = {k: x for k, x in res.items() if not k.startswith("_")}
-            ctx.settings[group] = {"flash_attn": v} if group == "llama.cpp S3" else {"threads": v}
+            ctx.settings[group] = {"flash_attn": v} if fa else {"threads": v}
             it = next(i for i in qs.items(ctx, q) if i["key"] == key)
-            side = dict(it["ref"], cmds=it["ref"]["cmds"][:1]) if group == "llama.cpp S3" else it["ref"]
-            meds[v] = time_side(ctx, side, key, rec.log, runs, warm=runs > 1)
-            print(f"{group} {'flash_attn' if group == 'llama.cpp S3' else 'threads'} {v}: median {meds[v]:.1f} ms", flush=True)
+            side = dict(it["ref"], cmds=it["ref"]["cmds"][part]) if part else it["ref"]
+            # One of S1's two llama-bench commands is timed by itself (S1's measure names both commands' results).
+            measure = (lambda r, rs: {"ms": r[0]["avg_ns"] / 1e6}) if part and not fa else side["measure"]
+            meds[v], each[v] = time_side(ctx, side, key, rec.log, runs, measure, warm=runs > 1)
+            print(f"{group} {'flash_attn' if fa else 'threads'} {v}: median {meds[v]:.1f} ms {each[v]}", flush=True)
         best = min(meds, key=meds.get)
-        res[group] = {"flash_attn": best} if group == "llama.cpp S3" else {"threads": best}
-        table[group] = {"medians_ms": {str(k): v for k, v in meds.items()}, "runs": runs, "chosen": best}
+        res[group] = {"flash_attn": best} if fa else {"threads": best}
+        table[group] = {"medians_ms": {str(k): v for k, v in meds.items()},
+                        "measures_ms": {str(k): v for k, v in each.items()}, "runs": runs, "chosen": best}
         rec.log({"scan": group, **table[group]})
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(res, f, indent=1)
@@ -894,7 +922,7 @@ def main():
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
     p.add_argument("--settings", help="the window's scan's choice (en-hizli.json): each reference's fastest setting (Ş1)")
-    p.add_argument("--scan", action="append", choices=[g for g, _, _ in SCAN] + ["llama.cpp S3"],
+    p.add_argument("--scan", action="append", choices=SCAN_GROUPS,
                    help="the window's short scan of a reference's fastest setting, into --out/en-hizli.json (Ş1)")
     p.add_argument("--epsilon", action="append", metavar="KEY=NUMBER",
                    help="ε of an item whose weights have no TR quantized path (Q8_0), given before the run (BC17)")

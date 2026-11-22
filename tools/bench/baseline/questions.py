@@ -122,8 +122,9 @@ def setting_group(name, argv):
     """Ş1: the reference whose setting the scan chooses, by the reference's own name; faster-whisper by compute type."""
     if name == "faster_whisper" and "--compute_type" in argv:
         return "faster-whisper " + argv[argv.index("--compute_type") + 1]
-    return {"llama-bench": "llama.cpp", "llama-completion": "llama.cpp", "whisper-cli": "whisper.cpp",
-            "piper": "onnxruntime"}.get(name)
+    if name == "llama-bench":  # N1 (DENETİM 947): reading (-n 0, S1 and S3) and generation (-p 0) have their own setting
+        return "llama.cpp gen" if "-p" in argv and argv[argv.index("-p") + 1] == "0" else "llama.cpp read"
+    return {"llama-completion": "llama.cpp read", "whisper-cli": "whisper.cpp", "piper": "onnxruntime"}.get(name)
 
 
 def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None):

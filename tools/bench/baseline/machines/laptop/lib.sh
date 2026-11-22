@@ -83,6 +83,7 @@ olcu_kos() {
   olcu_dost_yok
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
+  "$PY" --version > "$r/python_version.txt" 2>&1  # N4 (DENETİM 947)
   local ayar=()
   if [ -f "$AYAR" ]; then
     ayar=(--settings "$AYAR"); cp "$AYAR" "$r/en-hizli.json"
@@ -110,12 +111,20 @@ olcu_kos() {
 
 # olcu_tara <grup>...: Ş1'in kısa taraması (run.py --scan): her grubun en hızlı ayarı en-hizli.json'a (var olana eklenir;
 # gruplar ayrı komutlarla da koşabilir). Kural koşudan önce yazılı: varsayılan, 6 ve mantıksal sayı (S3'te -fa 0 ve 1),
-# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız.
+# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız. Ölçü kipinde (DENETİM 947 Ş1) tarama boş dosyayla
+# başlar (eski en-hizli.json'lar silinir), bütün grupları ister ve dosyayı yalnız hepsi bitince yazar: yarım kalan
+# tarama, deneme ya da eski pencere ölçüye ayar vermez.
+TARA_GRUPLARI=("llama.cpp read" "llama.cpp gen" "llama.cpp S3" "faster-whisper float32" "faster-whisper int8" "whisper.cpp" "onnxruntime")
 olcu_tara() {
   local r="$KAYIT/run-en-hizli-ayar"; mkdir -p "$r"
+  if [ "${OLCU_DENEME:-}" != 1 ]; then
+    rm -f "$AYAR" "$r/en-hizli.json"
+    [ "$*" = "${TARA_GRUPLARI[*]}" ] || { olcu "ölçü kipinde tarama bütün grupları koşar: ${TARA_GRUPLARI[*]}"; exit 2; }
+  fi
   olcu_dost_yok
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
+  "$PY" --version > "$r/python_version.txt" 2>&1
   [ -f "$AYAR" ] && cp "$AYAR" "$r/en-hizli.json"
   local g args=() deneme=()
   for g in "$@"; do args+=(--scan "$g"); done

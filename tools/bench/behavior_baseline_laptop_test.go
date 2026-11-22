@@ -35,29 +35,37 @@ json.dump({"trlang": "trlang", "whisper_cli": "w", "llama_bench": "b", "llama_co
 open(os.path.join(work, "ids_tr.json"), "w").write("{}")
 qs.piper_ids_tr = lambda ctx: None
 ctx = qs.Ctx(rp, "laptop", 97, work, lambda r: None, dry=True)
-ctx.settings = {"llama.cpp": {"threads": 0}, "faster-whisper int8": {"threads": 6}, "onnxruntime": {"threads": 20},
-                "llama.cpp S3": {"flash_attn": 1}}
+ctx.settings = {"llama.cpp read": {"threads": 0}, "llama.cpp gen": {"threads": 6}, "faster-whisper int8": {"threads": 6},
+                "onnxruntime": {"threads": 20}, "llama.cpp S3": {"flash_attn": 1}}
 items = {it["key"]: it for q in ("S1", "S3", "S5", "S7") for it in qs.items(ctx, q)}
-out = {"s1": items["S1/qwen3-4b-q4km"]["ref"]["cmds"][0], "s3": items["S3/qwen3-4b-q4km"]["ref"]["cmds"][0],
+out = {"s1": items["S1/qwen3-4b-q4km"]["ref"]["cmds"][0], "s1gen": items["S1/qwen3-4b-q4km"]["ref"]["cmds"][1], "s3": items["S3/qwen3-4b-q4km"]["ref"]["cmds"][0],
        "int8": items["S5/tr/faster-whisper-int8"]["ref"]["cmds"][0], "f32": items["S5/tr/faster-whisper-float32"]["ref"]["cmds"][0],
        "s7": items["S7/tr"]["ref"]["cmds"][0], "ort": sorted(k for k in items if "/ort-" in k)}
-# the scan with fake runs: 6 threads is the fastest for llama.cpp, the default (0) for whisper.cpp
+# the scan with fake runs: llama.cpp's reading is fastest with 6 threads, its generation with the logical count,
+# whisper.cpp with the default (0)
 def fake(key, side, index, log, machine, cmds=None):
     c = side["cmds"][0]
     n = 0 if "-t" not in c else int(c[c.index("-t") + 1])
-    ms = {"S1/qwen3-4b-q4km": {0: 50, 6: 30, os.cpu_count(): 40}, "S5/tr/whisper.cpp": {0: 5, 6: 9, os.cpu_count(): 7}}[key][n]
+    gen = "-p" in c and c[c.index("-p") + 1] == "0"
+    ms = {"S1 read": {0: 50, 6: 30, os.cpu_count(): 40}, "S1 gen": {0: 20, 6: 25, os.cpu_count(): 10},
+          "S5/tr/whisper.cpp": {0: 5, 6: 9, os.cpu_count(): 7}}[("S1 gen" if gen else "S1 read") if key.startswith("S1") else key][n]
     return {"results": [{"avg_ns": ms * 1e6}] * len(side["cmds"]), "runs": [{"stderr": "total time = %d ms\\nload time = 0 ms" % ms}]}
 rp._run_side = fake
 ctx.settings = {}
 scan_out = tempfile.mkdtemp()
 rec = type("R", (), {"log": lambda self, r: None})()
-rp.scan_settings(ctx, qs, rec, ["llama.cpp"], scan_out, runs=3)
+rp.scan_settings(ctx, qs, rec, ["llama.cpp read", "llama.cpp gen"], scan_out, runs=3)
 rp.scan_settings(ctx, qs, rec, ["whisper.cpp"], scan_out, runs=1)
 out["scan"] = json.load(open(os.path.join(scan_out, "en-hizli.json"), encoding="utf-8"))
+whole = {g: {"threads": 6} for g in rp.SCAN_GROUPS}
+whole["_scan"] = {g: {"runs": 3} for g in rp.SCAN_GROUPS}
+out["check"] = {"whole": rp.check_settings(whole),
+                "missing": rp.check_settings({k: v for k, v in whole.items() if k != "llama.cpp gen"}),
+                "trial": rp.check_settings({**whole, "_scan": {g: {"runs": 1} for g in rp.SCAN_GROUPS}})}
 print(json.dumps(out))
 `
 
-// Ş1 (DENETİM 944, TCB 2026-11-22 13:37): pencerenin başındaki kısa tarama her emsalin en hızlı ayarını (iş parçacığı:
+// Ş1 (DENETİM 944 ve 947, TCB 2026-11-22): pencerenin başındaki kısa tarama (S1'in okuması ve üretimi ayrı grup, N1) her emsalin en hızlı ayarını (iş parçacığı:
 // varsayılan, 6, mantıksal sayı; S3'te flash attention) en kısa ortancayla seçer ve dosyaya birleştirir; ölçü o ayarla
 // koşar: 0 kütüphanenin varsayılanıdır (llama.cpp'de -t yok), ayarı seçilmeyen emsal makinenin sayısını alır, S7'nin ayrı
 // onnxruntime kalemleri düşer.
@@ -67,17 +75,18 @@ func TestLaptopFastestSettings(t *testing.T) {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	var got struct {
-		S1, S3, Int8, F32, S7 []string
-		Ort                   []string
-		Scan                  map[string]any
+		S1, S1gen, S3, Int8, F32, S7 []string
+		Ort                          []string
+		Scan                         map[string]any
+		Check                        map[string]*string
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
 	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &got); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	line := func(c []string) string { return " " + strings.Join(c, " ") + " " }
-	if strings.Contains(line(got.S1), " -t ") {
-		t.Errorf("llama.cpp with the default: %v, want no -t", got.S1)
+	if strings.Contains(line(got.S1), " -t ") || !strings.Contains(line(got.S1gen), " -t 6 ") {
+		t.Errorf("llama.cpp reading with the default %v, want no -t; generation %v, want -t 6 (N1)", got.S1, got.S1gen)
 	}
 	if !strings.Contains(line(got.S3), " -fa 1 ") {
 		t.Errorf("S3 with flash attention 1: %v", got.S3)
@@ -89,11 +98,18 @@ func TestLaptopFastestSettings(t *testing.T) {
 	if len(got.Ort) != 0 {
 		t.Errorf("S7's onnxruntime items %v with a scan, want none", got.Ort)
 	}
-	l, _ := got.Scan["llama.cpp"].(map[string]any)
+	r, _ := got.Scan["llama.cpp read"].(map[string]any)
+	g, _ := got.Scan["llama.cpp gen"].(map[string]any)
 	w, _ := got.Scan["whisper.cpp"].(map[string]any)
 	table, _ := got.Scan["_scan"].(map[string]any)
-	if l["threads"] != 6.0 || w["threads"] != 0.0 || len(table) != 2 {
-		t.Errorf("scan: %v, want llama.cpp 6 threads, whisper.cpp the default and both in the table", got.Scan)
+	gt, _ := table["llama.cpp gen"].(map[string]any)
+	if r["threads"] != 6.0 || g["threads"] == 6.0 || g["threads"] == 0.0 || w["threads"] != 0.0 || len(table) != 3 || gt["measures_ms"] == nil {
+		t.Errorf("scan: %v, want reading 6 threads, generation the logical count, whisper.cpp the default, each measure's median", got.Scan)
+	}
+	// DENETİM 947 Ş1: ölçü yalnız bütün gruplar 3 koşuyla taranmış dosyayı alır.
+	if c := got.Check; c["whole"] != nil || c["missing"] == nil || !strings.Contains(*c["missing"], "llama.cpp gen") ||
+		c["trial"] == nil || !strings.Contains(*c["trial"], "fewer than 3 runs") {
+		t.Errorf("check_settings: whole %v, a group missing %v, a trial's file %v", c["whole"], c["missing"], c["trial"])
 	}
 }
 
@@ -328,6 +344,20 @@ func TestLaptopDirtyTreeStopsTheMeasure(t *testing.T) {
 	}
 	if out, code := libRun(t, repo, []string{"OLCU_DENEME=1"}, prep); code != 0 || !strings.Contains(out, "UYARI: ağaçta 1 değişik dosya") {
 		t.Errorf("trial on a dirty tree: exit %d, want 0 with a warning\n%s", code, out)
+	}
+}
+
+// DENETİM 947 Ş1: ölçü kipinde tarama boş dosyayla başlar (eski en-hizli.json silinir) ve bütün grupları ister; eksik
+// listeyle koşmaz.
+func TestLaptopMeasureScanStartsEmpty(t *testing.T) {
+	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"; echo '{}' > "$AYAR"; echo '{}' > "$KAYIT/run-en-hizli-ayar/en-hizli.json"
+( olcu_tara "llama.cpp read" ); echo "rc=$?"
+[ -f "$AYAR" ] && echo "ayar kaldı" || echo "ayar silindi"
+[ -f "$KAYIT/run-en-hizli-ayar/en-hizli.json" ] && echo "kopya kaldı" || echo "kopya silindi"`
+	out, code := libRun(t, t.TempDir(), nil, script)
+	if code != 0 || !strings.Contains(out, "rc=2") || !strings.Contains(out, "ayar silindi") || !strings.Contains(out, "kopya silindi") ||
+		!strings.Contains(out, "ölçü kipinde tarama bütün grupları koşar") {
+		t.Errorf("measure scan with one group: exit %d\n%s", code, out)
 	}
 }
 
