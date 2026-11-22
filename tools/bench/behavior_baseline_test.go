@@ -297,6 +297,10 @@ func TestBaselineLanguageModel(t *testing.T) {
 	folder := copyDir(t, filepath.Join(data, "hf_tiny"), map[string]string{"tokenizer.json": filepath.Join(data, "tokenizer.json")})
 	common := []string{"--folder", folder, "--text", "Bir gün saat durdu.", "--prompt", "4", "--gen", "27"}
 	speed := program(t, "baseline/language_model.tr", append(common, "--mode", "speed")...)
+	// Ş2 (DENETİM 947): hesabın gerçek aygıtı bir logit tensörünün kendi aygıtından, --device'ın yankısı değil.
+	if speed["actual_device"] != "cpu" || speed["device"] != "cpu" {
+		t.Errorf("speed: device %v, actual_device %v; want cpu from the logits' own device", speed["device"], speed["actual_device"])
+	}
 	for _, field := range []string{"load_ms", "prompt_ms", "gen_ms"} {
 		if _, ok := speed[field].(float64); !ok {
 			t.Errorf("speed: %s missing: %v", field, speed)
@@ -574,6 +578,9 @@ func TestBaselineVoices(t *testing.T) {
 	}
 	common := []string{"--model", reporoot.Path("tests/data/vits_piper_tiny"), "--texts", "baseline/texts.json", "--ids", ids}
 	piper := program(t, "baseline/piper.tr", append(common, "--language", "en")...)
+	if piper["actual_device"] != "cpu" || mms["actual_device"] != "cpu" { // Ş2: sentezin kendi dalgasının aygıtı
+		t.Errorf("actual_device: piper %v, mms %v; want cpu", piper["actual_device"], mms["actual_device"])
+	}
 	rows := voiceRun(t, "piper", piper, 3, 22050)
 	for _, r := range rows {
 		// Gürültü 0'da aynı kimlikler aynı sayıda örnek verir (O-4'ün uyuşması örnek sayısına da bakar).

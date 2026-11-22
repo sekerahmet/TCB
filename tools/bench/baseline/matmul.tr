@@ -42,7 +42,7 @@ TR_no_grad {
     }
 }
 TR_var median = TR_median(times)
-TR_var result: TR_Dict[TR_String, TR_JSON] = {"size": TR_JSON(n), "dtype": TR_JSON(dtype), "kernel": TR_JSON(kernel), "device": TR_JSON(device),
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"size": TR_JSON(n), "dtype": TR_JSON(dtype), "kernel": TR_JSON(kernel), "device": TR_JSON(device), "actual_device": TR_JSON(a.TR_device),
     "fill": TR_JSON(fill), "times_ms": TR_JSON(times), "first_ms": TR_JSON(times[0]), "median_ms": TR_JSON(median), "corner": TR_JSON(corner)}
 # Saatin adımından kısa çarpımda süre 0 okunur (Windows'ta ~0,5 ms; devir B11): hız ancak ölçülen süreyle yazılır.
 TR_if median > 0.0 { result["gflops"] = TR_JSON(2.0 * n * n * n / (median / 1000.0) / 1e9) }

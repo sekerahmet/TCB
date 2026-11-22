@@ -217,4 +217,7 @@ TR_no_grad {
         }
     }
 }
+# Ş2 (DENETİM 947): hesabın gerçek aygıtı: ölçülen işten sonra tek token'lık ileri geçişin logit'leri nerede.
+TR_var probe = TR_no_grad { call(q) { model.TR_logits(model.TR_hidden_states([[0]], TR_cache: model.TR_build_cache(TR_capacity: 4))) } }
+put(result, {"actual_device": TR_JSON(probe.TR_device)})
 TR_print("BASELINE \(TR_json_string(result))")

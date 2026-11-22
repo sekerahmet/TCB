@@ -349,7 +349,8 @@ cases = {
     "completion silent": (["llama-completion", "-ngl", "0"], {"stdout": "x", "stderr": ""}, {}),
     "whisper cpu": (["whisper-cli.exe", "-ng"], {"stdout": "", "stderr": "load_backend: loaded CPU backend from x\nwhisper_init: use gpu    = 0"}, {}),
     "whisper gpu asked cpu": (["whisper-cli", "-ng"], {"stdout": "", "stderr": "load_backend: loaded CUDA backend from x\nuse gpu    = 1"}, {}),
-    "tr cpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu"}),
+    "tr cpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "cpu"}),
+    "tr echo but gpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "gpu:0"}),
     "ref cuda asked cpu": (["python", "references.py", "lm", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "cuda"}),
     "ref silent": (["python", "references.py", "lm", "--device", "cpu"], {}, {"text": "a"}),
     "no device": (["compare", "fib"], {}, {}),
@@ -381,7 +382,8 @@ func TestBaselineDeviceCheck(t *testing.T) {
 			t.Errorf("%s: %q, want the run to pass", ok, got[ok])
 		}
 	}
-	for _, stop := range []string{"bench cuda asked cpu", "completion offloaded", "whisper gpu asked cpu", "ref cuda asked cpu"} {
+	// "tr echo but gpu": TR'nin device'ı komutun yankısı, actual_device bir tensörünkü (DENETİM 947 Ş2).
+	for _, stop := range []string{"bench cuda asked cpu", "completion offloaded", "whisper gpu asked cpu", "ref cuda asked cpu", "tr echo but gpu"} {
 		if !strings.Contains(got[stop], "device mismatch (aygıt uyuşmadı): ran on cuda") {
 			t.Errorf("%s: %q, want a device mismatch stop", stop, got[stop])
 		}
