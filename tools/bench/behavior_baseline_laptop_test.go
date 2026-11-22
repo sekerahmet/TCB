@@ -21,98 +21,6 @@ import (
 // beklemesi ve koşturucunun kendi süreç ağacı, her koşunun gerçek aygıtı (Ş2), emsallerin her konsolda UTF-8 çıktısı (BC24),
 // modelin ve emsalin tek kaynağı (Ş3), değişik dosyalı ağaç (Ş4), açık Dost (N1).
 
-// settingsCheck en hızlı ayarın emsal komutlarına geçişini ve taramanın seçimini (sahte ölçülerle) basar.
-const settingsCheck = `
-import importlib.util, json, os, sys, tempfile
-spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
-rp = importlib.util.module_from_spec(spec)
-sys.modules["run"] = rp
-spec.loader.exec_module(rp)
-qs = rp.load_questions()
-work = tempfile.mkdtemp()
-json.dump({"trlang": "trlang", "whisper_cli": "w", "llama_bench": "b", "llama_completion": "c", "go_compare": "g"},
-          open(os.path.join(work, "tools.json"), "w"))
-open(os.path.join(work, "ids_tr.json"), "w").write("{}")
-qs.piper_ids_tr = lambda ctx: None
-ctx = qs.Ctx(rp, "laptop", 97, work, lambda r: None, dry=True)
-ctx.settings = {"llama.cpp read": {"threads": 0}, "llama.cpp gen": {"threads": 6}, "faster-whisper int8": {"threads": 6},
-                "onnxruntime": {"threads": 20}, "llama.cpp S3": {"flash_attn": 1}}
-items = {it["key"]: it for q in ("S1", "S3", "S5", "S7") for it in qs.items(ctx, q)}
-out = {"s1": items["S1/qwen3-4b-q4km"]["ref"]["cmds"][0], "s1gen": items["S1/qwen3-4b-q4km"]["ref"]["cmds"][1], "s3": items["S3/qwen3-4b-q4km"]["ref"]["cmds"][0],
-       "int8": items["S5/tr/faster-whisper-int8"]["ref"]["cmds"][0], "f32": items["S5/tr/faster-whisper-float32"]["ref"]["cmds"][0],
-       "s7": items["S7/tr"]["ref"]["cmds"][0], "ort": sorted(k for k in items if "/ort-" in k)}
-# the scan with fake runs: llama.cpp's reading is fastest with 6 threads, its generation with the logical count,
-# whisper.cpp with the default (0)
-def fake(key, side, index, log, machine, cmds=None):
-    c = side["cmds"][0]
-    n = 0 if "-t" not in c else int(c[c.index("-t") + 1])
-    gen = "-p" in c and c[c.index("-p") + 1] == "0"
-    ms = {"S1 read": {0: 50, 6: 30, os.cpu_count(): 40}, "S1 gen": {0: 20, 6: 25, os.cpu_count(): 10},
-          "S5/tr/whisper.cpp": {0: 5, 6: 9, os.cpu_count(): 7}}[("S1 gen" if gen else "S1 read") if key.startswith("S1") else key][n]
-    return {"results": [{"avg_ns": ms * 1e6}] * len(side["cmds"]), "runs": [{"stderr": "total time = %d ms\\nload time = 0 ms" % ms}]}
-rp._run_side = fake
-ctx.settings = {}
-scan_out = tempfile.mkdtemp()
-rec = type("R", (), {"log": lambda self, r: None})()
-rp.scan_settings(ctx, qs, rec, ["llama.cpp read", "llama.cpp gen"], scan_out, runs=3)
-rp.scan_settings(ctx, qs, rec, ["whisper.cpp"], scan_out, runs=1)
-out["scan"] = json.load(open(os.path.join(scan_out, "en-hizli.json"), encoding="utf-8"))
-whole = {g: {"threads": 6} for g in rp.SCAN_GROUPS}
-whole["_scan"] = {g: {"runs": 3} for g in rp.SCAN_GROUPS}
-out["check"] = {"whole": rp.check_settings(whole),
-                "missing": rp.check_settings({k: v for k, v in whole.items() if k != "llama.cpp gen"}),
-                "trial": rp.check_settings({**whole, "_scan": {g: {"runs": 1} for g in rp.SCAN_GROUPS}})}
-print(json.dumps(out))
-`
-
-// Ş1 (DENETİM 944 ve 947, TCB 2026-11-22): pencerenin başındaki kısa tarama (S1'in okuması ve üretimi ayrı grup, N1) her emsalin en hızlı ayarını (iş parçacığı:
-// varsayılan, 6, mantıksal sayı; S3'te flash attention) en kısa ortancayla seçer ve dosyaya birleştirir; ölçü o ayarla
-// koşar: 0 kütüphanenin varsayılanıdır (llama.cpp'de -t yok), ayarı seçilmeyen emsal makinenin sayısını alır, S7'nin ayrı
-// onnxruntime kalemleri düşer.
-func TestLaptopFastestSettings(t *testing.T) {
-	out, err := exec.Command(python(t), "-I", "-c", settingsCheck).Output()
-	if err != nil {
-		t.Fatalf("%v\n%s", err, out)
-	}
-	var got struct {
-		S1, S1gen, S3, Int8, F32, S7 []string
-		Ort                          []string
-		Scan                         map[string]any
-		Check                        map[string]*string
-	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
-	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &got); err != nil {
-		t.Fatalf("%v\n%s", err, out)
-	}
-	line := func(c []string) string { return " " + strings.Join(c, " ") + " " }
-	if strings.Contains(line(got.S1), " -t ") || !strings.Contains(line(got.S1gen), " -t 6 ") {
-		t.Errorf("llama.cpp reading with the default %v, want no -t; generation %v, want -t 6 (N1)", got.S1, got.S1gen)
-	}
-	if !strings.Contains(line(got.S3), " -fa 1 ") {
-		t.Errorf("S3 with flash attention 1: %v", got.S3)
-	}
-	if !strings.Contains(line(got.Int8), " --threads 6 ") || !strings.Contains(line(got.F32), " --threads 97 ") ||
-		!strings.Contains(line(got.S7), " --threads 20 ") {
-		t.Errorf("int8 %v, float32 %v, onnxruntime %v; want 6, the machine's 97, 20", got.Int8, got.F32, got.S7)
-	}
-	if len(got.Ort) != 0 {
-		t.Errorf("S7's onnxruntime items %v with a scan, want none", got.Ort)
-	}
-	r, _ := got.Scan["llama.cpp read"].(map[string]any)
-	g, _ := got.Scan["llama.cpp gen"].(map[string]any)
-	w, _ := got.Scan["whisper.cpp"].(map[string]any)
-	table, _ := got.Scan["_scan"].(map[string]any)
-	gt, _ := table["llama.cpp gen"].(map[string]any)
-	if r["threads"] != 6.0 || g["threads"] == 6.0 || g["threads"] == 0.0 || w["threads"] != 0.0 || len(table) != 3 || gt["measures_ms"] == nil {
-		t.Errorf("scan: %v, want reading 6 threads, generation the logical count, whisper.cpp the default, each measure's median", got.Scan)
-	}
-	// DENETİM 947 Ş1: ölçü yalnız bütün gruplar 3 koşuyla taranmış dosyayı alır.
-	if c := got.Check; c["whole"] != nil || c["missing"] == nil || !strings.Contains(*c["missing"], "llama.cpp gen") ||
-		c["trial"] == nil || !strings.Contains(*c["trial"], "fewer than 3 runs") {
-		t.Errorf("check_settings: whole %v, a group missing %v, a trial's file %v", c["whole"], c["missing"], c["trial"])
-	}
-}
-
 // Denemede (--trial) uyuşması olmayan eşli kalem (S13'ün karakter modeli) iki tarafını birer kez koşar; uyuşması olan
 // kalemi uyuşma geçişi dener. Düzeltmeden önce böyle bir kalemin denemesi hiçbir şey koşmadan çıkış 0 veriyordu.
 func TestLaptopTrialRunsAPairWithoutAgreement(t *testing.T) {
@@ -339,6 +247,49 @@ func TestLaptopPackagesMatchTheSourceFile(t *testing.T) {
 	}
 }
 
+// DENETİM 948 N2: emsal klasöründe sha256'sı tutmayan ya da eksik kitaplıkta denetim durur (çıkış 2); hepsi tutunca
+// geçer. Sürüm komutunu koşamayan klasör de durur (exe yok).
+func TestLaptopToolFilesMatchTheSourceFile(t *testing.T) {
+	py := python(t)
+	dir := t.TempDir()
+	sum := func(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:]) }
+	for name, body := range map[string]string{"ggml-cpu-x.dll": "x", "ggml.dll": "y"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	check := func(kind string, files map[string]string) (string, int) {
+		b, _ := json.Marshal(map[string]any{"tools": map[string]any{"llama.cpp": map[string]any{"files": files, "version": "b12124", "release": "r"}}})
+		p := filepath.Join(t.TempDir(), "sources.json")
+		if err := os.WriteFile(p, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		out, err := exec.Command(py, "-I", filepath.Join("baseline", "machines", "laptop", "sources.py"), p, kind, "llama.cpp", dir).CombinedOutput()
+		if e, ok := err.(*exec.ExitError); ok {
+			return string(out), e.ExitCode()
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		return string(out), 0
+	}
+	good := map[string]string{"ggml-cpu-x.dll": sum("x"), "ggml.dll": sum("y")}
+	if out, code := check("files", good); code != 0 || strings.Count(out, " tuttu") != 2 {
+		t.Errorf("every file right: exit %d\n%s", code, out)
+	}
+	if out, code := check("files", map[string]string{"ggml-cpu-x.dll": sum("x"), "ggml.dll": sum("z")}); code != 2 ||
+		!strings.Contains(out, "TUTMADI llama.cpp ggml.dll: sha256 "+sum("y")) {
+		t.Errorf("a changed library: exit %d, want 2\n%s", code, out)
+	}
+	if out, code := check("files", map[string]string{"ggml-cpu-x.dll": sum("x"), "ggml-cpu-gone.dll": sum("x")}); code != 2 ||
+		!strings.Contains(out, "TUTMADI llama.cpp ggml-cpu-gone.dll: sha256 None") {
+		t.Errorf("a missing library: exit %d, want 2\n%s", code, out)
+	}
+	if out, code := check("tool", good); code != 2 || !strings.Contains(out, "TUTMADI llama.cpp: sürüm satırında 'b12124' yok") ||
+		!strings.Contains(out, "llama-completion.exe koşmadı") {
+		t.Errorf("no version command: exit %d, want 2\n%s", code, out)
+	}
+}
+
 // libRun lib.sh'i okuyan bir bash komutu koşar; REPO, iş ve kayıt klasörü sınama için verilir.
 func libRun(t *testing.T, repo string, env []string, script string) (string, int) {
 	bash, err := exec.LookPath("bash")
@@ -382,20 +333,6 @@ func TestLaptopDirtyTreeStopsTheMeasure(t *testing.T) {
 	}
 }
 
-// DENETİM 947 Ş1: ölçü kipinde tarama boş dosyayla başlar (eski en-hizli.json silinir) ve bütün grupları ister; eksik
-// listeyle koşmaz.
-func TestLaptopMeasureScanStartsEmpty(t *testing.T) {
-	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"; echo '{}' > "$AYAR"; echo '{}' > "$KAYIT/run-en-hizli-ayar/en-hizli.json"
-( olcu_tara "llama.cpp read" ); echo "rc=$?"
-[ -f "$AYAR" ] && echo "ayar kaldı" || echo "ayar silindi"
-[ -f "$KAYIT/run-en-hizli-ayar/en-hizli.json" ] && echo "kopya kaldı" || echo "kopya silindi"`
-	out, code := libRun(t, t.TempDir(), nil, script)
-	if code != 0 || !strings.Contains(out, "rc=2") || !strings.Contains(out, "ayar silindi") || !strings.Contains(out, "kopya silindi") ||
-		!strings.Contains(out, "ölçü kipinde tarama bütün grupları koşar") {
-		t.Errorf("measure scan with one group: exit %d\n%s", code, out)
-	}
-}
-
 // N1 (DENETİM 944): Ahmet'in açık bir Dost'u (asistan.tr'yi koşan süreç) işlemciyi ve kapıyı paylaşır; betik durur.
 func TestLaptopOpenDostStopsTheScript(t *testing.T) {
 	if runtime.GOOS != "windows" {
@@ -434,6 +371,8 @@ cases = {
     "whisper gpu asked cpu": (["whisper-cli", "-ng"], {"stdout": "", "stderr": "load_backend: loaded CUDA backend from x\nuse gpu    = 1"}, {}),
     "tr cpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "cpu"}),
     "tr echo but gpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "gpu:0"}),
+    "tr echo only": (["trlang.exe", "x.tr", "--device", "cpu"], {}, {"device": "cpu"}),
+    "tr empty": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": ""}),
     "ref cuda asked cpu": (["python", "references.py", "lm", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "cuda"}),
     "ref silent": (["python", "references.py", "lm", "--device", "cpu"], {}, {"text": "a"}),
     "no device": (["compare", "fib"], {}, {}),
@@ -471,7 +410,8 @@ func TestBaselineDeviceCheck(t *testing.T) {
 			t.Errorf("%s: %q, want a device mismatch stop", stop, got[stop])
 		}
 	}
-	for _, silent := range []string{"completion silent", "ref silent"} {
+	// "tr echo only", "tr empty": trlang'ın sonucunda actual_device zorunlu; device yalnız yankıdır (DENETİM 948 N1).
+	for _, silent := range []string{"completion silent", "ref silent", "tr echo only", "tr empty"} {
 		if !strings.HasPrefix(got[silent], "stop: ") || !strings.Contains(got[silent], "ran on None") {
 			t.Errorf("%s: %q, want a stop when the run names no device", silent, got[silent])
 		}

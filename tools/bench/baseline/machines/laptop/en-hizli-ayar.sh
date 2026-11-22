@@ -5,13 +5,15 @@
 # temsil kalemiyle bir ısınma + 3 koşu koşar; ölçülerin toplamının ortancası en kısa olan seçilir, tablo ölçü başına ortancayı
 # da yazar. Gruplar ve kalemleri: llama.cpp read ve gen (S1/qwen3-4b-q4km), llama.cpp S3 (S3/qwen3-4b-q4km), faster-whisper
 # float32 ve int8 (S5/tr), whisper.cpp (S5/tr), onnxruntime (S7/tr). Seçim ve tablo kayıt kökündeki en-hizli.json'a; öbür
-# betikler ölçüyü o ayarla koşar (lib.sh olcu_kos --settings) ve dosyayı kendi kaydına koyar. Ölçü kipinde tarama boş dosyayla
-# başlar, bütün grupları koşar, dosyayı yalnız hepsi bitince yazar; ölçü yalnız bütün grupları 3 koşuyla taranmış dosyayı alır
-# (DENETİM 947 Ş1). Süre ~10 dk [tahmin]. Deneme kipinde her ayar bir kez, ısınmasız; 2 dakikaya sığması için gruplar
+# betikler ölçüyü o ayarla koşar (lib.sh olcu_kos --settings) ve dosyayı kendi kaydına koyar. Ölçü kipinde ilk adım eski
+# dosyayı siler (hazırlıkta düşen tarama eski pencerenin ayarını bırakmaz), tarama bütün grupları koşar, dosyayı yalnız hepsi
+# bitince commit'iyle yazar; ölçü yalnız kendi commit'inde bütün grupları 3 koşuyla taranmış dosyayı alır (DENETİM 947 ve
+# 948 Ş1). Süre ~10 dk [tahmin]. Deneme kipinde her ayar bir kez, ısınmasız; 2 dakikaya sığması için gruplar
 # argümanla tek tek verilebilir.
 #   bash tools/bench/baseline/machines/laptop/en-hizli-ayar.sh [grup...]
 . "$(dirname "$0")/lib.sh"
 [ $# -gt 0 ] || set -- "${TARA_GRUPLARI[@]}"
+olcu_tara_basla "$@"
 olcu_kur "llama_bench=$LLAMA/llama-bench.exe" "llama_completion=$LLAMA/llama-completion.exe" "whisper_cli=$WHISPER/whisper-cli.exe"
 gruplar=" $* "  # yalnız istenen grupların modelleri ve araçları (deneme 2 dakikaya sığsın)
 if [[ $gruplar == *" llama.cpp"* ]]; then

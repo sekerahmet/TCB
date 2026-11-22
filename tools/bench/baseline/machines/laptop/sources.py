@@ -1,6 +1,7 @@
 """Dizüstü ölçü betiklerinin emsal denetimi (machines/laptop/lib.sh olcu_arac, olcu_surum; Ş3, DENETİM 944): emsal ikilisinin
 sha256'sı ve sürüm satırı, Python paketlerinin sürümü sources.json'dakiyle aynı olmalı; farklıysa ya da yoksa çıkış 2.
     python -I sources.py <sources.json> tool <llama.cpp|whisper.cpp> <dizin>
+    python -I sources.py <sources.json> files <llama.cpp|whisper.cpp> <dizin>   (yalnız sha256'lar)
     python -I sources.py <sources.json> python <paket>...
 """
 import hashlib, importlib.metadata as md, json, os, subprocess, sys
@@ -19,7 +20,7 @@ def sha256(path):
 
 
 bad = []
-if kind == "tool":
+if kind in ("tool", "files"):  # files: yalnız sha256'lar (DENETİM 948 N2: sürüm komutu bir exe ister, test exe'siz sınar)
     name, folder = rest
     t = s["tools"][name]
     for f, want in t["files"].items():
@@ -29,11 +30,16 @@ if kind == "tool":
             bad.append(f"{name} {f}: sha256 {got} != {want} ({p})")
         else:
             print(f"{name} {f}: sha256 {got[:12]} tuttu")
+if kind == "tool":
     exe, flag = VERSION_CMD[name]
-    r = subprocess.run([os.path.join(folder, exe), flag], capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    line = next((l for l in (r.stdout + r.stderr).splitlines() if t["version"] in l), None)
+    try:
+        r = subprocess.run([os.path.join(folder, exe), flag], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        said = r.stdout + r.stderr
+    except OSError as e:
+        said = f"{exe} koşmadı: {e}"
+    line = next((l for l in said.splitlines() if t["version"] in l), None)
     if line is None:
-        bad.append(f"{name}: sürüm satırında {t['version']!r} yok: {(r.stdout + r.stderr).strip()[-200:]!r}")
+        bad.append(f"{name}: sürüm satırında {t['version']!r} yok: {said.strip()[-200:]!r}")
     else:
         print(f"{name} sürüm: {line.strip()} ({t['release']})")
 elif kind == "python":

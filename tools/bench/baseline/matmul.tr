@@ -26,9 +26,12 @@ TR_default_device(device)
 TR_var a = TR_if fill == "ones" { TR_ones([n, n], TR_dtype: dtype) } TR_else { TR_randn([n, n], TR_dtype: dtype, TR_seed: 1) }
 TR_var b = TR_if fill == "ones" { TR_ones([n, n], TR_dtype: dtype) } TR_else { TR_randn([n, n], TR_dtype: dtype, TR_seed: 2) }
 
-# multiply: bir çarpım ve sonucun köşe öğesi (okuma eşitlemedir).
+# multiply: bir çarpım ve sonucun köşe öğesi (okuma eşitlemedir). Çarpımın aygıtı actual_device'a gider (DENETİM 948 Ş2):
+# girdi varsayılan aygıtta açılır, sonuç hesabın koştuğu aygıttadır.
+TR_var product_device = ""
 TR_func multiply() -> TR_Float {
     TR_var c = TR_if kernel == "vendor" { TR_vendor_matmul { a @ b } } TR_else { a @ b }
+    product_device = c.TR_device
     TR_return c[n - 1][n - 1].TR_tolist
 }
 
@@ -42,7 +45,7 @@ TR_no_grad {
     }
 }
 TR_var median = TR_median(times)
-TR_var result: TR_Dict[TR_String, TR_JSON] = {"size": TR_JSON(n), "dtype": TR_JSON(dtype), "kernel": TR_JSON(kernel), "device": TR_JSON(device), "actual_device": TR_JSON(a.TR_device),
+TR_var result: TR_Dict[TR_String, TR_JSON] = {"size": TR_JSON(n), "dtype": TR_JSON(dtype), "kernel": TR_JSON(kernel), "device": TR_JSON(device), "actual_device": TR_JSON(product_device),
     "fill": TR_JSON(fill), "times_ms": TR_JSON(times), "first_ms": TR_JSON(times[0]), "median_ms": TR_JSON(median), "corner": TR_JSON(corner)}
 # Saatin adımından kısa çarpımda süre 0 okunur (Windows'ta ~0,5 ms; devir B11): hız ancak ölçülen süreyle yazılır.
 TR_if median > 0.0 { result["gflops"] = TR_JSON(2.0 * n * n * n / (median / 1000.0) / 1e9) }

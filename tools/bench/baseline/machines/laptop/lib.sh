@@ -109,18 +109,23 @@ olcu_kos() {
   return $rc
 }
 
+# olcu_tara_basla <grup>...: en-hizli-ayar.sh'in İLK adımı (DENETİM 948 Ş1), hazırlıktan önce. Ölçü kipinde eski
+# en-hizli.json'lar silinir ve bütün gruplar istenir: tarama hazırlıkta (derleme, model, emsal) düşse de eski pencerenin
+# dosyası ölçüye geçmez; öbür betikler dosya yoksa ölçmez (olcu_kos). Denemede dosyaya dokunulmaz.
+TARA_GRUPLARI=("llama.cpp read" "llama.cpp gen" "llama.cpp S3" "faster-whisper float32" "faster-whisper int8" "whisper.cpp" "onnxruntime")
+olcu_tara_basla() {
+  [ "${OLCU_DENEME:-}" = 1 ] && return 0
+  rm -f "$AYAR" "$KAYIT/run-en-hizli-ayar/en-hizli.json"
+  [ "$*" = "${TARA_GRUPLARI[*]}" ] || { olcu "ölçü kipinde tarama bütün grupları koşar: ${TARA_GRUPLARI[*]}"; exit 2; }
+}
+
 # olcu_tara <grup>...: Ş1'in kısa taraması (run.py --scan): her grubun en hızlı ayarı en-hizli.json'a (var olana eklenir;
 # gruplar ayrı komutlarla da koşabilir). Kural koşudan önce yazılı: varsayılan, 6 ve mantıksal sayı (S3'te -fa 0 ve 1),
-# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız. Ölçü kipinde (DENETİM 947 Ş1) tarama boş dosyayla
-# başlar (eski en-hizli.json'lar silinir), bütün grupları ister ve dosyayı yalnız hepsi bitince yazar: yarım kalan
-# tarama, deneme ya da eski pencere ölçüye ayar vermez.
-TARA_GRUPLARI=("llama.cpp read" "llama.cpp gen" "llama.cpp S3" "faster-whisper float32" "faster-whisper int8" "whisper.cpp" "onnxruntime")
+# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız. Ölçü kipinde tarama olcu_tara_basla'nın boşalttığı
+# yerde başlar ve dosyayı yalnız hepsi bitince yazar; dosya taramanın commit'ini taşır, ölçü yalnız kendi commit'inin
+# bütün taramasını alır (run.py check_settings; DENETİM 947 ve 948 Ş1).
 olcu_tara() {
   local r="$KAYIT/run-en-hizli-ayar"; mkdir -p "$r"
-  if [ "${OLCU_DENEME:-}" != 1 ]; then
-    rm -f "$AYAR" "$r/en-hizli.json"
-    [ "$*" = "${TARA_GRUPLARI[*]}" ] || { olcu "ölçü kipinde tarama bütün grupları koşar: ${TARA_GRUPLARI[*]}"; exit 2; }
-  fi
   olcu_dost_yok
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null

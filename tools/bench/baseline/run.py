@@ -377,7 +377,9 @@ def expected_device(cmd):
 def actual_device(cmd, run, parsed):
     """The device a run really used, from its own output, and where it was read: llama-bench's JSON (backends,
     n_gpu_layers), llama-completion's log (layers offloaded to the GPU), whisper-cli's log (use gpu, the loaded
-    backends), else the result's actual_device (the references: the model's own device) or device (TR's programs)."""
+    backends), else the result's actual_device (the references: the model's own device; TR's programs: a tensor's own
+    device) or a reference's device. A TR program's device is its command's echo, so trlang's result must name
+    actual_device (DENETİM 948 N1)."""
     name = os.path.basename(str(cmd[0])).lower()
     if name.startswith("llama-bench"):
         row = json.loads(run["stdout"][run["stdout"].index("["):])[0]
@@ -398,9 +400,11 @@ def actual_device(cmd, run, parsed):
             return None, "whisper-cli printed no 'use gpu'"
         gpu = m.group(1) == "1" and any(b != "CPU" for b in loaded)
         return ("cuda" if gpu else "cpu"), f"whisper-cli use gpu = {m.group(1)}, loaded {loaded}"
-    d = (parsed.get("actual_device") or parsed.get("device")) if isinstance(parsed, dict) else None
-    if d is None:
+    if not isinstance(parsed, dict):
         return None, "the result names no device"
+    d = parsed.get("actual_device") if name.startswith("trlang") else (parsed.get("actual_device") or parsed.get("device"))
+    if not d:
+        return None, "TR's result names no actual_device" if name.startswith("trlang") else "the result names no device"
     d = str(d).lower()
     return ("cuda" if d.startswith(("cuda", "gpu")) else "cpu" if d.startswith("cpu") else d), \
         f"result {'actual_device' if parsed.get('actual_device') else 'device'} {d}"
@@ -619,6 +623,18 @@ class Record:
 def run_questions(a):
     qs = load_questions()
     rec = Record(a.out)
+    doc = None
+    if a.settings:  # Ş1: the window's scan's choice (en-hizli.json); it goes with the run's record
+        with open(a.settings, encoding="utf-8") as f:
+            doc = json.load(f)
+        rec.log({"settings": {k: v for k, v in doc.items() if not k.startswith("_")}, "settings_file": a.settings,
+                 "scan": doc.get("_scan"), "scan_commit": doc.get("_commit")})
+        reason = None if (a.trial or a.agreement or a.scan) else check_settings(doc, head_commit())
+        if reason:  # a measure, not a trial: only a whole scan of this commit (DENETİM 947 and 948 Ş1)
+            rec.log({"stopped": reason})
+            rec.save()
+            print(f"STOPPED: {reason}", flush=True)
+            return STOP
     with open(os.path.join(a.work, "tools.json"), encoding="utf-8") as f:
         trlang = json.load(f)["trlang"]
     threads = threads_from_tr([trlang, os.path.join(BASE, "matmul.tr"), "--size", "512", "--repeat", "2"])
@@ -626,17 +642,8 @@ def run_questions(a):
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
-    if a.settings:  # Ş1: the window's scan's choice (en-hizli.json); it goes with the run's record
-        with open(a.settings, encoding="utf-8") as f:
-            doc = json.load(f)
+    if doc is not None:
         ctx.settings = {k: v for k, v in doc.items() if not k.startswith("_")}
-        rec.log({"settings": ctx.settings, "settings_file": a.settings, "scan": doc.get("_scan")})
-        reason = None if (a.trial or a.agreement or a.scan) else check_settings(doc)
-        if reason:  # a measure, not a trial: only a whole scan (DENETİM 947 Ş1)
-            rec.log({"stopped": reason})
-            rec.save()
-            print(f"STOPPED: {reason}", flush=True)
-            return STOP
     if a.scan:
         try:
             return scan_settings(ctx, qs, rec, a.scan, a.out, runs=1 if a.trial else 3)
@@ -700,14 +707,23 @@ SCAN_GROUPS = [g for g, _, _, _ in SCAN]
 SCAN_RUNS = 3
 
 
-def check_settings(doc):
-    """Ş1 (DENETİM 947): a measure takes en-hizli.json only from a whole scan: every group chosen and timed with SCAN_RUNS
-    runs (a trial's file has one run per setting; a scan cut short leaves groups out). The reason, or None."""
+def head_commit():
+    """The commit the code runs from (git rev-parse HEAD), or None outside a git checkout."""
+    r = subprocess.run(["git", "-C", BASE, "rev-parse", "HEAD"], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def check_settings(doc, commit):
+    """Ş1 (DENETİM 947 and 948): a measure takes en-hizli.json only from a whole scan of its own commit: every group
+    chosen and timed with SCAN_RUNS runs (a trial's file has one run per setting; a scan cut short leaves groups out),
+    scanned at the commit the measure runs (a file left by an earlier window carries its own). The reason, or None."""
     table = doc.get("_scan", {})
     missing = [g for g in SCAN_GROUPS if g not in doc]
     short = [g for g in SCAN_GROUPS if g in doc and table.get(g, {}).get("runs", 0) < SCAN_RUNS]
     if missing or short:
         return f"en-hizli.json is not a whole scan: groups missing {missing}, fewer than {SCAN_RUNS} runs {short}"
+    if commit is None or doc.get("_commit") != commit:
+        return f"en-hizli.json was scanned at commit {doc.get('_commit')}, this measure runs {commit}: scan again"
     return None
 
 
@@ -751,6 +767,7 @@ def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS):
         table[group] = {"medians_ms": {str(k): v for k, v in meds.items()},
                         "measures_ms": {str(k): v for k, v in each.items()}, "runs": runs, "chosen": best}
         rec.log({"scan": group, **table[group]})
+        res["_commit"] = head_commit()  # DENETİM 948 Ş1: a measure takes only its own commit's scan
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(res, f, indent=1)
     print(json.dumps({k: v for k, v in res.items() if not k.startswith("_")}), flush=True)
