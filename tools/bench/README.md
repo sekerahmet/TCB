@@ -160,7 +160,7 @@ python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF
 
 ## Temel ölçü seti
 
-[`baseline/`](baseline/README.md): TR'nin hızı ve belleği her makinede emsalleriyle, tek yöntemle (S1–S14); hız ve bellek ölçüsü bu koşturucuyla yapılır, testleri `behavior_baseline_test.go`, `behavior_baseline_programs_test.go` ve `behavior_baseline_colab_test.go`.
+[`baseline/`](baseline/README.md): TR'nin hızı ve belleği her makinede emsalleriyle, tek yöntemle (S1–S14); hız ve bellek ölçüsü bu koşturucuyla yapılır, testleri `behavior_baseline_test.go`, `behavior_baseline_programs_test.go`, `behavior_baseline_colab_test.go` ve `behavior_baseline_laptop_test.go`.
 
 ## CPU temel ölçümü
 

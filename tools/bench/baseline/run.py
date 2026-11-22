@@ -354,7 +354,68 @@ def _run_side(question, side, index, log, machine, cmds=None):
             raise Stop(f"{question}: {side['name']} failed (exit {run['rc']}): {run['stderr'].strip()[-400:]}")
         runs.append(run)
         results.append(parse(run["stdout"]))
+        check_device(question, side["name"], cmd, run, results[-1], log, index)
     return {"runs": runs, "results": results}
+
+
+GPU_BACKENDS = ("CUDA", "Vulkan", "Metal", "SYCL", "HIP", "MUSA", "OpenCL", "CANN")
+
+
+def expected_device(cmd):
+    """Ş2 (DENETİM 944; TCB 2026-11-19 20:39): the device a command asks for, from the command itself: --device's
+    value; llama.cpp's -ngl (0: the processor); whisper-cli's -ng (the processor). None: the command names none."""
+    name = os.path.basename(str(cmd[0])).lower() if cmd else ""
+    if name.startswith("llama-"):
+        return "cpu" if "-ngl" in cmd and str(cmd[cmd.index("-ngl") + 1]) == "0" else "cuda"
+    if name.startswith("whisper-cli"):
+        return "cpu" if "-ng" in cmd else "cuda"
+    if "--device" in cmd:
+        return "cuda" if str(cmd[cmd.index("--device") + 1]).startswith("cuda") else "cpu"
+    return None
+
+
+def actual_device(cmd, run, parsed):
+    """The device a run really used, from its own output, and where it was read: llama-bench's JSON (backends,
+    n_gpu_layers), llama-completion's log (layers offloaded to the GPU), whisper-cli's log (use gpu, the loaded
+    backends), else the result's actual_device (the references: the model's own device) or device (TR's programs)."""
+    name = os.path.basename(str(cmd[0])).lower()
+    if name.startswith("llama-bench"):
+        row = json.loads(run["stdout"][run["stdout"].index("["):])[0]
+        gpu = (row.get("n_gpu_layers") or 0) > 0 and any(b in str(row.get("backends")) for b in GPU_BACKENDS)
+        return ("cuda" if gpu else "cpu"), f"llama-bench backends {row.get('backends')}, n_gpu_layers {row.get('n_gpu_layers')}"
+    if name.startswith("llama-completion"):
+        m = re.search(r"offloaded (\d+)/(\d+) layers to GPU", run["stderr"])
+        sysinfo = re.search(r"system_info:[^\n]*", run["stderr"])
+        backends = re.findall(r"\| (\w+) :", sysinfo.group(0)) if sysinfo else []
+        if not m and not sysinfo:
+            return None, "llama-completion printed no system_info"
+        gpu = bool(m and int(m.group(1)) > 0)
+        return ("cuda" if gpu else "cpu"), f"llama-completion {m.group(0) if m else 'no layer offloaded'}, backends {backends}"
+    if name.startswith("whisper-cli"):
+        m = re.search(r"use gpu\s*=\s*(\d)", run["stderr"])
+        loaded = re.findall(r"load_backend: loaded (\w+) backend", run["stderr"])
+        if not m:
+            return None, "whisper-cli printed no 'use gpu'"
+        gpu = m.group(1) == "1" and any(b != "CPU" for b in loaded)
+        return ("cuda" if gpu else "cpu"), f"whisper-cli use gpu = {m.group(1)}, loaded {loaded}"
+    d = (parsed.get("actual_device") or parsed.get("device")) if isinstance(parsed, dict) else None
+    if d is None:
+        return None, "the result names no device"
+    d = str(d).lower()
+    return ("cuda" if d.startswith(("cuda", "gpu")) else "cpu" if d.startswith("cpu") else d), \
+        f"result {'actual_device' if parsed.get('actual_device') else 'device'} {d}"
+
+
+def check_device(question, side, cmd, run, parsed, log, index):
+    """Ş2: every run's real device is read from its own output and logged; a run that did not use the device its
+    command asks for, or does not say, stops the item: a row whose devices are not checked is not written."""
+    want = expected_device(cmd)
+    if want is None:
+        return
+    got, how = actual_device(cmd, run, parsed)
+    log({"question": question, "side": side, "index": index, "device": got, "device_from": how})
+    if got != want:
+        raise Stop(f"{question}: {side}: device mismatch (aygıt uyuşmadı): ran on {got} ({how}), the command asks {want}")
 
 
 REFERENCES = os.path.join(BASE, "references.py")

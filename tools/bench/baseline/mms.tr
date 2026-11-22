@@ -83,5 +83,5 @@ TR_if wav != "" {
 }
 TR_var result: TR_Dict[TR_String, TR_JSON] = {"device": TR_JSON(device), "language": TR_JSON(language), "noise": TR_JSON(noise), "load_ms": TR_JSON(load_ms),
     "sentences": TR_JSON(rows), "first_ms": rows[0]["ms"], "total_ms": TR_JSON(total_ms), "samples": TR_JSON(samples), "sample_rate": TR_JSON(rate),
-    "audio_s": TR_JSON(audio_s), "audio_per_compute": TR_JSON(audio_s / (total_ms / 1000.0))}
+    "audio_s": TR_JSON(audio_s), "audio_per_compute": TR_if total_ms > 0.0 { TR_JSON(audio_s / (total_ms / 1000.0)) } TR_else { TR_JSON(TR_none) }}
 TR_print("BASELINE \(TR_json_string(result))")

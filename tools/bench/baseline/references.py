@@ -27,6 +27,11 @@ def now_ms():
     return time.perf_counter() * 1000
 
 
+def model_device(model):
+    """Where the model's weights really are (Ş2, DENETİM 944): torch's parameter device, not the requested one."""
+    return next(model.parameters()).device.type
+
+
 def emit(result):
     # Koşturucu çıktıyı UTF-8 okur (run.py run_once); Windows'ta borunun kodlaması cp1254'tür ve `python -I`
     # PYTHONIOENCODING'i yok sayar: dizüstünde Whisper'ın Türkçe metni bozuldu, S5'in uyuşması 58 sözcük ayrı çıktı.
@@ -120,6 +125,7 @@ def lm(a):
     else:
         result.update({"prompt_tokens": P, "tokens": made, "text": tok.decode(made)})
     result["versions"] = versions("torch", "transformers")
+    result["actual_device"] = model_device(model)
     emit(result)
 
 
@@ -153,7 +159,7 @@ def whisper_hf(a):
     ms = now_ms() - b
     emit({"device": a.device, "language": a.language, "load_ms": load_ms, "audio_s": len(audio) / rate,
           "transcribe_ms": ms, "audio_per_compute": len(audio) / rate / (ms / 1000), "text": text,
-          "versions": versions("torch", "transformers")})
+          "versions": versions("torch", "transformers"), "actual_device": model_device(model)})
 
 
 def faster_whisper(a):
@@ -170,7 +176,8 @@ def faster_whisper(a):
     ms = now_ms() - b
     emit({"device": a.device, "language": a.language, "compute_type": a.compute_type, "load_ms": load_ms,
           "audio_s": len(audio) / rate, "transcribe_ms": ms, "audio_per_compute": len(audio) / rate / (ms / 1000),
-          "segments": len(parts), "text": "".join(parts), "versions": versions("faster_whisper", "ctranslate2")})
+          "segments": len(parts), "text": "".join(parts), "versions": versions("faster_whisper", "ctranslate2"),
+          "actual_device": model.model.device})
 
 
 # ---------------------------------------------------------------- S6, S7: text to speech
@@ -225,7 +232,7 @@ def mms(a):
             wave = model(input_ids=ids, attention_mask=torch.ones_like(ids)).waveform[0].float().cpu().numpy()
             wave = peak(wave)
             rows.append({"ms": now_ms() - b, "samples": int(wave.size)})
-    extra = {"versions": versions("torch", "transformers")}
+    extra = {"versions": versions("torch", "transformers"), "actual_device": model_device(model)}
     if a.count_random:
         extra["random_calls"] = calls
     emit(voice_result(a, rows, model.config.sampling_rate, load_ms, extra))
@@ -263,7 +270,8 @@ def piper(a):
         wave = peak(session.run(None, feed)[0].reshape(-1))
         rows.append({"ms": now_ms() - b, "samples": int(wave.size), "ids": int(ids.shape[1])})
     emit(voice_result(a, rows, config["audio"]["sample_rate"], load_ms,
-                      {"providers": session.get_providers(), "versions": versions("onnxruntime", "numpy")}))
+                      {"providers": session.get_providers(), "versions": versions("onnxruntime", "numpy"),
+                       "actual_device": "cuda" if session.get_providers()[0] == "CUDAExecutionProvider" else "cpu"}))
 
 
 # ---------------------------------------------------------------- S12: matmul
