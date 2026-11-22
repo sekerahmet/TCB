@@ -206,8 +206,9 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 			}
 		}
 		Tools map[string]struct {
-			Version string
-			Files   map[string]string
+			Version, Release, Asset string
+			AssetSha256             string `json:"asset_sha256"`
+			Files                   map[string]string
 		}
 		Python map[string]struct{ Version string }
 	}
@@ -252,6 +253,23 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 	}
 	if seen < 30 {
 		t.Errorf("%d model bindings read from %d scripts; the parser lost them", seen, len(scripts))
+	}
+	// DENETİM 947 Ş3: emsalin sürüm dosyası adıyla ve sha256'sıyla; hesabı yapan arka uç kitaplıkları (ggml-cpu-*.dll)
+	// ikililerle birlikte sha256'larıyla denetlenir.
+	for name, tool := range src.Tools {
+		backend := 0
+		for f, sum := range tool.Files {
+			if len(sum) != 64 {
+				t.Errorf("sources.json %s %s: sha256 %q", name, f, sum)
+			}
+			if strings.HasPrefix(f, "ggml-cpu") && strings.HasSuffix(f, ".dll") {
+				backend++
+			}
+		}
+		if backend == 0 || tool.Asset == "" || len(tool.AssetSha256) != 64 || tool.Release == "" {
+			t.Errorf("sources.json %s: %d backend libraries, release %q, asset %q (%q); want both named with their sha256",
+				name, backend, tool.Release, tool.Asset, tool.AssetSha256)
+		}
 	}
 }
 
