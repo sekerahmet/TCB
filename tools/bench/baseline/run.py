@@ -428,7 +428,9 @@ THREAD_FLAGS = {"llama-bench": "-t", "llama-completion": "-t", "whisper-cli": "-
 
 def reference_cmd(name, threads, binary=None, argv=()):
     """The command of one reference with the machine's thread number; the only place the number is given."""
-    t = [THREAD_FLAGS[name], str(threads)]
+    # 0 is the library's own default (Ş1's scan): onnxruntime and faster-whisper take 0 themselves; llama.cpp and
+    # whisper-cli get no -t at all.
+    t = [] if threads == 0 and name in ("llama-bench", "llama-completion", "whisper-cli") else [THREAD_FLAGS[name], str(threads)]
     if name == "llama-bench":
         return [binary, *argv, "-r", "1", "--no-warmup", *t, "-o", "json"]
     if name == "llama-completion":
@@ -624,6 +626,18 @@ def run_questions(a):
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
+    if a.settings:  # Ş1: the window's scan's choice (en-hizli.json); it goes with the run's record
+        with open(a.settings, encoding="utf-8") as f:
+            ctx.settings = {k: v for k, v in json.load(f).items() if not k.startswith("_")}
+        rec.log({"settings": ctx.settings, "settings_file": a.settings})
+    if a.scan:
+        try:
+            return scan_settings(ctx, qs, rec, a.scan, a.out, runs=1 if a.trial else 3)
+        except Stop as e:
+            rec.log({"stopped": str(e)})
+            rec.save()
+            print(f"STOPPED: {e}", flush=True)
+            return STOP
     for kv in a.epsilon or []:  # BC17: ε for weights without TR's quantized path, written in the run script
         key, _, value = kv.partition("=")
         try:
@@ -659,6 +673,58 @@ def run_questions(a):
         print(f"STOPPED: {e}", flush=True)
         return STOP
     rec.save()
+    return 0
+
+
+# Ş1 (DENETİM 944, TCB 2026-11-22 13:37): at the window's start each reference's thread number is chosen by a short scan:
+# the library's default (0), 6 and the machine's logical processors; S3's llama-bench also flash attention 0 and 1 at the
+# chosen threads, at depth 700 only. Each setting runs its group's item once to warm, then `runs` times; the setting with
+# the shortest median of the item's measures (summed) is chosen. The rule is written before the run; the table and the
+# choice go to en-hizli.json and every run's record.
+SCAN = [("llama.cpp", "S1", "S1/qwen3-4b-q4km"), ("faster-whisper float32", "S5", "S5/tr/faster-whisper-float32"),
+        ("faster-whisper int8", "S5", "S5/tr/faster-whisper-int8"), ("whisper.cpp", "S5", "S5/tr/whisper.cpp"),
+        ("onnxruntime", "S7", "S7/tr")]
+
+
+def time_side(ctx, side, key, log, runs, warm=True):
+    """One setting's median: the side's measures summed per run, after one warm-up run."""
+    if warm:
+        _run_side(key, side, "scan warmup", log, ctx.machine)
+    got = []
+    for i in range(runs):
+        r = _run_side(key, side, f"scan {i}", log, ctx.machine)
+        got.append(sum(side["measure"](r["results"], r["runs"]).values()))
+    return statistics.median(got)
+
+
+def scan_settings(ctx, qs, rec, groups, out, runs=3):
+    """Ş1's scan of the named groups; merges into out/en-hizli.json, so the groups can run as separate commands."""
+    path = os.path.join(out, "en-hizli.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            res = json.load(f)
+    except OSError:
+        res = {}
+    table = res.setdefault("_scan", {})
+    for group, q, key in SCAN + [("llama.cpp S3", "S3", "S3/qwen3-4b-q4km")]:
+        if group not in groups:
+            continue
+        values = [0, 1] if group == "llama.cpp S3" else [0, 6, os.cpu_count()]
+        meds = {}
+        for v in values:
+            ctx.settings = {k: x for k, x in res.items() if not k.startswith("_")}
+            ctx.settings[group] = {"flash_attn": v} if group == "llama.cpp S3" else {"threads": v}
+            it = next(i for i in qs.items(ctx, q) if i["key"] == key)
+            side = dict(it["ref"], cmds=it["ref"]["cmds"][:1]) if group == "llama.cpp S3" else it["ref"]
+            meds[v] = time_side(ctx, side, key, rec.log, runs, warm=runs > 1)
+            print(f"{group} {'flash_attn' if group == 'llama.cpp S3' else 'threads'} {v}: median {meds[v]:.1f} ms", flush=True)
+        best = min(meds, key=meds.get)
+        res[group] = {"flash_attn": best} if group == "llama.cpp S3" else {"threads": best}
+        table[group] = {"medians_ms": {str(k): v for k, v in meds.items()}, "runs": runs, "chosen": best}
+        rec.log({"scan": group, **table[group]})
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(res, f, indent=1)
+    print(json.dumps({k: v for k, v in res.items() if not k.startswith("_")}), flush=True)
     return 0
 
 
@@ -816,6 +882,9 @@ def main():
     p.add_argument("--models", help="with --fetch: only these MODELS names, comma separated")
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
+    p.add_argument("--settings", help="the window's scan's choice (en-hizli.json): each reference's fastest setting (Ş1)")
+    p.add_argument("--scan", action="append", choices=[g for g, _, _ in SCAN] + ["llama.cpp S3"],
+                   help="the window's short scan of a reference's fastest setting, into --out/en-hizli.json (Ş1)")
     p.add_argument("--epsilon", action="append", metavar="KEY=NUMBER",
                    help="ε of an item whose weights have no TR quantized path (Q8_0), given before the run (BC17)")
     p.add_argument("--make-sounds", action="store_true", help="make O-7's fixed sounds into --work/sounds (A-11)")

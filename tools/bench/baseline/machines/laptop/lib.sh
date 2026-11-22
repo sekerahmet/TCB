@@ -8,6 +8,8 @@
 #   OLCU_LLAMA     llama.cpp b12124'ün klasörü (öntanımlı $USERPROFILE/tools/llama.cpp/b12124)
 #   OLCU_WHISPER   whisper.cpp b5454'ün klasörü (öntanımlı $USERPROFILE/tools/whisper.cpp/b5454/Release)
 # Asıl ölçü ölçü penceresinde koşar (YAN_DAL bölüm 7); pencere dışındaki koşu denemedir (OLCU_DENEME=1), sayısı kullanılmaz.
+# Ölçü kipinde pencerenin ilk betiği en-hizli-ayar.sh'tir (Ş1): emsallerin en hızlı ayarı kayıt kökündeki en-hizli.json'a;
+# öbür betikler ölçüyü o ayarla koşar, dosya yoksa ölçmez.
 set -u
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(cd "$HERE/../../../../.." && pwd)
@@ -17,6 +19,7 @@ IS=${OLCU_IS:-$USERPROFILE/TR_olcu/is}
 KAYIT=${OLCU_KAYIT:-$USERPROFILE/TR_olcu/kayit}
 LLAMA=${OLCU_LLAMA:-$USERPROFILE/tools/llama.cpp/b12124}
 WHISPER=${OLCU_WHISPER:-$USERPROFILE/tools/whisper.cpp/b5454/Release}
+AYAR="$KAYIT/en-hizli.json"
 PY=${PY:-python}
 olcu() { echo "== $(date '+%H:%M:%S %z') $*"; }
 not_al() { tee -a "$IS/hazirlik.txt"; }  # hazırlığın her satırı koşunun kendi kaydına da gider (olcu_kos)
@@ -72,13 +75,20 @@ olcu_dost_yok() {
 }
 
 # olcu_kos <ad> <soru> [run.py'nin ek seçenekleri]: koşturucu tools/record altında; sonra satır taslağı. Koşunun kayıt
-# klasörüne hazırlık (modellerin bağlandığı yollar, kimlikler, sürümler) ve pip list yazılır (Ş3).
+# klasörüne hazırlık (modellerin bağlandığı yollar, kimlikler, sürümler) ve pip list yazılır (Ş3). Emsallerin ayarı
+# en-hizli.json'dan (Ş1); ölçü kipinde dosya yoksa ölçü yok.
 olcu_kos() {
   local ad=$1 soru=$2; shift 2
   local r="$KAYIT/run-$ad"; mkdir -p "$r"
   olcu_dost_yok
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
+  local ayar=()
+  if [ -f "$AYAR" ]; then
+    ayar=(--settings "$AYAR"); cp "$AYAR" "$r/en-hizli.json"
+  elif [ "${OLCU_DENEME:-}" != 1 ]; then
+    olcu "en-hizli.json yok: önce en-hizli-ayar.sh (Ş1)"; exit 2
+  fi
   sleep 20  # derlemenin ve sha256 hesabının yükü insin: koşturucunun yük denetimi koşudan önce ölçer
   local kos="$PY -I tools/bench/baseline/run.py --work $IS --machine laptop --out $r --question $soru"
   local rc
@@ -86,16 +96,35 @@ olcu_kos() {
     # Deneme (Ahmet 2026-11-20): her şey bir kez. Emsali olan kalem uyuşma geçişiyle (her taraf bir koşu), emsalsiz kalem
     # --trial ile (tek koşu, ısınmasız) sınanır: betik, model ve aygıt; sayı kullanılmaz.
     olcu "$ad: $soru (deneme: her kalem bir kez)"
-    (cd "$REPO" && $kos "$@" --agreement && $kos "$@" --trial)
+    (cd "$REPO" && $kos "$@" "${ayar[@]}" --agreement && $kos "$@" "${ayar[@]}" --trial)
     rc=$?
   else
     olcu "$ad: $soru"
-    (cd "$REPO" && "$IS/bin/record.exe" --out "$KAYIT" --name "h1-laptop-$ad" -- $kos "$@")
+    (cd "$REPO" && "$IS/bin/record.exe" --out "$KAYIT" --name "h1-laptop-$ad" -- $kos "$@" "${ayar[@]}")
     rc=$?
   fi
   olcu "$ad çıkışı: $rc"
   (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --rows --out "$r")
   return $rc
+}
+
+# olcu_tara <grup>...: Ş1'in kısa taraması (run.py --scan): her grubun en hızlı ayarı en-hizli.json'a (var olana eklenir;
+# gruplar ayrı komutlarla da koşabilir). Kural koşudan önce yazılı: varsayılan, 6 ve mantıksal sayı (S3'te -fa 0 ve 1),
+# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız.
+olcu_tara() {
+  local r="$KAYIT/run-en-hizli-ayar"; mkdir -p "$r"
+  olcu_dost_yok
+  cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
+  "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
+  [ -f "$AYAR" ] && cp "$AYAR" "$r/en-hizli.json"
+  local g args=() deneme=()
+  for g in "$@"; do args+=(--scan "$g"); done
+  [ "${OLCU_DENEME:-}" = 1 ] && deneme=(--trial)
+  sleep 20
+  olcu "en-hizli-ayar: $* (${OLCU_DENEME:+deneme: her ayar bir kez})"
+  (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" "${args[@]}" "${deneme[@]}") || exit 2
+  cp "$r/en-hizli.json" "$AYAR"
+  olcu "en hızlı ayar: $(cat "$AYAR" | "$PY" -I -c 'import json,sys; print({k: v for k, v in json.load(sys.stdin).items() if not k.startswith("_")})')"
 }
 
 # olcu_model <ad>: modelin dosyaları iş klasörüne (models/<ad>/), sources.json'daki yer ve kimlikle (model.py; ağa çıkmaz).

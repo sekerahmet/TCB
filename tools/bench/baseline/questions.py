@@ -90,6 +90,7 @@ class Ctx:
         self.seen_texts = {}  # S5: a reference's text by its command, run once per process for the other items
         self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
         self.epsilon_given = {}  # item key: ε written in the run script before the run (run.py --epsilon; BC17)
+        self.settings = {}  # Ş1: each reference's fastest setting from the window's scan (run.py --settings)
 
     def model(self, name, i=0):
         return os.path.join(self.work, "models", name, MODELS[name][2][i])
@@ -105,12 +106,24 @@ class Ctx:
         return [self.tools["trlang"], path, *[str(a) for a in args]]
 
     def ref(self, name, binary=None, argv=()):
-        return self.rp.reference_cmd(name, self.threads, binary=binary, argv=[str(a) for a in argv])
+        # Ş1 (DENETİM 944): a reference whose fastest thread number the window's scan chose gets that number (0: the
+        # library's own default); every other one the machine's number (O-1).
+        g = setting_group(name, [str(a) for a in argv])
+        n = self.settings.get(g, {}).get("threads", self.threads) if g else self.threads
+        return self.rp.reference_cmd(name, n, binary=binary, argv=[str(a) for a in argv])
 
     def ngl(self):
         # İşlemci makinesinde de açık 0: llama.cpp'nin öntanımlısı -1, "bütün katmanlar GPU'da" (b12124 llama.h); L4'ün
         # llama.cpp'si CUDA'lıdır, l4cpu'da emsal GPU'da koşuyordu (BC20).
         return ["-ngl", "99" if self.gpu else "0"]
+
+
+def setting_group(name, argv):
+    """Ş1: the reference whose setting the scan chooses, by the reference's own name; faster-whisper by compute type."""
+    if name == "faster_whisper" and "--compute_type" in argv:
+        return "faster-whisper " + argv[argv.index("--compute_type") + 1]
+    return {"llama-bench": "llama.cpp", "llama-completion": "llama.cpp", "whisper-cli": "whisper.cpp",
+            "piper": "onnxruntime"}.get(name)
 
 
 def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None):
@@ -275,7 +288,9 @@ def q_language(ctx, q):
         g = ctx.model("qwen3-4b-q4km")
         tr = side("TR", [ctx.tr("language_model.tr", "--model", g, "--mode", "depth", "--text", text, "--device", ctx.tr_device)],
                   lambda r, runs: {f"depth{row['depth']}_ms": row["prompt_ms"] for row in r[0]["depths"]})
-        ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *ctx.ngl()]) for d in (700, 4100)],
+        fa = ctx.settings.get("llama.cpp S3", {}).get("flash_attn")  # Ş1: the scan's -fa (llama.cpp's default is auto)
+        fa = [] if fa is None else ["-fa", fa]
+        ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *fa, *ctx.ngl()]) for d in (700, 4100)],
                    lambda r, runs: {f"depth{x['n_depth']}_ms": x["avg_ns"] / 1e6 for x in r}, parse=parse_llama_bench,
                    agree_parse=raw)
         out.append(item("S3/qwen3-4b-q4km", tr, ref, *lm_agreement(ctx, "S3/qwen3-4b-q4km", g, [], text)))  # S1's measure
@@ -425,7 +440,8 @@ def q_voice(ctx, q):
                             agree_samples, [tr_cmd], [ref_cmd]))
             # En hızlı emsal (TCB 00:31, Ahmet): işlemcide onnxruntime'ın kendi varsayılanı (intra_op 0) ve 6 iş parçacığı da
             # koşar (dizüstünde 2026-11-19'da 6 iş parçacığı TR'den öndeydi, TTS-2026-11-19-LAPTOP-S1-1); satır üçünü yazar.
-            if not ctx.gpu:
+            # With the window's scan (Ş1) the main item already runs onnxruntime's fastest setting.
+            if not ctx.gpu and "onnxruntime" not in ctx.settings:
                 for name, n in (("ort-default", 0), ("ort-6", 6)):
                     cmd = ctx.rp.reference_cmd("piper", n, argv=[str(x) for x in ["--model", voice, "--ids", ids, *texts,
                                                                                    "--device", "cpu", "--language", lang]])

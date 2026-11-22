@@ -21,6 +21,82 @@ import (
 // beklemesi ve koşturucunun kendi süreç ağacı, her koşunun gerçek aygıtı (Ş2), emsallerin her konsolda UTF-8 çıktısı (BC24),
 // modelin ve emsalin tek kaynağı (Ş3), değişik dosyalı ağaç (Ş4), açık Dost (N1).
 
+// settingsCheck en hızlı ayarın emsal komutlarına geçişini ve taramanın seçimini (sahte ölçülerle) basar.
+const settingsCheck = `
+import importlib.util, json, os, sys, tempfile
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+qs = rp.load_questions()
+work = tempfile.mkdtemp()
+json.dump({"trlang": "trlang", "whisper_cli": "w", "llama_bench": "b", "llama_completion": "c", "go_compare": "g"},
+          open(os.path.join(work, "tools.json"), "w"))
+open(os.path.join(work, "ids_tr.json"), "w").write("{}")
+qs.piper_ids_tr = lambda ctx: None
+ctx = qs.Ctx(rp, "laptop", 97, work, lambda r: None, dry=True)
+ctx.settings = {"llama.cpp": {"threads": 0}, "faster-whisper int8": {"threads": 6}, "onnxruntime": {"threads": 20},
+                "llama.cpp S3": {"flash_attn": 1}}
+items = {it["key"]: it for q in ("S1", "S3", "S5", "S7") for it in qs.items(ctx, q)}
+out = {"s1": items["S1/qwen3-4b-q4km"]["ref"]["cmds"][0], "s3": items["S3/qwen3-4b-q4km"]["ref"]["cmds"][0],
+       "int8": items["S5/tr/faster-whisper-int8"]["ref"]["cmds"][0], "f32": items["S5/tr/faster-whisper-float32"]["ref"]["cmds"][0],
+       "s7": items["S7/tr"]["ref"]["cmds"][0], "ort": sorted(k for k in items if "/ort-" in k)}
+# the scan with fake runs: 6 threads is the fastest for llama.cpp, the default (0) for whisper.cpp
+def fake(key, side, index, log, machine, cmds=None):
+    c = side["cmds"][0]
+    n = 0 if "-t" not in c else int(c[c.index("-t") + 1])
+    ms = {"S1/qwen3-4b-q4km": {0: 50, 6: 30, os.cpu_count(): 40}, "S5/tr/whisper.cpp": {0: 5, 6: 9, os.cpu_count(): 7}}[key][n]
+    return {"results": [{"avg_ns": ms * 1e6}] * len(side["cmds"]), "runs": [{"stderr": "total time = %d ms\\nload time = 0 ms" % ms}]}
+rp._run_side = fake
+ctx.settings = {}
+scan_out = tempfile.mkdtemp()
+rec = type("R", (), {"log": lambda self, r: None})()
+rp.scan_settings(ctx, qs, rec, ["llama.cpp"], scan_out, runs=3)
+rp.scan_settings(ctx, qs, rec, ["whisper.cpp"], scan_out, runs=1)
+out["scan"] = json.load(open(os.path.join(scan_out, "en-hizli.json"), encoding="utf-8"))
+print(json.dumps(out))
+`
+
+// Ş1 (DENETİM 944, TCB 2026-11-22 13:37): pencerenin başındaki kısa tarama her emsalin en hızlı ayarını (iş parçacığı:
+// varsayılan, 6, mantıksal sayı; S3'te flash attention) en kısa ortancayla seçer ve dosyaya birleştirir; ölçü o ayarla
+// koşar: 0 kütüphanenin varsayılanıdır (llama.cpp'de -t yok), ayarı seçilmeyen emsal makinenin sayısını alır, S7'nin ayrı
+// onnxruntime kalemleri düşer.
+func TestLaptopFastestSettings(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", settingsCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got struct {
+		S1, S3, Int8, F32, S7 []string
+		Ort                   []string
+		Scan                  map[string]any
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	line := func(c []string) string { return " " + strings.Join(c, " ") + " " }
+	if strings.Contains(line(got.S1), " -t ") {
+		t.Errorf("llama.cpp with the default: %v, want no -t", got.S1)
+	}
+	if !strings.Contains(line(got.S3), " -fa 1 ") {
+		t.Errorf("S3 with flash attention 1: %v", got.S3)
+	}
+	if !strings.Contains(line(got.Int8), " --threads 6 ") || !strings.Contains(line(got.F32), " --threads 97 ") ||
+		!strings.Contains(line(got.S7), " --threads 20 ") {
+		t.Errorf("int8 %v, float32 %v, onnxruntime %v; want 6, the machine's 97, 20", got.Int8, got.F32, got.S7)
+	}
+	if len(got.Ort) != 0 {
+		t.Errorf("S7's onnxruntime items %v with a scan, want none", got.Ort)
+	}
+	l, _ := got.Scan["llama.cpp"].(map[string]any)
+	w, _ := got.Scan["whisper.cpp"].(map[string]any)
+	table, _ := got.Scan["_scan"].(map[string]any)
+	if l["threads"] != 6.0 || w["threads"] != 0.0 || len(table) != 2 {
+		t.Errorf("scan: %v, want llama.cpp 6 threads, whisper.cpp the default and both in the table", got.Scan)
+	}
+}
+
 // Ş3 (DENETİM 944): model.py ağa çıkmaz; dosyayı yalnız sources.json'daki yerinde arar (başka klasördeki aynı adlı dosyaya
 // düşmez), boyunu ve kimliğini (LFS'te sha256, küçük dosyada git blob) denetler, bağladığı yolu yazar; tutmazsa çıkış 2.
 func TestLaptopModelBinderUsesOnlyTheSourceFile(t *testing.T) {
@@ -78,12 +154,15 @@ func TestLaptopModelBinderUsesOnlyTheSourceFile(t *testing.T) {
 	}
 }
 
+// laptopSources dizüstü betiklerinin tek kaynak dosyası (Ş3).
+const laptopSources = "baseline/machines/laptop/sources.json"
+
 // Ş3: dizüstü betiklerinin bağladığı her model (olcu_model), denetlediği her emsal (olcu_arac) ve paket (olcu_surum)
 // machines/laptop/sources.json'da kimliğiyle yazılıdır: model dosyasının yeri, boyu, sha256'sı ya da git blob'u; ikilinin
 // sürüm satırı ve sha256'sı; paketin sürümü.
 func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 	dir := filepath.Join("baseline", "machines", "laptop")
-	b, err := os.ReadFile(filepath.Join(dir, "sources.json"))
+	b, err := os.ReadFile(laptopSources)
 	if err != nil {
 		t.Fatal(err)
 	}
