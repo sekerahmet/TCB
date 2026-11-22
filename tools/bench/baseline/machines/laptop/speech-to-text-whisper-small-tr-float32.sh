@@ -8,10 +8,10 @@
 # Deneme kipinde yalnız uyuşma geçişi (her taraf bir koşu).
 #   bash tools/bench/baseline/machines/laptop/speech-to-text-whisper-small-tr-float32.sh
 . "$(dirname "$0")/lib.sh"
-olcu_kur "whisper_cli=${OLCU_WHISPER_CLI:-$USERPROFILE/tools/whisper.cpp/whisper-cli.exe}"
+olcu_kur "whisper_cli=$WHISPER/whisper-cli.exe"
 olcu_model whisper-small
 olcu_model faster-whisper-small
 olcu_ses "stt_tr.wav=61eecd21db79818e022e32145301a92ebf4e82e3b4ce3b0c8c97035c6cdd176e"
 olcu_makine speech-to-text-whisper-small-tr-float32
-olcu_surum faster_whisper ctranslate2 torch transformers
+olcu_surum faster-whisper ctranslate2 torch transformers
 olcu_kos speech-to-text-whisper-small-tr-float32 S5 --key S5/tr/faster-whisper-float32

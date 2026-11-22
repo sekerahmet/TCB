@@ -117,7 +117,12 @@ func copyDir(t *testing.T, src string, extra map[string]string) string {
 func baseline(t *testing.T, args ...string) (string, int) {
 	t.Helper()
 	cmd := exec.Command(python(t), append([]string{"-I", "baseline/run.py"}, args...)...)
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
 	out, err := cmd.Output()
+	if s := stderr.String(); s != "" { // yalnız düşen testte görünür: boş JSON'un nedeni (2026-11-22, paket koşusunda bir kez)
+		t.Logf("run.py %v stderr:\n%s", args, s[max(0, len(s)-2000):])
+	}
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return string(out), ee.ExitCode()
@@ -132,7 +137,7 @@ func selfCheck(t *testing.T, v any, args ...string) int {
 	t.Helper()
 	out, code := baseline(t, append([]string{"--self-check"}, args...)...)
 	if err := json.Unmarshal([]byte(out), v); err != nil {
-		t.Fatalf("--self-check %v: %v\n%s", args, err, out)
+		t.Fatalf("--self-check %v: exit %d: %v\n%s", args, code, err, out)
 	}
 	return code
 }

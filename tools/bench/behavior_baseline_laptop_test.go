@@ -2,14 +2,225 @@
 package bench
 
 import (
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Dizüstünün ölçü betiklerinde bulunan düzeltmelerin testleri (H1, 2026-11-20 ve DENETİM 944): yük denetiminin
-// beklemesi ve koşturucunun kendi süreç ağacı, her koşunun gerçek aygıtı (Ş2), emsallerin her konsolda UTF-8 çıktısı (BC24).
+// beklemesi ve koşturucunun kendi süreç ağacı, her koşunun gerçek aygıtı (Ş2), emsallerin her konsolda UTF-8 çıktısı (BC24),
+// modelin ve emsalin tek kaynağı (Ş3), değişik dosyalı ağaç (Ş4), açık Dost (N1).
+
+// Ş3 (DENETİM 944): model.py ağa çıkmaz; dosyayı yalnız sources.json'daki yerinde arar (başka klasördeki aynı adlı dosyaya
+// düşmez), boyunu ve kimliğini (LFS'te sha256, küçük dosyada git blob) denetler, bağladığı yolu yazar; tutmazsa çıkış 2.
+func TestLaptopModelBinderUsesOnlyTheSourceFile(t *testing.T) {
+	py := python(t)
+	dir := t.TempDir()
+	models, work := filepath.Join(dir, "models"), filepath.Join(dir, "work")
+	write := func(rel, body string) {
+		p := filepath.Join(models, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("m/weights.bin", "weights")
+	write("m/config.json", `{"a": 1}`)
+	write("other/vocab.json", "someone else's") // aynı adlı, başka modelin dosyası
+	sum := sha256.Sum256([]byte("weights"))
+	blob := sha1.Sum([]byte(fmt.Sprintf("blob %d\x00%s", len(`{"a": 1}`), `{"a": 1}`)))
+	src := func(weights string, vocab bool) string {
+		files := map[string]any{
+			"weights.bin": map[string]any{"path": "m/weights.bin", "size": 7, "sha256": weights},
+			"config.json": map[string]any{"path": "m/config.json", "size": 8, "git_blob": hex.EncodeToString(blob[:])},
+		}
+		if vocab {
+			files["vocab.json"] = map[string]any{"path": "m/vocab.json", "size": 14, "git_blob": "0"}
+		}
+		b, _ := json.Marshal(map[string]any{"models": map[string]any{"m": map[string]any{"repo": "r", "revision": "abc", "files": files}}})
+		p := filepath.Join(dir, "sources.json")
+		if err := os.WriteFile(p, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	run := func(sources string) (string, int) {
+		out, err := exec.Command(py, "-I", filepath.Join("baseline", "machines", "laptop", "model.py"), sources, work, models, "m").CombinedOutput()
+		code := 0
+		if e, ok := err.(*exec.ExitError); ok {
+			code = e.ExitCode()
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		return string(out), code
+	}
+	if out, code := run(src(hex.EncodeToString(sum[:]), false)); code != 0 || !strings.Contains(out, "<- modeller/m/weights.bin, sha256") ||
+		!strings.Contains(out, "<- modeller/m/config.json, git_blob") {
+		t.Errorf("good files: exit %d\n%s", code, out)
+	}
+	if out, code := run(src(strings.Repeat("0", 64), false)); code != 2 || !strings.Contains(out, "SHA256 TUTMADI m/weights.bin") {
+		t.Errorf("wrong sha256: exit %d, want 2\n%s", code, out)
+	}
+	if out, code := run(src(hex.EncodeToString(sum[:]), true)); code != 2 || !strings.Contains(out, "YOK m/vocab.json: m/vocab.json") {
+		t.Errorf("file only in another model's folder: exit %d, want 2 without falling back\n%s", code, out)
+	}
+}
+
+// Ş3: dizüstü betiklerinin bağladığı her model (olcu_model), denetlediği her emsal (olcu_arac) ve paket (olcu_surum)
+// machines/laptop/sources.json'da kimliğiyle yazılıdır: model dosyasının yeri, boyu, sha256'sı ya da git blob'u; ikilinin
+// sürüm satırı ve sha256'sı; paketin sürümü.
+func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
+	dir := filepath.Join("baseline", "machines", "laptop")
+	b, err := os.ReadFile(filepath.Join(dir, "sources.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var src struct {
+		Models map[string]struct {
+			Repo, Revision string
+			Files          map[string]struct {
+				Path, Sha256 string
+				GitBlob      string `json:"git_blob"`
+				Size         int64
+			}
+		}
+		Tools map[string]struct {
+			Version string
+			Files   map[string]string
+		}
+		Python map[string]struct{ Version string }
+	}
+	if err := json.Unmarshal(b, &src); err != nil {
+		t.Fatal(err)
+	}
+	scripts, _ := reporoot.Glob(filepath.Join(dir, "*.sh"))
+	seen := 0
+	for _, s := range scripts {
+		body, _ := os.ReadFile(s)
+		for _, line := range strings.Split(string(body), "\n") {
+			f := strings.Fields(strings.NewReplacer("for m in", "olcu_model", "; do olcu_model \"$m\"; done", "").Replace(line))
+			if len(f) < 2 {
+				continue
+			}
+			switch f[0] {
+			case "olcu_model":
+				for _, m := range f[1:] {
+					e, ok := src.Models[m]
+					if !ok || e.Repo == "" || e.Revision == "" || len(e.Files) == 0 {
+						t.Errorf("%s: model %s has no record in sources.json", filepath.Base(s), m)
+					}
+					for name, x := range e.Files {
+						if x.Path == "" || x.Size <= 0 || (len(x.Sha256) != 64 && len(x.GitBlob) != 40) {
+							t.Errorf("sources.json %s/%s: path %q, size %d, sha256 %q, git blob %q", m, name, x.Path, x.Size, x.Sha256, x.GitBlob)
+						}
+					}
+					seen++
+				}
+			case "olcu_arac":
+				if tool, ok := src.Tools[f[1]]; !ok || tool.Version == "" || len(tool.Files) == 0 {
+					t.Errorf("%s: tool %s has no version or files in sources.json", filepath.Base(s), f[1])
+				}
+			case "olcu_surum":
+				for _, p := range f[1:] {
+					if src.Python[p].Version == "" {
+						t.Errorf("%s: package %s has no version in sources.json", filepath.Base(s), p)
+					}
+				}
+			}
+		}
+	}
+	if seen < 30 {
+		t.Errorf("%d model bindings read from %d scripts; the parser lost them", seen, len(scripts))
+	}
+}
+
+// Ş3: emsalin Python paketi sources.json'daki sürümde değilse ya da kurulu değilse betik durur.
+func TestLaptopPackagesMatchTheSourceFile(t *testing.T) {
+	py := python(t)
+	p := filepath.Join(t.TempDir(), "sources.json")
+	if err := os.WriteFile(p, []byte(`{"python": {"pip": {"version": "0.0.1"}, "no-such-package-tr": {"version": "1"}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(py, "-I", filepath.Join("baseline", "machines", "laptop", "sources.py"), p, "python", "pip", "no-such-package-tr").CombinedOutput()
+	e, ok := err.(*exec.ExitError)
+	if !ok || e.ExitCode() != 2 || !strings.Contains(string(out), "TUTMADI pip: kurulu ") ||
+		!strings.Contains(string(out), "TUTMADI no-such-package-tr: kurulu None") {
+		t.Errorf("packages off the source file: %v\n%s", err, out)
+	}
+}
+
+// libRun lib.sh'i okuyan bir bash komutu koşar; REPO, iş ve kayıt klasörü sınama için verilir.
+func libRun(t *testing.T, repo string, env []string, script string) (string, int) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash yok")
+	}
+	lib, _ := filepath.Abs(filepath.Join("baseline", "machines", "laptop", "lib.sh"))
+	dir := t.TempDir()
+	cmd := exec.Command(bash, "-c", fmt.Sprintf(`. %q; REPO=%q; %s`, filepath.ToSlash(lib), filepath.ToSlash(repo), script))
+	cmd.Env = append(os.Environ(), append([]string{"USERPROFILE=" + dir, "OLCU_IS=" + filepath.ToSlash(filepath.Join(dir, "is")),
+		"OLCU_KAYIT=" + filepath.ToSlash(filepath.Join(dir, "kayit"))}, env...)...)
+	out, err := cmd.CombinedOutput()
+	if e, ok := err.(*exec.ExitError); ok {
+		return string(out), e.ExitCode()
+	} else if err != nil {
+		t.Fatal(err)
+	}
+	return string(out), 0
+}
+
+// Ş4 (DENETİM 944): değişik dosyalı ağaçta satırın Commit'i ölçülen kodu göstermez: ölçü kipinde çıkış 2, denemede uyarı.
+func TestLaptopDirtyTreeStopsTheMeasure(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git yok")
+	}
+	repo := t.TempDir()
+	for _, args := range [][]string{{"init", "-q"}, {"-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "t"}} {
+		if out, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(repo, "changed.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	prep := `mkdir -p "$IS" "$KAYIT"; : > "$IS/hazirlik.txt"; olcu_makine t`
+	if out, code := libRun(t, repo, nil, prep); code != 2 || !strings.Contains(out, "1 değişik dosya: satırın Commit'i ölçülen kodu göstermez") {
+		t.Errorf("measure on a dirty tree: exit %d, want 2\n%s", code, out)
+	}
+	if out, code := libRun(t, repo, []string{"OLCU_DENEME=1"}, prep); code != 0 || !strings.Contains(out, "UYARI: ağaçta 1 değişik dosya") {
+		t.Errorf("trial on a dirty tree: exit %d, want 0 with a warning\n%s", code, out)
+	}
+}
+
+// N1 (DENETİM 944): Ahmet'in açık bir Dost'u (asistan.tr'yi koşan süreç) işlemciyi ve kapıyı paylaşır; betik durur.
+func TestLaptopOpenDostStopsTheScript(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("süreç listesi PowerShell'le, dizüstünde")
+	}
+	if out, code := libRun(t, t.TempDir(), nil, "olcu_dost_yok"); code != 0 {
+		t.Fatalf("no Dost: exit %d\n%s", code, out)
+	}
+	dost := exec.Command(python(t), "-c", "import time; time.sleep(60)", "asistan.tr")
+	if err := dost.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer dost.Process.Kill()
+	if out, code := libRun(t, t.TempDir(), nil, "olcu_dost_yok"); code != 2 || !strings.Contains(out, "Dost açık (") {
+		t.Errorf("Dost open: exit %d, want 2\n%s", code, out)
+	}
+}
 
 // deviceCheck aygıt denetimini dizüstünde ve GPU'da görülen çıktı örnekleriyle sınar.
 const deviceCheck = `

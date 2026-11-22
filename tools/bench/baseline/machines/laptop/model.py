@@ -1,56 +1,42 @@
-"""Dizüstü ölçü betiklerinin model bağlayıcısı (machines/laptop/lib.sh olcu_model): questions.py MODELS'taki <ad>'ın
-dosyalarını dizüstünde yalnız OLCU_MODELLER'de bulur (<ad>/<dosya>, <ad>/<adı>, <adı>; Ahmet'in düzeni: dizüstünün bütün
-modelleri %USERPROFILE%/models altındadır, TCB 23:49), iş klasörüne
-models/<ad>/<dosya> olarak sabit bağlantıyla (olmazsa kopya) koyar ve sha256'yı denetler: Dost'un kataloğu
-(tools/assistant/katalog.json, depo + revision + yol), yoksa Hugging Face üstverisi (LFS dosyasının sha256'sı). LFS
-olmayan küçük dosyanın sha256'sı depoda yazılı değildir; o dosya yalnız varlığıyla geçer ve çıktıda öyle yazılır.
-Bulunamayan ya da sha256'sı tutmayan dosyada çıkış 2: model yok, betik ölçmez. Hiçbir şey indirilmez.
-    python -I model.py <repo> <iş> <modeller> <ad>
+"""Dizüstü ölçü betiklerinin model bağlayıcısı (machines/laptop/lib.sh olcu_model; Ş3, DENETİM 944): <ad>'ın her
+dosyası sources.json'da tek yerde sabittir: depo, revision, OLCU_MODELLER'deki yeri, boyu, sha256'sı (LFS) ya da git blob
+kimliği (LFS olmayan küçük dosya). Dosya yalnız o yerde aranır, başka klasöre ya da başka modelin aynı adlı dosyasına
+düşülmez; yoksa, boyu ya da kimliği tutmazsa çıkış 2. Ağa çıkılmaz, hiçbir şey indirilmez. Tutan dosya iş klasörüne
+models/<ad>/<dosya> olarak sabit bağlantıyla (olmazsa kopya) konur; bağlanan yol ve kimlik çıktıya (kayda) yazılır.
+    python -I model.py <sources.json> <iş> <modeller> <ad>
 """
-import hashlib, importlib.util, json, os, shutil, sys, urllib.parse, urllib.request
+import hashlib, json, os, shutil, sys
 sys.stdout.reconfigure(encoding="utf-8")
-repo, work, models, ad = sys.argv[1:5]
-spec = importlib.util.spec_from_file_location("q", os.path.join(repo, "tools", "bench", "baseline", "questions.py"))
-q = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(q)
-hub, rev, files = q.MODELS[ad]
-katalog = json.load(open(os.path.join(repo, "tools", "assistant", "katalog.json"), encoding="utf-8"))
-known = {(e["source"]["repo"], e["source"]["revision"], x["path"]): x["sha256"]
-         for e in katalog["entries"] for x in e["source"]["files"]}
+sources, work, models, ad = sys.argv[1:5]
+ent = json.load(open(sources, encoding="utf-8"))["models"].get(ad)
+if ent is None:
+    print(f"YOK {ad}: sources.json'da kaydı yok")
+    sys.exit(2)
 
 
-def hub_sha(paths):
-    data = urllib.parse.urlencode([("paths", p) for p in paths] + [("expand", "true")]).encode()
-    req = urllib.request.Request(f"https://huggingface.co/api/models/{hub}/paths-info/{rev}", data=data,
-                                 headers={"User-Agent": "tr-bench"})
-    return {x["path"]: (x.get("lfs") or {}).get("oid") for x in json.load(urllib.request.urlopen(req, timeout=60))}
-
-
-def sha256(path):
-    h = hashlib.sha256()
+def digest(path, git_blob):
+    h = hashlib.sha1(b"blob %d\0" % os.path.getsize(path)) if git_blob else hashlib.sha256()
     with open(path, "rb") as f:
         for b in iter(lambda: f.read(1 << 20), b""):
             h.update(b)
     return h.hexdigest()
 
 
-need = [f for f in files if (hub, rev, f) not in known]
-online = hub_sha(need) if need else {}
 bad = 0
-for f in files:
-    cands = [os.path.join(models, ad, f), os.path.join(models, ad, os.path.basename(f)), os.path.join(models, os.path.basename(f))]
-    # Klasör adı koşturucununkinden farklı olabilir (dizüstünde silero-vad, koşturucuda silero-vad-16k): alt klasörlerde adıyla.
-    cands += sorted(os.path.join(models, d, os.path.basename(f)) for d in os.listdir(models)
-                    if os.path.isdir(os.path.join(models, d)))
-    src = next((c for c in cands if os.path.isfile(c)), None)
-    if not src:
-        print(f"YOK {ad}/{f}: aranan {cands}")
+for f, rec in ent["files"].items():
+    src = os.path.join(models, *rec["path"].split("/"))
+    kind = "sha256" if "sha256" in rec else "git_blob"
+    if not os.path.isfile(src):
+        print(f"YOK {ad}/{f}: {rec['path']} (sources.json)")
         bad += 1
         continue
-    want = known.get((hub, rev, f)) or online.get(f)
-    got = sha256(src) if want else None
-    if want and got != want:
-        print(f"SHA256 TUTMADI {ad}/{f}: {got} != {want} ({src})")
+    if os.path.getsize(src) != rec["size"]:
+        print(f"BOY TUTMADI {ad}/{f}: {os.path.getsize(src)} != {rec['size']} ({rec['path']})")
+        bad += 1
+        continue
+    got = digest(src, kind == "git_blob")
+    if got != rec[kind]:
+        print(f"{kind.upper()} TUTMADI {ad}/{f}: {got} != {rec[kind]} ({rec['path']})")
         bad += 1
         continue
     dst = os.path.join(work, "models", ad, f)
@@ -63,6 +49,6 @@ for f in files:
     except OSError:
         shutil.copyfile(src, dst)
         how = "kopya"
-    print(f"{ad}/{f}: {how}, sha256 {got[:12] + ' (' + ('katalog' if (hub, rev, f) in known else 'hub') + ')' if want else 'yazılı değil (LFS değil)'}")
-print(f"model {ad}: {hub} @ {rev[:12]}")
+    print(f"{ad}/{f}: {how} <- modeller/{rec['path']}, {kind} {got[:12]}")
+print(f"model {ad}: {ent['repo']} @ {ent['revision'][:12]}")
 sys.exit(2 if bad else 0)

@@ -5,9 +5,8 @@
 # betik llama-bench'in sürüm satırını kayda yazar, satır llama-bench'in json çıktısındaki ayarları anar.
 #   bash tools/bench/baseline/machines/laptop/read-long-prompt-qwen3-4b-q4km.sh
 . "$(dirname "$0")/lib.sh"
-LLAMA=${OLCU_LLAMA:-$USERPROFILE/tools/llama.cpp/b12124}
 olcu_kur "llama_bench=$LLAMA/llama-bench.exe" "llama_completion=$LLAMA/llama-completion.exe"
 olcu_model qwen3-4b-q4km
 olcu_makine read-long-prompt-qwen3-4b-q4km
-"$LLAMA/llama-completion.exe" --version 2>&1 | tr -d '\r' | tee -a "$KAYIT/surumler.txt"
+olcu_arac llama.cpp
 olcu_kos read-long-prompt-qwen3-4b-q4km S3 --key S3/qwen3-4b-q4km

@@ -187,6 +187,14 @@ def forced_verdict(res, epsilon=None):
     return out
 
 
+def device_checked(ctx, key, side, cmd, run, parsed):
+    """Ş2: a command an agreement function runs itself (TR's forced read, S5's other float32 references) is checked
+    like a side's run: its real device from its own output (run.py check_device)."""
+    check = getattr(ctx.rp, "check_device", None)
+    if check:
+        check(key, side, cmd, run, parsed, ctx.log, "agreement")
+
+
 def agree_forced(ctx, key, forced_cmd):
     """The agreement function of S1 and S3: TR reads llama-completion's output (--given) and forced_verdict judges."""
     def agree(tr, ref):
@@ -197,6 +205,7 @@ def agree_forced(ctx, key, forced_cmd):
         if r["rc"] != 0:
             return f"TR's forced read failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
         res = ctx.rp.parse_result(r["stdout"])
+        device_checked(ctx, key, "TR forced", forced_cmd, r, res)
         given = getattr(ctx, "epsilon_given", {}).get(key)
         if res.get("epsilon_note") and given is not None:
             # TR has no quantized path for these weights (Q8_0), but llama.cpp on the processor quantizes the activations
@@ -363,7 +372,9 @@ def s5_agreement(ctx, key, name, f32_cmds, source):
                     r = ctx.rp.run_once(cmd)
                     if r["rc"] != 0:
                         return f"{other} failed (exit {r['rc']}): {r['stderr'].strip()[-400:]}"
-                    ctx.seen_texts[tuple(cmd)] = ctx.rp.parse_result(r["stdout"])["text"]
+                    parsed = ctx.rp.parse_result(r["stdout"])
+                    device_checked(ctx, key, other, cmd, r, parsed)
+                    ctx.seen_texts[tuple(cmd)] = parsed["text"]
                 texts[other] = ctx.seen_texts[tuple(cmd)]
         v = s5_verdict(tr_r[0]["text"], texts, source)
         ctx.log({"agreement": key, **v})

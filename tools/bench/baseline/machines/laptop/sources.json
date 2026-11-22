@@ -1,0 +1,423 @@
+{
+ "models": {
+  "qwen3-4b-q4km": {
+   "repo": "Qwen/Qwen3-4B-GGUF",
+   "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+   "files": {
+    "Qwen3-4B-Q4_K_M.gguf": {
+     "path": "Qwen3-4B-Q4_K_M.gguf",
+     "size": 2497280256,
+     "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+    }
+   }
+  },
+  "qwen3-4b-q8": {
+   "repo": "Qwen/Qwen3-4B-GGUF",
+   "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+   "files": {
+    "Qwen3-4B-Q8_0.gguf": {
+     "path": "Qwen3-4B-Q8_0.gguf",
+     "size": 4280404704,
+     "sha256": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300"
+    }
+   }
+  },
+  "qwen3-8b-q4km": {
+   "repo": "Qwen/Qwen3-8B-GGUF",
+   "revision": "7c41481f57cb95916b40956ab2f0b139b296d974",
+   "files": {
+    "Qwen3-8B-Q4_K_M.gguf": {
+     "path": "Qwen3-8B-Q4_K_M.gguf",
+     "size": 5027783488,
+     "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785"
+    }
+   }
+  },
+  "gemma3-4b-q4km": {
+   "repo": "bartowski/google_gemma-3-4b-it-GGUF",
+   "revision": "71506238f970075ca85125cd749c28b1b0eee84e",
+   "files": {
+    "google_gemma-3-4b-it-Q4_K_M.gguf": {
+     "path": "google_gemma-3-4b-it-Q4_K_M.gguf",
+     "size": 2489758112,
+     "sha256": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94"
+    }
+   }
+  },
+  "gemma3-4b-qat-q40": {
+   "repo": "AnteriorAI/gemma-3-4b-it-qat-q4_0-gguf",
+   "revision": "e7ac0af23a1a9c8dc35f63ff24262971cfe68e47",
+   "files": {
+    "gemma-3-4b-it-q4_0.gguf": {
+     "path": "gemma-3-4b-it-q4_0.gguf",
+     "size": 3155051328,
+     "sha256": "76aed0a8285b83102f18b5d60e53c70d09eb4e9917a20ce8956bd546452b56e2"
+    }
+   }
+  },
+  "gemma3-12b-q4km": {
+   "repo": "ggml-org/gemma-3-12b-it-GGUF",
+   "revision": "ec0cbabd8dbff316f659876a50202295c3c4a314",
+   "files": {
+    "gemma-3-12b-it-Q4_K_M.gguf": {
+     "path": "gemma-3-12b-it-Q4_K_M.gguf",
+     "size": 7300574976,
+     "sha256": "7bb69bff3f48a7b642355d64a90e481182a7794707b3133890646b1efa778ff5"
+    }
+   }
+  },
+  "qwen3-4b-bf16": {
+   "repo": "Qwen/Qwen3-4B",
+   "revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+   "files": {
+    "config.json": {
+     "path": "qwen3-4b-bf16/config.json",
+     "size": 726,
+     "git_blob": "e49eccdc32f36da9c09cfa0e737084f9e0105e5e"
+    },
+    "generation_config.json": {
+     "path": "qwen3-4b-bf16/generation_config.json",
+     "size": 239,
+     "git_blob": "20a8a9156fc8c3f25295ca067f61fdf120d517c5"
+    },
+    "model.safetensors.index.json": {
+     "path": "qwen3-4b-bf16/model.safetensors.index.json",
+     "size": 32819,
+     "git_blob": "95c0a0059df040d75dc6c396b174382cf61d2f91"
+    },
+    "tokenizer.json": {
+     "path": "qwen3-4b-bf16/tokenizer.json",
+     "size": 11422654,
+     "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+    },
+    "tokenizer_config.json": {
+     "path": "qwen3-4b-bf16/tokenizer_config.json",
+     "size": 9732,
+     "git_blob": "417d038a63fa3de29cfde265caedae14d1a58d92"
+    },
+    "vocab.json": {
+     "path": "qwen3-4b-bf16/vocab.json",
+     "size": 2776833,
+     "git_blob": "4783fe10ac3adce15ac8f358ef5462739852c569"
+    },
+    "merges.txt": {
+     "path": "qwen3-4b-bf16/merges.txt",
+     "size": 1671853,
+     "git_blob": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7"
+    },
+    "model-00001-of-00003.safetensors": {
+     "path": "qwen3-4b-bf16/model-00001-of-00003.safetensors",
+     "size": 3957900840,
+     "sha256": "328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223"
+    },
+    "model-00002-of-00003.safetensors": {
+     "path": "qwen3-4b-bf16/model-00002-of-00003.safetensors",
+     "size": 3987450520,
+     "sha256": "6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5"
+    },
+    "model-00003-of-00003.safetensors": {
+     "path": "qwen3-4b-bf16/model-00003-of-00003.safetensors",
+     "size": 99630640,
+     "sha256": "e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1"
+    }
+   }
+  },
+  "whisper-small": {
+   "repo": "openai/whisper-small",
+   "revision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+   "files": {
+    "config.json": {
+     "path": "whisper-small/config.json",
+     "size": 1967,
+     "git_blob": "113bb3efe3a7396f2ea629eef12637bd8085238d"
+    },
+    "generation_config.json": {
+     "path": "whisper-small/generation_config.json",
+     "size": 3868,
+     "git_blob": "d3823179a367fa912e3b911b3d2e71ab2a028290"
+    },
+    "model.safetensors": {
+     "path": "whisper-small/model.safetensors",
+     "size": 966995080,
+     "sha256": "1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b"
+    },
+    "tokenizer.json": {
+     "path": "whisper-small/tokenizer.json",
+     "size": 2480466,
+     "git_blob": "1e95340ff836fad1b5932e800fb7b8c5e6d78a74"
+    },
+    "tokenizer_config.json": {
+     "path": "whisper-small/tokenizer_config.json",
+     "size": 282683,
+     "git_blob": "d13b786c04765fb1a06492b53587752cd67665ea"
+    },
+    "preprocessor_config.json": {
+     "path": "whisper-small/preprocessor_config.json",
+     "size": 184990,
+     "git_blob": "c2048dfa9fd94a052e62e908d2c4dfb18534b4d2"
+    },
+    "special_tokens_map.json": {
+     "path": "whisper-small/special_tokens_map.json",
+     "size": 2194,
+     "git_blob": "bf69932dca4b3719b59fdd8f6cc1978109509f6c"
+    },
+    "added_tokens.json": {
+     "path": "whisper-small/added_tokens.json",
+     "size": 34604,
+     "git_blob": "e3d256c988462aa153dcabe2aa38b8e9b436c06f"
+    },
+    "normalizer.json": {
+     "path": "whisper-small/normalizer.json",
+     "size": 52666,
+     "git_blob": "dd6ae819ad738ac1a546e9f9282ef325c33b9ea0"
+    },
+    "vocab.json": {
+     "path": "whisper-small/vocab.json",
+     "size": 835550,
+     "git_blob": "d7016e21da8776c8a9d577d0f559600f09a240eb"
+    },
+    "merges.txt": {
+     "path": "whisper-small/merges.txt",
+     "size": 493869,
+     "git_blob": "6038932a2a1f09a66991b1c2adae0d14066fa29e"
+    }
+   }
+  },
+  "faster-whisper-small": {
+   "repo": "Systran/faster-whisper-small",
+   "revision": "536b0662742c02347bc0e980a01041f333bce120",
+   "files": {
+    "config.json": {
+     "path": "faster-whisper-small/config.json",
+     "size": 2370,
+     "git_blob": "e5047537059bd8f182d9ca64c470201585015187"
+    },
+    "model.bin": {
+     "path": "faster-whisper-small/model.bin",
+     "size": 483546902,
+     "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671"
+    },
+    "tokenizer.json": {
+     "path": "faster-whisper-small/tokenizer.json",
+     "size": 2203239,
+     "git_blob": "7818adb6de9fa3064d3ff81226fdd675be1f6344"
+    },
+    "vocabulary.txt": {
+     "path": "faster-whisper-small/vocabulary.txt",
+     "size": 459861,
+     "git_blob": "c9074644d9d1205686f16d411564729461324b75"
+    }
+   }
+  },
+  "ggml-small": {
+   "repo": "ggerganov/whisper.cpp",
+   "revision": "5359861c739e955e79d9a303bcbc70fb988958b1",
+   "files": {
+    "ggml-small.bin": {
+     "path": "ggml-small.bin",
+     "size": 487601967,
+     "sha256": "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
+    }
+   }
+  },
+  "silero-vad-16k": {
+   "repo": "snakers4/silero-vad",
+   "revision": "5cd7945676eb32225748052e2e6a0580e4686a08",
+   "files": {
+    "src/silero_vad/data/silero_vad_16k.safetensors": {
+     "path": "silero-vad/silero_vad_16k.safetensors",
+     "size": 1239748,
+     "sha256": "c59271c284ae9c8335d795d60e0bfdb71aaaceec578d9bd9ffc1b8153c319ea1"
+    }
+   }
+  },
+  "mms-tts-tur": {
+   "repo": "facebook/mms-tts-tur",
+   "revision": "7e364479c307f06733ca865b0a5269e0209cf82d",
+   "files": {
+    "config.json": {
+     "path": "mms-tts-tur/config.json",
+     "size": 1641,
+     "git_blob": "75c29d89c2e11dfbfa6e4fe5ba559ea7dd84451a"
+    },
+    "model.safetensors": {
+     "path": "mms-tts-tur/model.safetensors",
+     "size": 145231352,
+     "sha256": "927a00f1d0a3b3ae41ddd8f0d196be8343ceb2a13599cd6e84ef7e882ca58525"
+    },
+    "vocab.json": {
+     "path": "mms-tts-tur/vocab.json",
+     "size": 476,
+     "git_blob": "4537639bee7e20d511e958757950f1752044bbcb"
+    },
+    "tokenizer_config.json": {
+     "path": "mms-tts-tur/tokenizer_config.json",
+     "size": 287,
+     "git_blob": "a19f313bb0f8c67923e5872d9e6e557da88bf2e1"
+    }
+   }
+  },
+  "mms-tts-eng": {
+   "repo": "facebook/mms-tts-eng",
+   "revision": "c71de0fe7204c83f1c10820a7d696d0b450048ba",
+   "files": {
+    "config.json": {
+     "path": "mms-tts-eng/config.json",
+     "size": 1641,
+     "git_blob": "5f06bace91bc2be88912491d4575ddef044cb273"
+    },
+    "model.safetensors": {
+     "path": "mms-tts-eng/model.safetensors",
+     "size": 145227512,
+     "sha256": "69cf8b651c1493f1801dfd2311c298d694a38357bc9a1e41f410491ea6f0e1be"
+    },
+    "vocab.json": {
+     "path": "mms-tts-eng/vocab.json",
+     "size": 413,
+     "git_blob": "30097ea3f9c56d26292cab7ef5fc56feaa370131"
+    },
+    "tokenizer_config.json": {
+     "path": "mms-tts-eng/tokenizer_config.json",
+     "size": 287,
+     "git_blob": "b6ca2175b8c7e731f3840b9e23018aa393cdb9c6"
+    }
+   }
+  },
+  "piper-tr-dfki-medium": {
+   "repo": "rhasspy/piper-voices",
+   "revision": "e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c",
+   "files": {
+    "tr/tr_TR/dfki/medium/tr_TR-dfki-medium.onnx": {
+     "path": "piper-tr-dfki-medium/tr_TR-dfki-medium.onnx",
+     "size": 63201294,
+     "sha256": "2844717f524ab965d3fe86e60562cbb601d3e456836efcc2196cc3a14112a8fb"
+    },
+    "tr/tr_TR/dfki/medium/tr_TR-dfki-medium.onnx.json": {
+     "path": "piper-tr-dfki-medium/tr_TR-dfki-medium.onnx.json",
+     "size": 4960,
+     "git_blob": "ea4036df5c9e4e07b8c2f42acce4d77d0fb6afdc"
+    }
+   }
+  },
+  "piper-en-lessac-medium": {
+   "repo": "rhasspy/piper-voices",
+   "revision": "e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c",
+   "files": {
+    "en/en_US/lessac/medium/en_US-lessac-medium.onnx": {
+     "path": "piper-en-lessac-medium/en_US-lessac-medium.onnx",
+     "size": 63201294,
+     "sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f"
+    },
+    "en/en_US/lessac/medium/en_US-lessac-medium.onnx.json": {
+     "path": "piper-en-lessac-medium/en_US-lessac-medium.onnx.json",
+     "size": 4885,
+     "git_blob": "c67cea2c9a7a6501d89f7b2cdff411bc49e54a28"
+    }
+   }
+  }
+ },
+ "tools": {
+  "llama.cpp": {
+   "release": "https://github.com/ggml-org/llama.cpp/releases/tag/b12124",
+   "dir": "%USERPROFILE%/tools/llama.cpp/b12124",
+   "version": "build 12124, commit 8bed7cfb9",
+   "files": {
+    "llama-bench.exe": "7da76b5886efe7ba38ed0f615f2e46e96ff36445a2f45f904e5bd06cfa1b6956",
+    "llama-completion.exe": "40d9b65ea0ddba2bc13939c71e64a0e4da2f37071556226d8b034c5dae85ffe7"
+   }
+  },
+  "whisper.cpp": {
+   "release": "https://github.com/ggml-org/whisper.cpp/releases/tag/b5454",
+   "asset": "whisper-bin-x64.zip",
+   "asset_sha256": "6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb",
+   "dir": "%USERPROFILE%/tools/whisper.cpp/b5454/Release",
+   "version": "whisper.cpp version: 1.9.5",
+   "files": {
+    "whisper-cli.exe": "331dba46d6427105d2b802cdbc7eae916ea1c5abf9b0d3b5cfe460d8db8e4366"
+   }
+  }
+ },
+ "python": {
+  "torch": {
+   "version": "2.14.0+cpu",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://download.pytorch.org/whl/cpu",
+   "wheel": "torch-2.14.0+cpu-cp312-cp312-win_amd64.whl",
+   "sha256": "738cd9237bf63443a5e5f9652e5115f7b0510b089636a43d4011e9fccede714f"
+  },
+  "transformers": {
+   "version": "5.17.0",
+   "tags": [
+    "py3-none-any"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "transformers-5.17.0-py3-none-any.whl",
+   "sha256": "78ec1ce21579b38dfb83950a0658cd119f87212a2fcfdff478096ce9d6c03801"
+  },
+  "faster-whisper": {
+   "version": "1.2.1",
+   "tags": [
+    "py3-none-any"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "faster_whisper-1.2.1-py3-none-any.whl",
+   "sha256": "79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7"
+  },
+  "ctranslate2": {
+   "version": "4.8.5",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "ctranslate2-4.8.5-cp312-cp312-win_amd64.whl",
+   "sha256": "16b1478f9dccd3c6eedb7a1b2e23cb2a41f03976266b71afa1bd9019df7c7014"
+  },
+  "onnxruntime": {
+   "version": "1.29.0",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "onnxruntime-1.29.0-cp312-cp312-win_amd64.whl",
+   "sha256": "4acf2b4948b7ede87221ca6332344b8facdc8059d6ac751a7d367d04532b02dd"
+  },
+  "numpy": {
+   "version": "2.1.1",
+   "tags": [
+    "cp312-cp312-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "numpy-2.1.1-cp312-cp312-win_amd64.whl",
+   "sha256": "3fc5eabfc720db95d68e6646e88f8b399bfedd235994016351b1d9e062c4b270"
+  },
+  "tokenizers": {
+   "version": "0.23.2",
+   "tags": [
+    "cp310-abi3-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "tokenizers-0.23.2-cp310-abi3-win_amd64.whl",
+   "sha256": "2e96f5699d5249c9c64aa8412e044f727aae3a4098cf830f9901ec1afc361cde"
+  },
+  "safetensors": {
+   "version": "0.8.0",
+   "tags": [
+    "cp310-abi3-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+   "sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f"
+  },
+  "psutil": {
+   "version": "7.2.2",
+   "tags": [
+    "cp37-abi3-win_amd64"
+   ],
+   "index": "https://pypi.org/simple",
+   "wheel": "psutil-7.2.2-cp37-abi3-win_amd64.whl",
+   "sha256": "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988"
+  }
+ }
+}

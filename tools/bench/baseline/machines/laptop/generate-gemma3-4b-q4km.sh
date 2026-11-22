@@ -2,12 +2,11 @@
 # TR (language_model.tr, nicemli etkinleştirme Dost'un kuralıyla) ile llama.cpp b12124 (llama-bench -ngl 0), ABBA 10 koşu.
 # Uyuşma (B14): llama-completion'ın 32 token'ı TR'de zorlanmış okumayla, ε TR'nin işlemcide kendi ölçtüğü nicemli/nicemsiz farkı.
 # Satır: docs/measurements/text-generation.md, "Dizüstü i7-13700H". Taraflar: ikisi işlemcide (llama.cpp'nin Windows paketi
-# işlemci paketi, komutta -ngl 0). llama.cpp'nin yeri OLCU_LLAMA (öntanımlı $USERPROFILE/tools/llama.cpp/b12124).
+# işlemci paketi, komutta -ngl 0). llama.cpp'nin yeri OLCU_LLAMA; ikilinin sha256'sı ve sürümü sources.json'da.
 #   bash tools/bench/baseline/machines/laptop/generate-gemma3-4b-q4km.sh
 . "$(dirname "$0")/lib.sh"
-LLAMA=${OLCU_LLAMA:-$USERPROFILE/tools/llama.cpp/b12124}
 olcu_kur "llama_bench=$LLAMA/llama-bench.exe" "llama_completion=$LLAMA/llama-completion.exe"
 olcu_model gemma3-4b-q4km
 olcu_makine generate-gemma3-4b-q4km
-"$LLAMA/llama-completion.exe" --version 2>&1 | tr -d '\r' | tee -a "$KAYIT/surumler.txt"
+olcu_arac llama.cpp
 olcu_kos generate-gemma3-4b-q4km S1 --key S1/gemma3-4b-q4km

@@ -7,12 +7,11 @@
 # 2026-11-19 23:36, S3 denemesi 2026-11-20 01:01; "measured here, quantized and unquantized path"). HIGHRAM'in
 # S1/qwen3-4b-q8 satırı "ölçülmedi: BC17" kalır; 2026-11-20'deki deneme (ε 0'la 2. konum 0,0121 ayrı) bu ε'la yargılanmaz.
 # Satır: docs/measurements/text-generation.md, "Dizüstü i7-13700H". Taraflar: ikisi işlemcide (llama.cpp'nin Windows paketi
-# işlemci paketi, komutta -ngl 0). llama.cpp'nin yeri OLCU_LLAMA (öntanımlı $USERPROFILE/tools/llama.cpp/b12124).
+# işlemci paketi, komutta -ngl 0). llama.cpp'nin yeri OLCU_LLAMA; ikilinin sha256'sı ve sürümü sources.json'da.
 #   bash tools/bench/baseline/machines/laptop/generate-qwen3-4b-q8.sh
 . "$(dirname "$0")/lib.sh"
-LLAMA=${OLCU_LLAMA:-$USERPROFILE/tools/llama.cpp/b12124}
 olcu_kur "llama_bench=$LLAMA/llama-bench.exe" "llama_completion=$LLAMA/llama-completion.exe"
 olcu_model qwen3-4b-q8
 olcu_makine generate-qwen3-4b-q8
-"$LLAMA/llama-completion.exe" --version 2>&1 | tr -d '\r' | tee -a "$KAYIT/surumler.txt"
+olcu_arac llama.cpp
 olcu_kos generate-qwen3-4b-q8 S1 --key S1/qwen3-4b-q8 --epsilon S1/qwen3-4b-q8=2.3770726
