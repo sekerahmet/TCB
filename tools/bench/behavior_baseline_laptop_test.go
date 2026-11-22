@@ -217,18 +217,34 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 }
 
 // N2 (DENETİM 947): satır taslağı, satırın zorunlu Ayar alanı için makinenin iş parçacığını ve koşunun aldığı en hızlı
-// ayarı basar.
+// ayarı basar. TCB 22:45: emsali olan kalemde emsalin de ortancası ve aralığı, iki tarafın bellek tepeleri (satır iki
+// tarafı karşılaştırır).
 func TestLaptopRowsPrintTheSetting(t *testing.T) {
 	out := t.TempDir()
-	if err := os.WriteFile(filepath.Join(out, "metrics.json"), []byte(`{"_machine": {"threads": 20, "threads_source": "gctrace P (O-1)"}}`), 0o644); err != nil {
+	metrics := `{"_machine": {"threads": 20, "threads_source": "gctrace P (O-1)"},
+ "S1/m": {"reference": "llama.cpp", "measures": {"gen_ms": {"tr_ms": [10, 12, 11], "ref_ms": [7, 9, 8], "ratios": [1.4, 1.3, 1.4],
+   "q1": 1.3, "median": 1.4, "q3": 1.4, "verdict": "tr_worse", "borderline": false}},
+  "memory": {"TR": [{"peak_working_set_kb": 100}, {"peak_working_set_kb": 300}], "E": [{"peak_working_set_kb": 50}, {"peak_working_set_kb": 70}]}},
+ "S14/m": {"reference": null, "measures": {"ms": {"tr_ms": [3, 4]}}, "memory": {"TR": [{"peak_working_set_kb": 9}]}}}`
+	if err := os.WriteFile(filepath.Join(out, "metrics.json"), []byte(metrics), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(out, "en-hizli.json"), []byte(`{"llama.cpp read": {"threads": 6}, "_scan": {}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got, code := baseline(t, "--rows", "--out", out)
-	if code != 0 || !strings.Contains(got, `setting: machine threads 20 (gctrace P (O-1)); fastest settings {"llama.cpp read": {"threads": 6}}`) {
-		t.Errorf("--rows: exit %d\n%s", code, got)
+	for _, want := range []string{
+		`setting: machine threads 20 (gctrace P (O-1)); fastest settings {"llama.cpp read": {"threads": 6}}`,
+		"S1/m gen_ms: TR median 11.000 range 10.000–12.000 | llama.cpp median 8.000 range 7.000–9.000 | ratio",
+		"S1/m memory TR peaks: {'peak_working_set_kb': 300}", "S1/m memory llama.cpp peaks: {'peak_working_set_kb': 70}",
+		"S14/m memory TR peaks: {'peak_working_set_kb': 9}",
+	} {
+		if code != 0 || !strings.Contains(got, want) {
+			t.Errorf("--rows: exit %d, want %q\n%s", code, want, got)
+		}
+	}
+	if strings.Contains(got, "S14/m memory None") {
+		t.Errorf("a TR-only item printed a reference's memory\n%s", got)
 	}
 }
 

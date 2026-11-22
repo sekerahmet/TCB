@@ -916,16 +916,20 @@ def rows(out):
             continue
         for name, m in r["measures"].items():
             line = f"{key} {name}: TR median {statistics.median(m['tr_ms']):.3f} range {min(m['tr_ms']):.3f}–{max(m['tr_ms']):.3f}"
-            if r["reference"]:
-                line += (f" | {r['reference']} median {statistics.median(m['ref_ms']):.3f} | ratio q1 {m['q1']:.3f} median "
+            if r["reference"]:  # the reference's range too: a row writes both sides' median and range (TCB 22:45)
+                line += (f" | {r['reference']} median {statistics.median(m['ref_ms']):.3f} range {min(m['ref_ms']):.3f}–"
+                         f"{max(m['ref_ms']):.3f} | ratio q1 {m['q1']:.3f} median "
                          f"{m['median']:.3f} q3 {m['q3']:.3f} {m['verdict']}" + (" borderline" if m["borderline"] else ""))
             print(line)
-        mem = r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"]
         # Every field memory_of keeps that some run measured: Linux's VmHWM and RssAnon, Windows' peak working set
-        # and pagefile (the laptop, E), the GPU's.
-        peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
-                 if any(x.get(k) is not None for x in mem)}
-        print(f"{key} memory TR peaks: {peaks}")
+        # and pagefile (the laptop, E), the GPU's. The reference's peaks too, so a row compares the two sides' memory.
+        sides = [("TR", r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"])]
+        if r.get("reference") and isinstance(r["memory"], dict) and r["memory"].get("E"):
+            sides.append((r["reference"], r["memory"]["E"]))
+        for side, mem in sides:
+            peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
+                     if any(x.get(k) is not None for x in mem)}
+            print(f"{key} memory {side} peaks: {peaks}")
     return 0
 
 
