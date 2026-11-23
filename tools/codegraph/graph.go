@@ -29,7 +29,9 @@ const schemaVersion = 1
 // 105: tensör paketinin tip sorgusu kuralı çekirdek gövdesi taramasını (TestKernelBodiesCallNoGate) da sayar (DIL UZMANI iş 7).
 // 106: func literal düğümü yakaladığı değişkenleri (captured) taşımaz; okuyan tek komut captures emekli oldu (codegraph 7
 // Dilim C, K3).
-const extractorRevision = 106
+// 107: lib/pretrained.tr'nin klasör yükleyicisi parçalı klasörün model.safetensors.index.json'unu da teste bağlar
+// (T1 bf16 birleşmesi).
+const extractorRevision = 107
 
 // Düğüm türleri.
 const (

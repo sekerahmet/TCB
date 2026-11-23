@@ -22,6 +22,12 @@ const (
 	trChatGuard      = "tokenizer_config.json"
 )
 
+// trFolderLoaderSpec bir klasör yükleyicisinin (lib/vits.tr, lib/whisper.tr, lib/pretrained.tr) okuduğu dosyalardır.
+// always her klasörde bağlanır; modelFiles yalnız config.json'un model_type'ı modelTypes'tan biriyse. Liste
+// "hepsi gerekli" değildir: yükleyicinin okuyabildiği her dosya adıdır, klasörde izlenen her biri teste bağlanır,
+// olmayan atlanır (linkLoaderArg). Parçalı klasörde lib/pretrained.tr model.safetensors yerine
+// model.safetensors.index.json'u okur; dizinin weight_map'inde adı geçen parçalar bağlanmaz (adları dosya
+// içeriğindedir, sabit değildir; depoda izlenen parçalı model klasörü yok, testler klasörü koşarken yazar).
 type trFolderLoaderSpec struct {
 	modelTypes, always, modelFiles []string
 	chatFamily                     bool
@@ -31,7 +37,7 @@ var (
 	trModelLoaders = map[string]trFolderLoaderSpec{
 		"vits":       {modelTypes: []string{"vits"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors", "vocab.json", "tokenizer_config.json"}},
 		"whisper":    {modelTypes: []string{"whisper"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors", "tokenizer.json", "generation_config.json"}},
-		"pretrained": {modelTypes: []string{"llama", "qwen3", "gemma3", "gemma3_text"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors"}, chatFamily: true},
+		"pretrained": {modelTypes: []string{"llama", "qwen3", "gemma3", "gemma3_text"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors", "model.safetensors.index.json"}, chatFamily: true},
 	}
 	trChatFiles = []string{"tokenizer.json", "generation_config.json"}
 )
