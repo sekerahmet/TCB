@@ -39,6 +39,14 @@ var dupRules = []dupRule{
 			"would need generics or code generation for no gain.",
 		Match: allIn("internal/lang/ast/*.go"),
 	},
+	{
+		Name: "tensor-panel-loops-per-layout",
+		Reason: "internal/compute/tensor's eight-row weight panels: panelGemm8 (Q4_K and Q6_K: byte metadata, int16 sums, " +
+			"one kernel signature) and q4PanelGemm (Q4_0: float32 scales, int32 corrections, another signature) walk the " +
+			"same loop over different element types and assembly kernels; one loop would need generics plus adapter " +
+			"closures on the hot path for no gain (T1, CPU text-generation speed, TCB 2026-11-23 21:01).",
+		Match: pairOf("internal/compute/tensor/cpu_quant_panel_amd64.go", "internal/compute/tensor/cpu_quant_q8_amd64.go"),
+	},
 }
 
 // dupLoaderExclusions yükleyicinin kendiliğinden dışladıkları ve Go dışındakiler (belge amaçlıdır).
