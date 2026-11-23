@@ -7,3 +7,6 @@ var hasAVX2 = false
 
 // hasF16C yalnızca amd64'te anlamlıdır (bkz. cpu_features_amd64.go).
 var hasF16C = false
+
+// hasAVXVNNI yalnızca amd64'te anlamlıdır (bkz. cpu_features_amd64.go).
+var hasAVXVNNI = false

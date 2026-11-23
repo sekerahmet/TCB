@@ -305,6 +305,8 @@ func TestDistributeConcurrentAndNested(t *testing.T) {
 func TestWorkerCount(t *testing.T) {
 	old := runtime.GOMAXPROCS(20)
 	defer runtime.GOMAXPROCS(old)
+	// Önceki bir nicemli çarpımın tutması (holdWorkers) orta boy işin sınırını kaldırır: sınır tutmasız sınanır.
+	holdWorkers(-time.Second)
 	cases := []struct{ is, minN, large, want int }{
 		{100, 1000, 1 << 20, 1},
 		{2500, 1000, 1 << 20, 2},
@@ -320,6 +322,23 @@ func TestWorkerCount(t *testing.T) {
 	runtime.GOMAXPROCS(2)
 	if got := workerCount(1<<30, 1, 1); got != 2 {
 		t.Errorf("GOMAXPROCS=2'de %d işçi seçildi", got)
+	}
+}
+
+// TestWorkerCountWhileHeld: holdWorkers süresinde (nicemli çarpımlar arası) orta boy iş dönen işçilerle
+// sınırlanmaz, bütün işçiler katılır; süre dolunca sınır geri gelir. Sonuç yine işçi sayısından bağımsızdır
+// (parallelFor'un çağıranları parça sınırlarından bağımsızdır).
+func TestWorkerCountWhileHeld(t *testing.T) {
+	old := runtime.GOMAXPROCS(20)
+	defer runtime.GOMAXPROCS(old)
+	defer holdWorkers(-time.Second)
+	holdWorkers(time.Hour)
+	if got := workerCount(1<<19, 1000, 1<<20); got != 20 {
+		t.Errorf("tutma süresinde %d işçi, beklenen 20", got)
+	}
+	holdWorkers(-time.Second)
+	if got := workerCount(1<<19, 1000, 1<<20); got != returningWorker+1 {
+		t.Errorf("tutma bitince %d işçi, beklenen %d", got, returningWorker+1)
 	}
 }
 
