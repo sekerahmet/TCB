@@ -347,6 +347,54 @@ func TestBaselineShortestMeasurableTime(t *testing.T) {
 	}
 }
 
+// stopCheck dizüstünde sınırın altında bir ölçüyü eşli koşuya (S13 biçiminde: TR 200 ms, Go 5 ms), taramaya ve Dost'un
+// özel koşusuna verir; her biri durmalı.
+const stopCheck = `
+import importlib.util, json, sys, types
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+rp.wait_for_quiet = lambda q, log: 0.0
+rp.process_list = lambda: []
+out = {}
+def stops(name, f):
+    try:
+        f()
+        out[name] = "no stop"
+    except rp.Stop as e:
+        out[name] = str(e)
+ms = lambda r, runs: r[0]["ms"]
+rp._run_side = lambda q, side, index, log, machine, cmds=None: {"results": [{"ms": 200.0 if side["name"] == "TR" else 5.0}], "runs": [{}]}
+stops("pair", lambda: rp.run_pair("S13/dongu", {"name": "TR", "measure": ms}, {"name": "Go", "measure": ms}, None, lambda r: None, "laptop"))
+ctx = types.SimpleNamespace(machine="laptop")
+rp._run_side = lambda q, side, index, log, machine, cmds=None: {"results": [{"ms": 5.0}], "runs": [{}]}
+stops("scan", lambda: rp.time_side(ctx, {"name": "whisper.cpp", "cmds": [["w"]]}, "S5/tr/whisper.cpp", lambda r: None, 3,
+                                   lambda r, runs: {"transcribe_ms": r[0]["ms"]}))
+it = {"key": "S10/tr/warm", "runs": 3, "custom": lambda: ({"ready_ms": 5.0}, {})}
+stops("custom", lambda: rp.run_custom(ctx, it, types.SimpleNamespace(log=lambda r: None)))
+print(json.dumps(out))
+`
+
+// DENETİM 953 Ş1: sınır dört çağrı yerinin her birinde kalemi durdurur; emsalsiz koşu TestBaselineShortestMeasurableTime'da.
+// Eşli koşuda (S13'ün asıl yolu), taramada ve özel koşuda çağrı silinince bu test düşer (devirde bir kez bozuldu).
+func TestBaselineShortMeasureStopsEveryPath(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", stopCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got map[string]string
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	for name, want := range map[string]string{"pair": "S13/dongu: Go ms: 5.000 ms read", "scan": "S5/tr/whisper.cpp: whisper.cpp transcribe_ms: 5.000 ms read",
+		"custom": "S10/tr/warm: TR ready_ms: 5.000 ms read"} {
+		if !strings.Contains(got[name], want) || !strings.Contains(got[name], "ölçülemeyecek kadar kısa") {
+			t.Errorf("%s: %q, want a stop with %q", name, got[name], want)
+		}
+	}
+}
+
 // BC27: kısa diye işaretlenen ölçünün satırı sayı basmaz, nedenini söyler; bellek satırı kalır; Ayar sınırı yazar.
 // Ölçülerin türü questions.py'de koşudan önce yazılıdır.
 func TestBaselineShortMeasureRowAndKinds(t *testing.T) {
