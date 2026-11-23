@@ -166,15 +166,22 @@ file with no near test there gets no command, only the count line. A non-Go file
 a script, a Markdown doc) gets the same `go test` line, and any file or doc with near TR tests (Go files included) gets
 one `run: go run ./cmd/trlang test <file> <file> ...` over those TR test files (`trlang test` takes several targets);
 for a `.tr` module the TR test file that loads it (`tests/whisper_model_test.tr` for `lib/whisper.tr`) is near. The `run:` lines are not indented, so they are no item of a group.
-Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,
-TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
+Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size: file 129/600;
+functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding) (TestLayoutFileSize,
+TestLayoutFuncSize)"; like the `run:` lines it is not indented and starts with `size:`, the rules it measures come last;
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to
 test files too, the function limit does not; generated files and skipped folders (`testdata`) are not measured. The
 limits come from `internal/layoutrules`, the source the layout tests read; both the file's and its functions' sizes are
 read from the file at query time (functions with `go/parser` and `layoutrules.FuncName`/`FuncLines`, so a broken build
 that uses the stale graph still shows the current function sizes; when the file has a syntax error and cannot be parsed,
 the line says `functions: stale (syntax error: cannot parse file)`). `TestSizesMatchTheLayoutTest` compares both with the layout test's measure
-(`layoutrules.FileLines`, `FuncLines`, `FuncName`) for every measured file and function. The tests a test file declares come first as `this file's tests` (benchmarks are measurements and stay out; in `tools/bench/*_test.go`, `Test*`/`Fuzz*` functions are tests), and so do, for `x.go`, the tests of its test file `x_test.go`, whether in the same package or the external `_test` one (`state.go` lists `dataset_test.TestReaderSkipSameAsNext`; `TestASourceFileListsItsTestFilesTestsFirst` reads every such pair with go/parser); `changed` lists a changed test the same way, as `changed tests (they run themselves)`. A function a test file uses as a value (a table entry
+(`layoutrules.FileLines`, `FuncLines`, `FuncName`) for every measured file and function. A `.tr` file gets the same
+line from `TestLayoutTRFileSize` and `TestLayoutTRFuncSize` (`internal/layout_tr_test.go`), measured with
+`layoutrules.TRLines` and `TRFuncs` (a function is named `name:line`; the function limit applies to `_test.tr` files
+too): "size: file 326/600; functions: none at >=90% (closest TR_read_wav:189 51/80) (TestLayoutTRFileSize,
+TestLayoutTRFuncSize)" for `lib/audio.tr`; a file in `layoutrules.TRBigFiles` is an exception like a Go one, its limit the ceiling plus the fix margin
+("file 787/865 (an exception: its limit is the ceiling plus the fix margin; split before adding)" for
+`lib/pretrained.tr`); `TestTRSizesMatchTheLayoutTest` compares them for every measured `.tr` file. The tests a test file declares come first as `this file's tests` (benchmarks are measurements and stay out; in `tools/bench/*_test.go`, `Test*`/`Fuzz*` functions are tests), and so do, for `x.go`, the tests of its test file `x_test.go`, whether in the same package or the external `_test` one (`state.go` lists `dataset_test.TestReaderSkipSameAsNext`; `TestASourceFileListsItsTestFilesTestsFirst` reads every such pair with go/parser); `changed` lists a changed test the same way, as `changed tests (they run themselves)`. A function a test file uses as a value (a table entry
 `{"ceil", (*Tensor).Ceil}`, a method expression, `f := Cube`) is an INFERRED `calls` edge that the chain does not follow
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).

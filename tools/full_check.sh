@@ -156,6 +156,7 @@ repo_scans=(
 	TestRepoTRFilesShow
 	TestSizesMatchTheLayoutTest
 	TestStatefulImplementersAreAsserted
+	TestTRSizesMatchTheLayoutTest
 	TestUserPathsResolvedByLanguageRule
 )
 # Commit öncesi denetimin (--kip=commit) testleri: düzen kurallarının paketleri (./internal, ./internal/reporoot;

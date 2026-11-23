@@ -239,12 +239,12 @@ func TestTheHookLooksForCodegraphsOwnStaleLine(t *testing.T) {
 func TestTheHookLeavesOutTheSizeLine(t *testing.T) {
 	root := fakeCodegraph(t)
 	answer := "run: go test -short ./a/\n  narrow: these lines run the near tests; 3 more are left to the commit check and G4 (--list names them)\n" +
-		"  size (TestLayoutFileSize, TestLayoutFuncSize): file 590/600; functions at >=90% of their limit: f 78/80 (split before adding)\n"
+		"size: file 590/600; functions at >=90% of their limit: f 78/80 (split before adding) (TestLayoutFileSize, TestLayoutFuncSize)\n"
 	if err := os.WriteFile(filepath.Join(root, "size"), []byte(answer), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got := testsFor(target{root, "a.go"})
-	if strings.Contains(got, "size (") || !strings.Contains(got, "\nrun: go test -short ./a/\n  narrow: these lines run the near tests; 3 more") {
+	if strings.Contains(got, "size: ") || !strings.Contains(got, "\nrun: go test -short ./a/\n  narrow: these lines run the near tests; 3 more") {
 		t.Errorf("the size line is left out, the rest stays:\n%s", got)
 	}
 }
