@@ -492,6 +492,17 @@ def _self_check(name, arg):
                                         "check": it["check"]["name"] if it["check"] else None, "runs": it["runs"]}
                             for q in qs.QUESTIONS[machine] for it in qs.items(ctx, q)}
         return out
+    if name == "uses":  # BC28: every command a laptop item may run (sides, agreement, its uses) and the scan's commands
+        qs = load_questions()
+        ctx = qs.Ctx(sys.modules[__name__], "laptop", 97, arg, lambda rec: None, dry=True)
+        sides = lambda it: [c for s in (it["tr"], it["ref"], it["check"]) if s for c in s["cmds"]]
+        items = {it["key"]: sides(it) + (it["tr_agree"] or []) + (it["ref_agree"] or []) + it["uses"]
+                 for q in qs.QUESTIONS["laptop"] for it in qs.items(ctx, q)}
+        scan = []
+        for _, q, key, part in SCAN:
+            ref = next(i for i in qs.items(ctx, q) if i["key"] == key)["ref"]["cmds"]
+            scan += ref[part] if part else ref
+        return {"items": items, "scan": scan}
     if name == "agreement":
         say = lambda text: [sys.executable, "-I", "-c", f"print('BASELINE ' + {json.dumps(json.dumps({'text': text}))})"]
         side = lambda n, t: {"name": n, "cmd": say(t), "measure": lambda res, runs: runs[0]["wall_ms"]}
@@ -642,6 +653,7 @@ def run_questions(a):
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
+    ctx.keys = a.key  # BC28: a preparation only an unchosen item needs (S7/tr's ids) is skipped
     if doc is not None:
         ctx.settings = {k: v for k, v in doc.items() if not k.startswith("_")}
     if a.scan:

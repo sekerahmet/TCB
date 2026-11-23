@@ -91,3 +91,135 @@ func TestBaselineCustomRunChecksTheLoad(t *testing.T) {
 		}
 	}
 }
+
+// idsCheck S7'nin Türkçe kimlik hazırlığını sahte koşucuyla, --key'e göre koşar.
+const idsCheck = `
+import importlib.util, json, sys, tempfile, types
+spec = importlib.util.spec_from_file_location("questions", "baseline/questions.py")
+qs = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(qs)
+out = {}
+for name, keys in (("en", ["S7/en"]), ("tr", ["S7/tr"]), ("all", None), ("question", ["S7/"])):
+    ran = []
+    rp = types.SimpleNamespace(run_once=lambda cmd: ran.append(cmd) or {"rc": 0}, Stop=Exception)
+    ctx = types.SimpleNamespace(dry=False, work=tempfile.mkdtemp(), keys=keys, rp=rp, tools={"trlang": "trlang"},
+                                tr_device="cpu", tr=lambda *a: ["trlang", *a], model=lambda n: "models/" + n)
+    qs.piper_ids_tr(ctx)
+    out[name] = len(ran)
+print(json.dumps(out))
+`
+
+// BC28: S7/en tek başına koşunca Türkçe sesin kimlikleri yazılmaz (Türkçe ses bağlanmaz); S7/tr ya da bütün soru
+// koşunca yazılır.
+func TestBaselineS7EnglishWritesNoTurkishIds(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", idsCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got map[string]int
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if got["en"] != 0 || got["tr"] != 1 || got["all"] != 1 || got["question"] != 1 {
+		t.Errorf("ids written %v; want none for S7/en alone, once for S7/tr, the whole run and S7/", got)
+	}
+}
+
+// scriptRuns bir dizüstü betiğinin bağladığı modelleri ve koştuğu kalemleri okur: olcu_model satırları (for döngüsü
+// dahil), olcu_kos'un sorusu ve --key'leri (anahtar ilk $'da kesilir, kalanı önektir), olcu_tara (Ş1'in taraması).
+func scriptRuns(body string) (models []string, runs [][2]string, scan bool) {
+	for _, line := range strings.Split(body, "\n") {
+		f := strings.Fields(strings.NewReplacer("for m in", "olcu_model", "; do olcu_model \"$m\"; done", "").Replace(line))
+		if len(f) == 0 || strings.HasPrefix(f[0], "#") {
+			continue
+		}
+		switch f[0] {
+		case "olcu_model":
+			models = append(models, f[1:]...)
+		case "olcu_tara":
+			scan = true
+		case "olcu_kos":
+			if len(f) < 3 {
+				continue
+			}
+			keys := 0
+			for i := 3; i+1 < len(f); i++ {
+				if f[i] == "--key" {
+					k := strings.Trim(f[i+1], `"`)
+					if j := strings.Index(k, "$"); j >= 0 {
+						k = k[:j]
+					}
+					runs = append(runs, [2]string{f[2], k})
+					keys++
+				}
+			}
+			if keys == 0 {
+				runs = append(runs, [2]string{f[2], ""})
+			}
+		}
+	}
+	return models, runs, scan
+}
+
+// modelsIn bir komut listesinin iş klasöründen okuduğu modellerin adları (work/models/<ad>/...).
+func modelsIn(cmds [][]string) map[string]bool {
+	out := map[string]bool{}
+	for _, cmd := range cmds {
+		for _, a := range cmd {
+			a = filepath.ToSlash(a)
+			if i := strings.Index(a, "/models/"); i >= 0 {
+				out[strings.SplitN(a[i+len("/models/"):], "/", 2)[0]] = true
+			}
+		}
+	}
+	return out
+}
+
+// BC28: dizüstü betiği yalnız kullandığı modeli bağlar: bağladığı her model, koştuğu kalemlerin bir komutunda (uyuşma,
+// uyuşmanın kendi koştuğu emsaller, hazırlık ve Dost'un komutu dahil) geçer; komutların okuduğu her model de bağlıdır.
+func checkScriptsBindTheirModels(t *testing.T, scripts []string) {
+	t.Helper()
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Items map[string][][]string
+		Scan  [][]string
+	}
+	selfCheck(t, &got, "uses", work)
+	checked := 0
+	for _, s := range scripts {
+		body, _ := os.ReadFile(s)
+		models, runs, scan := scriptRuns(string(body))
+		var cmds [][]string
+		if scan {
+			cmds = append(cmds, got.Scan...)
+		}
+		for _, r := range runs {
+			for key, uses := range got.Items {
+				if strings.Split(key, "/")[0] == r[0] && strings.HasPrefix(key, r[1]) {
+					cmds = append(cmds, uses...)
+				}
+			}
+		}
+		used := modelsIn(cmds)
+		bound := map[string]bool{}
+		for _, m := range models {
+			bound[m] = true
+			if !used[m] {
+				t.Errorf("%s binds %s, which no command of its items reads (BC28); they read %v", filepath.Base(s), m, used)
+			}
+		}
+		for m := range used {
+			if !bound[m] {
+				t.Errorf("%s: its items read %s, which it does not bind", filepath.Base(s), m)
+			}
+		}
+		checked += len(runs)
+	}
+	if checked < 35 {
+		t.Errorf("%d olcu_kos runs read from %d scripts; the parser lost them", checked, len(scripts))
+	}
+}

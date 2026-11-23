@@ -197,6 +197,7 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 	if seen < 30 {
 		t.Errorf("%d model bindings read from %d scripts; the parser lost them", seen, len(scripts))
 	}
+	checkScriptsBindTheirModels(t, scripts) // BC28: yalnız kullandığını (behavior_baseline_runner_test.go)
 	// DENETİM 947 Ş3: emsalin sürüm dosyası adıyla ve sha256'sıyla; hesabı yapan arka uç kitaplıkları (ggml-cpu-*.dll)
 	// ikililerle birlikte sha256'larıyla denetlenir.
 	for name, tool := range src.Tools {

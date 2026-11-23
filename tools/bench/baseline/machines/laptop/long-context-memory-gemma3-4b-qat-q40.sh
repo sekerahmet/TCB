@@ -9,5 +9,4 @@
 olcu_kur
 olcu_model gemma3-4b-qat-q40
 olcu_makine long-context-memory-gemma3-4b-qat-q40
-if [ "${OLCU_DENEME:-}" = 1 ]; then anahtar=S4/gemma3-4b-qat-q40/40; else anahtar=S4/gemma3-4b-qat-q40/; fi
-olcu_kos long-context-memory-gemma3-4b-qat-q40 S4 --key "$anahtar"
+olcu_kos long-context-memory-gemma3-4b-qat-q40 S4 --key "S4/gemma3-4b-qat-q40/${OLCU_DENEME:+40}"  # denemede yalnız 40 token'lık kalem

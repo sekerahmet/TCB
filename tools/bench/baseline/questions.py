@@ -91,6 +91,7 @@ class Ctx:
         self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
         self.epsilon_given = {}  # item key: ε written in the run script before the run (run.py --epsilon; BC17)
         self.settings = {}  # Ş1: each reference's fastest setting from the window's scan (run.py --settings)
+        self.keys = None  # run.py --key: the items this run takes; a preparation only an unchosen item needs is skipped (BC28)
 
     def model(self, name, i=0):
         return os.path.join(self.work, "models", name, MODELS[name][2][i])
@@ -127,11 +128,13 @@ def setting_group(name, argv):
     return {"llama-completion": "llama.cpp read", "whisper-cli": "whisper.cpp", "piper": "onnxruntime"}.get(name)
 
 
-def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None):
+def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None, uses=None):
     # check: yalnız uyuşmada koşan başvuru (ref yokken): doğruluğun başvurusudur ama en hızlısı değildir, ABBA'da koşmaz ve
     # satıra oranı girmez (TCB 2026-11-20 00:15: transformers hiçbir soruda hız emsali değil; S2, S6).
+    # uses: kalemin taraflarının dışında koşabilen komutlar (uyuşmanın kendi koştuğu emsaller, hazırlık, Dost'un komutu);
+    # betiğin bağladığı her model kalemin bir komutunda geçer (BC28, run.py --self-check uses).
     return {"key": key, "tr": tr, "ref": ref, "agree": agree, "tr_agree": tr_agree, "ref_agree": ref_agree,
-            "runs": alone_runs, "custom": custom, "check": check}
+            "runs": alone_runs, "custom": custom, "check": check, "uses": uses or []}
 
 
 def side(name, cmds, measure, parse=None, env=None, agree_parse=None):
@@ -353,7 +356,8 @@ def q_whisper(ctx, q):
         f32 = {"faster-whisper-float32": refs[0][1]["cmds"][0], "transformers": hf}
         for name, ref in refs:
             key = f"S5/{lang}/{name}"
-            out.append(item(key, tr, ref, s5_agreement(ctx, key, name, f32, source), tr["cmds"], ref["cmds"]))
+            out.append(item(key, tr, ref, s5_agreement(ctx, key, name, f32, source), tr["cmds"], ref["cmds"],
+                            uses=list(f32.values())))
     return out
 
 
@@ -443,7 +447,7 @@ def q_voice(ctx, q):
             tr_cmd = ctx.tr("piper.tr", "--model", voice, *texts, "--language", lang, "--ids", ids, "--device", ctx.tr_device)
             ref_cmd = ctx.ref("piper", argv=["--model", voice, "--ids", ids, *texts, "--device", ctx.torch_device, "--language", lang])
             out.append(item(f"S7/{lang}", side("TR", [tr_cmd], pick), side("onnxruntime", [ref_cmd], pick),
-                            agree_samples, [tr_cmd], [ref_cmd]))
+                            agree_samples, [tr_cmd], [ref_cmd], uses=[ids_tr_cmd(ctx)] if lang == "tr" else None))
             # En hızlı emsal (TCB 00:31, Ahmet): işlemcide onnxruntime'ın kendi varsayılanı (intra_op 0) ve 6 iş parçacığı da
             # koşar (dizüstünde 2026-11-19'da 6 iş parçacığı TR'den öndeydi, TTS-2026-11-19-LAPTOP-S1-1); satır üçünü yazar.
             # With the window's scan (Ş1) the main item already runs onnxruntime's fastest setting.
@@ -456,12 +460,23 @@ def q_voice(ctx, q):
     return out
 
 
+def ids_tr_cmd(ctx):
+    """The command that writes the Turkish S7 ids (piper.tr --write_ids) into the work folder."""
+    return ctx.tr("piper.tr", "--model", ctx.model("piper-tr-dfki-medium"), "--texts", TEXTS, "--language", "tr",
+                  "--write_ids", os.path.join(ctx.work, "ids_tr.json"), "--device", ctx.tr_device)
+
+
+def wants(ctx, key):
+    """Whether this run takes the item `key`: every item without --key, else a key that names it or a part of it."""
+    return not ctx.keys or any(key.startswith(k) or k.startswith(key) for k in ctx.keys)
+
+
 def piper_ids_tr(ctx):
-    """The Turkish S7 ids from TR's phonemizer (piper.tr --write_ids), once per machine before S7."""
+    """The Turkish S7 ids from TR's phonemizer (piper.tr --write_ids), once per machine before S7/tr; a run of S7/en
+    alone does not write them and needs no Turkish voice (BC28)."""
     path = os.path.join(ctx.work, "ids_tr.json")
-    if not ctx.dry and not os.path.exists(path):
-        r = ctx.rp.run_once(ctx.tr("piper.tr", "--model", ctx.model("piper-tr-dfki-medium"), "--texts", TEXTS, "--language", "tr",
-                                   "--write_ids", path, "--device", ctx.tr_device))
+    if not ctx.dry and not os.path.exists(path) and wants(ctx, "S7/tr"):
+        r = ctx.rp.run_once(ids_tr_cmd(ctx))
         if r["rc"] != 0:
             raise ctx.rp.Stop(f"S7: piper.tr --write_ids failed: {r['stderr'][-400:]}")
 
@@ -549,11 +564,12 @@ def q_dost(ctx, q):
             out.append(item(f"S8/{lang}", side("TR", [cmd], turn_measures, parse=lambda s, k=f"S8/{lang}": logged_turns(ctx, k, s)),
                             alone_runs=3))
         elif q == "S9":
-            out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=screen, lang=lang: screen_turns(ctx, base, lang)))
+            out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=screen, lang=lang: screen_turns(ctx, base, lang),
+                            uses=[screen]))
         elif q == "S10":
             for mode in (["warm"] if ctx.machine == "laptop" else ["cold", "warm"]):
                 out.append(item(f"S10/{lang}/{mode}", None, alone_runs=3,
-                                custom=lambda ctx=ctx, base=screen, mode=mode: screen_ready(ctx, base, mode)))
+                                custom=lambda ctx=ctx, base=screen, mode=mode: screen_ready(ctx, base, mode), uses=[screen]))
     return out
 
 
