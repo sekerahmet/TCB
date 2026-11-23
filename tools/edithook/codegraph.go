@@ -151,7 +151,7 @@ func testsFor(t target) string {
 	for _, l := range strings.Split(strings.TrimRight(stderr.String()+stdout.String(), "\n"), "\n") {
 		switch {
 		case strings.HasPrefix(l, t.rel+" ["): // codegraph'ın dosya satırı: not dosyayı zaten adlandırır
-		case strings.HasPrefix(l, "  size ("):
+		case strings.HasPrefix(l, "size: "): // codegraph'ın boyut satırı (sizeLinePrefix)
 		default:
 			lines = append(lines, l)
 		}

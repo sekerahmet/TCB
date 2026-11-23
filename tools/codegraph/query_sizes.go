@@ -16,20 +16,27 @@ import (
 	"github.com/sekerahmet/TCB/internal/layoutrules"
 )
 
-// Bu dosya tests-for <Go dosyası>'nın boyut satırını kurar: dosyayı tarayan boyut kuralları (TestLayoutFileSize,
-// TestLayoutFuncSize) için bugünkü değer ve sınır (DENETİM 2026-10-29: compiler.assignTo 80/80 satırdaydı, iki satır
+// Bu dosya tests-for <Go ya da .tr dosyası>'nın boyut satırını kurar: dosyayı tarayan boyut kuralları (Go'da
+// TestLayoutFileSize, TestLayoutFuncSize; .tr'de TestLayoutTRFileSize, TestLayoutTRFuncSize) için bugünkü değer ve sınır (DENETİM 2026-10-29: compiler.assignTo 80/80 satırdaydı, iki satır
 // eklendi, TestLayoutFuncSize commit'ten sonra düştü; tests-for testin adını gösteriyordu, değeri göstermiyordu).
 // Sınırlar internal/layoutrules'tan (düzen testinin okuduğu kaynak), dosya ve fonksiyon boyları sorgu anında dosyadan
 // okunur (fonksiyonlar go/parser ve düzenin ölçüsüyle: derleme kırıkken ve eski grafik kullanılırken de günceldir;
-// sözdizimi hatası yüzünden ayrıştırılamıyorsa boyut satırı boyun bayat olduğunu açıkça söyler).
+// sözdizimi hatası yüzünden ayrıştırılamıyorsa boyut satırı boyun bayat olduğunu açıkça söyler). .tr dosyasının ölçüsü
+// ve muafiyeti de layoutrules'tadır (TRLines, TRFuncs, TRBigFiles; 2026-11-23: T1'in dalında lib/pretrained.tr 750
+// satıra çıktı, cevapta boyut satırı yoktu).
+
+// sizeLinePrefix boyut satırının başıdır (tools/edithook bu önekle başlayan satırı göstermez).
+const sizeLinePrefix = "size: "
 
 // nearPercent bu orandan (yüzde) büyük ya da eşit boyda olan fonksiyon sınıra yakındır ve yazılır.
 const nearPercent = 90
 
 // fileSizeTest ve funcSizeTest boyut satırının kurallarıdır: dosyayı tarayan dosya ve fonksiyon sınırı testleri.
 const (
-	fileSizeTest = "TestLayoutFileSize"
-	funcSizeTest = "TestLayoutFuncSize"
+	fileSizeTest   = "TestLayoutFileSize"
+	funcSizeTest   = "TestLayoutFuncSize"
+	trFileSizeTest = "TestLayoutTRFileSize"
+	trFuncSizeTest = "TestLayoutTRFuncSize"
 )
 
 // sized bir dosya ya da fonksiyonun bugünkü boyu ve aşamayacağı boydur.
@@ -38,11 +45,18 @@ type sized struct {
 	lines     int
 	max       int
 	exception bool // istisna listesinde: max tavan + düzeltme payı
+	exempt    bool // muafiyet listesinde (layoutrules.TRBigFiles): sınır yok, max FileLimit'tir
 }
 
-func (s sized) near() bool { return s.lines*100 >= s.max*nearPercent }
+func (s sized) near() bool { return !s.exempt && s.lines*100 >= s.max*nearPercent }
 
 func (s sized) String() string {
+	if s.exempt {
+		if s.lines <= s.max {
+			return fmt.Sprintf("%s %d (exempt in layoutrules.TRBigFiles but at or under %d: the test fails, remove the entry)", s.name, s.lines, s.max)
+		}
+		return fmt.Sprintf("%s %d (exempt in layoutrules.TRBigFiles: no limit)", s.name, s.lines)
+	}
 	var notes []string
 	if s.exception {
 		notes = append(notes, "an exception: its limit is the ceiling plus the fix margin")
@@ -78,9 +92,16 @@ func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, staleFuncs 
 	if err != nil {
 		return nil, nil, false, nil
 	}
+	if strings.HasSuffix(file.File, ".tr") {
+		if !layoutrules.TRMeasured(file.File) { // tarama tanıyıcısı .tr testinin atladığı önekleri bilmez (tests/negative)
+			return nil, nil, false, nil
+		}
+		whole, funcs, tests = trFileSizes(file.File, data, scanned)
+		return whole, funcs, false, tests
+	}
 	if scanned[fileSizeTest] {
 		max, exc := layoutrules.FileMax(file.File)
-		whole = &sized{"file", layoutrules.FileLines(data), max, exc}
+		whole = &sized{name: "file", lines: layoutrules.FileLines(data), max: max, exception: exc}
 		tests = append(tests, fileSizeTest)
 	}
 	if scanned[funcSizeTest] && !isTestFile(file.File) {
@@ -90,6 +111,25 @@ func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, staleFuncs 
 		tests = append(tests, funcSizeTest)
 	}
 	return whole, funcs, staleFuncs, tests
+}
+
+// trFileSizes .tr dosyasının boyudur, düzenin ölçüsüyle (layoutrules.TRLines, TRFuncs): dosya TestLayoutTRFileSize
+// tarıyorsa (muaf dosyada sınır yerine muafiyet), fonksiyonlar TestLayoutTRFuncSize tarıyorsa (test dosyasında da; TR'de
+// fonksiyon istisnası yok). Fonksiyonun adı "ad:satır"dır: iç içe fonksiyonlar ve tiplerin metotları aynı adı taşıyabilir.
+func trFileSizes(file string, data []byte, scanned map[string]bool) (whole *sized, funcs []sized, tests []string) {
+	lines := layoutrules.TRLines(data)
+	if scanned[trFileSizeTest] {
+		whole = &sized{name: "file", lines: len(lines), max: layoutrules.FileLimit, exempt: layoutrules.TRFileExempt(file)}
+		tests = append(tests, trFileSizeTest)
+	}
+	if scanned[trFuncSizeTest] {
+		for _, f := range layoutrules.TRFuncs(lines) {
+			funcs = append(funcs, sized{name: fmt.Sprintf("%s:%d", f.Name, f.Line), lines: f.Lines, max: layoutrules.FuncLimit})
+		}
+		funcs = sortSizes(funcs)
+		tests = append(tests, trFuncSizeTest)
+	}
+	return whole, funcs, tests
 }
 
 // funcSizes dosyadaki func bildirimlerinin boyudur; adları düzen testinin istisna anahtarındaki gibi ("Alici.Ad").
@@ -106,7 +146,7 @@ func funcSizes(file string, data []byte) ([]sized, bool) {
 		if fd, ok := d.(*ast.FuncDecl); ok {
 			name := layoutrules.FuncName(fd)
 			max, exc := layoutrules.FuncMax(file + ":" + name)
-			out = append(out, sized{name, layoutrules.FuncLines(fset, fd), max, exc})
+			out = append(out, sized{name: name, lines: layoutrules.FuncLines(fset, fd), max: max, exception: exc})
 		}
 	}
 	return sortSizes(out), true
@@ -127,8 +167,10 @@ func sortSizes(out []sized) []sized {
 	return out
 }
 
-// printSizes boyut satırını yazar (koşu satırlarının altında, kancanın gösterdiği ilk satırlarda): dosyanın boyu ve
-// sınıra %nearPercent'ten yakın fonksiyonlar; yakın yoksa sınıra en yakını; sözdizimi hatası varsa bayat uyarısı.
+// printSizes boyut satırını yazar (koşu satırlarının altında, cevabın ilk satırlarında): dosyanın boyu ve sınıra
+// %nearPercent'ten yakın fonksiyonlar; yakın yoksa sınıra en yakını; sözdizimi hatası varsa bayat uyarısı; kurallar
+// sonda, ayraç içinde. Satır run: satırları gibi girintisiz ve "size:" ile başlar: belgeler ve kurallar onu bu adla anar,
+// `^(run|size):` süzgeci ikisini birlikte alır (gaps, 2026-11-18: satır "  size (" ile başlıyordu, süzgeç onu kaçırdı).
 func (ix *index) printSizes(w io.Writer, file *Node) {
 	whole, funcs, staleFuncs, tests := ix.fileSizes(file)
 	if len(tests) == 0 {
@@ -154,5 +196,5 @@ func (ix *index) printSizes(w io.Writer, file *Node) {
 			parts = append(parts, fmt.Sprintf("functions: none at >=%d%% (closest %s)", nearPercent, funcs[0]))
 		}
 	}
-	fmt.Fprintf(w, "  size (%s): %s\n", strings.Join(tests, ", "), strings.Join(parts, "; "))
+	fmt.Fprintf(w, "%s%s (%s)\n", sizeLinePrefix, strings.Join(parts, "; "), strings.Join(tests, ", "))
 }

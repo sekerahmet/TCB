@@ -1,7 +1,7 @@
 // Package layoutrules, kod düzeni standardının (docs/development.md) boyut sınırlarının tek kaynağıdır: el yazımı bir
-// dosyanın ve test dışı bir fonksiyonun en çok satırı, bugünkü istisnalar ve istisnanın düzeltme payı. Düzen testleri
-// (internal/layout_test.go) sınırı bunlarla denetler; kod grafiği (tools/codegraph) düzenleme anında aynı sınırı
-// gösterir. Sınır bir yerde değişir, iki okuyucusu aynı sayıyı görür.
+// dosyanın ve test dışı bir fonksiyonun en çok satırı, bugünkü istisnalar ve istisnanın düzeltme payı; .tr dosyalarının
+// ölçüsü ve muafiyetleri tr.go'da. Düzen testleri (internal/layout_test.go, internal/layout_tr_test.go) sınırı bunlarla
+// denetler; kod grafiği (tools/codegraph) düzenleme anında aynı sınırı gösterir. Sınır bir yerde değişir, iki okuyucusu aynı sayıyı görür.
 //
 // Layer: layout rules (internal/layoutrules); yalnızca Go standart kitaplığını içe aktarır, düzen testleri ve
 // tools/ kullanır.

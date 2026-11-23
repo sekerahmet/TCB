@@ -283,6 +283,9 @@ func (ix *index) printNodeTests(w io.Writer, n *Node, t nodeTests, limit int) {
 	if n.Kind == kindDoc || n.Kind == kindFile {
 		writeRunPlan(w, func() runPlan { return ix.nodeRunPlan(n, t, tests) })
 	}
+	if n.Kind == kindFile && strings.HasSuffix(n.File, ".tr") {
+		ix.printSizes(w, n) // .tr dosyasının boyut satırı, Go dosyasınınki gibi koşu satırlarının altında
+	}
 	if t.branch == branchTested {
 		markHeadEnd(w) // öbür dallar "below" diye gruplara gönderir: kısa kipte de tam yazılırlar
 	}

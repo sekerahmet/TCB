@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -150,7 +151,7 @@ func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
 	if max, exc := layoutrules.FuncMax("a.go:f"); exc || max != layoutrules.FuncLimit {
 		t.Fatalf("a function off the list has FuncLimit: %d", max)
 	}
-	list := []sized{{"low", 10, 80, false}, {"over", 90, 80, false}, {"near", 75, 80, false}, {"exc", 150, 189, true}}
+	list := []sized{{"low", 10, 80, false, false}, {"over", 90, 80, false, false}, {"near", 75, 80, false, false}, {"exc", 150, 189, true, false}}
 	if s := list[2].String(); s != "near 75/80 (split before adding)" {
 		t.Errorf("near: %q", s)
 	}
@@ -159,6 +160,111 @@ func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
 	}
 	if s := list[3].String(); !strings.Contains(s, "exception") || strings.Contains(s, "split") {
 		t.Errorf("exception at 79%%: %q", s)
+	}
+	exempt := sized{name: "file", lines: 750, max: layoutrules.FileLimit, exempt: true}
+	if s := exempt.String(); s != "file 750 (exempt in layoutrules.TRBigFiles: no limit)" || exempt.near() {
+		t.Errorf("an exempt .tr file has no limit: %q, near %v", s, exempt.near())
+	}
+	exempt.lines = 590
+	if s := exempt.String(); !strings.Contains(s, "at or under 600: the test fails, remove the entry") {
+		t.Errorf("an exempt .tr file under the limit fails the layout test: %q", s)
+	}
+}
+
+// trLayoutWalk düzen testinin ölçtüğü .tr dosyalarıdır, codegraph'tan bağımsız yürünür (internal/layout_tr_test.go'nun
+// trSourceFiles'ı gibi): git'in izlediği, layoutrules.TRMeasured'ın ölçtüğü .tr dosyaları. Dosya yolu -> içerik.
+func trLayoutWalk(t *testing.T, root string) map[string][]byte {
+	t.Helper()
+	out := map[string][]byte{}
+	err := reporoot.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || filepath.Ext(p) != ".tr" {
+			return err
+		}
+		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel)
+		if !layoutrules.TRMeasured(rel) {
+			return nil
+		}
+		data, err := os.ReadFile(p)
+		out[rel] = data
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// Kural: .tr dosyasında da boyut satırının kapsamı ve değeri düzen testininkidir (TestLayoutTRFileSize,
+// TestLayoutTRFuncSize): düzen testinin ölçtüğü her .tr dosyası (yolu codegraph'tan bağımsız yürünür: trLayoutWalk) iki
+// kuralla boyut satırı alır; dosya boyu ve muafiyeti, her fonksiyonun adı, satırı ve boyu düzenin ölçüsüyle
+// (layoutrules.TRLines, TRFuncs, TRFileExempt) eşittir; codegraph'ın ölçmediği ya da fazladan ölçtüğü .tr dosyası düşer.
+// Graf testdata gibi atlanan klasörlerin .tr dosyalarını okumaz (layoutrules.SkippedDir; düzen testi onları ölçer): o
+// dosyaların boyut satırı yoktur, boyları düzen testinde kalır.
+// Satır cevapta koşu satırlarının altında, "size:" ile başlar, kurallar sonda (2026-11-23: lib/pretrained.tr T1'in
+// dalında 750 satıra çıktı, cevapta boyut satırı yoktu).
+func TestTRSizesMatchTheLayoutTest(t *testing.T) {
+	t.Parallel()
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	ix.root = root
+	walked := trLayoutWalk(t, root)
+	funcs := 0
+	for rel, data := range walked {
+		file := ix.byID[trFileID(rel)]
+		if file == nil && slices.ContainsFunc(strings.Split(path.Dir(rel), "/"), layoutrules.SkippedDir) {
+			continue
+		}
+		if file == nil {
+			t.Errorf("%s: the layout test measures it, the graph has no node for it", rel)
+			continue
+		}
+		whole, got, _, tests := ix.fileSizes(file)
+		if !slices.Equal(tests, []string{trFileSizeTest, trFuncSizeTest}) || whole == nil {
+			t.Errorf("%s: the layout test measures it, tests-for shows %v", rel, tests)
+			continue
+		}
+		lines := layoutrules.TRLines(data)
+		if whole.lines != len(lines) || whole.exempt != layoutrules.TRFileExempt(rel) {
+			t.Errorf("%s: codegraph's file size %d (exempt %v), the layout test counts %d (exempt %v)", rel, whole.lines, whole.exempt, len(lines), layoutrules.TRFileExempt(rel))
+		}
+		var want, have []string
+		for _, f := range layoutrules.TRFuncs(lines) {
+			want = append(want, fmt.Sprintf("%s:%d %d", f.Name, f.Line, f.Lines))
+		}
+		for _, s := range got {
+			have = append(have, fmt.Sprintf("%s %d", s.name, s.lines))
+		}
+		slices.Sort(want)
+		slices.Sort(have)
+		if !slices.Equal(want, have) {
+			t.Errorf("%s: codegraph's functions %v, the layout test's %v", rel, have, want)
+		}
+		funcs += len(want)
+	}
+	for i := range g.Nodes {
+		file := &g.Nodes[i]
+		if file.Kind != kindFile || !strings.HasSuffix(file.File, ".tr") || walked[file.File] != nil {
+			continue
+		}
+		if _, _, _, tests := ix.fileSizes(file); len(tests) > 0 {
+			t.Error(untrackedOrUnmeasured(root, file.File))
+		}
+	}
+	if len(walked) < 100 || funcs < 500 {
+		t.Fatalf("only %d .tr files and %d functions compared", len(walked), funcs)
+	}
+	for file, want := range map[string]string{
+		"lib/pretrained.tr": "\nsize: file %d (exempt in layoutrules.TRBigFiles: no limit); functions",
+		"lib/audio.tr":      "\nsize: file %d/600; functions",
+	} {
+		var out strings.Builder
+		ix.printTestsForShort(&out, ix.byID[trFileID(file)])
+		head := fmt.Sprintf(want, len(layoutrules.TRLines(walked[file])))
+		run := strings.Index(out.String(), "\nrun: ")
+		if size := strings.Index(out.String(), head); run < 0 || size < run || !strings.Contains(out.String(), "(TestLayoutTRFileSize, TestLayoutTRFuncSize)\n") {
+			t.Errorf("%s: the short answer has the size line %q under its run: lines:\n%s", file, head, out.String())
+		}
 	}
 }
 
@@ -177,7 +283,9 @@ func TestTheRunAndSizeLinesComeFirst(t *testing.T) {
 		lines := strings.Split(out.String(), "\n")
 		decl := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "  declarations in this file: ") })
 		run := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "run: go test -short ./") })
-		size := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "  size (TestLayoutFileSize") })
+		size := slices.IndexFunc(lines, func(l string) bool {
+			return strings.HasPrefix(l, sizeLinePrefix+"file ") && strings.Contains(l, "(TestLayoutFileSize")
+		})
 		if run != 1 || size < 0 || size > decl || decl > 8 {
 			t.Errorf("%s: run line at %d, size line at %d, declarations at %d:\n%s", file.File, run, size, decl, strings.Join(lines[:min(len(lines), 8)], "\n"))
 		}
@@ -233,7 +341,7 @@ func TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxE
 	if !strings.Contains(errb.String(), "rebuild failed") || !strings.Contains(errb.String(), "using the existing, stale graph") {
 		t.Errorf("expected stale graph warning on stderr, got: %s", errb.String())
 	}
-	wantOver := "size (TestLayoutFileSize, TestLayoutFuncSize): file 135/600; functions at >=90% of their limit: Checker.tupleLen 88/80 (over the limit: the test fails)"
+	wantOver := "\nsize: file 135/600; functions at >=90% of their limit: Checker.tupleLen 88/80 (over the limit: the test fails) (TestLayoutFileSize, TestLayoutFuncSize)\n"
 	if !strings.Contains(out.String(), wantOver) {
 		t.Errorf("broken build did not report fresh function size %q:\n%s", wantOver, out.String())
 	}
@@ -246,7 +354,7 @@ func TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxE
 	if code := runQueryOn(g, "tests-for", []string{"--root", root, "internal/lang/checker/unpack.go"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for on syntax error exit %d: %s", code, errb.String())
 	}
-	wantStale := "size (TestLayoutFileSize, TestLayoutFuncSize): file 3/600; functions: stale (syntax error: cannot parse file)"
+	wantStale := "\nsize: file 3/600; functions: stale (syntax error: cannot parse file) (TestLayoutFileSize, TestLayoutFuncSize)\n"
 	if !strings.Contains(out.String(), wantStale) {
 		t.Errorf("syntax error did not report stale function sizes %q:\n%s", wantStale, out.String())
 	}

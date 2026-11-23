@@ -109,7 +109,7 @@ func TestFirstEditShowsTheNarrowRunLines(t *testing.T) {
 		t.Fatalf("%d lines shown, at most %d:\n%s", len(lines), maxLines, got)
 	}
 	if !strings.Contains("\n"+got, "\nrun: go test -short ./internal/lang/interp/\n") || strings.Contains(got, "TestLayoutFuncSize|") ||
-		!strings.Contains(got, "\n  narrow: these lines run the near tests; ") || strings.Contains(got, "size (") ||
+		!strings.Contains(got, "\n  narrow: these lines run the near tests; ") || strings.Contains(got, "size: ") ||
 		strings.Contains(got, "compiler_assign.go [file]") {
 		t.Fatalf("the first %d lines must hold the narrow run lines and the count line, no size line far from the limit:\n%s", maxLines, got)
 	}
