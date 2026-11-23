@@ -42,9 +42,9 @@ func dongu(n int) int {
 	return toplam
 }
 
-// matrisIz n×n iki tamsayı matrisinin (a[i][j] = i·j mod 7, b[i][j] = (i+j) mod 5) çarpımının izi; matrisler
-// süre dışında kurulur, döngü bütün çarpımı yapar.
-func matrisIz(n int) (int, string) {
+// matrisIz n×n iki tamsayı matrisinin (a[i][j] = i·j mod 7, b[i][j] = (i+j) mod 5) çarpımının izi ve bütün öğelerinin
+// toplamı: her iç çarpım sonuca girer, derleyici köşegen dışını atamaz (DENETİM 953 Ş2). Matrisler süre dışında kurulur.
+func matrisIz(n int) (string, string) {
 	a := make([][]int, n)
 	b := make([][]int, n)
 	for i := range n {
@@ -56,19 +56,21 @@ func matrisIz(n int) (int, string) {
 		}
 	}
 	t := time.Now()
-	iz := 0
+	iz, toplam := 0, 0
 	for i := range n {
 		for j := range n {
 			s := 0
 			for k := range n {
 				s += a[i][k] * b[k][j]
 			}
+			toplam += s
 			if i == j {
 				iz += s
 			}
 		}
 	}
-	return iz, ms(t)
+	took := ms(t)
+	return strconv.Itoa(iz) + "/" + strconv.Itoa(toplam), took
 }
 
 // timed bir işin sonuç değerini ve süresini verir.
@@ -154,7 +156,7 @@ func size(def int) int {
 }
 
 func main() {
-	var v int
+	var v any // the result value: a number, matris_dongu's "<trace>/<sum of all elements>"
 	var took string
 	switch os.Args[1] {
 	case "dongu":

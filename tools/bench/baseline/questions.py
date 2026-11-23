@@ -826,8 +826,9 @@ def last_ms(stdout):
 
 # S13'ün saf hesap işlerinin boyu (--n, iki tarafa aynı), koşudan önce yazılı: tools/bench/run.py'nin boyunda Go dizüstünde
 # 0–1,2 ms sürdü (saat adımı ~0,5 ms; fib'de 0 ms, oran sıfıra bölündü; 2026-11-22 penceresi), ölçü anlamsızdı. Bu boylarda Go
-# dizüstünde en kısa ölçülebilir sürenin (BC27, 20 ms) en az üç katı sürer [prova 2026-11-23, sayısı ölçü değil; matrisin süresi
-# boyun küpüyle büyümez, önbellek], TR bir koşuda yarım dakikadan az.
+# dizüstünde en kısa ölçülebilir sürenin (BC27, 20 ms) en az üç katı sürer [prova 2026-11-23, sayısı ölçü değil], TR bir koşuda
+# yarım dakikadan az. Uyuşma iki tarafın bütün sonuç değerini karşılaştırır; matris_dongu'da değer iz ve bütün öğelerin
+# toplamıdır ("<iz>/<toplam>"): her iç çarpım sonuca girer (DENETİM 953 Ş2).
 PURE_SIZES = {"dongu": 300_000_000, "fib": 37, "matris_dongu": 480}
 
 

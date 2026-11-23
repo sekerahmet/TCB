@@ -82,19 +82,22 @@ fn main() {
                 }
             }
             let t = Instant::now();
+            // the trace and the sum of all elements: every inner product goes into the result (DENETİM 953 Ş2)
             let mut iz: i64 = 0;
+            let mut toplam: i64 = 0;
             for i in 0..n {
                 for j in 0..n {
                     let mut s = 0i64;
                     for k in 0..n {
                         s += a[i][k] * b[k][j];
                     }
+                    toplam += s;
                     if i == j {
                         iz += s;
                     }
                 }
             }
-            println!("matris_dongu {} {}", iz, ms(t));
+            println!("matris_dongu {}/{} {}", iz, toplam, ms(t));
         }
         "matris_yerlesik" => {
             // Go sürümü gibi elle yazılmış üçlü döngü; rastgele değerler basit bir doğrusal üreteçten.

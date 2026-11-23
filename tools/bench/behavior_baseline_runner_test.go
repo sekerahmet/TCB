@@ -95,7 +95,7 @@ func TestBaselineCustomRunChecksTheLoad(t *testing.T) {
 // S13'ün saf hesap işleri (TCB 2026-11-23 10:26, madde 2): TR programı --n'i okur ve Go'nun compare'iyle aynı değeri
 // verir (compare_test.go aynı boyların Go değerini bağımsız hesapla denetler); S13'ün iki tarafı aynı büyük boyu alır.
 func TestBaselinePureComputeTakesTheSize(t *testing.T) {
-	for _, c := range []struct{ prog, n, want string }{{"dongu", "10", "45"}, {"fib", "10", "55"}, {"matris_dongu", "10", "443"},
+	for _, c := range []struct{ prog, n, want string }{{"dongu", "10", "45"}, {"fib", "10", "55"}, {"matris_dongu", "10", "443/4380"},
 		{"dongu", "1000", "499500"}} {
 		out, err := exec.Command(trlang(t), "tr/"+c.prog+".tr", "--n", c.n).CombinedOutput()
 		f := strings.Fields(string(out))
@@ -116,6 +116,24 @@ func TestBaselinePureComputeTakesTheSize(t *testing.T) {
 		if !strings.HasSuffix(tr, prog+".tr --n "+n) || ref != "compare "+prog+" --n "+n {
 			t.Errorf("S13/%s: TR %q, Go %q; want both with --n %s", prog, tr, ref, n)
 		}
+	}
+	// DENETİM 953 Ş2: uyuşma matrisin bütün değerini (iz ve toplam) karşılaştırır; köşegen dışı tutmazsa uyuşmaz.
+	agree := `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+qs = rp.load_questions()
+ctx = qs.Ctx(rp, "laptop", 97, sys.argv[1], lambda r: None, dry=True)
+it = next(i for i in qs.items(ctx, "S13") if i["key"] == "S13/matris_dongu")
+v = lambda s: [{"value": s}]
+print(json.dumps({"same": it["agree"](v("443/4380"), v("443/4380")), "off": it["agree"](v("443/4380"), v("443/4381"))}))
+`
+	out, err := exec.Command(python(t), "-I", "-c", agree, work).Output()
+	var a map[string]*string
+	if err != nil || json.Unmarshal(out, &a) != nil || a["same"] != nil || a["off"] == nil {
+		t.Errorf("S13/matris_dongu's agreement: %v %s; want the same value to agree and another sum to disagree", err, out)
 	}
 }
 

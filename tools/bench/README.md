@@ -18,7 +18,7 @@ python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 | `sirala` | 300 bin sayı üretip sıralama: liste ekleme ve yerleşik sıralama |
 | `metin` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
 | `sozluk` | 200 bin anahtar yazıp okuma: sözlük erişimi |
-| `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
+| `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme; sonuç `<iz>/<bütün öğelerin toplamı>` (her iç çarpım sonuca girer) |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |
 
 `dongu`, `fib` ve `matris_dongu`'nun TR ve Go sürümü `--n` ile boy alır (tur sayısı, argüman, kenar); öntanımı yukarıdaki boydur. Temel ölçü setinin S13'ü büyük boyla koşar (`baseline/questions.py` `PURE_SIZES`).
