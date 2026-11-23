@@ -11,24 +11,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// .tr dosyalarının boy ölçüsü (TRLines, TRFuncs) ve muafiyet listesi (TRBigFiles) internal/layoutrules'tadır: kod grafı
-// (tools/codegraph, tests-for'un size: satırı) aynı sayıyı oradan okur.
-
-// trBigFileReasons layoutrules.TRBigFiles'ın gerekçeleridir (internal/layout_exceptions_test.go'daki gibi: gerekçe
-// geliştiricinin notudur, metin sabiti olarak test dosyasında durur). Her kaydın bir gerekçesi vardır, gerekçesi olan her
-// dosya listededir (TestLayoutTRFileSize).
-var trBigFileReasons = map[string]string{
-	"lib/turkish.tr":            "Türkçe sözcük tabloları: veri, bölünmesi ayrı iş",
-	"tests/tensor_test.tr":      "tensör bölümünün (15) testleri tek dosyada",
-	"tests/yerlesikler_test.tr": "yerleşiklerin (13) testleri tek dosyada",
-	"lib/layers_test.tr":        "katmanların testleri tek dosyada",
-	"lib/layers.tr":             "katmanlar; bölünmesi status'ta (kod kalitesi, lib/layers.tr)",
-	"tests/tipler_test.tr":      "tiplerin (3) testleri tek dosyada",
-	"lib/vits.tr":               "VITS modeli tek dosyada",
-	"lib/whisper.tr":            "Whisper modeli tek dosyada",
-	"tests/vad_test.tr":         "ses etkinliği bulmanın (25) testleri tek dosyada",
-	"lib/pretrained.tr":         "hazır model yükleyicisi tek modülde: _ adlar dışa aktarılmaz (11.7), bölmek yeni kamu adı ister",
-}
+// .tr dosyalarının boy ölçüsü (TRLines, TRFuncs) ve istisna listesi (TRBigFiles) internal/layoutrules'tadır: kod grafı
+// (tools/codegraph, tests-for'un size: satırı) aynı sayıyı oradan okur. İstisnaların gerekçeleri Go'nunkilerle birlikte
+// internal/layout_exceptions_test.go'dadır (trBigFileReasons).
 
 // trSourceFiles izlenen el yazımı .tr dosyalarıdır: bilerek hatalı fikstürler (tests/negative),
 // codegraph'ın fikstürleri ve arşiv dışında (layoutrules.TRMeasured).
@@ -61,31 +46,24 @@ func trSourceFiles(t *testing.T) map[string][]string {
 }
 
 // Kural (kod kalitesi; Go'nun TestLayoutFileSize'ının eşi): el yazımı .tr dosyası en çok
-// layoutrules.FileLimit satırdır; aşan dosya layoutrules.TRBigFiles'ta gerekçesiyle durur.
+// layoutrules.FileLimit satırdır; mevcut istisnalar layoutrules.TRBigFiles'ta gerekçesiyle durur ve büyüyemez (tavan +
+// düzeltme payı; TCB 2026-11-23 18:56).
 func TestLayoutTRFileSize(t *testing.T) {
-	files := trSourceFiles(t)
-	for rel, lines := range files {
-		listed := layoutrules.TRFileExempt(rel)
+	visited := map[string]bool{}
+	for rel, lines := range trSourceFiles(t) {
+		n := len(lines)
+		max, listed := layoutrules.TRFileMax(rel) // listede değilse FileLimit, istisnaysa tavan + düzeltme payı
+		visited[rel] = listed
 		switch {
-		case !listed && len(lines) > layoutrules.FileLimit:
-			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", rel, len(lines), layoutrules.FileLimit)
-		case listed && len(lines) <= layoutrules.FileLimit:
-			t.Errorf("%s: artık %d satır; layoutrules.TRBigFiles listesinden çıkarın", rel, len(lines))
+		case !listed && n > max:
+			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", rel, n, max)
+		case listed && n <= layoutrules.FileLimit:
+			t.Errorf("%s: artık %d satır; layoutrules.TRBigFiles listesinden çıkarın (liste yalnızca küçülür)", rel, n)
+		case listed && n > max:
+			t.Errorf("%s: %d satır, istisna sınırı %d (tavan %d + düzeltme payı); büyüyen istisna dosyası bölünmeli", rel, n, max, layoutrules.TRBigFiles[rel])
 		}
 	}
-	for rel := range layoutrules.TRBigFiles {
-		if _, ok := files[rel]; !ok {
-			t.Errorf("layoutrules.TRBigFiles: %s izlenen bir .tr dosyası değil; kaydı silin", rel)
-		}
-		if strings.TrimSpace(trBigFileReasons[rel]) == "" {
-			t.Errorf("layoutrules.TRBigFiles: %s kaydının gerekçesi yok; trBigFileReasons'a yazın", rel)
-		}
-	}
-	for rel := range trBigFileReasons {
-		if !layoutrules.TRBigFiles[rel] {
-			t.Errorf("trBigFileReasons: %s layoutrules.TRBigFiles'ta değil; gerekçeyi silin", rel)
-		}
-	}
+	checkExceptions(t, "TRBigFiles", layoutrules.TRBigFiles, trBigFileReasons, layoutrules.MaxTRBigFiles, visited)
 }
 
 // Kural (kod kalitesi; Go'nun TestLayoutFuncSize'ının eşi): TR fonksiyonu (TR_func satırından

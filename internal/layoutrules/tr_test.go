@@ -57,15 +57,18 @@ func TestTRMeasuredLeavesOutNegativesFixturesAndTheArchive(t *testing.T) {
 	}
 }
 
-// Kural: TRBigFiles yalnız muafiyettir; listede olan muaf, olmayan değildir (gerekçeleri internal/layout_tr_test.go
-// denetler).
-func TestTRBigFilesAreExemptions(t *testing.T) {
-	for file := range TRBigFiles {
-		if !TRFileExempt(file) || !TRMeasured(file) {
-			t.Errorf("TRBigFiles: %s is not an exempt measured .tr file", file)
+// Kural: .tr istisnasının sınırı Go'nunki gibi tavanı + düzeltme payıdır; listede olmayanın sınırı FileLimit; her
+// kayıt ölçülen bir .tr dosyasıdır ve tavanı FileLimit'in üstündedir (gerekçeleri internal/layout_exceptions_test.go'da, TestLayoutTRFileSize denetler).
+func TestATRExceptionsLimitIsItsCeilingPlusTheMargin(t *testing.T) {
+	for file, ceiling := range TRBigFiles {
+		if max, exc := TRFileMax(file); !exc || max != ceiling+FixMargin(ceiling) || !TRMeasured(file) || ceiling <= FileLimit {
+			t.Errorf("TRFileMax(%s) = %d, %v (ceiling %d)", file, max, exc, ceiling)
 		}
 	}
-	if TRFileExempt("lib/a.tr") || len(TRBigFiles) == 0 {
-		t.Errorf("a file off the list is exempt, or the list is empty (%d)", len(TRBigFiles))
+	if max, exc := TRFileMax("lib/a.tr"); exc || max != FileLimit {
+		t.Errorf("TRFileMax of a file off the list = %d, %v", max, exc)
+	}
+	if max, _ := TRFileMax("lib/pretrained.tr"); max != 787+78 {
+		t.Errorf("lib/pretrained.tr's limit %d, want 865 (787 + 78)", max)
 	}
 }

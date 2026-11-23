@@ -151,7 +151,7 @@ func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
 	if max, exc := layoutrules.FuncMax("a.go:f"); exc || max != layoutrules.FuncLimit {
 		t.Fatalf("a function off the list has FuncLimit: %d", max)
 	}
-	list := []sized{{"low", 10, 80, false, false}, {"over", 90, 80, false, false}, {"near", 75, 80, false, false}, {"exc", 150, 189, true, false}}
+	list := []sized{{"low", 10, 80, false}, {"over", 90, 80, false}, {"near", 75, 80, false}, {"exc", 150, 189, true}}
 	if s := list[2].String(); s != "near 75/80 (split before adding)" {
 		t.Errorf("near: %q", s)
 	}
@@ -160,14 +160,6 @@ func TestTheSizeLinePutsTheNearestFirst(t *testing.T) {
 	}
 	if s := list[3].String(); !strings.Contains(s, "exception") || strings.Contains(s, "split") {
 		t.Errorf("exception at 79%%: %q", s)
-	}
-	exempt := sized{name: "file", lines: 750, max: layoutrules.FileLimit, exempt: true}
-	if s := exempt.String(); s != "file 750 (exempt in layoutrules.TRBigFiles: no limit)" || exempt.near() {
-		t.Errorf("an exempt .tr file has no limit: %q, near %v", s, exempt.near())
-	}
-	exempt.lines = 590
-	if s := exempt.String(); !strings.Contains(s, "at or under 600: the test fails, remove the entry") {
-		t.Errorf("an exempt .tr file under the limit fails the layout test: %q", s)
 	}
 }
 
@@ -197,8 +189,8 @@ func trLayoutWalk(t *testing.T, root string) map[string][]byte {
 
 // Kural: .tr dosyasında da boyut satırının kapsamı ve değeri düzen testininkidir (TestLayoutTRFileSize,
 // TestLayoutTRFuncSize): düzen testinin ölçtüğü her .tr dosyası (yolu codegraph'tan bağımsız yürünür: trLayoutWalk) iki
-// kuralla boyut satırı alır; dosya boyu ve muafiyeti, her fonksiyonun adı, satırı ve boyu düzenin ölçüsüyle
-// (layoutrules.TRLines, TRFuncs, TRFileExempt) eşittir; codegraph'ın ölçmediği ya da fazladan ölçtüğü .tr dosyası düşer.
+// kuralla boyut satırı alır; dosya boyu ve sınırı (istisnada tavan + pay), her fonksiyonun adı, satırı ve boyu düzenin
+// ölçüsüyle (layoutrules.TRLines, TRFuncs, TRFileMax) eşittir; codegraph'ın ölçmediği ya da fazladan ölçtüğü .tr dosyası düşer.
 // Graf testdata gibi atlanan klasörlerin .tr dosyalarını okumaz (layoutrules.SkippedDir; düzen testi onları ölçer): o
 // dosyaların boyut satırı yoktur, boyları düzen testinde kalır.
 // Satır cevapta koşu satırlarının altında, "size:" ile başlar, kurallar sonda (2026-11-23: lib/pretrained.tr T1'in
@@ -225,8 +217,8 @@ func TestTRSizesMatchTheLayoutTest(t *testing.T) {
 			continue
 		}
 		lines := layoutrules.TRLines(data)
-		if whole.lines != len(lines) || whole.exempt != layoutrules.TRFileExempt(rel) {
-			t.Errorf("%s: codegraph's file size %d (exempt %v), the layout test counts %d (exempt %v)", rel, whole.lines, whole.exempt, len(lines), layoutrules.TRFileExempt(rel))
+		if max, exc := layoutrules.TRFileMax(rel); whole.lines != len(lines) || whole.max != max || whole.exception != exc {
+			t.Errorf("%s: codegraph's file size %d/%d (exception %v), the layout test's %d/%d (exception %v)", rel, whole.lines, whole.max, whole.exception, len(lines), max, exc)
 		}
 		var want, have []string
 		for _, f := range layoutrules.TRFuncs(lines) {
@@ -255,12 +247,13 @@ func TestTRSizesMatchTheLayoutTest(t *testing.T) {
 		t.Fatalf("only %d .tr files and %d functions compared", len(walked), funcs)
 	}
 	for file, want := range map[string]string{
-		"lib/pretrained.tr": "\nsize: file %d (exempt in layoutrules.TRBigFiles: no limit); functions",
-		"lib/audio.tr":      "\nsize: file %d/600; functions",
+		"lib/pretrained.tr": "\nsize: file %d/%d (an exception: its limit is the ceiling plus the fix margin",
+		"lib/audio.tr":      "\nsize: file %d/%d; functions",
 	} {
 		var out strings.Builder
 		ix.printTestsForShort(&out, ix.byID[trFileID(file)])
-		head := fmt.Sprintf(want, len(layoutrules.TRLines(walked[file])))
+		max, _ := layoutrules.TRFileMax(file)
+		head := fmt.Sprintf(want, len(layoutrules.TRLines(walked[file])), max)
 		run := strings.Index(out.String(), "\nrun: ")
 		if size := strings.Index(out.String(), head); run < 0 || size < run || !strings.Contains(out.String(), "(TestLayoutTRFileSize, TestLayoutTRFuncSize)\n") {
 			t.Errorf("%s: the short answer has the size line %q under its run: lines:\n%s", file, head, out.String())

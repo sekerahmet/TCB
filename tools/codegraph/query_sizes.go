@@ -45,18 +45,11 @@ type sized struct {
 	lines     int
 	max       int
 	exception bool // istisna listesinde: max tavan + düzeltme payı
-	exempt    bool // muafiyet listesinde (layoutrules.TRBigFiles): sınır yok, max FileLimit'tir
 }
 
-func (s sized) near() bool { return !s.exempt && s.lines*100 >= s.max*nearPercent }
+func (s sized) near() bool { return s.lines*100 >= s.max*nearPercent }
 
 func (s sized) String() string {
-	if s.exempt {
-		if s.lines <= s.max {
-			return fmt.Sprintf("%s %d (exempt in layoutrules.TRBigFiles but at or under %d: the test fails, remove the entry)", s.name, s.lines, s.max)
-		}
-		return fmt.Sprintf("%s %d (exempt in layoutrules.TRBigFiles: no limit)", s.name, s.lines)
-	}
 	var notes []string
 	if s.exception {
 		notes = append(notes, "an exception: its limit is the ceiling plus the fix margin")
@@ -114,12 +107,13 @@ func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, staleFuncs 
 }
 
 // trFileSizes .tr dosyasının boyudur, düzenin ölçüsüyle (layoutrules.TRLines, TRFuncs): dosya TestLayoutTRFileSize
-// tarıyorsa (muaf dosyada sınır yerine muafiyet), fonksiyonlar TestLayoutTRFuncSize tarıyorsa (test dosyasında da; TR'de
+// tarıyorsa (istisnada sınır tavan + düzeltme payı, layoutrules.TRFileMax), fonksiyonlar TestLayoutTRFuncSize tarıyorsa (test dosyasında da; TR'de
 // fonksiyon istisnası yok). Fonksiyonun adı "ad:satır"dır: iç içe fonksiyonlar ve tiplerin metotları aynı adı taşıyabilir.
 func trFileSizes(file string, data []byte, scanned map[string]bool) (whole *sized, funcs []sized, tests []string) {
 	lines := layoutrules.TRLines(data)
 	if scanned[trFileSizeTest] {
-		whole = &sized{name: "file", lines: len(lines), max: layoutrules.FileLimit, exempt: layoutrules.TRFileExempt(file)}
+		max, exc := layoutrules.TRFileMax(file)
+		whole = &sized{name: "file", lines: len(lines), max: max, exception: exc}
 		tests = append(tests, trFileSizeTest)
 	}
 	if scanned[trFuncSizeTest] {

@@ -3,24 +3,29 @@ package layoutrules
 import "strings"
 
 // El yazımı .tr dosyalarının boy kuralları: dosya en çok FileLimit, TR fonksiyonu en çok FuncLimit satırdır
-// (internal/layout_tr_test.go: TestLayoutTRFileSize, TestLayoutTRFuncSize). Ölçü ve muafiyet burada durur; düzen testi
+// (internal/layout_tr_test.go: TestLayoutTRFileSize, TestLayoutTRFuncSize). Ölçü ve istisnalar burada durur; düzen testi
 // de kod grafı (tools/codegraph, tests-for'un size: satırı) da buradan okur, iki okuyucu aynı sayıyı görür.
 
-// TRBigFiles FileLimit'i aşan el yazımı .tr dosyalarıdır; gerekçeleri internal/layout_tr_test.go'nun trBigFileReasons'ında
-// (Go'nun istisnaları gibi: gerekçe geliştiricinin notudur, metin sabiti olarak test dosyasında durur). Liste yalnız
-// muafiyettir, tavan koymaz (TCB, DENETİM 738 Ş2 (a)): listedeki dosya büyüyebilir; sınırın altına inen dosya listeden
-// çıkar (düzen testi düşer).
-var TRBigFiles = map[string]bool{
-	"lib/turkish.tr":            true,
-	"tests/tensor_test.tr":      true,
-	"tests/yerlesikler_test.tr": true,
-	"lib/layers_test.tr":        true,
-	"lib/layers.tr":             true,
-	"tests/tipler_test.tr":      true,
-	"lib/vits.tr":               true,
-	"lib/whisper.tr":            true,
-	"tests/vad_test.tr":         true,
-	"lib/pretrained.tr":         true,
+// MaxTRBigFiles TRBigFiles'ın en fazla kayıt sayısıdır (MaxBigFiles gibi: liste büyümez).
+const MaxTRBigFiles = 10
+
+// TRBigFiles FileLimit'i aşan el yazımı .tr dosyalarının tavanıdır (2026-11-23'teki satır sayısı, TRLines'la).
+// Gerekçeleri Go'nun istisnalarınınkilerle birlikte internal/layout_exceptions_test.go'nun trBigFileReasons'ındadır
+// (gerekçe geliştiricinin notudur, metin sabiti olarak test dosyasında durur). Go'nun BigFiles'ı gibi YALNIZCA KÜÇÜLEBİLİR: dosya tavanı ve
+// düzeltme payını (FixMargin) aşamaz; sınırın altına inen dosyanın kaydı silinir, yeni kayıt eklenmez, tavan yükseltilmez.
+// Liste 2026-11-23'e kadar yalnız muafiyetti (DENETİM 738 Ş2 (a)); lib/pretrained.tr uyarısız 583'ten 787 satıra
+// büyüyünce TCB tavanı koydu (tcb-cevaplar, 2026-11-23 18:56).
+var TRBigFiles = map[string]int{
+	"lib/turkish.tr":            3211,
+	"tests/tensor_test.tr":      2105,
+	"tests/yerlesikler_test.tr": 783,
+	"lib/layers_test.tr":        810,
+	"lib/layers.tr":             788,
+	"tests/tipler_test.tr":      741,
+	"lib/vits.tr":               1105,
+	"lib/whisper.tr":            611,
+	"tests/vad_test.tr":         610,
+	"lib/pretrained.tr":         787,
 }
 
 // trUnmeasured .tr düzeninin ölçmediği yolların önekleridir: bilerek hatalı fikstürler, codegraph'ın fikstürleri, arşiv.
@@ -40,9 +45,10 @@ func TRMeasured(rel string) bool {
 	return true
 }
 
-// TRFileExempt dosya TRBigFiles'ta mı: muaf dosyanın boy sınırı yoktur, sınırın altına inince kaydı silinir.
-func TRFileExempt(path string) bool {
-	return TRBigFiles[path]
+// TRFileMax .tr dosyasının bugün aşamayacağı boydur: istisna listesinde değilse FileLimit, listedeyse tavan + düzeltme
+// payı (FileMax'ın .tr eşi).
+func TRFileMax(path string) (max int, exception bool) {
+	return limitOf(TRBigFiles, path, FileLimit)
 }
 
 // TRLines düzenin saydığı .tr dosyasının satırlarıdır: CRLF LF olur, sondaki tek satır sonu kırpılır, kalan satır

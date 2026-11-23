@@ -25,6 +25,21 @@ var bigFileReasons = map[string]string{
 	"internal/compute/dataload/cache.go":          "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir",
 }
 
+// trBigFileReasons layoutrules.TRBigFiles'ın (el yazımı .tr dosyaları) gerekçeleridir (TestLayoutTRFileSize,
+// checkExceptions).
+var trBigFileReasons = map[string]string{
+	"lib/turkish.tr":            "Türkçe sözcük tabloları: veri, bölünmesi ayrı iş",
+	"tests/tensor_test.tr":      "tensör bölümünün (15) testleri tek dosyada",
+	"tests/yerlesikler_test.tr": "yerleşiklerin (13) testleri tek dosyada",
+	"lib/layers_test.tr":        "katmanların testleri tek dosyada",
+	"lib/layers.tr":             "katmanlar; bölünmesi status'ta (kod kalitesi, lib/layers.tr)",
+	"tests/tipler_test.tr":      "tiplerin (3) testleri tek dosyada",
+	"lib/vits.tr":               "VITS modeli tek dosyada",
+	"lib/whisper.tr":            "Whisper modeli tek dosyada",
+	"tests/vad_test.tr":         "ses etkinliği bulmanın (25) testleri tek dosyada",
+	"lib/pretrained.tr":         "hazır model yükleyicisi tek modülde: _ adlar dışa aktarılmaz (11.7), bölmek yeni kamu adı ister",
+}
+
 // longFuncReasons layoutrules.LongFuncs'ın gerekçeleridir.
 var longFuncReasons = map[string]string{
 	// Dil çekirdeği
