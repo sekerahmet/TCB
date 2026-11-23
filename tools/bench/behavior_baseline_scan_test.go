@@ -3,15 +3,17 @@ package bench
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
 
 // Emsallerin en hızlı ayarının taraması (Ş1, DENETİM 944, 947 ve 948): taramanın seçimi ve ölçüye geçişi, ölçünün yalnız
-// kendi commit'inin bütün taramasını alması, taramanın eski pencerenin dosyasını bırakmaması.
+// kendi commit'inin bütün taramasını alması, taramanın eski pencerenin dosyasını bırakmaması (H1e: kimlik, dönüşüm, eksik grup).
 
 // settingsCheck en hızlı ayarın emsal komutlarına geçişini ve taramanın seçimini (sahte ölçülerle) basar.
 const settingsCheck = `
@@ -51,13 +53,6 @@ rp.scan_settings(ctx, qs, rec, ["llama.cpp read", "llama.cpp gen"], scan_out, ru
 rp.scan_settings(ctx, qs, rec, ["whisper.cpp"], scan_out, runs=1)
 out["scan"] = json.load(open(os.path.join(scan_out, "en-hizli.json"), encoding="utf-8"))
 out["commit"] = rp.head_commit()
-whole = {g: {"threads": 6} for g in rp.SCAN_GROUPS}
-whole["_scan"] = {g: {"runs": 3} for g in rp.SCAN_GROUPS}
-whole["_commit"] = "c1"
-out["check"] = {"whole": rp.check_settings(whole, "c1"),
-                "missing": rp.check_settings({k: v for k, v in whole.items() if k != "llama.cpp gen"}, "c1"),
-                "trial": rp.check_settings({**whole, "_scan": {g: {"runs": 1} for g in rp.SCAN_GROUPS}}, "c1"),
-                "other": rp.check_settings(whole, "c2"), "nogit": rp.check_settings(whole, None)}
 out["groups"] = rp.SCAN_GROUPS
 print(json.dumps(out))
 `
@@ -75,7 +70,6 @@ func TestLaptopFastestSettings(t *testing.T) {
 		S1, S1gen, S3, Int8, F32, S7 []string
 		Ort                          []string
 		Scan                         map[string]any
-		Check                        map[string]*string
 		Commit                       string
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
@@ -101,130 +95,164 @@ func TestLaptopFastestSettings(t *testing.T) {
 	w, _ := got.Scan["whisper.cpp"].(map[string]any)
 	table, _ := got.Scan["_scan"].(map[string]any)
 	gt, _ := table["llama.cpp gen"].(map[string]any)
+	// K2 (H1e): commit artık dosyanın değil grubun kaydıdır; ölçü onu denetlemez.
 	if r["threads"] != 6.0 || g["threads"] == 6.0 || g["threads"] == 0.0 || w["threads"] != 0.0 || len(table) != 3 || gt["measures_ms"] == nil ||
-		len(got.Commit) != 40 || got.Scan["_commit"] != got.Commit {
-		t.Errorf("scan: %v, want reading 6 threads, generation the logical count, whisper.cpp the default, each measure's median, the commit %s", got.Scan, got.Commit)
-	}
-	// DENETİM 947 ve 948 Ş1: ölçü yalnız kendi commit'inde bütün gruplar 3 koşuyla taranmış dosyayı alır.
-	str := func(p *string) string {
-		if p == nil {
-			return "<nil>"
-		}
-		return *p
-	}
-	if c := got.Check; c["whole"] != nil || !strings.Contains(str(c["missing"]), "llama.cpp gen") ||
-		!strings.Contains(str(c["trial"]), "fewer than 3 runs") || !strings.Contains(str(c["other"]), "scanned at commit c1, this measure runs c2") ||
-		!strings.Contains(str(c["nogit"]), "this measure runs None") {
-		t.Errorf("check_settings: whole %v, a group missing %s, a trial's file %s, another commit %s, no git %s",
-			c["whole"], str(c["missing"]), str(c["trial"]), str(c["other"]), str(c["nogit"]))
+		len(got.Commit) != 40 || gt["commit"] != got.Commit || got.Scan["_commit"] != nil {
+		t.Errorf("scan: %v, want reading 6 threads, generation the logical count, whisper.cpp the default, each measure's median, the group's commit %s", got.Scan, got.Commit)
 	}
 }
 
-// DENETİM 947 ve 948 Ş1: ölçü kipinde taramanın ilk adımı (olcu_tara_basla) eski en-hizli.json'ları siler ve bütün
-// grupları ister; eksik listeyle durur. Denemede dosyaya dokunmaz.
-func TestLaptopMeasureScanStartsEmpty(t *testing.T) {
-	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"
-echo '{}' > "$AYAR"; echo '{}' > "$KAYIT/run-en-hizli-ayar/en-hizli.json"
-( olcu_tara_basla "llama.cpp read" ); echo "bir grup rc=$?"
-[ -f "$AYAR" ] && echo "ayar kaldı" || echo "ayar silindi"
-[ -f "$KAYIT/run-en-hizli-ayar/en-hizli.json" ] && echo "kopya kaldı" || echo "kopya silindi"
-( olcu_tara_basla "${TARA_GRUPLARI[@]}" ); echo "bütün gruplar rc=$?"
-echo '{}' > "$AYAR"; ( OLCU_DENEME=1; olcu_tara_basla "llama.cpp read" ); echo "deneme rc=$?"
-[ -f "$AYAR" ] && echo "denemede ayar kaldı" || echo "denemede ayar silindi"`
-	out, code := libRun(t, t.TempDir(), nil, script)
-	for _, want := range []string{"bir grup rc=2", "ayar silindi", "kopya silindi", "ölçü kipinde tarama bütün grupları koşar",
-		"bütün gruplar rc=0", "deneme rc=0", "denemede ayar kaldı"} {
-		if code != 0 || !strings.Contains(out, want) {
-			t.Errorf("olcu_tara_basla: exit %d, want %q\n%s", code, want, out)
-		}
-	}
-}
-
-// DENETİM 948 Ş1: ölçü kipinde hazırlıkta (burada model bağlamada) düşen en-hizli-ayar.sh eski pencerenin ayarını
-// bırakmaz; düzeltmeden önce dosya yalnız olcu_tara'da, betiğin sonunda siliniyordu. Denemede dosya kalır. Derleme sahte
-// (go), modellerin klasörü boş.
-func TestLaptopScanFailingInSetupLeavesNoSetting(t *testing.T) {
-	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"; echo '{}' > "$AYAR"; echo '{}' > "$KAYIT/run-en-hizli-ayar/en-hizli.json"
+// K5 (H1e; DENETİM 948 Ş1'in yeni hâli): hazırlıkta (burada model bağlamada) düşen en-hizli-ayar.sh kayıt kökünün
+// dosyasına dokunmaz: taranmayan grupların girdisi korunur, ölçü onları kimlikleriyle yargılar (K2, K3). Ölçü kipinde
+// dosya artık silinmez; denemede de aynı. Derleme sahte (go), modellerin klasörü boş.
+func TestLaptopScanFailingInSetupKeepsOtherGroups(t *testing.T) {
+	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"; echo '{"onnxruntime": {"threads": 6}}' > "$AYAR"
 go() { :; }; export -f go
-bash "$HERE/en-hizli-ayar.sh"; echo "rc=$?"
-[ -f "$AYAR" ] && echo "ayar kaldı" || echo "ayar silindi"
-[ -f "$KAYIT/run-en-hizli-ayar/en-hizli.json" ] && echo "kopya kaldı" || echo "kopya silindi"`
+bash "$HERE/en-hizli-ayar.sh" "llama.cpp read"; echo "rc=$?"
+echo "ayar: $(cat "$AYAR")"`
 	env := []string{"PY=" + filepath.ToSlash(python(t)), "OLCU_MODELLER=" + filepath.ToSlash(t.TempDir())}
-	for _, c := range []struct {
-		env  []string
-		want []string
-	}{
-		{env, []string{"rc=2", "model qwen3-4b-q4km hazır değil", "ayar silindi", "kopya silindi"}},
-		{append(env, "OLCU_DENEME=1"), []string{"rc=2", "model qwen3-4b-q4km hazır değil", "ayar kaldı", "kopya kaldı"}},
-	} {
-		out, code := libRun(t, t.TempDir(), c.env, script)
-		for _, want := range c.want {
+	for _, e := range [][]string{env, append(env, "OLCU_DENEME=1")} {
+		out, code := libRun(t, t.TempDir(), e, script)
+		for _, want := range []string{"rc=2", "model qwen3-4b-q4km hazır değil", `ayar: {"onnxruntime": {"threads": 6}}`} {
 			if code != 0 || !strings.Contains(out, want) {
-				t.Errorf("%v: exit %d, want %q\n%s", c.env[len(c.env)-1], code, want, out)
+				t.Errorf("%v: exit %d, want %q\n%s", e[len(e)-1], code, want, out)
 			}
 		}
 	}
 }
 
-// DENETİM 948 Ş1: ölçüde run.py --settings hiçbir şey koşmadan durur (çıkış 3, STOPPED): grubu eksik, tek koşulu ya da
-// başka commit'te taranmış dosyayla. Kendi commit'inin bütün taraması ve denemedeki tek koşulu dosya denetimden geçer
-// (iş klasörü boş olduğu için koşu sonra tools.json'da düşer).
-func TestLaptopMeasureStopsOnAPartialScan(t *testing.T) {
-	head, err := exec.Command("git", "rev-parse", "HEAD").Output()
-	if err != nil {
-		t.Skip("git yok")
-	}
-	commit := strings.TrimSpace(string(head))
-	groupsOut, err := exec.Command(python(t), "-I", "-c", `import importlib.util, json, sys
+// noiseCheck taramayı sahte koşularla koşar: ayar başına üç koşunun değerleri sırayla verilir, çağrıların sırası yazılır.
+const noiseCheck = `
+import importlib.util, json, os, sys, tempfile
 spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
 rp = importlib.util.module_from_spec(spec)
 sys.modules["run"] = rp
 spec.loader.exec_module(rp)
-print(json.dumps(rp.SCAN_GROUPS))`).Output()
-	var groups []string
-	if err != nil || json.Unmarshal(groupsOut, &groups) != nil || len(groups) == 0 {
-		t.Fatalf("SCAN_GROUPS: %v\n%s", err, groupsOut)
+qs = rp.load_questions()
+work = tempfile.mkdtemp()
+json.dump({"trlang": "trlang", "whisper_cli": "w", "llama_bench": "b", "llama_completion": "c", "go_compare": "g"},
+          open(os.path.join(work, "tools.json"), "w"))
+N = os.cpu_count()
+def scan(times):
+    ctx = qs.Ctx(rp, "laptop", 97, work, lambda r: None, dry=True)
+    calls, count = [], {}
+    def fake(key, side, index, log, machine, cmds=None):
+        c = side["cmds"][0]
+        n = 0 if "-t" not in c else int(c[c.index("-t") + 1])
+        calls.append([index, n])
+        if index == "scan warmup":
+            ms = 1000
+        else:
+            ms = times[n][count.get(n, 0)]
+            count[n] = count.get(n, 0) + 1
+        return {"results": [{}], "runs": [{"stderr": "whisper_print_timings:    total time = %d.00 ms\\nwhisper_print_timings:     load time =     0.00 ms" % ms}]}
+    rp._run_side = fake
+    out = tempfile.mkdtemp()
+    rp.scan_settings(ctx, qs, type("R", (), {"log": lambda self, r: None})(), ["whisper.cpp"], out, runs=3)
+    t = json.load(open(os.path.join(out, "en-hizli.json")))["_scan"]["whisper.cpp"]
+    return {"chosen": t["chosen"], "calls": calls, "order": t["order"], "runs_ms": t["runs_ms"], "rule": t["rule"]}
+print(json.dumps({"N": N,
+    "overlap": scan({0: [100, 110, 120], 6: [130, 140, 150], N: [95, 105, 125]}),
+    "dominant": scan({0: [100, 110, 120], 6: [130, 140, 150], N: [80, 85, 90]}),
+    "edge": scan({0: [100, 110, 120], 6: [130, 140, 150], N: [90, 95, 100]}),
+    "six": scan({0: [100, 110, 120], 6: [60, 70, 80], N: [65, 75, 85]})}))
+`
+
+// K6 (H1e; DENETİM 960 Ş1): her ayar bir kez ısınır, sonra koşular ayarlar arasında döner (0, 6, N, 0, 6, N, …); bir
+// ayar, o ana kadar seçilenin yerine ancak üç koşusunun hepsi onunkilerin hepsinden kesin kısaysa geçer. Ortancası kısa
+// ama koşuları örtüşen ayar seçilmez; sınırdaki eşitlik de geçmez (< ile <= ayrımı).
+func TestBaselineScanKeepsTheEarlierSettingWithinNoise(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", noiseCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
 	}
-	scan := func(runs int, commit string, drop string) map[string]any {
-		doc, table := map[string]any{"_commit": commit}, map[string]any{}
-		for _, g := range groups {
-			if g != drop {
-				doc[g] = map[string]any{"threads": 6}
-				table[g] = map[string]any{"runs": runs}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
+	var got map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var n float64
+	_ = json.Unmarshal(got["N"], &n)
+	for name, want := range map[string]float64{"overlap": 0, "dominant": n, "edge": 0, "six": 6} {
+		var c struct {
+			Chosen float64
+			Calls  [][]any
+			Order  []float64
+			Rule   string
+		}
+		if err := json.Unmarshal(got[name], &c); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if c.Chosen != want || c.Rule != "noise" {
+			t.Errorf("%s: chose %v (rule %q), want %v", name, c.Chosen, c.Rule, want)
+		}
+		wantOrder := []float64{0, 6, n, 0, 6, n, 0, 6, n}
+		if !reflect.DeepEqual(c.Order, wantOrder) {
+			t.Errorf("%s: runs in order %v, want %v", name, c.Order, wantOrder)
+		}
+		var calls []string
+		for _, x := range c.Calls {
+			calls = append(calls, fmt.Sprintf("%v %v", x[0], x[1]))
+		}
+		wantCalls := []string{"scan warmup 0", "scan warmup 6", fmt.Sprintf("scan warmup %v", n)}
+		for i := 0; i < 3; i++ {
+			for _, v := range []float64{0, 6, n} {
+				wantCalls = append(wantCalls, fmt.Sprintf("scan %d %v", i, v))
 			}
 		}
-		doc["_scan"] = table
-		return doc
+		if !reflect.DeepEqual(calls, wantCalls) {
+			t.Errorf("%s: calls %v, want %v", name, calls, wantCalls)
+		}
 	}
-	work := t.TempDir()
+}
+
+// K4 (H1e): ölçü kipinde olcu_ayar_hazir seçilen kalemlerin eksik gruplarını koşturucuya sorar (--settings-missing) ve
+// tarama betiğini yalnız o gruplarla, kendi iş klasöründe ($IS-tara) koşar. Eksik yoksa taramaz; koşturucu durursa
+// (tek koşulu grup) ya da tarama düşerse ölçü yok; deneme hiçbir şey sormaz. Koşturucu ve tarama betiği sahte.
+func TestLaptopMeasureScansOnlyMissingGroups(t *testing.T) {
+	repo := t.TempDir()
+	runPy := filepath.Join(repo, "tools", "bench", "baseline", "run.py")
+	fake := "import os, sys\nopen(os.environ['FAKE_ARGS'], 'a').write(' '.join(sys.argv[1:]) + '\\n')\n" +
+		"print(os.environ.get('FAKE_OUT', ''))\nsys.exit(int(os.environ.get('FAKE_RC', '0')))\n"
+	if err := os.MkdirAll(filepath.Dir(runPy), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(runPy, []byte(fake), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scan := filepath.Join(repo, "tara.sh")
+	if err := os.WriteFile(scan, []byte("printf '%s|' \"$OLCU_IS\" \"$@\" >> \"$FAKE_TARA\"\nexit ${FAKE_TARA_RC:-0}\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	for _, c := range []struct {
-		name  string
-		doc   map[string]any
-		trial bool
-		stop  string
+		name, out, rc, scanRC, trial string
+		code                         int
+		scanned, asked               bool
 	}{
-		{"a group missing", scan(3, commit, "llama.cpp gen"), false, "groups missing ['llama.cpp gen']"},
-		{"one run", scan(1, commit, ""), false, "fewer than 3 runs"},
-		{"another commit", scan(3, "0123abc", ""), false, "was scanned at commit 0123abc, this measure runs " + commit},
-		{"whole", scan(3, commit, ""), false, ""},
-		{"trial", scan(1, commit, ""), true, ""},
+		{"two missing", "MISSING llama.cpp read\nMISSING llama.cpp gen", "0", "0", "", 0, true, true},
+		{"none missing", "", "0", "0", "", 0, false, true},
+		{"a trial's group", "STOPPED: en-hizli.json's llama.cpp read has fewer than 3 runs", "3", "0", "", 2, false, true},
+		{"scan fails", "MISSING whisper.cpp", "0", "2", "", 2, true, true},
+		{"trial", "MISSING llama.cpp read", "0", "0", "1", 0, false, false},
 	} {
-		b, _ := json.Marshal(c.doc)
-		p := filepath.Join(t.TempDir(), "en-hizli.json")
-		if err := os.WriteFile(p, b, 0o644); err != nil {
-			t.Fatal(err)
+		dir := t.TempDir()
+		args, tara := filepath.Join(dir, "args.txt"), filepath.Join(dir, "tara.txt")
+		env := []string{"PY=" + filepath.ToSlash(python(t)), "TARA_BETIK=" + filepath.ToSlash(scan), "FAKE_ARGS=" + args,
+			"FAKE_TARA=" + tara, "FAKE_OUT=" + c.out, "FAKE_RC=" + c.rc, "FAKE_TARA_RC=" + c.scanRC, "OLCU_DENEME=" + c.trial}
+		out, code := libRun(t, repo, env, `olcu_ayar_hazir gen-q S1 --key S1/qwen3-4b-q4km`)
+		gotArgs, _ := os.ReadFile(args)
+		gotScan, _ := os.ReadFile(tara)
+		if code != c.code || (len(gotScan) > 0) != c.scanned || (len(gotArgs) > 0) != c.asked {
+			t.Errorf("%s: exit %d (want %d), scanned %q, asked %q\n%s", c.name, code, c.code, gotScan, gotArgs, out)
+			continue
 		}
-		args := []string{"--work", work, "--machine", "laptop", "--out", t.TempDir(), "--settings", p, "--question", "S14"}
-		if c.trial {
-			args = append(args, "--trial")
+		if c.name == "two missing" && !strings.HasSuffix(string(gotScan), "/is-tara|llama.cpp read|llama.cpp gen|") {
+			t.Errorf("scan %q, want only the two groups in the scan's own work folder", gotScan)
 		}
-		got, code := baseline(t, args...)
-		stopped := strings.Contains(got, "STOPPED: en-hizli.json")
-		if c.stop != "" && (code != 3 || !stopped || !strings.Contains(got, c.stop)) {
-			t.Errorf("%s: exit %d, want 3 and %q\n%s", c.name, code, c.stop, got)
-		}
-		if c.stop == "" && (code == 3 || stopped) {
-			t.Errorf("%s: exit %d, want the settings check to pass\n%s", c.name, code, got)
+		for _, want := range []string{"--question S1 --key S1/qwen3-4b-q4km --settings ", "--sources ", "--machine-file ", "gen-q-makine.txt", "--settings-missing"} {
+			if c.asked && !strings.Contains(string(gotArgs), want) {
+				t.Errorf("%s: run.py %q, want %q", c.name, gotArgs, want)
+			}
 		}
 	}
 }

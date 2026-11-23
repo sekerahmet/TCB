@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -359,16 +360,21 @@ func TestLaptopOpenDostStopsTheScript(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("süreç listesi PowerShell'le, dizüstünde")
 	}
+	// K8 (H1e, TCB 2026-11-23 18:37): olcu_dost_yok bütün süreç listesine bakar; aynı anda koşan başka bir paketin testi
+	// asistan.tr'li bir trlang başlatabilir (main CI'ı "Dost açık (3996 trlang.exe)" ile düştü). Önceden açık böyle bir
+	// süreç varsa test atlanır; sonra yalnız kendi başlattığı sürecin PID'ini arar.
 	if out, code := libRun(t, t.TempDir(), nil, "olcu_dost_yok"); code != 0 {
-		t.Fatalf("no Dost: exit %d\n%s", code, out)
+		t.Skipf("a Dost-like process is already open (another test or Dost), exit %d:\n%s", code, out)
 	}
 	dost := exec.Command(python(t), "-c", "import time; time.sleep(60)", "asistan.tr")
 	if err := dost.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer dost.Process.Kill()
-	if out, code := libRun(t, t.TempDir(), nil, "olcu_dost_yok"); code != 2 || !strings.Contains(out, "Dost açık (") {
-		t.Errorf("Dost open: exit %d, want 2\n%s", code, out)
+	pid := strconv.Itoa(dost.Process.Pid)
+	out, code := libRun(t, t.TempDir(), nil, "olcu_dost_yok")
+	if code != 2 || !strings.Contains(out, "Dost açık (") || !(strings.Contains(out, "("+pid+" ") || strings.Contains(out, "\n"+pid+" ")) {
+		t.Errorf("Dost open (pid %s): exit %d, want 2 naming it\n%s", pid, code, out)
 	}
 }
 

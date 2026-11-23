@@ -419,8 +419,8 @@ rp._run_side = lambda q, side, index, log, machine, cmds=None: {"results": [{"ms
 stops("pair", lambda: rp.run_pair("S13/dongu", {"name": "TR", "measure": ms}, {"name": "Go", "measure": ms}, None, lambda r: None, "laptop"))
 ctx = types.SimpleNamespace(machine="laptop")
 rp._run_side = lambda q, side, index, log, machine, cmds=None: {"results": [{"ms": 5.0}], "runs": [{}]}
-stops("scan", lambda: rp.time_side(ctx, {"name": "whisper.cpp", "cmds": [["w"]]}, "S5/tr/whisper.cpp", lambda r: None, 3,
-                                   lambda r, runs: {"transcribe_ms": r[0]["ms"]}))
+stops("scan", lambda: rp.time_side(ctx, {"name": "whisper.cpp", "cmds": [["w"]]}, "S5/tr/whisper.cpp", lambda r: None,
+                                   "scan 0", lambda r, runs: {"transcribe_ms": r[0]["ms"]}))
 it = {"key": "S10/tr/warm", "runs": 3, "custom": lambda: ({"ready_ms": 5.0}, {})}
 stops("custom", lambda: rp.run_custom(ctx, it, types.SimpleNamespace(log=lambda r: None)))
 print(json.dumps(out))
