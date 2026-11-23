@@ -135,11 +135,56 @@ func (cpuBackend) f32SumAll(out Storage, x View, scale float32) {
 	cd(out)[0] = float32(s * float64(scale))
 }
 
+// argmaxBetter v, o ana kadarki en iyiden (best) sonra gelirse onun yerini alır mı: argmaxCPU'nun
+// sıralamasıdır (NaN en büyük, +0 −0'dan büyük); eşitlik yer değiştirmez, ilk indeks kalır.
+func argmaxBetter(v, best float32) bool {
+	return v > best || (v != v && best == best) || (v == 0 && best == 0 && negZero(best) && !negZero(v))
+}
+
+// argmaxSlice xs'in ilk en iyisinin indeksini (baseIdx'ten sayılır) ve değerini verir; xs boş değildir.
+func argmaxSlice(xs []float32, baseIdx int) (int, float32) {
+	best, bi := xs[0], baseIdx
+	for i := 1; i < len(xs); i++ {
+		if v := xs[i]; argmaxBetter(v, best) {
+			best, bi = v, baseIdx+i
+		}
+	}
+	return bi, best
+}
+
 // argmaxCPU her (dış, iç) satırı için ilk en büyük elemanın eksen indeksini verir. NaN
 // her sayıdan büyük sayılır: satırda NaN varsa sonuç ilk NaN'dır (yerinde NaN yayılır;
 // max, min = -max(-x) ve argmax tutarlı kalır). −0.0 0.0'dan küçüktür (sıralama sırası,
 // 15.22b): eşit sayılan iki sıfırdan +0 kazanır; min = -max(-x) böylece −0'ı seçer.
+// Tek satırlı uzun eksen (üretimde sözlük boyu) işçi sayısından bağımsız reducePart'lık
+// parçalara bölünür: her parça ilk en iyisini verir, parçalar sırayla argmaxBetter'la
+// birleşir; eşitlikte önceki parça kalır, sonuç sıralı döngününkiyle aynıdır.
 func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)) {
+	if dim == 0 {
+		for k := 0; k < outer*inner; k++ {
+			fn(k, 0, float32(math.Inf(-1)))
+		}
+		return
+	}
+	if outer == 1 && inner == 1 && dim >= 2*parallelThreshold {
+		np := (dim + reducePart - 1) / reducePart
+		pIdx := make([]int, np)
+		pVal := make([]float32, np)
+		parallelFor(np, reducePart, func(lo, hi int) {
+			for c := lo; c < hi; c++ {
+				a := c * reducePart
+				pIdx[c], pVal[c] = argmaxSlice(xd[a:min(a+reducePart, dim)], a)
+			}
+		})
+		bi, best := pIdx[0], pVal[0]
+		for c := 1; c < np; c++ {
+			if argmaxBetter(pVal[c], best) {
+				bi, best = pIdx[c], pVal[c]
+			}
+		}
+		fn(0, bi, best)
+		return
+	}
 	parallelFor(outer, dim*inner, func(lo, hi int) {
 		for o := lo; o < hi; o++ {
 			base := o * dim * inner
@@ -147,7 +192,7 @@ func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)
 				best := float32(math.Inf(-1))
 				bi := 0
 				for d := 0; d < dim; d++ {
-					if v := xd[base+d*inner+i]; v > best || (v != v && best == best) || (v == 0 && best == 0 && negZero(best) && !negZero(v)) {
+					if v := xd[base+d*inner+i]; argmaxBetter(v, best) {
 						best, bi = v, d
 					}
 				}

@@ -18,6 +18,22 @@ var hasAVX2 = detectAVX2() && os.Getenv("TR_CPU_AVX2") != "0"
 // F16C'siz işlemciyi sınamak için değiştirebilir.
 var hasF16C = detectF16C()
 
+// hasAVXVNNI 256 bitlik VEX tamsayı nokta çarpımı komutu var mı. Testler yedek yolu sınamak
+// için değiştirebilir.
+var hasAVXVNNI = detectAVXVNNI() && os.Getenv("TR_CPU_AVX2") != "0"
+
+func detectAVXVNNI() bool {
+	if !detectAVX2() {
+		return false
+	}
+	sub7, _, _, _ := cpuid(7, 0)
+	if sub7 < 1 {
+		return false
+	}
+	eax71, _, _, _ := cpuid(7, 1)
+	return eax71&(1<<4) != 0
+}
+
 func detectF16C() bool {
 	_, _, ecx1, _ := cpuid(1, 0)
 	return ecx1&(1<<29) != 0

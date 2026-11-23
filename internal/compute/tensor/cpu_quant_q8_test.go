@@ -505,3 +505,57 @@ func TestQ8PathKeepsNonFinite(t *testing.T) {
 		}
 	}
 }
+
+// TestQ8GemvW4AndQuantizeMatchGo: dört ağırlık satırlı tek-etkinleştirme çekirdekleri (dotQ4KQ8W4, dotQ6KQ8W4),
+// AVX2 quantizeQ8 (çifte yuvarlama yarıları ±0,5, ±126,5 dahil) ve q8Finite Go eşleriyle bit bit aynıdır; kısa
+// tamponlarda her yolda panik verir.
+func TestQ8GemvW4AndQuantizeMatchGo(t *testing.T) {
+	oldAVX, oldF16C := hasAVX2, hasF16C
+	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	r := rand.New(rand.NewSource(91))
+	for _, blk := range []int{32, kBlock} {
+		for _, K := range []int{32, 96, 256, 512, 2560} {
+			if K%blk != 0 {
+				continue
+			}
+			x := randomData(r, K)
+			x[0], x[1], x[2], x[3] = 127, 63.5, -63.5, 126.5
+			got, want := newQ8Row(K, blk), newQ8Row(K, blk)
+			hasAVX2 = q8MachineAVX2
+			quantizeQ8(x, got)
+			quantizeQ8Go(x, want)
+			sameFloatBits(t, "quantizeQ8 d", got.d, want.d)
+			for i := range got.q {
+				if got.q[i] != want.q[i] {
+					t.Fatalf("quantizeQ8 blk=%d K=%d kod[%d]=%d, Go=%d", blk, K, i, got.q[i], want.q[i])
+				}
+			}
+			for i := range got.bs {
+				if got.bs[i] != want.bs[i] {
+					t.Fatalf("quantizeQ8 blk=%d K=%d bs[%d]=%d, Go=%d", blk, K, i, got.bs[i], want.bs[i])
+				}
+			}
+		}
+	}
+	for _, dt := range []DType{Q4K, Q6K} {
+		for _, N := range []int{1, 3, 4, 5, 16, 19, 35} {
+			for _, K := range []int{256, 512, 2560} {
+				w := smallScaleQuant(dt, uint32(N+K), N*K/kBlock)
+				x := randomData(r, K)
+				q := newQ8KRow(K)
+				quantizeQ8Go(x, q)
+				for _, path := range q8Paths() {
+					hasAVX2, hasF16C = path.avx, path.f16c
+					got := make([]float32, N)
+					quantGemvQ8(N, K, x, w, dt, got)
+					want := make([]float32, N)
+					rb := quantRowBytes(dt, K)
+					for n := range N {
+						want[n] = q8GoDot(dt)(K/kBlock, w[n*rb:(n+1)*rb], q)
+					}
+					sameFloatBits(t, path.name+" "+dt.Name()+" gemvW4", got, want)
+				}
+			}
+		}
+	}
+}
