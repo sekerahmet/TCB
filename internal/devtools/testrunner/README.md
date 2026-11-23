@@ -38,9 +38,12 @@ durur; gözden geçirilmiş her bölümün orada başlığı vardır. Denetim: `
 listelerinin her maddesi kendi bölümünde (`### 15.23a`; harfli madde için harfsiz başlık,
 aralıklı başlık `### 21.1–21.8`, bölüm numarası için bölümün ilk `###`'üne kadarki kısmı, tırnaklı
 ad için o adlı `###`) etiketindeki ilk öncelik aynı olan açık bir "Yapılacaklar" ya da
-"uygulanacak" satırı taşır; Ö0'da etiketteki "N. sıra" listedeki yerdir. Bölümlerdeki her açık
+"uygulanacak" satırı taşır; Ö0'da etiketteki "N. sıra" listedeki yerdir. Ö1 listesi, altındaki
+"**Sahipli kollar:**" başlığının sahip başına satırlarını da kapsar. Bölümlerdeki her açık
 Ö0 ve Ö1 satırı da listede durur ve sınıfı A ya da B'dir; öbür sınıf yalnız adlı istisna
-tablosunda (`priorityExceptions`) nedeniyle, bayat istisna testi düşürür. Kapanan iş bölümünden
+tablosunda (`priorityExceptions`) nedeniyle; satırın sınıfı A ya da B olunca da istisna bayatlar,
+bayat istisna testi düşürür. Kendi `###` başlığı olmayan harfli madde (13.1a, `### 13.1`'de)
+yalnız numarasını anan satırı karşılar, harfsiz bölümün öbür satırlarını karşılamaz. Kapanan iş bölümünden
 silinince listede kalan maddesi, listeye yazılmayan yeni Ö1 işi test düşürür. Denetim:
 `TestPriorityListsNameOpenItems`, `TestPriorityListsCatchAClosedItem`.
 

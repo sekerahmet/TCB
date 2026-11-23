@@ -19,7 +19,10 @@ import (
 //     sınıfınındır (status'un öncelik tablosu), öbür sınıf ancak priorityExceptions'ta adıyla.
 //
 // Listede madde numarası (15.23a), bölüm numarası ("17'nin …"; satır ### olmadan bölümün
-// başında) ya da tırnak içinde ### kısa adı ("Yazıyı konuşmaya çevirme") yazılır.
+// başında) ya da tırnak içinde ### kısa adı ("Yazıyı konuşmaya çevirme") yazılır. Ö1 listesi
+// "**Ö1, dilimlerin kesin listeleri:**" satırı ile onun altındaki "**Sahipli kollar:**"
+// başlığının sahip başına satırlarıdır (TCB 2026-11-23 11:57, 12:30). Harfli madde (13.8a)
+// kendi ### başlığı yoksa yalnız kendi numarasını yazan satırı karşılar (DENETİM 955 N1).
 func TestPriorityListsNameOpenItems(t *testing.T) {
 	for _, p := range priorityListProblems(statusDoc(t), priorityExceptions) {
 		t.Error(p)
@@ -27,7 +30,8 @@ func TestPriorityListsNameOpenItems(t *testing.T) {
 }
 
 // priorityExceptions A ya da B olmadığı hâlde Ö1 taşıyan açık satırlar: bölüm başlığı → neden.
-// Listeye girmezler. Satır Ö1'ini yitirince girdi bayatlar ve test düşer.
+// Listeye girmezler. Satır Ö1'ini yitirince ya da sınıfı A ya da B olunca girdi bayatlar ve
+// test düşer.
 var priorityExceptions = map[string]string{
 	"15.22a": "bf16 ve fp16 matris çarpımının tensör çekirdekli yolu: sınıfsız (hız), Ö1'i TCB'nin 2026-11-14 15:09 kararı (DENETİM 719, satırda yazılı); listeye girmez (TCB 2026-11-23 11:57)",
 }
@@ -35,8 +39,8 @@ var priorityExceptions = map[string]string{
 // Bilinen olumlu örnek: iki yönün her bozulma türü yakalanır, temiz maddeler yakalanmaz.
 func TestPriorityListsCatchAClosedItem(t *testing.T) {
 	doc := "## Önem ve öncelik\n\n**Ö0, sırayla:**\n1. 2.1, birinci (A).\n2. 2.2, ikinci (A).\n3. 2'nin sessiz yanlışları: yazma yolu (2.5a, veri eziyor).\n\n" +
-		"**Ö1, dilimlerin kesin listeleri:** (2.9 burada değildi; kapandı.) 4a: 2.3, 2.4 (ya da 4c). Kol B: 21.2'nin sınırı, 9.9. " +
-		"Sahipli kollar: X: 3'ün kod numarası, \"Kısa ad\", \"v0.2 ikilisi\".\n\n" +
+		"**Ö1, dilimlerin kesin listeleri:** (2.9 burada değildi; kapandı.) 4a: 2.3, 2.4 (ya da 4c), 2.12a, 2.13b. Kol B: 21.2'nin sınırı, 9.9.\n\n" +
+		"**Sahipli kollar:**\n- X: 3'ün kod numarası, \"Kısa ad\".\n- Y: \"v0.2 ikilisi\", 2.11.\n\n**Sonraki paragraf:** 2.15.\n\n" +
 		"## 2. Sözcük\n\n### 2.1\n\n- **Yapılacaklar (A, Ö0, 2. sıra; sahip X):** iş.\n\n" +
 		"### 2.2\n\n- **Mevcut durum:** kapandı [test: `TestX`].\n\n" +
 		"### 2.3\n\n- **Gemini Koşu 6, uygulanacak (yol ve `TR_f[T]` A, Ö1, 4a):** iş.\n\n" +
@@ -45,29 +49,42 @@ func TestPriorityListsCatchAClosedItem(t *testing.T) {
 		"### 2.6\n\n- **Yapılacaklar (A, Ö1; sahip Y):** listeye yazılmamış iş.\n\n" +
 		"### 2.7\n\n- **Yapılacaklar (D, Ö1, 4a):** sınıfı Ö1'e uymuyor.\n\n" +
 		"### 2.8\n\n- **Yapılacaklar (sınıfsız: hız; Ö1; sahip Z):** adlı istisna.\n\n" +
+		"### 2.12\n\n- **Yapılacaklar (A, Ö1, 4a):** 2.12a'nın işi.\n- **Yapılacaklar (B, Ö1, 4a):** listeye yazılmamış komşu iş.\n\n" +
+		"### 2.13\n\n- **Yapılacaklar (A, Ö1, 4a):** harfli maddeyi anmayan iş.\n\n" +
+		"### 2.14\n\n- **Yapılacaklar (A, Ö1; sahip Z):** istisnası bayatlamış iş.\n\n" +
+		"### 2.15\n\n- **Mevcut durum:** listeye girmeyen paragrafın maddesi.\n\n" +
 		"## 3. Kodlar\n\n- **Yapılacaklar (A, Ö1; sahip X):** numarası yeniden kullanılan kod.\n\n### 3.1\n\n- **Mevcut durum:** iş yok.\n\n" +
 		"## Bölümü olmayan işler\n\n- **Yapılacaklar (B, Ö1; sahip X):** başlığı olmayan iş.\n\n" +
 		"### Kısa ad\n\n- **Yapılacaklar (A, Ö1; sahip X):** başlıklı iş.\n\n" +
 		"### v0.2 ikilisi (sürüm)\n\n- **Yapılacaklar (B, Ö1; sahip X):** ikinci başlıklı iş.\n\n" +
 		"## 21. Dış\n\n### 21.1–21.8\n\n- **Yapılacaklar (A, Ö1, Kol B):** iş.\n"
-	got := strings.Join(priorityListProblems(doc, map[string]string{"2.8": "neden", "2.10": "bayat"}), "\n")
+	got := strings.Join(priorityListProblems(doc, map[string]string{"2.8": "neden", "2.10": "bayat", "2.14": "sınıfı artık A"}), "\n")
 	for _, want := range []string{
 		"Ö0 listesinin 1. maddesi 2.1:", "Ö0 listesinin 2. maddesi 2.2:", "Ö0 listesinin 3. maddesi 2.5a:",
 		"Ö1 listesindeki 2.4:", "Ö1 listesindeki 9.9:",
 		"2.6 bölümündeki açık Ö1 satırı Ö1 listesinde yok", "2.7 bölümündeki açık Ö1 satırının sınıfı A ya da B değil",
 		"Bölümü olmayan işler bölümündeki açık Ö1 satırının ### kısa ad başlığı yok", "istisnası bayat: 2.10",
+		// Sahipli kolların alt satırı da listedir: 2.11'in bölümü yok.
+		"Ö1 listesindeki 2.11:",
+		// Harfli madde komşu satırı karşılamaz, kendisini anmayan satırla karşılanmaz.
+		"2.12 bölümündeki açık Ö1 satırı Ö1 listesinde yok", "Ö1 listesindeki 2.13b:", "2.13 bölümündeki açık Ö1 satırı Ö1 listesinde yok",
+		// Sınıfı A olan satırın istisnası bayattır; satır da listede aranır.
+		"istisnası bayat: 2.14", "2.14 bölümündeki açık Ö1 satırı Ö1 listesinde yok",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("%q yakalanmadı:\n%s", want, got)
 		}
 	}
-	for _, clean := range []string{"2.3", "2.8", "21.1–21.8", "Kısa ad", "v0.2 ikilisi", "3. Kodlar"} {
-		if strings.Contains(got, " "+clean+" bölümündeki") || strings.Contains(got, "listesindeki "+clean+":") {
+	for _, clean := range []string{"2.3", "2.8", "2.12a", "2.15", "21.1–21.8", "Kısa ad", "v0.2 ikilisi", "3. Kodlar"} {
+		if strings.Contains(got, " "+clean+" bölümündeki") || strings.Contains(got, ": "+clean+" (") || strings.Contains(got, "listesindeki "+clean+":") {
 			t.Errorf("%s temiz, yakalanmamalıydı:\n%s", clean, got)
 		}
 	}
-	if n := strings.Count(got, "\n") + 1; n != 9 {
-		t.Errorf("dokuz sorun beklendi, %d geldi:\n%s", n, got)
+	if n := strings.Count(got, "2.12 bölümündeki"); n != 1 {
+		t.Errorf("2.12'nin yalnız 2.12a'yı anmayan satırı yakalanmalıydı, %d satır geldi:\n%s", n, got)
+	}
+	if n := strings.Count(got, "\n") + 1; n != 15 {
+		t.Errorf("on beş sorun beklendi, %d geldi:\n%s", n, got)
 	}
 }
 
@@ -107,6 +124,7 @@ func priorityListProblems(doc string, exceptions map[string]string) []string {
 func parsePriorityLists(lines []string) []priorityEntry {
 	var entries []priorityEntry
 	inO0 := false
+	seen := map[string]bool{}
 	for i, l := range lines {
 		switch {
 		case strings.HasPrefix(l, "**Ö0, sırayla:**"):
@@ -124,25 +142,52 @@ func parsePriorityLists(lines []string) []priorityEntry {
 			}
 			entries = append(entries, priorityEntry{"Ö0", "item", key, m[1], i})
 		}
-		rest, ok := strings.CutPrefix(l, "**Ö1, dilimlerin kesin listeleri:**")
-		if !ok {
-			continue
-		}
-		rest = dropLeadingParen(rest)
-		for _, m := range priorityNameRe.FindAllStringSubmatch(rest, -1) {
-			entries = append(entries, priorityEntry{"Ö1", "name", m[1], "", i})
-		}
-		rest = priorityNameRe.ReplaceAllString(rest, "")
-		seen := map[string]bool{}
-		for _, m := range priorityItemRe.FindAllStringSubmatch(rest, -1) {
-			if !seen[m[1]] {
-				seen[m[1]] = true
-				entries = append(entries, priorityEntry{"Ö1", "item", m[1], "", i})
+		if rest, ok := strings.CutPrefix(l, "**Ö1, dilimlerin kesin listeleri:**"); ok {
+			entries = append(entries, parseO1Line(dropLeadingParen(rest), i, seen)...)
+			for _, j := range ownedBranchLines(lines, i) {
+				entries = append(entries, parseO1Line(lines[j], j, seen)...)
 			}
 		}
-		for _, m := range priorityChapterRe.FindAllStringSubmatch(rest, -1) {
-			entries = append(entries, priorityEntry{"Ö1", "chapter", m[1], "", i})
+	}
+	return entries
+}
+
+// ownedBranchLines Ö1 satırının altındaki "**Sahipli kollar:**" başlığının sahip başına
+// satırlarını ("- T1, tensör kolu: …") verir; araya yalnız boş satır girebilir.
+func ownedBranchLines(lines []string, o1 int) []int {
+	var out []int
+	inBranches := false
+	for j := o1 + 1; j < len(lines); j++ {
+		l := lines[j]
+		switch {
+		case strings.TrimSpace(l) == "":
+		case !inBranches && strings.HasPrefix(l, "**Sahipli kollar:**"):
+			inBranches = true
+		case inBranches && strings.HasPrefix(l, "- "):
+			out = append(out, j)
+		default:
+			return out
 		}
+	}
+	return out
+}
+
+// parseO1Line Ö1 listesinin bir satırındaki tırnaklı adları, madde ve bölüm numaralarını okur;
+// seen aynı maddenin listede ikinci kez anılmasını sayar.
+func parseO1Line(rest string, i int, seen map[string]bool) []priorityEntry {
+	var entries []priorityEntry
+	for _, m := range priorityNameRe.FindAllStringSubmatch(rest, -1) {
+		entries = append(entries, priorityEntry{"Ö1", "name", m[1], "", i})
+	}
+	rest = priorityNameRe.ReplaceAllString(rest, "")
+	for _, m := range priorityItemRe.FindAllStringSubmatch(rest, -1) {
+		if !seen[m[1]] {
+			seen[m[1]] = true
+			entries = append(entries, priorityEntry{"Ö1", "item", m[1], "", i})
+		}
+	}
+	for _, m := range priorityChapterRe.FindAllStringSubmatch(rest, -1) {
+		entries = append(entries, priorityEntry{"Ö1", "chapter", m[1], "", i})
 	}
 	return entries
 }
@@ -181,14 +226,16 @@ func checkPriorityEntry(lines []string, e priorityEntry) []string {
 	if !ok {
 		return []string{where + ": status'ta bu maddenin bölümü yok"}
 	}
+	// Harfli madde kendi başlığında değilse (13.1a, ### 13.1'de) yalnız kendini anan satırdır.
+	ownOnly := e.kind == "item" && strings.TrimSpace(strings.TrimPrefix(heading, "### ")) != e.key && hasLetter(e.key)
 	var labels []string
 	for _, l := range body {
-		if m := openItemHeadRe.FindStringSubmatch(l); m != nil && firstPriority(m[1]) == e.prio {
+		if m := openItemHeadRe.FindStringSubmatch(l); m != nil && firstPriority(m[1]) == e.prio && (!ownOnly || namesItem(l, e.key)) {
 			labels = append(labels, m[1])
 		}
 	}
 	if len(labels) == 0 {
-		return []string{fmt.Sprintf("%s: bölümünde (%s) etiketinde %s geçen açık bir Yapılacaklar yok; madde kapandıysa ya da önceliği değiştiyse listeden çıkar", where, heading, e.prio)}
+		return []string{fmt.Sprintf("%s: bölümünde (%s) etiketinde %s geçen açık bir Yapılacaklar yok (harfli madde kendi başlığında değilse satırı numarasını anar); madde kapandıysa ya da önceliği değiştiyse listeden çıkar", where, heading, e.prio)}
 	}
 	for _, lab := range labels {
 		if m := orderInLabelRe.FindStringSubmatch(lab); e.order != "" && m != nil && m[1] != e.order {
@@ -222,6 +269,20 @@ func priorityEntrySection(lines []string, e priorityEntry) ([]string, string, bo
 
 func namesHeading(heading, name string) bool {
 	return heading == name || strings.HasPrefix(heading, name+" (")
+}
+
+func hasLetter(item string) bool {
+	return strings.TrimRight(item, "abcdefghijklmnopqrstuvwxyz") != item
+}
+
+// namesItem satır maddenin numarasını (13.8a) yazıyor mu.
+func namesItem(line, item string) bool {
+	for _, m := range priorityItemRe.FindAllStringSubmatch(line, -1) {
+		if m[1] == item {
+			return true
+		}
+	}
+	return false
 }
 
 // firstPriority etiketteki ilk önceliği verir ("HTTP Ö0 tasarımı" gibi sonraki sözler sayılmaz).
@@ -260,11 +321,14 @@ func unlistedPriorityItems(lines []string, entries []priorityEntry, exceptions m
 			place = chapTitle
 		}
 		where := fmt.Sprintf("docs/status.md:%d: %s bölümündeki açık %s satırı", i+1, place, prio)
-		if _, ok := exceptions[sub]; ok && sub != "" && prio == "Ö1" {
+		classAB := classABRe.MatchString(bracketRe.ReplaceAllString(m[1][:strings.Index(m[1], prio)], ""))
+		// İstisna yalnız sınıfı hâlâ A ya da B olmayan satırı geçirir; A ya da B olan satır
+		// listede aranır, istisna bayatlar (DENETİM 955 N1).
+		if _, ok := exceptions[sub]; ok && sub != "" && prio == "Ö1" && !classAB {
 			used[sub] = true
 			continue
 		}
-		if before := bracketRe.ReplaceAllString(m[1][:strings.Index(m[1], prio)], ""); !classABRe.MatchString(before) {
+		if !classAB {
 			problems = append(problems, where+"nın sınıfı A ya da B değil; Ö0 ve Ö1 yalnız A ya da B'nindir (status'un öncelik tablosu), istisnaysa priorityExceptions'a nedeniyle yazılır")
 			continue
 		}
@@ -272,7 +336,7 @@ func unlistedPriorityItems(lines []string, entries []priorityEntry, exceptions m
 			problems = append(problems, where+"nın ### kısa ad başlığı yok; listede o adla anılır")
 			continue
 		}
-		if !priorityCovered(entries, prio, chapNum, sub) {
+		if !priorityCovered(entries, prio, chapNum, sub, l) {
 			problems = append(problems, where+" "+prio+" listesinde yok; dilimiyle listeye yaz")
 		}
 	}
@@ -284,9 +348,10 @@ func unlistedPriorityItems(lines []string, entries []priorityEntry, exceptions m
 	return problems
 }
 
-// priorityCovered satırın bölümü listede mi: numaralı başlıkta madde (harfli ya da aralıktaki
-// madde dahil), adlı başlıkta tırnaklı ad, başlıksız bölüm satırında bölüm numarası.
-func priorityCovered(entries []priorityEntry, prio, chapNum, sub string) bool {
+// priorityCovered satır listede mi: numaralı başlıkta başlığın maddesi ya da aralıktaki madde,
+// harfli madde (13.8a) ise yalnız kendi başlığında ya da numarasını anan satırda; adlı başlıkta
+// tırnaklı ad; başlıksız bölüm satırında bölüm numarası.
+func priorityCovered(entries []priorityEntry, prio, chapNum, sub, line string) bool {
 	for _, e := range entries {
 		if e.prio != prio {
 			continue
@@ -301,7 +366,11 @@ func priorityCovered(entries []priorityEntry, prio, chapNum, sub string) bool {
 				return true
 			}
 		case sub != "" && e.kind == "item":
-			if e.key == sub || strings.TrimRight(e.key, "abcdefghijklmnopqrstuvwxyz") == sub || inRangeHeading(sub, e.key) {
+			if e.key == sub {
+				return true
+			}
+			base := strings.TrimRight(e.key, "abcdefghijklmnopqrstuvwxyz")
+			if (base == sub || inRangeHeading(sub, e.key)) && (!hasLetter(e.key) || namesItem(line, e.key)) {
 				return true
 			}
 		}
