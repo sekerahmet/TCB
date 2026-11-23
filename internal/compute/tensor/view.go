@@ -369,7 +369,17 @@ func (t *Tensor) copyAs(op string) *Tensor {
 		return t.quantCopy(isCopy)
 	}
 	sy := counterStart(t.be, OpKindCopy).start()
-	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
+	var out *Tensor
+	if op == "clone" {
+		// Blokta duran ağırlığın kopyası da bloğa yazılır, öbeği ağırlıkla büyütmez (hostTarget).
+		// Contiguous (Reshape'in bitişiksiz yolu, evrişim ağırlığı) öbekte kalır.
+		if st := t.hostTarget(t.dtyp, allocSizeOn(t.be, isCopy, t.shape, t.dtyp)); st != nil {
+			out = fromStorage(t.be, st, t.shape)
+		}
+	}
+	if out == nil {
+		out = emptyOf(isCopy, t.be, t.shape, t.dtyp)
+	}
 	gateCopy(t.be, out.storage, 0, t.view())
 	r := trackPass(out, op, t, handOff)
 	sy.finish()

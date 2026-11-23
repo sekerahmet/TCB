@@ -48,6 +48,10 @@ const hostTail = 4096
 // hostPressureFloor çöp toplamayı zorlamadan ayrılabilecek en az bayt.
 const hostPressureFloor = 256 << 20
 
+// hostDerivedFloor türeyen kopyaların toplamayı çağırmadan ayırabileceği en az bayttır
+// (relieveDerivedPressure); testler küçültür.
+var hostDerivedFloor int64 = hostPressureFloor
+
 // hostLittleEndian dosyaların küçük uçlu baytları belleğe çevrilmeden okunabilir mi.
 var hostLittleEndian = le.NativeEndian.Uint16([]byte{1, 0}) == 1
 
@@ -85,7 +89,8 @@ type hostSpent struct {
 // harcaması; çöp toplayıcı blokları görmez, baskıyı burada sayar. hostCacheSpent önbellek payınındır.
 var (
 	hostMemory struct {
-		live, sinceGC atomic.Int64
+		// derivedSinceGC son türeyen kopya toplamasından beri hostTarget'ın ayırdığı bayttır.
+		live, sinceGC, derivedSinceGC atomic.Int64
 		hostSpent
 	}
 	hostCacheSpent hostSpent
@@ -142,8 +147,10 @@ func hostMapCount(text string) int64 {
 }
 
 // relieveHostPressure blokları süreç toplamı kadar ayırdıktan sonra çöp toplamayı çağırır: öbek
-// küçükken toplama kendiliğinden gelmez, ölü bloklar geri dönmezdi. Eşik canlıyla büyüdüğü için
-// model yüklerken toplam log(n) kez çalışır; her çalışması küçük öbeği tarar.
+// küçükken toplama kendiliğinden gelmez, ölü bloklar geri dönmezdi. Eşik canlıyla büyür: blokları
+// canlı kalan bir yüklemede son toplamadan beri ayrılan canlıyı geçmez, toplama tabanda bir kez
+// çalışır (1 GiB'lik yüklemede bir toplama ölçüldü; T1, 2026-11-23). Kaynağı bırakılıp kopyası
+// alınan ağırlıklarda da tutmaz; onları relieveDerivedPressure toplar.
 func relieveHostPressure(n int) {
 	if hostMemory.sinceGC.Add(int64(n)) >= max(hostMemory.live.Load(), hostPressureFloor) {
 		hostMemory.sinceGC.Store(int64(n))
@@ -199,17 +206,36 @@ func FromHostBlock(b *HostBlock, dt DType, shape ...int) *Tensor {
 // hostTarget t'den türeyen n öğelik dt sonucu için blok deposu verir: blokta duran ağırlığın çevrilmiş
 // kopyası da öbeğe düşmez, yoksa çevirme hedefi yeniden ağırlıkla büyürdü. t blokta değilse nil.
 func (t *Tensor) hostTarget(dt DType, n int) *cpuStorage {
-	s, ok := t.storage.(*cpuStorage)
-	if !ok || s.block == nil || s.block.cache {
+	if !t.inWeightBlock() {
 		return nil
 	}
 	size := n * dt.Bits() / 8
 	if elems, bytes := dt.QuantBlock(); elems > 0 {
 		size = n / elems * bytes
 	}
+	relieveDerivedPressure(size)
 	b := NewHostBlock(size)
 	if b == nil {
 		return nil
 	}
 	return b.storage(dt, n)
+}
+
+// inWeightBlock t'nin deposu ağırlık payından (önbellek payı dışından) bir blok mu.
+func (t *Tensor) inWeightBlock() bool {
+	defer runtime.KeepAlive(t)
+	s, ok := t.storage.(*cpuStorage)
+	return ok && s.block != nil && !s.block.cache
+}
+
+// relieveDerivedPressure blokta duran tensörlerden türeyen kopyalar (hostTarget) son toplamadan beri
+// canlının sekizde biri ya da hostDerivedFloor kadar ayrılınca çöp toplamayı çağırır. Kaynağını
+// bırakıp kopyasını alan bir yükleme canlıyı büyütmez, relieveHostPressure'ın eşiği tutmaz: ölü
+// kaynaklar toplanmadan kopyalar onların üstüne birikir, tepe ağırlıkların iki katına çıkardı.
+// Temizleyiciler beklenmez, toplamayla aynı anda koşar (bekleme büyük dosyadan öncedir, host_settle.go).
+func relieveDerivedPressure(n int) {
+	if hostMemory.derivedSinceGC.Add(int64(n)) >= max(hostMemory.live.Load()/8, hostDerivedFloor) {
+		hostMemory.derivedSinceGC.Store(0)
+		runtime.GC()
+	}
 }
