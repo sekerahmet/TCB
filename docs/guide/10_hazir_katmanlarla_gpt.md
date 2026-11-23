@@ -109,7 +109,7 @@ Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.
 
 ## Hazır model, üretim ve kayıtlı oynatma
 
-Hugging Face biçiminde kaydedilmiş bir Llama ya da Qwen3 modelini (`config.json` + `model.safetensors`) eğitmeden kullanmak için `tr/pretrained` yeter. Ağ gerekmez: model önceden indirilmiş bir klasördür.
+Hugging Face biçiminde kaydedilmiş bir Llama ya da Qwen3 modelini (`config.json` + `model.safetensors`; büyük modellerin parçalı yayımında `model.safetensors.index.json` ve parçaları) eğitmeden kullanmak için `tr/pretrained` yeter. Ağ gerekmez: model önceden indirilmiş bir klasördür.
 
 ```tr
 # TR 4

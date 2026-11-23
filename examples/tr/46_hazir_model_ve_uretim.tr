@@ -14,7 +14,7 @@ TR_import "tr/pretrained"
 
 TR_const YOL = "../../tests/data/hf_tiny"
 
-# hazır_model, klasördeki config.json'dan modeli kurar (bir GPT) ve model.safetensors'ı yükler.
+# hazır_model, klasördeki config.json'dan modeli kurar (bir GPT) ve ağırlıkları yükler (model.safetensors ya da parçaları).
 # Parçalayıcı ayrıca açılır; bu modelin gömme tablosu tests/data/tokenizer.json'ın dağarcığıyla eşleşir.
 TR_var model = TR_pretrained_model(YOL)
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
