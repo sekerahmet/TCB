@@ -47,7 +47,7 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 | S10 | Dost'un ekranlı kipi; Colab'da soğuk ve sıcak, dizüstünde sıcak. Soğuk: ekranın açtığı dosyalar (trlang, modeller, katalog, `lib/` ve `tools/assistant/`'ın TR dosyaları) `sync` ve `posix_fadvise(DONTNEED)` ile önbellekten atılır, sistemin önbelleği değil (Colab'da `/proc/sys` salt okunur); önce ve sonra önbellekteki baytlar (`mincore`, Colab'da `fincore` yok) kayda, onda birin altına düşmediyse durur | yok | — | açılıştan `state` `idle`'a |
 | S11 | `tools/gpu/rgn512.tr` bf16 ve fp32 (GPU) | `tools/gpu/rgn512.py` derlemesiz ve derlemeli (yalnız bf16: float32 kipi yok) | — | ms/adım |
 | S12 | `matmul.tr` float32 ve bf16, iki çekirdek (GPU) | `references.py matmul` (torch) | birlerle köşe öğesi aynı | `median_ms` |
-| S13 | `tools/bench/tr/{dongu,fib,matris_dongu}.tr`; karakter modeli (300 ve 0 adımın farkı); `loop_100hz.tr` | `tools/bench/go/compare.go`; `tools/bench/py/char_model.py` | sonuç değeri aynı | ms; ms/adım; kaçan tur |
+| S13 | `tools/bench/tr/{dongu,fib,matris_dongu}.tr`, iki tarafa aynı büyük boy (`--n`: 300 milyon tur, fib(37), 480 kenar; `questions.py` `PURE_SIZES`: Go'nun süresi en kısa ölçülebilir sürenin üstünde); karakter modeli (300 ve 0 adımın farkı); `loop_100hz.tr` | `tools/bench/go/compare.go`; `tools/bench/py/char_model.py` | sonuç değeri aynı | ms; ms/adım; kaçan tur |
 | S14 | `empty.tr` | yok | — | duvar saati |
 
 Makinelerin listeleri `questions.py`'nin `QUESTIONS`'ındadır: HIGHRAM ve dizüstü S1–S10, S13, S14; L4 (GPU ve işlemci aynı oturumda: `l4gpu`, `l4cpu`) ve G4 GPU'da S1–S3, S5–S12, S14 ve S13'ün döngüsü; L4'ün işlemcisi S1–S3, S5–S10, S14.

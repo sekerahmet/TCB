@@ -39,7 +39,6 @@ var LongFuncs = map[string]int{
 	"internal/devtools/formatter/format.go:format":              119,
 	"tools/gen/codesdoc/main.go:Generate":                       151,
 	"tools/gen/grammar/main.go:Generate":                        107,
-	"tools/bench/go/compare.go:main":                            92,
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":    181,

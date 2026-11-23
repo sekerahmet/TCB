@@ -1,5 +1,8 @@
 # TR 4
-TR_var n = 120
+# n×n tamsayı matris çarpımının izi; --n kenar (öntanımı tools/bench/run.py'nin boyu; S13 büyütür, Go'nun compare'i aynı
+# --n'i alır).
+TR_var opt = TR_command_line({"n": 120})
+TR_var n = TR_Int(opt["n"])
 TR_var a = []
 TR_var b = []
 TR_var i = 0

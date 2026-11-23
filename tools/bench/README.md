@@ -21,6 +21,8 @@ python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |
 
+`dongu`, `fib` ve `matris_dongu`'nun TR ve Go sürümü `--n` ile boy alır (tur sayısı, argüman, kenar); öntanımı yukarıdaki boydur. Temel ölçü setinin S13'ü büyük boyla koşar (`baseline/questions.py` `PURE_SIZES`).
+
 ## Güncel taban (2026-11-01, T1 öncesi)
 
 Faz 0'ın tipli yazıma göçü, D1'in ilk dilimi ve Gemini'nin Faz 1 işinden sonra, tensör çekirdeğini değiştirecek T1'den önce. Ham kayıtlar Drive'da `TR_dili/olcumler/` (`OZET.md`, `cpu-temel/`, `kart/`); kayıt aracı (`tools/record`) her koşuya commit'i ve sürümleri yazar.

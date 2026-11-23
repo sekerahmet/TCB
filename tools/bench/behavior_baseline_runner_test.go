@@ -92,6 +92,33 @@ func TestBaselineCustomRunChecksTheLoad(t *testing.T) {
 	}
 }
 
+// S13'ün saf hesap işleri (TCB 2026-11-23 10:26, madde 2): TR programı --n'i okur ve Go'nun compare'iyle aynı değeri
+// verir (compare_test.go aynı boyların Go değerini bağımsız hesapla denetler); S13'ün iki tarafı aynı büyük boyu alır.
+func TestBaselinePureComputeTakesTheSize(t *testing.T) {
+	for _, c := range []struct{ prog, n, want string }{{"dongu", "10", "45"}, {"fib", "10", "55"}, {"matris_dongu", "10", "443"},
+		{"dongu", "1000", "499500"}} {
+		out, err := exec.Command(trlang(t), "tr/"+c.prog+".tr", "--n", c.n).CombinedOutput()
+		f := strings.Fields(string(out))
+		if err != nil || len(f) != 3 || f[0] != c.prog || f[1] != c.want {
+			t.Errorf("%s --n %s: %v %q, want the value %s", c.prog, c.n, err, out, c.want)
+		}
+	}
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]map[string]struct{ TR, Ref [][]string }
+	selfCheck(t, &got, "items", work)
+	for prog, n := range map[string]string{"dongu": "300000000", "fib": "37", "matris_dongu": "480"} {
+		it := got["laptop"]["S13/"+prog]
+		tr, ref := strings.Join(it.TR[0], " "), strings.Join(it.Ref[0], " ")
+		if !strings.HasSuffix(tr, prog+".tr --n "+n) || ref != "compare "+prog+" --n "+n {
+			t.Errorf("S13/%s: TR %q, Go %q; want both with --n %s", prog, tr, ref, n)
+		}
+	}
+}
+
 // idsCheck S7'nin Türkçe kimlik hazırlığını sahte koşucuyla, --key'e göre koşar.
 const idsCheck = `
 import importlib.util, json, sys, tempfile, types

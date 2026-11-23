@@ -805,6 +805,13 @@ def last_ms(stdout):
     return {"value": parts[1], "ms": float(parts[-1])}
 
 
+# S13'ün saf hesap işlerinin boyu (--n, iki tarafa aynı), koşudan önce yazılı: tools/bench/run.py'nin boyunda Go dizüstünde
+# 0–1,2 ms sürdü (saat adımı ~0,5 ms; fib'de 0 ms, oran sıfıra bölündü; 2026-11-22 penceresi), ölçü anlamsızdı. Bu boylarda Go
+# dizüstünde ~50–100 ms [hesap: 2026-11-22'nin Go süreleri × boy oranı; fib 1,618^10], en kısa ölçülebilir sürenin (BC27)
+# üstünde; TR 7–26 sn [hesap: aynı yolla, TR'nin süreleri].
+PURE_SIZES = {"dongu": 300_000_000, "fib": 37, "matris_dongu": 480}
+
+
 def q_targets(ctx):
     """S13: the roadmap's targets: pure compute TR/Go, the character model TR/PyTorch, the 100 Hz loop."""
     loop = item("S13/loop_100hz", side("TR", [ctx.tr("loop_100hz.tr", "--device", ctx.tr_device)],
@@ -812,9 +819,10 @@ def q_targets(ctx):
     if ctx.gpu:  # GPUs: only the loop (set S13, C-2)
         return [loop]
     out = []
-    for prog in ("dongu", "fib", "matris_dongu"):
-        tr = side("TR", [ctx.tr(os.path.join(ROOT, "tools", "bench", "tr", f"{prog}.tr"))], lambda r, runs: r[0]["ms"], parse=last_ms)
-        go = side("Go", [[ctx.tools["go_compare"], prog]], lambda r, runs: r[0]["ms"], parse=last_ms)
+    for prog, n in PURE_SIZES.items():
+        tr = side("TR", [ctx.tr(os.path.join(ROOT, "tools", "bench", "tr", f"{prog}.tr"), "--n", n)], lambda r, runs: r[0]["ms"],
+                  parse=last_ms)
+        go = side("Go", [[ctx.tools["go_compare"], prog, "--n", str(n)]], lambda r, runs: r[0]["ms"], parse=last_ms)
         same = lambda a, b: None if a[0]["value"] == b[0]["value"] else f"{a[0]['value']} != {b[0]['value']}"
         out.append(item(f"S13/{prog}", tr, go, same, tr["cmds"], go["cmds"]))
     bench = _bench_run()
