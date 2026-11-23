@@ -344,8 +344,11 @@ def run_pair(question, tr, ref, agree, log, machine):
     out = {"reference": ref["name"], "measures": {}, "memory": memory}
     for name in times["TR"][0]:
         tr_ms, ref_ms = [t[name] for t in times["TR"]], [t[name] for t in times["E"]]
-        if 0 in ref_ms:  # a 0 ms reference gives no ratio (S13/fib's Go on the laptop, 2026-11-22)
-            raise Stop(f"{question}: {ref['name']} {name} measured 0 ms in a run: too short to measure (ölçülemeyecek kadar kısa)")
+        # A side's 0 ms gives no ratio on any machine: the reference's divides by zero (S13/fib's Go on the laptop,
+        # 2026-11-22), TR's makes the ratio 0, "TR better" (DENETİM 953 N2).
+        for side_name, values in ((tr["name"], tr_ms), (ref["name"], ref_ms)):
+            if 0 in values:
+                raise Stop(f"{question}: {side_name} {name} measured 0 ms in a run: too short to measure (ölçülemeyecek kadar kısa)")
         ratios = [a / b for a, b in zip(tr_ms, ref_ms)]
         out["measures"][name] = {"tr_ms": tr_ms, "ref_ms": ref_ms, "ratios": ratios, **verdict(ratios)}
     return out

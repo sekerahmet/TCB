@@ -310,6 +310,12 @@ try:
     out["zero"] = "no stop"
 except rp.Stop as e:
     out["zero"] = str(e)
+rp._run_side = lambda q, side, index, log, machine, cmds=None: {"results": [{"v": 0.0 if side["name"] == "TR" else 5.0}], "runs": [{}]}
+try:
+    rp.run_pair("S13/fib", {"name": "TR", "measure": pick}, {"name": "Go", "measure": pick}, None, lambda r: None, "highram")
+    out["tr zero"] = "no stop"
+except rp.Stop as e:
+    out["tr zero"] = str(e)
 print(json.dumps(out))
 `
 
@@ -348,6 +354,10 @@ func TestBaselineShortestMeasurableTime(t *testing.T) {
 	}
 	if s, _ := got["zero"].(string); !strings.Contains(s, "Go ms measured 0 ms") {
 		t.Errorf("a 0 ms reference: %v, want a stop before the ratio", got["zero"])
+	}
+	// DENETİM 953 N2: TR'nin 0 ms'si de Linux'ta durur; oran 0 olup "TR daha iyi" demez.
+	if s, _ := got["tr zero"].(string); !strings.Contains(s, "TR ms measured 0 ms") {
+		t.Errorf("a 0 ms TR side on Linux: %v, want a stop before the ratio", got["tr zero"])
 	}
 }
 
