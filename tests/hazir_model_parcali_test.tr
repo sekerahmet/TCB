@@ -74,6 +74,13 @@ TR_func hf_ağırlıkları(ayar: TR_JSON, tür: TR_String) -> TR_Dict[TR_String,
     TR_if çok_kipli {
         w["vision_tower.vision_model.embeddings.patch_embedding.weight"] = TR_randn([4, 4], TR_seed: 99).TR_to_dtype(tür)
         w["multi_modal_projector.mm_input_projection_weight"] = TR_randn([4, 8], TR_seed: 98).TR_to_dtype(tür)
+        # Görüntü kulesinin katmanları dil modelininkilerle aynı içi taşır (layers.0.self_attn.k_proj.weight);
+        # boyları farklıdır, birleşik katmanın kapısına girmemelidir.
+        TR_for i TR_in 0..2 {
+            TR_for parça TR_in ["q_proj", "k_proj", "v_proj", "out_proj"] {
+                w["vision_tower.vision_model.encoder.layers.\(i).self_attn.\(parça).weight"] = TR_randn([4, 4], TR_seed: 90 + i).TR_to_dtype(tür)
+            }
+        }
     }
     TR_return w
 }
@@ -280,6 +287,12 @@ TR_test "hazır_model: eksik parametre H7912, şekil farkı H7913 (birleşik kat
     TR_var giriş = kopya(w)
     giriş["model.layers.0.self_attn.k_proj.weight"] = TR_zeros([8, 6], TR_dtype: "bf16")
     kapı_iletisi(klasör("h7913_giris", ayar, giriş, 2), "H7913", [kv, "[8, 16]", "[6, 8]", "model.layers.0.self_attn.k_proj.weight"])
+    # Çok kipli gemma3'te kapı language_model. önekli katmanlara bakar; görüntü kulesinin katmanlarına bakmaz.
+    TR_var mm = çok_kipli_ayar()
+    TR_var mm_giriş = hf_ağırlıkları(mm, "bf16")
+    mm_giriş["language_model.model.layers.1.self_attn.k_proj.weight"] = TR_zeros([8, 6], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913_mm_giris", mm, mm_giriş, 2), "H7913", ["TR_mem_blocks.1.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight",
+        "[8, 16]", "[6, 8]", "language_model.model.layers.1.self_attn.k_proj.weight"])
     TR_var fazla = kopya(w)
     fazla["model.layers.0.mlp.gate_proj.bias"] = TR_zeros([12], TR_dtype: "bf16")
     TR_assert_equal("H6945", TR_error_code { TR_pretrained_model("\(klasör("h6945", ayar, fazla, 2))") })

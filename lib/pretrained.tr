@@ -119,6 +119,9 @@ TR_func _ağırlıkları_ata(model: TR_GPT, ağırlıklar: TR_Dict[TR_String, TR
             TR_if TR_Int(hedef[2]) >= 0 { birleşik[iç] = TR_String(hedef[0]) }
         }
     }
+    # Kapı yalnız dil modelinin katmanlarına bakar: hugging_face_eşle model.layers.<n>. adlarını eşler (çok
+    # kipli gemma3'te language_model. önekiyle); görüntü kulesinin katmanları aynı içi taşır ama eşlenmez.
+    TR_var katmanlar = TR_if TR_String(TR_config_value(ayar, "model_type", "")) == "gemma3" { "language_model.model.layers" } TR_else { "model.layers" }
     TR_var parametreler = _parametre_bilgisi(model)
     TR_var atanan: TR_Dict[TR_String, TR_Bool] = {}
     TR_var bekleyen: TR_Dict[TR_String, TR_Dict[TR_String, TR_Tensor]] = {}
@@ -137,7 +140,7 @@ TR_func _ağırlıkları_ata(model: TR_GPT, ağırlıklar: TR_Dict[TR_String, TR
             }
             TR_for a, x TR_in bekleyen[anahtar] { birim[a] = x }
             bekleyen.TR_remove(anahtar)
-            _giriş_kapısı(parametreler, "TR_mem_blocks.\(p[baş - 1]).\(birleşik[iç])", birim)
+            TR_if p[0..baş - 1].TR_join(".") == katmanlar { _giriş_kapısı(parametreler, "TR_mem_blocks.\(p[baş - 1]).\(birleşik[iç])", birim) }
         }
         TR_var kaynak = birim.TR_keys().TR_sort().TR_join(", ")
         TR_for tr_ad, y TR_in TR_map_hugging_face(birim, ayar) { _ata(model, parametreler, atanan, tr_ad, y, kaynak) }
