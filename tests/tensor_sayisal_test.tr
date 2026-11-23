@@ -1,0 +1,14 @@
+# TR 4
+
+TR_test "15.34 SGD momentum adımları elle hesaplanan değerle uyuşur" {
+    TR_var w = TR_Tensor([2.0], TR_requires_grad: TR_true)
+    TR_var op = TR_SGD([w], TR_lr: 0.1, TR_momentum: 0.5)
+    op.TR_zero_grad()
+    TR_backward(TR_sum(w))
+    op.TR_step()
+    TR_assert_equal([1.9], w.TR_tolist)
+    op.TR_zero_grad()
+    TR_backward(TR_sum(w))
+    op.TR_step()
+    TR_assert_equal([1.75], w.TR_tolist)
+}

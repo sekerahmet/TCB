@@ -132,3 +132,20 @@ func TestClipGradNormTiedParameter(t *testing.T) {
 		}
 	}
 }
+
+// SGD momentumu hız tamponunda v = μ·v + g biriktirip w -= lr·v uygular (15.34):
+// lr=0.1, μ=0.5 ve sabit g=[1, 1] ile [2, -4] iki adımda [1.9, -4.1] ve [1.75, -4.25] olur.
+func TestSGDMomentumValues(t *testing.T) {
+	w := New([]float32{2, -4}, 2).SetRequiresGrad(true)
+	op := NewSGD([]*Tensor{w}, 0.1, 0.5)
+
+	op.ZeroGrad()
+	w.SumAll().Backward()
+	op.Step()
+	near(t, "adım 1", w.Data(), []float32{1.9, -4.1}, 1e-6)
+
+	op.ZeroGrad()
+	w.SumAll().Backward()
+	op.Step()
+	near(t, "adım 2", w.Data(), []float32{1.75, -4.25}, 1e-6)
+}
