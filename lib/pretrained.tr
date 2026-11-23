@@ -107,7 +107,10 @@ TR_func _dizin_metni(v: TR_JSON, ağırlık: TR_String, dosya: TR_String) -> TR_
 # _ağırlıkları_ata dosyanın ağırlıklarını modelin parametrelerine atar. Eşleme kuralları tek yerdedir:
 # her birim (tek ağırlık ya da birleşik katmanın iki parçası) sözlükten çıkar ve hugging_face_eşle'yle
 # eşlenir; kurulan parametrenin türünde bir kopyası alana atanır (_ata). Sıfırlar yazılmaz; aynı anda
-# dosyanın kalan tensörleri, tek birim ve birleşik katmanın bekleyen parçaları canlıdır. Eksik parametre
+# dosyanın kalan tensörleri, tek birim ve birleşik katmanın bekleyen parçaları canlıdır. Kurulan parametrelerin
+# yalnız bilgisi tutulur (_parametre_bilgisi): sıfırları atandıkça ölür; tutulsalardı Go'nun öbek hedefi
+# yükleme bitince sıfırların iki katında kalır, ilk istemin çöpü o hedefe kadar birikirdi (Qwen3-4B bf16'da
+# 7,7 GB). Eksik parametre
 # H7912, şekil farkı H7913; eşlenmeyen ağırlık ve eksik parça hugging_face_eşle'nin iletileridir.
 TR_func _ağırlıkları_ata(model: TR_GPT, ağırlıklar: TR_Dict[TR_String, TR_Tensor], ayar: TR_JSON, klasör: TR_String) {
     TR_var birleşik: TR_Dict[TR_String, TR_String] = {}
@@ -116,7 +119,7 @@ TR_func _ağırlıkları_ata(model: TR_GPT, ağırlıklar: TR_Dict[TR_String, TR
             TR_if TR_Int(hedef[2]) >= 0 { birleşik[iç] = TR_String(hedef[0]) }
         }
     }
-    TR_var parametreler = TR_parameters(model, TR_named: TR_true)
+    TR_var parametreler = _parametre_bilgisi(model)
     TR_var atanan: TR_Dict[TR_String, TR_Bool] = {}
     TR_var bekleyen: TR_Dict[TR_String, TR_Dict[TR_String, TR_Tensor]] = {}
     TR_for ad TR_in ağırlıklar.TR_keys() {
@@ -143,13 +146,27 @@ TR_func _ağırlıkları_ata(model: TR_GPT, ağırlıklar: TR_Dict[TR_String, TR
     }
 }
 
+# _Parametre kurulan parametrenin bilgisidir: şekli, türü, türev izleyip izlemediği.
+TR_struct _Parametre {
+    şekil: TR_List[TR_Int]
+    tür: TR_String
+    iz: TR_Bool
+}
+
+# _parametre_bilgisi modelin adlı parametrelerinin bilgisini verir; tensörlerin sözlüğü dönüşte ölür.
+TR_func _parametre_bilgisi(model: TR_GPT) -> TR_Dict[TR_String, _Parametre] {
+    TR_var bilgi: TR_Dict[TR_String, _Parametre] = {}
+    TR_for ad, p TR_in TR_parameters(model, TR_named: TR_true) { bilgi[ad] = _Parametre(şekil: p.TR_shape, tür: p.TR_dtype, iz: p.TR_requires_grad) }
+    TR_return bilgi
+}
+
 # _ata eşlenmiş tensörün kopyasını ad'ın gösterdiği parametrenin alanına atar: tür ve türev izleme
 # kurulan parametreninkidir, şekli aynı olmalıdır (H7913).
-TR_func _ata(model: TR_GPT, parametreler: TR_Dict[TR_String, TR_Tensor], atanan: TR_Dict[TR_String, TR_Bool], ad: TR_String, y: TR_Tensor, kaynak: TR_String) {
+TR_func _ata(model: TR_GPT, parametreler: TR_Dict[TR_String, _Parametre], atanan: TR_Dict[TR_String, TR_Bool], ad: TR_String, y: TR_Tensor, kaynak: TR_String) {
     TR_if TR_not parametreler.TR_contains(ad) { TR_throw TR_Message("H6945", "model", kaynak) }
     TR_var eski = parametreler[ad]
-    TR_if y.TR_shape != eski.TR_shape { TR_throw TR_Message("H7913", ad, "\(eski.TR_shape)", kaynak, "\(y.TR_shape)") }
-    TR_var t = TR_Tensor(y.TR_to_dtype(eski.TR_dtype), TR_requires_grad: eski.TR_requires_grad)
+    TR_if y.TR_shape != eski.şekil { TR_throw TR_Message("H7913", ad, "\(eski.şekil)", kaynak, "\(y.TR_shape)") }
+    TR_var t = TR_Tensor(y.TR_to_dtype(eski.tür), TR_requires_grad: eski.iz)
     TR_if ad == "TR_mem_embedding.TR_mem_table" {
         model.TR_embedding.TR_table = t
     } TR_else TR_if ad == "TR_mem_final_norm.TR_mem_weight" {
