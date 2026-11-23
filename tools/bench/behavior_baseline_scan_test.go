@@ -3,7 +3,6 @@ package bench
 
 import (
 	"encoding/json"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -51,13 +50,6 @@ rp.scan_settings(ctx, qs, rec, ["llama.cpp read", "llama.cpp gen"], scan_out, ru
 rp.scan_settings(ctx, qs, rec, ["whisper.cpp"], scan_out, runs=1)
 out["scan"] = json.load(open(os.path.join(scan_out, "en-hizli.json"), encoding="utf-8"))
 out["commit"] = rp.head_commit()
-whole = {g: {"threads": 6} for g in rp.SCAN_GROUPS}
-whole["_scan"] = {g: {"runs": 3} for g in rp.SCAN_GROUPS}
-whole["_commit"] = "c1"
-out["check"] = {"whole": rp.check_settings(whole, "c1"),
-                "missing": rp.check_settings({k: v for k, v in whole.items() if k != "llama.cpp gen"}, "c1"),
-                "trial": rp.check_settings({**whole, "_scan": {g: {"runs": 1} for g in rp.SCAN_GROUPS}}, "c1"),
-                "other": rp.check_settings(whole, "c2"), "nogit": rp.check_settings(whole, None)}
 out["groups"] = rp.SCAN_GROUPS
 print(json.dumps(out))
 `
@@ -75,7 +67,6 @@ func TestLaptopFastestSettings(t *testing.T) {
 		S1, S1gen, S3, Int8, F32, S7 []string
 		Ort                          []string
 		Scan                         map[string]any
-		Check                        map[string]*string
 		Commit                       string
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
@@ -101,22 +92,10 @@ func TestLaptopFastestSettings(t *testing.T) {
 	w, _ := got.Scan["whisper.cpp"].(map[string]any)
 	table, _ := got.Scan["_scan"].(map[string]any)
 	gt, _ := table["llama.cpp gen"].(map[string]any)
+	// K2 (H1e): commit artık dosyanın değil grubun kaydıdır; ölçü onu denetlemez.
 	if r["threads"] != 6.0 || g["threads"] == 6.0 || g["threads"] == 0.0 || w["threads"] != 0.0 || len(table) != 3 || gt["measures_ms"] == nil ||
-		len(got.Commit) != 40 || got.Scan["_commit"] != got.Commit {
-		t.Errorf("scan: %v, want reading 6 threads, generation the logical count, whisper.cpp the default, each measure's median, the commit %s", got.Scan, got.Commit)
-	}
-	// DENETİM 947 ve 948 Ş1: ölçü yalnız kendi commit'inde bütün gruplar 3 koşuyla taranmış dosyayı alır.
-	str := func(p *string) string {
-		if p == nil {
-			return "<nil>"
-		}
-		return *p
-	}
-	if c := got.Check; c["whole"] != nil || !strings.Contains(str(c["missing"]), "llama.cpp gen") ||
-		!strings.Contains(str(c["trial"]), "fewer than 3 runs") || !strings.Contains(str(c["other"]), "scanned at commit c1, this measure runs c2") ||
-		!strings.Contains(str(c["nogit"]), "this measure runs None") {
-		t.Errorf("check_settings: whole %v, a group missing %s, a trial's file %s, another commit %s, no git %s",
-			c["whole"], str(c["missing"]), str(c["trial"]), str(c["other"]), str(c["nogit"]))
+		len(got.Commit) != 40 || gt["commit"] != got.Commit || got.Scan["_commit"] != nil {
+		t.Errorf("scan: %v, want reading 6 threads, generation the logical count, whisper.cpp the default, each measure's median, the group's commit %s", got.Scan, got.Commit)
 	}
 }
 
@@ -162,69 +141,6 @@ bash "$HERE/en-hizli-ayar.sh"; echo "rc=$?"
 			if code != 0 || !strings.Contains(out, want) {
 				t.Errorf("%v: exit %d, want %q\n%s", c.env[len(c.env)-1], code, want, out)
 			}
-		}
-	}
-}
-
-// DENETİM 948 Ş1: ölçüde run.py --settings hiçbir şey koşmadan durur (çıkış 3, STOPPED): grubu eksik, tek koşulu ya da
-// başka commit'te taranmış dosyayla. Kendi commit'inin bütün taraması ve denemedeki tek koşulu dosya denetimden geçer
-// (iş klasörü boş olduğu için koşu sonra tools.json'da düşer).
-func TestLaptopMeasureStopsOnAPartialScan(t *testing.T) {
-	head, err := exec.Command("git", "rev-parse", "HEAD").Output()
-	if err != nil {
-		t.Skip("git yok")
-	}
-	commit := strings.TrimSpace(string(head))
-	groupsOut, err := exec.Command(python(t), "-I", "-c", `import importlib.util, json, sys
-spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
-rp = importlib.util.module_from_spec(spec)
-sys.modules["run"] = rp
-spec.loader.exec_module(rp)
-print(json.dumps(rp.SCAN_GROUPS))`).Output()
-	var groups []string
-	if err != nil || json.Unmarshal(groupsOut, &groups) != nil || len(groups) == 0 {
-		t.Fatalf("SCAN_GROUPS: %v\n%s", err, groupsOut)
-	}
-	scan := func(runs int, commit string, drop string) map[string]any {
-		doc, table := map[string]any{"_commit": commit}, map[string]any{}
-		for _, g := range groups {
-			if g != drop {
-				doc[g] = map[string]any{"threads": 6}
-				table[g] = map[string]any{"runs": runs}
-			}
-		}
-		doc["_scan"] = table
-		return doc
-	}
-	work := t.TempDir()
-	for _, c := range []struct {
-		name  string
-		doc   map[string]any
-		trial bool
-		stop  string
-	}{
-		{"a group missing", scan(3, commit, "llama.cpp gen"), false, "groups missing ['llama.cpp gen']"},
-		{"one run", scan(1, commit, ""), false, "fewer than 3 runs"},
-		{"another commit", scan(3, "0123abc", ""), false, "was scanned at commit 0123abc, this measure runs " + commit},
-		{"whole", scan(3, commit, ""), false, ""},
-		{"trial", scan(1, commit, ""), true, ""},
-	} {
-		b, _ := json.Marshal(c.doc)
-		p := filepath.Join(t.TempDir(), "en-hizli.json")
-		if err := os.WriteFile(p, b, 0o644); err != nil {
-			t.Fatal(err)
-		}
-		args := []string{"--work", work, "--machine", "laptop", "--out", t.TempDir(), "--settings", p, "--question", "S14"}
-		if c.trial {
-			args = append(args, "--trial")
-		}
-		got, code := baseline(t, args...)
-		stopped := strings.Contains(got, "STOPPED: en-hizli.json")
-		if c.stop != "" && (code != 3 || !stopped || !strings.Contains(got, c.stop)) {
-			t.Errorf("%s: exit %d, want 3 and %q\n%s", c.name, code, c.stop, got)
-		}
-		if c.stop == "" && (code == 3 || stopped) {
-			t.Errorf("%s: exit %d, want the settings check to pass\n%s", c.name, code, got)
 		}
 	}
 }

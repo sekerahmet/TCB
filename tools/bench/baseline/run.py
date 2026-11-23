@@ -692,17 +692,21 @@ def run_questions(a):
     qs = load_questions()
     rec = Record(a.out)
     doc = None
+    chosen = lambda it: not a.key or any(it["key"].startswith(k) for k in a.key)
     if a.settings:  # Ş1: the window's scan's choice (en-hizli.json); it goes with the run's record
-        with open(a.settings, encoding="utf-8") as f:
-            doc = json.load(f)
+        doc = load_settings(a.settings)
         rec.log({"settings": {k: v for k, v in doc.items() if not k.startswith("_")}, "settings_file": a.settings,
                  "scan": doc.get("_scan"), "scan_commit": doc.get("_commit")})
-        reason = None if (a.trial or a.agreement or a.scan) else check_settings(doc, head_commit())
-        if reason:  # a measure, not a trial: only a whole scan of this commit (DENETİM 947 and 948 Ş1)
+        gate = a.settings_missing or not (a.trial or a.agreement or a.scan)
+        reason = settings_gate(a, qs, rec, doc, a.question or qs.QUESTIONS[a.machine], chosen) if gate else None
+        if reason:  # a measure, not a trial: only its items' groups, valid for this machine and reference (K7)
             rec.log({"stopped": reason})
             rec.save()
             print(f"STOPPED: {reason}", flush=True)
             return STOP
+        if a.settings_missing:
+            rec.save()
+            return 0
     with open(os.path.join(a.work, "tools.json"), encoding="utf-8") as f:
         trlang = json.load(f)["trlang"]
     threads = threads_from_tr([trlang, os.path.join(BASE, "matmul.tr"), "--size", "512", "--repeat", "2"])
@@ -716,7 +720,8 @@ def run_questions(a):
         ctx.settings = {k: v for k, v in doc.items() if not k.startswith("_")}
     if a.scan:
         try:
-            return scan_settings(ctx, qs, rec, a.scan, a.out, runs=1 if a.trial else 3)
+            return scan_settings(ctx, qs, rec, a.scan, a.out, runs=1 if a.trial else 3,
+                                 identity=lambda g: group_identity(g, a.machine, a.machine_file, a.sources))
         except Stop as e:
             rec.log({"stopped": str(e)})
             rec.save()
@@ -735,7 +740,6 @@ def run_questions(a):
     if not qs.sounds_ok(ctx):  # O-7: without the fixed sounds S5 and S8 go last; the machine does not wait
         order_ = [q for q in order_ if q not in qs.SOUND_QUESTIONS] + [q for q in order_ if q in qs.SOUND_QUESTIONS]
     try:
-        chosen = lambda it: not a.key or any(it["key"].startswith(k) for k in a.key)
         if a.agreement:
             agreement_pass(ctx, qs, order_, rec, chosen)
         else:
@@ -767,7 +771,8 @@ def run_questions(a):
 # differ); S3's llama-bench reads with the reading group's threads and also tries flash attention 0 and 1, at depth 700
 # only. Each setting runs its group's item once to warm, then SCAN_RUNS times; the setting with the shortest median of the
 # measures (summed) is chosen, and the table keeps each measure's median too. The rule is written before the run; the
-# choice and the table go to en-hizli.json and every run's record. A measure takes the file only whole (check_settings).
+# choice and the table go to en-hizli.json and every run's record. A measure takes only its items' groups, each valid
+# while its identity holds (settings_gate, K1-K3 and K7 of H1e).
 SCAN = [("llama.cpp read", "S1", "S1/qwen3-4b-q4km", slice(0, 1)), ("llama.cpp gen", "S1", "S1/qwen3-4b-q4km", slice(1, 2)),
         ("llama.cpp S3", "S3", "S3/qwen3-4b-q4km", slice(0, 1)),
         ("faster-whisper float32", "S5", "S5/tr/faster-whisper-float32", None),
@@ -783,18 +788,146 @@ def head_commit():
     return r.stdout.strip() if r.returncode == 0 else None
 
 
-def check_settings(doc, commit):
-    """Ş1 (DENETİM 947 and 948): a measure takes en-hizli.json only from a whole scan of its own commit: every group
-    chosen and timed with SCAN_RUNS runs (a trial's file has one run per setting; a scan cut short leaves groups out),
-    scanned at the commit the measure runs (a file left by an earlier window carries its own). The reason, or None."""
-    table = doc.get("_scan", {})
-    missing = [g for g in SCAN_GROUPS if g not in doc]
-    short = [g for g in SCAN_GROUPS if g in doc and table.get(g, {}).get("runs", 0) < SCAN_RUNS]
-    if missing or short:
-        return f"en-hizli.json is not a whole scan: groups missing {missing}, fewer than {SCAN_RUNS} runs {short}"
-    if commit is None or doc.get("_commit") != commit:
-        return f"en-hizli.json was scanned at commit {doc.get('_commit')}, this measure runs {commit}: scan again"
+# K2 (H1e, TCB 2026-11-23 18:30; Ahmet 17:53 "bu tarama tr den bağımsız"): a group's choice holds until the machine or
+# the reference changes. Each group's table carries an identity: the machine, the processor and logical count lines of
+# the run's machine record (lib.sh olcu_makine), the reference's entries in sources.json (the measure checks the installed
+# reference against them, olcu_arac and olcu_surum) and, for a Python reference, Python's version. TR's commit and the
+# choice's rule stay in the table as a record only.
+SCAN_REFERENCES = {"llama.cpp read": [("tools", "llama.cpp")], "llama.cpp gen": [("tools", "llama.cpp")],
+                   "llama.cpp S3": [("tools", "llama.cpp")],
+                   "faster-whisper float32": [("python", "faster-whisper"), ("python", "ctranslate2")],
+                   "faster-whisper int8": [("python", "faster-whisper"), ("python", "ctranslate2")],
+                   "whisper.cpp": [("tools", "whisper.cpp")], "onnxruntime": [("python", "onnxruntime"), ("python", "numpy")]}
+
+
+def machine_record(path):
+    """The date, commit, processor and logical count lines of a machine record (lib.sh olcu_makine)."""
+    out = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            k, _, v = line.rstrip("\n").partition(": ")
+            if k in ("tarih", "commit", "işlemci", "mantıksal işlemci"):
+                out[k] = v.strip()
+    return out
+
+
+def group_identity(group, machine, machine_file, sources_file):
+    """K2: what a group's choice depends on; None without the machine record or the source file."""
+    if not machine_file or not sources_file:
+        return None
+    m = machine_record(machine_file)
+    with open(sources_file, encoding="utf-8") as f:
+        sources = json.load(f)
+    ident = {"machine": machine, "processor": m.get("işlemci"), "logical": m.get("mantıksal işlemci"),
+             "references": {name: sources[kind][name] for kind, name in SCAN_REFERENCES[group]}}
+    if any(kind == "python" for kind, _ in SCAN_REFERENCES[group]):
+        ident["python"] = sys.version.split()[0]
+    return ident
+
+
+def adopt(doc, group, folder, ident):
+    """K9 (TCB 2026-11-23 18:32, 18:47; DENETİM 960 N1): a group written before identities is taken when its own scan's
+    record, beside the file, is that scan's (its log line is the file's table, its machine record has the file's commit)
+    and shows this machine and this reference. The reason it is not taken, or None."""
+    table = doc.get("_scan", {}).get(group, {})
+    run = os.path.join(folder, "run-en-hizli-ayar")
+    try:
+        with open(os.path.join(run, "log.jsonl"), encoding="utf-8") as f:
+            lines = [json.loads(x) for x in f if x.strip()]
+        made = machine_record(os.path.join(folder, "en-hizli-ayar-makine.txt"))
+        with open(os.path.join(run, "hazirlik.txt"), encoding="utf-8") as f:
+            prep = f.read().splitlines()
+    except (OSError, ValueError) as e:
+        return f"no record of its scan ({e})"
+    line = [x for x in lines if x.get("scan") == group and "chosen" in x]
+    if not line or any(line[-1].get(k) != table.get(k) for k in ("chosen", "medians_ms", "runs")):
+        return "the record's scan line is not the file's table"
+    if made.get("commit", "").split(" ")[0] != doc.get("_commit"):
+        return f"the record's commit {made.get('commit')} is not the file's {doc.get('_commit')}"
+    if (made.get("işlemci"), made.get("mantıksal işlemci")) != (ident["processor"], ident["logical"]):
+        return f"another machine: {made.get('işlemci')}, {made.get('mantıksal işlemci')}"
+    for name, entry in ident["references"].items():
+        if "files" in entry:  # a tool: every file's sha256 and the version line
+            for f, sha in entry["files"].items():
+                if f"{name} {f}: sha256 {sha[:12]} tuttu" not in prep:
+                    return f"{name} {f}: no sha256 {sha[:12]} in the record"
+            if not any(x.startswith(f"{name} sürüm:") and entry["version"] in x for x in prep):
+                return f"{name}: no version {entry['version']!r} in the record"
+            continue
+        if not any(x.startswith(f"{name} {entry['version']} (") and f"sha256 {entry['sha256'][:12]}" in x for x in prep):
+            return f"{name} {entry['version']}: not in the record's preparation"
+        try:
+            with open(os.path.join(run, "pip_list.txt"), encoding="utf-8") as f:
+                pips = f.read().split()
+            with open(os.path.join(run, "python_version.txt"), encoding="utf-8") as f:
+                py = f.read().strip()
+        except OSError as e:
+            return f"no record of its Python ({e})"
+        if f"{name}=={entry['version']}" not in pips:
+            return f"{name}=={entry['version']} is not in the record's pip list"
+        if py != "Python " + ident["python"]:
+            return f"the record's {py}, this Python {ident['python']}"
     return None
+
+
+def settings_state(doc, groups, folder, identity):
+    """K3, K7, K9: the groups a measure's items need, against the file. Returns the missing groups with their reasons,
+    the reason the measure stops (a trial's one-run group, TCB 18:30; no identity to read) and the adopted groups."""
+    table = doc.setdefault("_scan", {})
+    missing, adopted = {}, []
+    for g in groups:
+        t = table.get(g)
+        if g not in doc or t is None:
+            missing[g] = "not scanned"
+            continue
+        if t.get("runs", 0) < SCAN_RUNS:
+            return missing, f"en-hizli.json's {g} has fewer than {SCAN_RUNS} runs (a trial's scan): scan it again", adopted
+        ident = identity(g)
+        if ident is None:
+            return missing, "no machine record or source file (--machine-file, --sources): the scan's identity is not known", adopted
+        if "identity" not in t:
+            why = adopt(doc, g, folder, ident)
+            if why:
+                missing[g] = f"written before identities and not adopted: {why}"
+                continue
+            made = machine_record(os.path.join(folder, "en-hizli-ayar-makine.txt"))
+            t["identity"], t["adopted"] = ident, {"record": made.get("tarih"), "commit": doc.get("_commit"), "rule": "median"}
+            adopted.append(g)
+        elif t["identity"] != ident:
+            missing[g] = "another machine or reference: " + ", ".join(
+                k for k in sorted(set(ident) | set(t["identity"])) if ident.get(k) != t["identity"].get(k))
+    return missing, None, adopted
+
+
+def settings_gate(a, qs, rec, doc, asked, chosen):
+    """K7: before a measure, the groups its chosen items read must be in the file and valid; --settings-missing prints
+    the missing ones (lib.sh scans them, K4). A file that does not exist is an empty one. The reason it stops, or None."""
+    ctx = qs.Ctx(sys.modules[__name__], a.machine, 1, a.work, lambda r: None, dry=True)
+    groups = sorted({g for q in asked for it in qs.items(ctx, q) if chosen(it) for g in qs.scan_groups(ctx, it)})
+    identity = lambda g: group_identity(g, a.machine, a.machine_file, a.sources)
+    missing, reason, adopted = settings_state(doc, groups, os.path.dirname(os.path.abspath(a.settings)), identity)
+    rec.log({"settings_groups": groups, "settings_missing": missing, "settings_adopted": adopted})
+    if adopted:  # K9: the adopted group carries its identity from now on
+        with open(a.settings, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(doc, f, indent=1)
+    if reason:
+        return reason
+    if a.settings_missing:
+        for g in missing:
+            print(f"MISSING {g}", flush=True)
+        return None
+    if missing:
+        return f"en-hizli.json has no valid setting for {missing}: scan these groups (en-hizli-ayar.sh)"
+    return None
+
+
+def load_settings(path):
+    """en-hizli.json, or an empty file when it does not exist yet (K7)."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
 
 def time_side(ctx, side, key, log, runs, measure, warm=True):
@@ -809,8 +942,9 @@ def time_side(ctx, side, key, log, runs, measure, warm=True):
     return statistics.median(sum(g.values()) for g in got), {k: statistics.median(g[k] for g in got) for k in got[0]}
 
 
-def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS):
-    """Ş1's scan of the named groups; merges into out/en-hizli.json, so a trial can run the groups as separate commands."""
+def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS, identity=lambda g: None):
+    """Ş1's scan of the named groups; merges into out/en-hizli.json, so a trial can run the groups as separate commands.
+    Each group is written when it is done, with its identity (K2); the other groups' entries stay (K5)."""
     path = os.path.join(out, "en-hizli.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -836,9 +970,9 @@ def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS):
         best = min(meds, key=meds.get)
         res[group] = {"flash_attn": best} if fa else {"threads": best}
         table[group] = {"medians_ms": {str(k): v for k, v in meds.items()},
-                        "measures_ms": {str(k): v for k, v in each.items()}, "runs": runs, "chosen": best}
+                        "measures_ms": {str(k): v for k, v in each.items()}, "runs": runs, "chosen": best,
+                        "rule": "median", "commit": head_commit(), "identity": identity(group)}  # K2: commit, rule: a record
         rec.log({"scan": group, **table[group]})
-        res["_commit"] = head_commit()  # DENETİM 948 Ş1: a measure takes only its own commit's scan
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(res, f, indent=1)
     print(json.dumps({k: v for k, v in res.items() if not k.startswith("_")}), flush=True)
@@ -1041,7 +1175,12 @@ def main():
     p.add_argument("--models", help="with --fetch: only these MODELS names, comma separated")
     p.add_argument("--key", action="append", help="only the items whose key starts with this (S1/qwen3-4b-q4km); repeat")
     p.add_argument("--epsilon-from", help="GPU machines: HIGHRAM's agreement.json, whose S1 and S3 ε they use (B14)")
-    p.add_argument("--settings", help="the window's scan's choice (en-hizli.json): each reference's fastest setting (Ş1)")
+    p.add_argument("--settings", help="the scan's choice (en-hizli.json): each reference's fastest setting (Ş1); a measure "
+                                      "stops unless its items' groups are valid (K7)")
+    p.add_argument("--settings-missing", action="store_true",
+                   help="with --settings: print MISSING <group> for each group the chosen items need and the file lacks (K4)")
+    p.add_argument("--sources", help="the machine's sources.json: each reference's version and sha256 (the identity, K2)")
+    p.add_argument("--machine-file", help="the run's machine record (lib.sh olcu_makine): processor and logical count (K2)")
     p.add_argument("--scan", action="append", choices=SCAN_GROUPS,
                    help="the window's short scan of a reference's fastest setting, into --out/en-hizli.json (Ş1)")
     p.add_argument("--epsilon", action="append", metavar="KEY=NUMBER",

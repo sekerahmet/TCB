@@ -91,6 +91,7 @@ class Ctx:
         self.epsilon_from = None  # GPU machines: HIGHRAM's agreement.json (run.py --epsilon-from; B14)
         self.epsilon_given = {}  # item key: ε written in the run script before the run (run.py --epsilon; BC17)
         self.settings = {}  # Ş1: each reference's fastest setting from the window's scan (run.py --settings)
+        self.cmd_groups = {}  # K1 (H1e): a reference command's scan groups, kept where the setting is read (Ctx.ref)
         self.keys = None  # run.py --key: the items this run takes; a preparation only an unchosen item needs is skipped (BC28)
 
     def model(self, name, i=0):
@@ -106,17 +107,30 @@ class Ctx:
         path = program if os.path.isabs(program) else os.path.join(HERE, program)
         return [self.tools["trlang"], path, *[str(a) for a in args]]
 
-    def ref(self, name, binary=None, argv=()):
+    def ref(self, name, binary=None, argv=(), also=()):
         # Ş1 (DENETİM 944): a reference whose fastest thread number the window's scan chose gets that number (0: the
-        # library's own default); every other one the machine's number (O-1).
+        # library's own default); every other one the machine's number (O-1). K1 (H1e): the groups the command reads
+        # are kept by the command, with the setting or without it (also: a group read beside, S3's -fa; DENETİM 960 Ş2).
         g = setting_group(name, [str(a) for a in argv])
         n = self.settings.get(g, {}).get("threads", self.threads) if g else self.threads
-        return self.rp.reference_cmd(name, n, binary=binary, argv=[str(a) for a in argv])
+        cmd = self.rp.reference_cmd(name, n, binary=binary, argv=[str(a) for a in argv])
+        groups = ({g} if g else set()) | set(also)
+        if groups:
+            self.cmd_groups.setdefault(tuple(cmd), set()).update(groups)
+        return cmd
 
     def ngl(self):
         # İşlemci makinesinde de açık 0: llama.cpp'nin öntanımlısı -1, "bütün katmanlar GPU'da" (b12124 llama.h); L4'ün
         # llama.cpp'si CUDA'lıdır, l4cpu'da emsal GPU'da koşuyordu (BC20).
         return ["-ngl", "99" if self.gpu else "0"]
+
+
+def scan_groups(ctx, it):
+    """K1 (H1e): the scan groups an item's timed reference commands read; an item with none needs no scan."""
+    out = set()
+    for c in (it["ref"] or {}).get("cmds", []):
+        out |= ctx.cmd_groups.get(tuple(c), set())
+    return sorted(out)
 
 
 def setting_group(name, argv):
@@ -311,7 +325,9 @@ def q_language(ctx, q):
                   lambda r, runs: {f"depth{row['depth']}_ms": row["prompt_ms"] for row in r[0]["depths"]})
         fa = ctx.settings.get("llama.cpp S3", {}).get("flash_attn")  # Ş1: the scan's -fa (llama.cpp's default is auto)
         fa = [] if fa is None else ["-fa", fa]
-        ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *fa, *ctx.ngl()]) for d in (700, 4100)],
+        # K1 (H1e, DENETİM 960 Ş2): the -fa read here is the group "llama.cpp S3", kept with or without a setting
+        ref = side("llama.cpp", [ctx.ref("llama-bench", lb, ["-m", g, "-p", 40, "-n", 0, "-d", d, *fa, *ctx.ngl()],
+                                         also=["llama.cpp S3"]) for d in (700, 4100)],
                    lambda r, runs: {f"depth{x['n_depth']}_ms": x["avg_ns"] / 1e6 for x in r}, parse=parse_llama_bench,
                    agree_parse=raw)
         out.append(item("S3/qwen3-4b-q4km", tr, ref, *lm_agreement(ctx, "S3/qwen3-4b-q4km", g, [], text)))  # S1's measure

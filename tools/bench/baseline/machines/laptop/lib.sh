@@ -9,7 +9,8 @@
 #   OLCU_WHISPER   whisper.cpp b5454'ün klasörü (öntanımlı $USERPROFILE/tools/whisper.cpp/b5454/Release)
 # Asıl ölçü ölçü penceresinde koşar (YAN_DAL bölüm 7); pencere dışındaki koşu denemedir (OLCU_DENEME=1), sayısı kullanılmaz.
 # Ölçü kipinde pencerenin ilk betiği en-hizli-ayar.sh'tir (Ş1): emsallerin en hızlı ayarı kayıt kökündeki en-hizli.json'a;
-# öbür betikler ölçüyü o ayarla koşar, dosya yoksa ölçmez.
+# öbür betikler ölçüyü o ayarla koşar. Bir grup makine ya da emsal değişene kadar geçerlidir; ölçü yalnız kendi
+# kalemlerinin gruplarını ister (H1e).
 set -u
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(cd "$HERE/../../../../.." && pwd)
@@ -76,7 +77,8 @@ olcu_dost_yok() {
 
 # olcu_kos <ad> <soru> [run.py'nin ek seçenekleri]: koşturucu tools/record altında; sonra satır taslağı. Koşunun kayıt
 # klasörüne hazırlık (modellerin bağlandığı yollar, kimlikler, sürümler) ve pip list yazılır (Ş3). Emsallerin ayarı
-# en-hizli.json'dan (Ş1); ölçü kipinde dosya yoksa ölçü yok.
+# en-hizli.json'dan (Ş1); ölçü kipinde koşturucu yalnız seçilen kalemlerin gruplarını ister, her biri makine ve emsal
+# değişene kadar geçerlidir (H1e K1, K2, K7).
 olcu_kos() {
   local ad=$1 soru=$2; shift 2
   local r="$KAYIT/run-$ad"; mkdir -p "$r"
@@ -84,12 +86,9 @@ olcu_kos() {
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
   "$PY" --version > "$r/python_version.txt" 2>&1  # N4 (DENETİM 947)
-  local ayar=()
-  if [ -f "$AYAR" ]; then
-    ayar=(--settings "$AYAR"); cp "$AYAR" "$r/en-hizli.json"
-  elif [ "${OLCU_DENEME:-}" != 1 ]; then
-    olcu "en-hizli.json yok: önce en-hizli-ayar.sh (Ş1)"; exit 2
-  fi
+  # K7 (H1e): --settings her zaman; koşturucu yalnız seçilen kalemlerin gruplarını ister, dosya yoksa boş sayılır. Grubun
+  # kimliği bu koşunun makine kaydından ve sources.json'dan (K2).
+  local ayar=(--settings "$AYAR" --sources "$SOURCES" --machine-file "$KAYIT/$ad-makine.txt")
   sleep 20  # derlemenin ve sha256 hesabının yükü insin: koşturucunun yük denetimi koşudan önce ölçer
   local kos="$PY -I tools/bench/baseline/run.py --work $IS --machine laptop --out $r --question $soru"
   local rc
@@ -104,6 +103,7 @@ olcu_kos() {
     (cd "$REPO" && "$IS/bin/record.exe" --out "$KAYIT" --name "h1-laptop-$ad" -- $kos "$@" "${ayar[@]}")
     rc=$?
   fi
+  [ -f "$AYAR" ] && cp "$AYAR" "$r/en-hizli.json"  # koşunun aldığı ayar, benimsenen grubun kimliğiyle (K9) kaydına
   olcu "$ad çıkışı: $rc"
   (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --rows --out "$r")
   return $rc
@@ -121,9 +121,8 @@ olcu_tara_basla() {
 
 # olcu_tara <grup>...: Ş1'in kısa taraması (run.py --scan): her grubun en hızlı ayarı en-hizli.json'a (var olana eklenir;
 # gruplar ayrı komutlarla da koşabilir). Kural koşudan önce yazılı: varsayılan, 6 ve mantıksal sayı (S3'te -fa 0 ve 1),
-# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız. Ölçü kipinde tarama olcu_tara_basla'nın boşalttığı
-# yerde başlar ve dosyayı yalnız hepsi bitince yazar; dosya taramanın commit'ini taşır, ölçü yalnız kendi commit'inin
-# bütün taramasını alır (run.py check_settings; DENETİM 947 ve 948 Ş1).
+# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız. Her grup bitince kimliğiyle (makine kaydı ve
+# sources.json; H1e K2) yazılır; ölçü yalnız kimliği tutan grubu alır (run.py settings_gate).
 olcu_tara() {
   local r="$KAYIT/run-en-hizli-ayar"; mkdir -p "$r"
   olcu_dost_yok
@@ -136,7 +135,8 @@ olcu_tara() {
   [ "${OLCU_DENEME:-}" = 1 ] && deneme=(--trial)
   sleep 20
   olcu "en-hizli-ayar: $* (${OLCU_DENEME:+deneme: her ayar bir kez})"
-  (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" "${args[@]}" "${deneme[@]}") || exit 2
+  (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" "${args[@]}" "${deneme[@]}" \
+    --sources "$SOURCES" --machine-file "$KAYIT/en-hizli-ayar-makine.txt") || exit 2
   cp "$r/en-hizli.json" "$AYAR"
   olcu "en hızlı ayar: $(cat "$AYAR" | "$PY" -I -c 'import json,sys; print({k: v for k, v in json.load(sys.stdin).items() if not k.startswith("_")})')"
 }
