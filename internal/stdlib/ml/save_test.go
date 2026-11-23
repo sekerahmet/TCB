@@ -415,3 +415,60 @@ func TestAbandonedLoadWritesNoWarning(t *testing.T) {
 		t.Errorf("bırakılan yüklemede uyarı yazıldı: %q", errOut.String())
 	}
 }
+
+// Kural (15.46): güvenilmeyen .trt girdisinde ilk eksende sınırı aşan sıfır eksenli şekil (H6621),
+// gövdesi eksik tensör verisi (H6623, veri dizisi ayrılmadan önce) ve kalan bayta sığmayan girdi
+// sayısı (H6612) reddedilir. TotalAlloc ölçümü nedeniyle t.Parallel kullanılmaz.
+func TestTensorFileBoundaryGates(t *testing.T) {
+	makeTruncatedF32 := func(elems uint64, bodyBytes int) []byte {
+		var b bytes.Buffer
+		b.WriteString("TRTENSOR")
+		b.Write(binary.LittleEndian.AppendUint16(nil, 2))
+		b.Write(binary.LittleEndian.AppendUint32(nil, 1))
+		b.Write(binary.LittleEndian.AppendUint32(nil, 1))
+		b.WriteByte('w')
+		b.Write([]byte{1, 1}) // float32, 1 eksen
+		b.Write(binary.LittleEndian.AppendUint64(nil, elems))
+		b.Write(make([]byte, bodyBytes+4)) // gövde + 4 bayt CRC alanı
+		return b.Bytes()
+	}
+
+	var tenInTwenty bytes.Buffer
+	tenInTwenty.WriteString("TRTENSOR")
+	tenInTwenty.Write(binary.LittleEndian.AppendUint16(nil, 2))
+	tenInTwenty.Write(binary.LittleEndian.AppendUint32(nil, 10))
+	tenInTwenty.Write(make([]byte, 6)) // toplam 20 bayt
+
+	dir := t.TempDir()
+	for _, c := range []struct {
+		name string
+		raw  []byte
+		want messages.Code
+	}{
+		{"ilk_eksen_dev_sifir.trt", fileBytes(t, []fileEntry{{ad: "w", shape: []int{1 << 50, 0}, dtype: tensor.Float32}}), messages.H6621},
+		{"eksik_veri_10.trt", makeTruncatedF32(10, 12), messages.H6623},
+		{"on_tensor_20_bayt.trt", tenInTwenty.Bytes(), messages.H6612},
+	} {
+		p := filepath.Join(dir, c.name)
+		if err := os.WriteFile(p, c.raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := run(t, `TR_load_tensors("`+filepath.ToSlash(p)+`")`); !messages.Has(err, c.want) {
+			t.Errorf("%s: %v (beklenen %s)", c.name, err, c.want)
+		}
+	}
+
+	// [1<<22] float32 (16 MiB) bildiren ama gövdede yalnız 12 bayt taşıyan dosya ayırmadan önce H6623 verir.
+	hugeTrunc := makeTruncatedF32(1<<22, 12)
+	runtime.GC()
+	var m0, m1 runtime.MemStats
+	runtime.ReadMemStats(&m0)
+	_, err := decodeFile(bytes.NewReader(hugeTrunc), int64(len(hugeTrunc)))
+	runtime.ReadMemStats(&m1)
+	if !messages.Has(err, messages.H6623) {
+		t.Fatalf("kesik büyük tensör H6623 vermeliydi: %v", err)
+	}
+	if alloc := m1.TotalAlloc - m0.TotalAlloc; alloc >= 1<<20 {
+		t.Fatalf("kesik girdide veri dizisi ayrılmamalıydı: TotalAlloc artışı %d bayt (>= 1 MiB)", alloc)
+	}
+}

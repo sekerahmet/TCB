@@ -260,6 +260,21 @@ func TestGGUFQuantRejects(t *testing.T) {
 	}
 }
 
+// TestGGUFQuantRejectsFirstBlock: tek bloklu nicemli tensörün 0. bloğundaki NaN ölçek de H6686
+// ile reddedilir ve ileti tensör adını ve 0. bloğu söyler (15.55).
+func TestGGUFQuantRejectsFirstBlock(t *testing.T) {
+	raw := make([]byte, 34)
+	binary.LittleEndian.PutUint16(raw[:2], 0x7E00)
+	data := (&gguftest.Builder{}).Tensor("katman.w", gguf.TypeQ8_0, []uint64{32}, raw).Bytes()
+	_, err := decodeGGUFBytes(data)
+	if !messages.Has(err, messages.H6686) {
+		t.Fatalf("0. blok NaN ölçek reddedilmeliydi: %v", err)
+	}
+	if shown := messages.ErrorIn(err, "tr"); !strings.Contains(shown, "katman.w") || !strings.Contains(shown, "0. blo") {
+		t.Fatalf("ileti tensör adını ve 0. bloğu içermeli: %q", shown)
+	}
+}
+
 // TestGGUFQuantEntryIsRaw: girdinin öğe sayısı ve tensörü blok baytından gelir.
 func TestGGUFQuantEntryIsRaw(t *testing.T) {
 	b := (&gguftest.Builder{}).Tensor("w", gguf.TypeQ6_K, []uint64{256, 3}, make([]byte, 630))
