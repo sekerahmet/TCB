@@ -286,10 +286,12 @@ def call(name, side, measures, runs=None, machine="laptop"):
 dur = {"name": "TR"}
 call("duration under", dur, {"ms": 19.9})
 call("duration over", dur, {"ms": 20.1})
+call("duration at", dur, {"ms": 20.0})
 der = {"name": "TR", "kinds": {"ms": {"kind": "derived", "what": "two walls",
                                       "span": lambda r, runs: runs[0]["wall_ms"] - runs[1]["wall_ms"]}}}
 call("derived under", der, {"ms": 0.06}, [{"wall_ms": 1000}, {"wall_ms": 981}])
 call("derived over", der, {"ms": 0.08}, [{"wall_ms": 1000}, {"wall_ms": 975}])
+call("derived at", der, {"ms": 0.07}, [{"wall_ms": 1000}, {"wall_ms": 980}])
 nd = {"name": "TR", "kinds": {"missed": {"kind": "not_duration", "why": "a count"}}}
 call("not duration under", nd, {"missed": 0})
 call("not duration over", nd, {"missed": 30})
@@ -330,7 +332,9 @@ func TestBaselineShortestMeasurableTime(t *testing.T) {
 			t.Errorf("%s: %v, want a stop with %q", name, got[name], want)
 		}
 	}
-	for _, pass := range []string{"duration over", "derived over", "not duration under", "not duration over", "memory over", "linux under"} {
+	// DENETİM 953 N1: sınırın tam üstü (20,0 ms) geçer.
+	for _, pass := range []string{"duration over", "duration at", "derived over", "derived at", "not duration under", "not duration over",
+		"memory over", "linux under"} {
 		if l, ok := got[pass].([]any); !ok || len(l) != 0 {
 			t.Errorf("%s: %v, want no stop and nothing marked", pass, got[pass])
 		}
