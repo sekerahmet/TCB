@@ -4,6 +4,7 @@ package bench
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
@@ -12,7 +13,7 @@ import (
 )
 
 // Emsallerin en hızlı ayarının taraması (Ş1, DENETİM 944, 947 ve 948): taramanın seçimi ve ölçüye geçişi, ölçünün yalnız
-// kendi commit'inin bütün taramasını alması, taramanın eski pencerenin dosyasını bırakmaması.
+// kendi commit'inin bütün taramasını alması, taramanın eski pencerenin dosyasını bırakmaması (H1e: kimlik, dönüşüm, eksik grup).
 
 // settingsCheck en hızlı ayarın emsal komutlarına geçişini ve taramanın seçimini (sahte ölçülerle) basar.
 const settingsCheck = `
@@ -101,47 +102,20 @@ func TestLaptopFastestSettings(t *testing.T) {
 	}
 }
 
-// DENETİM 947 ve 948 Ş1: ölçü kipinde taramanın ilk adımı (olcu_tara_basla) eski en-hizli.json'ları siler ve bütün
-// grupları ister; eksik listeyle durur. Denemede dosyaya dokunmaz.
-func TestLaptopMeasureScanStartsEmpty(t *testing.T) {
-	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"
-echo '{}' > "$AYAR"; echo '{}' > "$KAYIT/run-en-hizli-ayar/en-hizli.json"
-( olcu_tara_basla "llama.cpp read" ); echo "bir grup rc=$?"
-[ -f "$AYAR" ] && echo "ayar kaldı" || echo "ayar silindi"
-[ -f "$KAYIT/run-en-hizli-ayar/en-hizli.json" ] && echo "kopya kaldı" || echo "kopya silindi"
-( olcu_tara_basla "${TARA_GRUPLARI[@]}" ); echo "bütün gruplar rc=$?"
-echo '{}' > "$AYAR"; ( OLCU_DENEME=1; olcu_tara_basla "llama.cpp read" ); echo "deneme rc=$?"
-[ -f "$AYAR" ] && echo "denemede ayar kaldı" || echo "denemede ayar silindi"`
-	out, code := libRun(t, t.TempDir(), nil, script)
-	for _, want := range []string{"bir grup rc=2", "ayar silindi", "kopya silindi", "ölçü kipinde tarama bütün grupları koşar",
-		"bütün gruplar rc=0", "deneme rc=0", "denemede ayar kaldı"} {
-		if code != 0 || !strings.Contains(out, want) {
-			t.Errorf("olcu_tara_basla: exit %d, want %q\n%s", code, want, out)
-		}
-	}
-}
-
-// DENETİM 948 Ş1: ölçü kipinde hazırlıkta (burada model bağlamada) düşen en-hizli-ayar.sh eski pencerenin ayarını
-// bırakmaz; düzeltmeden önce dosya yalnız olcu_tara'da, betiğin sonunda siliniyordu. Denemede dosya kalır. Derleme sahte
-// (go), modellerin klasörü boş.
-func TestLaptopScanFailingInSetupLeavesNoSetting(t *testing.T) {
-	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"; echo '{}' > "$AYAR"; echo '{}' > "$KAYIT/run-en-hizli-ayar/en-hizli.json"
+// K5 (H1e; DENETİM 948 Ş1'in yeni hâli): hazırlıkta (burada model bağlamada) düşen en-hizli-ayar.sh kayıt kökünün
+// dosyasına dokunmaz: taranmayan grupların girdisi korunur, ölçü onları kimlikleriyle yargılar (K2, K3). Ölçü kipinde
+// dosya artık silinmez; denemede de aynı. Derleme sahte (go), modellerin klasörü boş.
+func TestLaptopScanFailingInSetupKeepsOtherGroups(t *testing.T) {
+	script := `mkdir -p "$KAYIT/run-en-hizli-ayar"; echo '{"onnxruntime": {"threads": 6}}' > "$AYAR"
 go() { :; }; export -f go
-bash "$HERE/en-hizli-ayar.sh"; echo "rc=$?"
-[ -f "$AYAR" ] && echo "ayar kaldı" || echo "ayar silindi"
-[ -f "$KAYIT/run-en-hizli-ayar/en-hizli.json" ] && echo "kopya kaldı" || echo "kopya silindi"`
+bash "$HERE/en-hizli-ayar.sh" "llama.cpp read"; echo "rc=$?"
+echo "ayar: $(cat "$AYAR")"`
 	env := []string{"PY=" + filepath.ToSlash(python(t)), "OLCU_MODELLER=" + filepath.ToSlash(t.TempDir())}
-	for _, c := range []struct {
-		env  []string
-		want []string
-	}{
-		{env, []string{"rc=2", "model qwen3-4b-q4km hazır değil", "ayar silindi", "kopya silindi"}},
-		{append(env, "OLCU_DENEME=1"), []string{"rc=2", "model qwen3-4b-q4km hazır değil", "ayar kaldı", "kopya kaldı"}},
-	} {
-		out, code := libRun(t, t.TempDir(), c.env, script)
-		for _, want := range c.want {
+	for _, e := range [][]string{env, append(env, "OLCU_DENEME=1")} {
+		out, code := libRun(t, t.TempDir(), e, script)
+		for _, want := range []string{"rc=2", "model qwen3-4b-q4km hazır değil", `ayar: {"onnxruntime": {"threads": 6}}`} {
 			if code != 0 || !strings.Contains(out, want) {
-				t.Errorf("%v: exit %d, want %q\n%s", c.env[len(c.env)-1], code, want, out)
+				t.Errorf("%v: exit %d, want %q\n%s", e[len(e)-1], code, want, out)
 			}
 		}
 	}
@@ -228,6 +202,57 @@ func TestBaselineScanKeepsTheEarlierSettingWithinNoise(t *testing.T) {
 		}
 		if !reflect.DeepEqual(calls, wantCalls) {
 			t.Errorf("%s: calls %v, want %v", name, calls, wantCalls)
+		}
+	}
+}
+
+// K4 (H1e): ölçü kipinde olcu_ayar_hazir seçilen kalemlerin eksik gruplarını koşturucuya sorar (--settings-missing) ve
+// tarama betiğini yalnız o gruplarla, kendi iş klasöründe ($IS-tara) koşar. Eksik yoksa taramaz; koşturucu durursa
+// (tek koşulu grup) ya da tarama düşerse ölçü yok; deneme hiçbir şey sormaz. Koşturucu ve tarama betiği sahte.
+func TestLaptopMeasureScansOnlyMissingGroups(t *testing.T) {
+	repo := t.TempDir()
+	runPy := filepath.Join(repo, "tools", "bench", "baseline", "run.py")
+	fake := "import os, sys\nopen(os.environ['FAKE_ARGS'], 'a').write(' '.join(sys.argv[1:]) + '\\n')\n" +
+		"print(os.environ.get('FAKE_OUT', ''))\nsys.exit(int(os.environ.get('FAKE_RC', '0')))\n"
+	if err := os.MkdirAll(filepath.Dir(runPy), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(runPy, []byte(fake), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scan := filepath.Join(repo, "tara.sh")
+	if err := os.WriteFile(scan, []byte("printf '%s|' \"$OLCU_IS\" \"$@\" >> \"$FAKE_TARA\"\nexit ${FAKE_TARA_RC:-0}\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name, out, rc, scanRC, trial string
+		code                         int
+		scanned, asked               bool
+	}{
+		{"two missing", "MISSING llama.cpp read\nMISSING llama.cpp gen", "0", "0", "", 0, true, true},
+		{"none missing", "", "0", "0", "", 0, false, true},
+		{"a trial's group", "STOPPED: en-hizli.json's llama.cpp read has fewer than 3 runs", "3", "0", "", 2, false, true},
+		{"scan fails", "MISSING whisper.cpp", "0", "2", "", 2, true, true},
+		{"trial", "MISSING llama.cpp read", "0", "0", "1", 0, false, false},
+	} {
+		dir := t.TempDir()
+		args, tara := filepath.Join(dir, "args.txt"), filepath.Join(dir, "tara.txt")
+		env := []string{"PY=" + filepath.ToSlash(python(t)), "TARA_BETIK=" + filepath.ToSlash(scan), "FAKE_ARGS=" + args,
+			"FAKE_TARA=" + tara, "FAKE_OUT=" + c.out, "FAKE_RC=" + c.rc, "FAKE_TARA_RC=" + c.scanRC, "OLCU_DENEME=" + c.trial}
+		out, code := libRun(t, repo, env, `olcu_ayar_hazir gen-q S1 --key S1/qwen3-4b-q4km`)
+		gotArgs, _ := os.ReadFile(args)
+		gotScan, _ := os.ReadFile(tara)
+		if code != c.code || (len(gotScan) > 0) != c.scanned || (len(gotArgs) > 0) != c.asked {
+			t.Errorf("%s: exit %d (want %d), scanned %q, asked %q\n%s", c.name, code, c.code, gotScan, gotArgs, out)
+			continue
+		}
+		if c.name == "two missing" && !strings.HasSuffix(string(gotScan), "/is-tara|llama.cpp read|llama.cpp gen|") {
+			t.Errorf("scan %q, want only the two groups in the scan's own work folder", gotScan)
+		}
+		for _, want := range []string{"--question S1 --key S1/qwen3-4b-q4km --settings ", "--sources ", "--machine-file ", "gen-q-makine.txt", "--settings-missing"} {
+			if c.asked && !strings.Contains(string(gotArgs), want) {
+				t.Errorf("%s: run.py %q, want %q", c.name, gotArgs, want)
+			}
 		}
 	}
 }

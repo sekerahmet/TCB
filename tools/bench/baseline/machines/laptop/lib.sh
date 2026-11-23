@@ -8,9 +8,9 @@
 #   OLCU_LLAMA     llama.cpp b12124'ün klasörü (öntanımlı $USERPROFILE/tools/llama.cpp/b12124)
 #   OLCU_WHISPER   whisper.cpp b5454'ün klasörü (öntanımlı $USERPROFILE/tools/whisper.cpp/b5454/Release)
 # Asıl ölçü ölçü penceresinde koşar (YAN_DAL bölüm 7); pencere dışındaki koşu denemedir (OLCU_DENEME=1), sayısı kullanılmaz.
-# Ölçü kipinde pencerenin ilk betiği en-hizli-ayar.sh'tir (Ş1): emsallerin en hızlı ayarı kayıt kökündeki en-hizli.json'a;
-# öbür betikler ölçüyü o ayarla koşar. Bir grup makine ya da emsal değişene kadar geçerlidir; ölçü yalnız kendi
-# kalemlerinin gruplarını ister (H1e).
+# Emsallerin en hızlı ayarı (Ş1) kayıt kökündeki en-hizli.json'dadır (en-hizli-ayar.sh); öbür betikler ölçüyü o ayarla koşar.
+# Bir grup makine ya da emsal değişene kadar geçerlidir; ölçü yalnız kendi kalemlerinin gruplarını ister ve eksik olanları
+# ölçüden önce kendisi tarar (H1e K1, K2, K4).
 set -u
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(cd "$HERE/../../../../.." && pwd)
@@ -86,6 +86,7 @@ olcu_kos() {
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
   "$PY" --version > "$r/python_version.txt" 2>&1  # N4 (DENETİM 947)
+  olcu_ayar_hazir "$ad" "$soru" "$@" || exit 2
   # K7 (H1e): --settings her zaman; koşturucu yalnız seçilen kalemlerin gruplarını ister, dosya yoksa boş sayılır. Grubun
   # kimliği bu koşunun makine kaydından ve sources.json'dan (K2).
   local ayar=(--settings "$AYAR" --sources "$SOURCES" --machine-file "$KAYIT/$ad-makine.txt")
@@ -109,37 +110,59 @@ olcu_kos() {
   return $rc
 }
 
-# olcu_tara_basla <grup>...: en-hizli-ayar.sh'in İLK adımı (DENETİM 948 Ş1), hazırlıktan önce. Ölçü kipinde eski
-# en-hizli.json'lar silinir ve bütün gruplar istenir: tarama hazırlıkta (derleme, model, emsal) düşse de eski pencerenin
-# dosyası ölçüye geçmez; öbür betikler dosya yoksa ölçmez (olcu_kos). Denemede dosyaya dokunulmaz.
+# olcu_ayar_hazir <ad> <soru> [run.py'nin ek seçenekleri]: K4 (H1e). Ölçü kipinde koşturucuya seçilen kalemlerin eksik
+# gruplarını sorar (run.py --settings-missing; geçersiz grup da eksiktir, eski dosyanın grubu kendi kaydıyla benimsenir)
+# ve tarama betiğini yalnız o gruplarla, kendi iş klasöründe ($IS-tara) koşar: ölçünün tools.json'u ve hazırlığı
+# değişmez. Koşturucu durursa (tek koşulu grup) ya da tarama düşerse ölçü yok. Deneme taramaz, dosyayı varsa kullanır.
 TARA_GRUPLARI=("llama.cpp read" "llama.cpp gen" "llama.cpp S3" "faster-whisper float32" "faster-whisper int8" "whisper.cpp" "onnxruntime")
-olcu_tara_basla() {
+TARA_BETIK=${TARA_BETIK:-$HERE/en-hizli-ayar.sh}
+olcu_ayar_hazir() {
+  local ad=$1 soru=$2; shift 2
   [ "${OLCU_DENEME:-}" = 1 ] && return 0
-  rm -f "$AYAR" "$KAYIT/run-en-hizli-ayar/en-hizli.json"
-  [ "$*" = "${TARA_GRUPLARI[*]}" ] || { olcu "ölçü kipinde tarama bütün grupları koşar: ${TARA_GRUPLARI[*]}"; exit 2; }
+  local r="$KAYIT/run-$ad" cikti rc satir eksik=()
+  mkdir -p "$r"
+  cikti=$(cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" --question "$soru" "$@" \
+    --settings "$AYAR" --sources "$SOURCES" --machine-file "$KAYIT/$ad-makine.txt" --settings-missing)
+  rc=$?
+  [ -n "$cikti" ] && echo "$cikti"
+  [ "$rc" = 0 ] || { olcu "$ad: ayar dosyası bu ölçüye uymuyor (çıkış $rc), ölçü yok (K7)"; return 2; }
+  while IFS= read -r satir; do
+    satir=${satir%$'\r'}  # Windows'ta Python satırı \r\n ile biter
+    [[ $satir == "MISSING "* ]] && eksik+=("${satir#MISSING }")
+  done <<< "$cikti"
+  [ ${#eksik[@]} = 0 ] && return 0
+  olcu "$ad: eksik gruplar taranıyor: ${eksik[*]} (K4)"
+  OLCU_IS="$IS-tara" bash "$TARA_BETIK" "${eksik[@]}" || { olcu "$ad: eksik grupların taraması düştü, ölçü yok (K4)"; return 2; }
 }
 
 # olcu_tara <grup>...: Ş1'in kısa taraması (run.py --scan): her grubun en hızlı ayarı en-hizli.json'a (var olana eklenir;
 # gruplar ayrı komutlarla da koşabilir). Kural koşudan önce yazılı: varsayılan, 6 ve mantıksal sayı (S3'te -fa 0 ve 1),
 # her ayar bir ısınma, sonra 3 koşu ayarlar arasında dönerek; sonraki ayar ancak bütün koşuları öncekinin bütün
 # koşularından kısaysa seçilir (H1e K6); denemede her ayar bir kez, ısınmasız. Her grup bitince kimliğiyle (makine kaydı ve
-# sources.json; H1e K2) yazılır; ölçü yalnız kimliği tutan grubu alır (run.py settings_gate).
+# sources.json; H1e K2) yazılır; ölçü yalnız kimliği tutan grubu alır (run.py settings_gate). K5 (H1e): dosya silinmez,
+# taranmayan grupların girdisi korunur; tarama yarıda düşerse biten gruplar yine yazılır. Deneme kendi klasörüne
+# (run-en-hizli-ayar-deneme) yazar, kayıt kökünün dosyasına dokunmaz: tek koşulu grup ölçüyü durdururdu (K3).
 olcu_tara() {
-  local r="$KAYIT/run-en-hizli-ayar"; mkdir -p "$r"
+  local r="$KAYIT/run-en-hizli-ayar"
+  [ "${OLCU_DENEME:-}" = 1 ] && r="$KAYIT/run-en-hizli-ayar-deneme"
+  mkdir -p "$r"
   olcu_dost_yok
   cp "$IS/hazirlik.txt" "$r/hazirlik.txt"
   "$PY" -m pip list --format=freeze > "$r/pip_list.txt" 2>/dev/null
   "$PY" --version > "$r/python_version.txt" 2>&1
-  [ -f "$AYAR" ] && cp "$AYAR" "$r/en-hizli.json"
+  if [ -f "$AYAR" ]; then cp "$AYAR" "$r/en-hizli.json"; else rm -f "$r/en-hizli.json"; fi  # eski kopya dirilmesin
   local g args=() deneme=()
   for g in "$@"; do args+=(--scan "$g"); done
   [ "${OLCU_DENEME:-}" = 1 ] && deneme=(--trial)
   sleep 20
   olcu "en-hizli-ayar: $* (${OLCU_DENEME:+deneme: her ayar bir kez})"
+  local rc
   (cd "$REPO" && "$PY" -I tools/bench/baseline/run.py --work "$IS" --machine laptop --out "$r" "${args[@]}" "${deneme[@]}" \
-    --sources "$SOURCES" --machine-file "$KAYIT/en-hizli-ayar-makine.txt") || exit 2
-  cp "$r/en-hizli.json" "$AYAR"
-  olcu "en hızlı ayar: $(cat "$AYAR" | "$PY" -I -c 'import json,sys; print({k: v for k, v in json.load(sys.stdin).items() if not k.startswith("_")})')"
+    --sources "$SOURCES" --machine-file "$KAYIT/en-hizli-ayar-makine.txt")
+  rc=$?
+  [ "${OLCU_DENEME:-}" != 1 ] && [ -f "$r/en-hizli.json" ] && cp "$r/en-hizli.json" "$AYAR"
+  [ "$rc" = 0 ] || { olcu "en-hizli-ayar: tarama düştü (çıkış $rc); biten gruplar yazıldı"; exit 2; }
+  olcu "en hızlı ayar: $("$PY" -I -c 'import json,sys; print({k: v for k, v in json.load(open(sys.argv[1], encoding="utf-8")).items() if not k.startswith("_")})' "$r/en-hizli.json")"
 }
 
 # olcu_model <ad>: modelin dosyaları iş klasörüne (models/<ad>/), sources.json'daki yer ve kimlikle (model.py; ağa çıkmaz).
