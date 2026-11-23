@@ -89,22 +89,49 @@ func sdotq4kx8q8x4Avx2(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, 
 // q4kPanelGemm n0..n1 aralığındaki sekizli Q4_K ağırlık gruplarını panelden çarpar; işlenen son satırın ardını döner.
 // Etkinleştirmenin 32'lik alt blok toplamları bs32'dedir (q4kSubSums).
 func q4kPanelGemm(n0, n1, N, K int, w []byte, rowBytes int, all *q8kRow, rows []*q8kRow, bs32 []int16, idx []int, c []float32, pan, pmeta []byte) int {
-	k := panelKernel{pack: packq4kx8, dot: sdotq4kx8q8x4Avx2, one: dotQ4KQ8, codeBytes: q4kPanelCodeBytes, metaBytes: q4kPanelMetaBytes, bsPerBlock: 8}
-	if hasAVXVNNI {
-		k.dot = sdotq4kx8q8x4Vnni
-	}
+	k := panelKernel{codeBytes: q4kPanelCodeBytes, metaBytes: q4kPanelMetaBytes, bsPerBlock: 8}
 	return panelGemm8(k, bs32, n0, n1, N, K, w, rowBytes, all, rows, idx, c, pan, pmeta)
 }
 
-// panelKernel bir türün sekiz satırlı panel çarpımının parçalarıdır: paketleyici, sekiz ağırlık satırı × dört etkinleştirme
-// satırı çekirdeği, dörde tamamlanmayan etkinleştirme satırları için tek satırlı çekirdek, blok başına panel baytları ve
-// etkinleştirmenin blok başına bs öğesi (Q4_K: 32'lik alt blok toplamları 8, Q6_K: 16'lık toplamlar 16).
+// panelKernel bir türün sekiz satırlı panel çarpımının parçalarıdır: Q4_K mı Q6_K mı, blok başına panel baytları ve
+// etkinleştirmenin blok başına bs öğesi (Q4_K: 32'lik alt blok toplamları 8, Q6_K: 16'lık toplamlar 16). Çekirdekler
+// yöntemlerde doğrudan çağrılır: işlev değeri üzerinden dolaylı çağrıda kaçış çözümlemesi tmp'yi ve out'u yığına
+// çıkarıyordu (DENETİM 965 eki N2, go build -gcflags=-m).
 type panelKernel struct {
-	pack                 func(blocks int, w *byte, rowBytes int, pan *byte, pmeta *byte)
-	dot                  func(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, bs *int16, out *float32, sq, sd, sbs int)
-	one                  func(blocks int, w []byte, r *q8kRow, tmp []byte) float32
+	q6                   bool
 	codeBytes, metaBytes int
 	bsPerBlock           int
+}
+
+// pack sekiz ağırlık satırını panele paketler.
+func (k panelKernel) pack(blocks int, w *byte, rowBytes int, pan, pmeta *byte) {
+	if k.q6 {
+		packq6kx8(blocks, w, rowBytes, pan, pmeta)
+		return
+	}
+	packq4kx8(blocks, w, rowBytes, pan, pmeta)
+}
+
+// dot paneli dört etkinleştirme satırıyla çarpar (VNNI varsa VNNI çekirdeği, yoksa AVX2).
+func (k panelKernel) dot(blocks int, pan, pmeta *byte, q *int8, d *float32, bs *int16, out *float32, sq, sd, sbs int) {
+	switch {
+	case k.q6 && hasAVXVNNI:
+		sdotq6kx8q8x4Vnni(blocks, pan, pmeta, q, d, bs, out, sq, sd, sbs)
+	case k.q6:
+		sdotq6kx8q8x4Avx2(blocks, pan, pmeta, q, d, bs, out, sq, sd, sbs)
+	case hasAVXVNNI:
+		sdotq4kx8q8x4Vnni(blocks, pan, pmeta, q, d, bs, out, sq, sd, sbs)
+	default:
+		sdotq4kx8q8x4Avx2(blocks, pan, pmeta, q, d, bs, out, sq, sd, sbs)
+	}
+}
+
+// one bir ağırlık satırını bir etkinleştirme satırıyla tek satırlı çekirdekle çarpar.
+func (k panelKernel) one(blocks int, w []byte, r *q8kRow, tmp []byte) float32 {
+	if k.q6 {
+		return dotQ6KQ8(blocks, w, r, tmp)
+	}
+	return dotQ4KQ8(blocks, w, r, tmp)
 }
 
 // panelGemm8 n0..n1 aralığındaki sekizli ağırlık gruplarını k'nin paneliyle çarpar; işlenen son satırın ardını döner. Her grup
@@ -153,9 +180,6 @@ func sdotq6kx8q8x4Avx2(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, 
 // q6kPanelGemm n0..n1 aralığındaki sekizli Q6_K ağırlık gruplarını panelden çarpar; işlenen son satırın ardını döner.
 // Etkinleştirmenin 16'lık toplamları all.bs'tedir.
 func q6kPanelGemm(n0, n1, N, K int, w []byte, rowBytes int, all *q8kRow, rows []*q8kRow, idx []int, c []float32, pan, pmeta []byte) int {
-	k := panelKernel{pack: packq6kx8, dot: sdotq6kx8q8x4Avx2, one: dotQ6KQ8, codeBytes: q6kPanelCodeBytes, metaBytes: q6kPanelMetaBytes, bsPerBlock: 16}
-	if hasAVXVNNI {
-		k.dot = sdotq6kx8q8x4Vnni
-	}
+	k := panelKernel{q6: true, codeBytes: q6kPanelCodeBytes, metaBytes: q6kPanelMetaBytes, bsPerBlock: 16}
 	return panelGemm8(k, all.bs, n0, n1, N, K, w, rowBytes, all, rows, idx, c, pan, pmeta)
 }
