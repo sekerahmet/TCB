@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -17,6 +18,112 @@ func TestConcatKeepsSignedZero(t *testing.T) {
 				t.Fatalf("%s: %v elemanlarının işaretleri yanlış (%d. eleman)", dt, d, i)
 			}
 		}
+	}
+}
+
+// Kural (T1 bf16 bellek, A1): CPU'da aynı 16 bitlik türdeki girdilerin birleştirmesi bitleri kopyalar.
+// bf16 ve fp16'nın bütün 65 536 deseni düz ve devrik girdiyle birleşir. Sinyal NaN girdinin kendi
+// bitleridir; öbür her desen tampon yolunun (float32'ye açıp birleştirip geri çevirme) bitleridir.
+func TestConcatSixteenBitCopiesBits(t *testing.T) {
+	for _, c := range []struct {
+		dt         DType
+		exp, quiet uint16
+	}{{BFloat16, 0x7f80, 0x0040}, {Float16, 0x7c00, 0x0200}} {
+		bits := make([]uint16, 1<<16)
+		for i := range bits {
+			bits[i] = uint16(i)
+		}
+		a := FromBits16On(CPU, c.dt, bits, 256, 256)
+		got := Concat([]*Tensor{a, a.T()}, 1).Bits16s()
+		old := Concat([]*Tensor{a.Cast(Float32), a.T().Cast(Float32)}, 1).Cast(c.dt).Bits16s()
+		mant := ^c.exp & 0x7fff
+		signaling := 0
+		for i, g := range got {
+			r, col := i/512, i%512
+			var in uint16
+			if col < 256 {
+				in = bits[r*256+col]
+			} else {
+				in = bits[(col-256)*256+r]
+			}
+			want := old[i]
+			if in&c.exp == c.exp && in&mant != 0 && in&c.quiet == 0 {
+				want = in
+				signaling++
+			}
+			if g != want {
+				t.Fatalf("%s: %#04x deseni %#04x oldu, %#04x bekleniyordu (%d. öğe)", c.dt, in, g, want, i)
+			}
+		}
+		if signaling == 0 {
+			t.Fatalf("%s: sinyal NaN deseni sınanmadı", c.dt)
+		}
+	}
+}
+
+// Kural (T1 bf16 bellek, A2): blokta duran tensörün Clone'u ve 16 bitlik birleştirmesi kendi bloğuna
+// yazılır, Contiguous öbekte kalır; bütçe dolunca hepsi öbekte sürer. Her yolda bitler öbekteki
+// kaynağın sonucuyla aynıdır.
+func TestHostBlockCopiesStayOffHeap(t *testing.T) {
+	b := needBlock(t, hostSize*4)
+	bits := b.Uint16s()
+	for i := range bits {
+		bits[i] = uint16(i * 7919)
+	}
+	const rows = 512
+	src := FromHostBlock(b, BFloat16, rows, hostSize*2/rows)
+	heap := FromBits16On(CPU, BFloat16, slices.Clone(bits), rows, hostSize*2/rows)
+	ops := []struct {
+		name  string
+		block bool
+		f     func(*Tensor) *Tensor
+	}{
+		{"Clone", true, (*Tensor).Clone},
+		{"Concat", true, func(x *Tensor) *Tensor { return Concat([]*Tensor{x, x}, 1) }},
+		{"Contiguous", false, func(x *Tensor) *Tensor { return x.T().Contiguous() }},
+	}
+	check := func(t *testing.T, budget bool) {
+		for _, o := range ops {
+			got := o.f(src)
+			s := got.storage.(*cpuStorage)
+			if inBlock := s.block != nil && s.block != b; inBlock != (o.block && budget) {
+				t.Fatalf("%s: sonuç blokta mı: %v", o.name, inBlock)
+			}
+			if !slices.Equal(got.Bits16s(), o.f(heap).Bits16s()) {
+				t.Fatalf("%s: bitler öbekteki kaynağın sonucundan farklı", o.name)
+			}
+		}
+	}
+	t.Run("bütçe var", func(t *testing.T) { check(t, true) })
+	t.Run("bütçe dolu", func(t *testing.T) {
+		withHostLimits(t, hostMemory.blocks.Load(), hostAddressSpace)
+		check(t, false)
+	})
+}
+
+// Blokta duran ağırlığı döngüde kopyalayan program bütçeyi aşmaz (DENETİM 236): bütçe dolunca kopya
+// öbekte sürer, bitler değişmez.
+func TestHostBlockCloneLoopStaysInTheBudget(t *testing.T) {
+	b := needBlock(t, hostSize*4)
+	bits := b.Uint16s()
+	for i := range bits {
+		bits[i] = uint16(i * 31)
+	}
+	src := FromHostBlock(b, BFloat16, hostSize*2)
+	limit := hostMemory.blocks.Load() + 3
+	withHostLimits(t, limit, hostAddressSpace)
+	var last *Tensor
+	for range 10 {
+		last = src.Clone()
+		if n := hostMemory.blocks.Load(); n > limit {
+			t.Fatalf("harcanan blok %d, bütçe %d", n, limit)
+		}
+		if !slices.Equal(last.Bits16s(), bits) {
+			t.Fatal("kopyanın bitleri farklı")
+		}
+	}
+	if last.storage.(*cpuStorage).block != nil {
+		t.Fatal("bütçe dolduktan sonra kopya bloğa gitti")
 	}
 }
 

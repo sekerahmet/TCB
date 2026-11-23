@@ -69,9 +69,10 @@ TR_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devri
     TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"vision.x": w}, {}) })
 }
 
-# kur_iletisi hazır_model_kur'un hata iletisini verir ("" hata yoksa).
+# kur_iletisi hazır_model_kur'un hata iletisinin Türkçe metnini verir ("" hata yoksa); gösterimi
+# (TR_String(e)) değil: gösterim argümanları taşır, iletinin onları yazıp yazmadığını söylemez.
 TR_func kur_iletisi(a: TR_JSON) -> TR_String {
-    TR_try { TR_build_pretrained_model(a) } TR_catch e { TR_return TR_String(e) }
+    TR_try { TR_build_pretrained_model(a) } TR_catch e { TR_return e.TR_text("tr") }
     TR_return ""
 }
 
@@ -120,7 +121,8 @@ TR_test "yapı tanımı: değeri denetlenen anahtarlar (H7171, layer_types H6944
         TR_var b = qwen3_ayarı()
         b[k] = v
         TR_assert_equal("H7171", TR_error_code { TR_build_pretrained_model(b) }, k)
-        TR_assert_equal("Message(\"H7171\", \"model\", \"\(k)\", \"\(v)\")", kur_iletisi(TR_JSON(b)), k)
+        TR_var m = kur_iletisi(TR_JSON(b))
+        TR_assert(m.TR_contains("\"\(k)\" = \(v) desteklenmiyor"), m)
     }
     a["layer_types"] = ["sliding_attention"]
     TR_assert_equal("H6944", TR_error_code { TR_build_pretrained_model(a) })

@@ -77,7 +77,7 @@ codegraph callees tensor.gateWhereGrad | contains: dispatches to: gpu.backend.Wh
 codegraph who-uses gpu.selectKernel | contains: gpu.backend.Where | src: deneme 6, 2026-10-23
 codegraph callees gpu.backend.Where --all | contains: gpu.selectKernel | src: deneme 6, 2026-10-23
 codegraph deleted | group: names: => K102  removed 020a98a7 | src: deneme 6, 2026-10-23
-codegraph query "ölü" | not: bölüm | not: Bölüm | contains: source.langName | src: deneme 6 (N1: metin araması önce bütün sözcük), 2026-10-23
+codegraph query "ölü" --all | not: bölüm | not: Bölüm | contains: source.langName | src: deneme 6 (N1: metin araması önce bütün sözcük), 2026-10-23; --all T1 birleşmesi 2026-11-23: bütün sözcük adayları 16'ya çıktı, kimlik sırasıyla source.langName 12'lik sınırın dışında kaldı; soru basamağı sınar, listenin boyunu değil
 
 # Bağımsız denetim: "bu bir test mi / bu test neyi sınıyor" tek kural (Y1, Y3, T3) (2026-10-23)
 codegraph tests-for hugging_face.ayar_değeri --list | not: no tests found | group: tests, indirect => lib/pretrained_test.tr | src: bağımsız denetim Y1, 2026-10-23

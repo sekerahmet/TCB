@@ -1,5 +1,5 @@
 # TR 4
-# tr/pretrained — Hugging Face biçiminde kaydedilmiş hazır modelleri (config.json + model.safetensors)
+# tr/pretrained — Hugging Face biçiminde kaydedilmiş hazır modelleri (config.json + model.safetensors ya da parçaları)
 # ve tek GGUF dosyasını TR'nin GPT'sine (tr/layers) yükler.
 #
 # Kullanım:   aktar "tr/pretrained"
@@ -33,7 +33,10 @@ TR_import "tr/model_family"
 
 TR_const TR_SUPPORTED_ARCHITECTURES = ["llama", "qwen3", "gemma3"]
 
-# hazır_model klasördeki config.json'dan modeli kurar ve model.safetensors'ı yükler. ağırlık_türü
+# hazır_model klasördeki config.json'dan modeli kurar ve ağırlıkları yükler: model.safetensors ya da parçalı
+# klasörde model.safetensors.index.json'un andığı parçalar. Parametrelerin sıfırları yazılmaz; her parametreye
+# dosyanın tensöründen bir kopya atanır, kaynağı bırakılır. Parametreler ve çıktı hazır_model_kur +
+# parametreleri_yükle yoluyla bit bit aynıdır. ağırlık_türü
 # matris ağırlıklarının türüdür ("float32", "bf16", "fp16"); normlar float32, hesap float32 kalır.
 # Hugging Face modelleri çoğunlukla bf16 saklanır (config.json torch_dtype): "bf16" ağırlıkları
 # olduğu gibi tutar (sonuç float32 ağırlıkla aynı matematiktir), GPU'da okunan bayt yarıya iner.
@@ -46,9 +49,210 @@ TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "
     TR_var dosya = "\(TR_Path(k, "config.json"))"
     TR_if _metin(TR_config_value(ayar, "model_type", TR_JSON("")), "model_type", dosya) == "whisper" { TR_throw TR_Message("H7090", TR_folder) }
     TR_var model = _kur(ayar, TR_weight_dtype, dosya)
-    TR_var ağırlıklar = TR_load_tensors(TR_Path(k, "model.safetensors"))
-    TR_load_parameters(model, TR_map_hugging_face(ağırlıklar, ayar))
+    _ağırlıkları_ata(model, _klasörün_ağırlıkları(k), ayar, "\(k)")
     TR_return TR_folder_chat_family(model, k, TR_JSON(ayar))
+}
+
+# _klasörün_ağırlıkları klasörün ağırlıklarını okur: model.safetensors.index.json varsa weight_map'in andığı
+# parçaları (sıralı, tekrarsız), yoksa model.safetensors'ı. Dizin indirilen dosyadır, güvenilmez: biçimi,
+# parça adları ve dizin ile parçaların her ağırlıkta uyuşması denetlenir (H7911). Klasördeki başka bir
+# safetensors dosyası bağlanmaz.
+TR_func _klasörün_ağırlıkları(k: TR_Path) -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var dizin_yolu = TR_Path(k, "model.safetensors.index.json")
+    TR_if TR_not dizin_yolu.TR_exists { TR_return TR_load_tensors(TR_Path(k, "model.safetensors")) }
+    TR_var dosya = "\(dizin_yolu)"
+    TR_var harita = _dizin_haritası(TR_json_parse(TR_read_file(dizin_yolu)), dosya)
+    TR_var parçalar: TR_Dict[TR_String, TR_Bool] = {}
+    TR_for ağırlık, parça TR_in harita { parçalar[parça] = TR_true }
+    TR_var sıra = parçalar.TR_keys().TR_sort()
+    TR_for parça TR_in sıra {
+        TR_if TR_not TR_Path(k, parça).TR_exists { TR_throw TR_Message("H7911", dosya, "file", "", parça) }
+    }
+    TR_var hepsi: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for parça TR_in sıra {
+        TR_var tensörler = TR_load_tensors(TR_Path(k, parça))
+        TR_for ad TR_in tensörler.TR_keys() {
+            TR_if harita.TR_get(ad) != parça { TR_throw TR_Message("H7911", dosya, "other", ad, parça) }
+            hepsi[ad] = tensörler[ad]
+        }
+    }
+    TR_for ağırlık, parça TR_in harita {
+        TR_if TR_not hepsi.TR_contains(ağırlık) { TR_throw TR_Message("H7911", dosya, "missing", ağırlık, parça) }
+    }
+    TR_return hepsi
+}
+
+# _dizin_haritası dizinin weight_map'ini ağırlık → parça adı sözlüğü olarak verir. Parça adı klasördeki bir
+# dosyanın adıdır: boş, "." ya da ".." olmaz; "/", "\" ve ":" içermez (":" Windows'un sürücü göreli adı).
+TR_func _dizin_haritası(dizin: TR_JSON, dosya: TR_String) -> TR_Dict[TR_String, TR_String] {
+    TR_if TR_not _dizin_anahtarları(dizin, dosya).TR_contains("weight_map") { TR_throw TR_Message("H7911", dosya, "map", "", "") }
+    TR_var w = dizin["weight_map"]
+    TR_var harita: TR_Dict[TR_String, TR_String] = {}
+    TR_for ağırlık TR_in _dizin_anahtarları(w, dosya) {
+        TR_var parça = _dizin_metni(w[ağırlık], ağırlık, dosya)
+        TR_if parça == "" TR_or parça == "." TR_or parça == ".." TR_or parça.TR_contains("/") TR_or parça.TR_contains("\\") TR_or parça.TR_contains(":") {
+            TR_throw TR_Message("H7911", dosya, "name", ağırlık, parça)
+        }
+        harita[ağırlık] = parça
+    }
+    TR_return harita
+}
+TR_func _dizin_anahtarları(v: TR_JSON, dosya: TR_String) -> TR_List[TR_String] {
+    TR_try { TR_return v.TR_keys() } TR_catch e { TR_throw TR_Message("H7911", dosya, "map", "", "") }
+}
+TR_func _dizin_metni(v: TR_JSON, ağırlık: TR_String, dosya: TR_String) -> TR_String {
+    TR_try { TR_return TR_String(v) } TR_catch e { TR_throw TR_Message("H7911", dosya, "map", ağırlık, "") }
+}
+
+# _ağırlıkları_ata dosyanın ağırlıklarını modelin parametrelerine atar. Eşleme kuralları tek yerdedir:
+# her birim (tek ağırlık ya da birleşik katmanın iki parçası) sözlükten çıkar ve hugging_face_eşle'yle
+# eşlenir; kurulan parametrenin türünde bir kopyası alana atanır (_ata). Sıfırlar yazılmaz; aynı anda
+# dosyanın kalan tensörleri, tek birim ve birleşik katmanın bekleyen parçaları canlıdır. Kurulan parametrelerin
+# yalnız bilgisi tutulur (_parametre_bilgisi): sıfırları atandıkça ölür; tutulsalardı Go'nun öbek hedefi
+# yükleme bitince sıfırların iki katında kalır, ilk istemin çöpü o hedefe kadar birikirdi (Qwen3-4B bf16'da
+# 7,7 GB). Eksik parametre H7912, şekil farkı H7913 (birleşik katmanda ileti iki parçayı da anar; giriş
+# boyu eşlemeden önce denetlenir); eşlenmeyen ağırlık ve eksik parça hugging_face_eşle'nin iletileridir.
+TR_func _ağırlıkları_ata(model: TR_GPT, ağırlıklar: TR_Dict[TR_String, TR_Tensor], ayar: TR_JSON, klasör: TR_String) {
+    TR_var birleşik: TR_Dict[TR_String, TR_String] = {}
+    TR_for tablo TR_in [TR_BLOCK_NAMES, TR_GEMMA3_BLOCK_NAMES] {
+        TR_for iç, hedef TR_in tablo {
+            TR_if TR_Int(hedef[2]) >= 0 { birleşik[iç] = TR_String(hedef[0]) }
+        }
+    }
+    # Kapı yalnız dil modelinin katmanlarına bakar: hugging_face_eşle model.layers.<n>. adlarını eşler (çok
+    # kipli gemma3'te language_model. önekiyle); görüntü kulesinin katmanları aynı içi taşır ama eşlenmez.
+    TR_var katmanlar = TR_if TR_String(TR_config_value(ayar, "model_type", "")) == "gemma3" { "language_model.model.layers" } TR_else { "model.layers" }
+    TR_var parametreler = _parametre_bilgisi(model)
+    TR_var atanan: TR_Dict[TR_String, TR_Bool] = {}
+    TR_var bekleyen: TR_Dict[TR_String, TR_Dict[TR_String, TR_Tensor]] = {}
+    TR_for ad TR_in ağırlıklar.TR_keys() {
+        TR_var birim: TR_Dict[TR_String, TR_Tensor] = {ad: ağırlıklar[ad]}
+        ağırlıklar.TR_remove(ad)
+        TR_var p = ad.TR_split(".")
+        TR_var n = p.TR_length
+        TR_var baş = TR_max(n - 3, 0)
+        TR_var iç = p[baş..n].TR_join(".")
+        TR_if n > 3 TR_and birleşik.TR_contains(iç) {
+            TR_var anahtar = p[0..baş].TR_join(".") + "." + birleşik[iç]
+            TR_if TR_not bekleyen.TR_contains(anahtar) {
+                bekleyen[anahtar] = birim
+                TR_continue
+            }
+            TR_for a, x TR_in bekleyen[anahtar] { birim[a] = x }
+            bekleyen.TR_remove(anahtar)
+            TR_if p[0..baş - 1].TR_join(".") == katmanlar { _giriş_kapısı(parametreler, "TR_mem_blocks.\(p[baş - 1]).\(birleşik[iç])", birim) }
+        }
+        TR_var kaynak = birim.TR_keys().TR_sort().TR_join(", ")
+        TR_for tr_ad, y TR_in TR_map_hugging_face(birim, ayar) { _ata(model, parametreler, atanan, tr_ad, y, kaynak) }
+    }
+    TR_for anahtar TR_in bekleyen.TR_keys() { TR_map_hugging_face(bekleyen[anahtar], ayar) }
+    TR_for ad TR_in parametreler.TR_keys() {
+        TR_if TR_not atanan.TR_contains(ad) { TR_throw TR_Message("H7912", ad, klasör) }
+    }
+}
+
+# _giriş_kapısı birleşik katmanın parçalarının giriş boyunu kurulan parametreninkiyle karşılaştırır (H7913, ileti
+# yanlış parçayı anar): Hugging Face ağırlığı [çıkış, giriş] tutar, parçalar devrilip son eksende birleşir;
+# giriş boyu ayrı iki parça birleşmez, hata eşlemede birleştirmenin iletisi olurdu.
+TR_func _giriş_kapısı(parametreler: TR_Dict[TR_String, _Parametre], hedef: TR_String, birim: TR_Dict[TR_String, TR_Tensor]) {
+    TR_if TR_not parametreler.TR_contains(hedef) { TR_return }
+    TR_var ş = parametreler[hedef].şekil
+    TR_for a, x TR_in birim {
+        TR_var xş = x.TR_shape
+        TR_if xş.TR_length != 2 TR_or xş[1] != ş[0] {
+            TR_var devrik = TR_if xş.TR_length == 2 { [xş[1], xş[0]] } TR_else { xş }
+            TR_throw TR_Message("H7913", hedef, "\(ş)", a, "\(devrik)")
+        }
+    }
+}
+
+# _Parametre kurulan parametrenin bilgisidir: şekli, türü, türev izleyip izlemediği.
+TR_struct _Parametre {
+    şekil: TR_List[TR_Int]
+    tür: TR_String
+    iz: TR_Bool
+}
+
+# _parametre_bilgisi modelin adlı parametrelerinin bilgisini verir; tensörlerin sözlüğü dönüşte ölür.
+TR_func _parametre_bilgisi(model: TR_GPT) -> TR_Dict[TR_String, _Parametre] {
+    TR_var bilgi: TR_Dict[TR_String, _Parametre] = {}
+    TR_for ad, p TR_in TR_parameters(model, TR_named: TR_true) { bilgi[ad] = _Parametre(şekil: p.TR_shape, tür: p.TR_dtype, iz: p.TR_requires_grad) }
+    TR_return bilgi
+}
+
+# _ata eşlenmiş tensörün kopyasını ad'ın gösterdiği parametrenin alanına atar: tür ve türev izleme
+# kurulan parametreninkidir, şekli aynı olmalıdır (H7913).
+TR_func _ata(model: TR_GPT, parametreler: TR_Dict[TR_String, _Parametre], atanan: TR_Dict[TR_String, TR_Bool], ad: TR_String, y: TR_Tensor, kaynak: TR_String) {
+    TR_if TR_not parametreler.TR_contains(ad) { TR_throw TR_Message("H6945", "model", kaynak) }
+    TR_var eski = parametreler[ad]
+    TR_if y.TR_shape != eski.şekil { TR_throw TR_Message("H7913", ad, "\(eski.şekil)", kaynak, "\(y.TR_shape)") }
+    TR_var t = TR_Tensor(y.TR_to_dtype(eski.tür), TR_requires_grad: eski.iz)
+    TR_if ad == "TR_mem_embedding.TR_mem_table" {
+        model.TR_embedding.TR_table = t
+    } TR_else TR_if ad == "TR_mem_final_norm.TR_mem_weight" {
+        model.TR_final_norm.TR_weight = t
+    } TR_else TR_if ad == "TR_mem_logit_layer.TR_mem_weight" {
+        _doğrusal_ata(model.TR_logit_layer, t)
+    } TR_else {
+        TR_var p = ad.TR_split(".")
+        _blok_ata(model.TR_blocks[TR_Int(p[1])], p[2..p.TR_length].TR_join("."), t, kaynak)
+    }
+    atanan[ad] = TR_true
+}
+TR_func _blok_ata(b: TR_TransformerBlock, yer: TR_String, t: TR_Tensor, kaynak: TR_String) {
+    TR_var d = b.TR_attention
+    TR_var f = b.TR_feed_forward
+    TR_if yer == "TR_mem_attention.TR_mem_q_proj.TR_mem_weight" {
+        d.TR_q_proj.TR_weight = t
+        TR_return
+    }
+    TR_if yer == "TR_mem_attention.TR_mem_kv_proj.TR_mem_weight" {
+        _doğrusal_ata(d.TR_kv_proj, t)
+        TR_return
+    }
+    TR_if yer == "TR_mem_attention.TR_mem_o_proj.TR_mem_weight" {
+        d.TR_o_proj.TR_weight = t
+        TR_return
+    }
+    TR_if yer == "TR_mem_attention.TR_mem_q_norm.TR_mem_weight" {
+        _norm_ata(d.TR_q_norm, t)
+        TR_return
+    }
+    TR_if yer == "TR_mem_attention.TR_mem_k_norm.TR_mem_weight" {
+        _norm_ata(d.TR_k_norm, t)
+        TR_return
+    }
+    TR_if yer == "TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight" {
+        _doğrusal_ata(f.TR_gate_up_proj, t)
+        TR_return
+    }
+    TR_if yer == "TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight" {
+        f.TR_down_proj.TR_weight = t
+        TR_return
+    }
+    TR_if yer == "TR_mem_input_norm.TR_mem_weight" {
+        b.TR_input_norm.TR_weight = t
+        TR_return
+    }
+    TR_if yer == "TR_mem_post_attention_norm.TR_mem_weight" {
+        b.TR_post_attention_norm.TR_weight = t
+        TR_return
+    }
+    TR_if yer == "TR_mem_attention_output_norm.TR_mem_weight" {
+        _norm_ata(b.TR_attention_output_norm, t)
+        TR_return
+    }
+    TR_if yer == "TR_mem_feed_forward_output_norm.TR_mem_weight" {
+        _norm_ata(b.TR_feed_forward_output_norm, t)
+        TR_return
+    }
+    TR_throw TR_Message("H6945", "model", kaynak)
+}
+TR_func _doğrusal_ata(l: TR_Linear?, t: TR_Tensor) {
+    TR_if l != TR_none { l.TR_weight = t }
+}
+TR_func _norm_ata(n: TR_RMSNorm?, t: TR_Tensor) {
+    TR_if n != TR_none { n.TR_weight = t }
 }
 
 # hazır_model_kur config.json sözlüğünden (ağırlıklar yüklenmeden) GPT'yi kurar. Ağırlıklar sıfırdır

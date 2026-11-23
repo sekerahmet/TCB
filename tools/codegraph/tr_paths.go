@@ -22,6 +22,8 @@ const (
 	trChatGuard      = "tokenizer_config.json"
 )
 
+// trFolderLoaderSpec bir klasör yükleyicisinin okuduğu dosyalardır: always her klasörde, modelFiles model_type modelTypes'tansa;
+// modelFiles "hepsi gerekli" değil, okunabilen her addır (izlenen her biri bağlanır, linkLoaderArg); parçalar bağlanmaz.
 type trFolderLoaderSpec struct {
 	modelTypes, always, modelFiles []string
 	chatFamily                     bool
@@ -31,7 +33,7 @@ var (
 	trModelLoaders = map[string]trFolderLoaderSpec{
 		"vits":       {modelTypes: []string{"vits"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors", "vocab.json", "tokenizer_config.json"}},
 		"whisper":    {modelTypes: []string{"whisper"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors", "tokenizer.json", "generation_config.json"}},
-		"pretrained": {modelTypes: []string{"llama", "qwen3", "gemma3", "gemma3_text"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors"}, chatFamily: true},
+		"pretrained": {modelTypes: []string{"llama", "qwen3", "gemma3", "gemma3_text"}, always: []string{"config.json"}, modelFiles: []string{"model.safetensors", "model.safetensors.index.json"}, chatFamily: true},
 	}
 	trChatFiles = []string{"tokenizer.json", "generation_config.json"}
 )

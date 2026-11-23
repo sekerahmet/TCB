@@ -57,6 +57,10 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		sy.finish()
 		return concatTyped(be, ts, axis, outShape, ost)
 	}
+	if out := concatBits(be, ts, axis, outShape, ost, dt); out != nil {
+		sy.finish()
+		return out
+	}
 
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır. Tampon -0
 	// ile başlar: -0 + x her x için (-0 dahil) x'tir, girdilerin işaretli sıfırları korunur.
@@ -146,4 +150,42 @@ func concatTyped(be Backend, ts []*Tensor, axis int, outShape, ost []int) *Tenso
 		offset += t.shape[axis]
 	}
 	return out
+}
+
+// concatBits CPU'da girdilerin hepsi aynı 16 bitlik ondalık türdeyse (bf16, fp16) bitleri adımlı
+// kopyayla yazar: float32 tampon ve iki çevirme yoktur, her bit deseni olduğu gibi kalır. Tampon yolu
+// sinyal NaN'ı susturur, bu yol susturmaz; sonlu değerler ve −0 iki yolda aynıdır. Bir girdi ağırlık
+// bloğundaysa sonuç da bloğa yazılır (hostTarget): blokta duran ağırlıkların birleşimi öbeği
+// ağırlıkla büyütmez. Kartta ve öbür türlerde nil verir, birleştirme tampon yolundan sürer.
+func concatBits(be Backend, ts []*Tensor, axis int, outShape, ost []int, dt DType) *Tensor {
+	if _, cpu := be.(cpuBackend); !cpu || dt != BFloat16 && dt != Float16 {
+		return nil
+	}
+	for _, t := range ts {
+		if t.dtyp != dt {
+			return nil
+		}
+	}
+	var out *Tensor
+	for _, t := range ts {
+		if t.inWeightBlock() {
+			if st := t.hostTarget(dt, allocSizeOn(be, isConcat, outShape, dt)); st != nil {
+				out = fromStorage(be, st, outShape)
+			}
+			break
+		}
+	}
+	if out == nil {
+		out = emptyOf(isConcat, be, outShape, dt)
+	}
+	offset := 0
+	lens := make([]int, len(ts)) // girdilerin eksendeki uzunlukları (girdiler tutulmaz)
+	for i, t := range ts {
+		if t.Numel() > 0 {
+			gateCopyStrided(be, View{S: out.storage, Offset: offset * ost[axis], Shape: t.shape, Strides: ost}, t.view())
+		}
+		offset += t.shape[axis]
+		lens[i] = t.shape[axis]
+	}
+	return track(out, "concat", ts, concatBackward(be, lens, ost, axis))
 }

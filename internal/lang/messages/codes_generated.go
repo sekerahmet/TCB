@@ -1978,6 +1978,9 @@ const (
 	H7908 Code = 7908 // {n|decimal} milyar
 	H7909 Code = 7909 // {n|decimal} trilyon
 	H7910 Code = 7910 // {n|decimal} {unit}
+	H7911 Code = 7911 // {@pretrained_model}: parça dizini {file|q}{weight, select, empty {} other {, {weight|q} ağırlığı}}{shard, select, empty {} other {, {shard|q} parçası}}: {kind, select, map {dizin her ağırlığı bir parça adına eşleyen `weight_map` sözlüğünü taşımalı, parça adları metin olmalı} name {parça adı klasördeki bir dosyanın adı olmalı: boş, `.` ya da `..` olmaz; `/`, ters bölü ve `:` içermez} file {dizinin andığı parça klasörde yok} missing {dizin ağırlığı bu parçada gösteriyor, parçada yok} other {parçadaki ağırlığı dizin bu parçaya eşlemiyor}}; dizin ile parçalar aynı yayımdan olmalı: klasörü yeniden indirin
+	H7912 Code = 7912 // {@pretrained_model}: modelin {name|q} parametresine klasörün ağırlıklarında karşılık yok ({file|q}); config.json ile ağırlıklar aynı yayımdan olmalı: klasörü yeniden indirin
+	H7913 Code = 7913 // {@pretrained_model}: {name|q} parametresinin şekli config.json'a göre {modelShape}, {weight|q} ağırlığından gelen tensörünki {sourceShape}; config.json ile ağırlıklar aynı yayımdan olmalı: klasörü yeniden indirin
 	H8000 Code = 8000 // F5:{continue} | F10:{next} | F11:{step} | Shift+F11:{out} | {set} | {jump} | {table} | {watch}
 	H8001 Code = 8001 // [TR Hata Ayıklayıcı] ({keys}) >
 	H8010 Code = 8010 // TR HATA AYIKLAYICI KOMUT REHBERİ:
