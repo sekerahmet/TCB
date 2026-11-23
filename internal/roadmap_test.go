@@ -71,7 +71,11 @@ var roadmapMeasured = regexp.MustCompile("Son ölçüm: (\\d{4}-\\d{2}-\\d{2}), 
 // bir commit taşır. Eskime gün sayısıyla sınanmaz (test zamana bağlanmasın); commit'in var
 // olması, ölçümün bu geçmişe karşı yapıldığını gösterir.
 func TestRoadmapMeasuredAgainstAnAncestor(t *testing.T) {
-	root := reporoot.Root()
+	checkRoadmapAncestor(t, reporoot.Root())
+}
+
+func checkRoadmapAncestor(t *testing.T, root string) {
+	t.Helper()
 	data, err := os.ReadFile(filepath.Join(root, "docs", "roadmap.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -83,12 +87,68 @@ func TestRoadmapMeasuredAgainstAnAncestor(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git yok")
 	}
-	if err := exec.Command("git", "-C", root, "cat-file", "-e", m[2]+"^{commit}").Run(); err != nil {
-		t.Skipf("commit %s bu klonda yok (sığ klon olabilir)", m[2])
+	out, err := exec.Command("git", "-C", root, "rev-parse", "--is-shallow-repository").Output()
+	if err != nil {
+		t.Fatalf("git rev-parse --is-shallow-repository: %v", err)
+	}
+	if strings.TrimSpace(string(out)) != "false" {
+		t.Skip("sığ klon: geçmiş eksik olduğundan ata denetimi atlanıyor")
 	}
 	if err := exec.Command("git", "-C", root, "merge-base", "--is-ancestor", m[2], "HEAD").Run(); err != nil {
 		t.Errorf("yol haritasının ölçüldüğü commit %s HEAD'in atası değil", m[2])
 	}
+}
+
+// Sığ klona ölçüm commit nesnesi getirilmiş olsa bile (cat-file -e geçer) geçmiş kesik olduğundan
+// ata denetimi atlanır; tam klonda aynı ata commit'iyle geçer.
+func TestRoadmapShallowAndFullClones(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git yok")
+	}
+	tmp := t.TempDir()
+	full := filepath.Join(tmp, "full")
+	if err := os.MkdirAll(filepath.Join(full, "docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitIn := func(dir string, args ...string) string {
+		t.Helper()
+		cmdArgs := append([]string{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@e.st", "-c", "commit.gpgsign=false"}, args...)
+		out, err := exec.Command("git", cmdArgs...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	writeRoadmap := func(text string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(full, "docs", "roadmap.md"), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitIn(full, "add", "docs/roadmap.md")
+	}
+
+	gitIn(full, "init", "-q")
+	writeRoadmap("ilk\n")
+	gitIn(full, "commit", "-q", "-m", "c0")
+	c0 := gitIn(full, "rev-parse", "HEAD")
+	gitIn(full, "branch", "ilk")
+
+	writeRoadmap("**Son ölçüm: 2026-11-08, main `" + c0[:8] + "`.**\n")
+	gitIn(full, "commit", "-q", "-m", "c1")
+	checkRoadmapAncestor(t, full)
+
+	shallow := filepath.Join(tmp, "shallow")
+	if out, err := exec.Command("git", "clone", "-q", "--no-local", "--depth", "1", full, shallow).CombinedOutput(); err != nil {
+		t.Fatalf("git clone: %v\n%s", err, out)
+	}
+	gitIn(shallow, "fetch", "-q", "--depth", "1", "origin", "ilk")
+	if err := exec.Command("git", "-C", shallow, "cat-file", "-e", c0[:8]+"^{commit}").Run(); err != nil {
+		t.Fatalf("c0 nesnesi sığ klonda bulunmalıydı: %v", err)
+	}
+	t.Run("shallow_skips", func(t *testing.T) {
+		checkRoadmapAncestor(t, shallow)
+		t.Fatal("sığ klonda atlanmalıydı")
+	})
 }
 
 var (
