@@ -489,7 +489,7 @@ def _self_check(name, arg):
             out[machine] = {it["key"]: {"tr": it["tr"]["cmds"] if it["tr"] else None,
                                         "ref": it["ref"]["cmds"] if it["ref"] else None,
                                         "agree": bool(it["agree"]), "custom": bool(it["custom"]),
-                                        "check": it["check"]["name"] if it["check"] else None}
+                                        "check": it["check"]["name"] if it["check"] else None, "runs": it["runs"]}
                             for q in qs.QUESTIONS[machine] for it in qs.items(ctx, q)}
         return out
     if name == "agreement":

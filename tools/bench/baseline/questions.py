@@ -298,6 +298,9 @@ def q_language(ctx, q):
     return out
 
 
+MEMORY_RUNS = 2  # a question that measures only memory (S4): its runs after the warm-up, written before the run
+
+
 def q_catalog(ctx, q):
     with open(CATALOG, encoding="utf-8") as f:
         entries = json.load(f)["entries"]
@@ -311,7 +314,9 @@ def q_catalog(ctx, q):
         for m in e["memory"]["measured"]:
             cmd = ctx.tr("catalog_memory.tr", "--catalog", CATALOG, "--entry", e["id"], "--path", p, "--context", m["context"],
                          "--text", text, "--device", ctx.tr_device)
-            out.append(item(f"S4/{e['id']}/{m['context']}", side("TR", [cmd], lambda r, runs: {"load_ms": r[0]["load_ms"]})))
+            # S4 yalnız belleği ölçer: bir ısınma + 2 koşu (Ahmet 2026-11-22 20:45: bellek için 5 koşu gerekmez).
+            out.append(item(f"S4/{e['id']}/{m['context']}", side("TR", [cmd], lambda r, runs: {"load_ms": r[0]["load_ms"]}),
+                            alone_runs=MEMORY_RUNS))
     return out
 
 

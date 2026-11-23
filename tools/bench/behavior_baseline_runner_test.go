@@ -4,7 +4,10 @@ package bench
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -27,6 +30,32 @@ it = {"key": "S10/tr/warm", "runs": 3, "custom": lambda: ({"ready_ms": 30.0}, {"
 out = rp.run_custom(types.SimpleNamespace(machine="laptop"), it, rec)
 print(json.dumps({"log": logged, "runs": len(out["measures"]["ready_ms"]["tr_ms"])}))
 `
+
+// Yalnız belleği ölçen soru (S4: uzun bağlam ve model belleği) bir ısınma + 2 koşu koşar (Ahmet 2026-11-22 20:45: bellek
+// için 5 koşu gerekmez); sayı betikte değil koşturucunun sorusunda, koşudan önce yazılı. Öbür emsalsiz sorular değişmez.
+func TestBaselineMemoryQuestionsRunTwice(t *testing.T) {
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]map[string]struct{ Runs int }
+	selfCheck(t, &got, "items", work)
+	want := map[string]int{"S4": 2, "S8": 3, "S9": 3, "S10": 3, "S2": 5, "S6": 5, "S14": 5}
+	seen := map[string]bool{}
+	for key, it := range got["laptop"] {
+		q := strings.Split(key, "/")[0]
+		if n, ok := want[q]; ok {
+			seen[q] = true
+			if it.Runs != n {
+				t.Errorf("laptop %s: %d runs, want %d", key, it.Runs, n)
+			}
+		}
+	}
+	if len(seen) != len(want) {
+		t.Errorf("questions seen %v, want all of %v", seen, want)
+	}
+}
 
 // DENETİM 949 N1: Dost'un özel koşusu (S9, S10) da her koşudan önce yükü bekleyip ölçer (foreign_load) ve süreç listesini
 // koşudan önce ve sonra yazar; düzeltmeden önce ikisi de yoktu (run.py run_item'ın özel dalı).
