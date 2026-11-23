@@ -922,14 +922,15 @@ def rows(out):
                          f"{m['median']:.3f} q3 {m['q3']:.3f} {m['verdict']}" + (" borderline" if m["borderline"] else ""))
             print(line)
         # Every field memory_of keeps that some run measured: Linux's VmHWM and RssAnon, Windows' peak working set
-        # and pagefile (the laptop, E), the GPU's. The reference's peaks too, so a row compares the two sides' memory.
+        # and pagefile (the laptop, E), the GPU's. The reference's peaks too, so a row compares the two sides' memory;
+        # a side whose memory the record lacks says so instead of printing nothing (DENETİM 949 N2).
         sides = [("TR", r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"])]
-        if r.get("reference") and isinstance(r["memory"], dict) and r["memory"].get("E"):
-            sides.append((r["reference"], r["memory"]["E"]))
+        if r.get("reference"):
+            sides.append((r["reference"], r["memory"].get("E") if isinstance(r["memory"], dict) else None))
         for side, mem in sides:
             peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
-                     if any(x.get(k) is not None for x in mem)}
-            print(f"{key} memory {side} peaks: {peaks}")
+                     if any(x.get(k) is not None for x in mem)} if mem else {}
+            print(f"{key} memory {side} peaks: {peaks if peaks else '— (kayıtta yok)'}")
     return 0
 
 
