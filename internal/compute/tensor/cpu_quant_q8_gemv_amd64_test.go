@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// TestQ8GemvW4AndQuantizeMatchGo: dört ağırlık satırlı tek-etkinleştirme çekirdekleri (dotQ4KQ8W4, dotQ6KQ8W4) her
-// yolda (VNNI, AVX2, F16C yok, Go; q8Paths) Go eşiyle bit bit aynıdır; AVX2 quantizeQ8 çifte yuvarlamanın yarılarında
+// TestQ8GemvW4AndQuantizeMatchGo: tek satırlı nicemli çarpım her yolda (VNNI, AVX2, F16C yok, Go; q8Paths) Go eşiyle bit
+// bit aynıdır: VNNI'de dört ağırlık satırlı çekirdekler (dotQ4KQ8W4, dotQ6KQ8W4), AVX2'de tek satırlı çekirdek (dotQ8W4); AVX2 quantizeQ8 çifte yuvarlamanın yarılarında
 // (±0,5, ±63,5, ±126,5) ve 127'de Go eşiyle aynıdır; q8Finite NaN ve ±∞'u her konumda Go eşi gibi bulur; kısa tamponda
 // her yol assembly'ye girmeden panik verir. VNNI'siz makinede VNNI yolu atlandığını yazar (DENETİM 958 Ş1).
 func TestQ8GemvW4AndQuantizeMatchGo(t *testing.T) {
@@ -75,7 +75,12 @@ func q8W4ShortBuffers(t *testing.T, dt DType) {
 					t.Fatalf("%s %s: panik bekleniyordu", dt.Name(), c.name)
 				}
 			}()
-			dotQ8W4(dt)(K/kBlock, c.w, rb, q, tmp[:], c.out)
+			// Sarmalayıcı doğrudan: dotQ8W4 VNNI'siz yolda nil döner, nil çağrısının paniği sınırı sınamazdı.
+			w4 := dotQ4KQ8W4
+			if dt == Q6K {
+				w4 = dotQ6KQ8W4
+			}
+			w4(K/kBlock, c.w, rb, q, tmp[:], c.out)
 		}()
 	}
 }

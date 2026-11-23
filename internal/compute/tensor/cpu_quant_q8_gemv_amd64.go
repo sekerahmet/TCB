@@ -1,10 +1,11 @@
 package tensor
 
-// Tek satırlı çarpımın dört ağırlık satırlı çekirdekleri ve AVX2 nicemleme sarmalayıcıları.
+// Tek satırlı çarpımın dört ağırlık satırlı VNNI çekirdekleri ve AVX2 nicemleme sarmalayıcıları. AVX-VNNI'siz işlemcide
+// tek satırlı çarpım tek satırlı AVX2 çekirdeğini kullanır (dotQ8W4); dörtlü AVX2 çekirdekleri o yüzden yoktur.
 // Sınırlar burada Go dilimleriyle denetlenir; kısa tampon assembly'ye girmeden panik verir.
 
-// q6w4Const sdotq6kw4q8 ve sdotq6kw4q8Vnni'nin sabit tablosudur:
-//   - [0..31]: AVX2 için dört adet 32 baytlık VPSHUFB ölçek maskesi,
+// q6w4Const sdotq6kw4q8Vnni'nin sabit tablosudur (çekirdek 128., 160. ve 192. bayttan okur):
+//   - [0..31]: kaldırılan dörtlü AVX2 çekirdeğinin VPSHUFB ölçek maskeleri; okunmaz, düzen VNNI çekirdeği için korunur,
 //   - [32..39]: 0x30303030 maskesi,
 //   - [40..47] ve [48..55]: VNNI için çift-alt-blok birleşik VPSHUFB ölçek maskeleri.
 var q6w4Const = func() (t [56]uint32) {
@@ -62,43 +63,29 @@ func quantizeQ8(x []float32, r *q8kRow) {
 }
 
 //go:noescape
-func sdotq4kw4q8(blocks int, w *byte, rowBytes int, q *int8, d *float32, bs *int16, tmp *byte, out *float32)
-
-//go:noescape
 func sdotq4kw4q8Vnni(blocks int, w *byte, rowBytes int, q *int8, d *float32, bs *int16, tmp *byte, out *float32)
 
 // dotQ4KQ8W4 dört Q4_K ağırlık satırını aynı Q8 satırıyla çarpar: out[j] = dotQ4KQ8Go(j'inci ağırlık satırı).
 func dotQ4KQ8W4(blocks int, w []byte, rowBytes int, r *q8kRow, tmp []byte, out []float32) {
-	if !hasAVX2 || !hasF16C || blocks == 0 {
+	if !hasAVX2 || !hasF16C || !hasAVXVNNI || blocks == 0 {
 		dotQ8W4Go(dotQ4KQ8Go, blocks, 144, w, rowBytes, r, out)
 		return
 	}
 	_, _, _ = w[:3*rowBytes+blocks*144], r.q[:blocks*kBlock], r.d[:blocks]
 	_, _, _ = r.bs[:blocks*16], tmp[:64], out[:4]
-	if hasAVXVNNI {
-		sdotq4kw4q8Vnni(blocks, &w[0], rowBytes, &r.q[0], &r.d[0], &r.bs[0], &tmp[0], &out[0])
-		return
-	}
-	sdotq4kw4q8(blocks, &w[0], rowBytes, &r.q[0], &r.d[0], &r.bs[0], &tmp[0], &out[0])
+	sdotq4kw4q8Vnni(blocks, &w[0], rowBytes, &r.q[0], &r.d[0], &r.bs[0], &tmp[0], &out[0])
 }
-
-//go:noescape
-func sdotq6kw4q8(blocks int, w *byte, rowBytes int, q *int8, d *float32, bs *int16, cnst *uint32, out *float32)
 
 //go:noescape
 func sdotq6kw4q8Vnni(blocks int, w *byte, rowBytes int, q *int8, d *float32, bs *int16, cnst *uint32, out *float32)
 
 // dotQ6KQ8W4 dört Q6_K ağırlık satırını aynı Q8 satırıyla çarpar: out[j] = dotQ6KQ8Go(j'inci ağırlık satırı).
 func dotQ6KQ8W4(blocks int, w []byte, rowBytes int, r *q8kRow, tmp []byte, out []float32) {
-	if !hasAVX2 || !hasF16C || blocks == 0 {
+	if !hasAVX2 || !hasF16C || !hasAVXVNNI || blocks == 0 {
 		dotQ8W4Go(dotQ6KQ8Go, blocks, 210, w, rowBytes, r, out)
 		return
 	}
 	_, _, _ = w[:3*rowBytes+blocks*210], r.q[:blocks*kBlock], r.d[:blocks]
 	_, _ = r.bs[:blocks*16], out[:4]
-	if hasAVXVNNI {
-		sdotq6kw4q8Vnni(blocks, &w[0], rowBytes, &r.q[0], &r.d[0], &r.bs[0], &q6w4Const[0], &out[0])
-		return
-	}
-	sdotq6kw4q8(blocks, &w[0], rowBytes, &r.q[0], &r.d[0], &r.bs[0], &q6w4Const[0], &out[0])
+	sdotq6kw4q8Vnni(blocks, &w[0], rowBytes, &r.q[0], &r.d[0], &r.bs[0], &q6w4Const[0], &out[0])
 }

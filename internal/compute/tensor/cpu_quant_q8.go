@@ -194,8 +194,14 @@ func dotQ8W4Go(dot func(int, []byte, *q8kRow) float32, blocks, blockBytes int, w
 	}
 }
 
-// dotQ8W4 dt'nin dört ağırlık satırlı nicemli çekirdeğidir (Q4_0 tekli yoldan gider).
+// dotQ8W4 dt'nin dört ağırlık satırlı nicemli çekirdeğidir (Q4_0 tekli yoldan gider). AVX-VNNI'siz işlemcide yoktur:
+// orada tek satırlı AVX2 çekirdeği daha az işlemci zamanı harcar (Qwen3-4B Q4_K_M, 128 adımlık üretim, AMD EPYC 7B12,
+// 8 iş parçacığı: dörtlüler 54,5, tek satırlılar 44,1 CPU-sn; üretim 11 670 → 10 956 ms; T1, 2026-11-23, profil ve
+// commit'siz deneme). İkisi de Go eşiyle bit bit aynıdır; seçim yalnız hızı değiştirir.
 func dotQ8W4(dt DType) func(blocks int, w []byte, rowBytes int, r *q8kRow, tmp []byte, out []float32) {
+	if hasAVX2 && !hasAVXVNNI {
+		return nil
+	}
 	switch dt {
 	case Q4K:
 		return dotQ4KQ8W4
