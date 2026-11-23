@@ -42,7 +42,6 @@ var longFuncReasons = map[string]string{
 	"internal/devtools/formatter/format.go:format":              "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde",
 	"tools/gen/codesdoc/main.go:Generate":                       reasonGenerator,
 	"tools/gen/grammar/main.go:Generate":                        reasonGenerator,
-	"tools/bench/go/compare.go:main":                            reasonGenerator + " (kıyas programları sırayla)",
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":    reasonBuiltin + " (sayısal türev denetimi)",

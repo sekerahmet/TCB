@@ -1,5 +1,6 @@
 # Saf hesap TR ile Go (S13/dongu, S13/fib, S13/matris_dongu), dizüstü: tools/bench/tr/<program>.tr ile
-# tools/bench/go'nun aynı programı; sonuç değeri iki tarafta aynı (uyuşma), ABBA 10 koşu. Satır:
+# tools/bench/go'nun aynı programı, ikisi aynı büyük boyla (--n, questions.py PURE_SIZES; tools/bench/run.py'nin boyunda Go
+# dizüstünde 0–1,2 ms sürüyordu); sonuç değeri iki tarafta aynı (uyuşma), ABBA 10 koşu. Satır:
 # docs/measurements/tensor-and-runtime.md, "Dizüstü i7-13700H". Taraflar: TR ve Go, ikisi işlemcide; model yok.
 # Tek program için: bash compute-vs-go.sh dongu   (öntanımlı üçü, her biri ayrı kayıt)
 #   bash tools/bench/baseline/machines/laptop/compute-vs-go.sh

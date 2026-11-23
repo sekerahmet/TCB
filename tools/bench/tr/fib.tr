@@ -1,8 +1,10 @@
 # TR 4
+# Özyinelemeli fib(n); --n argüman (öntanımı tools/bench/run.py'nin boyu; S13 büyütür, Go'nun compare'i aynı --n'i alır).
 TR_func fib(n: TR_Int) -> TR_Int {
     TR_if n < 2 { TR_return n }
     TR_return fib(n - 1) + fib(n - 2)
 }
+TR_var opt = TR_command_line({"n": 27})
 TR_var bas = TR_time_ms()
-TR_var s = fib(27)
+TR_var s = fib(TR_Int(opt["n"]))
 TR_print("fib \(s) \(TR_time_ms() - bas)")

@@ -39,8 +39,9 @@ def fake(key, side, index, log, machine, cmds=None):
     c = side["cmds"][0]
     n = 0 if "-t" not in c else int(c[c.index("-t") + 1])
     gen = "-p" in c and c[c.index("-p") + 1] == "0"
-    ms = {"S1 read": {0: 50, 6: 30, os.cpu_count(): 40}, "S1 gen": {0: 20, 6: 25, os.cpu_count(): 10},
-          "S5/tr/whisper.cpp": {0: 5, 6: 9, os.cpu_count(): 7}}[("S1 gen" if gen else "S1 read") if key.startswith("S1") else key][n]
+    # every fake time over the shortest measurable 20 ms (BC27), the order unchanged
+    ms = {"S1 read": {0: 500, 6: 300, os.cpu_count(): 400}, "S1 gen": {0: 200, 6: 250, os.cpu_count(): 100},
+          "S5/tr/whisper.cpp": {0: 50, 6: 90, os.cpu_count(): 70}}[("S1 gen" if gen else "S1 read") if key.startswith("S1") else key][n]
     return {"results": [{"avg_ns": ms * 1e6}] * len(side["cmds"]), "runs": [{"stderr": "total time = %d ms\\nload time = 0 ms" % ms}]}
 rp._run_side = fake
 ctx.settings = {}

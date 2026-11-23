@@ -18,8 +18,10 @@ python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 | `sirala` | 300 bin sayı üretip sıralama: liste ekleme ve yerleşik sıralama |
 | `metin` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
 | `sozluk` | 200 bin anahtar yazıp okuma: sözlük erişimi |
-| `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
+| `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme; sonuç `<iz>/<bütün öğelerin toplamı>` (her iç çarpım sonuca girer) |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |
+
+`dongu`, `fib` ve `matris_dongu`'nun TR ve Go sürümü `--n` ile boy alır (tur sayısı, argüman, kenar); öntanımı yukarıdaki boydur. Temel ölçü setinin S13'ü büyük boyla koşar (`baseline/questions.py` `PURE_SIZES`).
 
 ## Güncel taban (2026-11-01, T1 öncesi)
 
@@ -160,7 +162,7 @@ python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF
 
 ## Temel ölçü seti
 
-[`baseline/`](baseline/README.md): TR'nin hızı ve belleği her makinede emsalleriyle, tek yöntemle (S1–S14); hız ve bellek ölçüsü bu koşturucuyla yapılır, testleri `behavior_baseline_test.go`, `behavior_baseline_programs_test.go`, `behavior_baseline_colab_test.go`, `behavior_baseline_laptop_test.go` ve `behavior_baseline_scan_test.go`.
+[`baseline/`](baseline/README.md): TR'nin hızı ve belleği her makinede emsalleriyle, tek yöntemle (S1–S14); hız ve bellek ölçüsü bu koşturucuyla yapılır, testleri `behavior_baseline_test.go`, `behavior_baseline_programs_test.go`, `behavior_baseline_colab_test.go`, `behavior_baseline_laptop_test.go`, `behavior_baseline_scan_test.go` ve `behavior_baseline_runner_test.go`.
 
 ## CPU temel ölçümü
 

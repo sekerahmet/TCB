@@ -197,6 +197,7 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 	if seen < 30 {
 		t.Errorf("%d model bindings read from %d scripts; the parser lost them", seen, len(scripts))
 	}
+	checkScriptsBindTheirModels(t, scripts) // BC28: yalnız kullandığını (behavior_baseline_runner_test.go)
 	// DENETİM 947 Ş3: emsalin sürüm dosyası adıyla ve sha256'sıyla; hesabı yapan arka uç kitaplıkları (ggml-cpu-*.dll)
 	// ikililerle birlikte sha256'larıyla denetlenir.
 	for name, tool := range src.Tools {
@@ -218,14 +219,17 @@ func TestLaptopSourceFileCoversEveryScript(t *testing.T) {
 
 // N2 (DENETİM 947): satır taslağı, satırın zorunlu Ayar alanı için makinenin iş parçacığını ve koşunun aldığı en hızlı
 // ayarı basar. TCB 22:45: emsali olan kalemde emsalin de ortancası ve aralığı, iki tarafın bellek tepeleri (satır iki
-// tarafı karşılaştırır).
+// tarafı karşılaştırır). DENETİM 949 N2: emsalin belleği kayıtta yoksa bunu söyler, susmaz.
 func TestLaptopRowsPrintTheSetting(t *testing.T) {
 	out := t.TempDir()
 	metrics := `{"_machine": {"threads": 20, "threads_source": "gctrace P (O-1)"},
  "S1/m": {"reference": "llama.cpp", "measures": {"gen_ms": {"tr_ms": [10, 12, 11], "ref_ms": [7, 9, 8], "ratios": [1.4, 1.3, 1.4],
    "q1": 1.3, "median": 1.4, "q3": 1.4, "verdict": "tr_worse", "borderline": false}},
   "memory": {"TR": [{"peak_working_set_kb": 100}, {"peak_working_set_kb": 300}], "E": [{"peak_working_set_kb": 50}, {"peak_working_set_kb": 70}]}},
- "S14/m": {"reference": null, "measures": {"ms": {"tr_ms": [3, 4]}}, "memory": {"TR": [{"peak_working_set_kb": 9}]}}}`
+ "S14/m": {"reference": null, "measures": {"ms": {"tr_ms": [3, 4]}}, "memory": {"TR": [{"peak_working_set_kb": 9}]}},
+ "S7/m": {"reference": "onnxruntime", "measures": {"ms": {"tr_ms": [5, 6], "ref_ms": [4, 5], "ratios": [1.25, 1.2],
+   "q1": 1.2, "median": 1.2, "q3": 1.25, "verdict": "tr_worse", "borderline": false}},
+  "memory": {"TR": [{"peak_working_set_kb": 40}], "E": []}}}`
 	if err := os.WriteFile(filepath.Join(out, "metrics.json"), []byte(metrics), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -238,6 +242,7 @@ func TestLaptopRowsPrintTheSetting(t *testing.T) {
 		"S1/m gen_ms: TR median 11.000 range 10.000–12.000 | llama.cpp median 8.000 range 7.000–9.000 | ratio",
 		"S1/m memory TR peaks: {'peak_working_set_kb': 300}", "S1/m memory llama.cpp peaks: {'peak_working_set_kb': 70}",
 		"S14/m memory TR peaks: {'peak_working_set_kb': 9}",
+		"S7/m memory TR peaks: {'peak_working_set_kb': 40}", "S7/m memory onnxruntime peaks: — (kayıtta yok)",
 	} {
 		if code != 0 || !strings.Contains(got, want) {
 			t.Errorf("--rows: exit %d, want %q\n%s", code, want, got)

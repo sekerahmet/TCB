@@ -21,7 +21,8 @@ if [[ $gruplar == *" llama.cpp"* ]]; then
   olcu_arac llama.cpp
 fi
 if [[ $gruplar == *"whisper"* ]]; then
-  for m in whisper-small faster-whisper-small ggml-small; do olcu_model "$m"; done
+  # Tarama yalnız emsalleri koşar: TR'nin ve transformers'ın whisper-small'u bağlanmaz (BC28).
+  for m in faster-whisper-small ggml-small; do olcu_model "$m"; done
   olcu_ses "stt_tr.wav=61eecd21db79818e022e32145301a92ebf4e82e3b4ce3b0c8c97035c6cdd176e"
   olcu_arac whisper.cpp
   olcu_surum faster-whisper ctranslate2

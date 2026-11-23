@@ -274,6 +274,42 @@ def process_list():
     return r.stdout.splitlines()[:15]
 
 
+# ---------------------------------------------------------------- the shortest measurable time (BC27)
+
+# BC27 (TCB 2026-11-23 10:33, H1 soru 1, A): every measured run's every measure is compared, before it goes into the
+# record, with a limit written here. The limit is on the clock span the measure is read from, and only on the machines
+# whose clock steps coarsely: the laptop's Windows clock steps ~0.5 ms (Go's 0 and 0.503 ms in the 2026-11-22 window were
+# 0 and 1 steps), Linux's clock is fine (S12's 1.8 ms single products on L4 are valid). A measure's kind is written in
+# questions.py: a duration is the span itself (the default), a derived duration names its span (S13's char model: the
+# 300-step run's wall minus the 0-step run's), a measure that is no duration names why it is not checked (the 100 Hz
+# loop's count and lateness, S9's tokens per second). Under the limit the item stops and no row is printed, except on
+# a side that measures memory (S4, short_ok): there the measure is marked too short and the memory stays.
+SHORTEST_MS = 20.0
+CLOCK_STEP_MACHINES = {"laptop"}
+
+
+def too_short(question, side, measures, results, runs, machine):
+    """BC27: the names of the measures under SHORTEST_MS on a side that allows it (short_ok), or a stop."""
+    if machine not in CLOCK_STEP_MACHINES:
+        return []
+    short = []
+    for name, value in measures.items():
+        kind = side.get("kinds", {}).get(name, {"kind": "duration"})
+        if kind["kind"] == "not_duration":
+            continue
+        span = kind["span"](results, runs) if kind["kind"] == "derived" else value
+        if span >= SHORTEST_MS:
+            continue
+        if side.get("short_ok"):
+            short.append(name)
+            continue
+        raise Stop(f"{question}: {side['name']} {name}: {span:.3f} ms read"
+                   f"{' (' + kind['what'] + ')' if kind['kind'] == 'derived' else ''}, too short to measure "
+                   f"(ölçülemeyecek kadar kısa): under {SHORTEST_MS:g} ms on this machine's clock (BC27); "
+                   f"the work's size goes up, the row is not written")
+    return short
+
+
 # ---------------------------------------------------------------- a question
 
 def _measures(value):
@@ -301,11 +337,18 @@ def run_pair(question, tr, ref, agree, log, machine):
     memory = {"TR": [], "E": []}
     for i, key in enumerate(order()["runs"]):
         r = _run_side(question, sides[key], i, log, machine)
-        times[key].append(_measures(sides[key]["measure"](r["results"], r["runs"])))
+        m = _measures(sides[key]["measure"](r["results"], r["runs"]))
+        too_short(question, sides[key], m, r["results"], r["runs"], machine)
+        times[key].append(m)
         memory[key].append(memory_of(r["runs"]))
     out = {"reference": ref["name"], "measures": {}, "memory": memory}
     for name in times["TR"][0]:
         tr_ms, ref_ms = [t[name] for t in times["TR"]], [t[name] for t in times["E"]]
+        # A side's 0 ms gives no ratio on any machine: the reference's divides by zero (S13/fib's Go on the laptop,
+        # 2026-11-22), TR's makes the ratio 0, "TR better" (DENETİM 953 N2).
+        for side_name, values in ((tr["name"], tr_ms), (ref["name"], ref_ms)):
+            if 0 in values:
+                raise Stop(f"{question}: {side_name} {name} measured 0 ms in a run: too short to measure (ölçülemeyecek kadar kısa)")
         ratios = [a / b for a, b in zip(tr_ms, ref_ms)]
         out["measures"][name] = {"tr_ms": tr_ms, "ref_ms": ref_ms, "ratios": ratios, **verdict(ratios)}
     return out
@@ -316,15 +359,19 @@ def run_alone(question, side, log, machine, runs=5, warm=True):
     A trial (--trial) is one run without the warm-up."""
     if warm:
         _run_side(question, side, "warmup", log, machine)
-    values, memory = [], []
+    values, memory, short = [], [], set()
     for i in range(runs):
         r = _run_side(question, side, i, log, machine)
         values.append(_measures(side["measure"](r["results"], r["runs"])))
+        short.update(too_short(question, side, values[-1], r["results"], r["runs"], machine))
         memory.append(memory_of(r["runs"]))
     out = {"reference": None, "measures": {}, "memory": memory}
     for name in values[0]:
         v = [x[name] for x in values]
         out["measures"][name] = {"tr_ms": v, "median": statistics.median(v), "min": min(v), "max": max(v)}
+        if name in short:  # S4 (short_ok): the number is kept for the record, the row does not print it (BC27)
+            out["measures"][name]["too_short"] = {"limit_ms": SHORTEST_MS, "why": side["short_ok"]}
+            log({"question": question, "measure": name, "too_short": out["measures"][name]["too_short"]})
     return out
 
 
@@ -457,6 +504,15 @@ def threads_from_tr(cmd, env=None):
 
 # ---------------------------------------------------------------- self checks (behavior_baseline_test.go)
 
+def _kinds(it):
+    """BC27: the kind of each measure an item's sides (or its custom run) name, as "derived" or "not_duration"."""
+    out = {}
+    for s in (it["tr"], it["ref"], {"kinds": it.get("kinds") or {}}):
+        for name, kind in ((s or {}).get("kinds") or {}).items():
+            out[name] = kind["kind"]
+    return out
+
+
 def _self_check(name, arg):
     if name == "order":
         return order()
@@ -489,9 +545,21 @@ def _self_check(name, arg):
             out[machine] = {it["key"]: {"tr": it["tr"]["cmds"] if it["tr"] else None,
                                         "ref": it["ref"]["cmds"] if it["ref"] else None,
                                         "agree": bool(it["agree"]), "custom": bool(it["custom"]),
-                                        "check": it["check"]["name"] if it["check"] else None}
+                                        "check": it["check"]["name"] if it["check"] else None, "runs": it["runs"],
+                                        "kinds": _kinds(it), "short_ok": bool(it["tr"] and it["tr"].get("short_ok"))}
                             for q in qs.QUESTIONS[machine] for it in qs.items(ctx, q)}
         return out
+    if name == "uses":  # BC28: every command a laptop item may run (sides, agreement, its uses) and the scan's commands
+        qs = load_questions()
+        ctx = qs.Ctx(sys.modules[__name__], "laptop", 97, arg, lambda rec: None, dry=True)
+        sides = lambda it: [c for s in (it["tr"], it["ref"], it["check"]) if s for c in s["cmds"]]
+        items = {it["key"]: sides(it) + (it["tr_agree"] or []) + (it["ref_agree"] or []) + it["uses"]
+                 for q in qs.QUESTIONS["laptop"] for it in qs.items(ctx, q)}
+        scan = []
+        for _, q, key, part in SCAN:
+            ref = next(i for i in qs.items(ctx, q) if i["key"] == key)["ref"]["cmds"]
+            scan += ref[part] if part else ref
+        return {"items": items, "scan": scan}
     if name == "agreement":
         say = lambda text: [sys.executable, "-I", "-c", f"print('BASELINE ' + {json.dumps(json.dumps({'text': text}))})"]
         side = lambda n, t: {"name": n, "cmd": say(t), "measure": lambda res, runs: runs[0]["wall_ms"]}
@@ -639,9 +707,11 @@ def run_questions(a):
         trlang = json.load(f)["trlang"]
     threads = threads_from_tr([trlang, os.path.join(BASE, "matmul.tr"), "--size", "512", "--repeat", "2"])
     rec.metrics["_machine"] = {"machine": a.machine, "threads": threads["procs"], "threads_source": "gctrace P (O-1)",
+                               "shortest_measurable_ms": SHORTEST_MS if a.machine in CLOCK_STEP_MACHINES else None,
                                "cpu_count": os.cpu_count(), "python": sys.version.split()[0], "platform": sys.platform}
     ctx = qs.Ctx(sys.modules[__name__], a.machine, threads["procs"], a.work, rec.log)
     ctx.epsilon_from = a.epsilon_from  # B14: a GPU machine takes S1 and S3's ε from HIGHRAM's agreement.json
+    ctx.keys = a.key  # BC28: a preparation only an unchosen item needs (S7/tr's ids) is skipped
     if doc is not None:
         ctx.settings = {k: v for k, v in doc.items() if not k.startswith("_")}
     if a.scan:
@@ -735,6 +805,7 @@ def time_side(ctx, side, key, log, runs, measure, warm=True):
     for i in range(runs):
         r = _run_side(key, side, f"scan {i}", log, ctx.machine)
         got.append(measure(r["results"], r["runs"]))
+        too_short(key, side, got[-1], r["results"], r["runs"], ctx.machine)
     return statistics.median(sum(g.values()) for g in got), {k: statistics.median(g[k] for g in got) for k in got[0]}
 
 
@@ -841,17 +912,7 @@ def run_item(ctx, it, rec, trial=False):
     trial (--trial): an item without a reference runs once, without the warm-up: the script, the models and the device are
     tried, the number is not used (the laptop's scripts; a trial of an item with a reference is the agreement pass)."""
     if it["custom"]:
-        values, memory = [], []
-        warm = 0 if trial else 1
-        for i in range(1 if trial else it["runs"] + 1):  # the first is the warm-up, but not in a trial
-            v, m = it["custom"]()
-            rec.log({"question": it["key"], "index": "warmup" if i < warm else i - warm, "result": v, "memory": m})
-            if i >= warm:
-                values.append(v)
-                memory.append(m)
-        return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
-                                                                        "median": statistics.median(v[k] for v in values)}
-                                                                    for k in values[0]}}
+        return run_custom(ctx, it, rec, trial)
     agreed = lambda: rec.agreement.get(it["key"], {}).get("ok")
     if it["ref"] is None:
         if it.get("agree") and not agreed():  # a check without a speed reference (S2, S6): agree first; the laptop does it here
@@ -865,6 +926,28 @@ def run_item(ctx, it, rec, trial=False):
     elif it["agree"] and not agreed():
         raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
     return run_pair(it["key"], tr, ref, agree, rec.log, ctx.machine)
+
+
+def run_custom(ctx, it, rec, trial=False):
+    """Dost's custom run (S9, S10): its warm-up and runs, each with the laptop's load check and the process list before
+    and after, as every other run (DENETİM 949 N1: they had neither)."""
+    values, memory = [], []
+    warm = 0 if trial else 1
+    for i in range(1 if trial else it["runs"] + 1):  # the first is the warm-up, but not in a trial
+        index = "warmup" if i < warm else i - warm
+        if ctx.machine == "laptop":
+            rec.log({"question": it["key"], "index": index, "foreign_load": wait_for_quiet(it["key"], rec.log)})
+        rec.log({"question": it["key"], "index": index, "processes_before": process_list()})
+        v, m = it["custom"]()
+        rec.log({"question": it["key"], "index": index, "processes_after": process_list(), "result": v, "memory": m})
+        if i >= warm:
+            too_short(it["key"], {"name": "TR", "kinds": it.get("kinds") or {}}, v, None, None, ctx.machine)
+        if i >= warm:
+            values.append(v)
+            memory.append(m)
+    return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
+                                                                    "median": statistics.median(v[k] for v in values)}
+                                                                for k in values[0]}}
 
 
 def fetch(work, only=None):
@@ -905,6 +988,8 @@ def rows(out):
     rec = Record(out)
     m = rec.metrics.get("_machine", {})
     setting = f"setting: machine threads {m.get('threads')} ({m.get('threads_source')})"
+    if m.get("shortest_measurable_ms"):
+        setting += f"; shortest measurable {m['shortest_measurable_ms']:g} ms (BC27)"
     try:
         with open(os.path.join(out, "en-hizli.json"), encoding="utf-8") as f:
             setting += f"; fastest settings {json.dumps({k: v for k, v in json.load(f).items() if not k.startswith('_')})}"
@@ -915,6 +1000,10 @@ def rows(out):
         if key.startswith("_"):
             continue
         for name, m in r["measures"].items():
+            if m.get("too_short"):  # BC27: no number of a measure under the shortest measurable time
+                print(f"{key} {name}: — (ölçülemeyecek kadar kısa: a run under {m['too_short']['limit_ms']:g} ms; "
+                      f"{m['too_short']['why']})")
+                continue
             line = f"{key} {name}: TR median {statistics.median(m['tr_ms']):.3f} range {min(m['tr_ms']):.3f}–{max(m['tr_ms']):.3f}"
             if r["reference"]:  # the reference's range too: a row writes both sides' median and range (TCB 22:45)
                 line += (f" | {r['reference']} median {statistics.median(m['ref_ms']):.3f} range {min(m['ref_ms']):.3f}–"
@@ -922,14 +1011,15 @@ def rows(out):
                          f"{m['median']:.3f} q3 {m['q3']:.3f} {m['verdict']}" + (" borderline" if m["borderline"] else ""))
             print(line)
         # Every field memory_of keeps that some run measured: Linux's VmHWM and RssAnon, Windows' peak working set
-        # and pagefile (the laptop, E), the GPU's. The reference's peaks too, so a row compares the two sides' memory.
+        # and pagefile (the laptop, E), the GPU's. The reference's peaks too, so a row compares the two sides' memory;
+        # a side whose memory the record lacks says so instead of printing nothing (DENETİM 949 N2).
         sides = [("TR", r["memory"]["TR"] if isinstance(r["memory"], dict) else r["memory"])]
-        if r.get("reference") and isinstance(r["memory"], dict) and r["memory"].get("E"):
-            sides.append((r["reference"], r["memory"]["E"]))
+        if r.get("reference"):
+            sides.append((r["reference"], r["memory"].get("E") if isinstance(r["memory"], dict) else None))
         for side, mem in sides:
             peaks = {k: max(x[k] for x in mem if x.get(k) is not None) for k in MEMORY_KEYS
-                     if any(x.get(k) is not None for x in mem)}
-            print(f"{key} memory {side} peaks: {peaks}")
+                     if any(x.get(k) is not None for x in mem)} if mem else {}
+            print(f"{key} memory {side} peaks: {peaks if peaks else '— (kayıtta yok)'}")
     return 0
 
 

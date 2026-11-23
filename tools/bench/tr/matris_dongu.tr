@@ -1,5 +1,8 @@
 # TR 4
-TR_var n = 120
+# n×n tamsayı matris çarpımının izi; --n kenar (öntanımı tools/bench/run.py'nin boyu; S13 büyütür, Go'nun compare'i aynı
+# --n'i alır).
+TR_var opt = TR_command_line({"n": 120})
+TR_var n = TR_Int(opt["n"])
 TR_var a = []
 TR_var b = []
 TR_var i = 0
@@ -35,10 +38,17 @@ TR_for i < n {
     c.TR_append(satir)
     i += 1
 }
+# Sonuç: iz ve bütün öğelerin toplamı; her iç çarpım sonuca girer (DENETİM 953 Ş2).
 TR_var iz = 0
+TR_var toplam = 0
 i = 0
 TR_for i < n {
     iz += c[i][i]
+    TR_var j = 0
+    TR_for j < n {
+        toplam += c[i][j]
+        j += 1
+    }
     i += 1
 }
-TR_print("matris_dongu \(iz) \(TR_time_ms() - bas)")
+TR_print("matris_dongu \(iz)/\(toplam) \(TR_time_ms() - bas)")

@@ -47,7 +47,8 @@ def matris_dongu():
                 s += a[i][k] * b[k][j]; k += 1
             satir.append(s); j += 1
         c.append(satir); i += 1
-    print("matris_dongu", sum(c[i][i] for i in range(n)), ms(t))
+    # the trace and the sum of all elements: every inner product goes into the result (DENETİM 953 Ş2)
+    print("matris_dongu", f"{sum(c[i][i] for i in range(n))}/{sum(sum(r) for r in c)}", ms(t))
 
 def matris_yerlesik():
     import numpy as np
