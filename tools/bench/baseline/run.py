@@ -841,17 +841,7 @@ def run_item(ctx, it, rec, trial=False):
     trial (--trial): an item without a reference runs once, without the warm-up: the script, the models and the device are
     tried, the number is not used (the laptop's scripts; a trial of an item with a reference is the agreement pass)."""
     if it["custom"]:
-        values, memory = [], []
-        warm = 0 if trial else 1
-        for i in range(1 if trial else it["runs"] + 1):  # the first is the warm-up, but not in a trial
-            v, m = it["custom"]()
-            rec.log({"question": it["key"], "index": "warmup" if i < warm else i - warm, "result": v, "memory": m})
-            if i >= warm:
-                values.append(v)
-                memory.append(m)
-        return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
-                                                                        "median": statistics.median(v[k] for v in values)}
-                                                                    for k in values[0]}}
+        return run_custom(ctx, it, rec, trial)
     agreed = lambda: rec.agreement.get(it["key"], {}).get("ok")
     if it["ref"] is None:
         if it.get("agree") and not agreed():  # a check without a speed reference (S2, S6): agree first; the laptop does it here
@@ -865,6 +855,26 @@ def run_item(ctx, it, rec, trial=False):
     elif it["agree"] and not agreed():
         raise Stop(f"{it['key']}: no agreement yet; run the agreement pass first (--agreement, O-4)")
     return run_pair(it["key"], tr, ref, agree, rec.log, ctx.machine)
+
+
+def run_custom(ctx, it, rec, trial=False):
+    """Dost's custom run (S9, S10): its warm-up and runs, each with the laptop's load check and the process list before
+    and after, as every other run (DENETİM 949 N1: they had neither)."""
+    values, memory = [], []
+    warm = 0 if trial else 1
+    for i in range(1 if trial else it["runs"] + 1):  # the first is the warm-up, but not in a trial
+        index = "warmup" if i < warm else i - warm
+        if ctx.machine == "laptop":
+            rec.log({"question": it["key"], "index": index, "foreign_load": wait_for_quiet(it["key"], rec.log)})
+        rec.log({"question": it["key"], "index": index, "processes_before": process_list()})
+        v, m = it["custom"]()
+        rec.log({"question": it["key"], "index": index, "processes_after": process_list(), "result": v, "memory": m})
+        if i >= warm:
+            values.append(v)
+            memory.append(m)
+    return {"reference": None, "memory": memory, "measures": {k: {"tr_ms": [v[k] for v in values],
+                                                                    "median": statistics.median(v[k] for v in values)}
+                                                                for k in values[0]}}
 
 
 def fetch(work, only=None):
