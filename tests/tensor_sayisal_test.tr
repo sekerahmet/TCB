@@ -12,3 +12,18 @@ TR_test "15.34 SGD momentum adımları elle hesaplanan değerle uyuşur" {
     op.TR_step()
     TR_assert_equal([1.75], w.TR_tolist)
 }
+
+TR_test "15.19 cinsli argmax: tam sayı ve float64 eksenli, eşitlerde ilk ve NaN" {
+    TR_var ti = TR_Tensor([[1, 9, 3], [7, 2, 7]])
+    TR_assert_equal("int64", ti.TR_dtype)
+    TR_assert_equal([1, 0], TR_argmax(ti, TR_dim: -1).TR_tolist)
+    TR_assert_equal([1, 0, 1], TR_argmax(ti, TR_dim: 0).TR_tolist)
+
+    TR_var tf = TR_Tensor([[1.5, 9.5, 3.5], [7.5, 2.5, 7.5]], TR_dtype: "float64")
+    TR_assert_equal("float64", tf.TR_dtype)
+    TR_assert_equal([1, 0], TR_argmax(tf, TR_dim: 1).TR_tolist)
+    TR_assert_equal([1, 0, 1], TR_argmax(tf, TR_dim: 0).TR_tolist)
+
+    TR_var tnan = TR_Tensor([[1.0, TR_nan, 9.0, TR_nan], [TR_nan, 5.0, 8.0, 2.0]], TR_dtype: "float64")
+    TR_assert_equal([1, 0], TR_argmax(tnan, TR_dim: 1).TR_tolist)
+}
