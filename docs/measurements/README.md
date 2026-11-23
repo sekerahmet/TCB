@@ -52,8 +52,8 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | ad | yollar |
 | :-- | :-- |
 | engine | `internal/compute/`, `internal/lang/`, `internal/stdlib/`, `internal/detmath/`, `internal/sysmem/`, `cmd/trlang/`, `go.mod`, `go.sum` |
-| codegraph | `tools/codegraph/` |
-| full_check | `tools/full_check.sh`, `tools/codegraph/` |
+| codegraph | `tools/codegraph/`, `internal/devtools/codeindex/` |
+| full_check | `tools/full_check.sh`, `tools/codegraph/`, `internal/devtools/codeindex/` |
 
 ## Makineler
 

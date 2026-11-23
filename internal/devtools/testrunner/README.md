@@ -34,6 +34,19 @@ Denetim: `TestReviewedSectionsWriteIdentities`, `TestIdentityExceptionsAreNotSta
 yapılacaklar bölümde *Durum:* satırı olarak değil, `docs/status.md`'de bölümün başlığı altında
 durur; gözden geçirilmiş her bölümün orada başlığı vardır. Denetim: `TestReviewedSectionsHoldOnlyRules`.
 
+**Öncelik listesi ile açık işler iki yönde uyuşur.** `docs/status.md`'nin başındaki Ö0 ve Ö1
+listelerinin her maddesi kendi bölümünde (`### 15.23a`; harfli madde için harfsiz başlık,
+aralıklı başlık `### 21.1–21.8`, bölüm numarası için bölümün ilk `###`'üne kadarki kısmı, tırnaklı
+ad için o adlı `###`) etiketindeki ilk öncelik aynı olan açık bir "Yapılacaklar" ya da
+"uygulanacak" satırı taşır; Ö0'da etiketteki "N. sıra" listedeki yerdir. Ö1 listesi, altındaki
+"**Sahipli kollar:**" başlığının sahip başına satırlarını da kapsar. Bölümlerdeki her açık
+Ö0 ve Ö1 satırı da listede durur ve sınıfı A ya da B'dir; öbür sınıf yalnız adlı istisna
+tablosunda (`priorityExceptions`) nedeniyle; satırın sınıfı A ya da B olunca da istisna bayatlar,
+bayat istisna testi düşürür. Kendi `###` başlığı olmayan harfli madde (13.1a, `### 13.1`'de)
+yalnız numarasını anan satırı karşılar, harfsiz bölümün öbür satırlarını karşılamaz. Kapanan iş bölümünden
+silinince listede kalan maddesi, listeye yazılmayan yeni Ö1 işi test düşürür. Denetim:
+`TestPriorityListsNameOpenItems`, `TestPriorityListsCatchAClosedItem`.
+
 ## Testler
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
@@ -41,4 +54,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_identity_exceptions_test.go`: kimlik istisnaları tablosunda (`identityExceptions`) dil tanımından çıkmış ya da artık kod olmuş bayat girdi kalmaması
 - `behavior_language_spec_test.go`: dil belirtimindeki her kuralın kendi bölümünde olması ve bir testi bulunması; belirtim testlerinin geçmesi
 - `behavior_negative_fixtures_test.go`: olumsuz fikstürlerin (`tests/negative/`) etiketlediği tanıları, yalnız onları vermesi; başka bir fikstürün aktardığı fikstür modül olarak denetlenir
+- `behavior_status_priorities_test.go`: durum belgesinin Ö0 ve Ö1 listeleriyle bölümlerdeki açık Ö0 ve Ö1 işlerinin iki yönde uyuşması
 - `behavior_rationale_test.go`: gerekçe dosyalarının (`docs/spec/rationale/`) düzeni ve kural numaralarıyla eşleşmesi
