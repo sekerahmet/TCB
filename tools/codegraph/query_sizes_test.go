@@ -110,33 +110,55 @@ func TestSizesMatchTheLayoutTest(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var want, have []string
+		var want []string
 		for _, d := range f.Decls {
 			if fd, ok := d.(*ast.FuncDecl); ok {
 				want = append(want, fmt.Sprintf("%s %d", layoutrules.FuncName(fd), layoutrules.FuncLines(fset, fd)))
 			}
 		}
-		for _, s := range got {
-			have = append(have, fmt.Sprintf("%s %d", s.name, s.lines))
-		}
-		slices.Sort(want)
-		slices.Sort(have)
-		if !slices.Equal(want, have) {
-			t.Errorf("%s: codegraph's functions %v, the layout test's %v", rel, have, want)
-		}
-		funcs += len(want)
+		funcs += sameFuncSizes(t, rel, want, got)
 	}
+	noSizesOffTheWalk(t, ix, g, ".go", walked)
+	enoughCompared(t, ".go", len(walked), 1000, funcs, 3000)
+}
+
+// sameFuncSizes codegraph'ın fonksiyon boylarını (got) düzen testinin ölçtüğü "ad boy" listesiyle (want) sırasız
+// karşılaştırır, farkta düşer; karşılaştırılan fonksiyon sayısını döndürür (TestSizesMatchTheLayoutTest ve
+// TestTRSizesMatchTheLayoutTest'in ortak adımı).
+func sameFuncSizes(t *testing.T, rel string, want []string, got []sized) int {
+	t.Helper()
+	have := make([]string, 0, len(got))
+	for _, s := range got {
+		have = append(have, fmt.Sprintf("%s %d", s.name, s.lines))
+	}
+	slices.Sort(want)
+	slices.Sort(have)
+	if !slices.Equal(want, have) {
+		t.Errorf("%s: codegraph's functions %v, the layout test's %v", rel, have, want)
+	}
+	return len(want)
+}
+
+// noSizesOffTheWalk düzen testinin ölçmediği (walked'da olmayan) ext uzantılı bir graf dosyası boyut satırı alırsa düşer.
+func noSizesOffTheWalk(t *testing.T, ix *index, g *Graph, ext string, walked map[string][]byte) {
+	t.Helper()
 	for i := range g.Nodes {
 		file := &g.Nodes[i]
-		if file.Kind != kindFile || !strings.HasSuffix(file.File, ".go") || walked[file.File] != nil {
+		if file.Kind != kindFile || !strings.HasSuffix(file.File, ext) || walked[file.File] != nil {
 			continue
 		}
 		if _, _, _, tests := ix.fileSizes(file); len(tests) > 0 {
-			t.Error(untrackedOrUnmeasured(root, file.File))
+			t.Error(untrackedOrUnmeasured(ix.root, file.File))
 		}
 	}
-	if len(walked) < 1000 || funcs < 3000 {
-		t.Fatalf("only %d files and %d functions compared", len(walked), funcs)
+}
+
+// enoughCompared karşılaştırma boş geçmesin diye dosya ve fonksiyon sayısının alt sınırıdır: yürüyüş ya da graf
+// bozulup az dosya verirse test sessizce geçmez.
+func enoughCompared(t *testing.T, ext string, files, minFiles, funcs, minFuncs int) {
+	t.Helper()
+	if files < minFiles || funcs < minFuncs {
+		t.Fatalf("only %d %s files and %d functions compared", files, ext, funcs)
 	}
 }
 
@@ -220,32 +242,14 @@ func TestTRSizesMatchTheLayoutTest(t *testing.T) {
 		if max, exc := layoutrules.TRFileMax(rel); whole.lines != len(lines) || whole.max != max || whole.exception != exc {
 			t.Errorf("%s: codegraph's file size %d/%d (exception %v), the layout test's %d/%d (exception %v)", rel, whole.lines, whole.max, whole.exception, len(lines), max, exc)
 		}
-		var want, have []string
+		var want []string
 		for _, f := range layoutrules.TRFuncs(lines) {
 			want = append(want, fmt.Sprintf("%s:%d %d", f.Name, f.Line, f.Lines))
 		}
-		for _, s := range got {
-			have = append(have, fmt.Sprintf("%s %d", s.name, s.lines))
-		}
-		slices.Sort(want)
-		slices.Sort(have)
-		if !slices.Equal(want, have) {
-			t.Errorf("%s: codegraph's functions %v, the layout test's %v", rel, have, want)
-		}
-		funcs += len(want)
+		funcs += sameFuncSizes(t, rel, want, got)
 	}
-	for i := range g.Nodes {
-		file := &g.Nodes[i]
-		if file.Kind != kindFile || !strings.HasSuffix(file.File, ".tr") || walked[file.File] != nil {
-			continue
-		}
-		if _, _, _, tests := ix.fileSizes(file); len(tests) > 0 {
-			t.Error(untrackedOrUnmeasured(root, file.File))
-		}
-	}
-	if len(walked) < 100 || funcs < 500 {
-		t.Fatalf("only %d .tr files and %d functions compared", len(walked), funcs)
-	}
+	noSizesOffTheWalk(t, ix, g, ".tr", walked)
+	enoughCompared(t, ".tr", len(walked), 100, funcs, 500)
 	for file, want := range map[string]string{
 		"lib/pretrained.tr": "\nsize: file %d/%d (an exception: its limit is the ceiling plus the fix margin",
 		"lib/audio.tr":      "\nsize: file %d/%d; functions",
