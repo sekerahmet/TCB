@@ -150,6 +150,7 @@ func quantGemmPanels(M, N, K int, a []float32, w []byte, dt DType, c []float32) 
 // parça sınırlarından bağımsızdır (belirlenimci).
 func quantGemv(N, K int, a []float32, w []byte, dt DType, c []float32) {
 	rowBytes := quantRowBytes(dt, K)
+	holdWorkers(quantHold)
 	parallelFor(N, K, func(lo, hi int) {
 		s := newQuantScratch(dt, K)
 		for n := lo; n < hi; n++ {

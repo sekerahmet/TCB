@@ -1,6 +1,9 @@
 package tensor
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 // Etkinleştirmenin nicemlendiği çarpım (15.53a'nın TR_quantized_activations bloğu): Q4_0, Q4_K ve Q6_K ağırlıklı
 // çarpım ağırlığı açmaz: x'in her satırı ağırlığın bloğu kadar (Q4_0'da 32, Q4_K ve Q6_K'da 256 öğe) bloklarla
@@ -18,6 +21,32 @@ type q8kRow struct {
 	blk int
 }
 
+var q8RowPool = sync.Pool{New: func() any { return &q8kRow{} }}
+
+func takeQ8Row(K, blk int) *q8kRow {
+	r := q8RowPool.Get().(*q8kRow)
+	nb, nbs := K/blk, K/16
+	if cap(r.q) < K {
+		r.q = make([]int8, K)
+	} else {
+		r.q = r.q[:K]
+	}
+	if cap(r.d) < nb {
+		r.d = make([]float32, nb)
+	} else {
+		r.d = r.d[:nb]
+	}
+	if cap(r.bs) < nbs {
+		r.bs = make([]int16, nbs)
+	} else {
+		r.bs = r.bs[:nbs]
+	}
+	r.blk = blk
+	return r
+}
+
+func putQ8Row(r *q8kRow) { q8RowPool.Put(r) }
+
 // newQ8Row K öğelik, blk'lık bloklu boş satırdır; newQ8KRow 256'lıktır.
 func newQ8Row(K, blk int) *q8kRow {
 	return &q8kRow{q: make([]int8, K), d: make([]float32, K/blk), bs: make([]int16, K/16), blk: blk}
@@ -31,12 +60,12 @@ func actBlock(dt DType) int {
 	return elems
 }
 
-// quantizeQ8 x'i r.blk'lık bloklarla nicemler (15.53 taslağının formülü): blokta a = max|x|; a = 0 ise ya da
+// quantizeQ8Go x'i r.blk'lık bloklarla nicemler (15.53 taslağının formülü): blokta a = max|x|; a = 0 ise ya da
 // 127 / a float32'de sonlu değilse (a < ~3,7e−37) bloğun kodları 0, ölçeği 0; değilse kod = x · float32(127 / a)'nın
 // float32 sonucu, eşitte çifte yuvarlanır, ±127'ye kırpılır; ölçek = float32(a / 127). x sonludur (q8Finite).
 // Taşan ölçekte blok sıfıra iner: katkısı ~1e−37 mertebesindedir; oran taşsaydı kodlar işarete inerdi, sıfır öğe
 // 0·∞ = NaN olurdu (int8(NaN) Go'da uygulamaya bağlıdır).
-func quantizeQ8(x []float32, r *q8kRow) {
+func quantizeQ8Go(x []float32, r *q8kRow) {
 	for b := 0; b < len(x)/r.blk; b++ {
 		blk := x[b*r.blk : (b+1)*r.blk]
 		q := r.q[b*r.blk : (b+1)*r.blk]
@@ -133,8 +162,8 @@ func quantGemmAct(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	quantGemmQ8(M, N, K, a, w, dt, c)
 }
 
-// q8Finite a'nın hepsi sonlu mu (v − v NaN'da ve sonsuzda NaN'dır).
-func q8Finite(a []float32) bool {
+// q8FiniteGo a'nın hepsi sonlu mu (v − v NaN'da ve sonsuzda NaN'dır).
+func q8FiniteGo(a []float32) bool {
 	for _, v := range a {
 		if v-v != 0 {
 			return false
@@ -154,35 +183,94 @@ func dotQ8(dt DType, blocks int, w []byte, r *q8kRow, tmp []byte) float32 {
 	return dotQ4KQ8(blocks, w, r, tmp)
 }
 
-// quantGemvQ8 quantGemv'in nicemli yoludur: x bir kez nicemlenir, her ağırlık satırı tamsayı çarpılır. x'te
-// sonlu olmayan değer varsa float yolu (quantGemv).
+// dotQ8W4Go dört ağırlık satırlı tek-etkinleştirme çekirdeklerinin Go eşidir.
+func dotQ8W4Go(dot func(int, []byte, *q8kRow) float32, blocks, blockBytes int, w []byte, rowBytes int, r *q8kRow, out []float32) {
+	_ = out[:4]
+	if blocks > 0 {
+		_ = w[:3*rowBytes+blocks*blockBytes]
+	}
+	for j := range 4 {
+		out[j] = dot(blocks, w[j*rowBytes:j*rowBytes+blocks*blockBytes], r)
+	}
+}
+
+// dotQ8W4 dt'nin dört ağırlık satırlı nicemli çekirdeğidir (Q4_0 tekli yoldan gider). AVX-VNNI'siz işlemcide yoktur:
+// orada tek satırlı AVX2 çekirdeği daha az işlemci zamanı harcar (Qwen3-4B Q4_K_M, 128 adımlık üretim, AMD EPYC 7B12,
+// 8 iş parçacığı: dörtlüler 54,5, tek satırlılar 44,1 CPU-sn; üretim 11 670 → 10 956 ms; T1, 2026-11-23, profil ve
+// commit'siz deneme). İkisi de Go eşiyle bit bit aynıdır; seçim yalnız hızı değiştirir.
+func dotQ8W4(dt DType) func(blocks int, w []byte, rowBytes int, r *q8kRow, tmp []byte, out []float32) {
+	if hasAVX2 && !hasAVXVNNI {
+		return nil
+	}
+	switch dt {
+	case Q4K:
+		return dotQ4KQ8W4
+	case Q6K:
+		return dotQ6KQ8W4
+	}
+	return nil
+}
+
+// q8GemvBlock tek satırlı nicemli çarpımın en küçük ağırlık satırı karosudur: bir işçinin bir parçada yazdığı
+// c 16 float32'dir (64 bayt; c 64 bayta hizalı değilse iki komşu parça bir önbellek satırını paylaşabilir).
+// q8GemvMaxWorkers bellek bant genişliği sınırlı tek satırlı çarpımda kardeş iş parçacıklarının çekişmesini
+// sınırlayan katılımcı tavanıdır (20 iş parçacıklı i7-13700H'ye göre; Gemini, 2026-11-23). Karo ve tavan yalnız
+// işin bölünüşünü değiştirir: her c öğesi tek çekirdek çağrısının sonucunu bir kez alır, bitler işçi sayısından
+// bağımsızdır.
+const (
+	q8GemvBlock      = 16
+	q8GemvMaxWorkers = 16
+)
+
+// quantGemvQ8 quantGemv'in nicemli yoludur: x bir kez nicemlenir, ağırlık satırları dörder (Q4_K ve Q6_K) ya da tek tek
+// tamsayı çarpılır. x'te sonlu olmayan değer varsa float yolu (quantGemv).
 func quantGemvQ8(N, K int, a []float32, w []byte, dt DType, c []float32) {
 	if !q8Finite(a[:K]) {
 		quantGemv(N, K, a, w, dt, c)
 		return
 	}
-	r := newQ8Row(K, actBlock(dt))
-	quantizeQ8(a, r)
+	r := takeQ8Row(K, actBlock(dt))
+	defer putQ8Row(r)
+	quantizeQ8(a[:K], r)
 	rowBytes := quantRowBytes(dt, K)
-	parallelFor(N, K, func(lo, hi int) {
+	nb := K / r.blk
+	fourW := dotQ8W4(dt)
+	tile := q8GemvBlock
+	if N >= 8192 {
+		tile = 4 * q8GemvBlock
+	}
+	nTiles := (N + tile - 1) / tile
+	holdWorkers(quantHold)
+	workersN := 1
+	if N*K >= 2*parallelThreshold && nTiles > 1 {
+		workersN = min(workerCount(N*K, parallelThreshold, elemBigJob), q8GemvMaxWorkers)
+	}
+	distribute(workersN, nTiles, func(_, t int) {
 		var tmp [q8Tmp]byte
-		for n := lo; n < hi; n++ {
-			c[n] += dotQ8(dt, K/r.blk, w[n*rowBytes:(n+1)*rowBytes], r, tmp[:])
+		var out [4]float32
+		n := t * tile
+		nEnd := min(N, n+tile)
+		for ; fourW != nil && n+4 <= nEnd; n += 4 {
+			fourW(nb, w[n*rowBytes:(n+4)*rowBytes], rowBytes, r, tmp[:], out[:])
+			for j := range 4 {
+				c[n+j] += out[j]
+			}
+		}
+		for ; n < nEnd; n++ {
+			c[n] += dotQ8(dt, nb, w[n*rowBytes:(n+1)*rowBytes], r, tmp[:])
 		}
 	})
 	holdWorkers(quantHold)
 }
 
-// q8Tmp çekirdeklerin çalışma alanının baytıdır: en çoğu Q6_K'nın dört satırlısı (16 ölçek ve dört msum).
-const q8Tmp = 48
+// q8Tmp çekirdeklerin çalışma alanının baytıdır: en çoğu Q4_K'nın dört ağırlık satırlısı (4 × 16 bayt ölçek).
+const q8Tmp = 64
 
-// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez nicemlenir. Q4_0'da (q4x8Ready ve en az dört satır)
-// sekizli ağırlık satırları işçinin panelinden dört etkinleştirme satırıyla çarpılır (q4PanelGemm), panelin bıraktığı
-// satırlar tek satırlıyla. Öbür durumda Q4_K'da her ağırlık satırı önce sekiz etkinleştirme satırıyla (dotQ4KQ8x8;
-// q4x8Ready ise), sonra dörder satırla (dotQ4KQ8x4, dotQ4Q8x4, dotQ6KQ8x4: kodlar bir kez açılır), kalan satırlar tek
-// tek. Her satırın sonucu tek satırlı yolunkiyle (quantGemvQ8) bit bit aynıdır. Sonlu olmayan değer içeren satır float
-// yoluyla (quantGemv) tek başına hesaplanır; sonlu satırlar bitişik bir tampona toplanır (idx: tampondaki satırın
-// a'daki yeri). Satırın sonucu yanındaki satırların verisinden bağımsızdır.
+// quantGemmQ8 çok satırlı nicemli çarpımdır: satırlar bir kez paralel nicemlenir; iş birimi q8BlockN ağırlık satırıdır.
+// AVX2/F16C açık ve F >= 4 iken sekizli ağırlık satırları işçinin yerel panelinde bir kez paketlenip bütün etkinleştirme
+// satırlarıyla dörder dörder çarpılır (q8Panel: Q4_0, Q4_K ve Q6_K). Sekizliye tamamlanmayan ağırlık satırları (ya da
+// panelsiz yol) Q4_K'da sekizli, ardından dörderli ve tekli çekirdeklerle hesaplanır; her c öğesi tek çekirdek çağrısı
+// alır ve quantGemvQ8 ile bit bit aynıdır. Sonlu olmayan değer içeren satır float yoluyla (quantGemv) hesaplanır.
 func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	idx := make([]int, 0, M)
 	for m := range M {
@@ -212,36 +300,30 @@ func quantGemmQ8(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	})
 	rowBytes := quantRowBytes(dt, K)
 	four := dotQ8x4(dt)
-	// Bloklama: iş birimi q8BlockN ağırlık satırıdır. Her etkinleştirme dörtlüsü (4·K bayt) bloğun bütün
-	// ağırlık satırlarıyla art arda çarpılır, birinci düzey önbellekte kalır; blok ağırlığı (q8BlockN satır)
-	// ikinci düzeyde kalır. Bloksuz sürümde her ağırlık satırı bütün etkinleştirmeyi (512 satırda 1,3–5 MB)
-	// baştan okuyordu; 512 satırlık okumada float yolundan yavaştı (profil, 2026-11-10, Qwen3-4B Q4_K_M,
-	// i7-13700H: süre çekirdeklerde, ~17 GOPS). Her c öğesi yine tek bir çekirdek çağrısının sonucunu bir kez
-	// alır: bitler bloksuz sürümle aynıdır.
-	// Q4_0'da sekizli ağırlık satırları işçinin panelinden çarpılır (q4PanelGemm); panelin bıraktığı satırlar tek
-	// satırlıyla (dörtlü çekirdeğe gitmez).
-	panel := dt == Q4 && q4x8Ready() && F >= 4
-	var c8 []int32
-	if panel {
-		c8 = q4Corrections(rows, nb)
+	// Bloklama: iş birimi q8BlockN ağırlık satırıdır. Panelsiz yolda her etkinleştirme dörtlüsü (4·K bayt) bloğun
+	// bütün ağırlık satırlarıyla art arda çarpılır, birinci düzey önbellekte kalır; blok ağırlığı ikinci düzeyde kalır.
+	// Bloksuz sürümde her ağırlık satırı bütün etkinleştirmeyi (512 satırda 1,3–5 MB) baştan okuyordu; 512 satırlık
+	// okumada float yolundan yavaştı (profil, 2026-11-10, Qwen3-4B Q4_K_M, i7-13700H: süre çekirdeklerde, ~17 GOPS).
+	// Panel sekizli ağırlık satırlarını bir kez paketler, bütün etkinleştirme satırlarıyla çarpar. N sekizin katıyken
+	// bloklar da sekizin katıdır (q8BlockN, derleme anında denetlenir): panel bütün satırları alır, eights kurulmaz.
+	panel := newQ8Panel(dt, rows, nb)
+	var eights *q8x8
+	if !panel.on || N%8 != 0 {
+		eights = newQ8x8(dt, rows, nb, K, rowBytes)
 	}
-	eights := newQ8x8(dt, rows, nb, K, rowBytes)
 	nBlocks := (N + q8BlockN - 1) / q8BlockN
 	parallelFor(nBlocks, q8BlockN*F*K, func(lo, hi int) {
 		var tmp [q8Tmp]byte
 		var out [4]float32
-		var pan []byte
-		var ps []float32
-		if panel {
-			pan, ps = make([]byte, nb*256), make([]float32, nb*8)
-		}
+		pan, pmeta, ps := panel.alloc()
 		for jb := lo; jb < hi; jb++ {
 			n0, n1 := jb*q8BlockN, min(N, (jb+1)*q8BlockN)
-			if panel {
-				n0 = q4PanelGemm(n0, n1, N, K, w, rowBytes, all, rows, c8, idx, c, pan, ps)
+			n0 = panel.run(n0, n1, N, K, w, rowBytes, all, rows, idx, c, pan, pmeta, ps)
+			if n0 == n1 {
+				continue
 			}
 			i := eights.into(n0, n1, N, w, rows, idx, c, tmp[:])
-			for ; !panel && i+4 <= F; i += 4 {
+			for ; !(panel.on && dt == Q4) && i+4 <= F; i += 4 {
 				for n := n0; n < n1; n++ {
 					four(nb, w[n*rowBytes:(n+1)*rowBytes], rows[i], K, tmp[:], out[:])
 					for r := range 4 {
@@ -337,8 +419,12 @@ func q8x8Scales(rows []*q8kRow, nb int) []float32 {
 }
 
 // q8BlockN quantGemmQ8'in bir iş biriminin ağırlık satırı sayısıdır: K = 9728'de Q4_K 16 satır 87 KB,
-// ikinci düzey önbelleğe (i7-13700H'nin P çekirdeğinde 1,25 MB) sığar [hesap].
+// ikinci düzey önbelleğe (i7-13700H'nin P çekirdeğinde 1,25 MB) sığar [hesap]. Sekizin katı olmalıdır: panel
+// sekizli ağırlık satırlarını alır, N sekizin katıyken artık kalmaz ve quantGemmQ8 eights'i kurmaz; sekizin katı
+// değilse bir sonraki satır derlenmez (sabit dizin sınır dışı).
 const q8BlockN = 16
+
+var _ = [1]int{}[q8BlockN%8]
 
 // dotQ8x4 dt'nin dört satırlı nicemli çekirdeğidir: out[r] = r0'dan başlayan r'inci satırın sonucu.
 func dotQ8x4(dt DType) func(blocks int, w []byte, r0 *q8kRow, K int, tmp []byte, out []float32) {

@@ -226,14 +226,27 @@ func (ev *fuseEval) load(out []float32, v View, l fuseLine) {
 		st = l.step * v.Strides[l.axis]
 	}
 	c := cpuStore(v.S)
+	if c.dtyp == Float32 {
+		switch st {
+		case 1:
+			copy(out, c.d[off:off+len(out)])
+		case 0:
+			val := c.d[off]
+			for i := range out {
+				out[i] = val
+			}
+		default:
+			for i := range out {
+				out[i] = c.d[off+i*st]
+			}
+		}
+		return
+	}
 	for i := range out {
 		p := off + i*st
-		switch c.dtyp {
-		case Float32:
-			out[i] = c.d[p]
-		case BFloat16:
+		if c.dtyp == BFloat16 {
 			out[i] = bf16ToF32(c.h[p])
-		default:
+		} else {
 			out[i] = f16ToF32(c.h[p])
 		}
 	}

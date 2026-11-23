@@ -1,0 +1,166 @@
+package tensor
+
+// Q4_K ve Q6_K ağırlıklarının sekiz satırlı panel çarpımı (quantGemmQ8).
+// Sekiz ağırlık satırı işçinin yerel panelinde (pan: blok başına 2048 bayt kod; pmeta: blok başına ölçek ve
+// minimumlar) bir kez açılıp çevrilir, ardından bütün etkinleştirme satırlarıyla dörder dörder çarpılır.
+// VEX kodlamalı tamsayı nokta çarpımı komutu varsa (hasAVXVNNI) VNNI çekirdeği, yoksa AVX2 çekirdeği koşar;
+// her iki yol da dotQ4KQ8Go ve dotQ6KQ8Go ile bit bit aynıdır.
+
+const (
+	q4kPanelCodeBytes = 2048
+	q4kPanelMetaBytes = 448
+	q6kPanelCodeBytes = 2048
+	q6kPanelMetaBytes = 800
+)
+
+type q8Panel struct {
+	dt   DType
+	nb   int
+	on   bool
+	c8   []int32
+	bs32 []int16
+}
+
+func newQ8Panel(dt DType, rows []*q8kRow, nb int) q8Panel {
+	if !q4x8Ready() || len(rows) < 4 {
+		return q8Panel{}
+	}
+	p := q8Panel{dt: dt, nb: nb, on: true}
+	switch dt {
+	case Q4:
+		p.c8 = q4Corrections(rows, nb)
+	case Q4K:
+		p.bs32 = q4kSubSums(rows, nb)
+	}
+	return p
+}
+
+func (p q8Panel) alloc() (pan, pmeta []byte, ps []float32) {
+	if !p.on {
+		return nil, nil, nil
+	}
+	switch p.dt {
+	case Q4:
+		return make([]byte, p.nb*256), nil, make([]float32, p.nb*8)
+	case Q4K:
+		return make([]byte, p.nb*q4kPanelCodeBytes), make([]byte, p.nb*q4kPanelMetaBytes), nil
+	default:
+		return make([]byte, p.nb*q6kPanelCodeBytes), make([]byte, p.nb*q6kPanelMetaBytes), nil
+	}
+}
+
+func (p q8Panel) run(n0, n1, N, K int, w []byte, rowBytes int, all *q8kRow, rows []*q8kRow, idx []int, c []float32, pan, pmeta []byte, ps []float32) int {
+	if !p.on {
+		return n0
+	}
+	switch p.dt {
+	case Q4:
+		return q4PanelGemm(n0, n1, N, K, w, rowBytes, all, rows, p.c8, idx, c, pan, ps)
+	case Q4K:
+		return q4kPanelGemm(n0, n1, N, K, w, rowBytes, all, rows, p.bs32, idx, c, pan, pmeta)
+	default:
+		return q6kPanelGemm(n0, n1, N, K, w, rowBytes, all, rows, idx, c, pan, pmeta)
+	}
+}
+
+// q4kSubSums her satırın her bloğundaki sekiz adet 32'lik alt blok kod toplamını (bs[2s] + bs[2s+1]) kurar.
+func q4kSubSums(rows []*q8kRow, nb int) []int16 {
+	out := make([]int16, len(rows)*nb*8)
+	for i, r := range rows {
+		dst := out[i*nb*8 : (i+1)*nb*8]
+		for b := range nb {
+			for s := range 8 {
+				dst[b*8+s] = r.bs[b*16+2*s] + r.bs[b*16+2*s+1]
+			}
+		}
+	}
+	return out
+}
+
+//go:noescape
+func packq4kx8(blocks int, w *byte, rowBytes int, pan *byte, pmeta *byte)
+
+//go:noescape
+func sdotq4kx8q8x4Vnni(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, bs32 *int16, out *float32, sq, sd, sbs int)
+
+//go:noescape
+func sdotq4kx8q8x4Avx2(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, bs32 *int16, out *float32, sq, sd, sbs int)
+
+// q4kPanelGemm n0..n1 aralığındaki sekizli Q4_K ağırlık gruplarını panelden çarpar; işlenen son satırın ardını döner.
+func q4kPanelGemm(n0, n1, N, K int, w []byte, rowBytes int, all *q8kRow, rows []*q8kRow, bs32 []int16, idx []int, c []float32, pan, pmeta []byte) int {
+	nb, F := K/kBlock, len(idx)
+	var out [32]float32
+	var tmp [q8Tmp]byte
+	dot := sdotq4kx8q8x4Avx2
+	if hasAVXVNNI {
+		dot = sdotq4kx8q8x4Vnni
+	}
+	n := n0
+	for ; n+8 <= n1; n += 8 {
+		_, _, _ = w[(n+8)*rowBytes-1], pan[nb*q4kPanelCodeBytes-1], pmeta[nb*q4kPanelMetaBytes-1]
+		wp := w[n*rowBytes : (n+8)*rowBytes]
+		packq4kx8(nb, &wp[0], rowBytes, &pan[0], &pmeta[0])
+		i := 0
+		for ; i+4 <= F; i += 4 {
+			_, _, _ = all.q[(i+4)*K-1], all.d[(i+4)*nb-1], bs32[(i+4)*nb*8-1]
+			q, d, b32 := all.q[i*K:(i+4)*K], all.d[i*nb:(i+4)*nb], bs32[i*nb*8:(i+4)*nb*8]
+			dot(nb, &pan[0], &pmeta[0], &q[0], &d[0], &b32[0], &out[0], K, nb*4, nb*16)
+			for r := range 4 {
+				cr := c[idx[i+r]*N+n : idx[i+r]*N+n+8]
+				for j := range 8 {
+					cr[j] += out[r*8+j]
+				}
+			}
+		}
+		for ; i < F; i++ {
+			for j := range 8 {
+				c[idx[i]*N+n+j] += dotQ4KQ8(nb, wp[j*rowBytes:(j+1)*rowBytes], rows[i], tmp[:])
+			}
+		}
+	}
+	return n
+}
+
+//go:noescape
+func packq6kx8(blocks int, w *byte, rowBytes int, pan *byte, pmeta *byte)
+
+//go:noescape
+func sdotq6kx8q8x4Vnni(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, bs *int16, out *float32, sq, sd, sbs int)
+
+//go:noescape
+func sdotq6kx8q8x4Avx2(blocks int, pan *byte, pmeta *byte, q *int8, d *float32, bs *int16, out *float32, sq, sd, sbs int)
+
+// q6kPanelGemm n0..n1 aralığındaki sekizli Q6_K ağırlık gruplarını panelden çarpar; işlenen son satırın ardını döner.
+func q6kPanelGemm(n0, n1, N, K int, w []byte, rowBytes int, all *q8kRow, rows []*q8kRow, idx []int, c []float32, pan, pmeta []byte) int {
+	nb, F := K/kBlock, len(idx)
+	var out [32]float32
+	var tmp [q8Tmp]byte
+	dot := sdotq6kx8q8x4Avx2
+	if hasAVXVNNI {
+		dot = sdotq6kx8q8x4Vnni
+	}
+	n := n0
+	for ; n+8 <= n1; n += 8 {
+		_, _, _ = w[(n+8)*rowBytes-1], pan[nb*q6kPanelCodeBytes-1], pmeta[nb*q6kPanelMetaBytes-1]
+		wp := w[n*rowBytes : (n+8)*rowBytes]
+		packq6kx8(nb, &wp[0], rowBytes, &pan[0], &pmeta[0])
+		i := 0
+		for ; i+4 <= F; i += 4 {
+			_, _, _ = all.q[(i+4)*K-1], all.d[(i+4)*nb-1], all.bs[(i+4)*nb*16-1]
+			q, d, bs := all.q[i*K:(i+4)*K], all.d[i*nb:(i+4)*nb], all.bs[i*nb*16:(i+4)*nb*16]
+			dot(nb, &pan[0], &pmeta[0], &q[0], &d[0], &bs[0], &out[0], K, nb*4, nb*32)
+			for r := range 4 {
+				cr := c[idx[i+r]*N+n : idx[i+r]*N+n+8]
+				for j := range 8 {
+					cr[j] += out[r*8+j]
+				}
+			}
+		}
+		for ; i < F; i++ {
+			for j := range 8 {
+				c[idx[i]*N+n+j] += dotQ6KQ8(nb, wp[j*rowBytes:(j+1)*rowBytes], rows[i], tmp[:])
+			}
+		}
+	}
+	return n
+}

@@ -87,6 +87,9 @@ var (
 // holdWorkers dönen işçileri d süresince uyutmaz.
 func holdWorkers(d time.Duration) { poolHold.Store(int64(time.Since(poolEpoch) + d)) }
 
+// workersHeld holdWorkers süresinin henüz dolmadığını bildirir.
+func workersHeld() bool { return int64(time.Since(poolEpoch)) <= poolHold.Load() }
+
 // workers kullanılabilecek en çok işçi sayısı (GOMAXPROCS; çağıran dahil). Başka görevlerle
 // işlemci paylaşan kilitsiz bir çekirdek çalışırken yarısı (S-kilit; DENETİM istek 64, Ş4):
 // uyanan görevin gorutini boş işlemci bulsun. GOMAXPROCS − 1 yetmedi (ölçüm: s-kilit-devir.md).
@@ -102,14 +105,14 @@ func workers() int {
 }
 
 // workerCount is birimlik bir iş için katılımcı sayısını (çağıran dahil)
-// seçer: her katılımcıya en az enAz birim düşer; is < buyuk ise en çok
-// donenIsci+1 katılımcı kullanılır.
+// seçer: her katılımcıya en az enAz birim düşer; is < buyuk ise (holdWorkers
+// etkin değilken) en çok donenIsci+1 katılımcı kullanılır.
 func workerCount(is, minN, large int) int {
 	w := workers()
 	if lim := is / minN; w > lim {
 		w = max(lim, 1)
 	}
-	if is < large && w > returningWorker+1 {
+	if is < large && w > returningWorker+1 && !workersHeld() {
 		w = returningWorker + 1
 	}
 	return w
@@ -192,10 +195,10 @@ func (i *worker) run(no int) {
 		g := i.wait(no, last, shouldReturn)
 		last = g.seq
 		g.runFn(no + 1)
-		// Yalnızca ilk donenIsci işçi döner; büyük işlere katılan diğerleri
-		// hemen uyur. (Büyük işlerden sonra da dönmek, 512² ve 1024²
-		// çarpımlarda GC duraklamaları yüzünden %12-50 kaybettiriyordu.)
-		shouldReturn = no < returningWorker
+		// Yalnızca ilk donenIsci işçi ya da holdWorkers etkinken bütün katılanlar döner;
+		// büyük işlerden sonra ise hemen uyunur (512² ve 1024² çarpımlarda GC duraklamaları
+		// yüzünden sürekli dönmek %12-50 kaybettiriyordu).
+		shouldReturn = no < returningWorker || workersHeld()
 	}
 }
 
@@ -212,7 +215,7 @@ func (i *worker) wait(no int, last uint64, shouldReturn bool) *task {
 						return g
 					}
 				}
-				if k&15 == 15 && time.Since(begin) > poolWait && int64(time.Since(poolEpoch)) > poolHold.Load() {
+				if k&15 == 15 && time.Since(begin) > poolWait && !workersHeld() {
 					break
 				}
 				cpuPause()

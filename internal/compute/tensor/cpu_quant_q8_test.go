@@ -10,19 +10,38 @@ import (
 // hasAVX2'yi yol yol değiştirir ve son yolda false bırakır; q8Paths bunları okumasaydı bir döngünün içinde ikinci kez
 // çağrıldığında "çekirdek" yolu da Go eşi olurdu (TestQ8FourRowsMatchOneRow'da ve TestQ8EightRowsMatchOneRow'da
 // yalnız ilk durum çekirdeği sınıyordu; sekiz satırlı Q4_0 çekirdeğinin bozması bu yüzden geçti).
-var q8MachineAVX2, q8MachineF16C = hasAVX2, hasF16C
+var q8MachineAVX2, q8MachineF16C, q8MachineAVXVNNI = hasAVX2, hasF16C, hasAVXVNNI
 
-// q8Paths nicemli çekirdeklerin üç yoludur: AVX2 çekirdeği, F16C yok (Go eşine düşer), Go. Testler çekirdeği
-// sarmalayıcıdan çağırır: amd64 dışında da derlenir, Go eşleri (dört satırlılar dahil) AVX2'li makinede de koşar.
-func q8Paths() []struct {
-	name      string
-	avx, f16c bool
-} {
-	return []struct {
-		name      string
-		avx, f16c bool
-	}{{"çekirdek", q8MachineAVX2, q8MachineF16C}, {"F16C yok", q8MachineAVX2, false}, {"Go", false, false}}
+// q8Path nicemli çekirdeklerin bir yoludur: hasAVX2, hasF16C ve hasAVXVNNI'nin değerleri.
+type q8Path struct {
+	name            string
+	avx, f16c, vnni bool
 }
+
+// q8Paths nicemli çekirdeklerin dört yoludur: VNNI (makinede AVX-VNNI varsa), AVX2 çekirdeği, F16C yok (Go eşine
+// düşer), Go. Testler çekirdeği sarmalayıcıdan çağırır: amd64 dışında da derlenir, Go eşleri (dört satırlılar dahil)
+// AVX2'li makinede de koşar. VNNI'li makinede AVX2 yolu VNNI kapatılarak sınanır (DENETİM 958 Ş1).
+func q8Paths() []q8Path {
+	return []q8Path{{"VNNI", q8MachineAVX2, q8MachineF16C, q8MachineAVXVNNI}, {"çekirdek", q8MachineAVX2, q8MachineF16C, false},
+		{"F16C yok", q8MachineAVX2, false, false}, {"Go", false, false, false}}
+}
+
+// apply yolun bayraklarını kurar; VNNI yolu makinede yoksa false döner (yol koşmaz, AVX2 yolunun yinelemesi olurdu).
+func (p q8Path) apply() bool {
+	hasAVX2, hasF16C, hasAVXVNNI = p.avx, p.f16c, p.vnni
+	return p.name != "VNNI" || q8MachineAVXVNNI
+}
+
+// set alt testte yolun bayraklarını kurar; makinede AVX-VNNI yoksa VNNI alt testi atlandığını yazar.
+func (p q8Path) set(t *testing.T) {
+	t.Helper()
+	if !p.apply() {
+		t.Skip("bu işlemcide AVX-VNNI yok: VNNI çekirdekleri koşmadı")
+	}
+}
+
+// restoreQ8Path bayrakları makinenin değerlerine döndürür (testlerin defer'i).
+func restoreQ8Path() { hasAVX2, hasF16C, hasAVXVNNI = q8MachineAVX2, q8MachineF16C, q8MachineAVXVNNI }
 
 // q8GoDot dt'nin tek satırlı Go eşidir.
 func q8GoDot(dt DType) func(int, []byte, *q8kRow) float32 {
@@ -52,8 +71,7 @@ func openedDot(dt DType, x []float32, w []byte) (dot, scale float64) {
 // TestQ8KernelsMatchGo: tek satırlı nicemli çekirdekler (Q4_0, Q4_K, Q6_K) her yolda Go eşiyle bit bit aynıdır ve
 // açılmış float çarpımına yakındır (nicemleme hatası kadar); ×1000 ölçekli girdiler dahil. H1 hız prototipi.
 func TestQ8KernelsMatchGo(t *testing.T) {
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	for _, path := range q8Paths() {
 		for _, dt := range q8Types {
 			r := rand.New(rand.NewSource(31))
@@ -64,7 +82,9 @@ func TestQ8KernelsMatchGo(t *testing.T) {
 					continue
 				}
 				for trial := range 20 {
-					hasAVX2, hasF16C = path.avx, path.f16c
+					if !path.apply() {
+						continue
+					}
 					w := smallScaleQuant(dt, uint32(K+trial), K/blk)
 					x := randomData(r, K)
 					if trial%5 == 0 {
@@ -94,8 +114,7 @@ func TestQ8KernelsMatchGo(t *testing.T) {
 // son blok) her satırda quantGemvQ8 ile bit bit aynıdır; Q4_0, Q4_K ve Q6_K'da, her yolda. Yolların sonuçları da
 // birbirinin aynısıdır (çekirdek = Go eşi).
 func TestQ8FourRowsMatchOneRow(t *testing.T) {
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	for _, dt := range q8Types {
 		for _, c := range [][3]int{{5, 7, 96}, {4, 3, 256}, {7, 17, 512}, {9, 40, 2560}, {13, 5, 9728}, {21, 33, 512}} {
 			M, N, K := c[0], c[1], c[2]
@@ -106,7 +125,9 @@ func TestQ8FourRowsMatchOneRow(t *testing.T) {
 			x := randomData(rand.New(rand.NewSource(int64(M*N+K))), M*K)
 			var first []float32
 			for _, path := range q8Paths() {
-				hasAVX2, hasF16C = path.avx, path.f16c
+				if !path.apply() {
+					continue
+				}
 				got := make([]float32, M*N)
 				quantGemmQ8(M, N, K, x, w, dt, got)
 				for m := range M {
@@ -128,8 +149,7 @@ func TestQ8FourRowsMatchOneRow(t *testing.T) {
 // dahil. N = 13 ve 29'da q8BlockN'lik bir birim 13 satır alır: Q4_0'ın paneli sekizini, tek satırlı aynı birimin
 // kalan beşini çarpar (DENETİM 861 N2).
 func TestQ8EightRowsMatchOneRow(t *testing.T) {
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	for _, dt := range []DType{Q4K, Q4} {
 		for _, c := range [][3]int{{8, 3, 256}, {12, 17, 512}, {16, 33, 2560}, {23, 5, 9728}, {40, 18, 512}, {9, 7, 96}, {5, 13, 96}, {12, 29, 512}} {
 			testEightRows(t, dt, c[0], c[1], c[2])
@@ -162,7 +182,9 @@ func testEightRows(t *testing.T, dt DType, M, N, K int) {
 	}
 	var first []float32
 	for _, path := range q8Paths() {
-		hasAVX2, hasF16C = path.avx, path.f16c
+		if !path.apply() {
+			continue
+		}
 		got := make([]float32, M*N)
 		quantGemmQ8(M, N, K, x, w, dt, got)
 		for m := range M {
@@ -180,14 +202,15 @@ func testEightRows(t *testing.T, dt DType, M, N, K int) {
 // TestQ8EightRowsChecksBounds: Q4_K'nın sekiz satırlı çekirdeği çağıranın sözüne dayanmaz: r0'ın arkasında yedi
 // satır yoksa ya da out sekiz öğeden kısaysa her yolda (çekirdek ve Go eşi) panik verir.
 func TestQ8EightRowsChecksBounds(t *testing.T) {
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	const K = 512
 	nb := K / kBlock
 	w := smallScaleQuant(Q4K, 9, nb)
 	dT, ps := make([]float32, nb*8), make([]int16, nb*64)
 	for _, path := range q8Paths() {
-		hasAVX2, hasF16C = path.avx, path.f16c
+		if !path.apply() {
+			continue
+		}
 		var tmp [q8Tmp]byte
 		for _, c := range []struct {
 			name string
@@ -261,11 +284,12 @@ func TestQ4PanelChecksBounds(t *testing.T) {
 // TestQ8FourRowsChecksBounds: dört satırlı çekirdekler çağıranın sözüne dayanmaz: r0'ın arkasında üç satır yoksa
 // ya da out dört öğeden kısaysa her yolda panik verir (assembly tamponun dışını okumaz).
 func TestQ8FourRowsChecksBounds(t *testing.T) {
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	const K = 512
 	for _, path := range q8Paths() {
-		hasAVX2, hasF16C = path.avx, path.f16c
+		if !path.apply() {
+			continue
+		}
 		for _, dt := range q8Types {
 			blk := actBlock(dt)
 			w := smallScaleQuant(dt, 5, K/blk)
@@ -317,8 +341,7 @@ func TestQuantizeQ8KEdgeBlocks(t *testing.T) {
 		}, map[int]int8{5: 127}, float32(1000) / 127},
 		{"küçük", func(x []float32) { x[0], x[1], x[2] = tiny, -tiny/2, tiny/4 }, nil, 0},
 	}
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	for _, c := range cases {
 		x := make([]float32, kBlock)
 		c.fill(x)
@@ -354,15 +377,18 @@ func TestQuantizeQ8KEdgeBlocks(t *testing.T) {
 		for _, dt := range []DType{Q4K, Q6K} {
 			w := smallScaleQuant(dt, 77, 1)
 			var first float32
-			for i, path := range q8Paths() {
-				hasAVX2, hasF16C = path.avx, path.f16c
+			have := false
+			for _, path := range q8Paths() {
+				if !path.apply() {
+					continue
+				}
 				var tmp [q8Tmp]byte
 				got := dotQ8(dt, 1, w, q, tmp[:])
 				if want := q8GoDot(dt)(1, w, q); math.Float32bits(got) != math.Float32bits(want) {
 					t.Fatalf("%s %s %s: çekirdek %v, Go %v", c.name, path.name, dt.Name(), got, want)
 				}
-				if i == 0 {
-					first = got
+				if !have {
+					first, have = got, true
 				} else if math.Float32bits(got) != math.Float32bits(first) {
 					t.Fatalf("%s %s %s: yol sonucu %v, ilk yol %v", c.name, path.name, dt.Name(), got, first)
 				}
@@ -404,8 +430,7 @@ func TestQuantizeQ8BlockEdges(t *testing.T) {
 		}, func(i int) int8 { return map[bool]int8{true: -127}[i == 31] }, float32(1000) / 127},
 		{"taşan oran", func(x []float32) { x[0], x[7], x[31] = tiny, -tiny/2, tiny/4 }, func(int) int8 { return 0 }, 0},
 	}
-	oldAVX, oldF16C := hasAVX2, hasF16C
-	defer func() { hasAVX2, hasF16C = oldAVX, oldF16C }()
+	defer restoreQ8Path()
 	w := smallScaleQuant(Q4, 78, 1)
 	for _, c := range cases {
 		x := make([]float32, 32)
@@ -421,14 +446,17 @@ func TestQuantizeQ8BlockEdges(t *testing.T) {
 			t.Fatalf("%s: ölçekler %v, beklenen [%v]", c.name, q.d, c.d)
 		}
 		var first float32
-		for i, path := range q8Paths() {
-			hasAVX2, hasF16C = path.avx, path.f16c
+		have := false
+		for _, path := range q8Paths() {
+			if !path.apply() {
+				continue
+			}
 			got := dotQ4Q8(1, w, q)
 			if want := dotQ4Q8Go(1, w, q); math.Float32bits(got) != math.Float32bits(want) {
 				t.Fatalf("%s %s: çekirdek %v, Go %v", c.name, path.name, got, want)
 			}
-			if i == 0 {
-				first = got
+			if !have {
+				first, have = got, true
 			} else if math.Float32bits(got) != math.Float32bits(first) {
 				t.Fatalf("%s %s: yol sonucu %v, ilk yol %v", c.name, path.name, got, first)
 			}
