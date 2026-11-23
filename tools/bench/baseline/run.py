@@ -769,8 +769,9 @@ def run_questions(a):
 # scan: the library's default (0), 6 and the machine's logical processors. S1's llama-bench reading (-p 512 -n 0) and
 # generation (-p 0 -n 128 -d 512) are separate groups, each with its own setting (N1: on a hybrid processor the two may
 # differ); S3's llama-bench reads with the reading group's threads and also tries flash attention 0 and 1, at depth 700
-# only. Each setting runs its group's item once to warm, then SCAN_RUNS times; the setting with the shortest median of the
-# measures (summed) is chosen, and the table keeps each measure's median too. The rule is written before the run; the
+# only. Each setting runs its group's item once to warm, then the settings' runs alternate SCAN_RUNS times (K6 of H1e);
+# a later setting is chosen over an earlier one only when all its runs (measures summed) are shorter than all the
+# earlier one's (choose), and the table keeps each run, the order and each measure's median. The rule is written before the run; the
 # choice and the table go to en-hizli.json and every run's record. A measure takes only its items' groups, each valid
 # while its identity holds (settings_gate, K1-K3 and K7 of H1e).
 SCAN = [("llama.cpp read", "S1", "S1/qwen3-4b-q4km", slice(0, 1)), ("llama.cpp gen", "S1", "S1/qwen3-4b-q4km", slice(1, 2)),
@@ -930,16 +931,24 @@ def load_settings(path):
         return {}
 
 
-def time_side(ctx, side, key, log, runs, measure, warm=True):
-    """One setting: the median of the summed measures and each measure's median, after one warm-up run."""
-    if warm:
-        _run_side(key, side, "scan warmup", log, ctx.machine)
-    got = []
-    for i in range(runs):
-        r = _run_side(key, side, f"scan {i}", log, ctx.machine)
-        got.append(measure(r["results"], r["runs"]))
-        too_short(key, side, got[-1], r["results"], r["runs"], ctx.machine)
-    return statistics.median(sum(g.values()) for g in got), {k: statistics.median(g[k] for g in got) for k in got[0]}
+def time_side(ctx, side, key, log, index, measure):
+    """One timed run of one setting: its measures; a measure under the shortest measurable time stops it (BC27)."""
+    r = _run_side(key, side, index, log, ctx.machine)
+    got = measure(r["results"], r["runs"])
+    too_short(key, side, got, r["results"], r["runs"], ctx.machine)
+    return got
+
+
+def choose(values, runs_ms):
+    """K6 (H1e): the settings in their order of preference (0, 6, the logical count; S3's -fa 0, 1); a setting takes the
+    place of the one chosen so far only when every one of its runs is shorter than every one of that one's. With no real
+    difference this is 3!·3!/6! = 1/20 per comparison, at most 1/10 for a group of three (the runs alternate, DENETİM 960
+    Ş1 and N3); the noise is the scan's own runs, no fixed threshold."""
+    best = values[0]
+    for v in values[1:]:
+        if max(runs_ms[v]) < min(runs_ms[best]):
+            best = v
+    return best
 
 
 def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS, identity=lambda g: None):
@@ -957,21 +966,32 @@ def scan_settings(ctx, qs, rec, groups, out, runs=SCAN_RUNS, identity=lambda g: 
             continue
         fa = group == "llama.cpp S3"
         values = [0, 1] if fa else [0, 6, os.cpu_count()]
-        meds, each = {}, {}
+        sides = {}
         for v in values:
             ctx.settings = {k: x for k, x in res.items() if not k.startswith("_")}
             ctx.settings[group] = {"flash_attn": v} if fa else {"threads": v}
             it = next(i for i in qs.items(ctx, q) if i["key"] == key)
             side = dict(it["ref"], cmds=it["ref"]["cmds"][part]) if part else it["ref"]
             # One of S1's two llama-bench commands is timed by itself (S1's measure names both commands' results).
-            measure = (lambda r, rs: {"ms": r[0]["avg_ns"] / 1e6}) if part and not fa else side["measure"]
-            meds[v], each[v] = time_side(ctx, side, key, rec.log, runs, measure, warm=runs > 1)
-            print(f"{group} {'flash_attn' if fa else 'threads'} {v}: median {meds[v]:.1f} ms {each[v]}", flush=True)
-        best = min(meds, key=meds.get)
+            sides[v] = (side, (lambda r, rs: {"ms": r[0]["avg_ns"] / 1e6}) if part and not fa else side["measure"])
+        if runs > 1:  # each setting warms once, then the runs alternate (K6, DENETİM 960 Ş1)
+            for v in values:
+                _run_side(key, sides[v][0], "scan warmup", rec.log, ctx.machine)
+        each, order = {v: [] for v in values}, []
+        for i in range(runs):
+            for v in values:
+                each[v].append(time_side(ctx, sides[v][0], key, rec.log, f"scan {i}", sides[v][1]))
+                order.append(v)
+        runs_ms = {v: [sum(m.values()) for m in each[v]] for v in values}
+        meds = {v: statistics.median(runs_ms[v]) for v in values}
+        for v in values:
+            print(f"{group} {'flash_attn' if fa else 'threads'} {v}: runs {runs_ms[v]} median {meds[v]:.1f} ms", flush=True)
+        best = choose(values, runs_ms)
         res[group] = {"flash_attn": best} if fa else {"threads": best}
         table[group] = {"medians_ms": {str(k): v for k, v in meds.items()},
-                        "measures_ms": {str(k): v for k, v in each.items()}, "runs": runs, "chosen": best,
-                        "rule": "median", "commit": head_commit(), "identity": identity(group)}  # K2: commit, rule: a record
+                        "measures_ms": {str(v): {k: statistics.median(m[k] for m in each[v]) for k in each[v][0]} for v in values},
+                        "runs_ms": {str(v): runs_ms[v] for v in values}, "order": order, "runs": runs, "chosen": best,
+                        "rule": "noise", "commit": head_commit(), "identity": identity(group)}  # K2: commit, rule: a record
         rec.log({"scan": group, **table[group]})
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(res, f, indent=1)

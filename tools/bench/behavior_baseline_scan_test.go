@@ -3,8 +3,10 @@ package bench
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -141,6 +143,91 @@ bash "$HERE/en-hizli-ayar.sh"; echo "rc=$?"
 			if code != 0 || !strings.Contains(out, want) {
 				t.Errorf("%v: exit %d, want %q\n%s", c.env[len(c.env)-1], code, want, out)
 			}
+		}
+	}
+}
+
+// noiseCheck taramayı sahte koşularla koşar: ayar başına üç koşunun değerleri sırayla verilir, çağrıların sırası yazılır.
+const noiseCheck = `
+import importlib.util, json, os, sys, tempfile
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+qs = rp.load_questions()
+work = tempfile.mkdtemp()
+json.dump({"trlang": "trlang", "whisper_cli": "w", "llama_bench": "b", "llama_completion": "c", "go_compare": "g"},
+          open(os.path.join(work, "tools.json"), "w"))
+N = os.cpu_count()
+def scan(times):
+    ctx = qs.Ctx(rp, "laptop", 97, work, lambda r: None, dry=True)
+    calls, count = [], {}
+    def fake(key, side, index, log, machine, cmds=None):
+        c = side["cmds"][0]
+        n = 0 if "-t" not in c else int(c[c.index("-t") + 1])
+        calls.append([index, n])
+        if index == "scan warmup":
+            ms = 1000
+        else:
+            ms = times[n][count.get(n, 0)]
+            count[n] = count.get(n, 0) + 1
+        return {"results": [{}], "runs": [{"stderr": "whisper_print_timings:    total time = %d.00 ms\\nwhisper_print_timings:     load time =     0.00 ms" % ms}]}
+    rp._run_side = fake
+    out = tempfile.mkdtemp()
+    rp.scan_settings(ctx, qs, type("R", (), {"log": lambda self, r: None})(), ["whisper.cpp"], out, runs=3)
+    t = json.load(open(os.path.join(out, "en-hizli.json")))["_scan"]["whisper.cpp"]
+    return {"chosen": t["chosen"], "calls": calls, "order": t["order"], "runs_ms": t["runs_ms"], "rule": t["rule"]}
+print(json.dumps({"N": N,
+    "overlap": scan({0: [100, 110, 120], 6: [130, 140, 150], N: [95, 105, 125]}),
+    "dominant": scan({0: [100, 110, 120], 6: [130, 140, 150], N: [80, 85, 90]}),
+    "edge": scan({0: [100, 110, 120], 6: [130, 140, 150], N: [90, 95, 100]}),
+    "six": scan({0: [100, 110, 120], 6: [60, 70, 80], N: [65, 75, 85]})}))
+`
+
+// K6 (H1e; DENETİM 960 Ş1): her ayar bir kez ısınır, sonra koşular ayarlar arasında döner (0, 6, N, 0, 6, N, …); bir
+// ayar, o ana kadar seçilenin yerine ancak üç koşusunun hepsi onunkilerin hepsinden kesin kısaysa geçer. Ortancası kısa
+// ama koşuları örtüşen ayar seçilmez; sınırdaki eşitlik de geçmez (< ile <= ayrımı).
+func TestBaselineScanKeepsTheEarlierSettingWithinNoise(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", noiseCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n") // taramanın satırları, sonda JSON
+	var got map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var n float64
+	_ = json.Unmarshal(got["N"], &n)
+	for name, want := range map[string]float64{"overlap": 0, "dominant": n, "edge": 0, "six": 6} {
+		var c struct {
+			Chosen float64
+			Calls  [][]any
+			Order  []float64
+			Rule   string
+		}
+		if err := json.Unmarshal(got[name], &c); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if c.Chosen != want || c.Rule != "noise" {
+			t.Errorf("%s: chose %v (rule %q), want %v", name, c.Chosen, c.Rule, want)
+		}
+		wantOrder := []float64{0, 6, n, 0, 6, n, 0, 6, n}
+		if !reflect.DeepEqual(c.Order, wantOrder) {
+			t.Errorf("%s: runs in order %v, want %v", name, c.Order, wantOrder)
+		}
+		var calls []string
+		for _, x := range c.Calls {
+			calls = append(calls, fmt.Sprintf("%v %v", x[0], x[1]))
+		}
+		wantCalls := []string{"scan warmup 0", "scan warmup 6", fmt.Sprintf("scan warmup %v", n)}
+		for i := 0; i < 3; i++ {
+			for _, v := range []float64{0, 6, n} {
+				wantCalls = append(wantCalls, fmt.Sprintf("scan %d %v", i, v))
+			}
+		}
+		if !reflect.DeepEqual(calls, wantCalls) {
+			t.Errorf("%s: calls %v, want %v", name, calls, wantCalls)
 		}
 	}
 }

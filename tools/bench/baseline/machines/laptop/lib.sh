@@ -121,7 +121,8 @@ olcu_tara_basla() {
 
 # olcu_tara <grup>...: Ş1'in kısa taraması (run.py --scan): her grubun en hızlı ayarı en-hizli.json'a (var olana eklenir;
 # gruplar ayrı komutlarla da koşabilir). Kural koşudan önce yazılı: varsayılan, 6 ve mantıksal sayı (S3'te -fa 0 ve 1),
-# ısınma + 3 koşu, en kısa ortanca; denemede her ayar bir kez, ısınmasız. Her grup bitince kimliğiyle (makine kaydı ve
+# her ayar bir ısınma, sonra 3 koşu ayarlar arasında dönerek; sonraki ayar ancak bütün koşuları öncekinin bütün
+# koşularından kısaysa seçilir (H1e K6); denemede her ayar bir kez, ısınmasız. Her grup bitince kimliğiyle (makine kaydı ve
 # sources.json; H1e K2) yazılır; ölçü yalnız kimliği tutan grubu alır (run.py settings_gate).
 olcu_tara() {
   local r="$KAYIT/run-en-hizli-ayar"; mkdir -p "$r"

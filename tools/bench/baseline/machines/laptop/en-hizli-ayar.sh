@@ -2,8 +2,9 @@
 # önce burada yazılı: her emsalin iş parçacığı sayısı üç değerle denenir (kütüphanenin varsayılanı 0, 6, makinenin mantıksal
 # sayısı). S1'in llama-bench okuması (-p 512 -n 0) ve üretimi (-p 0 -n 128 -d 512) ayrı gruptur, her biri kendi ayarını alır
 # (N1); S3'ün llama-bench'i okumanın ayarıyla ve ayrıca flash attention 0 ve 1 ile, yalnız 700 derinliğinde. Her ayar grubun
-# temsil kalemiyle bir ısınma + 3 koşu koşar; ölçülerin toplamının ortancası en kısa olan seçilir, tablo ölçü başına ortancayı
-# da yazar. Gruplar ve kalemleri: llama.cpp read ve gen (S1/qwen3-4b-q4km), llama.cpp S3 (S3/qwen3-4b-q4km), faster-whisper
+# temsil kalemiyle bir kez ısınır, sonra 3 koşu ayarlar arasında döner (0, 6, N, 0, 6, N, …); öncelik 0, 6, N'dir ve sonraki
+# ayar ancak bütün koşuları (ölçülerin toplamı) o ana kadar seçilenin bütün koşularından kısaysa seçilir (H1e K6, DENETİM
+# 960 Ş1); tablo her koşuyu, sırayı ve ölçü başına ortancayı da yazar. Gruplar ve kalemleri: llama.cpp read ve gen (S1/qwen3-4b-q4km), llama.cpp S3 (S3/qwen3-4b-q4km), faster-whisper
 # float32 ve int8 (S5/tr), whisper.cpp (S5/tr), onnxruntime (S7/tr). Seçim ve tablo kayıt kökündeki en-hizli.json'a; öbür
 # betikler ölçüyü o ayarla koşar (lib.sh olcu_kos --settings) ve dosyayı kendi kaydına koyar. Ölçü kipinde ilk adım eski
 # dosyayı siler (hazırlıkta düşen tarama eski pencerenin ayarını bırakmaz), tarama bütün grupları koşar, dosyayı yalnız hepsi
