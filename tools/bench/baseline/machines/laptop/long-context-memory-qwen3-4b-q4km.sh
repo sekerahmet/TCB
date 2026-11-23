@@ -9,4 +9,5 @@
 olcu_kur
 olcu_model qwen3-4b-q4km
 olcu_makine long-context-memory-qwen3-4b-q4km
-olcu_kos long-context-memory-qwen3-4b-q4km S4 --key "S4/qwen3-4b-q4km/${OLCU_DENEME:+45}"  # denemede yalnız 45 token'lık kalem
+baglam=""; [ "${OLCU_DENEME:-}" = 1 ] && baglam=45  # denemede yalnız 45 token'lık kalem (lib.sh gibi yalnız OLCU_DENEME=1)
+olcu_kos long-context-memory-qwen3-4b-q4km S4 --key "S4/qwen3-4b-q4km/$baglam"

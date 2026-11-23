@@ -9,4 +9,5 @@
 olcu_kur
 olcu_model gemma3-4b-qat-q40
 olcu_makine long-context-memory-gemma3-4b-qat-q40
-olcu_kos long-context-memory-gemma3-4b-qat-q40 S4 --key "S4/gemma3-4b-qat-q40/${OLCU_DENEME:+40}"  # denemede yalnız 40 token'lık kalem
+baglam=""; [ "${OLCU_DENEME:-}" = 1 ] && baglam=40  # denemede yalnız 40 token'lık kalem (lib.sh gibi yalnız OLCU_DENEME=1)
+olcu_kos long-context-memory-gemma3-4b-qat-q40 S4 --key "S4/gemma3-4b-qat-q40/$baglam"

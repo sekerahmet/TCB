@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Koşturucunun 2026-11-22 penceresinden sonraki düzeltmelerinin testleri (H1, kontrol/h1-olcu-betik-duzelt; TCB
@@ -358,6 +360,40 @@ func TestBaselineShortestMeasurableTime(t *testing.T) {
 	// DENETİM 953 N2: TR'nin 0 ms'si de Linux'ta durur; oran 0 olup "TR daha iyi" demez.
 	if s, _ := got["tr zero"].(string); !strings.Contains(s, "TR ms measured 0 ms") {
 		t.Errorf("a 0 ms TR side on Linux: %v, want a stop before the ratio", got["tr zero"])
+	}
+}
+
+// DENETİM 953 N3: uzun bağlam betikleri deneme kipini lib.sh gibi yalnız OLCU_DENEME=1 ile tanır: denemede kısa bağlamın
+// kalemi, öbür her değerde (yok, 0) bütün bağlamlar. Betiğin anahtar satırları sahte olcu_kos'la koşar.
+func TestLaptopLongContextTrialKey(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash yok")
+	}
+	scripts, _ := reporoot.Glob(filepath.Join("baseline", "machines", "laptop", "long-context-memory-*.sh"))
+	if len(scripts) != 5 {
+		t.Fatalf("%d long-context scripts, want 5", len(scripts))
+	}
+	for _, s := range scripts {
+		body, _ := os.ReadFile(s)
+		var lines []string
+		for _, l := range strings.Split(string(body), "\n") {
+			if strings.HasPrefix(l, "baglam=") || strings.HasPrefix(l, "olcu_kos ") {
+				lines = append(lines, l)
+			}
+		}
+		for env, trial := range map[string]bool{"": false, "OLCU_DENEME=0": false, "OLCU_DENEME=1": true} {
+			cmd := exec.Command(bash, "-c", "set -u; olcu_kos() { echo \"${@: -1}\"; }; "+strings.Join(lines, "\n"))
+			cmd.Env = os.Environ()
+			if env != "" {
+				cmd.Env = append(cmd.Env, env)
+			}
+			out, err := cmd.Output()
+			key := strings.TrimSpace(string(out))
+			if err != nil || strings.HasSuffix(key, "/") == trial || !strings.HasPrefix(key, "S4/") {
+				t.Errorf("%s with %q: key %q (%v); want a context only when OLCU_DENEME=1", filepath.Base(s), env, key, err)
+			}
+		}
 	}
 }
 
