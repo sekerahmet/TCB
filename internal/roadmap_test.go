@@ -135,7 +135,15 @@ func TestRoadmapShallowAndFullClones(t *testing.T) {
 
 	writeRoadmap("**Son ölçüm: 2026-11-08, main `" + c0[:8] + "`.**\n")
 	gitIn(full, "commit", "-q", "-m", "c1")
-	checkRoadmapAncestor(t, full)
+	// Tam klonda denetim koşmalı: atlanırsa (ör. sığlık sorusu hep "sığ" derse) üst test düşer.
+	skipped := false
+	t.Run("full_checks", func(t *testing.T) {
+		defer func() { skipped = t.Skipped() }()
+		checkRoadmapAncestor(t, full)
+	})
+	if skipped {
+		t.Fatal("tam klonda ata denetimi atlanmamalıydı")
+	}
 
 	shallow := filepath.Join(tmp, "shallow")
 	if out, err := exec.Command("git", "clone", "-q", "--no-local", "--depth", "1", full, shallow).CombinedOutput(); err != nil {
