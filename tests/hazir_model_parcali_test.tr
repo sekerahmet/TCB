@@ -247,15 +247,39 @@ TR_func kopya(w: TR_Dict[TR_String, TR_Tensor]) -> TR_Dict[TR_String, TR_Tensor]
     TR_return y
 }
 
-TR_test "hazır_model: eksik parametre H7912, şekil farkı H7913; eşlenmeyen ağırlık H6945, eksik parça H6946" {
+# kapı_iletisi klasörün yüklemesinin hata kodunu sınar; iletinin Türkçe ve İngilizce metni her parçayı taşır.
+TR_func kapı_iletisi(k: TR_Path, kod: TR_String, parçalar: TR_List[TR_String]) {
+    TR_assert_equal(kod, TR_error_code { TR_pretrained_model("\(k)") })
+    TR_try { TR_pretrained_model("\(k)") } TR_catch e {
+        TR_for dil TR_in ["tr", "en"] {
+            TR_var m = e.TR_text(dil)
+            TR_for parça TR_in parçalar { TR_assert(m.TR_contains(parça), "\(dil), \(parça): \(m)") }
+        }
+    }
+}
+
+TR_test "hazır_model: eksik parametre H7912, şekil farkı H7913 (birleşik katmanda iki yön); eşlenmeyen ağırlık H6945, eksik parça H6946" {
     TR_var ayar = qwen3_ayar()
     TR_var w = hf_ağırlıkları(ayar, "bf16")
     TR_var eksik = kopya(w)
     eksik.TR_remove("model.norm.weight")
-    TR_assert_equal("H7912", TR_error_code { TR_pretrained_model("\(klasör("h7912", ayar, eksik, 2))") })
+    TR_var k12 = klasör("h7912", ayar, eksik, 2)
+    kapı_iletisi(k12, "H7912", ["TR_mem_final_norm.TR_mem_weight", "\(k12)"])
     TR_var şekil = kopya(w)
     şekil["model.layers.0.self_attn.q_proj.weight"] = TR_zeros([8, 8], TR_dtype: "bf16")
-    TR_assert_equal("H7913", TR_error_code { TR_pretrained_model("\(klasör("h7913", ayar, şekil, 0))") })
+    kapı_iletisi(klasör("h7913", ayar, şekil, 0), "H7913", ["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight",
+        "model.layers.0.self_attn.q_proj.weight", "[8, 16]", "[8, 8]"])
+    # Birleşik katman (DENETİM 956 Ş1): k_proj'un çıkış boyu yanlışsa birleşik tensör yanlış boydadır, hangi
+    # parçanın yanlış olduğu bilinmez, ileti iki parçayı da anar; giriş boyu yanlışsa yanlış parça bilinir, eşlemeden
+    # önce denetlenir (birleştirmenin iletisi değil).
+    TR_var kv = "TR_mem_blocks.0.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight"
+    TR_var çıkış = kopya(w)
+    çıkış["model.layers.0.self_attn.k_proj.weight"] = TR_zeros([4, 8], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913_cikis", ayar, çıkış, 2), "H7913", [kv, "[8, 16]", "[8, 12]",
+        "model.layers.0.self_attn.k_proj.weight, model.layers.0.self_attn.v_proj.weight"])
+    TR_var giriş = kopya(w)
+    giriş["model.layers.0.self_attn.k_proj.weight"] = TR_zeros([8, 6], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913_giris", ayar, giriş, 2), "H7913", [kv, "[8, 16]", "[6, 8]", "model.layers.0.self_attn.k_proj.weight"])
     TR_var fazla = kopya(w)
     fazla["model.layers.0.mlp.gate_proj.bias"] = TR_zeros([12], TR_dtype: "bf16")
     TR_assert_equal("H6945", TR_error_code { TR_pretrained_model("\(klasör("h6945", ayar, fazla, 2))") })
