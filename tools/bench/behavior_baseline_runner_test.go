@@ -250,3 +250,126 @@ func checkScriptsBindTheirModels(t *testing.T, scripts []string) {
 		t.Errorf("%d olcu_kos runs read from %d scripts; the parser lost them", checked, len(scripts))
 	}
 }
+
+// shortCheck en kısa ölçülebilir sürenin denetimini (run.py too_short) üç türde sınırın iki yanında, S4'ün belleğinde,
+// Linux makinesinde, emsalsiz koşuda ve sıfır ms'lik emsalde koşar.
+const shortCheck = `
+import importlib.util, json, sys, types
+spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
+rp = importlib.util.module_from_spec(spec)
+sys.modules["run"] = rp
+spec.loader.exec_module(rp)
+out = {}
+def call(name, side, measures, runs=None, machine="laptop"):
+    try:
+        out[name] = rp.too_short("Q", side, measures, None, runs, machine)
+    except rp.Stop as e:
+        out[name] = "stop: " + str(e)
+dur = {"name": "TR"}
+call("duration under", dur, {"ms": 19.9})
+call("duration over", dur, {"ms": 20.1})
+der = {"name": "TR", "kinds": {"ms": {"kind": "derived", "what": "two walls",
+                                      "span": lambda r, runs: runs[0]["wall_ms"] - runs[1]["wall_ms"]}}}
+call("derived under", der, {"ms": 0.06}, [{"wall_ms": 1000}, {"wall_ms": 981}])
+call("derived over", der, {"ms": 0.08}, [{"wall_ms": 1000}, {"wall_ms": 975}])
+nd = {"name": "TR", "kinds": {"missed": {"kind": "not_duration", "why": "a count"}}}
+call("not duration under", nd, {"missed": 0})
+call("not duration over", nd, {"missed": 30})
+mem = {"name": "TR", "short_ok": "memory"}
+call("memory under", mem, {"load_ms": 0.5})
+call("memory over", mem, {"load_ms": 25.0})
+call("linux under", dur, {"ms": 0.5}, machine="highram")
+vals = iter([0.4, 1.3, 0.0])
+rp._run_side = lambda q, side, index, log, machine: {"results": [{"load_ms": next(vals)}], "runs": [{"peak_working_set_kb": 9}]}
+side = {"name": "TR", "short_ok": "memory", "measure": lambda r, runs: {"load_ms": r[0]["load_ms"]}}
+out["alone"] = rp.run_alone("S4/x/0", side, lambda r: None, "laptop", runs=2)["measures"]["load_ms"]
+rp._run_side = lambda q, side, index, log, machine, cmds=None: {"results": [{"v": 5.0 if side["name"] == "TR" else 0.0}], "runs": [{}]}
+pick = lambda r, runs: r[0]["v"]
+try:
+    rp.run_pair("S13/fib", {"name": "TR", "measure": pick}, {"name": "Go", "measure": pick}, None, lambda r: None, "highram")
+    out["zero"] = "no stop"
+except rp.Stop as e:
+    out["zero"] = str(e)
+print(json.dumps(out))
+`
+
+// BC27 (TCB 2026-11-23 10:33, H1 soru 1): dizüstünde (Windows'un saat adımı ~0,5 ms) her ölçünün okunduğu saat aralığı
+// 20 ms'yle karşılaştırılır: süre değerin kendisiyle, türetilmiş süre okunduğu aralıkla (karakter modeli: iki koşunun duvar
+// farkı), süre olmayan ölçü (sayı, gecikme, hız) denetlenmez. Altında kalem durur, satır basılmaz; yalnız belleği ölçen S4'te
+// ölçü "ölçülemeyecek kadar kısa" diye işaretlenir, bellek kalır. Linux makinesinde sınır yok; 0 ms'lik emsal orana girmez.
+func TestBaselineShortestMeasurableTime(t *testing.T) {
+	out, err := exec.Command(python(t), "-I", "-c", shortCheck).Output()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	for name, want := range map[string]string{"duration under": "TR ms: 19.900 ms read, too short to measure (ölçülemeyecek kadar kısa)",
+		"derived under": "TR ms: 19.000 ms read (two walls), too short to measure"} {
+		if s, _ := got[name].(string); !strings.Contains(s, want) {
+			t.Errorf("%s: %v, want a stop with %q", name, got[name], want)
+		}
+	}
+	for _, pass := range []string{"duration over", "derived over", "not duration under", "not duration over", "memory over", "linux under"} {
+		if l, ok := got[pass].([]any); !ok || len(l) != 0 {
+			t.Errorf("%s: %v, want no stop and nothing marked", pass, got[pass])
+		}
+	}
+	if l, ok := got["memory under"].([]any); !ok || len(l) != 1 || l[0] != "load_ms" {
+		t.Errorf("memory under: %v, want load_ms marked, no stop", got["memory under"])
+	}
+	alone, _ := got["alone"].(map[string]any)
+	if mark, _ := alone["too_short"].(map[string]any); mark == nil || mark["limit_ms"] != 20.0 {
+		t.Errorf("S4's short load: %v, want it marked too short with the 20 ms limit", alone)
+	}
+	if s, _ := got["zero"].(string); !strings.Contains(s, "Go ms measured 0 ms") {
+		t.Errorf("a 0 ms reference: %v, want a stop before the ratio", got["zero"])
+	}
+}
+
+// BC27: kısa diye işaretlenen ölçünün satırı sayı basmaz, nedenini söyler; bellek satırı kalır; Ayar sınırı yazar.
+// Ölçülerin türü questions.py'de koşudan önce yazılıdır.
+func TestBaselineShortMeasureRowAndKinds(t *testing.T) {
+	dir := t.TempDir()
+	metrics := `{"_machine": {"threads": 20, "threads_source": "gctrace P (O-1)", "shortest_measurable_ms": 20.0},
+ "S4/x/0": {"reference": null, "measures": {"load_ms": {"tr_ms": [1.3, 0.0], "median": 0.65, "min": 0.0, "max": 1.3,
+   "too_short": {"limit_ms": 20.0, "why": "S4 measures memory"}}}, "memory": [{"peak_working_set_kb": 9}]}}`
+	if err := os.WriteFile(filepath.Join(dir, "metrics.json"), []byte(metrics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rows, code := baseline(t, "--rows", "--out", dir)
+	for _, want := range []string{"; shortest measurable 20 ms (BC27)", "S4/x/0 load_ms: — (ölçülemeyecek kadar kısa: a run under 20 ms; S4 measures memory)",
+		"S4/x/0 memory TR peaks: {'peak_working_set_kb': 9}"} {
+		if code != 0 || !strings.Contains(rows, want) {
+			t.Errorf("--rows: exit %d, want %q\n%s", code, want, rows)
+		}
+	}
+	if strings.Contains(rows, "0.650") || strings.Contains(rows, "1.300") {
+		t.Errorf("--rows printed a too-short number\n%s", rows)
+	}
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]map[string]struct {
+		Kinds   map[string]string
+		ShortOK bool `json:"short_ok"`
+	}
+	selfCheck(t, &got, "items", work)
+	laptop := got["laptop"]
+	for key, want := range map[string]map[string]string{"S13/char_model": {"ms": "derived"},
+		"S13/loop_100hz": {"missed": "not_duration", "worst_late_ms": "not_duration"},
+		"S9/tr":          {"tokens_per_second": "not_duration"}, "S9/en": {"tokens_per_second": "not_duration"}, "S13/fib": {}} {
+		if fmt.Sprint(laptop[key].Kinds) != fmt.Sprint(want) {
+			t.Errorf("%s kinds %v, want %v", key, laptop[key].Kinds, want)
+		}
+	}
+	for key, it := range laptop {
+		if it.ShortOK != strings.HasPrefix(key, "S4/") {
+			t.Errorf("%s: short_ok %v; only S4 (memory) lets a short measure pass", key, it.ShortOK)
+		}
+	}
+}

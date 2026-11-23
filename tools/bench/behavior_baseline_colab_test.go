@@ -379,8 +379,11 @@ rp = importlib.util.module_from_spec(spec)
 sys.modules["run"] = rp
 spec.loader.exec_module(rp)
 calls = []
-rp._run_side = lambda q, side, index, log, machine: calls.append(index) or {"results": [1.0], "runs": [{}]}
-side = {"measure": lambda results, runs: {"ms": results[0]}}
+# 100 ms: over the laptop's shortest measurable time (BC27); the custom run's load check and process list are faked (N1)
+rp._run_side = lambda q, side, index, log, machine: calls.append(index) or {"results": [100.0], "runs": [{}]}
+rp.wait_for_quiet = lambda q, log: 0.0
+rp.process_list = lambda: []
+side = {"name": "TR", "measure": lambda results, runs: {"ms": results[0]}}
 out = {}
 for trial in (False, True):
     calls.clear()
@@ -388,7 +391,7 @@ for trial in (False, True):
     rp.run_item(types.SimpleNamespace(machine="laptop"), it, types.SimpleNamespace(log=lambda r: None), trial=trial)
     out["alone %s" % str(trial).lower()] = list(calls)
     n = []
-    it = {"key": "S9/tr", "custom": lambda: n.append(1) or ({"ms": 1.0}, {}), "ref": None, "tr": side, "runs": 3}
+    it = {"key": "S9/tr", "custom": lambda: n.append(1) or ({"ms": 100.0}, {}), "ref": None, "tr": side, "runs": 3}
     rp.run_item(types.SimpleNamespace(machine="laptop"), it, types.SimpleNamespace(log=lambda r: None), trial=trial)
     out["custom %s" % str(trial).lower()] = len(n)
 agreed = []

@@ -128,17 +128,34 @@ def setting_group(name, argv):
     return {"llama-completion": "llama.cpp read", "whisper-cli": "whisper.cpp", "piper": "onnxruntime"}.get(name)
 
 
-def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None, uses=None):
+def item(key, tr, ref=None, agree=None, tr_agree=None, ref_agree=None, alone_runs=5, custom=None, check=None, uses=None,
+         kinds=None):
     # check: yalnız uyuşmada koşan başvuru (ref yokken): doğruluğun başvurusudur ama en hızlısı değildir, ABBA'da koşmaz ve
     # satıra oranı girmez (TCB 2026-11-20 00:15: transformers hiçbir soruda hız emsali değil; S2, S6).
     # uses: kalemin taraflarının dışında koşabilen komutlar (uyuşmanın kendi koştuğu emsaller, hazırlık, Dost'un komutu);
     # betiğin bağladığı her model kalemin bir komutunda geçer (BC28, run.py --self-check uses).
     return {"key": key, "tr": tr, "ref": ref, "agree": agree, "tr_agree": tr_agree, "ref_agree": ref_agree,
-            "runs": alone_runs, "custom": custom, "check": check, "uses": uses or []}
+            "runs": alone_runs, "custom": custom, "check": check, "uses": uses or [], "kinds": kinds or {}}
 
 
-def side(name, cmds, measure, parse=None, env=None, agree_parse=None):
+def derived(span, what):
+    """BC27: a measure computed from a longer clock span (run.py too_short compares the span, not the measure)."""
+    return {"kind": "derived", "span": span, "what": what}
+
+
+def not_duration(why):
+    """BC27: a measure that is no duration of work (a count, a lateness, a rate); the shortest time does not apply."""
+    return {"kind": "not_duration", "why": why}
+
+
+def side(name, cmds, measure, parse=None, env=None, agree_parse=None, kinds=None, short_ok=None):
+    # kinds: measure name -> derived(...) or not_duration(...); a measure not named is a duration (BC27, written before
+    # the run). short_ok: why a measure under the shortest time does not stop this side (S4: only its memory is the row).
     s = {"name": name, "cmds": cmds, "measure": measure}
+    if kinds:
+        s["kinds"] = kinds
+    if short_ok:
+        s["short_ok"] = short_ok
     if parse:
         s["parse"] = parse
     if agree_parse:
@@ -302,6 +319,7 @@ def q_language(ctx, q):
 
 
 MEMORY_RUNS = 2  # a question that measures only memory (S4): its runs after the warm-up, written before the run
+MEMORY_SHORT = "S4 measures memory: the load time is not written, the memory stays (TCB 2026-11-23 10:33)"
 
 
 def q_catalog(ctx, q):
@@ -318,8 +336,9 @@ def q_catalog(ctx, q):
             cmd = ctx.tr("catalog_memory.tr", "--catalog", CATALOG, "--entry", e["id"], "--path", p, "--context", m["context"],
                          "--text", text, "--device", ctx.tr_device)
             # S4 yalnız belleği ölçer: bir ısınma + 2 koşu (Ahmet 2026-11-22 20:45: bellek için 5 koşu gerekmez).
-            out.append(item(f"S4/{e['id']}/{m['context']}", side("TR", [cmd], lambda r, runs: {"load_ms": r[0]["load_ms"]}),
-                            alone_runs=MEMORY_RUNS))
+            # BC27: a load under the shortest time (Silero VAD, 0–1.3 ms) does not stop it; the row is the memory.
+            out.append(item(f"S4/{e['id']}/{m['context']}", side("TR", [cmd], lambda r, runs: {"load_ms": r[0]["load_ms"]},
+                                                                 short_ok=MEMORY_SHORT), alone_runs=MEMORY_RUNS))
     return out
 
 
@@ -565,7 +584,7 @@ def q_dost(ctx, q):
                             alone_runs=3))
         elif q == "S9":
             out.append(item(f"S9/{lang}", None, alone_runs=3, custom=lambda ctx=ctx, base=screen, lang=lang: screen_turns(ctx, base, lang),
-                            uses=[screen]))
+                            uses=[screen], kinds={"tokens_per_second": not_duration("a rate: Dost's metrics event, tokens per second")}))
         elif q == "S10":
             for mode in (["warm"] if ctx.machine == "laptop" else ["cold", "warm"]):
                 out.append(item(f"S10/{lang}/{mode}", None, alone_runs=3,
@@ -815,7 +834,10 @@ PURE_SIZES = {"dongu": 300_000_000, "fib": 37, "matris_dongu": 480}
 def q_targets(ctx):
     """S13: the roadmap's targets: pure compute TR/Go, the character model TR/PyTorch, the 100 Hz loop."""
     loop = item("S13/loop_100hz", side("TR", [ctx.tr("loop_100hz.tr", "--device", ctx.tr_device)],
-                                       lambda r, runs: {"missed": r[0]["missed"], "worst_late_ms": r[0]["worst_late_ms"]}))
+                                       lambda r, runs: {"missed": r[0]["missed"], "worst_late_ms": r[0]["worst_late_ms"]},
+                                       kinds={"missed": not_duration("a count of late turns"),
+                                              "worst_late_ms": not_duration("a turn's lateness past its deadline (TR_monotonic_ns), "
+                                                                            "not a work's time; the loop runs 1000 turns of 10 ms")}))
     if ctx.gpu:  # GPUs: only the loop (set S13, C-2)
         return [loop]
     out = []
@@ -828,10 +850,13 @@ def q_targets(ctx):
     bench = _bench_run()
     programs = [bench.model_program(ctx.tmp, n) for n in (bench.MODEL_STEPS, 0)]
     step = lambda r, runs: (runs[0]["wall_ms"] - runs[1]["wall_ms"]) / bench.MODEL_STEPS
+    # BC27: a step is read from the two runs' wall difference (MODEL_STEPS steps), not from one step's clock.
+    span = {"ms": derived(lambda r, runs: runs[0]["wall_ms"] - runs[1]["wall_ms"],
+                          f"the {bench.MODEL_STEPS}-step run's wall minus the 0-step run's")}
     py = [sys.executable, "-I", os.path.join(ROOT, "tools", "bench", "py", "char_model.py")]
-    out.append(item("S13/char_model", side("TR", [ctx.tr(p) for p in programs], step, parse=raw),
+    out.append(item("S13/char_model", side("TR", [ctx.tr(p) for p in programs], step, parse=raw, kinds=span),
                     side("PyTorch", [py + [str(n), str(ctx.threads)] for n in (bench.MODEL_STEPS, 0)], step, parse=raw,
-                         env=dict(os.environ, PYTHONIOENCODING="utf-8"))))
+                         env=dict(os.environ, PYTHONIOENCODING="utf-8"), kinds=span)))
     out.append(loop)
     return out
 
