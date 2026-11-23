@@ -259,6 +259,42 @@ func TestHostBlockIsReleasedAndPressureBounds(t *testing.T) {
 	}
 }
 
+// Kural (T1 bf16 bellek, A3): kaynağı bırakılıp kopyası alınan bloklarda tepe canlı P, K kaynak ve B
+// blok boyuyla P ≤ K + max(P/8, taban) + B'yi geçmez; eşik tetiklendiği andaki canlıdan hesaplanır,
+// o canlı P'yi geçmez. Test her kopyadan sonra toplanmış blokların temizleyicilerini bekler (toplama
+// çağırmadan): kural sınanır, temizleyicinin hızı değil. Kural olmasa tepe 2K olurdu.
+func TestHostBlockDerivedCopiesCollect(t *testing.T) {
+	needBlock(t, hostBlockMin)
+	if settleHostMemory(func(n int64) bool { return n == 0 }) != 0 {
+		t.Skip("başka bloklar canlı")
+	}
+	old := hostDerivedFloor
+	hostDerivedFloor = 4 << 20
+	t.Cleanup(func() { hostDerivedFloor = old })
+	const size, n = hostBlockMin, 128
+	src := make([]*Tensor, n)
+	for i := range src {
+		src[i] = FromHostBlock(needBlock(t, size), BFloat16, size/2)
+	}
+	hostMemory.derivedSinceGC.Store(0)
+	dst := make([]*Tensor, n)
+	peak := int64(0)
+	for i := range src {
+		dst[i] = src[i].Clone()
+		src[i] = nil
+		for dead, _ := hostDeadSet(); len(dead) > 0; time.Sleep(time.Millisecond) {
+			if dead, _ = hostPending(dead); len(dead) == 0 {
+				break
+			}
+		}
+		peak = max(peak, hostMemory.live.Load())
+	}
+	runtime.KeepAlive(dst)
+	if limit := int64(n*size) + max(peak/8, hostDerivedFloor) + size; peak > limit {
+		t.Fatalf("tepe canlı %d MiB, sınır %d MiB (kaynak %d MiB)", peak>>20, limit>>20, n*size>>20)
+	}
+}
+
 // Kural (19.12a): öbek dışı blok bellek tavanına sayılır: blok ayrılınca Go'nun sınırı bloğun boyu
 // kadar küçülür, blok bırakılınca geri gelir.
 func TestHostBlockCountsTowardTheMemoryLimit(t *testing.T) {

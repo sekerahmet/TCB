@@ -24,6 +24,7 @@ var trBigFiles = map[string]string{
 	"lib/vits.tr":               "VITS modeli tek dosyada",
 	"lib/whisper.tr":            "Whisper modeli tek dosyada",
 	"tests/vad_test.tr":         "ses etkinliği bulmanın (25) testleri tek dosyada",
+	"lib/pretrained.tr":         "hazır model yükleyicisi tek modülde: _ adlar dışa aktarılmaz (11.7), bölmek yeni kamu adı ister",
 }
 
 // trSourceFiles izlenen el yazımı .tr dosyalarıdır: bilerek hatalı fikstürler (tests/negative),

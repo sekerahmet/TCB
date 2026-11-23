@@ -1,0 +1,302 @@
+# TR 4
+# Hazır modelin parçalı klasörü (15.55, T1 bf16 bellek): TR_pretrained_model tek dosyayı ve
+# model.safetensors.index.json'un andığı parçaları okur, parametreleri sıfırların üstüne yazmadan atar.
+# Ölçüt: TR_build_pretrained_model + TR_load_parameters yoluyla bit bit aynılık; dizin yanlışları H7911,
+# eksik parametre H7912, şekil farkı H7913. Klasörler TR_temp_dir'de kurulur, ağırlıklar tohumludur.
+TR_import "tr/hugging_face"
+TR_import "tr/layers"
+TR_import "tr/pretrained"
+
+# qwen3_ayar qk normlu, paylaşımsız lm_head'li iki katmanlı küçük bir Qwen3'tür.
+TR_func qwen3_ayar() -> TR_JSON {
+    TR_return TR_JSON({"model_type": "qwen3", "vocab_size": 20, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 2,
+        "num_attention_heads": 2, "num_key_value_heads": 1, "head_dim": 8, "max_position_embeddings": 8, "rms_norm_eps": 0.000001,
+        "tie_word_embeddings": TR_false, "rope_theta": 1000000.0})
+}
+
+# gemma_ayar iki katmanlı küçük bir gemma3_text'tir: yerel ve genel katman, paylaşımlı gömme, dört norm.
+TR_func gemma_ayar() -> TR_JSON {
+    TR_return TR_JSON({"model_type": "gemma3_text", "vocab_size": 20, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 2,
+        "num_attention_heads": 2, "num_key_value_heads": 1, "head_dim": 8, "max_position_embeddings": 12, "rms_norm_eps": 0.000001,
+        "rope_theta": 1000000.0, "rope_local_base_freq": 10000.0, "sliding_window": 4, "sliding_window_pattern": 2,
+        "query_pre_attn_scalar": 8, "hidden_activation": "gelu_pytorch_tanh"})
+}
+
+# çok_kipli_ayar gemma_ayar'ı çok kipli bir gemma3'ün text_config'i yapar; görüntü kulesi yüklenmez.
+TR_func çok_kipli_ayar() -> TR_JSON {
+    TR_return TR_JSON({"model_type": "gemma3", "text_config": gemma_ayar(), "vision_config": {"model_type": "siglip_vision_model", "hidden_size": 4},
+        "mm_tokens_per_image": 4, "image_token_index": 19})
+}
+
+# hf_ağırlıkları ayarın boylarıyla Hugging Face adlı, tohumlu ağırlıklar kurar (T1 bf16 bellek). Atlanması
+# gerekenler de vardır: dönüş tablosu, çok kiplide görüntü kulesi; paylaşımsız modelde lm_head.
+TR_func hf_ağırlıkları(ayar: TR_JSON, tür: TR_String) -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var çok_kipli = TR_String(ayar["model_type"]) == "gemma3"
+    TR_var a = TR_if çok_kipli { ayar["text_config"] } TR_else { ayar }
+    TR_var tip = TR_String(a["model_type"])
+    TR_var gemma = tip == "gemma3_text"
+    TR_var önek = TR_if çok_kipli { "language_model." } TR_else { "" }
+    TR_var boy = TR_Int(a["hidden_size"])
+    TR_var bakış = TR_Int(a["num_attention_heads"])
+    TR_var kv = TR_Int(a["num_key_value_heads"])
+    TR_var bb = TR_Int(a["head_dim"])
+    TR_var ara = TR_Int(a["intermediate_size"])
+    TR_var dağarcık = TR_Int(a["vocab_size"])
+    TR_var şekiller: TR_Dict[TR_String, TR_List[TR_Int]] = {"model.embed_tokens.weight": [dağarcık, boy], "model.norm.weight": [boy]}
+    TR_if TR_not TR_Bool(TR_config_value(a, "tie_word_embeddings", gemma)) { şekiller["lm_head.weight"] = [dağarcık, boy] }
+    TR_for i TR_in 0..TR_Int(a["num_hidden_layers"]) {
+        TR_var ön_ad = "model.layers.\(i)."
+        şekiller[ön_ad + "self_attn.q_proj.weight"] = [bakış * bb, boy]
+        şekiller[ön_ad + "self_attn.k_proj.weight"] = [kv * bb, boy]
+        şekiller[ön_ad + "self_attn.v_proj.weight"] = [kv * bb, boy]
+        şekiller[ön_ad + "self_attn.o_proj.weight"] = [boy, bakış * bb]
+        şekiller[ön_ad + "mlp.gate_proj.weight"] = [ara, boy]
+        şekiller[ön_ad + "mlp.up_proj.weight"] = [ara, boy]
+        şekiller[ön_ad + "mlp.down_proj.weight"] = [boy, ara]
+        şekiller[ön_ad + "input_layernorm.weight"] = [boy]
+        şekiller[ön_ad + "post_attention_layernorm.weight"] = [boy]
+        TR_if tip != "llama" {
+            şekiller[ön_ad + "self_attn.q_norm.weight"] = [bb]
+            şekiller[ön_ad + "self_attn.k_norm.weight"] = [bb]
+        }
+        TR_if gemma {
+            şekiller[ön_ad + "pre_feedforward_layernorm.weight"] = [boy]
+            şekiller[ön_ad + "post_feedforward_layernorm.weight"] = [boy]
+        }
+    }
+    TR_var w: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_var tohum = 1
+    TR_for ad, ş TR_in şekiller {
+        w[önek + ad] = TR_randn(ş, TR_seed: tohum).TR_to_dtype(tür)
+        tohum += 1
+    }
+    TR_if TR_not gemma { w["model.layers.0.self_attn.rotary_emb.inv_freq"] = TR_Tensor([1.0, 2.0]) }
+    TR_if çok_kipli {
+        w["vision_tower.vision_model.embeddings.patch_embedding.weight"] = TR_randn([4, 4], TR_seed: 99).TR_to_dtype(tür)
+        w["multi_modal_projector.mm_input_projection_weight"] = TR_randn([4, 8], TR_seed: 98).TR_to_dtype(tür)
+        # Görüntü kulesinin katmanları dil modelininkilerle aynı içi taşır (layers.0.self_attn.k_proj.weight);
+        # boyları farklıdır, birleşik katmanın kapısına girmemelidir.
+        TR_for i TR_in 0..2 {
+            TR_for parça TR_in ["q_proj", "k_proj", "v_proj", "out_proj"] {
+                w["vision_tower.vision_model.encoder.layers.\(i).self_attn.\(parça).weight"] = TR_randn([4, 4], TR_seed: 90 + i).TR_to_dtype(tür)
+            }
+        }
+    }
+    TR_return w
+}
+
+# klasör ayarı ve ağırlıkları yeni bir klasöre yazar: parça 0 ise tek model.safetensors, değilse ağırlıklar
+# sırayla parça dosyalarına dağılır (birleşik katmanın iki yarısı ayrı parçalara düşer) ve dizin yazılır.
+TR_func klasör(ad: TR_String, ayar: TR_JSON, w: TR_Dict[TR_String, TR_Tensor], parça: TR_Int) -> TR_Path {
+    TR_var k = TR_Path(TR_temp_dir(), ad)
+    TR_make_dir(k)
+    TR_write_file(TR_Path(k, "config.json"), TR_json_string(ayar))
+    TR_if parça == 0 {
+        TR_save_tensors(TR_Path(k, "model.safetensors"), w)
+        TR_return k
+    }
+    TR_var adlar = w.TR_keys()
+    TR_var harita: TR_Dict[TR_String, TR_String] = {}
+    TR_for j TR_in 0..parça {
+        TR_var dosya = "model-0000\(j + 1)-of-0000\(parça).safetensors"
+        TR_var d: TR_Dict[TR_String, TR_Tensor] = {}
+        TR_for i TR_in 0..adlar.TR_length {
+            TR_if i % parça == j {
+                d[adlar[i]] = w[adlar[i]]
+                harita[adlar[i]] = dosya
+            }
+        }
+        TR_save_tensors(TR_Path(k, dosya), d)
+    }
+    TR_write_file(TR_Path(k, "model.safetensors.index.json"), TR_json_string({"metadata": {"total_size": 0}, "weight_map": harita}))
+    TR_return k
+}
+
+# eski_yol main'deki yoldur: sıfırlı model, eşlenmiş sözlük, parametreleri_yükle.
+TR_func eski_yol(ayar: TR_JSON, w: TR_Dict[TR_String, TR_Tensor], tür: TR_String) -> TR_GPT {
+    TR_var m = TR_build_pretrained_model(ayar, TR_weight_dtype: tür)
+    TR_load_parameters(m, TR_map_hugging_face(w, ayar))
+    TR_return m
+}
+
+# aynı_model iki modelin adlı parametrelerini (ad, şekil, tür, türev izleme, bitler), logitlerini, ayarını ve
+# blokların yapısını karşılaştırır. Bitler iki modelin safetensors dosyasının baytlarıdır.
+TR_func aynı_model(a: TR_GPT, b: TR_GPT, ne: TR_String) {
+    TR_var pa = TR_parameters(a, TR_named: TR_true)
+    TR_var pb = TR_parameters(b, TR_named: TR_true)
+    TR_assert_equal(pa.TR_keys(), pb.TR_keys(), ne)
+    TR_for ad TR_in pa.TR_keys() {
+        TR_assert_equal(pa[ad].TR_shape, pb[ad].TR_shape, "\(ne) \(ad)")
+        TR_assert_equal(pa[ad].TR_dtype, pb[ad].TR_dtype, "\(ne) \(ad)")
+        TR_assert_equal(pa[ad].TR_requires_grad, pb[ad].TR_requires_grad, "\(ne) \(ad)")
+    }
+    TR_var k = TR_temp_dir()
+    TR_save_tensors(TR_Path(k, "a.safetensors"), pa)
+    TR_save_tensors(TR_Path(k, "b.safetensors"), pb)
+    TR_assert(TR_read_bytes(TR_Path(k, "a.safetensors")) == TR_read_bytes(TR_Path(k, "b.safetensors")), "\(ne): bitler")
+    TR_var x = TR_Tensor([[3, 1, 4, 1, 5]])
+    TR_assert_equal(a.TR_forward(x)[0].TR_tolist, b.TR_forward(x)[0].TR_tolist, ne)
+    TR_assert_equal("\(a.TR_config)", "\(b.TR_config)", ne)
+    TR_assert_equal(a.TR_blocks.TR_length, b.TR_blocks.TR_length, ne)
+    TR_for i TR_in 0..a.TR_blocks.TR_length {
+        TR_var da = a.TR_blocks[i].TR_attention
+        TR_var db = b.TR_blocks[i].TR_attention
+        TR_assert_equal([da.TR_num_heads, da.TR_num_kv_heads, da.TR_head_dim, da.TR_window], [db.TR_num_heads, db.TR_num_kv_heads, db.TR_head_dim, db.TR_window], ne)
+    }
+}
+
+TR_func llama_ayarı() -> TR_JSON { TR_return TR_json_parse(TR_read_file(TR_Path("data", "hf_tiny", "config.json"))) }
+
+TR_test "hazır_model: tek dosya ve parçalı klasör, parametreleri_yükle yoluyla bit bit aynı (Llama, Qwen3, Gemma 3; dosya türü ve ağırlık_türü)" {
+    TR_var ayarlar: TR_Dict[TR_String, TR_JSON] = {"llama": llama_ayarı(), "qwen3": qwen3_ayar(),
+        "gemma3_text": gemma_ayar(), "gemma3": çok_kipli_ayar()}
+    TR_for mimari, ayar TR_in ayarlar {
+        TR_for dosya_türü TR_in ["bf16", "float32"] {
+            TR_var w = hf_ağırlıkları(ayar, dosya_türü)
+            TR_for parça TR_in [0, 2] {
+                TR_var k = klasör("\(mimari)_\(dosya_türü)_\(parça)", ayar, w, parça)
+                TR_for tür TR_in ["float32", "bf16"] {
+                    aynı_model(TR_pretrained_model("\(k)", TR_weight_dtype: tür), eski_yol(ayar, w, tür), "\(mimari) dosya \(dosya_türü), \(parça) parça, \(tür)")
+                }
+            }
+        }
+    }
+}
+
+TR_test "hazır_model: dizin varken klasördeki başka safetensors bağlanmaz; dizin ile model.safetensors birlikteyse dizin geçer" {
+    TR_var ayar = qwen3_ayar()
+    TR_var w = hf_ağırlıkları(ayar, "bf16")
+    TR_var taban = eski_yol(ayar, w, "bf16")
+    TR_var k = klasör("fazla", ayar, w, 2)
+    TR_save_tensors(TR_Path(k, "fazla.safetensors"), {"model.norm.weight": TR_zeros([8], TR_dtype: "bf16"), "x.weight": TR_zeros([2])})
+    aynı_model(TR_pretrained_model("\(k)", TR_weight_dtype: "bf16"), taban, "fazla dosya")
+    TR_var sıfır: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for ad, t TR_in w { sıfır[ad] = TR_zeros(t.TR_shape, TR_dtype: t.TR_dtype) }
+    TR_save_tensors(TR_Path(k, "model.safetensors"), sıfır)
+    aynı_model(TR_pretrained_model("\(k)", TR_weight_dtype: "bf16"), taban, "dizin ve model.safetensors")
+}
+
+# dizinli k'nın dizinini metinle değiştirir; yüklemenin hata kodunu ve İngilizce iletisini verir ("" hata yoksa).
+TR_func dizinli(k: TR_Path, metin: TR_String) -> TR_String {
+    TR_write_file(TR_Path(k, "model.safetensors.index.json"), metin)
+    TR_try { TR_pretrained_model("\(k)") } TR_catch e {
+        TR_var kod = TR_error_code { TR_throw e }
+        TR_return kod + " " + e.TR_text("en")
+    }
+    TR_return ""
+}
+
+# durum dizinin H7911 verdiğini ve iletinin beklenen durumun cümlesini taşıdığını sınar.
+TR_func durum(k: TR_Path, metin: TR_String, cümle: TR_String) {
+    TR_var r = dizinli(k, metin)
+    TR_assert(r.TR_starts_with("H7911 ") TR_and r.TR_contains(cümle), "\(metin): \(r)")
+}
+
+# yükleme_iletisi klasörün yükleme hatasının iletisini iki dilde verir ("" hata yoksa).
+TR_func yükleme_iletisi(k: TR_Path) -> TR_String {
+    TR_try { TR_pretrained_model("\(k)") } TR_catch e { TR_return e.TR_text("tr") + "\n" + e.TR_text("en") }
+    TR_return ""
+}
+
+TR_test "hazır_model: parça dizininin yanlışları H7911 (biçim, ad, eksik dosya, eksik ve fazla ağırlık); bozuk JSON H2572" {
+    TR_var ayar = qwen3_ayar()
+    TR_var w = hf_ağırlıkları(ayar, "bf16")
+    TR_var k = klasör("dizin", ayar, w, 2)
+    TR_var doğru = TR_read_file(TR_Path(k, "model.safetensors.index.json"))
+    TR_var harita = TR_json_parse(doğru)["weight_map"]
+    TR_var ilk = "model-00001-of-00002.safetensors"
+    TR_assert(dizinli(k, "{\"weight_map\": {\"a\": \"b\" \"c\"}}").TR_starts_with("H2572 "))
+    TR_for metin TR_in ["{}", "[1, 2]", "{\"weight_map\": [1]}", "{\"weight_map\": null}", "{\"weight_map\": {\"model.norm.weight\": 3}}"] {
+        durum(k, metin, "must hold a `weight_map` dictionary")
+    }
+    TR_for ad TR_in ["", ".", "..", "../x.safetensors", "a/b.safetensors", "a\\b.safetensors", "c:x.safetensors"] {
+        durum(k, TR_json_string({"weight_map": {"model.norm.weight": ad}}), "a shard name must be the name of a file")
+    }
+    # dizindeki ad yok: eksik parça dosyası
+    TR_var eksik_dosya = TR_Dict(harita)
+    eksik_dosya["model.norm.weight"] = TR_JSON("model-00003-of-00003.safetensors")
+    durum(k, TR_json_string({"weight_map": eksik_dosya}), "the shard the index names is not in the folder")
+    # dizindeki ağırlık parçada yok
+    TR_var fazla_ad = TR_Dict(harita)
+    fazla_ad["model.extra.weight"] = TR_JSON(ilk)
+    durum(k, TR_json_string({"weight_map": fazla_ad}), "the shard does not contain it")
+    # parçadaki ağırlığı dizin anmıyor
+    TR_var anılmayan = TR_Dict(harita)
+    anılmayan.TR_remove("model.norm.weight")
+    durum(k, TR_json_string({"weight_map": anılmayan}), "does not map the shard's weight to this shard")
+    # ağırlık iki parçada: dizin onu birine eşler, öbür parça verir
+    TR_var iki = TR_load_tensors(TR_Path(k, ilk))
+    TR_var öbür = TR_load_tensors(TR_Path(k, "model-00002-of-00002.safetensors"))
+    TR_var taşınan = öbür.TR_keys()[0]
+    iki[taşınan] = öbür[taşınan]
+    TR_save_tensors(TR_Path(k, ilk), iki)
+    durum(k, doğru, "does not map the shard's weight to this shard")
+    # iletinin metni dosyayı, ağırlığı, parçayı ve düzeltmeyi iki dilde söyler
+    TR_var e = yükleme_iletisi(k)
+    TR_assert(e.TR_contains("model.safetensors.index.json") TR_and e.TR_contains(taşınan) TR_and e.TR_contains(ilk) TR_and e.TR_contains("yeniden indirin") TR_and e.TR_contains("download the folder again"), e)
+}
+
+TR_test "hazır_model: parça adı kuralının sınırı: içinde .. geçen ad geçerlidir" {
+    TR_var ayar = qwen3_ayar()
+    TR_var w = hf_ağırlıkları(ayar, "bf16")
+    TR_var k = klasör("nokta", ayar, w, 0)
+    TR_var harita: TR_Dict[TR_String, TR_String] = {}
+    TR_for ad TR_in w.TR_keys() { harita[ad] = "a..b.safetensors" }
+    TR_save_tensors(TR_Path(k, "a..b.safetensors"), w)
+    TR_write_file(TR_Path(k, "model.safetensors.index.json"), TR_json_string({"weight_map": harita}))
+    aynı_model(TR_pretrained_model("\(k)", TR_weight_dtype: "bf16"), eski_yol(ayar, w, "bf16"), "a..b")
+}
+
+# kopya tensör sözlüğünün sığ kopyasıdır.
+TR_func kopya(w: TR_Dict[TR_String, TR_Tensor]) -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var y: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for ad, t TR_in w { y[ad] = t }
+    TR_return y
+}
+
+# kapı_iletisi klasörün yüklemesinin hata kodunu sınar; iletinin Türkçe ve İngilizce metni her parçayı taşır.
+TR_func kapı_iletisi(k: TR_Path, kod: TR_String, parçalar: TR_List[TR_String]) {
+    TR_assert_equal(kod, TR_error_code { TR_pretrained_model("\(k)") })
+    TR_try { TR_pretrained_model("\(k)") } TR_catch e {
+        TR_for dil TR_in ["tr", "en"] {
+            TR_var m = e.TR_text(dil)
+            TR_for parça TR_in parçalar { TR_assert(m.TR_contains(parça), "\(dil), \(parça): \(m)") }
+        }
+    }
+}
+
+TR_test "hazır_model: eksik parametre H7912, şekil farkı H7913 (birleşik katmanda iki yön); eşlenmeyen ağırlık H6945, eksik parça H6946" {
+    TR_var ayar = qwen3_ayar()
+    TR_var w = hf_ağırlıkları(ayar, "bf16")
+    TR_var eksik = kopya(w)
+    eksik.TR_remove("model.norm.weight")
+    TR_var k12 = klasör("h7912", ayar, eksik, 2)
+    kapı_iletisi(k12, "H7912", ["TR_mem_final_norm.TR_mem_weight", "\(k12)"])
+    TR_var şekil = kopya(w)
+    şekil["model.layers.0.self_attn.q_proj.weight"] = TR_zeros([8, 8], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913", ayar, şekil, 0), "H7913", ["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight",
+        "model.layers.0.self_attn.q_proj.weight", "[8, 16]", "[8, 8]"])
+    # Birleşik katman (DENETİM 956 Ş1): k_proj'un çıkış boyu yanlışsa birleşik tensör yanlış boydadır, hangi
+    # parçanın yanlış olduğu bilinmez, ileti iki parçayı da anar; giriş boyu yanlışsa yanlış parça bilinir, eşlemeden
+    # önce denetlenir (birleştirmenin iletisi değil).
+    TR_var kv = "TR_mem_blocks.0.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight"
+    TR_var çıkış = kopya(w)
+    çıkış["model.layers.0.self_attn.k_proj.weight"] = TR_zeros([4, 8], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913_cikis", ayar, çıkış, 2), "H7913", [kv, "[8, 16]", "[8, 12]",
+        "model.layers.0.self_attn.k_proj.weight, model.layers.0.self_attn.v_proj.weight"])
+    TR_var giriş = kopya(w)
+    giriş["model.layers.0.self_attn.k_proj.weight"] = TR_zeros([8, 6], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913_giris", ayar, giriş, 2), "H7913", [kv, "[8, 16]", "[6, 8]", "model.layers.0.self_attn.k_proj.weight"])
+    # Çok kipli gemma3'te kapı language_model. önekli katmanlara bakar; görüntü kulesinin katmanlarına bakmaz.
+    TR_var mm = çok_kipli_ayar()
+    TR_var mm_giriş = hf_ağırlıkları(mm, "bf16")
+    mm_giriş["language_model.model.layers.1.self_attn.k_proj.weight"] = TR_zeros([8, 6], TR_dtype: "bf16")
+    kapı_iletisi(klasör("h7913_mm_giris", mm, mm_giriş, 2), "H7913", ["TR_mem_blocks.1.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight",
+        "[8, 16]", "[6, 8]", "language_model.model.layers.1.self_attn.k_proj.weight"])
+    TR_var fazla = kopya(w)
+    fazla["model.layers.0.mlp.gate_proj.bias"] = TR_zeros([12], TR_dtype: "bf16")
+    TR_assert_equal("H6945", TR_error_code { TR_pretrained_model("\(klasör("h6945", ayar, fazla, 2))") })
+    TR_var yarım = kopya(w)
+    yarım.TR_remove("model.layers.0.self_attn.v_proj.weight")
+    TR_assert_equal("H6946", TR_error_code { TR_pretrained_model("\(klasör("h6946", ayar, yarım, 2))") })
+}
