@@ -28,6 +28,13 @@ func TestDebuggerBreakpointToggleIsSafe(t *testing.T) {
 		_ = d.hasBreakpoint(i % 7)
 	}
 	<-done
+	// 2000 = 285*7 + 5: 0..4 satırları 286 kez (çift → false), 5..6 satırları 285 kez (tek → true) çevrilir.
+	for line := range 7 {
+		want := line >= 2000%7
+		if got := d.hasBreakpoint(line); got != want {
+			t.Errorf("satır %d: hasBreakpoint=%v, beklenen %v", line, got, want)
+		}
+	}
 }
 
 // runCLI programı terminal hata ayıklayıcısıyla, komutları input'tan okuyarak çalıştırır;
