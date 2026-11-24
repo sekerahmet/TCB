@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlik ve türle başlar: kimlik (S-412), tür (Yapılacaklar ya da Mevcut durum). Madde mesajda, devirde ve denetimde kimlikle anılır, satır numarasıyla anılmaz. Silinen maddenin kimliği `internal/devtools/testrunner/testdata/status_deleted_ids.txt`'ye yazılır ve yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar. Madde alt satırlarıyla en çok 500 harftir. Kimlikli ölçünün sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, saat, tarih ve kanıt etiketinin dışında DENETİM numarası yazılmaz, karar commit mesajında durur [test: `TestStatusItemsFollowTheFormat`]. Türden sonra ayraçta sınıf, öncelik, varsa dilim ve sahip gelir; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı.
 
-**Sıradaki kimlik:** S-704.
+**Sıradaki kimlik:** S-706.
 
 ## Önem ve öncelik
 
@@ -863,7 +863,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (E, Ö3; sahip T1):** 15.53a'nın tek satırlı çarpımı (üretim) L4'te float yolundan yavaş [ölçüldü: TG-2026-11-24-L4GPU-T1-1]. Mevcut durum: GPU CPU'nun bitlerini verir [test: `TestQuantActMatchesCPUForEveryShape`]; çok satırlı yol sm_80+'ta `mma.sync` s8 [ölçüldü: TG-2026-11-24-L4GPU-T1-6], altında (ve q4) dp4a; sonlu olmayan satırda ara sonuç taşarsa GPU (`dot32`) AVX2'li CPU'dan (`sdot32`) ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: Dilim C, C0 (G4 dahil).
+- **S-396 Yapılacaklar (E, Ö3; sahip T1):** 15.53a'yla üretim (tek satır) L4'te float yolundan yavaş [ölçüldü: TG-2026-11-24-L4GPU-T1-1]. Mevcut durum: GPU CPU'nun bitlerini verir [test: `TestQuantActMatchesCPUForEveryShape`]; çok satırlı yol sm_80+'ta `mma.sync` s8 [ölçüldü: TG-2026-11-24-L4GPU-T1-6], altında (ve q4) dp4a; sonlu olmayan satırda ara sonuç taşarsa GPU (`dot32`) AVX2'li CPU'dan (`sdot32`) ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: Dilim C, C0 (G4 dahil).
 
 ### 15.54
 
@@ -1133,6 +1133,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-583 Yapılacaklar (F, Ö3; sahip D1):** `trrun.Parse` yalnız sözdizimi aşamasını denetliyor, `StageType`'ı görmüyor: H0004'lü metin Go testinde çalışır [kanıtlı: `internal/testkit/trrun/trrun.go:28`]. Yalnız test takımı.
 - **S-587 Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu, komut satırı):** trlang version yalnız sürüm numarasını basıyor (H8603), ikilinin derlendiği commit'i ve ağacın değişik olup olmadığını göstermiyor [kanıtlı: `cmd/trlang/main.go:130`]. Sıradaki: ileti metni tasarımla.
 - **S-588 Yapılacaklar (F, Ö3; sahip TCB):** `docs/agent_reference.md` tensör işlemlerini ve `TR_fuse`'un kurallarını özetlemiyor: `TR_fuse`, `TR_Tensor`, `TR_conv1d` hiç geçmiyor [ölçüldü: `grep -c`, `02d9fb69`]. Sıradaki: Ahmet'le konuşulduktan sonra TCB yazar.
+- **S-705 Yapılacaklar (F, Ö3; sahip T1):** `TestQuantActSpeed` (gerçek kartta günlüğe süre yazan test) çarpımın süresine sonucun ana belleğe kopyasını da katıyor: `f().Data()` [kanıtlı: internal/compute/gpu/kernel_quant_act_test.go:174-178]; yazdığı süre çekirdek süresi değildir. Sıradaki: Dilim C'nin C0 profiliyle aynı commit'te düzelir.
 - **S-589 Yapılacaklar (test, Ö3; korunan kural A; sahip Motor (dil çekirdeği), sonraki dokunuşta, yargı ister):** denetleyicinin üç kuralı testsiz: `internal/lang/checker/runtime_checks.go:128` (M24), `local_types.go:163` (M22) ve `member_types.go:77` (M28) mutantlarıyla bütün testler geçiyor [ölçüldü: DENETİM 961, `27d242d5`]. Sıradaki: üç programın beklenen sonucu dil tanımından yazılır.
 - **S-590 Yapılacaklar (test, Ö3; sahip DIL UZMANI, testrunner):** `TestEveryRuleHasATest` ve `TestRuleTestsExist` testin varlığını sınıyor, kuralı yakaladığını değil: 20.10'un tek TR testinin gövdesi (`tests/kontrol_noktasi_test.tr:302`) boşaltılınca ikisi de geçiyor [ölçüldü: `8279479c`]. Sıradaki: denetimsiz `TR_test` gövdesinin tanımı (yardımcılar ve `TR_grad_check` sayılır mı).
 - **S-591 Yapılacaklar (test, Ö3; sahip TCB, yol haritası testi, sonraki dokunuşta):** `TestRoadmapShallowAndFullClones` tam klonda yalnız ata olan commit'i kuruyor (`internal/roadmap_test.go:104-160`); `checkRoadmapAncestor`'ın ata değil hatası (`:97-99`) hiçbir testte koşmuyor [kanıtlı: `internal/roadmap_test.go:97`]. Sıradaki: yardımcı sonucunu döndürsün, yan dalda kurulan ata olmayan commit'le hata beklensin.
@@ -1165,14 +1166,15 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-505 Yapılacaklar (F, Ö3; sahip T1):** iki Go yorumu var olmayan dosya adlarını anıyor: `sayac_saat_amd64.go` ve `sayac_saat_amd64.s` (bugün `counter_clock_amd64.go`, `counter_clock_amd64.s`) [kanıtlı: internal/compute/tensor/counter_clock.go:6, internal/compute/tensor/counter_clock_amd64.go:5]. Sıradaki: T1'in tensör çekirdeğindeki sonraki işi.
 - **S-585 Yapılacaklar (F, Ö3; sahip DIL UZMANI):** kitaplık yorumlarının ve örneklerin kullanım satırları görünüm adlarıyla yazılı (ör. `lib/training.tr:5-7`): lib'de 8 dosyada 28, examples'ta 24 dosyada 29 satır [ölçüldü: `git grep -P -c`, üç kalıp, `02d9fb69`]; `docs/recipes.md:22` örneği `tr.json`'a koyuyor, dil dosyası onu reddeder [kanıtlı: internal/lang/codes/json_parse.go:139]. Sıradaki: satırlar kimliğe geçer.
 - **S-586 Yapılacaklar (F1, Ö3; sahip dil çekirdeği kolu (Motor)):** `examples/tr/hatalar/`'ın 23 örneğinden 22'sinin "Düzeltilmiş hâli" görünüm adıyla, altısında (06, 08, 10, 11, 20, 21) yorum `//` ile yazılı; kopyalanan düzeltme koşmuyor [ölçüldü: `02d9fb69`; 01 ve 06 denetimi, `9956e6fa`]. Sıradaki: hepsi kimlikle ve `#` ile yazılır, düzeltilmiş kodu denetleyen test eklenir.
+- **S-704 Yapılacaklar (F, Ö3; sahip T1):** `docs/architecture.md:202` ve `internal/compute/gpu/ptx.go:58`'in `target` yorumu çekirdek hedeflerini eksik sayıyor: yalnız taban `sm_52` ile cp.async'in `sm_80`'i var; `dp4a` `sm_61` (`kernel_quant_act_tile.go:28`, `kernel_quant_act_rows.go:18`), `mma.sync` `sm_80` ister (`kernel_quant_act_mma.go:23`) [kanıtlı: bu satırlar]. Sıradaki: Dilim C'nin commit'inde iki yer birlikte düzelir.
 
 ### Diğer
 
 - **S-579 Yapılacaklar (C, Ö2; sahip T1):** `CopyTypeError`'ın GPU kolunu (`internal/compute/tensor/cpu_typed.go:115`) hiçbir test çağırmıyor; `TestCopyTypeErrorIsTheErrorOfTheCopy` yalnız CPU'da ve kopya da `CopyTypeError`'ı çağırdığı için kendini sınıyor [kanıtlı: `internal/compute/tensor/cpu_typed.go:86`]. Sıradaki: `TestTypedPathsOnGPU` kalıbında kalıcı test.
 - **S-580 Yapılacaklar (C, Ö2; sahip T1):** erken bırakılan `TR_read_lines` okuyucusunu yalnız çöp toplayıcı kapatıyor (internal/stdlib/files/lines.go:228), `trlang test` okuyucuları yalnız sonda kapatıyor (`cmd/trlang/test_command.go:20`): bir testin okuyucusu sonraki testin `TR_remove`'unu H7125 ile düşürüyor [ölçüldü: `GOGC=off` ile iki testli program, `02d9fb69`]. Sıradaki: koşucu her testten sonra okuyucuları kapatsın.
 - **S-581 Yapılacaklar (D, Ö3; sahip T1):** safetensors yolunda `max_position_embeddings` 0 denetlenmiyor, uzaktaki çarpımda H6126 ile düşüyor; H7155'in denetimi yalnız GGUF'ta [kanıtlı: `lib/pretrained.tr:706`, `lib/pretrained.tr:370`; ölçüldü: T1].
-- **S-683 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** dizüstü betikleri koşu klasörünü yalnız betiğin adıyla kuruyor: aynı pencerede iki commit'i ölçen işte ikisi aynı klasöre yazar, `metrics.json` öncekini ezer [kanıtlı: `tools/bench/baseline/machines/laptop/lib.sh:84`]. Sıradaki: koşu klasörü commit'i de taşır.
-- **S-684 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** dizüstünde uyuşma ısınmanın içinde koşuyor (tools/bench/baseline/run.py:1078-1079) ve sonucu yalnız log.jsonl'e gidiyor; `agreement.json`'u yalnız ayrı uyuşma geçişi dolduruyor (`:1039`) [kanıtlı: `02d9fb69`]. Sıradaki: dizüstünün uyuşması da `agreement.json`'a yazılır.
+- **S-683 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** dizüstü ve L4 betikleri koşu klasörünü yalnız betiğin adıyla kuruyor: aynı pencerede iki commit'i ölçen işte ikisi aynı klasöre yazar; dizüstünde `metrics.json` öncekini ezer, L4'te klasör önce silinir [kanıtlı: `tools/bench/baseline/machines/laptop/lib.sh:84`; machines/l4/text-generation-base-qwen3-4b-q4km.sh:60-61]. Sıradaki: koşu klasörü commit'i de taşır.
+- **S-684 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** dizüstünde hız eşi olan kalemin uyuşması ısınmanın içinde koşuyor (tools/bench/baseline/run.py:1081-1082) ve sonucu `agreement.json`'a yazılmıyor; onu `agree_item` dolduruyor (`:1040`) [kanıtlı: `b7777361`]. Sıradaki: dizüstünün uyuşması da `agreement.json`'a yazılır.
 
 ### Windows'ta Go çalışma zamanının bozulması
 
