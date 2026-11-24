@@ -70,11 +70,13 @@ TR_func toplu_iş_üret() -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
     TR_for b TR_in 0..B {
         TR_var baş = rastgele_tam(V)
         TR_var g = []
+        TR_var h = []
         TR_for t TR_in 0..T {
             g.TR_append((baş + t) % V)
-            hedefler.TR_append((baş + t + 1) % V)
+            h.TR_append((baş + t + 1) % V)
         }
         girdiler.TR_append(g)
+        hedefler.TR_append(h)
     }
     TR_return girdiler, TR_Tensor(hedefler)
 }

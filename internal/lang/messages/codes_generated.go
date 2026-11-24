@@ -1178,7 +1178,7 @@ const (
 	H6310 Code = 6310 // {fn}: çıktı en az 1 boyutlu olmalıdır (son eksen sınıflar)
 	H6311 Code = 6311 // {fn}: {order}. tensörün şekli {shape}, 1. tensörünki {firstShape}; {axis}. eksen dışındaki eksenler eşit olmalı ({badAxis}. eksende {len} ≠ {firstLen})
 	H6312 Code = 6312 // {fn}: hedef sınıf indeksleri olmalı; one-hot verdiniz gibi görünüyor ({shape} şeklindeki çıktıyla aynı sayıda 0/1). Her satırın sınıfı: `{#argmax}(h, {#dim}: -1)`; one-hot bir olasılık hedefi olarak da verilebilir: `{#Tensor}[{#Float}](h)`
-	H6313 Code = 6313 // {fn}: {shape} şeklindeki çıktı için {expected} hedef bekleniyor, {given} verildi
+	H6313 Code = 6313 // {fn}: {shape} şeklindeki çıktının sınıf hedefi {expected} şeklinde olmalı (son eksen düşer), {given} verildi (15.23a)
 	H6314 Code = 6314 // {fn}: hedef sınıf {target}, {classes} sınıflı çıktının dışında; 0 ile {high} arasında olmalı (yalnız -100 yok sayılır)
 	H6315 Code = 6315 // {fn}(parça_sayısı, {axisArg}: -1) parça sayısını bekler, {given} parametre verildi
 	H6316 Code = 6316 // {fn}: bütün hedefler yok sayıldı ({rows} satırın hepsi negatif ya da hiç satır yok); ortalama kayıp tanımsız. Yalnızca dolgudan oluşan partiyi atlayın

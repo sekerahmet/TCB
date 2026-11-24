@@ -208,8 +208,8 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 const ignoredTarget = -100
 
 // lossTargets çapraz entropinin hedefini okur ve sh şekilli logitlere göre denetler (15.23a).
-// Sınıf hedefi TR_Tensor[TR_Int]'tir: satır başına bir sınıf indeksi (one-hot değil), sınıf
-// sayısının altında; -100 yok sayılır, öbür eksiler hatadır, en az biri geçerli olmalıdır.
+// Sınıf hedefi TR_Tensor[TR_Int]'tir: şekli sh'nin son ekseni düşmüş şeklidir, satır başına bir
+// sınıf indeksi (one-hot değil), sınıf sayısının altında; -100 yok sayılır, öbür eksiler hatadır, en az biri geçerli olmalıdır.
 // probability doğruysa TR_Tensor[TR_Float] hedef olasılık hedefidir: logitle aynı şekilde
 // olmalıdır ve tensör olarak döner. Liste ve mantık tensörü hedef değildir.
 func lossTargets(fn any, sh []int, v interp.Value, probability bool) ([]int, *tensor.Tensor, error) {
@@ -233,7 +233,6 @@ func lossTargets(fn any, sh []int, v interp.Value, probability bool) ([]int, *te
 		}
 		return nil, tv.t, nil
 	}
-	target, _, _ := tv.IntElements()
 	C := sh[len(sh)-1]
 	n := 1
 	for _, d := range sh {
@@ -243,12 +242,17 @@ func lossTargets(fn any, sh []int, v interp.Value, probability bool) ([]int, *te
 	if C > 0 {
 		line = n / C
 	}
-	if len(target) != line && C > 1 && len(target) == n && isZeroOne(target) {
-		return nil, nil, messages.New(messages.H6312, fn, tensor.ShapeText(sh))
+	// Şekil veriden önce denetlenir: üstveridir, GPU'da beklemez ve bekleyen işlem değildir
+	// (15.23a, 15.6). Veriyi yalnız one-hot sezgisi (H6312) okur, şekil uymayınca.
+	if want := sh[:len(sh)-1]; !slices.Equal(tv.t.Shape(), want) {
+		if C > 1 && tv.t.Numel() == n && n != line {
+			if target, _, _ := tv.IntElements(); isZeroOne(target) {
+				return nil, nil, messages.New(messages.H6312, fn, tensor.ShapeText(sh))
+			}
+		}
+		return nil, nil, messages.New(messages.H6313, fn, tensor.ShapeText(sh), tensor.ShapeText(want), tensor.ShapeText(tv.t.Shape()))
 	}
-	if len(target) != line {
-		return nil, nil, messages.New(messages.H6313, fn, tensor.ShapeText(sh), line, len(target))
-	}
+	target, _, _ := tv.IntElements()
 	valid := 0
 	for _, h := range target {
 		switch {

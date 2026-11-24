@@ -1173,7 +1173,7 @@
 "H6310": "{fn}: the output must have at least 1 dimension (the last axis is the classes)",
 "H6311": "{fn}: the shape of tensor {order} is {shape}, that of tensor 1 is {firstShape}; axes other than axis {axis} must be equal ({len} ≠ {firstLen} at axis {badAxis})",
 "H6312": "{fn}: the target must be class indices; it looks like you gave one-hot (as many 0/1 values as the output of shape {shape}). The class of each row: `{#argmax}(h, {#dim}: -1)`; one-hot can also be given as a probability target: `{#Tensor}[{#Float}](h)`",
-"H6313": "{fn}: for an output of shape {shape}, {expected} targets are expected, {given} given",
+"H6313": "{fn}: for an output of shape {shape}, the class target must have shape {expected} (the last axis dropped), {given} given (15.23a)",
 "H6314": "{fn}: the target class {target} is outside the output with {classes} classes; it must be between 0 and {high} (only -100 is ignored)",
 "H6315": "{fn}(num_parts, {axisArg}: -1) expects the number of parts, {given} {given, plural, one {parameter} other {parameters}} given",
 "H6316": "{fn}: all targets were ignored (all {rows} {rows, plural, one {row is} other {rows are}} negative or there are no rows); the mean loss is undefined. Just skip a batch that consists only of padding",

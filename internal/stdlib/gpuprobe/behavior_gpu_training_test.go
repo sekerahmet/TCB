@@ -52,7 +52,7 @@ TR_func eğit(cihaz: TR_String) -> (TR_List[TR_Float], TR_String) {
     TR_var son_k = TR_none
     TR_for adım TR_in 0..3 {
         TR_var xg = TR_Tensor(girdiler[adım])
-        TR_var yh = TR_Tensor(hedefler[adım])
+        TR_var yh = TR_Tensor(hedefler[adım]).TR_reshape([B, T])
         op.TR_zero_grad()
         TR_var x = TR_embedding_lookup(E, xg)
         TR_var h = TR_rms_norm(x, g1)

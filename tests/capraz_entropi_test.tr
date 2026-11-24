@@ -1,0 +1,30 @@
+# TR 4
+
+TR_test "15.23a sınıf hedefinin şekli: düz, devrik ve fazladan eksenli hedef hatadır" {
+    TR_var z = TR_Tensor([[[0.1, 0.2, 0.3, 0.4], [1.0, -1.0, 0.5, 0.0], [0.3, 0.3, 2.0, 0.1]], [[-0.5, 0.2, 0.9, 1.1], [0.0, 0.0, 0.0, 3.0], [1.5, 0.2, -0.3, 0.4]]])
+    TR_var h = TR_Tensor([[1, 2, 3], [0, 3, 0]])
+    TR_assert_equal([], TR_cross_entropy(z, h).TR_shape)
+    TR_assert_equal("H6313", TR_error_code { TR_cross_entropy(z, h.TR_transpose()) })
+    TR_assert_equal("H6313", TR_error_code { TR_cross_entropy(z, h.TR_reshape([6])) })
+    TR_assert_equal("H6313", TR_error_code { TR_cross_entropy(z, h.TR_reshape([2, 3, 1])) })
+    TR_assert_equal("H6313", TR_error_code { TR_cross_entropy(z, TR_Tensor([[1, 2], [0, 3]])) })
+
+    TR_var x = TR_ones([2, 3, 5])
+    TR_var w = TR_ones([5, 4])
+    TR_assert_equal([], TR_linear_cross_entropy(x, w, h).TR_shape)
+    TR_assert_equal("H6313", TR_error_code { TR_linear_cross_entropy(x, w, h.TR_transpose()) })
+    TR_assert_equal("H6313", TR_error_code { TR_linear_cross_entropy(x, w, h.TR_reshape([6])) })
+
+    TR_var z1 = TR_Tensor([0.1, 0.2, 0.3])
+    TR_assert_equal([], TR_cross_entropy(z1, TR_Tensor(2)).TR_shape)
+    TR_assert_equal("H6313", TR_error_code { TR_cross_entropy(z1, TR_Tensor([2])) })
+}
+
+TR_test "15.23a sınıf hedefinin şekli: boş, eksi, sınır dışı, one-hot ve yok sayılan hedef" {
+    TR_assert_equal("H6316", TR_error_code { TR_cross_entropy(TR_zeros([0, 3]), TR_Tensor[TR_Int](TR_zeros([0]))) })
+    TR_assert_equal("H6313", TR_error_code { TR_cross_entropy(TR_zeros([0, 3]), TR_Tensor[TR_Int](TR_zeros([0, 3]))) })
+    TR_assert_equal("H6981", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([1, -1])) })
+    TR_assert_equal("H6314", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([1, 9223372036854775807])) })
+    TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([[0, 1, 0], [1, 0, 0]])) })
+    TR_assert_equal(1.0986123, TR_round(TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([-100, 2])).TR_tolist, 7))
+}

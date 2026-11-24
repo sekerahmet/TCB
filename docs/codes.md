@@ -1945,7 +1945,7 @@ tr: yazdır(cosh(0.0), cosh(Tensör([0.0, 1.0])).listeye)
 
     çapraz_entropi(Tensör | Liste, Tensör) → Tensör
 
-Son ekseni sınıf olan çıktıyla satır başına bir sınıf indeksi arasındaki ortalama çapraz entropi kaybını skaler tensör olarak verir. Negatif hedefler yok sayılır; hepsi yok sayılırsa hata verir.
+Son ekseni sınıf olan çıktıyla hedef arasındaki ortalama çapraz entropi kaybını skaler tensör olarak verir. Sınıf hedefi tam sayı tensörüdür ve şekli çıktının son ekseni düşmüş şeklidir ([B, T, V] çıktıya [B, T]); yalnız -100 olan hedef yok sayılır, hepsi yok sayılırsa hata verir. Olasılık hedefi çıktıyla aynı şekilli ondalık tensördür.
 
 ```tr
 TR_print(TR_cross_entropy(TR_Tensor([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), TR_Tensor([0, 1])).TR_tolist)
@@ -2587,7 +2587,7 @@ tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sa
 
     doğrusal_çapraz_entropi(Tensör, Tensör, Tensör) → Tensör
 
-çapraz_entropi(girdi @ ağırlık, hedef) ile aynı kaybı ve gradyanları verir, ama bütün logitleri bellekte tutmaz: satırları dilim dilim işler (büyük sözlüklü dil modellerinin çıkış katmanı için). Ağırlık [girdinin son ekseni, sınıf sayısı] şeklindedir; paylaşımlı gömmede tablo.devrik() verilir.
+çapraz_entropi(girdi @ ağırlık, hedef) ile aynı kaybı ve gradyanları verir, ama bütün logitleri bellekte tutmaz: satırları dilim dilim işler (büyük sözlüklü dil modellerinin çıkış katmanı için). Ağırlık [girdinin son ekseni, sınıf sayısı] şeklindedir; paylaşımlı gömmede tablo.devrik() verilir. Hedef çapraz_entropi'nin sınıf hedefidir: şekli girdinin son ekseni düşmüş şeklidir.
 
 ```tr
 TR_print(TR_linear_cross_entropy(TR_Tensor([[1.0, 2.0]]), TR_Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), TR_Tensor([2])).TR_tolist)

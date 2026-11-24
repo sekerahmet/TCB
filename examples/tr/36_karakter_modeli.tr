@@ -111,11 +111,13 @@ TR_func toplu_iş() -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
     TR_for b TR_in 0..B {
         TR_var baş = rastgele_tam(veri.TR_length - T - 1)
         TR_var satır = []
+        TR_var hedef = []
         TR_for t TR_in 0..T {
             satır.TR_append(veri[baş + t])
-            hedefler.TR_append(veri[baş + t + 1])
+            hedef.TR_append(veri[baş + t + 1])
         }
         girdiler.TR_append(satır)
+        hedefler.TR_append(hedef)
     }
     TR_return girdiler, TR_Tensor(hedefler)
 }

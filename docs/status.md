@@ -23,8 +23,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 - **Ö2:** C; 2. kilometre taşının ve Jarvis'in ön koşulları.
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
-**Ö0, sırayla:**
-1. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
+**Ö0, sırayla:** yok.
 
 **Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -755,7 +754,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.23a
 
-- **Yapılacaklar (A, Ö0, 1. sıra; sahip T1, Tur 6A'dan sonraki dilim; Tur 6B, 2026-11-10):** sınıf hedefinin şekli tam denetlenir, `TR_linear_cross_entropy`'de de; bugün yalnız öğe sayısı: `[2, 3, 4]` logite devrik `[3, 2]` hedef hatasız, kayıp 1.3893125, doğrusu 1.751252 [ölçüldü: DENETİM 388]. Göç: örnek 35 ve 36 hedefi düz kuruyor; öbür çağrılar (`.tr`'de 44, Go'da 25 satır [ölçüldü: DENETİM 388, `git grep -c`]) kuraldan önce sayılır. İleti beklenen şekli söyler: H3045'in metni ve parametreleri (bugün `rows` ve `n`) şekle döner ya da yeni kod. Aynı işte belge: `TR_cross_entropy`'nin katalog açıklaması "negatif hedefler yok sayılır" diyor, 15.23a'ya döner (yalnız `-100`, şekil) [kanıtlı: DENETİM 393, F1'e yakın]; kılavuzun hedef satırı (`docs/guide/04_yapay_zeka_ve_veri.md`, "Sinir ağı") şekli de söyler.
 - **Yapılacaklar (E, Ö3; sahip T1; tur 8, 2026-11-14):** iki denetim hedefi konağa okuyarak yapılıyor (GPU'da bekler); bayrağın altyapısı ve kayıttaki yuvası var [test: `TestReplayInt64ArithFaultNamesRecordedLine`], çapraz entropinin hedef denetimi aynı bayrağa yazar (bugün kayıtta hedefin okunması H4065: `TR_Int` hedef internal/stdlib/ml/value.go:136'dan `internal/compute/gpu/typed.go:44`'e gider [ölçüldü: benzetici, `d6adf7e3`]).
 
 ### 15.23b
