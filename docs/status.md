@@ -1242,7 +1242,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md).
 ### 20.11
 
 - **S-625 Yapılacaklar (A, Ö1, Kol B, 15'in A'sıyla):** `TR_AnyTensor` tipi yok; `TR_load_parameters` hassasiyeti farklı tensörü çevirmeden H6960 ile, nicemlenmiş yaprağa yazmayı H6687 ile reddediyor (20.11, 15.54); H6687 yalnız açmayı öneriyor, hedefi aynı hassasiyette kurmayı önermiyor [kanıtlı: internal/compute/tensor/cpu_typed.go:105-122; test: `tests/kontrol_noktasi_test.tr:341-342`].
-- **S-626 Yapılacaklar (A, Ö1, Kol B, S-315 ile):** `TR_load_parameters` yalnız türev izleyen yaprakları arıyor (internal/stdlib/ml/params.go:55-58): sözlükte olmayan donmuş yaprak ya da tablo sessizce eski değerinde kalıyor, sözlükte verilirse H6531; 20.11 bütün yaprakları ister [ölçüldü: ae1e8dcc, trlang run]. Sıradaki: S-315'le; RoPE tablosu taşımayan hazır `.safetensors` ve LoRA alanlarının (15.34) yüklemesi aynı kararda.
+- **S-626 Yapılacaklar (A, Ö1, Kol B, S-315 ile):** `TR_load_parameters` hiç türev izlememiş yaprağı (tablo, tampon) toplamıyor (internal/stdlib/ml/params.go:90, internal/compute/tensor/grad_flag.go:53): sözlükte yoksa sessizce eski değerinde kalıyor, sözlükte verilirse H6531; 20.11 bütün yaprakları ister [ölçüldü: ae1e8dcc, trlang run]. Sıradaki: S-315'le; RoPE tablosu taşımayan hazır `.safetensors` ve LoRA alanlarının (15.34) yüklemesi aynı kararda.
 
 ### 20.12, 20.13
 
