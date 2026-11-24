@@ -33,6 +33,9 @@ func actShapes(dt tensor.DType) [][3]int {
 	if dt == tensor.Q4 {
 		s = append(s, [3]int{1, 9, 32}, [3]int{3, 17, 96}, [3]int{66, 70, 288})
 	}
+	if raceEnabled { // ağır boylar yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi); yol ve tür aynı
+		return s[:3]
+	}
 	if os.Getenv("TR_QUANT_ACT_SHAPES") == "model" && !inSim() {
 		s = append(s, [3]int{1, 4096, 2560}, [3]int{40, 1024, 2560}, [3]int{512, 2560, 4096}, [3]int{512, 9728, 2560},
 			[3]int{512, 2560, 9728}, [3]int{1, 2560, 9728})
@@ -78,6 +81,7 @@ func TestQuantActMatchesCPUForEveryShape(t *testing.T) {
 
 // TestQuantActIsDeterministic SM sayısı bitleri değiştirmez (15.22a): toplama sırası yalnız şekle bağlıdır.
 func TestQuantActIsDeterministic(t *testing.T) {
+	skipUnderRace(t)
 	sd, ok := gpuBackend().sr.(*simDriver)
 	if !ok {
 		t.Skip("SM sayısı yalnız benzeticide değiştirilebilir")
@@ -105,6 +109,7 @@ func TestQuantActIsDeterministic(t *testing.T) {
 
 // TestQuantActGemvMatchesRows tek satırlı çarpım (A2) çok satırlının aynı satırıyla bit bit aynıdır.
 func TestQuantActGemvMatchesRows(t *testing.T) {
+	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(13))
 	withActPath(t, func(path string) {
 		for _, dt := range actQuantTypes {
@@ -125,6 +130,7 @@ func TestQuantActGemvMatchesRows(t *testing.T) {
 // sonucun NaN olması ve sonsuzun işareti CPU'nunkiyle aynıdır (NaN'ın bitleri karşılaştırılmaz; ara sonucu taşan
 // satır söz dışıdır), komşu sonlu satırlar bit bit aynıdır.
 func TestQuantActEdges(t *testing.T) {
+	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(14))
 	withActPath(t, func(path string) {
 		for _, dt := range actQuantTypes {
