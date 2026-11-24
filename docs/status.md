@@ -863,7 +863,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (E, Ö3; sahip T1 (tensör ve GPU); TCB 2026-11-24 16:14, 17:10):** sm_80+ kartın tensör çekirdekli int8 yolu (`mma.sync` s8) kartta denenmedi: GPU'da 15.53a bugün her kartta TR'nin dp4a çekirdeğiyle çalışır, CPU'nun bitleriyle (T1 GPU hızı Dilim A; T4'te ısınmış okuma eski float yolundan 1,44 kat hızlı, deneme 2 `t1-gpu-hiz-deneme-a2`) [test: `TestQuantActMatchesCPUForEveryShape`]. mma yolu kontrol/t1-gpu-hiz-mma dalında (`2fbbbac7`) bekler. Sıradaki: sm_80+ bir kartta (örneğin L4) bit eşitliği ve hız (aynı deneme hücresi), sonra ayrı commit'le main'e.
+- **S-396 Yapılacaklar (E, Ö3; sahip T1):** sm_80+ kartın tensör çekirdekli int8 yolu (`mma.sync` s8) main'de yok. Mevcut durum: 15.53a GPU'da dp4a ile CPU'nun bitlerini verir [test: `TestQuantActMatchesCPUForEveryShape`]; L4'te üretim float yolundan yavaş [ölçüldü: TG-2026-11-24-L4GPU-T1-1]; sonlu olmayan satırda ara toplam taşarsa GPU (`dot32`) ile AVX2'li CPU (`sdot32`) ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: mma dalı (`2fbbbac7`) kendi commit'iyle; üretim Dilim C'de.
 
 ### 15.54
 
