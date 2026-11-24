@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// Paylaşımlı bellek karolu dp4a çarpımı (M > 1 sm_80 altında; q4 her kartta): blok 128 iş parçacığı, 64 satır
+// Paylaşımlı bellek karolu dp4a çarpımı (M > 1 her kartta, q4 her M'de): blok 128 iş parçacığı, 64 satır
 // × 64 sütun. Her 256'lık dilimde (q4_k ve q6_k bir blok, q4 sekiz blok) etkinleştirmenin kodları ve ağırlığın
 // açılmış sözcükleri paylaşımlı belleğe bir kez yüklenir; iş parçacığı 8 satır × 4 sütun hesaplar (satır rg + 8i,
 // sütun cg + 16j). Tamsayı toplamlar kesindir; blok formülü her çıktıda CPU'nun sırasıyla döner (dotQ4Q8Go,
