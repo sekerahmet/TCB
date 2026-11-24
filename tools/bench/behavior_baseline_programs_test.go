@@ -2,10 +2,8 @@
 package bench
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/gguf"
-	"github.com/sekerahmet/TCB/internal/compute/gguf/gguftest"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -476,22 +473,11 @@ func TestBaselineBaseTrlang(t *testing.T) {
 	}
 }
 
-// q4kGGUF q8GGUF'un q4_k eşidir: 256 boyutlu (q4_k'nın bloğu), tek katmanlı küçük llama; çarpım ağırlıkları q4_k
-// (rastgele kodlar, ölçeklerin üst baytı 0x1C: fp16 ~0,004), gömme ve normlar F32; parçalayıcı 40 tek harfli token.
+// q4kGGUF q8GGUF'un q4_k eşidir (tinyLlama): 256 boyutlu (q4_k'nın bloğu), iki dikkat başı; çarpım ağırlıkları q4_k
+// (rastgele kodlar, ölçeklerin üst baytı 0x1C: fp16 ~0,004), gömme F32.
 func q4kGGUF(t *testing.T) string {
 	t.Helper()
-	const dim, vocab = 256, 40
-	b := &gguftest.Builder{}
-	b.KV("general.architecture", "llama").KV("llama.block_count", uint32(1)).KV("llama.embedding_length", uint32(dim)).
-		KV("llama.feed_forward_length", uint32(dim)).KV("llama.attention.head_count", uint32(2)).
-		KV("llama.attention.head_count_kv", uint32(2)).KV("llama.context_length", uint32(64)).
-		KV("llama.rope.freq_base", float32(10000)).KV("llama.attention.layer_norm_rms_epsilon", float32(1e-5))
-	tokens, kinds := make([]string, vocab), make([]int32, vocab)
-	for i := range tokens {
-		tokens[i], kinds[i] = string(rune('A'+i)), 1
-	}
-	b.KV("tokenizer.ggml.model", "gpt2").KV("tokenizer.ggml.pre", "llama-bpe").KV("tokenizer.ggml.tokens", tokens).
-		KV("tokenizer.ggml.token_type", kinds).KV("tokenizer.ggml.merges", []string{}).KV("tokenizer.ggml.bos_token_id", uint32(0))
+	const dim = 256
 	seed := uint32(11)
 	q4k := func(rows int) []byte { // satır başına bir blok (144 bayt)
 		out := make([]byte, rows*144)
@@ -504,27 +490,11 @@ func q4kGGUF(t *testing.T) string {
 		}
 		return out
 	}
-	f32 := func(n int, v func(i int) float32) []byte {
-		out := make([]byte, 0, 4*n)
-		for i := range n {
-			out = binary.LittleEndian.AppendUint32(out, math.Float32bits(v(i)))
-		}
-		return out
+	embd := func(vocab int) []byte {
+		return f32Bytes(dim*vocab, func(i int) float32 { return float32(i%17-8) / 64 })
 	}
-	b.Tensor("token_embd.weight", gguf.TypeF32, []uint64{dim, vocab}, f32(dim*vocab, func(i int) float32 {
-		return float32(i%17-8) / 64
-	}))
-	for _, n := range []string{"output_norm.weight", "blk.0.attn_norm.weight", "blk.0.ffn_norm.weight"} {
-		b.Tensor(n, gguf.TypeF32, []uint64{dim}, f32(dim, func(int) float32 { return 1 }))
-	}
-	for _, n := range []string{"attn_q", "attn_k", "attn_v", "attn_output", "ffn_gate", "ffn_up", "ffn_down"} {
-		b.Tensor("blk.0."+n+".weight", gguf.TypeQ4_K, []uint64{dim, dim}, q4k(dim))
-	}
-	file := filepath.Join(t.TempDir(), "q4k.gguf")
-	if err := os.WriteFile(file, b.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return file
+	return tinyLlama{dim: dim, heads: 2, file: "q4k.gguf", embdType: gguf.TypeF32, embd: embd, weightType: gguf.TypeQ4_K,
+		weight: q4k}.write(t)
 }
 
 // T1 GPU hızı A4 ve A5: q4_k modelde --quantized auto GPU'da (benzetici) yoklamayla bloğu açar ("quantized": true;

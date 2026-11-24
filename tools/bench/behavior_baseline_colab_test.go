@@ -21,22 +21,64 @@ import (
 // Dost'un seslerinin sondaki sessizliği ve tur kaydı (BC6), S10'un soğuk kipi, faster-whisper'ın CUDA 12 kitaplıkları
 // (BC3). Yardımcılar behavior_baseline_test.go'dadır (trlang, program, programFails, copyDir) ve run_test.go'da (python).
 
-// q8GGUF 32 boyutlu, tek katmanlı küçük bir llama GGUF'u yazar: çarpım ağırlıkları ve gömme Q8_0 (blok başına fp16 ölçek
-// 2⁻⁷ ve 32 işaretli kod), normlar F32; parçalayıcı 40 tek harfli token (A'dan başlayarak, gpt2).
-func q8GGUF(t *testing.T) string {
+// tinyLlama tek katmanlı küçük bir llama GGUF'unun ayarıdır (q8GGUF, q4kGGUF): boyut, dikkat başı sayısı, gömmenin ve
+// çarpım ağırlıklarının türüyle verisi. Ortak olanlar: parçalayıcı tinyVocab tek harfli token (A'dan başlayarak, gpt2),
+// normlar F32 1, bağlam 64. embd sözlük boyunu alır; weight satır sayısını alır ve yedi çarpım için bu sırayla çağrılır.
+type tinyLlama struct {
+	dim, heads           int
+	file                 string
+	embdType, weightType gguf.TensorType
+	embd, weight         func(n int) []byte
+}
+
+const tinyVocab = 40
+
+// write GGUF'u t'nin geçici klasörüne yazar ve yolunu verir. Önce gömme, sonra çarpımlar üretilir: tohumlu üreteçlerin
+// sırası bu sıradır.
+func (m tinyLlama) write(t *testing.T) string {
 	t.Helper()
-	const dim, vocab = 32, 40
+	dim, heads := uint32(m.dim), uint32(m.heads)
 	b := &gguftest.Builder{}
-	b.KV("general.architecture", "llama").KV("llama.block_count", uint32(1)).KV("llama.embedding_length", uint32(dim)).
-		KV("llama.feed_forward_length", uint32(dim)).KV("llama.attention.head_count", uint32(1)).
-		KV("llama.attention.head_count_kv", uint32(1)).KV("llama.context_length", uint32(64)).
+	b.KV("general.architecture", "llama").KV("llama.block_count", uint32(1)).KV("llama.embedding_length", dim).
+		KV("llama.feed_forward_length", dim).KV("llama.attention.head_count", heads).
+		KV("llama.attention.head_count_kv", heads).KV("llama.context_length", uint32(64)).
 		KV("llama.rope.freq_base", float32(10000)).KV("llama.attention.layer_norm_rms_epsilon", float32(1e-5))
-	tokens, kinds := make([]string, vocab), make([]int32, vocab)
+	tokens, kinds := make([]string, tinyVocab), make([]int32, tinyVocab)
 	for i := range tokens {
 		tokens[i], kinds[i] = string(rune('A'+i)), 1
 	}
 	b.KV("tokenizer.ggml.model", "gpt2").KV("tokenizer.ggml.pre", "llama-bpe").KV("tokenizer.ggml.tokens", tokens).
 		KV("tokenizer.ggml.token_type", kinds).KV("tokenizer.ggml.merges", []string{}).KV("tokenizer.ggml.bos_token_id", uint32(0))
+	d := uint64(m.dim)
+	b.Tensor("token_embd.weight", m.embdType, []uint64{d, tinyVocab}, m.embd(tinyVocab))
+	ones := f32Bytes(m.dim, func(int) float32 { return 1 })
+	for _, n := range []string{"output_norm.weight", "blk.0.attn_norm.weight", "blk.0.ffn_norm.weight"} {
+		b.Tensor(n, gguf.TypeF32, []uint64{d}, ones)
+	}
+	for _, n := range []string{"attn_q", "attn_k", "attn_v", "attn_output", "ffn_gate", "ffn_up", "ffn_down"} {
+		b.Tensor("blk.0."+n+".weight", m.weightType, []uint64{d, d}, m.weight(m.dim))
+	}
+	file := filepath.Join(t.TempDir(), m.file)
+	if err := os.WriteFile(file, b.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return file
+}
+
+// f32Bytes n öğelik F32 tensörün küçük sonlu baytlarıdır.
+func f32Bytes(n int, v func(i int) float32) []byte {
+	out := make([]byte, 0, 4*n)
+	for i := range n {
+		out = binary.LittleEndian.AppendUint32(out, math.Float32bits(v(i)))
+	}
+	return out
+}
+
+// q8GGUF 32 boyutlu, tek katmanlı küçük bir llama GGUF'u yazar (tinyLlama): çarpım ağırlıkları ve gömme Q8_0 (blok
+// başına fp16 ölçek 2⁻⁷ ve 32 işaretli kod), tek dikkat başı.
+func q8GGUF(t *testing.T) string {
+	t.Helper()
+	const dim = 32
 	seed := uint32(7)
 	q8 := func(rows int) []byte { // satır başına bir blok: fp16 ölçek (0x2000 = 2⁻⁷), 32 kod (-20..20)
 		out := make([]byte, 0, rows*34)
@@ -49,22 +91,8 @@ func q8GGUF(t *testing.T) string {
 		}
 		return out
 	}
-	ones := make([]byte, 0, 4*dim)
-	for range dim {
-		ones = binary.LittleEndian.AppendUint32(ones, math.Float32bits(1))
-	}
-	b.Tensor("token_embd.weight", gguf.TypeQ8_0, []uint64{dim, vocab}, q8(vocab))
-	for _, n := range []string{"output_norm.weight", "blk.0.attn_norm.weight", "blk.0.ffn_norm.weight"} {
-		b.Tensor(n, gguf.TypeF32, []uint64{dim}, ones)
-	}
-	for _, n := range []string{"attn_q", "attn_k", "attn_v", "attn_output", "ffn_gate", "ffn_up", "ffn_down"} {
-		b.Tensor("blk.0."+n+".weight", gguf.TypeQ8_0, []uint64{dim, dim}, q8(dim))
-	}
-	file := filepath.Join(t.TempDir(), "q8.gguf")
-	if err := os.WriteFile(file, b.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return file
+	return tinyLlama{dim: dim, heads: 1, file: "q8.gguf", embdType: gguf.TypeQ8_0, embd: q8, weightType: gguf.TypeQ8_0,
+		weight: q8}.write(t)
 }
 
 // dostSoundsCheck questions.py'yi sahte koşturucuyla yükler: make_sounds'un ffmpeg komutlarını ve logged_turns'ün kaydını basar.
