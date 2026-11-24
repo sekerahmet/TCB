@@ -314,6 +314,9 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		"internal/stdlib/files/sha256.go": "status: dosya yolu",
 		"internal/stdlib/download/":       "status: dosya yolu",
 		"internal/stdlib/download":        "status: paket yolu",
+		// Status'un biçim taraması (2026-11-24): ters tırnak dışında Markdown'ın etiket sandığı iki metin.
+		"<builtin item>":               "status: Go'nun iç yazımı, kod değil",
+		"trlang format <dosya|klasör>": "status: iletinin yer tutuculu metni, kopyalanınca çalışmayan örnek",
 	}
 	spans := regexp.MustCompile("`([^`\n]+)`")
 	words := regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)

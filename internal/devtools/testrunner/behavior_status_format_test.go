@@ -24,7 +24,7 @@ import (
 // kuralı denetlenir. Çevrilen bölüm listeden çıkar; sorunu kalmamış bölüm listede kalırsa test
 // düşer, böylece liste yalnız küçülür.
 func TestStatusItemsFollowTheFormat(t *testing.T) {
-	for _, p := range statusFormatProblems(statusDoc(t), statusUnconvertedSections) {
+	for _, p := range statusFormatProblems(statusDoc(t), statusUnconvertedSections, statusFormatExceptions) {
 		t.Error(p)
 	}
 }
@@ -34,10 +34,14 @@ const statusItemMaxRunes = 500
 
 // statusUnconvertedSections yeni biçime henüz çevrilmemiş bölümler: "15" (## 15. ...) ya da
 // sayısız bölümün adı ("Bölümü olmayan işler").
-var statusUnconvertedSections = map[string]bool{
-	"1": true, "3": true, "4": true, "5": true, "6": true, "7": true, "8": true, "10": true,
-	"11": true, "12": true, "13": true, "15": true, "16": true, "17": true, "18": true, "19": true,
-	"20": true, "21": true, "24": true, "25": true, "28": true, "Bölümü olmayan işler": true,
+var statusUnconvertedSections = map[string]bool{}
+
+// statusFormatExceptions biçimi henüz denetlenmeyen tek tek maddeler: kimlik → neden. Başka
+// oturumun açık işindeki madde o iş bitince yeni biçime girer; sorunu kalmayan girdi bayattır.
+var statusFormatExceptions = map[int]string{
+	396: "T1'in açık GPU hızı işi; iş bitince yeni biçime girer",
+	562: "T1'in açık GPU hızı işi; iş bitince yeni biçime girer",
+	563: "T1'in açık GPU hızı işi; iş bitince yeni biçime girer",
 }
 
 var (
@@ -85,7 +89,7 @@ func statusItems(doc string) []statusItem {
 }
 
 // statusFormatProblems biçim sorunlarını satır numarasıyla verir.
-func statusFormatProblems(doc string, unconverted map[string]bool) []string {
+func statusFormatProblems(doc string, unconverted map[string]bool, exceptions map[int]string) []string {
 	var problems []string
 	next := 0
 	if m := statusNextIDRe.FindStringSubmatch(doc); m != nil {
@@ -95,12 +99,14 @@ func statusFormatProblems(doc string, unconverted map[string]bool) []string {
 	}
 	seen := map[int]int{}
 	dirty := map[string]bool{}
+	dirtyID := map[int]bool{}
 	for _, it := range statusItems(doc) {
 		where := fmt.Sprintf("docs/status.md:%d", it.line)
+		id := -1
 		if m := statusItemIDRe.FindStringSubmatch(it.text); m == nil {
 			problems = append(problems, where+": madde kimlikle başlamıyor (`- **S-<n> ...`)")
 		} else {
-			id, _ := strconv.Atoi(m[1])
+			id, _ = strconv.Atoi(m[1])
 			if prev, ok := seen[id]; ok {
 				problems = append(problems, fmt.Sprintf("%s: S-%d ikinci kez (ilki satır %d)", where, id, prev))
 			}
@@ -125,6 +131,10 @@ func statusFormatProblems(doc string, unconverted map[string]bool) []string {
 			own = append(own, fmt.Sprintf("%s: süreç izi %q; karar ve tarih commit mesajında durur", where, m[1]))
 		}
 		if len(own) > 0 {
+			if _, ok := exceptions[id]; ok {
+				dirtyID[id] = true
+				continue
+			}
 			dirty[it.section] = true
 			if !unconverted[it.section] {
 				problems = append(problems, own...)
@@ -139,6 +149,16 @@ func statusFormatProblems(doc string, unconverted map[string]bool) []string {
 	for _, k := range keys {
 		if !dirty[k] {
 			problems = append(problems, fmt.Sprintf("statusUnconvertedSections'ta bayat bölüm: %s (biçim sorunu kalmadı, listeden çıkar)", k))
+		}
+	}
+	var ids []int
+	for id := range exceptions {
+		ids = append(ids, id)
+	}
+	sort.Ints(ids)
+	for _, id := range ids {
+		if !dirtyID[id] {
+			problems = append(problems, fmt.Sprintf("statusFormatExceptions'ta bayat madde: S-%d (biçim sorunu kalmadı ya da madde yok, listeden çıkar)", id))
 		}
 	}
 	return problems
@@ -160,17 +180,18 @@ func TestStatusFormatCatchesBadItems(t *testing.T) {
 		"- **S-6 Mevcut durum:** alt satırlı madde\n  - " + long + "\n\n" +
 		"## 2. Sözcük\n\n- **S-7 Mevcut durum:** çevrilmemiş bölümde 48 ms.\n\n" +
 		"## 3. Tipler\n\n- **S-8 Mevcut durum:** temiz.\n"
-	got := strings.Join(statusFormatProblems(doc, map[string]bool{"2": true, "3": true}), "\n")
+	got := strings.Join(statusFormatProblems(doc, map[string]bool{"2": true, "3": true}, map[int]string{5: "açık iş", 9: "bayat"}), "\n")
 	for _, want := range []string{
 		":14: madde kimlikle başlamıyor", ":15: S-1 ikinci kez (ilki satır 13)", ":16: S-12 sıradaki kimlikten (S-10) küçük değil",
 		":17: madde", `:18: kopyalanmış ölçü ya da tazelik notu "1,07 katı"`, `:19: kopyalanmış ölçü ya da tazelik notu "eski: 52 commit"`,
-		`:20: süreç izi "2026-11-24"`, ":21: madde", "bayat bölüm: 3",
+		":21: madde", "bayat bölüm: 3", "bayat madde: S-9",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("%q yakalanmadı:\n%s", want, got)
 		}
 	}
-	for _, clean := range []string{":13:", ":26:", ":7:", "bayat bölüm: 2"} {
+	// S-5'in süreç izi adlı istisnadır.
+	for _, clean := range []string{":13:", ":20:", ":26:", ":7:", "bayat bölüm: 2", "bayat madde: S-5"} {
 		if strings.Contains(got, clean) {
 			t.Errorf("%s temiz, yakalanmamalıydı:\n%s", clean, got)
 		}
