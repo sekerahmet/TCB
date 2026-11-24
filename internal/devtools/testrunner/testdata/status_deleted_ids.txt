@@ -1,6 +1,7 @@
 # docs/status.md'den silinen maddelerin kimlikleri: yeniden kullanılmaz (TestStatusItemsFollowTheFormat).
 # Madde silinince kimliği buraya eklenir; sıra önemsiz, satır başına bir kimlik.
 S-28
+S-708
 S-36
 S-42
 S-52
