@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlikle başlar (S-412) ve mesajda, devirde ve denetimde bu kimlikle anılır, satır numarasıyla anılmaz. Biçim: kimlik, tür (Yapılacaklar ya da Mevcut durum), ayraç içinde sınıf, öncelik ve sahip; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı. Madde alt satırlarıyla en çok 500 harftir. Ölçü sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, karar saati ve tarihi yazılmaz, commit mesajında durur. Silinen maddenin kimliği yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar [test: `TestStatusItemsFollowTheFormat`].
 
-**Sıradaki kimlik:** S-693.
+**Sıradaki kimlik:** S-694.
 
 ## Önem ve öncelik
 
@@ -27,7 +27,8 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 - **Ö2:** C; 2. kilometre taşının ve Jarvis'in ön koşulları.
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
-**Ö0, sırayla:** yok.
+**Ö0, sırayla:**
+1. 15.15, `TR_where`'in sayı dalının hassasiyeti (A, sahip T1).
 
 **Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -627,6 +628,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **S-253 Yapılacaklar (E, Ö3; sahip T1):** tensör sınır yok: `TR_clamp(t, TR_min: tensör)` H6107 veriyor (15.13) [ölçüldü: trlang run, `ae1e8dcc`].
 
 ### 15.15
+- **S-693 Yapılacaklar (A, Ö0, 1. sıra; sahip T1):** `TR_where`'in sayı dalı tensörün hassasiyetini almıyor (15.15, 15.6a): bf16 `b`'de `TR_where(c, b, 0.0)` float32 veriyor, `b + 0.0` bf16 [kanıtlı: `internal/stdlib/ml/typed_where.go:80`; ölçüldü: ae1e8dcc]. Sıradaki: T1'in GPU hızı Dilim A'sından sonraki ilk iş; `TR_maximum`, `TR_minimum` ve `TR_clamp`'in sayı dalı da sınanır.
 - **S-254 Yapılacaklar (D, Ö3; sahip dil çekirdeği):** 15.15'in "hiçbiri tensör değilse denetim hatası" kuralı yalnız mantık değişmezinde uygulanıyor (`checkWhereCondition`, `internal/lang/checker/builtin_args.go:210`): `TR_Bool` tipli değişken koşul çalışmada H6207 [ölçüldü: trlang run, `ae1e8dcc`]. Sıradaki: denetleyici bildirilmiş `TR_Bool`'u karşılaştırmadan ayırınca kural tamamlanır.
 
 - **S-255 Mevcut durum:** ondalık ya da tam sayı tensör koşul (`TR_where(TR_Tensor(1.0), 2, 3)`) denetimde değil, çalışmada H6207 veriyor; mantık değişmezi koşul denetimde yakalanıyor [ölçüldü: trlang check ve run, `ae1e8dcc`].
