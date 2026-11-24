@@ -7,7 +7,7 @@ Usage (from the repository root; prepare.sh makes the work folder):
   python -I tools/bench/baseline/run.py --work W --machine highram --out DIR [--question S1] [--skip-done]
   python -I tools/bench/baseline/run.py --rows --out DIR      (draft rows from metrics.json)
   python -I tools/bench/baseline/run.py --self-check NAME     (the checks behavior_baseline_test.go runs)
-The questions (S1–S14, their commands and the machines' lists) are in questions.py.
+The questions (S1–S15, their commands and the machines' lists) are in questions.py.
 
 The method is fixed before any run (tools/bench/baseline/README.md):
 - order: one warm-up per side, then TR, E, E, TR, TR, E, E, TR, TR, E for each reference (ABBA);
@@ -417,7 +417,7 @@ def expected_device(cmd):
     if name.startswith("whisper-cli"):
         return "cpu" if "-ng" in cmd else "cuda"
     if "--device" in cmd:
-        return "cuda" if str(cmd[cmd.index("--device") + 1]).startswith("cuda") else "cpu"
+        return "cuda" if str(cmd[cmd.index("--device") + 1]).startswith(("cuda", "gpu")) else "cpu"
     return None
 
 
@@ -569,12 +569,13 @@ def _self_check(name, arg):
         ref = dict(side("ref", "b"), warm=[plain], agree_parse=lambda out: {"text": out.strip()})
         run_pair("check", side("tr", "a"), ref, same, lambda rec: None, "check")
         return {"stopped": False}
-    if name == "base":  # --base-trlang: the base items of S5, S9 and S14, and a pair of one program against itself
+    if name == "base":  # --base-trlang: the base items of S1, S5, S9 and S14, and a pair of one program against itself
         qs = load_questions()
         ctx = qs.Ctx(sys.modules[__name__], "highram", 97, arg, lambda rec: None, dry=True)
         # S9 is Dost's custom run (no base side); the count before the keyed dict shows S5's shared TR side gives one
-        # base item per language, not one per reference (DENETİM 943).
-        its = base_items(qs.items(ctx, "S5") + qs.items(ctx, "S9") + qs.items(ctx, "S14"), ctx.tools["trlang"], "BASE")
+        # base item per language, not one per reference (DENETİM 943); S1's keys keep the model (S1/<model>/base).
+        its = base_items(qs.items(ctx, "S1") + qs.items(ctx, "S5") + qs.items(ctx, "S9") + qs.items(ctx, "S14"),
+                         ctx.tools["trlang"], "BASE")
         nap = [sys.executable, "-I", "-c", "import time; time.sleep(0.2); print('BASELINE {}')"]
         side = {"name": "TR", "cmds": [nap], "measure": lambda res, runs: runs[0]["wall_ms"]}
         same = base_items([{"key": "S0/x/ref", "tr": side, "ref": side, "custom": None, "runs": 5}], sys.executable,
@@ -1046,14 +1047,16 @@ def agree_item(ctx, it, rec):
 def base_items(items, trlang, base):
     """--base-trlang: each item's TR side against the same TR program run by the base build (main); the warm-up,
     the ABBA order and the load checks stay, the ratio is branch/base. Items sharing a TR side (S5's three
-    references) give one base item, keyed by the TR side's key with "base" as its last part (S5/tr/base); a TR-only
-    item gets "/base" after its key. Dost's custom runs have no base side."""
+    references) give one base item, keyed by the TR side's key with "base" as its last part (S5/tr/base); a key of
+    two parts keeps both (S1/<model>/base: the model stays in the key) and a TR-only item gets "/base" after its key.
+    Dost's custom runs have no base side."""
     out, seen = [], set()
     for it in items:
         if it["custom"] or it["tr"] is None or json.dumps(it["tr"]["cmds"]) in seen:
             continue
         seen.add(json.dumps(it["tr"]["cmds"]))
-        key = (it["key"].rsplit("/", 1)[0] if it["ref"] is not None else it["key"]) + "/base"
+        parts = it["key"].split("/")
+        key = "/".join(parts[:-1] if it["ref"] is not None and len(parts) > 2 else parts) + "/base"
         cmds = [[base, *c[1:]] if c and c[0] == trlang else c for c in it["tr"]["cmds"]]
         ref = dict(it["tr"], name="TR base", cmds=cmds)
         out.append({"key": key, "tr": it["tr"], "ref": ref, "agree": None, "tr_agree": None, "ref_agree": None,

@@ -489,3 +489,28 @@ func TestBaselineShortMeasureRowAndKinds(t *testing.T) {
 		}
 	}
 }
+
+// S15 (T1 GPU hızı A5): ısınmış okuma yalnız GPU makinelerinde (l4gpu, g4) sorulur, emsalsizdir; TR tarafı
+// language_model.tr --mode warm'dır ve kalem --base-trlang'ta modelin adını korur (S15/qwen3-4b-q4km/base).
+func TestBaselineWarmReadQuestion(t *testing.T) {
+	work := t.TempDir()
+	tools := `{"trlang": "trlang", "llama_bench": "llama-bench", "llama_completion": "llama-completion", "whisper_cli": "whisper-cli", "go_compare": "compare"}`
+	if err := os.WriteFile(filepath.Join(work, "tools.json"), []byte(tools), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]map[string]struct {
+		TR, Ref [][]string
+	}
+	selfCheck(t, &got, "items", work)
+	for machine, items := range got {
+		it, ok := items["S15/qwen3-4b-q4km"]
+		gpu := machine == "l4gpu" || machine == "g4"
+		if ok != gpu {
+			t.Errorf("%s: S15 asked %v, want %v", machine, ok, gpu)
+			continue
+		}
+		if ok && (len(it.TR) != 1 || it.Ref != nil || !strings.Contains(strings.Join(it.TR[0], " "), "--mode warm")) {
+			t.Errorf("%s: S15 TR %v, reference %v; want one language_model.tr --mode warm run and no reference", machine, it.TR, it.Ref)
+		}
+	}
+}

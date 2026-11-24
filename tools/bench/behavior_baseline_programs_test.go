@@ -2,8 +2,10 @@
 package bench
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +13,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf"
+	"github.com/sekerahmet/TCB/internal/compute/gguf/gguftest"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -162,8 +166,8 @@ func TestBaselineQuestions(t *testing.T) {
 		}
 	}
 	lists := map[string]string{
-		"highram": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14", "l4gpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
-		"l4cpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S14", "g4": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
+		"highram": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14", "l4gpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14 S15",
+		"l4cpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S14", "g4": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14 S15",
 		"laptop": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14"}
 	for machine, list := range lists {
 		items := got[machine]
@@ -424,8 +428,8 @@ func TestBaselineMMSIds(t *testing.T) {
 }
 
 // --base-trlang: her sorunun TR tarafı aynı programın taban ikilisiyle (main) koşan tarafa karşı ölçülür, oran
-// dal/taban. S5'in üç emsali dil başına tek taban kalemi verir (S5/tr/base), yalnız TR olan kalem kendi adına
-// "/base" alır, Dost'un özel koşusu (S9) taban kalemi vermez; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk
+// dal/taban. S5'in üç emsali dil başına tek taban kalemi verir (S5/tr/base), iki parçalı anahtar modeli korur
+// (S1/<model>/base; T1 GPU hızı dur-sor 2), yalnız TR olan kalem kendi adına "/base" alır, Dost'un özel koşusu (S9) taban kalemi vermez; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk
 // öğesi taban ikilisidir. Taban ve dal aynı ikiliyken oran 1 çevresindedir.
 func TestBaselineBaseTrlang(t *testing.T) {
 	work := t.TempDir()
@@ -451,9 +455,9 @@ func TestBaselineBaseTrlang(t *testing.T) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	if strings.Join(keys, " ") != "S14/empty/base S5/en/base S5/tr/base" || got.Count != 3 {
-		t.Errorf("base items %v (%d before the keyed dict), want S14/empty/base S5/en/base S5/tr/base, 3",
-			keys, got.Count)
+	want := "S1/gemma3-12b-q4km/base S1/gemma3-4b-q4km/base S1/gemma3-4b-qat-q40/base S1/qwen3-4b-q4km/base S1/qwen3-4b-q8/base S1/qwen3-8b-q4km/base S14/empty/base S5/en/base S5/tr/base"
+	if strings.Join(keys, " ") != want || got.Count != 9 {
+		t.Errorf("base items %v (%d before the keyed dict), want %s, 9", keys, got.Count, want)
 	}
 	for key, it := range got.Items {
 		if len(it.TR) != len(it.Ref) || it.Agree {
@@ -469,5 +473,83 @@ func TestBaselineBaseTrlang(t *testing.T) {
 	p := got.Pair
 	if p.Key != "S0/x/base" || p.Reference != "TR base" || len(p.Ratios) != 5 || p.Median < 0.8 || p.Median > 1.25 {
 		t.Errorf("one program against itself: %+v; want key S0/x/base, 5 ratios, median near 1", p)
+	}
+}
+
+// q4kGGUF q8GGUF'un q4_k eşidir: 256 boyutlu (q4_k'nın bloğu), tek katmanlı küçük llama; çarpım ağırlıkları q4_k
+// (rastgele kodlar, ölçeklerin üst baytı 0x1C: fp16 ~0,004), gömme ve normlar F32; parçalayıcı 40 tek harfli token.
+func q4kGGUF(t *testing.T) string {
+	t.Helper()
+	const dim, vocab = 256, 40
+	b := &gguftest.Builder{}
+	b.KV("general.architecture", "llama").KV("llama.block_count", uint32(1)).KV("llama.embedding_length", uint32(dim)).
+		KV("llama.feed_forward_length", uint32(dim)).KV("llama.attention.head_count", uint32(2)).
+		KV("llama.attention.head_count_kv", uint32(2)).KV("llama.context_length", uint32(64)).
+		KV("llama.rope.freq_base", float32(10000)).KV("llama.attention.layer_norm_rms_epsilon", float32(1e-5))
+	tokens, kinds := make([]string, vocab), make([]int32, vocab)
+	for i := range tokens {
+		tokens[i], kinds[i] = string(rune('A'+i)), 1
+	}
+	b.KV("tokenizer.ggml.model", "gpt2").KV("tokenizer.ggml.pre", "llama-bpe").KV("tokenizer.ggml.tokens", tokens).
+		KV("tokenizer.ggml.token_type", kinds).KV("tokenizer.ggml.merges", []string{}).KV("tokenizer.ggml.bos_token_id", uint32(0))
+	seed := uint32(11)
+	q4k := func(rows int) []byte { // satır başına bir blok (144 bayt)
+		out := make([]byte, rows*144)
+		for i := range out {
+			seed = seed*1664525 + 1013904223
+			out[i] = byte(seed >> 24)
+		}
+		for r := 0; r < len(out); r += 144 {
+			out[r+1], out[r+3] = 0x1C|out[r+1]&0x83, 0x1C|out[r+3]&0x83
+		}
+		return out
+	}
+	f32 := func(n int, v func(i int) float32) []byte {
+		out := make([]byte, 0, 4*n)
+		for i := range n {
+			out = binary.LittleEndian.AppendUint32(out, math.Float32bits(v(i)))
+		}
+		return out
+	}
+	b.Tensor("token_embd.weight", gguf.TypeF32, []uint64{dim, vocab}, f32(dim*vocab, func(i int) float32 {
+		return float32(i%17-8) / 64
+	}))
+	for _, n := range []string{"output_norm.weight", "blk.0.attn_norm.weight", "blk.0.ffn_norm.weight"} {
+		b.Tensor(n, gguf.TypeF32, []uint64{dim}, f32(dim, func(int) float32 { return 1 }))
+	}
+	for _, n := range []string{"attn_q", "attn_k", "attn_v", "attn_output", "ffn_gate", "ffn_up", "ffn_down"} {
+		b.Tensor("blk.0."+n+".weight", gguf.TypeQ4_K, []uint64{dim, dim}, q4k(dim))
+	}
+	file := filepath.Join(t.TempDir(), "q4k.gguf")
+	if err := os.WriteFile(file, b.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return file
+}
+
+// T1 GPU hızı A4 ve A5: q4_k modelde --quantized auto GPU'da (benzetici) yoklamayla bloğu açar ("quantized": true;
+// ana dalın ikilisinde yoklama H6724 alır, kapalı kalır), işlemcide doğrudan açar. --mode warm aynı önbelleği
+// boşaltarak --prompt token'ı --reps kez okur: cold_ms ilk okuma, warm_ms kalanların ortancası, reads_ms hepsi (S15).
+func TestBaselineWarmReadAndProbe(t *testing.T) {
+	t.Setenv("TR_GPU_SIM", "1")
+	model := q4kGGUF(t)
+	for _, device := range []string{"gpu", "cpu"} {
+		r := program(t, "baseline/language_model.tr", "--model", model, "--text", "ABCDABCD", "--mode", "warm",
+			"--prompt", "4", "--reps", "3", "--device", device)
+		reads, _ := r["reads_ms"].([]any)
+		cold, okC := r["cold_ms"].(float64)
+		warm, okW := r["warm_ms"].(float64)
+		if r["quantized"] != true || len(reads) != 3 || !okC || !okW || cold != reads[0] {
+			t.Errorf("%s: quantized %v, reads %v, cold %v, warm %v; want the block open, 3 reads, cold = the first",
+				device, r["quantized"], reads, cold, warm)
+		}
+		var rest []float64
+		for _, v := range reads[1:] {
+			rest = append(rest, v.(float64))
+		}
+		sort.Float64s(rest)
+		if mid := (rest[0] + rest[1]) / 2; warm != mid {
+			t.Errorf("%s: warm_ms %v, want the median of the later reads %v (%v)", device, warm, mid, rest)
+		}
 	}
 }

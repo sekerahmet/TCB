@@ -1,4 +1,4 @@
-"""Questions of the baseline measurement set: S1–S14's commands, agreements and measures, the machines' lists and
+"""Questions of the baseline measurement set: S1–S15's commands, agreements and measures, the machines' lists and
 the models' places. run.py holds the method (order, verdict, memory, stopping) and runs what this file builds.
 
 Every question gives items: one TR side against one reference (an ABBA pair), or one TR side alone (no reference).
@@ -64,9 +64,9 @@ GPU_MACHINES = {"l4gpu", "g4"}
 FW_LIBS = os.environ.get("BASELINE_FW_LIBS")  # CUDA 12's library folders for faster-whisper only (q_whisper; BC3)
 QUESTIONS = {
     "highram": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S13", "S14"],
-    "l4gpu": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"],
+    "l4gpu": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"],
     "l4cpu": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S14"],
-    "g4": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"],
+    "g4": ["S1", "S2", "S3", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"],
     "laptop": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S13", "S14"],
 }
 SOUND_QUESTIONS = {"S5", "S8"}  # they wait for O-7's sounds; without them they go last (O-7)
@@ -331,6 +331,13 @@ def q_language(ctx, q):
                    lambda r, runs: {f"depth{x['n_depth']}_ms": x["avg_ns"] / 1e6 for x in r}, parse=parse_llama_bench,
                    agree_parse=raw)
         out.append(item("S3/qwen3-4b-q4km", tr, ref, *lm_agreement(ctx, "S3/qwen3-4b-q4km", g, [], text)))  # S1's measure
+    if q == "S15":
+        # The warm read (T1 GPU speed, DENETİM 974 Ş2): the process reads the same 512 tokens --reps times on an emptied
+        # cache; cold_ms is the first, warm_ms the median of the rest. TR alone; with --base-trlang against the base build.
+        g = ctx.model("qwen3-4b-q4km")
+        tr = side("TR", [ctx.tr("language_model.tr", "--model", g, "--mode", "warm", "--text", text, "--device", ctx.tr_device)],
+                  lambda r, runs: {"cold_ms": r[0]["cold_ms"], "warm_ms": r[0]["warm_ms"]})
+        out.append(item("S15/qwen3-4b-q4km", tr))
     return out
 
 
@@ -887,7 +894,7 @@ def _bench_run():
     return mod
 
 
-BUILDERS = {"S1": q_language, "S2": q_language, "S3": q_language, "S4": q_catalog, "S5": q_whisper, "S6": q_voice,
+BUILDERS = {"S1": q_language, "S2": q_language, "S3": q_language, "S15": q_language, "S4": q_catalog, "S5": q_whisper, "S6": q_voice,
             "S7": q_voice, "S8": q_dost, "S9": q_dost, "S10": q_dost, "S11": q_runtime, "S12": q_runtime, "S13": q_runtime,
             "S14": q_runtime}
 

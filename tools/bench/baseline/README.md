@@ -1,13 +1,13 @@
 # Temel ölçü seti
 
-TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yöntemle ve emsalleriyle yan yana ölçer (S1–S14). Ölçünün kendisi Colab'da ve dizüstünün ölçü penceresinde koşar; satırlar `docs/measurements/`'e yazılır. Hız ve bellek ölçüsü bu koşturucuyla yapılır: yeni bir ölçü buraya soru olarak eklenir (`questions.py` ve testi), ayrı ölçüm betiği yazılmaz.
+TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yöntemle ve emsalleriyle yan yana ölçer (S1–S15). Ölçünün kendisi Colab'da ve dizüstünün ölçü penceresinde koşar; satırlar `docs/measurements/`'e yazılır. Hız ve bellek ölçüsü bu koşturucuyla yapılır: yeni bir ölçü buraya soru olarak eklenir (`questions.py` ve testi), ayrı ölçüm betiği yazılmaz.
 
 ## Dosyalar
 
 | Dosya | Ne |
 | :-- | :-- |
 | `run.py` | Koşturucu: yöntem (sıra, hüküm, bellek, durma), uyuşma ve ölçü geçişleri, kayıt, `--rows`, `--fetch` |
-| `questions.py` | Soru kaydı: S1–S14'ün komutları, uyuşma ölçütleri, ölçüleri; makinelerin soru listeleri; modellerin deposu, revizyonu ve dosyaları; sabit seslerin üretimi |
+| `questions.py` | Soru kaydı: S1–S15'ün komutları, uyuşma ölçütleri, ölçüleri; makinelerin soru listeleri; modellerin deposu, revizyonu ve dosyaları; sabit seslerin üretimi |
 | `references.py` | Python emsalleri (transformers, faster-whisper, onnxruntime, torch); TR programlarıyla aynı iş, aynı alanlar |
 | `prepare.sh` | Colab hazırlığı: derlemeler, eksik paketler (`--no-deps`), modeller, S11'in verisi; `phonemes` kipi kimlik dosyasını üretir |
 | `texts.json` | Sabit metinler: S5'in iki paragrafı, S6–S7'nin üç cümlesi, S8'in on sorusu, dil modelinin metni |
@@ -50,6 +50,7 @@ TR'nin bugünkü hızını ve belleğini her makinede aynı programla, aynı yö
 | S12 | `matmul.tr` float32 ve bf16, iki çekirdek (GPU) | `references.py matmul` (torch) | birlerle köşe öğesi aynı | `median_ms` |
 | S13 | `tools/bench/tr/{dongu,fib,matris_dongu}.tr`, iki tarafa aynı büyük boy (`--n`: 300 milyon tur, fib(37), 480 kenar; `questions.py` `PURE_SIZES`: Go'nun süresi en kısa ölçülebilir sürenin üstünde); karakter modeli (300 ve 0 adımın farkı); `loop_100hz.tr` | `tools/bench/go/compare.go`; `tools/bench/py/char_model.py` | sonuç değeri aynı | ms; ms/adım; kaçan tur |
 | S14 | `empty.tr` | yok | — | duvar saati |
+| S15 | `language_model.tr --mode warm` (qwen3-4b-q4km, 512 token, `--reps` 8; aynı önbellek boşaltılarak okunur; yalnız GPU makineleri, l4gpu ve g4; T1 GPU hızı A5) | yok | — | `cold_ms` (ilk okuma), `warm_ms` (kalanların ortancası) |
 
 Makinelerin listeleri `questions.py`'nin `QUESTIONS`'ındadır: HIGHRAM ve dizüstü S1–S10, S13, S14; L4 (GPU ve işlemci aynı oturumda: `l4gpu`, `l4cpu`) ve G4 GPU'da S1–S3, S5–S12, S14 ve S13'ün döngüsü; L4'ün işlemcisi S1–S3, S5–S10, S14.
 

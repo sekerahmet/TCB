@@ -1,8 +1,9 @@
 # TR 4
-# Temel ölçü seti S1–S3 (tools/bench/baseline/README.md): dil modelinin okuma ve üretim hızı, Dost'un yolundan
+# Temel ölçü seti S1–S3 ve S15 (tools/bench/baseline/README.md): dil modelinin okuma ve üretim hızı, Dost'un yolundan
 # (TR_pretrained_gguf, kapasiteli önbellek, TR_vendor_matmul ve TR_quantized_activations blokları).
 #   --mode speed: boş önbellekte --prompt token okunur (tek çağrı), sonra o derinlikten --gen adım açgözlü üretilir.
 #   --mode depth: --depths derinliklerin her birinde korunan önbelleğin üstüne --depth_prompt token okunur (S3).
+#   --mode warm: aynı önbellek boşaltılarak --prompt token --reps kez okunur; cold_ms ilki, warm_ms kalanların ortancası (S15).
 #   --mode agree: --text'in kendisi okunur ve --agree_tokens token açgözlü üretilir.
 #   --mode forced: --text ile llama.cpp'nin açgözlü cevabı (--given, llama-completion'ın çıktısı) tek okumada; her
 #     konumda TR'nin en olası token'ı ve llama.cpp'nin token'ına göre logit farkı, işlemcide ε (S1'in uyuşması, B14).
@@ -13,7 +14,7 @@
 TR_import "tr/pretrained"
 TR_import "tr/hugging_face"
 
-TR_var opt = TR_command_line({"model": "", "folder": "", "dtype": "bf16", "mode": "speed", "quantized": "auto", "device": "cpu", "prompt": 512, "gen": 128, "depths": "700,4100", "depth_prompt": 40, "agree_tokens": 32, "text": "", "given": ""})
+TR_var opt = TR_command_line({"model": "", "folder": "", "dtype": "bf16", "mode": "speed", "quantized": "auto", "device": "cpu", "prompt": 512, "gen": 128, "depths": "700,4100", "depth_prompt": 40, "agree_tokens": 32, "text": "", "given": "", "reps": 8})
 
 TR_func now_us() -> TR_Int { TR_return TR_monotonic_ns() // 1000 }
 
@@ -37,6 +38,15 @@ TR_func forced_logits(q: TR_Bool, model: TR_GPT, seq: TR_List[TR_Int], at: TR_In
 TR_func step(q: TR_Bool, model: TR_GPT, x: TR_Int, c: TR_KVCache) -> TR_Int {
     TR_var l = call(q) { model.TR_logits(model.TR_hidden_states([[x]], TR_cache: c))[0][0] }
     TR_return TR_argmax(l, TR_dim: -1).TR_tolist
+}
+
+# block_works: GPU'da 15.53a'nın çarpımı çalışıyor mu: sıfır q4_k ağırlıkla tek satırlık çarpım bloğun içinde. Hata verirse
+# aynı çarpım bloğun dışında bir kez koşar: iki taraf da kendi çarpım çekirdeğini ölçüden önce ısıtır (DENETİM 975 N2).
+TR_func block_works() -> TR_Bool {
+    TR_var w = TR_zeros([1, 256], TR_dtype: "q4_k").TR_transpose()
+    TR_var e = TR_error_code { call(TR_true) { TR_zeros([1, 256]) @ w } }
+    TR_if e != TR_none { call(TR_false) { TR_zeros([1, 256]) @ w } }
+    TR_return e == TR_none
 }
 
 # load_folder: parçalı ya da tek dosyalı Hugging Face klasörünü açık API'yle kurar.
@@ -98,11 +108,10 @@ TR_func load_folder(folder: TR_String, dtype: TR_String) -> TR_GPT {
 }
 
 TR_var mode = TR_String(opt["mode"])
-TR_if TR_not ["speed", "depth", "agree", "forced"].TR_contains(mode) { TR_throw "--mode is speed, depth, agree or forced, not \(mode). Example: --mode speed" }
+TR_if TR_not ["speed", "depth", "warm", "agree", "forced"].TR_contains(mode) { TR_throw "--mode is speed, depth, warm, agree or forced, not \(mode). Example: --mode speed" }
 TR_var device = TR_String(opt["device"])
 TR_var choice = TR_String(opt["quantized"])
 TR_if TR_not ["auto", "on", "off"].TR_contains(choice) { TR_throw "--quantized is auto, on or off, not \(choice). Example: --quantized auto" }
-TR_if choice == "on" TR_and device != "cpu" { TR_throw "--quantized on runs only on the CPU (15.41), device \(device). Example: --quantized auto" }
 TR_var gguf = TR_String(opt["model"])
 TR_var folder = TR_String(opt["folder"])
 TR_if (gguf == "") == (folder == "") { TR_throw "give exactly one of --model (a GGUF file) and --folder (a Hugging Face folder). Example: --model Qwen3-4B-Q4_K_M.gguf" }
@@ -116,16 +125,17 @@ TR_var model = TR_if gguf != "" { TR_pretrained_gguf(gguf) } TR_else { load_fold
 TR_var load_ms = (now_us() - t0) / 1000.0
 # Nicemli etkinleştirme Dost'unki gibi seçilir (tools/assistant/nicemli.tr, nicemli_çöz ve nicemli_uygun): auto, işlemcide
 # ve nicemlenmiş çarpım ağırlıklarının hepsi q4_k ya da q6_k olan (en az biri) modelde açık, öbüründe kapalı: q8 ya da q4
-# ağırlıkta blok H6723 verir, float modelde etkisizdir (15.53a); GPU'da kapalı (15.41). Bu kural model yüklendikten sonradır
-# (A-11'den sonra B'de S1/qwen3-4b-q8 auto'da düşüyordu: önce yalnız cihaza bakılıyordu).
-TR_var q = TR_if choice == "auto" { device == "cpu" TR_and suits_quantized(model) } TR_else { choice == "on" }
+# ağırlıkta blok H6723 verir, float modelde etkisizdir (15.53a). GPU'da blok yalnız yoklama geçerse açılır (block_works):
+# eski TR'de GPU'daki çarpım H6724'tür, --base-trlang'ın eski tarafı float yolunu ölçer. Bu kural model yüklendikten
+# sonradır (A-11'den sonra B'de S1/qwen3-4b-q8 auto'da düşüyordu: önce yalnız cihaza bakılıyordu).
+TR_var q = TR_if choice == "auto" { suits_quantized(model) TR_and (device == "cpu" TR_or block_works()) } TR_else { choice == "on" }
 
 TR_var P = TR_Int(opt["prompt"])
 TR_var G = TR_Int(opt["gen"])
 TR_var DP = TR_Int(opt["depth_prompt"])
 TR_var A = TR_Int(opt["agree_tokens"])
 TR_var depths = [TR_Int(s) TR_for s TR_in TR_String(opt["depths"]).TR_split(",")]
-TR_var need = TR_if mode == "speed" { P + G } TR_else TR_if mode == "depth" { depths[depths.TR_length - 1] + DP } TR_else { 0 }
+TR_var need = TR_if mode == "speed" { P + G } TR_else TR_if mode == "warm" { P } TR_else TR_if mode == "depth" { depths[depths.TR_length - 1] + DP } TR_else { 0 }
 TR_var k: TR_List[TR_Int] = []
 TR_var once = tok.TR_encode(text)
 TR_for k.TR_length < TR_max(need, 1) {
@@ -151,6 +161,22 @@ TR_no_grad {
         }
         TR_var gen_ms = (now_us() - b) / 1000.0
         put(result, {"prompt_tokens": TR_JSON(P), "prompt_ms": TR_JSON(read_ms), "gen_tokens": TR_JSON(G), "gen_depth": TR_JSON(P), "gen_ms": TR_JSON(gen_ms), "tokens": TR_JSON(made[0..TR_min(32, G)])})
+    }
+    TR_if mode == "warm" {
+        TR_var R = TR_Int(opt["reps"])
+        TR_if R < 2 { TR_throw "--reps is at least 2 (the first read is cold), not \(R). Example: --reps 8" }
+        TR_var c = model.TR_build_cache(TR_capacity: P + 8)
+        TR_var times: TR_List[TR_Float] = []
+        TR_for r TR_in 0..R {
+            c.TR_truncate(0)
+            TR_var b = now_us()
+            read(q, model, k[0..P], c)
+            times.TR_append((now_us() - b) / 1000.0)
+        }
+        TR_var rest = times[1..R].TR_sort()
+        TR_var h = rest.TR_length // 2
+        TR_var mid = TR_if rest.TR_length % 2 == 1 { rest[h] } TR_else { (rest[h - 1] + rest[h]) / 2.0 }
+        put(result, {"prompt_tokens": TR_JSON(P), "reps": TR_JSON(R), "cold_ms": TR_JSON(times[0]), "warm_ms": TR_JSON(mid), "reads_ms": TR_JSON(times)})
     }
     TR_if mode == "depth" {
         TR_var c = model.TR_build_cache(TR_capacity: depths[depths.TR_length - 1] + DP + 8)
@@ -205,7 +231,7 @@ TR_no_grad {
         }
         put(result, {"prompt_tokens": TR_JSON(P0), "given_tokens": TR_JSON(n), "positions": TR_JSON(rows)})
         # ε: aynı konumlarda öbür yolun (nicemli ↔ nicemsiz) logitleriyle en büyük mutlak fark, Q4'ün kendi gürültüsü (B14).
-        # Nicemli etkinleştirme yalnız işlemcidedir (15.41); GPU'da ε yazılmaz. Öbür yol yalnız blok modelin bütün
+        # GPU'da ε yazılmaz: kural B14'ün işlemci ölçüsüdür (15.53a GPU'da da çalışır; GPU'nun ε'u ayrı karar). Öbür yol yalnız blok modelin bütün
         # nicemlenmiş ağırlıklarını kaldırıyorsa koşar (15.53a: q4, q4_k, q6_k); kaldırmıyorsa (q8, float) nicemli yol yoktur,
         # iki yol aynıdır ve ε 0'dır (TCB 17:29; B'de S1/qwen3-4b-q8'in ε adımı 15.53a'yla düşüyordu).
         # GPU'da da: nicemli yolu olmayan ağırlıkta ε kuralla 0'dır, HIGHRAM'in ölçüsü gerekmez (TCB 17:57).
