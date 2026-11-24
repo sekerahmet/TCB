@@ -1417,7 +1417,7 @@
 "H6746": "ONNX tensor {name|q}: unsupported data type {dtype} (this TR version reads FLOAT, DOUBLE, FLOAT16, BFLOAT16, INT64, INT32, INT16, INT8, UINT8 and BOOL)",
 "H6747": "ONNX tensor {name|q}: shape {shape} needs {want} bytes, the file holds {got}{case, select, external {: its data is in a separate file (external_data); external data is not read, export the model as a single file} other {}}",
 "H6748": "the name {name|q} appears twice in the ONNX file",
-"H6800": "unknown device {name|q}; give a name such as \"cpu\", \"gpu\" or \"gpu:1\"",
+"H6800": "unknown device {name|q}: a device name is written \"cpu\", \"gpu\", or like \"gpu:0\", \"gpu:1\" (lowercase, no spaces, no leading zero in the index); `{#devices}()` lists the ones on this machine",
 "H6801": "{fn}() expects the device name as a string (\"cpu\" or \"gpu\"), {given} given",
 "H6802": "{fn}(\"cpu\") expects 1 parameter",
 "H6803": "{fn}: the dtype must be a string (\"float32\", \"bf16\" or \"fp16\"), {given} given",

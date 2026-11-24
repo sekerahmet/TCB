@@ -499,7 +499,7 @@ op.TR_zero_grad()
 - Büyük harf ve boşluk kabul edilmez; başka ad (`"tpu"`, `"cuda"`) hatadır, ileti geçerli adları söyler.
 - `TR_devices()` bu makinedeki cihazları uzun adlarıyla verir: ilki her zaman `"cpu"`, desteklenen GPU ve sürücüsü varsa ardından GPU'lar (`["cpu", "gpu:0"]`). Sürücü ilk soruda yüklenir; sürücüsüz makinede liste `["cpu"]`'dir ve her şey CPU'da çalışır.
 - Adlar donanım üreticisine bağlı değildir: başka hızlandırıcılar (Apple, gömülü NPU) da aynı adları alır.
-- *Test:* TR testi; tek yazım uygulanınca TR testi.
+- *Test:* TR testi (tek yazım üç çağrıda); Go: `TestDeviceNameSpelling`, `TestUnknownDeviceMessage`.
 
 **15.37a** `TR_device_info(c)` (`c` bir GPU'nun adı, 15.37) kartın bilgisini bir `TR_DeviceInfo` olarak verir: `.TR_name` (`TR_String`, kartın adı), `.TR_memory_total_bytes` (`TR_Int`, kartın belleği), `.TR_driver_version` (`TR_String`, sürücü arayüzünün sürümü, `"<büyük>.<küçük>"`). Sürücü 15.37'deki gibi ilk soruda yüklenir; bu makinede olmayan cihaz 15.38'deki gibi hatadır. `TR_device_info("cpu")` çağrı hatasıdır, ileti `TR_machine()`'i (19.12) önerir: işlemcinin bilgisi tek yerdedir. `TR_devices()` değişmez. Değer okunduğu anın görüntüsüdür (19.12).
 - *Test:* TR testi (`"cpu"`'nun hatası ve önerisi, olmayan cihaz); kartlı Go testi (`internal/stdlib/gpuprobe`, G4).

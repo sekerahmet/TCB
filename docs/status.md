@@ -27,8 +27,7 @@ Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da
 - **Ö2:** C; 2. kilometre taşının ve Jarvis'in ön koşulları.
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
-**Ö0, sırayla:**
-1. 15.37, cihaz adının tek yazımı (A, sahip T1).
+**Ö0, sırayla:** yok.
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -763,8 +762,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.37
 
-- **S-327 Yapılacaklar (A, Ö0, 1. sıra; sahip T1):** cihaz adı tek yazımlı değil (15.37): `.TR_to_device(" CPU ")`, `.TR_to_device("Cpu")` ve `TR_default_device(" CPU ")` hatasız kabul ediliyor, `tests/tensor_test.tr:1782` bunu doğru diye sabitliyor [ölçüldü: ae1e8dcc, trlang run]. Desteklenen GPU yalnız NVIDIA.
-- **S-328 Yapılacaklar (D, Ö3):** cihaz adının tek yazımı (büyük harf ve boşluk hata); `tests/tensor_test.tr:1783` ters döner; TR testi.
 - **S-329 Yapılacaklar (F, Ö3; sahip T1, Ö1 tensör tasarımlarından sonra):** iletiler cihazı kısa adla (`"gpu"`) yazıyor: `checkDevice` (`internal/stdlib/ml/operators.go:62-64`), `availableDevice` (internal/stdlib/ml/device.go:60) ve öbürleri Device.String'i kullanıyor (internal/compute/tensor/device.go:66); okunan ad `LongName`'dir (15.37).
 - **S-330 Yapılacaklar (F, Ö3; sahip H1):** profilcinin raporu cihazı `"gpu"` yazıyor (`internal/devtools/profiler/setup.go:140`, `:197`); 15.37'nin okunan adı `"gpu:0"`.
 

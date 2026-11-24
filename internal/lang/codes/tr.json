@@ -546,7 +546,7 @@
   "TR_mem_cpu_features": { "name": "işlemci_yetenekleri", "family": "Makine", "description": "İşlemcinin ve işletim sisteminin desteklediği komut kümeleri, sabit tablodan (\"avx2\", \"fma\", \"avx512f\", \"neon\" ...)." },
   "TR_mem_declared_eos_tokens": { "name": "bildirilen_durma_parçaları", "family": "Parçalayıcı", "description": "GGUF'tan yüklenen parçalayıcıda dosyanın bildirdiği durma kimliklerini (eos, eot, eom; bu sırayla, tekrarsız) Liste olarak verir; dosya hiçbirini bildirmiyorsa ya da parçalayıcı tokenizer.json'dan yüklendiyse yok döner. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_decode": { "name": "çöz", "family": "Parçalayıcı", "description": "Tek bir parça kimliği dizisini (kimlik listesi ya da 1 boyutlu tensör) metne geri çevirir; birden çok dizi için toplu_çöz. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar. Dağarcıkta olmayan kimlik hatadır." },
-  "TR_mem_device": { "name": "cihaz", "family": "Tensör", "description": "Tensörün bulunduğu cihazın adını verir: \"cpu\", \"gpu\" (ilk GPU) ya da \"gpu:1\" gibi." },
+  "TR_mem_device": { "name": "cihaz", "family": "Tensör", "description": "Tensörün bulunduğu cihazın uzun adını verir: \"cpu\", \"gpu:0\" ya da \"gpu:1\" gibi; kısa ad \"gpu\" okunmaz, ilk GPU \"gpu:0\"dır." },
   "TR_mem_device_step": { "name": "cihaz_adımı", "family": "kitaplık: tr/layers", "description": "" },
   "TR_mem_disk_available_bytes": { "name": "diskte_kullanılabilir_bayt", "family": "Yol", "description": "Yolun diskinde bu kullanıcıya açık boş yer, bayt; olmayan yolda hata, üst klasöre çıkmaz." },
   "TR_mem_done": { "name": "bitti_mi", "family": "Görev", "description": "Görev ya da program bittiyse (sonuçla, hatayla ya da iptalle) doğru verir; beklemez." },

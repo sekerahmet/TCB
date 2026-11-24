@@ -400,7 +400,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.37
 
 - *Emsal:* PyTorch'ta cihaz adı üreticiye bağlıdır (`"cuda"`, `"mps"`) [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* "Makinenin içinde çalıştırmak ... onun işlemcisinde": adlar NVIDIA'ya bağlı olmamalı, başka hızlandırıcılar aynı adlarla gelir. Bugün `" CPU "` kabul ediliyor [ölçüldü]; 17.9'un tek yazımı girdinin her yerindedir, harf ve boşluk serbestliği iki yazım demektir. `"gpu"` kısa adı kalır (tek GPU'lu programların olağan yazımı), ama `.TR_device` uzun adı verir: okunan ad tektir.
+- *Gerekçe:* "Makinenin içinde çalıştırmak ... onun işlemcisinde": adlar NVIDIA'ya bağlı olmamalı, başka hızlandırıcılar aynı adlarla gelir. `" CPU "` 2026-11-25'e kadar kabul ediliyordu [ölçüldü: b7777361]; 17.9'un tek yazımı girdinin her yerindedir, harf ve boşluk serbestliği iki yazım demektir. `"gpu"` kısa adı kalır (tek GPU'lu programların olağan yazımı), ama `.TR_device` uzun adı verir: okunan ad tektir.
 
 ### 15.37a
 

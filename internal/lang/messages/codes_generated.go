@@ -1422,7 +1422,7 @@ const (
 	H6746 Code = 6746 // ONNX tensörü {name|q}: desteklenmeyen veri türü {dtype} (bu TR sürümü FLOAT, DOUBLE, FLOAT16, BFLOAT16, INT64, INT32, INT16, INT8, UINT8 ve BOOL okuyabilir)
 	H6747 Code = 6747 // ONNX tensörü {name|q}: {shape} şekli {want} bayt ister, dosyada {got} bayt var{case, select, external {: verisi ayrı bir dosyada (external_data); dış veri okunmaz, modeli tek dosya olarak dışa verin} other {}}
 	H6748 Code = 6748 // ONNX dosyasında {name|q} adı iki kez geçiyor
-	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
+	H6800 Code = 6800 // bilinmeyen cihaz {name|q}: cihaz adı "cpu", "gpu" ya da "gpu:0", "gpu:1" gibi yazılır (küçük harf, boşluksuz, sıranın başında sıfır yok); bu makinedekileri `{#devices}()` verir
 	H6801 Code = 6801 // {fn}() cihaz adını metin olarak bekler ("cpu" ya da "gpu"), {given} verildi
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler
 	H6803 Code = 6803 // {fn}: tür metin olmalıdır ("float32", "bf16" ya da "fp16"), {given} verildi

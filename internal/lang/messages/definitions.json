@@ -1417,7 +1417,7 @@
 "H6746": { "param": ["name", "dtype"] },
 "H6747": { "param": ["name", "case", "shape", "want", "got"] },
 "H6748": { "param": ["name"] },
-"H6800": { "param": ["name"] },
+"H6800": { "param": ["name"], "slots": {"devices": "TR_fn_devices"} },
 "H6801": { "param": ["fn", "given"] },
 "H6802": { "param": ["fn"] },
 "H6803": { "param": ["fn", "given"] },

@@ -6692,7 +6692,7 @@ tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p
 
     Tensör.cihaz → Metin
 
-Tensörün bulunduğu cihazın adını verir: "cpu", "gpu" (ilk GPU) ya da "gpu:1" gibi.
+Tensörün bulunduğu cihazın uzun adını verir: "cpu", "gpu:0" ya da "gpu:1" gibi; kısa ad "gpu" okunmaz, ilk GPU "gpu:0"dır.
 
 ```tr
 TR_print(TR_Tensor([1, 2]).TR_device)

@@ -1780,11 +1780,11 @@ TR_test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     TR_var c = TR_devices()
     TR_assert_equal("cpu", c[0])
     TR_for ad TR_in c { TR_assert(TR_Type(ad) == TR_String) }
-    TR_assert_equal("cpu", TR_Tensor([1.0]).TR_to_device(" CPU ").TR_device)
+    TR_assert_equal("H6800", TR_error_code { TR_Tensor([1.0]).TR_to_device(" CPU ") })
     TR_assert_equal("H6800", TR_error_code { TR_Tensor([1.0]).TR_to_device("tpu") })
-    # Sayıdan sonra çöp ya da işaret olan ad da bilinmeyen cihazdır (gpu:0abc, gpu:+1, gpu:-1, gpu:).
-    TR_for kötü TR_in ["gpu:0abc", "gpu:+1", "gpu:-1", "gpu:", "gpu: 1"] {
-        TR_assert_equal("H6800", TR_error_code { TR_Tensor([1.0]).TR_to_device(kötü) }, kötü)
+    # Ad tek yazımlıdır: harf, boşluk, işaret, baştaki sıfır ve sayıdan sonraki çöp başka addır; üç çağrı aynı kuraldadır.
+    TR_for kötü TR_in ["gpu:0abc", "gpu:+1", "gpu:-1", "gpu:", "gpu: 1", "gpu:00", "gpu:01", "gpu:0 ", "GPU:0", "Gpu", " gpu", "Cpu", "CPU", "cpu ", "cpu\n", ""] {
+        TR_assert_equal(["H6800", "H6800", "H6800"], [TR_error_code { TR_Tensor([1.0]).TR_to_device(kötü) }, TR_error_code { TR_default_device(kötü) }, TR_error_code { TR_device_info(kötü) }], kötü)
     }
     TR_assert_equal("H2014", TR_error_code { TR_devices(1) })
     TR_if c.TR_contains("gpu:0") {
