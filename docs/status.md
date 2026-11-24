@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlikle başlar (S-412) ve mesajda, devirde ve denetimde bu kimlikle anılır, satır numarasıyla anılmaz. Biçim: kimlik, tür (Yapılacaklar ya da Mevcut durum), ayraç içinde sınıf, öncelik ve sahip; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı. Madde alt satırlarıyla en çok 500 harftir. Ölçü sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, karar saati ve tarihi yazılmaz, commit mesajında durur. Silinen maddenin kimliği yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar [test: `TestStatusItemsFollowTheFormat`].
 
-**Sıradaki kimlik:** S-694.
+**Sıradaki kimlik:** S-697.
 
 ## Önem ve öncelik
 
@@ -29,8 +29,9 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 
 **Ö0, sırayla:**
 1. 15.15, `TR_where`'in sayı dalının hassasiyeti (A, sahip T1).
+2. 15.37, cihaz adının tek yazımı (A, sahip T1).
 
-**Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
+**Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
 **Sahipli kollar:** (TCB 2026-11-23 11:57 ve 12:30; sahip başına bir satır, Ö1 listesinin parçası)
 - Motor (dil çekirdeği kolu): 3.3a.
@@ -62,7 +63,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md).
 - **S-5 Mevcut durum:** tipi bilinmeyen değer (öğe tipi bilinmeyen kap da) tipli yere girerken denetimde değil, çalışırken yerin koduyla duruyor (H1001, H1003, H1004, H1005, H1124, H1125, H1136; kapta H1170, H1171) [test: `TestUntypedValuesAreCheckedAtTypedPlaces`, `TestBuiltAppRunsTheUntypedValueCheck`].
 - **S-6 Yapılacaklar (D, Ö3; sahip tensör kolu (T1)):** döngünün ve indekslemenin tipi `typeAny` dönüyor [kanıtlı: `internal/lang/checker/local_types.go:234-278`]; `TR_Bytes(...)`'in tipi denetimde bilinmiyor, tipli yere girerken çalışırken duruyor [ölçüldü: `ae1e8dcc`]. Sıradaki: tipi denetimde vermek.
 - **S-7 Yapılacaklar (A, Ö1; sahip tensör kolu (T1)):** denetlenen kap tipsiz bir adla paylaşılıyorsa o addan sonra yazılan öğe denetlenmiyor: `l: TR_List = ["a"]`, `g: TR_List[TR_String] = l`, `l.TR_append(1)` sonrası `g` `["a", 1]` [ölçüldü: `ae1e8dcc`]. Sıradaki: kaynağın tipini denetimde bilmek.
-- **S-8 Yapılacaklar (D, Ö3; sahip tensör kolu (T1)):** çalışma denetiminin `TR_JSON` kolu her değeri kabul ediyor [kanıtlı: `internal/lang/interp/runtime_checks.go:160-161`]: tipsiz listeden `TR_List[TR_JSON]`'a fonksiyon giriyor, hata ancak JSON'a yazarken geliyor [ölçüldü: `ae1e8dcc`].
+- **S-8 Yapılacaklar (D, Ö3; sahip tensör kolu (T1)):** çalışma denetiminin `TR_JSON` kolu her değeri kabul ediyor [kanıtlı: `internal/lang/interp/runtime_checks.go:160-161`]: tipsiz listeden `TR_List[TR_JSON]`'a fonksiyon giriyor, hata ancak JSON'a yazarken geliyor [ölçüldü: `ae1e8dcc`]. Sıradaki: kol öğeleri JSON kuralıyla denetlensin.
 - **S-9 Yapılacaklar (D, Ö3; sahip tensör kolu (T1)):** iki yerde tip denetimde bilinmiyor: çekirdek dışı yerleşik tipli alan (`o: TR_Optimizer?` iken `s.o.TR_step()` H1180 yerine çalışırken H2744) [kanıtlı: `internal/lang/checker/local_types.go:225`] ve öğesi programın yapısı olan kabın üye dönüşü (`dn.TR_get("p").x`) [kanıtlı: `internal/lang/checker/member_types.go:61`].
 - **S-10 Yapılacaklar (D, Ö3; sahip tensör kolu (T1)):** `?.`'nın sonucunun tipi denetimde bilinmiyor (4.8): `s?.n.x` H1180 vermiyor, `TR_var w: TR_Int = s?.TR_upper()` ve `= s?.TR_length` denetimden geçiyor [ölçüldü: `ae1e8dcc`].
 
@@ -78,7 +79,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md).
 
 ### 1.9
 
-- **S-15 Mevcut durum (iç çöküş):** Go çalışma zamanının ölümcül hatası 2 koduyla bitiyor, 1.9'un kullanım hatasıyla karışıyor [kanıtlı: go1.27.4 `src/runtime/panic.go:1449`].
+- **S-15 Yapılacaklar (D, Ö3; iç çöküş):** Go çalışma zamanının ölümcül hatası 2 koduyla bitiyor, 1.9'un kullanım hatasıyla karışıyor [kanıtlı: go1.27.4 `src/runtime/panic.go:1449`].
 
 ## 2. Sözcük yapısı
 
@@ -100,7 +101,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md).
 
 ### 2.3b
 
-- **S-21 Yapılacaklar:** harf büyüklüğü olmayan yapı adı (`TR_struct 学生`, `TR_struct طالب`) ad yazılışı uyarısı alıyor, önerisi adın kendisi; böyle karakter her biçime uyar (2.3b) [ölçüldü: `ae1e8dcc`]. Sıradaki: TR testi.
+- **S-21 Yapılacaklar (F, Ö3):** harf büyüklüğü olmayan yapı adı (`TR_struct 学生`, `TR_struct طالب`) ad yazılışı uyarısı alıyor, önerisi adın kendisi; böyle karakter her biçime uyar (2.3b) [ölçüldü: `ae1e8dcc`]. Sıradaki: TR testi.
 
 ## 3. Tipler ve değerler
 
@@ -207,7 +208,6 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 ### 5.4
 
-- **S-69 Yapılacaklar:** `TR_Int` değişkene `/=`'de H1008 `//`'yi öneriyor, 5.4 `//=` der [kanıtlı: `internal/lang/messages/tr.json:149`].
 - **S-70 Yapılacaklar (hız, Ö3; sahip dil çekirdeği kolu (Motor)):** derleyici güvenli olmayan her metot çağrısında `codes.IsInPlace`'e bakıyor, denetimsiz koşuda `definitions.json` ilk metot çağrısında ayrıştırılıyor [kanıtlı: `internal/lang/interp/copy_writes.go:163`, `internal/lang/codes/definition.go:207-213`]; bedeli ölçülmedi.
 
 ### 5.5
@@ -225,7 +225,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 - **S-77 Mevcut durum:** yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` denetimden geçiyor, çalışırken "döngü kurulamaz" [ölçüldü: `ae1e8dcc`].
 - **S-78 Yapılacaklar (E, Ö3; sahip D1):** `TR_next() -> T?` taşıyan yapının dolaşılması, tek seferlik dolaşıcı; `T` isteğe bağlıysa denetim hatası (ileti öğeyi sarmayı önerir); TR testi.
-- **S-79 Yapılacaklar (C, Ö2; sahip Motor):** iki adlı döngünün demet denetimi (`tupleGuard`) tipi denetimde bilinen döngüde de her turda koşuyor [kanıtlı: `internal/lang/interp/compiler_loop_bind.go:19-21`, `:50-59`]. Sıradaki: bedel ölçülür, gerekirse tipi bilinen döngüde kalkar.
+- **S-79 Yapılacaklar (sınıfsız: hız, Ö3; sahip Motor):** iki adlı döngünün demet denetimi (`tupleGuard`) tipi denetimde bilinen döngüde de her turda koşuyor [kanıtlı: `internal/lang/interp/compiler_loop_bind.go:19-21`, `:50-59`]. Sıradaki: bedel ölçülür, gerekirse tipi bilinen döngüde kalkar.
 - **S-80 Yapılacaklar (F1, Ö2; sahip Motor (dil çekirdeğinin iletisi)):** `TR_for [a, b] TR_in l` H0206 alıyor, ileti onu üyelik sınaması sayıyor [kanıtlı: `internal/lang/parser/expressions.go:324-328`]; 5.7 açmayı yalnız demette, parantezli desenle tanır. Sıradaki: 5.7'nin kuralını söyleyen ileti ve olumsuz fikstür.
 
 ### 5.11
@@ -259,8 +259,7 @@ Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yaln
 ### 6.2
 
 - **S-91 Mevcut durum:** eksik dönüş denetlenmiyor: `-> TR_Int` fonksiyonunda `TR_return`'süz yol denetimden geçiyor, çalışınca yokluk veriyor [ölçüldü: ae1e8dcc].
-- **S-92 Yapılacaklar (A, Ö1, 4b):** bitmeyen yol (S-91) denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler `TR_return`, `TR_throw`, `TR_exit`, çıkışsız sonsuz döngü, dalları biten `TR_if` ve kolları biten `TR_match`; denetleyicinin testi.
-- **S-93 Mevcut durum:** döngüden `TR_break` ile çıkan `-> TR_Int` fonksiyonu `TR_none` döndürüyor, denetimden geçiyor [ölçüldü: ae1e8dcc]; S-92'nin testi bunu ve iç içe biten dalları da sınar.
+- **S-92 Yapılacaklar (A, Ö1, 4b):** bitmeyen yol (S-91) denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler `TR_return`, `TR_throw`, `TR_exit`, çıkışsız sonsuz döngü, dalları biten `TR_if` ve kolları biten `TR_match`; denetleyicinin testi; döngüden `TR_break` ile çıkan `-> TR_Int` fonksiyonu bugün `TR_none` döndürüp denetimden geçiyor [ölçüldü: ae1e8dcc], test bunu ve iç içe biten dalları da sınar.
 
 ### 6.3
 
@@ -360,12 +359,10 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.2
 
-- **S-133 Yapılacaklar:** yeniden fırlatılan hata ilk fırlatıldığı yerin çağrı yığınını korur (8.2); çağrı yığını hiç yok (S-145).
-
 ### 8.3
 
 - **S-135 Mevcut durum:** hata değerlerinin `e == f`'si denetimden geçiyor, çalışırken H2913 [ölçüldü: ae1e8dcc].
-- **S-136 Yapılacaklar (A, Ö1, 4a5):** `TR_value`'nun kapalı birleşim tipi ve `e == f`'nin denetim hatası (4a); kopyanın daraltılması (4b), `_`'siz eşlemenin kapsaması (4c); bugün metin taşıyan `e.TR_value` `TR_Int` tipli ada denetimden geçiyor [ölçüldü: ae1e8dcc].
+- **S-136 Yapılacaklar (D, Ö3, 4a5):** `TR_value`'nun kapalı birleşim tipi ve `e == f`'nin denetim hatası (4a); kopyanın daraltılması (4b), `_`'siz eşlemenin kapsaması (4c); bugün metin taşıyan `e.TR_value` `TR_Int` tipli ada denetimden geçiyor [ölçüldü: ae1e8dcc].
 - **S-138 Yapılacaklar (F, Ö3; sahip T1):** kayıt alanını çağıran yazımda (`.TR_text("tr")`) H2421 alanın adını ve parantezsiz yazımı söylemiyor, öneri boş [kanıtlı: `internal/lang/interp/calls.go:223`].
 
 ### 8.5
@@ -377,7 +374,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 ### 8.6
 
 - **S-145 Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü: ae1e8dcc].
-- **S-146 Yapılacaklar (F, Ö3):** yakalanmayan hatada çağrı yığını, en son çağrı en altta (8.6; S-145).
+- **S-146 Yapılacaklar (F, Ö3):** yakalanmayan hatada çağrı yığını, en son çağrı en altta (8.6; S-145); yeniden fırlatılan hata ilk fırlatıldığı yerin çağrı yığınını korur (8.2).
 - **S-147 Yapılacaklar:** yakalanmayan hatada nedenler zinciri gösterilmiyor: `TR_cause`'u olan hata yalnız kendi metniyle yazılıyor [ölçüldü: ae1e8dcc].
 - **S-148 Yapılacaklar (F, Ö3; sahip Motor, cmd/trlang/build.go, görünen metin değiştiği için tasarımla):** üretilen uygulamada gömülü modülün çalışma hatası modülün adıyla değil geçici kopyanın yoluyla (kullanıcının adı dahil) gösteriliyor [ölçüldü: ae1e8dcc, trlang build]; kopyalar `writeEmbeddedModules`'ta yazılıyor [kanıtlı: cmd/trlang/build.go:443].
 - **S-149 Yapılacaklar (F, Ö3; sahip D1):** terminalde gösterilen kodlu hatada kod yazılmıyor: `TR_throw TR_Message("H2132")` yalnız satırı ve metni basıyor [ölçüldü: ae1e8dcc].
@@ -406,7 +403,6 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md).
 ### 10.2
 
 - **S-155 Yapılacaklar (C, Ö2, Kol B, K'nin kalanı):** GPU'daki `@` ve bileşik yerleşikler (`TR_backward`) yorumlayıcı kilidini tutuyor, uzun işte başka görev bekliyor [kanıtlı: `internal/stdlib/ml/unlocked.go:53-54`, `:104`]. Sıradaki: GPU'da iznin kuyruğun bitişine bağlanması.
-- **S-156 Yapılacaklar (C, Ö2, Kol B):** `TestTheLockIsHandedOffInTimeAfterStatementsSlowDown` ve `TestLockIsTakenInArrivalOrderWithinTheDelay` yük altında 10.2'nin sınırını aşıp düşebiliyor, Windows'ta ve Linux'ta [test: `internal/lang/interp/gil_test.go`]. Sıradaki: CI ve G4 koşularındaki Linux düşüşleri sayılır; sınır gevşetilmez.
 - **S-157 Yapılacaklar (F, Ö3; sahip H1):** çakışmada hazırlık yeniden yapılınca önceki çekirdeğin çıktısı ve bitişik kopyaları havuza dönmüyor, çöp toplayıcıya kalıyor; yalnız başka görev aynı depoyu tutarken [kanıtlı: `internal/stdlib/ml/unlocked.go:23-41`, `internal/compute/tensor/access.go:150-155`].
 - **S-158 Yapılacaklar (test, Ö3; sahip T1):** çekirdeğin ortasında kesilmemenin (durdurma, `TR_exit`, iptal) testi yok; kesilmeye yalnız kilidin geri alınışında bakılıyor [kanıtlı: `internal/lang/interp/interrupt.go:285-290`].
 
@@ -526,14 +522,14 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 - **S-204 Mevcut durum:** `t.TR_tolist` bir özellik, 0 boyutta sayı, 2+ boyutta iç içe liste veriyor; dil tanımının çağrı yazımı `t.TR_tolist()` çalışırken H2421 [ölçüldü: ae1e8dcc]. Çağrısız yazım 156 dosyada 1510 yerde [kanıtlı: `git grep -cP` ile sayım].
 - **S-205 Yapılacaklar (A, Ö1, 4a):** `TR_tolist` yalnız 1 boyutta, öğe tipi tensörün cinsi olan liste vermeli; bugün 0 boyutlu tensörün `TR_tolist`'i liste tipli değişkene ondalık koyuyor, denetimden geçiyor [ölçüldü: ae1e8dcc]. Sıradaki: sayım ve çalıştırarak sınıflayan göç aracı (sahip T1); 0 ve 2+ boyutlu kullanımlar `.TR_item()`'a ya da dolaşmaya döner.
 - **S-679 Yapılacaklar (A, Ö1, 4a):** `TR_named_parameters` yok (bilinmeyen kimlik); dönüşü `TR_Dict[TR_String, TR_AnyTensor]` olacak, bugün `TR_parameters`'ın dönüşü `TR_named:`'e bağlı (`TR_List|TR_Dict`) [ölçüldü: ae1e8dcc].
-- **S-680 Yapılacaklar (A, Ö1, 4a):** H3068'in metni "Item" diyor, `.TR_item()`'ı kimliğiyle anmıyor [kanıtlı: `internal/lang/messages/tr.json:649`].
+- **S-680 Yapılacaklar (F, Ö3, 4a):** H3068'in metni "Item" diyor, `.TR_item()`'ı kimliğiyle anmıyor [kanıtlı: `internal/lang/messages/tr.json:649`].
 
 ### 13.9
 
 - **S-206 Mevcut durum:** katalog imzaları çoğunlukla öğesiz (`TR_List`, `TR_Dict`); fonksiyon tipi tek `TR_Function`, yerleşiğin tipi `TR_BuiltinFunction`, genel tip `TR_Any` [kanıtlı: `internal/lang/codes/definitions.json`, `params` ve `returns` alanları].
 - **S-207 Mevcut durum:** `.TR_get`, `.TR_keys`, `.TR_length`'in katalogdaki üye tipleri `TR_JSON` ve `TR_Bytes`'ı eksik yazıyor, denetleyici onlara güvenmiyor [kanıtlı: `internal/lang/checker/builtin_calls.go:20-24`; test: `TestMemberTypesMatchDefinitions`].
 - **S-208 Yapılacaklar (A, Ö1, 4a):** öğesiz imza ve tek fonksiyon tipi yüzünden tipli yere yanlış tip giriyor: `TR_var g, s = TR_rfft(x)` sonrası `TR_var y: TR_Int = g` denetimden geçiyor, çalışırken H1001 [ölçüldü: ae1e8dcc]. Sıradaki: imzalar öğe ve fonksiyon tipleriyle, `TR_BuiltinFunction` ve `TR_Any` kalkar, dönüş seçilen imzadan (4a5).
-- **S-209 Yapılacaklar (4a2):** yerleşiğin fonksiyon değeri olarak eşleşmesi denetlenmiyor: adlı sınır isteyen `TR_clamp` `l.TR_map(TR_clamp)`'te denetimden geçiyor, çalışırken düşüyor [ölçüldü: ae1e8dcc].
+- **S-209 Yapılacaklar (D, Ö3, 4a2):** yerleşiğin fonksiyon değeri olarak eşleşmesi denetlenmiyor: adlı sınır isteyen `TR_clamp` `l.TR_map(TR_clamp)`'te denetimden geçiyor, çalışırken düşüyor [ölçüldü: ae1e8dcc].
 
 ### 13.10
 
@@ -556,7 +552,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.1
 
 - **S-219 Mevcut durum:** `TR_AnyTensor` ve `.TR_narrow[E]()` yok; `TR_Tensor[E]` ayrıştırılıyor ama denetimde `TR_Tensor`'a iniyor (S-222, S-297). GPU'da kapsam dışı cinsli işlemler H6969 [test: `TestTypedPathsOnGPU`].
-- **S-681 Mevcut durum (veri kümesi):** toplu verinin kimlikleri float32 kurulup "int64"e çevriliyor (`internal/stdlib/dataset/dataset.go:536-537`, internal/stdlib/ml/value.go:83-93): 2²⁴'ün üstündeki kimlik H5536 verir (`dataset.go:572`), öntanımlı cihaz GPU iken toplu veri konağa okunup yeniden yüklenir [kanıtlı].
+- **S-681 Yapılacaklar (sınıfsız: hız, Ö3; sahip veri kolu):** toplu verinin kimlikleri float32 kurulup "int64"e çevriliyor (`internal/stdlib/dataset/dataset.go:536-537`, internal/stdlib/ml/value.go:83-93): 2²⁴'ün üstündeki kimlik H5536 verir (`dataset.go:572`), öntanımlı cihaz GPU iken toplu veri konağa okunup yeniden yüklenir [kanıtlı].
 - **S-220 Mevcut durum (denetleyici tensör cinsini bilmiyor):** kuralın cins ve imza denetim hataları çalışmada geliyor ya da hiç gelmiyor (S-219): 15.2'nin `TR_Tensor[TR_Int]([1.5])`'i, 15.6'nın cinsli işleç tablosu (`@` dahil), 15.6a'nın sığmayan sayısı ve liste işleneni, 15.18'in konumlu ekseni, 15.18a'nın cins farkı, 15.49'un cinsleri [ölçüldü: trlang run, `ae1e8dcc`].
 - **S-221 Yapılacaklar (test, Ö3):** cinsli çekirdek bileşimlerinin (`gpuTypedOK`, `internal/compute/gpu/typed_ops.go:25`) ad, benzersizlik ve ayrışma testi [hipotez]; benzetim `.target`'ı denetlemiyor (`internal/compute/gpu/sim_parse.go:238`; `mma.sync`, `cvt.rn.*x2.f32`); `checkKernelNames` yalnız bütün testler geçince koşuyor (`internal/compute/gpu/helpers_test.go:27-29`).
 - **S-222 Yapılacaklar (A, Ö1, 4c):** öğe cinsli tip (`TR_Tensor[E]`), `TR_AnyTensor` ve daraltma: `TR_Tensor[TR_Int]` tipli yere `TR_Tensor([1.5])` hatasız float32 kuruyor [ölçüldü: trlang run, `ae1e8dcc`]. GPU'da "int64" `TR_max`, `TR_min`, `TR_mean`, `TR_cumsum` ve dar tam sayılar H6969 (`internal/compute/gpu/typed_ops.go:25-52`, `typed_reduce.go:20`); `TR_replay` kaydında tam sayı tensörünün sayıyla işlemi H4066.
@@ -649,7 +645,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **S-262 Yapılacaklar (E, Ö3; sahip T1):** `TR_dim:` listesi (`TR_sum(x, TR_dim: [1, 2])`) H6106 veriyor [ölçüldü: trlang run, `ae1e8dcc`].
 - **S-263 Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor (`TR_sum(x, 0)`); `TR_max`/`TR_min`'de konumlu ikinci argüman denetimde değil çalışmada H6205 [kanıtlı: `internal/stdlib/ml/builtin_reduce.go:35-38`; ölçüldü: trlang run, `ae1e8dcc`].
 - **S-264 Yapılacaklar (D ve E, Ö3):** eksen yalnız adla; göç `tests/tensor_test.tr:379`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:89`. Kartta dar tam sayı ve mantık tensörünün `TR_sum`'ı H6969 (`internal/compute/gpu/typed_reduce.go:20`); TR testleri.
-- **S-265 Yapılacaklar:** `TR_std`'nin tensör yolunda (S-231) sapması 0 olan eksende türev 0 (15.18); TR testi.
+- **S-265 Yapılacaklar (E, Ö3):** `TR_std`'nin tensör yolunda (S-231) sapması 0 olan eksende türev 0 (15.18); TR testi.
 
 ### 15.18a
 
@@ -685,7 +681,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 ### 15.22a
 
 - **S-281 Yapılacaklar (sınıfsız: hız; Ö1; sahip T1):** bf16 ve fp16 `@`'nin tensör çekirdekli yolu yalnız `TR_vendor_matmul` bloğunda (`internal/compute/gpu/backend_gemm.go:161`, `:175`); blok dışında float32'ye açılır, H4132 uyarır [test: `TestMixedPrecisionWithoutBlockWarns`]. Kendi çekirdeğin bf16'sı torch'tan ve kendi float32'sinden yavaş [ölçüldü: RT-2026-11-19-L4GPU-H1-2, RT-2026-11-19-G4GPU-H1-2]. Sıradaki: kendi tensör çekirdekli 16 bitlik çarpım.
-- **S-282 Yapılacaklar (C, Ö2; sahip T1):** tanh GELU'nun ve üstelin AVX2 çekirdeği Go eşinden birkaç ulp ayrılabiliyor (`internal/compute/tensor/cpu_vector_amd64.go:74-75`): aynı program AVX2'li ve AVX2'siz makinede son bitlerde başka sayı verebilir; arm64'te `p = p*r + c` (`internal/compute/tensor/cpu_math.go:45`) birleşebilir [hipotez]. Sıradaki: tam GELU'nun yöntemi (çarp-topla yalnız `math.FMA` ile, iki yol aynı sırada).
 - **S-283 Yapılacaklar (D, Ö3):** sayı yerleşikleri `internal/detmath`'te, tensör yolu float32'de kendi çekirdekleriyle (`internal/compute/tensor/cpu_elementwise_wide.go:101`): `TR_exp`, `TR_sigmoid`, `TR_silu` sayıda ve tensörde son bitlerde ayrılabiliyor [kanıtlı]; 15.22a sayı ile tensörü anmıyor. Sıradaki: dil tanımı turunda karar.
 
 ### 15.22b
@@ -772,7 +767,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.37
 
-- **S-327 Mevcut durum:** cihaz adı tek yazımlı değil: `TR_default_device(" CPU ")` ve `.TR_to_device(" CPU ")` kabul ediliyor [ölçüldü: trlang run, `ae1e8dcc`], `tests/tensor_test.tr:1783` bunu sabitliyor. Desteklenen GPU yalnız NVIDIA.
+- **S-327 Yapılacaklar (A, Ö0, 2. sıra; sahip T1):** cihaz adı tek yazımlı değil (15.37): `.TR_to_device(" CPU ")`, `.TR_to_device("Cpu")` ve `TR_default_device(" CPU ")` hatasız kabul ediliyor, `tests/tensor_test.tr:1782` bunu doğru diye sabitliyor [ölçüldü: ae1e8dcc, trlang run]. Desteklenen GPU yalnız NVIDIA.
 - **S-328 Yapılacaklar (D, Ö3):** cihaz adının tek yazımı (büyük harf ve boşluk hata); `tests/tensor_test.tr:1783` ters döner; TR testi.
 - **S-329 Yapılacaklar (F, Ö3; sahip T1, Ö1 tensör tasarımlarından sonra):** iletiler cihazı kısa adla (`"gpu"`) yazıyor: `checkDevice` (`internal/stdlib/ml/operators.go:62-64`), `availableDevice` (internal/stdlib/ml/device.go:60) ve öbürleri Device.String'i kullanıyor (internal/compute/tensor/device.go:66); okunan ad `LongName`'dir (15.37).
 - **S-330 Yapılacaklar (F, Ö3; sahip H1):** profilcinin raporu cihazı `"gpu"` yazıyor (`internal/devtools/profiler/setup.go:140`, `:197`); 15.37'nin okunan adı `"gpu:0"`.
@@ -790,7 +785,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **S-338 Mevcut durum:** kartta tam sayıda yalnız int64'ün aritmetiği ve `TR_sum`'ı var; dar tam sayıların aritmetiği ve toplamı, int64 `TR_max`, `TR_min`, `TR_mean` ve tam sayı `TR_cumsum` kartta H6969 veriyor [kanıtlı: `internal/compute/tensor/typed.go:175-176`, `internal/compute/gpu/typed_reduce.go:24`; test: `TestTypedPathsOnGPU`].
 - **S-339 Mevcut durum:** kartta float64 `TR_logsumexp` H7081, float64 `TR_rfft` ve `TR_stft` H7076 veriyor; ileti tensörü işlemciye taşımayı söylüyor [test: `TestLogSumExpRunsOnTheCard`, `TestFourierRunsOnTheCard`].
 - **S-341 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1):** kartın havuzu serbest kalan blokları sürücüye geri vermiyor [kanıtlı: `internal/compute/gpu/memory.go:20-22`]. Sıradaki: havuzu boşaltan yol ya da zincirin bağlamını küçültmek.
-- **S-342 Yapılacaklar (sınıfsız: araç, Ö3; sahip T1):** `TR_GPU_PROFILE=1` ile koşan Dost zinciri program sonunda GPU özetini yazmadı; kod yolu özeti yazıyor (`internal/stdlib/engines.go:65`, `internal/compute/gpu/profile_api.go:169`) [hipotez: tek gözlem, ölçü tablosunda satırı yok]. Sıradaki: kökü aramak.
 - **S-343 Yapılacaklar (E, Ö3; sahip T1, sonraki dilim):** kartta `TR_logsumexp`'in türevi 2²⁴ öğeden uzun satırda `TR_backward`'da iç hata veriyor; işlemcide sınır yok [kanıtlı: `internal/compute/gpu/backend_row.go:66-80`]. Sıradaki: ilk +∞'ın konumunu tam sayıyla indirgemek, 2²⁴ + 1 öğelik test.
 - **S-344 Yapılacaklar (D, Ö3; sahip T1):** kayıtta kartın `TR_stft`'i H4066 veriyor: çerçevelerin konum tablosu her çağrıda konaktan yükleniyor (`internal/compute/tensor/fourier_card.go:135`) [test: `TestReplayFourierOnTheCard`].
 - **S-345 Yapılacaklar (C, Ö2; sahip T1):** kayıtta `TR_rfft`'in sonucu taban önbelleğinin geçmişine bağlı: önbellek dolup taban bırakılınca aynı adım tabanı konakta yeniden kurar ve H4066 verir [kanıtlı: `internal/compute/tensor/fourier_card.go:19-20`, `:42-61`].
@@ -801,7 +795,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **S-350 Yapılacaklar (D, Ö3; sahip T1, kapı TCB):** GPU paketinin PTX özeti (`internal/compute/gpu/testdata/ptx_ozet.txt`) yalnız bütün paketin `-short` koşusuyla yenilenebiliyor [kanıtlı: `internal/compute/gpu/behavior_ptx_digest_test.go:107-113`]. Sıradaki: dar koşuda görülen anahtarları yenilemek (T1), yerel kapıya dar GPU koşusu (TCB).
 - **S-351 Yapılacaklar (sınıfsız: hız; sahip T1):** kartın int64 toplamında eksensiz toplam tek iş parçacığıyla sırayla toplanıyor (`internal/compute/gpu/typed_reduce.go:35`, `plain(m, sameBlock)`, m = 1). Sıradaki: büyük n, küçük m için ağaç yolu ya da sınır.
 - **S-352 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1):** `sumInt64OnDevice`'ın bitişik kopyası bırakılmıyor (`internal/compute/tensor/typed_reduce.go:82`, `Drop` yok); 15.43'ün belirlenimli bırakması bu kopyada işlemiyor. Emsal: `internal/compute/tensor/view.go:115-119`.
-- **S-353 Mevcut durum:** kartta `TR_all` ve `TR_argmax` sonucu konağa okuyor (okuma bekleme sayılır, 15.41'e uyar); tohumlu `TR_randn` konakta üretilip karta kopyalanıyor (`internal/stdlib/ml/builtin_create.go:200`), dil tanımı kararı `docs/spec/pending.md:70`'te.
+- **S-353 Mevcut durum:** kartta tohumlu `TR_randn` konakta üretilip karta kopyalanıyor (`internal/stdlib/ml/builtin_create.go:200`), dil tanımı kararı `docs/spec/pending.md:70`'te.
 - **S-354 Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları, `internal/compute/gpu/ptx_math.go`) ulp sınırı ölçülmedi, gpu paketinde ulp testi yok; 15.11 GPU için birkaç ulp diyor.
 - **S-355 Yapılacaklar (C ve F, Ö2):** GPU sınırlarını ölçüp 15.10 ve 15.11'e yazmak; cihazlar arası sözün Go testi (15.41'in Test satırı onu bekliyor).
 
@@ -812,18 +806,18 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.43
 
-- **S-358 Mevcut durum:** `+=` ve `*=` bütün listeyi ve öğelerini kaçırıyor (`internal/lang/interp/assign.go:79-83`), `.TR_append` ve indeksle atama yalnız yazılan değeri: güvenli taraf ama sapma, testi yok. 15.43'ün Test satırında `TestOwnershipListLiteralOwnsElementsLikeATuple` ve `TestOwnershipIndexAssignmentEscapesOnlyTheWrittenValue` yok.
+- **S-358 Yapılacaklar (F, Ö3):** `+=` ve `*=` bütün listeyi ve öğelerini kaçırıyor (`internal/lang/interp/assign.go:79-83`), `.TR_append` ve indeksle atama yalnız yazılan değeri: güvenli taraf ama sapma, testi yok. 15.43'ün Test satırında `TestOwnershipListLiteralOwnsElementsLikeATuple` ve `TestOwnershipIndexAssignmentEscapesOnlyTheWrittenValue` yok.
 
 ### 15.44
 
 - **S-359 Yapılacaklar (E, Ö3; sahip T1 (fuse*.go, kernel_fused.go)):** `TR_fuse` içinde `TR_maximum`, `TR_minimum`, `TR_clamp` ve `TR_atan2` H3107, `TR_where` H6207 veriyor; 15.44 öğe öğe işlemlere izin veriyor (`docs/spec/15_tensorler.md:556`) [ölçüldü: `ae1e8dcc`'nin trlang run'ı]. Sıradaki: T1'in Q4 işinden sonra, işlemci ve GPU birlikte.
-- **S-360 Yapılacaklar (C, Ö2):** `TR_fuse`'un kapanış sayısı denetimi (H6986, `internal/stdlib/ml/fuse_captures.go:96-108`) GPU'da sınanmadı: H6986'nın kartlı ya da benzeticili testi yok. Sıradaki: L4'te koşmak.
+- **S-360 Yapılacaklar (C, Ö2):** `TR_fuse`'un kapanış sayısı denetimi (H6986, `internal/stdlib/ml/fuse_captures.go:96-108`) GPU'da sınanmadı: H6986'nın kartlı ya da benzeticili testi yok. Sıradaki: benzeticili bir Go testi ya da L4'te koşmak.
 - **S-361 Yapılacaklar (F, Ö3):** `TR_fuse` modül adını ve metot yolunu `VM.EvalExpression` ile okuyor (`internal/stdlib/ml/fuse_paths.go:120`); `internal/lang/interp/debug_support.go:5-7` bu yöntemleri yalnız hata ayıklayıcı için tanımlıyor. Sıradaki: yorum ikinci kullanıcıyı söyler ya da dar bir üye okuma fonksiyonu açılır.
 - **S-362 Yapılacaklar (F1, Ö3):** H6986'nın önerisi (değişen sayıyı argüman verin) fonksiyon değerinde yanlış: fonksiyon `TR_fuse`'a argüman olamaz, doğrusu `TR_fuse(...)`'i yeniden kurmak (`internal/lang/messages/tr.json:1503`). Fabrika kapanışının görünüşü ve takma adlı bağlı metodun yolu [hipotez: yeniden sınanmadı].
 - **S-363 Yapılacaklar (C, Ö3) [hipotez]:** fonksiyon kimliği `%p` ile metin olarak tutuluyor (`internal/stdlib/ml/fuse_captures.go:79-81`); eski kapanış toplanıp yenisi aynı adrese düşerse değişim görünmez. Sıradaki: gövde ve ortam işaretçilerini `fuseCapture`'da tutmak.
 - **S-364 Yapılacaklar (D, Ö3; sahip T1 (tensör ve GPU), iletisi Motor):** H3107 işlemin adını söylemiyor (`internal/lang/messages/tr.json:687`); denetleyici `TR_fuse`'u yalnız `internal/lang/checker/const_values.go:46`'da tanıyor, `TR_fuse((a) => TR_sum(a))` denetimden geçip çalışırken H3107 alıyor. Sıradaki: iletiye işlemin kimliği, sonra denetimde yakalama.
 - **S-365 Yapılacaklar (sınıfsız: hız, Ö3; sahip T1 (tensör ve GPU)):** `TR_fuse`'un CPU değerlendirmesi ortak alt ifadeyi her kullanımda yeniden hesaplıyor: iz ortak düğümü bir kez veriyor (internal/compute/tensor/fuse.go:121), değerlendirme özyinelemeli ve önbelleksiz (`internal/compute/tensor/fuse_cpu.go:182-216`). Sıradaki: ortak düğümü bir kez hesaplamak.
-- **S-366 Yapılacaklar:** `TR_fuse` float64 ve tam sayı tensörde H3107 veriyor; 15.44 onları kendi türünde hesaplar (`docs/spec/15_tensorler.md:559`) [ölçüldü: `ae1e8dcc`'nin trlang run'ı].
+- **S-366 Yapılacaklar (E, Ö3):** `TR_fuse` float64 ve tam sayı tensörde H3107 veriyor; 15.44 onları kendi türünde hesaplar (`docs/spec/15_tensorler.md:559`) [ölçüldü: `ae1e8dcc`'nin trlang run'ı].
 
 ### 15.45
 
@@ -858,7 +852,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 - **S-383 Mevcut durum:** nicemleme yok: `.TR_to_dtype("q8")` ve `TR_zeros` dışında değerden kurma H6691 (internal/stdlib/ml/dtype.go:116-117, `:241-243`).
 - **S-384 Yapılacaklar (E, Ö3):** `.TR_to_dtype` ile nicemleme (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar; 15.52'nin sıfır bloğu, RTN ve fp8 kuralları), `TR_quantized` ve `TR_zero_point`, NaN ve aralık denetimleri (15.6'nın bekleyen işlemleri); `weight_scale_inv`'in çarpılan ölçek olduğunu gerçek bir FP8 modeliyle doğrulamak [hipotez]; TR testi. Sıra değiştiren gruplar Sonraya.
-- **S-385 Yapılacaklar:** GPTQ ve AWQ ölçeğinin dosya biçiminde bf16 kalıp kalmayacağı açık karar [hipotez: dil tanımında ve `docs/spec/pending.md`'de yok].
 - **S-386 Yapılacaklar (A, Ö1; sahip H1, nicemleme uygulanırken):** 15.52'nin fp16 ölçeği sonsuza giden blok hatası (`docs/spec/15_tensorler.md:677`) uygulanmadı: nicemleme bugün H6691 (internal/stdlib/ml/dtype.go:116-117); kimse etkilenmiyor. `1 / d` sonsuz bloğun kodlaması aynı dilimde (D, Ö3).
 - **S-387 Yapılacaklar (A, Ö1; sahip T1, tensör kolu; metin DIL UZMANI):** "q4z128"in GPTQ v1 sıfırını `(s + 1) & 15` ile açan, 16'da hata veren okuyucu yok [kanıtlı: `git grep -i "qzeros|zero_point|q4z128" lib/ internal/` yalnız onaylı adlar; ölçüldü: RT-2026-11-18-HIGHRAM-TCB-1]. Sıradaki: okuyucunun dilimi; testte aday 2'nin iki deseni ve gptqmodel 1.7.4'ün borç deseni baytlarla.
 
@@ -883,14 +876,13 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **S-402 Yapılacaklar (E, Ö3; sahip D1, aileler kolu):** transformers 5.17'nin Gemma 3 config'indeki iç içe `rope_parameters` (`full_attention`, `sliding_attention`) okunmuyor: alt anahtarlar yalnız rope_theta ve ölçek anahtarları (`lib/pretrained.tr:583`), H7160 [hipotez: çalıştırılmadı]. `layer_types` okunuyor (`lib/pretrained.tr:758-769`).
 - **S-403 Yapılacaklar (C, Ö3; sahip D1):** Qwen3'te ve Llama 3'te sohbet şablonu denetlenmiyor: bilinen şablon listeleri boş (`lib/model_family.tr:25-26`), biçim yazımı `TR_gemma3_format` olarak sabit (`:119`), H7170'in şablon dalı Gemma 3'e göre (`internal/lang/messages/tr.json:1648`); klasörde şablon hiç denetlenmiyor (`:129`). Sıradaki: Qwen3 GGUF karmalarını Qwen'in şablonuyla karşılaştırmak.
 - **S-405 Yapılacaklar (E ve F, Ö3):** kitaplık (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmiyor (`lib/`'de `qzeros` yok); nicemli tür kodları gelince `.safetensors` iletisi TR biçimini de önerir; TR testi.
-- **S-406 Yapılacaklar (C, Ö3; sahip H1):** varsayılan cihaz kartken `FromHostBlock` float32 ve 16 bitlik bloğu `New` ve `FromBits16On` ile karta kopyalıyor (`internal/compute/tensor/host_block.go:200-203`); konakta ikinci kopya kalıp kalmadığı okunmadı [hipotez].
 - **S-407 Yapılacaklar (E, Ö3; sahip T1):** `TR_pretrained_model` Llama 3 safetensors'unda `rope_scaling` H6943 veriyor (`lib/pretrained.tr:700`); GGUF çalışıyor.
-- **S-408 Yapılacaklar (F, Ö3; sahip T1, önce ölç):** GGUF yüklemesinin uçtan uca dış kanıtı yok: e2e testlerinde llama.cpp logitlerinden altın dosya yok (`cmd/trlang/e2e/behavior_ready_gguf_test.go`); küçük fikstürün logitleri altın dosya olabilir.
+- **S-408 Yapılacaklar (F, Ö3; sahip T1):** GGUF yüklemesinin uçtan uca dış kanıtı yok: e2e testlerinde llama.cpp logitlerinden altın dosya yok (`cmd/trlang/e2e/behavior_ready_gguf_test.go`); küçük fikstürün logitleri altın dosya olabilir.
 - **S-409 Yapılacaklar (F, Ö3; sahip T1, sonraki dokunuşta):** parça dizininin ad kuralı Windows'un ayrılmış adlarını (CON, PRN, AUX, NUL, COM1–9, LPT1–9) reddetmiyor (`lib/pretrained.tr:93`): `NUL`'da H6610, öbürlerinde H7911 yanlış nedeni söylüyor [ölçüldü: `27d242d5`]. Sıradaki: kural bütün ayrılmış adları reddeder.
 - **S-410 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1, Dost'un model değiştirme işinden önce):** aynı süreçte ikinci yükleme tek yüklemeden çok bellek istiyor [ölçüldü: TG-2026-11-23-HIGHRAM-T1-2]. Sıradaki: ikinci yüklemenin içinde işaretli tek ölçü.
 - **S-411 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1, ayrı iş):** `TR_build_pretrained_model` + `TR_load_parameters` yolu modeli tam boy sıfırla kurup ağırlığı üstüne kopyalıyor (`lib/pretrained.tr:260-261`, `_kur`); `TR_pretrained_model` parametre başına atıyor. Sıradaki: aynı atamayı bu yola da vermek.
 - **S-412 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1):** bf16 yükleme katman başına dosyanın 7 bloğuna 2 birleştirme ve 5 kopya ekliyor; Linux'ta ağırlık payı 8 191 blok ve bırakılan blok eşli kalıyor (`internal/compute/tensor/host_block.go:74-77`, `host_block_linux.go:17-20`): aynı süreçte yaklaşık 16 yüklemeden sonra öbek yolu [hesap]. Sıradaki: Dost'un model değiştirmesi ve sunucu için TCB'nin kararı.
-- **S-413 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1):** `TR_weight_dtype: "float32"`'de yüklemenin kopyası öbekte: `TR_Tensor` float32'yi `tensor.NewOn` ile kurar, bloğa giden `Clone` yalnız 16 bitlik türde (`internal/stdlib/ml/builtin_create.go:67`, `:71`). Sıradaki: float32 yüklemenin 4B ölçüsü.
+- **S-413 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1):** `TR_weight_dtype: "float32"`'de yüklemenin kopyası öbekte: `TR_Tensor` float32'yi `tensor.NewOn` ile kurar, bloğa giden `Clone` yalnız 16 bitlik türde (`internal/stdlib/ml/builtin_create.go:67`, `:71`). Sıradaki: işi yapan dilim kendi ölçüsünü alır.
 - **S-414 Yapılacaklar (D, Ö3; sahip T1, sonraki dokunuşta):** birleşik katmanın giriş boyu kapısı dil modelinin önekini kendisi yazıyor (`lib/pretrained.tr:124`, `:143`), eşleme de (`lib/hugging_face.tr:64-68`, `:79`): eşleme yeni bir türün önekini öğrenip kapı öğrenmezse kapı sessizce koşmaz, ileti H7913 yerine H6311 olur [ölçüldü: `27d242d5`]. Sıradaki: önek eşlemeden alınır.
 
 ## 16. Veri ve parçalayıcı
@@ -899,13 +891,11 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md).
 
 ### 16.1
 
-- **S-415 Yapılacaklar (D, Ö3; sahip veri ve parçalayıcı kolu):** GGUF parçalayıcısı `smaug-bpe` ön bölme etiketini tanımıyor, bu etiketli Llama 3.1 GGUF'u H6679 ile yüklenmiyor [kanıtlı: `internal/compute/tokenize/gguf.go:70-85`, `:259`]. Sıradaki: etiket ve 15.55'in aile tablosu.
+- **S-415 Yapılacaklar (E, Ö3; sahip veri ve parçalayıcı kolu):** GGUF parçalayıcısı `smaug-bpe` ön bölme etiketini tanımıyor, bu etiketli Llama 3.1 GGUF'u H6679 ile yüklenmiyor [kanıtlı: `internal/compute/tokenize/gguf.go:70-85`, `:259`]. Sıradaki: etiket ve 15.55'in aile tablosu.
 
 ### 16.2
 
 - **S-416 Mevcut durum (ölçülmemiş):** `llama3` ailesinin boşluk kümesi boş yazılı [kanıtlı: `internal/compute/tokenize/family.go:94`]; resmî Llama 3 `tokenizer.json`'unda boşluk parçası olmadığı ölçülmedi [hipotez].
-
-- **S-417 Mevcut durum (Go içi; D, Ö3):** `splitFn` atlanan uzun eklenmiş parçanın içindeki kısa eklenmiş parçaya bakmıyor [kanıtlı: `internal/compute/tokenize/added_token.go:88-91`]; yalnız `DontParseSpecial`'ı etkiler, onu üretimde kuran yok (internal/stdlib/tokenizer/tokenizer.go:323).
 
 - **S-418 Yapılacaklar (B, Ö1; sahip parçalayıcı dilimi):** 16.2'nin `TR_boundary_tokens:` argümanı ve verilmeyen `TR_special_tokens:`'ın metin içi yazımdaki hatası motorda yok; `TR_special_tokens: TR_false` sınır parçalarını da kapatıyor [kanıtlı: internal/stdlib/tokenizer/tokenizer.go:323]. Sıradaki: göçte 14 `.tr` dosyasındaki 71 `TR_special_tokens: TR_false`'a `TR_boundary_tokens: TR_false` eklenir.
 
@@ -1009,7 +999,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.
 
 ### 18.17
 
-- **S-459 Yapılacaklar (E, Ö3):** `TR_write_lines` ve `TR_LineWriter` yok (bilinmeyen kimlik) [ölçüldü: ae1e8dcc]. Sıradaki: 18.17'nin hepsi; yol `ResolveWritePath`'le, ertelenen `.TR_close()` çıkışın türüne göre işler ya da siler; TR testi.
+- **S-459 Yapılacaklar (E, Ö3):** `TR_write_lines` ve `TR_LineWriter` yok (bilinmeyen kimlik) [ölçüldü: ae1e8dcc]. 18.17'nin `TR_owner_only:`'si de yok. Sıradaki: 18.17'nin hepsi; yol `ResolveWritePath`'le, ertelenen `.TR_close()` çıkışın türüne göre işler ya da siler; TR testi.
 
 ## 19. Süreç ve kayıt
 
@@ -1065,7 +1055,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ### Bellek
 
-- **S-498 Yapılacaklar (sınıfsız: bellek; sahip H1):** Dost'un tepe belleğinin büyük kısmı Go'nun toplama payı [ölçüldü: AS-2026-11-12-G4CPU-H1-1]; dizüstünde `GOMEMLIMIT` tepeyi düşürdü ama tepe tavanın üstünde kaldı, iki koşu kirli [ölçüldü: AS-2026-11-15-LAPTOP-H1-3]. Sıradaki: Dost'un başlatıcısında `TR_MEMORY_LIMIT` varsayılan olmadan önce temiz ABAB ölçüsü.
+- **S-498 Yapılacaklar (sınıfsız: bellek, Ö3; sahip H1):** Dost'un tepe belleğinin büyük kısmı Go'nun toplama payı [ölçüldü: AS-2026-11-12-G4CPU-H1-1]; dizüstünde `GOMEMLIMIT` tepeyi düşürdü ama tepe tavanın üstünde kaldı, iki koşu kirli [ölçüldü: AS-2026-11-15-LAPTOP-H1-3]. Sıradaki: Dost'un başlatıcısında `TR_MEMORY_LIMIT` varsayılan olmadan önce temiz ABAB ölçüsü.
 - **S-506 Yapılacaklar (E, Ö3; sahip T1):** izin alamayınca bırakılan `MatMulKernel`'in bitişik kopyaları havuza dönmüyor: iade k.end'de, `Kernel.Abandon` onu çağırmıyor [kanıtlı: internal/compute/tensor/matmul.go:121, :149-150; internal/compute/tensor/access.go:150-155]. Sıradaki: `Abandon`'ın `begin`'siz kolu k.end'i de çağırır.
 - **S-519 Yapılacaklar (sınıfsız: bellek, Ö3; sahip H1):** QAT modelinin dizüstündeki tepe özel belleğinin bir kısmı Go yığınının çöp toplama öncesi tepesi [ölçüldü: TG-2026-11-17-LAPTOP-T1-3]; `TR_MEMORY_LIMIT` ya da düşük `GOGC` tepeyi indirebilir [hipotez]. Sıradaki: Colab'da `GOGC` taraması, bellek ve hız birlikte.
 - **S-542 Mevcut durum (model değiştirme):** yükleyici dosyadan büyük bir yüklemeden önce bırakılmış öbek dışı blokların temizliğini bekliyor, süre dolarsa H6730 uyarır ve yükleme sürer [test: `TestHostSettleWaitsForTheReleasedBlock`, `TestHostSettleIgnoresBlocksAllocatedMeanwhile`, `TestHostSettleWithConcurrentCleanups`, `TestLoadWaitsForTheReleasedBlocks`, `TestHostSettleWarning`]. Windows'ta beklemenin süresi ölçülmedi.
@@ -1092,6 +1082,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-484 Yapılacaklar (F, Ö3; sahip Dost Interface):** Modeller penceresinde makinenin belleği ikili (bayt / 2³⁰), modelin belleği onlu (bayt / 10⁹) yazılıyor, birimin adı ikisinde aynı [kanıtlı: tools/assistant/js/models.js:178-180, :259; tools/assistant/js/screen_state.js:101-102, :112]. Sıradaki: iki boy tek birimle.
 - **S-485 Yapılacaklar (E, Ö3, P'den sonra ayrı dilim; sahip Dost Interface):** `catalog` olayında `license` yok, Modeller penceresi lisansı göstermiyor; Türkçenin iki sesi ticari olmayan lisanslı [kanıtlı: tools/assistant/contract.md:222; tools/assistant/katalog.json:384, :484]. Sıradaki: `catalog`'a `license`, pencerede lisans adı ve bağlantısı.
 - **S-486 Yapılacaklar (F, Ö3; sahip Dost Interface):** trlang format --check tools/assistant üç dosyada biçimlenmeli diyor (asistan.tr:220, ayarlar.tr:82, ekran.tr:122); denetimlerin biçim adımı `tools/assistant`'ı taramıyor [kanıtlı: tools/full_check.sh:1216]. Sıradaki: trlang format ile biçim commit'i.
+- **S-696 Yapılacaklar (F, Ö3; sahip TCB):** commit öncesi ve G4 denetiminin biçim adımı `tools/assistant`'ı taramıyor: format listesi `tools/gpu tools/bench/tr`'yle bitiyor [kanıtlı: tools/full_check.sh:1216]. Sıradaki: sonraki kod gönderiminde listeye girer.
 - **S-487 Yapılacaklar (E, Ö3; sahip dil çekirdeği, sonra Dost Interface):** Dost'un sayfasındaki bellek kutusu hep "—": sürecin belleğini okuyan yerleşik olmadığı için `metrics`'te `memory_bytes` yok [kanıtlı: tools/assistant/js/view.js:251-254; tools/assistant/asistan.tr:553]. Sıradaki: dil çekirdeği B3'ten sonra o yerleşiği tasarlar.
 - **S-489 Yapılacaklar (F, Ö3, sonraki dilim; sahip Dost Interface):** Modeller satırında silme onayı ve inişin hata metni (`dl-long`) `m-meta` ile aynı ızgara hücresine çiziliyor [kanıtlı: tools/assistant/js/models.js:231, :245, :267; tools/assistant/css/screen.css:332, :371]. Sıradaki: `m-meta`'yı ya da `dl-long`'u ayrı sıraya almak; görünüm testinde iki kutunun kesişmediği sınama.
 - **S-490 Yapılacaklar (F, Ö3, sonraki Dost dilimi; sahip Dost Interface):** `sesi_eşitle` ses yüklenemeyince yeniden denemiyor, `selected_for` konuşmayan sesi gösteriyor; yolun testi yok [kanıtlı: tools/assistant/oturum.tr:432-438]. Sıradaki: `selected_for` konuşan sesi gösterir ya da sayfa bunu yazar; `ses_değiştirici`'nin hata döndüğü test.
@@ -1120,7 +1111,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 ### Araçlar ve testler
 
 - **S-477 Yapılacaklar (C, Ö2, codegraph'ın sonraki dilimi; sahip D1):** G4 codegraph'ın kendini sınayan testlerini her koşuda koşuyor; bunlar yalnız `tools/codegraph` ya da `internal/devtools/codeindex` değişince G4'te, birleşmeden sonra K5'te koşmalı [ölçüldü: RT-2026-11-14-G4CPU-D1-3]. Sıradaki: taşınacak testleri D1 seçer.
-- **S-480 Yapılacaklar (C, Ö2; sahip H1):** `TestCaptureKeepsDrainingAfterFileError` Windows CI'ında süre sınırına (`capture_test.go:31`) takıldı, yeniden koşuda geçti [ölçüldü: CI koşusu 43532191449]; donmanın yeri bilinmiyor [hipotez: dosya hatasından sonra boruyu okuyan goroutine duruyor]. Sıradaki: `-count` ile CI'da yinelemek.
 - **S-494 Yapılacaklar (F, Ö3; sahip D1):** commit kipinin kaydı: kesilen koşuda geçici index ve yedeği git klasöründe kalıyor, `git add -A` yoksayılmayan büyük izlenmeyen dosyayı nesne deposuna yazıyor, gerçek index'i geri koyan kol testsiz [kanıtlı: tools/full_check.sh:921-933; internal/full_check_commit_test.go:447]; sonuç alanı adımın sayılı başlığını taşıyor (tools/full_check.sh:326, :751).
 - **S-495 Yapılacaklar (sınıfsız: araç; sahip TCB):** `TestReviewedSectionsWriteIdentities` ters tırnaktaki her sözcüğü kod adı sayıyor; dosya yolu, komut seçeneği, ortam değişkeni ve dış biçimin anahtarı elle istisna listesine giriyor [kanıtlı: internal/devtools/testrunner/behavior_language_spec_test.go:249, :259]. Sıradaki: bunları ayıran kural ya da açık işaret.
 - **S-501 Yapılacaklar (F, Ö3; geliştirici aracı; sahip dil çekirdeği):** `lib/*_test.tr` derlenmiş `trlang`'ın gömülü kopyasından farklıysa kitaplık sayılmıyor, ilgisiz bir ileti çıkıyor [kanıtlı: internal/lang/interp/library.go:225-234]. Sıradaki: dosya deponun `lib/`'indeyse ileti gömülü kopyanın farklı olduğunu ve `trlang`'ı yeniden derlemeyi söyler.
@@ -1132,7 +1122,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-510 Yapılacaklar (F, Ö3; geliştirici aracı; sahip CODEGRAPH UZMANI):** tazeliğe bakılamadığında da (`--no-rebuild`'de damga okunamazsa, `refresh` bakamazsa) sonraki söz "the graph is older than the tree" diyor, neden yanlış [kanıtlı: tools/codegraph/main_query.go:133-137; tools/codegraph/fresh.go:166; tools/codegraph/repo_scans.go:41]. Sıradaki: söz nedeni kapsasın.
 - **S-511 Yapılacaklar (F, Ö3; geliştirici aracı; sahip CODEGRAPH UZMANI):** commit kipi süre dolunca kesilen paketin FAIL satırlarını düşüşten ayırmadan basıyor, "G4'e kaldı" satırı paketin adını vermiyor [kanıtlı: tools/full_check.sh:669-681, :755-759]; `TestDocTRCodeBlocks` da kesilen denetimi düşüş sayıyor (cmd/trlang/e2e/behavior_doc_code_blocks_test.go:67-68). Sıradaki: kesilen FAIL ayrı yazılır.
 - **S-512 Yapılacaklar (F, Ö3, D1 Teslim B'den sonra; sahip D1):** `TR_Message(` argümanında tipin metni (`"\(TR_Type(x))"`) geçmesini yakalayan denetim yok; iletiye çevrilemeyen kanonik ad girer [kanıtlı: internal/lang/messages/README.md:81]. `lib/*.tr`'de bugün örneği yok.
-- **S-514 Mevcut durum (Go araç zinciri):** `go.mod` dil sürümü `go 1.27.0`, araç zinciri go1.27.4; sözcük çözümleyicinin Unicode tabloları en az 17 [kanıtlı: go.mod:3, :5; x/text v0.39.0 unicode/norm/tables17.0.0.go:3]. HTTP istemcisi var (internal/stdlib/download/client.go:86); `x509sslcertoverrideplatform` varsayılanının kararı açık [hipotez].
+- **S-514 Mevcut durum (Go araç zinciri):** `go.mod` dil sürümü `go 1.27.0`, araç zinciri go1.27.4; sözcük çözümleyicinin Unicode tabloları en az 17 [kanıtlı: go.mod:3, :5; x/text v0.39.0 unicode/norm/tables17.0.0.go:3].
+- **S-694 Yapılacaklar (sınıfsız: araç, Ö3; sahip Motor):** HTTP istemcisi geldi (internal/stdlib/download/client.go:86), Windows'ta sertifika deposunun seçimi (`x509sslcertoverrideplatform` varsayılanı) karara bağlanmadı [hipotez].
 - **S-520 Yapılacaklar (sınıfsız: test boşluğu, Ö3; sahip T1):** makine bayrağını değiştiren testlerin yol tabloları canlı bayrağı okursa çekirdeği sınamadan geçebilir; `q8Paths` düzeltildi [kanıtlı: internal/compute/tensor/cpu_quant_q8_test.go:13, :24]. Sıradaki: `internal/compute` altında başka tabloları aramak (aday: internal/compute/tensor/cpu_gemv_test.go:12) [hipotez].
 - **S-521 Yapılacaklar (C, Ö2; sahip CODEGRAPH UZMANI):** `TestBuildScalesLinearly` CI'da codeindex değişmeyen birleşmelerde düşüyor, yeniden koşuda geçiyor: bir aşamanın oranı `linearLimit`'i aşıyor [ölçüldü: CI 45362496905 deneme 1; kanıtlı: `internal/testkit/testkit.go:246`]. Sıradaki: `6ba2be3e`'ten sonraki CI düşüşleri aşama aşama sayılır (temiz dosyaların kurulumu ayrı).
 - **S-524 Yapılacaklar (F, Ö3; sahip D1):** `stripDoubleQuoted` ters bölüden sonraki karakteri tırnak dışında da atlıyor, ardından gelen ters tırnak sayılmıyor [kanıtlı: `internal/lang/messages/template_test.go:386-388`]; `internal/lang/messages/README.md` bunu yazmıyor. Sıradaki: test düzelir ya da kural yazılır.
@@ -1151,7 +1142,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ### Denetleyici ve iletiler
 
-- **S-476 Yapılacaklar (F, Ö3; iletiler):** H8695'in düzeltme komutu yer tutucuyla (`trlang format <dosya|klasör>`), kopyalanınca çalışmıyor; tek dosyada somut yol verilebilir [kanıtlı: internal/lang/messages/tr.json:2264; cmd/trlang/format.go:72]. H2495 anahtarı çevirmeyi önermiyor, H2646 öneriyor [kanıtlı: internal/lang/messages/tr.json:395, :488].
+- **S-476 Yapılacaklar (F, Ö3; iletiler; sahip DIL UZMANI):** H8695'in düzeltme komutu yer tutucuyla (`trlang format <dosya|klasör>`), kopyalanınca çalışmıyor; tek dosyada somut yol verilebilir [kanıtlı: internal/lang/messages/tr.json:2264; cmd/trlang/format.go:72]. H2495 anahtarı çevirmeyi önermiyor, H2646 öneriyor [kanıtlı: internal/lang/messages/tr.json:395, :488].
 - **S-499 Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu):** `TR_func f(t: TR_Tensor) -> TR_Float { TR_return TR_Float(TR_sum(t)) }` çağrısı H2423 yerine "a released tensor was used" paniğiyle süreci düşürüyor: iletinin argüman özeti bırakılmış tensörü yazıyor [kanıtlı: internal/lang/interp/arg_errors.go:189; internal/compute/tensor/lifetime.go:110]. Beklenen: H2423, süreç düşmez.
 - **S-515 Yapılacaklar (F, Ö3; sahip dil çekirdeği):** Go'nun hata metnini kullanıcıya taşıyan iletiler: `tr.json`'da `{error}` yuvalı 123 ileti var (ör. H7001) [kanıtlı: internal/lang/messages/tr.json:1517]. Sıradaki: madde madde karar sonraki ileti turunda.
 - **S-526 Yapılacaklar (E, Ö3; sahip D1):** dil tanımının 36 onaylı yeni adı motorda yok, yazınca sözdizimi hatası geliyor [kanıtlı: `internal/devtools/testrunner/behavior_language_spec_test.go:388-399`]; ajan bunları var sanıyor [ölçüldü: `docs/agent_trials.md`]. Sıradaki: ajanın göreceği yerde henüz yok yazılsın, maddenin *Test:* satırı doğrulansın.
@@ -1161,8 +1152,9 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-531 Yapılacaklar (D, Ö3; sahip D1):** `T?` aritmetikte denetlenmiyor: `l.TR_index_of(9) + 1` denetimden geçiyor, çalışınca düşüyor [ölçüldü: trlang check ve trlang run, `02d9fb69`]. Sıradaki: 4a5'in kapsamına bakılır.
 - **S-532 Yapılacaklar (D, Ö3; sahip D1):** `TR_loss`'un parametreleri tipsiz [kanıtlı: `lib/layers.tr:680`]; tipli parametre de metot argümanında denetlenmiyor: `TR_Tensor` bekleyen metoda liste geçiyor [ölçüldü: trlang check, `02d9fb69`]. Sıradaki: 4a5'in A satırı.
 - **S-533 Yapılacaklar (F, Ö3; sahip D1):** modeli kaydetmek için var olmayan bir ad yazılınca ileti ters işi, `TR_load_parameters`'ı öneriyor; doğrusu `TR_save_tensors(yol, TR_parameters(m, TR_named: TR_true))` [ölçüldü: trlang check, `02d9fb69`].
-- **S-575 Yapılacaklar (D, E ve F1, Ö3; sahip D1, denetleyici ve iletiler):** kullanıcının adı `TR_Range`'in Türkçe görünüm adına benzeyen tipine H1006 `TR_Range` öneriyor; önerisi kopyalanırsa ajan kendi yapısına dilin tipini verir [ölçüldü: trlang check, `02d9fb69`].
+- **S-575 Yapılacaklar (F1, Ö3; sahip D1, denetleyici ve iletiler):** kullanıcının adı `TR_Range`'in Türkçe görünüm adına benzeyen tipine H1006 `TR_Range` öneriyor; önerisi kopyalanırsa ajan kendi yapısına dilin tipini verir [ölçüldü: trlang check, `02d9fb69`].
 - **S-584 Yapılacaklar (F, Ö3; sahip TCB, toplu karar):** adlı argümanların iç kodu iletiye sızıyor: `TR_clamp(0.5, 0.0, 1.0)` denetimden geçiyor, koşuda "sınırla(x, TR_arg_min: ..., TR_arg_max: ...) 1 konumlu parametre bekler, 3 verildi" veriyor [ölçüldü: trlang check ve run, `02d9fb69`].
+- **S-695 Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu, denetleyici):** `TR_clamp(0.5, 0.0, 1.0)` fazla konumlu argümanla denetimden geçiyor, hata ancak çalışırken geliyor [ölçüldü: trlang check ve trlang run, `02d9fb69`].
 
 ### Temizlik
 
@@ -1251,8 +1243,8 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md).
 
 ### 20.11
 
-- **S-625 Yapılacaklar (A, Ö1, Kol B, 15'in A'sıyla):** `TR_AnyTensor` tipi yok; `TR_load_parameters` hassasiyeti farklı tensörü çevirmeden H6960 ile, nicemlenmiş yaprağa yazmayı H6687 ile reddediyor (20.11, 15.54) [kanıtlı: internal/compute/tensor/cpu_typed.go:105-122; test: `tests/kontrol_noktasi_test.tr:341-342`].
-- **S-626 Yapılacaklar (Sonraya, 2. kilometre taşında öne çekilmeli):** 20.11'in bütün yapraklar sözlükte kuralı gelince (S-315) RoPE tablosu taşımayan hazır `.safetensors` (lib/hugging_face.tr:48-49) tablolu modele yalnız alt yapıdan yüklenir; LoRA alanlarında aynı soru (15.34). Bugün yükleme yalnız türev izleyen yaprakları arıyor [kanıtlı: internal/stdlib/ml/params.go:55-58].
+- **S-625 Yapılacaklar (A, Ö1, Kol B, 15'in A'sıyla):** `TR_AnyTensor` tipi yok; `TR_load_parameters` hassasiyeti farklı tensörü çevirmeden H6960 ile, nicemlenmiş yaprağa yazmayı H6687 ile reddediyor (20.11, 15.54); H6687 yalnız açmayı öneriyor, hedefi aynı hassasiyette kurmayı önermiyor [kanıtlı: internal/compute/tensor/cpu_typed.go:105-122; test: `tests/kontrol_noktasi_test.tr:341-342`].
+- **S-626 Yapılacaklar (A, Ö1, Kol B, S-315 ile):** `TR_load_parameters` yalnız türev izleyen yaprakları arıyor (internal/stdlib/ml/params.go:55-58): sözlükte olmayan donmuş yaprak ya da tablo sessizce eski değerinde kalıyor, sözlükte verilirse H6531; 20.11 bütün yaprakları ister [ölçüldü: ae1e8dcc, trlang run]. Sıradaki: S-315'le; RoPE tablosu taşımayan hazır `.safetensors` ve LoRA alanlarının (15.34) yüklemesi aynı kararda.
 
 ### 20.12, 20.13
 
@@ -1261,7 +1253,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md).
 ### 20.17
 
 - **S-629 Yapılacaklar (C, Ö2, 15.45 ile):** `TR_dropout` (15.23d) yok; gelince kontrol noktasının kaydettiği paylaşılan üreteçten çekmeli (20.17) [kanıtlı: `git grep -i dropout -- internal/lang/codes/definitions.json` boş].
-- **S-630 Yapılacaklar:** kontrol noktası 20.5'in `"rng_device"` alanını yazmıyor, yalnız CPU üretecinin "rng"'sini [kanıtlı: `git grep rng_device -- internal` boş; test: `TestStateRequiresSharedRandom`]. Sıradaki: 15.45'in sayaçlı üreteciyle birlikte.
+- **S-630 Yapılacaklar (E, Ö3):** kontrol noktası 20.5'in `"rng_device"` alanını yazmıyor, yalnız CPU üretecinin "rng"'sini [kanıtlı: `git grep rng_device -- internal` boş; test: `TestStateRequiresSharedRandom`]. Sıradaki: 15.45'in sayaçlı üreteciyle birlikte.
 
 ## 21. Dış programlar
 
@@ -1340,7 +1332,6 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 
 Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 
-- **S-661 Mevcut durum:** 18.17'nin `TR_owner_only:`'si yok, çünkü `TR_LineWriter` yok (S-459) [kanıtlı: `git grep LineWriter -- internal/lang/codes/definitions.json` boş].
 - **S-668 Yapılacaklar (F, Ö3; araç; sahip TCB):** `TestNoFixedNamesInMessages` alıcısı bilinmeyen çağrıyı yalnız metodun adıyla eşliyor, başka tipin aynı adlı metodu yanlış uyarı veriyor [kanıtlı: tools/gen/msgconsts/fixed_names_test.go:247]. Sıradaki: alıcının tipini anahtara katmak.
 - **S-669 Yapılacaklar (F, Ö3; belge; sahip TCB):** kimlik kapısının düz `yol` istisnası o sözcüğü her bölümde denetimsiz bırakıyor; kullanımları `docs/spec/13_yerlesikler.md:88` ve `docs/spec/16_veri_parcalayici.md:78` [kanıtlı: internal/devtools/testrunner/behavior_language_spec_test.go:311]. Sıradaki: iki yer tutucu kod olmayan biçimde yazılınca satır silinir.
 - **S-670 Yapılacaklar (D, Ö3; sahip HTTP sunucusu kolu):** sunucu `MaxHeaderBytes`'ı ayarlamıyor, başlıkların bayt sınırı Go'nun öntanımlısında, 28.5'in sayısından gevşek; 500 başlık değeri sınırının testi yok [kanıtlı: internal/stdlib/httpserver/serve.go:87-90]. Sıradaki: tam sınır Go'nun tamponuyla sağlanamıyorsa dilim durur ve sorar.
