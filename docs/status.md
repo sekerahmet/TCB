@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlik ve türle başlar: kimlik (S-412), tür (Yapılacaklar ya da Mevcut durum). Madde mesajda, devirde ve denetimde kimlikle anılır, satır numarasıyla anılmaz. Silinen maddenin kimliği `internal/devtools/testrunner/testdata/status_deleted_ids.txt`'ye yazılır ve yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar. Madde alt satırlarıyla en çok 500 harftir. Kimlikli ölçünün sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, saat, tarih ve kanıt etiketinin dışında DENETİM numarası yazılmaz, karar commit mesajında durur [test: `TestStatusItemsFollowTheFormat`]. Türden sonra ayraçta sınıf, öncelik, varsa dilim ve sahip gelir; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı.
 
-**Sıradaki kimlik:** S-700.
+**Sıradaki kimlik:** S-702.
 
 ## Önem ve öncelik
 
@@ -1139,6 +1139,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-592 Yapılacaklar (F, Ö3; sahipler dosyaların kolu, sonraki dokunuşta):** `cmd/trlang/e2e/testdata/doc_blocks_known.txt` yalnız belge ve satır tutuyor, bloktaki yeni hata sessiz kalır; `TestOptimizerStateResume`'un beklenen değeri kendi kesintisiz koşusu [kanıtlı: `cmd/trlang/e2e/testdata/doc_blocks_known.txt:3-4`, `internal/compute/tensor/optimizer_test.go:40`]. Sıradaki: doc_blocks_known.txt'ye beklenen kod (biçim kararı).
 - **S-593 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** deneme kipinde (`OLCU_DENEME=1`) en-hizli-ayar.sh tek grupla da bu makinenin komut sınırına sığmıyor: koşturucu her koşudan önce yükün inmesini bekliyor (tools/bench/baseline/run.py:255), uyuşma ve deneme tek komutta (`tools/bench/baseline/machines/laptop/lib.sh:100`) [ölçüldü: H1, `06615910`]. Sıradaki: betik denemede koşuyu ayrı komut olarak basar.
 - **S-594 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** koşturucunun seçimi ölçüyü daraltıyor: `--base-trlang` emsalli kalemin anahtarının son parçasını atıyor, S1'in altı modeli S1/base olup `--key` ile süzülüyor (tools/bench/baseline/run.py:1056); `--trial` uyuşması olan kalemi koşmuyor (`:1025-1026`); High-RAM uyuşması her istekte İngilizce piper denetimini koşuyor (`:1008-1015`) [kanıtlı: `02d9fb69`]. Sıradaki: taban anahtarı kalemin anahtarı ve /base.
+- **S-701 Yapılacaklar (D, Ö3, S-221 ile; sahip T1):** sm_80 altındaki kartta (T4) `TestNaNRowsMatchCPU` düşüyor: test dikkat yolunu "tensor"a zorluyor, `mmaFits` sm_80 altında zorlanınca açık, çekirdeğin hedefi 80: açık hata yerine panic [ölçüldü: T4 tam denetimi, `e11380c6`; kanıtlı: `internal/compute/gpu/behavior_nn_test.go:387`, `internal/compute/gpu/kernel_flash_mma.go:45`, `:187`]. Sıradaki: Dilim A'nın commit'inde test sm_80 altında "tensor"u atlar, zorlanan yol sm_80 altında ileti verir.
 
 ### Denetleyici ve iletiler
 
