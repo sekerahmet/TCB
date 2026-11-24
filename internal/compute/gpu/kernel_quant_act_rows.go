@@ -6,10 +6,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// actRowsMV dp4a'lı çarpımda warp başına satır sayısıdır (M > 1, sm_80 altı): ağırlık bloğu bir kez
-// açılır, bu kadar satırda kullanılır.
-const actRowsMV = 8
-
 // quantActRowsKernel dp4a'lı çarpım: her warp bir sütunun R satırını hesaplar (ızgara (N/8, M/R)).
 // 8 şeritlik dört öbek dört bloğu birlikte okur (şerit 32 öğe); şeridin ağırlık sözcükleri bir kez
 // açılır, R satırın etkinleştirmesiyle dp4a'lanır. Öbeğin tamsayı toplamları kelebekle kesin indirgenir;
