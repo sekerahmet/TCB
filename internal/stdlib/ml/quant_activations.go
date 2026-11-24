@@ -82,16 +82,13 @@ func flagQuery(m *interp.VM, key any, code codes.Code, args []interp.Value, name
 	return interp.False, nil
 }
 
-// checkActQuant bloktaki nicemlenmiş ağırlıklı çarpımın kapısıdır (15.53a): ağırlık CPU'da ve q4, q4_k ya da
-// q6_k olmalıdır. Desteklenmeyen tür ve GPU hatadır, sessizce float yoluna düşmez: tür ileride desteklenince aynı
-// programın bitleri sürümle değişmesin.
+// checkActQuant bloktaki nicemlenmiş ağırlıklı çarpımın kapısıdır (15.53a): ağırlık q4, q4_k ya da q6_k olmalıdır;
+// CPU'da ve GPU'da aynı bitler (GPU'da TR'nin tamsayı çekirdeği, internal/compute/gpu/backend_quant_act.go).
+// Desteklenmeyen tür hatadır, sessizce float yoluna düşmez: tür ileride desteklenince aynı programın bitleri
+// sürümle değişmesin.
 func checkActQuant(w *tensor.Tensor) error {
-	fn := codes.NameRef(codes.FnQuantizedActivations)
-	if w.Device() != tensor.CPU {
-		return messages.New(messages.H6724, fn, w.DType().Name())
-	}
 	if !tensor.QuantActSupported(w.DType()) {
-		return messages.New(messages.H6723, fn, w.DType().Name())
+		return messages.New(messages.H6723, codes.NameRef(codes.FnQuantizedActivations), w.DType().Name())
 	}
 	return nil
 }

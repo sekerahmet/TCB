@@ -1410,7 +1410,6 @@ const (
 	H6721 Code = 6721 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı
 	H6722 Code = 6722 // {method}() argüman almaz; eksenlerin sırasını vermek için {permute}(...) kullanın
 	H6723 Code = 6723 // {fn} {{ ... }} bloğunda "{dtype}" ağırlıkla çarpım yok (15.53a): girdi yalnız "q4", "q4_k" ve "q6_k" ağırlıkla nicemlenir; çarpımı bloğun dışına alın
-	H6724 Code = 6724 // {fn} {{ ... }} bloğu GPU'da yok (15.53a, 15.41): "{dtype}" ağırlık GPU'da; çarpımı bloğun dışına alın ya da girdiyi ve ağırlığı CPU'ya taşıyın
 	H6725 Code = 6725 // {fn} {{ ... }} yalnız bir blok alır, {given} parametre verildi
 	H6726 Code = 6726 // {fn} {{ ... }} bir blok bekler, {given} verildi
 	H6730 Code = 6730 // Uyarı: {fn}: bırakılan tensörlerin {waiting_bytes} baytlık belleği {seconds} sn içinde geri verilmedi; yükleme sürüyor, bellek tepesi bu kadar yüksek olabilir.

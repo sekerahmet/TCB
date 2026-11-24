@@ -1405,7 +1405,6 @@
 "H6721": { "param": ["what", "member"] },
 "H6722": { "param": ["method", "permute"] },
 "H6723": { "param": ["fn", "dtype"] },
-"H6724": { "param": ["fn", "dtype"] },
 "H6725": { "param": ["fn", "given"] },
 "H6726": { "param": ["fn", "given"] },
 "H6730": { "param": ["fn", "waiting_bytes", "seconds"] },

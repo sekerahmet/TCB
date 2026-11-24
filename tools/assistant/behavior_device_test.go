@@ -41,9 +41,30 @@ TR_if TR_default_device() == "cpu" { TR_print("NİCEMLİ_KART atlandı") } TR_el
         ileti = TR_String(h.TR_value)
         neden = TR_String(h.TR_cause.TR_code)
     }
-    TR_print("NİCEMLİ_KART", ileti.TR_contains("nicemlenmiş ağırlıkları kartta"), neden)
+    TR_print("NİCEMLİ_KART", ileti == "", neden == "", nicemli_blok_çalışır(TR_default_device()))
 }
 `
+
+// TestQuantProbeOpensBlockOnGPU Dost'un yoklaması (T1 GPU hızı, A4): 15.53a'nın çarpımı kartta (benzetici) ve
+// işlemcide çalışır, makinede olmayan kartta (gpu:7) çalışmaz; otomatik seçim bu yoklamaya bakar (nicemli_çöz).
+func TestQuantProbeOpensBlockOnGPU(t *testing.T) {
+	nicemli := filepath.ToSlash(strings.TrimSuffix(reporoot.Path(quantModule), ".tr"))
+	program := filepath.Join(t.TempDir(), "yoklama.tr")
+	text := "# TR 4\nTR_import \"" + nicemli + "\"\n" +
+		"TR_print(\"YOKLAMA\", nicemli_blok_çalışır(\"gpu:0\"), nicemli_blok_çalışır(\"cpu\"), nicemli_blok_çalışır(\"gpu:7\"))\n"
+	if err := os.WriteFile(program, []byte(text), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(trlangBinary(t), program)
+	cmd.Env = append(os.Environ(), "TR_GPU_SIM=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("trlang: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), "YOKLAMA true true false\n") {
+		t.Fatalf("yoklama:\n%s", out)
+	}
+}
 
 func TestChainDeviceTransitions(t *testing.T) {
 	zincir := filepath.ToSlash(strings.TrimSuffix(reporoot.Path(chainModule), ".tr"))
@@ -54,11 +75,11 @@ func TestChainDeviceTransitions(t *testing.T) {
 	if err := os.WriteFile(program, []byte(text), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	// Nicemli seçenek (H1 nicemli zincir, K3): kartta cihaz denetimi hata verir; kartta kurulan q4_k ağırlığın
-	// blokta verdiği gerçek H6724 nicemli_hatasını_at'tan kullanıcının metniyle, nedeniyle çıkar.
+	// Nicemli seçenek (H1 nicemli zincir, K3; T1 GPU hızı A4): 15.53a kartta da çalışır: cihaz denetimi hata vermez,
+	// kartta kurulan q4_k ağırlıkla blok hatasızdır, yoklama bloğu açar (TestQuantProbeOpensBlockOnGPU).
 	for _, d := range []struct{ device, built, whisper, quant, card string }{
 		{"cpu", "cpu", "cpu", "true", "atlandı"},
-		{"gpu", "gpu:0", "gpu:0", "false", "true H6724"},
+		{"gpu", "gpu:0", "gpu:0", "true", "true true true"},
 	} {
 		t.Run(d.device, func(t *testing.T) {
 			cmd := exec.Command(trlangBinary(t), program, "--cihaz", d.device)
@@ -89,8 +110,8 @@ func TestChainDeviceTransitions(t *testing.T) {
 }
 
 // asistan.tr'nin --cihaz'ı (T1 tasarımının G7'si, dilim 4b): varsayılan cihaz modellerden ve yan etkilerden önce kurulur.
-// Program modelsiz koşar (yolları olmayan dosyalar): açık nicemli seçimin denetimi seçilen cihazı görür (kartta durur,
-// işlemcide parçalayıcının yükleme hatasına varır), otomatik kartta da durmaz; seçimin yanlış değeri doğrusunu önerir
+// Program modelsiz koşar (yolları olmayan dosyalar): açık nicemli seçim kartta da işlemcide de parçalayıcının yükleme
+// hatasına varır (15.53a her cihazda çalışır), otomatik kartta da durmaz; seçimin yanlış değeri doğrusunu önerir
 // (true ve on açık, false ve off kapalı, auto otomatik), değersiz bayrak dilin kullanım hatasıdır (DENETİM 774 N1);
 // geçersiz ya da kullanılamayan cihaz deneme klasörü kurulmadan durur; ekranlı kipte cpu dışındaki cihaz sunucu
 // açılmadan hatadır. Kart benzeticide (TR_GPU_SIM) tek kart vardır: gpu:7 hiçbir
@@ -105,7 +126,7 @@ func TestChainDeviceOptionIsSetBeforeTheModels(t *testing.T) {
 		want, not string
 		record    bool
 	}{
-		{"gpu, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık", "--cihaz", "gpu"}, "dil modelinin cihazı gpu:0", "yüklenemedi", false},
+		{"gpu, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık", "--cihaz", "gpu"}, "yüklenemedi", "dil modelinin cihazı", false},
 		{"cpu, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık", "--cihaz", "cpu"}, "yüklenemedi", "dil modelinin cihazı", false},
 		{"seçeneksiz, nicemli açık", []string{"--kip", "dosya", "--nicemli_etkinleştirme", "açık"}, "yüklenemedi", "dil modelinin cihazı", false},
 		{"gpu, nicemli otomatik", []string{"--kip", "dosya", "--cihaz", "gpu"}, "yüklenemedi", "dil modelinin cihazı", false},
