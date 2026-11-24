@@ -595,7 +595,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 ### 15.6c
 
 - **S-242 Yapılacaklar (E, Ö3):** tam sayı hassasiyetlerinin birleşmesi `TR_concat`'ta yok ("uint8" ile "int8" H6966; işleçte ve `TR_where`'de "int16") [ölçüldü: trlang run, `ae1e8dcc`]; kartta dar tam sayılar H6969; TR testi.
-- **S-706 Yapılacaklar (A, Ö0, 2. sıra, S-371 ile; sahip T1):** türevi izlenen float32 ya da 16 bitlik tensörden float64 sonuç çıkınca türev sessizce düşüyor: float64 işlenenle (`v * f64`, `f64 + v`, `TR_maximum`, `TR_where`) ve `.TR_to_dtype("float64")`'te (15.3) [ölçüldü: trlang run, `b7777361`]; H6040 yalnız türevi izlenen float64'ü yakalıyor [kanıtlı: internal/stdlib/ml/builtins.go:254]. Sıradaki: S-693 tasarımının dilim C'si: iki yol H6040 (zamanı TCB kararı), sayı daraltılmaz.
+- **S-706 Yapılacaklar (A, Ö0, 2. sıra, S-371 ile; sahip T1):** türevi izlenen float32 ya da 16 bitlik tensörden float64 sonuç çıkınca türev sessizce düşüyor: float64 işlenenle (`v * f64`, `f64 + v`, `TR_maximum`, `TR_where`) ve `.TR_to_dtype("float64")`'te (15.3) [ölçüldü: trlang run, `b7777361`]; H6040 yalnız türevi izlenen float64'ü yakalıyor [kanıtlı: internal/stdlib/ml/builtins.go:254]. Sıradaki: S-693 tasarımının dilim C'si: iki yol işlem anında H6040 verir, sayı daraltılmaz.
 
 ### 15.6d
 
