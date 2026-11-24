@@ -4154,7 +4154,7 @@ tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_
 
     koşullu(Tensör, Tensör | Tam | Ondalık | Mantık, Tensör | Tam | Ondalık | Mantık) → Tensör
 
-koşullu(koşul, a, b), koşulun doğru olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır; koşul bir mantık tensörüdür (ör. x > 0, sayı tensöründe t != 0), tek bir değere bağlı seçim eğer ile yazılır. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz.
+koşullu(koşul, a, b), koşulun doğru olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır; koşul bir mantık tensörüdür (ör. x > 0, sayı tensöründe t != 0), tek bir değere bağlı seçim eğer ile yazılır. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz; sayı olan dal tensör olan dalın hassasiyetini alır (bf16 tensörle sonuç bf16'dır), iki dal da sayıysa hassasiyet sayılardan çıkar.
 
 ```tr
 TR_var x = TR_Tensor([-1.0, 2.0, -3.0]); TR_print(TR_where(x > 0, x, 0).TR_tolist)

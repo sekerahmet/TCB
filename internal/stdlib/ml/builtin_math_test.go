@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/gpu"
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -156,5 +158,33 @@ TR_var f = TR_fuse((x) => { TR_return TR_is_finite(x) })
 TR_print(TR_is_finite(idx).TR_tolist, f(TR_Tensor([1.0, TR_nan])).TR_tolist)`)
 	if out != "[true, true] [1.0, 0.0]\n" {
 		t.Fatalf("çıktı: %q", out)
+	}
+}
+
+// Kural (15.6a, 15.14): TR_atan2'nin sayısı 16 bitlik tensörde daralmaz; hesap float32'de yapılır,
+// sonuç bir kez yuvarlanır (fp16'da 100000 sonsuz olmaz). İşlemcide ve GPU'da.
+func TestAtan2NumberNotNarrowed(t *testing.T) {
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `TR_var ayrılan: TR_List[TR_String] = []
+TR_for dt TR_in ["bf16", "fp16"] {
+    TR_for s TR_in [0.1, 0.3, 1.7, 100000.0] {
+        TR_var işlemci = TR_randn([4096], TR_seed: 7).TR_to_dtype(dt)
+        TR_for cihaz TR_in ["cpu", "gpu"] {
+            TR_var t = işlemci.TR_to_device(cihaz)
+            TR_var f = t.TR_to_dtype("float32")
+            TR_var düz = TR_atan2(t, s)
+            TR_var ters = TR_atan2(s, t)
+            TR_if TR_not TR_equal(düz, TR_atan2(f, s).TR_to_dtype(dt)) TR_or TR_not TR_equal(ters, TR_atan2(s, f).TR_to_dtype(dt)) {
+                ayrılan.TR_append(cihaz + " " + dt + " " + TR_String(s))
+            }
+            TR_if TR_not TR_all_close(düz.TR_to_device("cpu"), TR_atan2(işlemci, s)) { ayrılan.TR_append("işlemciden " + dt + " " + TR_String(s)) }
+        }
+    }
+}
+TR_print(ayrılan)
+TR_print(TR_atan2(TR_Tensor([1000.0], TR_dtype: "fp16"), 100000.0).TR_dtype)`)
+	if want := "[]\nfp16\n"; out != want {
+		t.Fatalf("TR_atan2'nin sayısı:\n%s\nbeklenen:\n%s", out, want)
 	}
 }

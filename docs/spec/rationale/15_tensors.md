@@ -174,12 +174,13 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.14
 
 - *Emsal:* PyTorch `atan2`'nin türevi bir girdi sonsuzken NaN verir.
-- *Gerekçe:* matematiksel limit: sonsuzda türev 0'dır; (0, 0)'da tanımsız türev 0 alınır.
+- *Gerekçe:* matematiksel limit: sonsuzda türev 0'dır; (0, 0)'da tanımsız türev 0 alınır. Sayı argüman 15.6a'ya uyar (TCB, 2026-11-25): sayı fp16'ya indirilince `TR_atan2(fp16, 100000.0)`'ın sayısı sonsuz oluyordu, 20 000 öğenin 19 951'i float32'de hesaplanıp bir kez yuvarlanan sonuçtan ayrılıyordu [ölçüldü: 2026-11-24, b7777361].
 
 ### 15.15
 
 - *Emsal:* PyTorch 2.14'te `torch.where` ondalık koşulda hatadır [ölçüldü: DENETİM B1]. Seçilmeyen dalın sonsuz türevinin NaN vermesi PyTorch'ta da böyledir; çift `where` ile iç maskeleme `[0.0, 0.5]` verir [ölçüldü: DENETİM].
 - *Gerekçe:* koşul mantıktır, çünkü mantık ile sayı arasında dönüşüm yoktur (15.3): "sıfırdan farklı" koşulu NaN'ı da doğru sayıyordu [ölçüldü]. Hiçbiri tensör değilse işin adı `TR_if`'tir; sayı imzası ikinci bir yol olurdu. Türev kuralı açıkça yazılır, çünkü `TR_where(x > 0.0, TR_log(x), 0.0)` sessizce NaN gradyan verir; doğru yazım iç maskelemedir.
+- *Sayı dalın hassasiyeti (TCB, 2026-11-24):* sayı dal tensör dalın hassasiyetini alır, `x * maske` gibi: bf16 modelde `TR_where(maske, x, 0.0)` hesabın kalanını sessizce float32'ye çıkarmaz. *Emsal:* PyTorch `torch.where(koşul, t, 0.0)`'da hassasiyeti tensörden alır; `torch.where(koşul, h, -1e9)` fp16'da orada da −sonsuzdur [ölçüldü: 2026-11-25, `torch==2.14`]. Aralığın dışındaki sayı `t - 1e9`'daki gibi sonsuza iner. Yuvarlama seçimden öncedir; sonuç seçimden sonra yuvarlamayla bit bit aynıdır [test: `TestWhereNumberRoundingPlace`].
 
 ### 15.16
 

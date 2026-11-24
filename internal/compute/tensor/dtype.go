@@ -71,6 +71,14 @@ func ZerosOf(dt DType, shape ...int) *Tensor {
 	return zerosOf(isCreate, be, shape, dt)
 }
 
+// FullOf FullOn'un hassasiyeti verilen biçimidir: v dt'ye bir kez yuvarlanarak cihazda doldurulur
+// (15.6a'da sayı işlenen tensörün hassasiyetini böyle alır).
+func FullOf(dev Device, dt DType, v float32, shape ...int) *Tensor {
+	t := zerosOf(isCreate, BackendFor(dev), shape, dt)
+	gateFill(t.be, t.storage, v)
+	return t
+}
+
 // Cast tensörün dt türüne dönüştürülmüş bitişik bir kopyasını verir (en
 // yakına-çifte yuvarlama). Türevlenebilir: gradyan kaynak türün gradyanına
 // geri aktarılır. Tür zaten dt ise tensörün kendisi döner.

@@ -210,6 +210,23 @@ TR_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türe
     TR_assert_equal("H6100", TR_error_code { TR_atan2(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0, 3.0])) })
 }
 
+TR_test "15.14 sayı daraltılmaz: 16 bitlik tensörde hesap float32'de, sonuç bir kez yuvarlanır" {
+    TR_for dt TR_in ["bf16", "fp16"] {
+        TR_var t = TR_randn([2000], TR_seed: 7).TR_to_dtype(dt)
+        TR_var f = t.TR_to_dtype("float32")
+        TR_for s TR_in [0.3, 100000.0] {
+            TR_assert(TR_equal(TR_atan2(f, s).TR_to_dtype(dt), TR_atan2(t, s)))
+            TR_assert(TR_equal(TR_atan2(s, f).TR_to_dtype(dt), TR_atan2(s, t)))
+        }
+    }
+    # fp16'da 100000 sonsuza inmez: açı sıfır değildir.
+    TR_assert(TR_atan2(TR_Tensor([1000.0], TR_dtype: "fp16"), 100000.0).TR_item() > 0.009)
+    TR_assert_equal("H6960", TR_error_code { TR_atan2(TR_Tensor([1, 2]), 1) })
+    TR_assert_equal("H6960", TR_error_code { TR_atan2(TR_Tensor([TR_true]), 1) })
+    TR_assert_equal("H6960", TR_error_code { TR_atan2(TR_Tensor([1.0], TR_dtype: "float64"), 1) })
+    TR_assert_equal("H6687", TR_error_code { TR_atan2(TR_zeros([2, 32], TR_dtype: "q8"), 1.0) })
+}
+
 TR_test "15.15 koşullu: koşul mantık tensörüdür, yayınlar; gradyan seçilen dala akar, NaN sızmaz" {
     TR_var x = TR_Tensor([-1.0, 2.0, -3.0], TR_requires_grad: TR_true)
     TR_assert_equal([0.0, 2.0, 0.0], TR_where(x > 0, x, 0).TR_tolist)
@@ -239,6 +256,81 @@ TR_test "15.15 koşullu: koşul mantık tensörüdür, yayınlar; gradyan seçil
     TR_assert_equal("H6214", TR_error_code { TR_where(TR_Tensor([TR_true, TR_false]), TR_Tensor([1.0, 2.0, 3.0]), 0) })
     TR_assert_equal("H6207", TR_error_code { TR_where("a", 1, 2) })
     TR_assert_equal("H6104", TR_error_code { TR_where([1], 1, 2) })
+}
+
+TR_test "15.15 sayı dal tensör dalın hassasiyetini alır" {
+    TR_var c = TR_Tensor([TR_true, TR_false])
+    TR_for dt TR_in ["bf16", "fp16", "float32", "float64"] {
+        TR_var t = TR_Tensor([1.0, 2.0], TR_dtype: dt)
+        TR_assert_equal([dt, dt, dt], [TR_where(c, t, 0.1).TR_dtype, TR_where(c, 0.1, t).TR_dtype, TR_where(c, t, 1).TR_dtype])
+        # Sayı `t + 0.1`'deki gibi yuvarlanır.
+        TR_var sayı = (t * 0.0 + 0.1).TR_tolist[0]
+        TR_assert_equal([1.0, sayı], TR_where(c, t, 0.1).TR_tolist)
+        TR_assert_equal([sayı, 2.0], TR_where(c, 0.1, t).TR_tolist)
+    }
+    # float64'te sayı daralmaz; fp16'da aralığın dışı `t - 1e9` gibi sonsuzdur.
+    TR_assert(TR_where(c, TR_Tensor([1.0, 2.0], TR_dtype: "float64"), 0.1).TR_tolist[1] == 0.1)
+    TR_var h = TR_Tensor([1.0, 2.0], TR_dtype: "fp16")
+    TR_assert_equal((h - 1e9).TR_tolist[1], TR_where(c, h, -1e9).TR_tolist[1])
+    TR_assert(TR_not TR_is_finite(TR_where(c, h, -1e9).TR_tolist[1]))
+    TR_assert_equal("int8", TR_where(c, TR_Tensor([1, 2], TR_dtype: "int8"), 3).TR_dtype)
+    # Gradyan 16 bitlik tensör dala akar.
+    TR_var w = TR_Tensor([1.0, 2.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_where(c, w, 0.1) * 3.0))
+    TR_assert_equal([3.0, 0.0], w.TR_grad.TR_tolist)
+    # Nicemli dal açılmaz (15.6a); koşulla aynı tensör olan dal da tensördür, sayı sanılmaz.
+    TR_var q = TR_zeros([2, 32], TR_dtype: "q8")
+    TR_var cq = TR_zeros([2, 32]) == 0.0
+    TR_assert_equal("H6687", TR_error_code { TR_where(cq, q, 0.0) })
+    TR_assert_equal("H6687", TR_error_code { TR_where(cq, 0.0, q) })
+    TR_assert_equal("H6968", TR_error_code { TR_where(c, c, 0) })
+}
+
+# tek_yuvarlama: sayı işlenenli işlemlerin 16 bitlik tensördeki sonucu, float32'de hesaplanıp bir kez
+# yuvarlanan sonuçla aynı mı (15.6a)? Sayı işlenen alan yeni işlem bu listeye girer; ayrılanların adlarını verir.
+TR_func tek_yuvarlama(dt: TR_String, s: TR_Float) -> TR_List[TR_String] {
+    TR_var t = TR_randn([2000], TR_seed: 7).TR_to_dtype(dt)
+    TR_var f = t.TR_to_dtype("float32")
+    TR_var ikili = {
+        "t + s": [t + s, f + s], "s + t": [s + t, s + f], "t - s": [t - s, f - s], "s - t": [s - t, s - f],
+        "t * s": [t * s, f * s], "s * t": [s * t, s * f], "t / s": [t / s, f / s], "s / t": [s / t, s / f],
+        "t ** 2.5": [TR_abs(t) ** 2.5, TR_abs(f) ** 2.5],
+        "maximum": [TR_maximum(t, s), TR_maximum(f, s)], "minimum": [TR_minimum(t, s), TR_minimum(f, s)],
+        "clamp min": [TR_clamp(t, TR_min: s), TR_clamp(f, TR_min: s)], "clamp max": [TR_clamp(t, TR_max: s), TR_clamp(f, TR_max: s)],
+        "where": [TR_where(f > 0.0, t, s), TR_where(f > 0.0, f, s)], "where ters": [TR_where(f > 0.0, s, t), TR_where(f > 0.0, s, f)],
+        "atan2": [TR_atan2(t, s), TR_atan2(f, s)], "atan2 ters": [TR_atan2(s, t), TR_atan2(s, f)],
+        "==": [t == s, f == s], "<=": [t <= s, f <= s], ">": [t > s, f > s],
+    }
+    TR_var u = t * 1.0
+    u += s
+    ikili["+="] = [u, f + s]
+    u = t * 1.0
+    u -= s
+    ikili["-="] = [u, f - s]
+    u = t * 1.0
+    u /= s
+    ikili["/="] = [u, f / s]
+    u = t * 1.0
+    u[0..2000] = s
+    ikili["dilim ="] = [u, f * 0.0 + s]
+    u = t * 1.0
+    u[0..2000] *= s
+    ikili["dilim *="] = [u, f * s]
+    u = t * 1.0
+    u[0] = s
+    ikili["t[0] = s"] = [u[0], f[0] * 0.0 + s]
+    TR_var ayrılan: TR_List[TR_String] = []
+    TR_for ad, ikisi TR_in ikili {
+        TR_var beklenen = TR_if ikisi[1].TR_dtype == "bool" { ikisi[1] } TR_else { ikisi[1].TR_to_dtype(dt) }
+        TR_if TR_not TR_equal(ikisi[0], beklenen) TR_or ikisi[0].TR_dtype != beklenen.TR_dtype { ayrılan.TR_append(ad) }
+    }
+    TR_return ayrılan
+}
+
+TR_test "15.6a sayı işlenen 16 bitlik tensörde float32'de hesaplanır, bir kez yuvarlanır" {
+    TR_for dt TR_in ["bf16", "fp16"] {
+        TR_for s TR_in [0.1, 0.3, 1.7, 100000.0] { TR_assert_equal([], tek_yuvarlama(dt, s)) }
+    }
 }
 
 TR_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {

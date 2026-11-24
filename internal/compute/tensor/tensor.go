@@ -228,9 +228,7 @@ func Full(v float32, shape ...int) *Tensor {
 // FullOn verilen cihazda tüm elemanları v olan tensör. Konaktan veri yüklemez (cihazda
 // doldurulur): GPU kaydında da kurulabilir.
 func FullOn(dev Device, v float32, shape ...int) *Tensor {
-	t := ZerosOn(dev, shape...)
-	gateFill(t.be, t.storage, v)
-	return t
+	return FullOf(dev, Float32, v, shape...)
 }
 
 // Arange 0, 1, ..., n-1 değerlerini içeren 1 boyutlu tensör.

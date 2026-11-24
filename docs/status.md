@@ -28,9 +28,8 @@ Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
 **Ö0, sırayla:**
-1. 15.15, `TR_where`'in sayı dalının hassasiyeti (A, sahip T1).
-2. 15.6c, float64 sonuçta sessizce düşen türev (A, sahip T1).
-3. 15.37, cihaz adının tek yazımı (A, sahip T1).
+1. 15.6c, float64 sonuçta sessizce düşen türev (A, sahip T1).
+2. 15.37, cihaz adının tek yazımı (A, sahip T1).
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -595,7 +594,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 ### 15.6c
 
 - **S-242 Yapılacaklar (E, Ö3):** tam sayı hassasiyetlerinin birleşmesi `TR_concat`'ta yok ("uint8" ile "int8" H6966; işleçte ve `TR_where`'de "int16") [ölçüldü: trlang run, `ae1e8dcc`]; kartta dar tam sayılar H6969; TR testi.
-- **S-706 Yapılacaklar (A, Ö0, 2. sıra, S-371 ile; sahip T1):** türevi izlenen float32 ya da 16 bitlik tensörden float64 sonuç çıkınca türev sessizce düşüyor: float64 işlenenle (`v * f64`, `f64 + v`, `TR_maximum`, `TR_where`) ve `.TR_to_dtype("float64")`'te (15.3) [ölçüldü: trlang run, `b7777361`]; H6040 yalnız türevi izlenen float64'ü yakalıyor [kanıtlı: internal/stdlib/ml/builtins.go:254]. Sıradaki: S-693 tasarımının dilim C'si: iki yol işlem anında H6040 verir, sayı daraltılmaz.
+- **S-706 Yapılacaklar (A, Ö0, 1. sıra, S-371 ile; sahip T1):** türevi izlenen float32 ya da 16 bitlik tensörden float64 sonuç çıkınca türev sessizce düşüyor: float64 işlenenle (`v * f64`, `f64 + v`, `TR_maximum`, `TR_where`) ve `.TR_to_dtype("float64")`'te (15.3) [ölçüldü: trlang run, `b7777361`]; H6040 yalnız türevi izlenen float64'ü yakalıyor [kanıtlı: internal/stdlib/ml/builtins.go:254]. Sıradaki: S-327 tasarımının dilim C'si: iki yol işlem anında H6040 verir, sayı daraltılmaz.
 
 ### 15.6d
 
@@ -624,7 +623,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-253 Yapılacaklar (E, Ö3; sahip T1):** tensör sınır yok: `TR_clamp(t, TR_min: tensör)` H6107 veriyor (15.13) [ölçüldü: trlang run, `ae1e8dcc`].
 
 ### 15.15
-- **S-693 Yapılacaklar (A, Ö0, 1. sıra; sahip T1):** `TR_where`'in sayı dalı tensörün hassasiyetini almıyor (15.15, 15.6a): bf16 `b`'de `TR_where(c, b, 0.0)` float32 veriyor, `b + 0.0` bf16 [kanıtlı: `internal/stdlib/ml/typed_where.go:80`; ölçüldü: ae1e8dcc]. Sıradaki: T1'in GPU hızı Dilim A'sından sonraki ilk iş; `TR_maximum`, `TR_minimum` ve `TR_clamp`'in sayı dalı da sınanır.
 - **S-254 Yapılacaklar (D, Ö3; sahip dil çekirdeği):** 15.15'in "hiçbiri tensör değilse denetim hatası" kuralı yalnız mantık değişmezinde uygulanıyor (`checkWhereCondition`, `internal/lang/checker/builtin_args.go:210`): `TR_Bool` tipli değişken koşul çalışmada H6207 [ölçüldü: trlang run, `ae1e8dcc`]. Sıradaki: denetleyici bildirilmiş `TR_Bool`'u karşılaştırmadan ayırınca kural tamamlanır.
 
 - **S-255 Mevcut durum:** ondalık ya da tam sayı tensör koşul (`TR_where(TR_Tensor(1.0), 2, 3)`) denetimde değil, çalışmada H6207 veriyor; mantık değişmezi koşul denetimde yakalanıyor [ölçüldü: trlang check ve run, `ae1e8dcc`].
@@ -767,7 +765,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.37
 
-- **S-327 Yapılacaklar (A, Ö0, 3. sıra; sahip T1):** cihaz adı tek yazımlı değil (15.37): `.TR_to_device(" CPU ")`, `.TR_to_device("Cpu")` ve `TR_default_device(" CPU ")` hatasız kabul ediliyor, `tests/tensor_test.tr:1782` bunu doğru diye sabitliyor [ölçüldü: ae1e8dcc, trlang run]. Desteklenen GPU yalnız NVIDIA.
+- **S-327 Yapılacaklar (A, Ö0, 2. sıra; sahip T1):** cihaz adı tek yazımlı değil (15.37): `.TR_to_device(" CPU ")`, `.TR_to_device("Cpu")` ve `TR_default_device(" CPU ")` hatasız kabul ediliyor, `tests/tensor_test.tr:1782` bunu doğru diye sabitliyor [ölçüldü: ae1e8dcc, trlang run]. Desteklenen GPU yalnız NVIDIA.
 - **S-328 Yapılacaklar (D, Ö3):** cihaz adının tek yazımı (büyük harf ve boşluk hata); `tests/tensor_test.tr:1783` ters döner; TR testi.
 - **S-329 Yapılacaklar (F, Ö3; sahip T1, Ö1 tensör tasarımlarından sonra):** iletiler cihazı kısa adla (`"gpu"`) yazıyor: `checkDevice` (`internal/stdlib/ml/operators.go:62-64`), `availableDevice` (internal/stdlib/ml/device.go:60) ve öbürleri Device.String'i kullanıyor (internal/compute/tensor/device.go:66); okunan ad `LongName`'dir (15.37).
 - **S-330 Yapılacaklar (F, Ö3; sahip H1):** profilcinin raporu cihazı `"gpu"` yazıyor (`internal/devtools/profiler/setup.go:140`, `:197`); 15.37'nin okunan adı `"gpu:0"`.

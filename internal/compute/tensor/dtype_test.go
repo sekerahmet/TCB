@@ -411,6 +411,41 @@ func TestBits16RoundTrip(t *testing.T) {
 	Bits16(Float32, 1)
 }
 
+// Kural (15.6a, 15.15): TR_where'in sayı dalı tensör dalın hassasiyetine seçimden önce iner; sonuç
+// seçimden sonra bir kez yuvarlamayla bit bit aynıdır. 16 bitin bütün desenleri, iki yönde seçim.
+func TestWhereNumberRoundingPlace(t *testing.T) {
+	const n = 1 << 16
+	nums := []float32{0, float32(math.Copysign(0, -1)), 0.1, -0.1, 1.7, 100000, -1e9, 1e-8, 1e-45, 65504, 65519.996, 65520,
+		3.4e38, float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.NaN()), 1.00390625, 1.01171875}
+	pick := make([]int64, n)
+	for i := range pick {
+		pick[i] = int64((i ^ i>>8) & 1)
+	}
+	cond := Int64sOn(CPU, Bool, pick, n)
+	for _, dt := range []DType{BFloat16, Float16} {
+		x := ZerosOf(dt, n)
+		bits := cpuStore(x.storage).h
+		for i := range bits {
+			bits[i] = uint16(i)
+		}
+		for _, v := range nums {
+			before := cpuStore(Where(cond, x, FullOf(CPU, dt, v)).storage).h
+			after := cpuStore(Where(cond, x, FullOn(CPU, v)).Cast(dt).storage).h
+			for i := range before {
+				if before[i] != after[i] {
+					t.Fatalf("%s, sayı %v, desen %#x: seçimden önce %#x, sonra %#x", dt, v, i, before[i], after[i])
+				}
+			}
+		}
+	}
+	// Ölçü yuvarlamayı görüyor: 1.00390625 bf16'da iki komşunun ortasıdır (çifte iner), bir ulp üstü yukarı çıkar.
+	tie := cpuStore(FullOf(CPU, BFloat16, 1.00390625).storage).h[0]
+	above := cpuStore(FullOf(CPU, BFloat16, math.Nextafter32(1.00390625, 2)).storage).h[0]
+	if tie != 0x3F80 || above != 0x3F81 {
+		t.Fatalf("bf16 yuvarlaması: %#x, %#x", tie, above)
+	}
+}
+
 // ============================================================================
 // Gradyan kapısı: tür dönüşümü
 // ============================================================================

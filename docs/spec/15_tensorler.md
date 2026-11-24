@@ -120,7 +120,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 Sayı tensörün cinsinden 0 boyutlu ve yukarıdaki hesap hassasiyetinde bir tensör gibi işlenir.
 
 Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tensor([10.0, 20.0])`'yi önerir. `t + TR_true` denetim hatasıdır.
-- *Test:* TR testi; Go: `TestDivScalarKeepsDType`.
+- *Test:* TR testi (sayı işlenenli işlemlerin listesi); Go: `TestDivScalarKeepsDType`, `TestWhereNumberRoundingPlace`.
 
 **15.6b** Yayın: şekiller sağdan hizalanır, her eksen eşit ya da 1 olmalıdır; eksik eksen 1 sayılır. Uymazsa çalışma hatasıdır, ileti şekilleri ve uymayan ekseni söyler. Eksen sayıları farklıyken iki taraf birden genişlerse (`[5]` ile `[2, 1]` → `[2, 5]`) sonuç verilir ve bir uyarı yazılır; uyarı aynı yerde bir kez yazılır. Eksen sayıları eşitken iki yanlı genişleme (`[T, 1] >= [1, T]`, nedensel maske; `.TR_unsqueeze` ile bilerek yazılır) uyarı vermez.
 - *Test:* TR testi; Go: `TestBroadcastWarning`, `TestBroadcastWarningLimited`, `TestElementwiseAndBroadcast`.
@@ -197,11 +197,11 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 **15.13** `TR_clamp(x, TR_min: a, TR_max: b)` x'i [a, b] aralığına sınırlar; NaN öğe NaN kalır. Sınırlamak için yazılan `TR_min(x, 0)` ya da `TR_max(x, 0)` (bir tensör ve bir sayı) hatadır; ileti `TR_clamp(x, TR_max: 0)`'ı ya da `TR_relu`'yu önerir. Sınırlardan biri de verilebilir; ikisi de yoksa, `a > b` ise ya da sayı sınır NaN ise hata. Sınırlar sayı ya da `x`'e yayınlanan aynı cinsten tensördür; sayı 15.6a'ya uyar: `TR_Int` tensörde `TR_Int` sınır. Tensör sınırda yalnız `a > b` öğe öğe sınanır (GPU'da bekleme, 15.6); sınırdaki NaN öğe hata değildir, yayılır (`TR_maximum` gibi). Hassasiyetler 15.6c'ye göre birleşir. Cins korunur. Sayı sınırda `x`'in türevi sınırlar dahil aralıkta 1, dışında 0, NaN'da NaN'dır. Tensör sınırda `TR_clamp(x, TR_min: a)` `TR_maximum(x, a)` ile, `TR_max: b` `TR_minimum(x, b)` ile aynıdır, türevi dahil (15.16a: seçilen tarafa, tam eşitlikte yarı yarıya). `TR_max(x, 0)` öğe öğe sınır değildir; ileti `TR_clamp(x, TR_min: 0)`'ı önerir.
 - *Test:* TR testi.
 
-**15.14** `TR_atan2(y, x)` (x, y) noktasının açısını (−π, π] aralığında radyan olarak verir. İşaretli sıfırlar ve sonsuzlar IEEE kuralına uyar; `TR_atan2(0, 0)` 0'dır. İki sayıda `TR_Float`; en az biri tensörse yayınlar ve türev izleyen `TR_Float` tensör verir. Türevler ∂/∂y = x/(x² + y²), ∂/∂x = −y/(x² + y²)'dir; (0, 0)'da ikisi de 0 alınır.
-- *Test:* TR testi.
+**15.14** `TR_atan2(y, x)` (x, y) noktasının açısını (−π, π] aralığında radyan olarak verir. İşaretli sıfırlar ve sonsuzlar IEEE kuralına uyar; `TR_atan2(0, 0)` 0'dır. İki sayıda `TR_Float`; en az biri tensörse yayınlar ve türev izleyen `TR_Float` tensör verir; sayı argüman 15.6a'ya uyar (`TR_atan2(bf16, 0.5)` → bf16, hesap float32'de). Türevler ∂/∂y = x/(x² + y²), ∂/∂x = −y/(x² + y²)'dir; (0, 0)'da ikisi de 0 alınır.
+- *Test:* TR testi; Go: `TestAtan2NumberNotNarrowed`.
 
 **15.15** `TR_where(koşul, a, b)` öğe öğe seçimdir: `koşul` `TR_Tensor[TR_Bool]`'dur; doğru olduğu yerde `a`'yı, öbür yerlerde `b`'yi verir. Üçü yayınlanır. `a` ve `b` aynı cinsten tensör ya da 15.6a'ya uyan sayıdır; hassasiyet 15.6c'ye göre birleşir. `a` ve `b`'nin ikisi de sayıysa cins ve hassasiyet onlardan çıkar: iki `TR_Int` → `TR_Int` "int64"; `TR_Int` ile `TR_Float` → `TR_Float` "float32"; iki `TR_Bool` → `TR_Bool`. Gradyan `a`'ya koşulun doğru, `b`'ye yanlış olduğu yerlerden akar; seçilmeyen dala yukarıdan gelen gradyan tam 0'dır, yukarıdan gelen NaN seçilmeyen dala geçmez. **Ama** dalın kendi türevi o yerde sonsuz ya da NaN ise 0 · sonsuz = NaN girdiye ulaşır: `TR_where(x > 0.0, TR_log(x), 0.0)`'ın `x = 0`'daki gradyanı NaN'dır. Doğru yazım girdiyi içeride maskelemektir: `TR_where(x > 0.0, TR_log(TR_where(x > 0.0, x, 1.0)), 0.0)`. Koşul türev almaz. Hiçbiri tensör değilse denetim hatası, ileti `TR_if`'i önerir. Ondalık ya da tam sayı koşul denetim hatasıdır; ileti `TR_where(t != 0, ...)`'ı önerir.
-- *Test:* TR testi (mantık koşulu, sayı imzasının ve sayı koşulunun hatası, sayı dalların cinsi); mantık ve sayı koşulunun denetim hatası: olumsuz fikstür `tests/negative/kosullu_kosul.tr`.
+- *Test:* TR testi (mantık koşulu, sayı imzasının ve sayı koşulunun hatası, sayı dalların cinsi, sayı dalın hassasiyeti; Go: `TestWhereNumberBranchMatchesCPU`); mantık ve sayı koşulunun denetim hatası: olumsuz fikstür `tests/negative/kosullu_kosul.tr`.
 
 **15.16** `TR_abs(x)` (13.1) tensörde de çalışır: `TR_Float` ve `TR_Int`'te aynı cins. İşaret biti silinir (`TR_abs(-0.0)` +0), NaN korunur, CPU ve GPU aynı bitleri verir. `TR_Int`'te en küçük değerin mutlak değeri taşmadır (15.3). Türev `TR_sign(x)`'tir; 0'da 0.
 - *Test:* TR testi.
