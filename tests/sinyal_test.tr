@@ -205,6 +205,24 @@ TR_test "23.1 türevsiz blokta ve float64'te türev izlenmez" {
     TR_assert_equal(TR_false, h.TR_requires_grad)
 }
 
+TR_test "23.3 float64 sinyalde türevi izlenen pencere H6040" {
+    TR_var x = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], TR_dtype: "float64")
+    TR_func dönüşüm(sinyal: TR_Tensor, w: TR_Tensor) -> TR_Tensor {
+        TR_var g, _ = TR_stft(sinyal, 4, TR_hop_length: 1, TR_window: w, TR_center: TR_false)
+        TR_return g
+    }
+    TR_for dt TR_in ["float32", "bf16"] {
+        TR_var w = TR_Tensor([1.0, 1.0, 1.0, 1.0], TR_dtype: dt, TR_requires_grad: TR_true)
+        TR_assert_equal("H6040", TR_error_code { dönüşüm(x, w) })
+        TR_assert_equal("float64", TR_no_grad { dönüşüm(x, w) }.TR_dtype)
+        # İletinin yazımı: sinyal float32'ye çevrilince pencerenin türevi akar.
+        TR_backward(TR_sum(dönüşüm(x.TR_to_dtype("float32"), w)))
+        TR_assert_equal([4], w.TR_grad.TR_shape)
+    }
+    TR_assert_equal("float64", dönüşüm(x, TR_ones([4])).TR_dtype)
+    TR_assert_equal("float64", dönüşüm(x, TR_Tensor([1.0, 1.0, 1.0, 1.0], TR_dtype: "float64")).TR_dtype)
+}
+
 TR_func süzgeçler(m: TR_Int = 40) -> TR_Tensor {
     TR_return TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: m, TR_norm: "slaney", TR_mel_scale: "slaney")
 }

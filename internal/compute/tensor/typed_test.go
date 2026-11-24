@@ -162,3 +162,54 @@ func TestTypedWhereAndLogic(t *testing.T) {
 		t.Fatalf("~: %v", got)
 	}
 }
+
+// Kural (15.3, 15.6c): türev kipinde sonucu float64'e yükselen cinsli işlem, girdisi türev izliyorsa
+// H6040'tır (float64'te türev yolu yok, türev sessizce düşerdi). Karşılaştırma mantık verir, türevsiz
+// kip ve türev izlemeyen girdi hatasızdır; iletinin türü sözcüğü kullanıcının adıdır ("bf16").
+func TestTypedRefusesTrackedFloat64(t *testing.T) {
+	d := Float64sOn(CPU, []float64{0.5, 0.25}, 2)
+	pick := Int64sOn(CPU, Bool, []int64{1, 0}, 2)
+	for _, dt := range []DType{Float32, BFloat16} {
+		w := NewOf(dt, []float32{1, 2}, 2)
+		w.SetRequiresGrad(true)
+		ops := map[string]func(){
+			"Arith":      func() { Arith(w, d, ArithMul, Float64) },
+			"Arith ters": func() { Arith(d, w, ArithAdd, Float64) },
+			"Convert":    func() { Convert(w, Float64) },
+			"ara sonuç":  func() { Convert(w.MulScalar(2), Float64) },
+			"WhereTyped": func() { WhereTyped(pick, d, trackedWide(w)) },
+			"Stft":       func() { Stft(Float64sOn(CPU, []float64{1, 2, 3, 4}, 4), w, StftOptions{N: 2, Hop: 1}, FourierCall{}) },
+		}
+		for name, op := range ops {
+			panicCode(t, dt.Name()+" "+name, messages.H6040, op)
+			NoGrad(op)
+		}
+		if r := CompareTyped(w, d, CmpLt); r.DType() != Bool {
+			t.Fatalf("karşılaştırma: %v", r.DType())
+		}
+	}
+	plain := New([]float32{1, 2}, 2)
+	if r, _ := Arith(plain, d, ArithMul, Float64); !slices.Equal(r.Float64s(), []float64{0.5, 0.5}) {
+		t.Fatalf("türev izlemeyen: %v", r.Float64s())
+	}
+	// Kendisi float64 olan işlenenin metni (15.46) aynı kalır.
+	if got, want := messages.TextIn("tr", messages.H6040, "[2]", "float64", "operand"), "türev izleyen float64 tensör ([2]) türev çizgesine giremez: float64'te türev yolu henüz yok (15.46), türev sessizce düşerdi. float32 kopyasını eğitin: `TR_Tensor(TR_no_grad { t.TR_to_dtype(\"float32\") }, TR_requires_grad: TR_true)`"; got != want {
+		t.Errorf("15.46'nın metni:\n%s\nbeklenen:\n%s", got, want)
+	}
+	for lang, want := range map[string]string{
+		"tr": "türev izleyen bf16 tensör ([2]) float64'e yükselemez: float64'te türev yolu henüz yok (15.3), türev sessizce düşerdi. float64 işlenen varsa float32'ye çevirin: `d.TR_to_dtype(\"float32\")`; türev gerekmiyorsa işlemi türevsiz bloğa alın: `TR_no_grad { t.TR_to_dtype(\"float64\") }`",
+		"en": "a bf16 tensor that tracks gradients ([2]) cannot rise to float64: there is no gradient path in float64 yet (15.3), the gradient would be dropped silently. If an operand is float64, convert it to float32: `d.TR_to_dtype(\"float32\")`; if no gradient is needed, put the operation in a block without gradients: `TR_no_grad { t.TR_to_dtype(\"float64\") }`",
+	} {
+		if got := messages.TextIn(lang, messages.H6040, "[2]", "bf16", "raised"); got != want {
+			t.Errorf("%s:\n%s\nbeklenen:\n%s", lang, got, want)
+		}
+	}
+}
+
+// trackedWide w'nin türevsiz float64 kopyasıdır; türev izletilir (yalnız sınamada: değer katmanı kurdurmaz).
+func trackedWide(w *Tensor) *Tensor {
+	var r *Tensor
+	NoGrad(func() { r, _ = Convert(w, Float64) })
+	r.SetRequiresGrad(true)
+	return r
+}

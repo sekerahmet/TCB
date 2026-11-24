@@ -3,7 +3,7 @@ package tensor
 // Fourier dönüşümünün türevi (23.1, 23.3). Dönüşüm doğrusaldır: y[j] = Σ_k x[k]·e^(−iθ_jk) için
 // ∂L/∂x[k] = Re Σ_j (gr[j] + i·gi[j])·e^(iθ_jk), yani gradyanın eşleniğinin ileri dönüşümünün gerçek
 // kısmıdır. Yalnız verilen n/2+1 kutu toplanır: negatif frekanslar çıktıda yoktur, çift sayılmaz.
-// Hesap float32'dedir; float64 cinsli yoldadır, türev izlemez (15.48). Toplama sırası sabittir: bir
+// Hesap float32'dedir; float64 sinyal türev izlemez (15.48); türevi izlenen pencereyle H6040'tır (Stft). Toplama sırası sabittir: bir
 // satırın çerçeveleri sırayla eklenir, satırlar birbirinden bağımsızdır.
 
 // conjugateFrame gradyanın eşleniğini w.xr, w.xi'ye yazar ve dönüştürür: sonuç w.yr'dedir.

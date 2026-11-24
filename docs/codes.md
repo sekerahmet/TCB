@@ -8595,7 +8595,7 @@ tr: yazdır(Tensör([1, 2]).cihaza("cpu").cihaz)
 
     Tensör.türe(Metin) → Tensör
 
-Tensörün "float32", "bf16" ya da "fp16" türüne çevrilmiş kopyasını verir; gradyan kaynak tensöre akar. Tür zaten aynıysa tensörün kendisi döner.
+Tensörün "float32", "bf16" ya da "fp16" türüne çevrilmiş kopyasını verir; gradyan kaynak tensöre akar. Tür zaten aynıysa tensörün kendisi döner. "float64"e de çevirir; türev izleyen tensörde türev kipinde bu hatadır, çünkü float64'te türev yolu yoktur: türev gerekmiyorsa çeviri türevsiz blokta yapılır.
 
 ```tr
 TR_print(TR_Tensor([1.0, 2.0]).TR_to_dtype("bf16").TR_dtype)

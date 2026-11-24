@@ -366,7 +366,7 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		}
 		// Türev nicemlenmemiş TR_Float tensörlerde açılır, float64 dahil; TR_Int, TR_Bool ve
 		// nicemlenmiş tensörler türevsiz kalır (15.46). float64'te türev yolu yok: çizgeye
-		// girince H6040 açık hatadır (tensor.CheckFloat64Grad).
+		// girince H6040 açık hatadır (float64GradError).
 		t.SetRequiresGrad(watch && (g.dtype.IsFloat() || g.dtype == tensor.Float64))
 		result.Set(g.ad, New(t))
 	}
