@@ -385,6 +385,9 @@ func TestNaNRowsMatchCPU(t *testing.T) {
 		dt   tensor.DType
 		Dh   int
 	}{{"birlesik", tensor.Float32, 8}, {"carpim", tensor.Float32, 8}, {"tensor", tensor.BFloat16, 16}} {
+		if cc, _ := g.sr.capability(); d.path == "tensor" && !inSim() && cc < 80 {
+			continue // tensör çekirdeği sm_80 ister (T4'te zorlanan yol iç hatadır, S-701)
+		}
 		g.attnPath = d.path
 		T := 5
 		qv, kv, vv := random(rng, T*d.Dh, 1), random(rng, T*d.Dh, 1), random(rng, T*d.Dh, 1)
