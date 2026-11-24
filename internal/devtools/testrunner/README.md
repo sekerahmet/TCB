@@ -55,4 +55,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_language_spec_test.go`: dil belirtimindeki her kuralın kendi bölümünde olması ve bir testi bulunması; belirtim testlerinin geçmesi
 - `behavior_negative_fixtures_test.go`: olumsuz fikstürlerin (`tests/negative/`) etiketlediği tanıları, yalnız onları vermesi; başka bir fikstürün aktardığı fikstür modül olarak denetlenir
 - `behavior_status_priorities_test.go`: durum belgesinin Ö0 ve Ö1 listeleriyle bölümlerdeki açık Ö0 ve Ö1 işlerinin iki yönde uyuşması
+- `behavior_status_format_test.go`: durum belgesinin madde biçimi: kalıcı S-<n> kimliği, 500 harf sınırı, kopyalanmış ölçü sayısı ve süreç izi yokluğu
 - `behavior_rationale_test.go`: gerekçe dosyalarının (`docs/spec/rationale/`) düzeni ve kural numaralarıyla eşleşmesi
