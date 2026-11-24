@@ -7,14 +7,16 @@ import "fmt"
 // ============================================================================
 //
 // CPU'nun yoluyla (cpu_quant_q8.go) aynı bitler: etkinleştirme ağırlığın bloğuyla (q4 32, q4_k ve q6_k 256)
-// int8'e nicemlenir (quantizeQ8Go'nun formülü), nokta çarpımı tamsayıdadır (dp4a ya da dört tamsayı çarpma-toplama:
-// tamsayıda kesin, sırası önemsiz), blok başına float32 formülü CPU'daki sırayla tek iş
+// int8'e nicemlenir (quantizeQ8Go'nun formülü), nokta çarpımı tamsayıdadır (mma.sync s8, dp4a ya da dört tamsayı
+// çarpma-toplama: tamsayıda kesin, sırası önemsiz), blok başına float32 formülü CPU'daki sırayla tek iş
 // parçacığında döner (çarpma ve toplama ayrı yuvarlanır, .rn). Her çıktı öğesinin blokları sırayla toplanır;
 // K bölünmez. Yol yalnız kartın yeteneğinden ve M'den seçilir, bitleri değiştirmez (backend_quant_act.go).
 // Sonlu olmayan değer taşıyan satır CPU'daki gibi float yoluyla çarpılır (kernel_quant_act_float.go).
 
 const (
 	actBlk     = 256 // etkinleştirmenin bloğu (Q4_K, Q6_K)
+	actTile    = 64  // çok satırlı çarpımın blok karosu (satır ve sütun)
+	actWarpsMM = 4   // karodaki warp: 2 × 2, her biri 32 × 32
 	actWarpsMV = 8   // tek satırlı çarpımda blok başına çıktı
 )
 
@@ -145,6 +147,20 @@ func (k *emitter) words16(addr reg, offset int) reg {
 	k.e("shl.b32", hi, hi, 16)
 	k.e("or.b32", lo, lo, hi)
 	return lo
+}
+
+// byteU sözcüğün j. baytıdır (işaretsiz).
+func (k *emitter) byteU(w reg, j int) reg {
+	r := k.r()
+	if j == 0 {
+		k.e("and.b32", r, w, 0xFF)
+		return r
+	}
+	k.e("shr.u32", r, w, 8*j)
+	if j < 3 {
+		k.e("and.b32", r, r, 0xFF)
+	}
+	return r
 }
 
 // byteS sözcüğün j. baytıdır (işaretli).

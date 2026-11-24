@@ -14,9 +14,13 @@ import (
 // actQuantTypes 15.53a'nın ağırlık türleridir.
 var actQuantTypes = []tensor.DType{tensor.Q4, tensor.Q4K, tensor.Q6K}
 
-// actPaths sınanacak yollardır (quantActPath): benzeticide ve sm_61+ kartta hepsi; altında yalnız kartın yolu.
+// actPaths sınanacak yollardır (quantActPath): benzeticide hepsi; kartta yeteneğin izin verdikleri.
 func actPaths() []string {
-	if cc, _ := gpuBackend().sr.capability(); inSim() || cc >= 61 {
+	cc, _ := gpuBackend().sr.capability()
+	switch {
+	case inSim() || cc >= 80:
+		return []string{"", "mma", "dp4a", "nodp4a"}
+	case cc >= 61:
 		return []string{"", "dp4a", "nodp4a"}
 	}
 	return []string{""}

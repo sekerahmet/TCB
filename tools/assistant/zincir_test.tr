@@ -226,7 +226,7 @@ TR_test "nicemli seçimi: komut satırı ayardan önce, ayar öntanımlıdan ön
     }
 }
 
-TR_test "otomatik nicemli: işlemcide yalnız q4_k ve q6_k ağırlıklı modelde açık; float, q8 karışık modelde ve kartta kapalı; açık ve kapalı olduğu gibi" {
+TR_test "otomatik nicemli: yalnız q4_k ve q6_k ağırlıklı modelde açık, işlemcide ve kart varsa kartta; float ve q8 karışık modelde kapalı; açık ve kapalı olduğu gibi" {
     TR_var f = küçük_zincir(256, TR_false).model
     TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "cpu", f)) # float: blok etkisiz, açmaya gerek yok
     TR_assert_equal(TR_true, nicemli_çöz(_açık(), "cpu", f))

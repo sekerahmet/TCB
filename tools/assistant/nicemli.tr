@@ -1,8 +1,8 @@
 # TR 4
 # Nicemli etkinleştirmenin (--nicemli_etkinleştirme, 15.53a) seçimi, çözümü ve kurulum denetimleri, zincirden ayrı:
 # zincir.tr (ısıt) ve asistan.tr (asistan_kur) kullanır, zincir_test.tr sınar. Seçim otomatik, açık ya da kapalı;
-# otomatik dil modeli yüklenince çözülür. Açıkken üç denetim: cihaz (modeller yüklenmeden önce), ağırlık türü (dil
-# modeli yüklendikten hemen sonra), ısıtmanın hatası (nicemli_hatasını_at).
+# otomatik dil modeli yüklenince çözülür. Açıkken cihazdan hata yok (nicemli_hatası); denetimler: ağırlık türü (dil
+# modeli yüklendikten hemen sonra) ve ısıtmanın hatası (nicemli_hatasını_at).
 
 TR_const NİCEMLİ_DEĞERLERİ = ["otomatik", "açık", "kapalı"]
 TR_const _AYAR_DEĞERLERİ = {"auto": "otomatik", "on": "açık", "off": "kapalı"}
