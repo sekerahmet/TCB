@@ -64,6 +64,7 @@ const (
 	simShfl    // shfl.sync (warp içi değiş tokuş)
 	simCvtPack // cvt.rn.bf16x2.f32 / cvt.rn.f16x2.f32 (iki float32'yi 16 bitlik çifte)
 	simAtom    // atom.global.min.u64 (genel bellekte okuma-değiştirme-yazma; bkz. sim_atom.go)
+	simDp4a    // dp4a.s32.s32 (dört işaretli baytın nokta çarpımı ve toplama)
 )
 
 var simOpNames = map[string]simOp{
@@ -72,7 +73,7 @@ var simOpNames = map[string]simOp{
 	"sqrt": simSqrt, "rcp": simRcp, "ex2": simEx2, "lg2": simLg2, "sin": simSin, "cos": simCos,
 	"shl": simShl, "shr": simShr, "and": simAnd, "or": simOr, "xor": simXor, "not": simNot,
 	"setp": simSetp, "selp": simSelp, "cvt": simCvt, "cvta": simCvta, "ld": simLd, "st": simSt,
-	"bra": simBra, "bar": simBar, "ret": simRet, "cp": simCp, "atom": simAtom,
+	"bra": simBra, "bar": simBar, "ret": simRet, "cp": simCp, "atom": simAtom, "dp4a": simDp4a,
 }
 
 // simType işlenen türü.

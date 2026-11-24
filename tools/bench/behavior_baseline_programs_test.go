@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -162,8 +163,8 @@ func TestBaselineQuestions(t *testing.T) {
 		}
 	}
 	lists := map[string]string{
-		"highram": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14", "l4gpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
-		"l4cpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S14", "g4": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14",
+		"highram": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14", "l4gpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14 S15",
+		"l4cpu": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S14", "g4": "S1 S2 S3 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14 S15",
 		"laptop": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S13 S14"}
 	for machine, list := range lists {
 		items := got[machine]
@@ -424,8 +425,8 @@ func TestBaselineMMSIds(t *testing.T) {
 }
 
 // --base-trlang: her sorunun TR tarafı aynı programın taban ikilisiyle (main) koşan tarafa karşı ölçülür, oran
-// dal/taban. S5'in üç emsali dil başına tek taban kalemi verir (S5/tr/base), yalnız TR olan kalem kendi adına
-// "/base" alır, Dost'un özel koşusu (S9) taban kalemi vermez; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk
+// dal/taban. S5'in üç emsali dil başına tek taban kalemi verir (S5/tr/base), iki parçalı anahtar modeli korur
+// (S1/<model>/base; T1 GPU hızı dur-sor 2), yalnız TR olan kalem kendi adına "/base" alır, Dost'un özel koşusu (S9) taban kalemi vermez; taban tarafının komutu TR'ninkiyle aynıdır, yalnız ilk
 // öğesi taban ikilisidir. Taban ve dal aynı ikiliyken oran 1 çevresindedir.
 func TestBaselineBaseTrlang(t *testing.T) {
 	work := t.TempDir()
@@ -451,9 +452,9 @@ func TestBaselineBaseTrlang(t *testing.T) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	if strings.Join(keys, " ") != "S14/empty/base S5/en/base S5/tr/base" || got.Count != 3 {
-		t.Errorf("base items %v (%d before the keyed dict), want S14/empty/base S5/en/base S5/tr/base, 3",
-			keys, got.Count)
+	want := "S1/gemma3-12b-q4km/base S1/gemma3-4b-q4km/base S1/gemma3-4b-qat-q40/base S1/qwen3-4b-q4km/base S1/qwen3-4b-q8/base S1/qwen3-8b-q4km/base S14/empty/base S5/en/base S5/tr/base"
+	if strings.Join(keys, " ") != want || got.Count != 9 {
+		t.Errorf("base items %v (%d before the keyed dict), want %s, 9", keys, got.Count, want)
 	}
 	for key, it := range got.Items {
 		if len(it.TR) != len(it.Ref) || it.Agree {
@@ -469,5 +470,56 @@ func TestBaselineBaseTrlang(t *testing.T) {
 	p := got.Pair
 	if p.Key != "S0/x/base" || p.Reference != "TR base" || len(p.Ratios) != 5 || p.Median < 0.8 || p.Median > 1.25 {
 		t.Errorf("one program against itself: %+v; want key S0/x/base, 5 ratios, median near 1", p)
+	}
+}
+
+// q4kGGUF q8GGUF'un q4_k eşidir (tinyLlama): 256 boyutlu (q4_k'nın bloğu), iki dikkat başı; çarpım ağırlıkları q4_k
+// (rastgele kodlar, ölçeklerin üst baytı 0x1C: fp16 ~0,004), gömme F32.
+func q4kGGUF(t *testing.T) string {
+	t.Helper()
+	const dim = 256
+	seed := uint32(11)
+	q4k := func(rows int) []byte { // satır başına bir blok (144 bayt)
+		out := make([]byte, rows*144)
+		for i := range out {
+			seed = seed*1664525 + 1013904223
+			out[i] = byte(seed >> 24)
+		}
+		for r := 0; r < len(out); r += 144 {
+			out[r+1], out[r+3] = 0x1C|out[r+1]&0x83, 0x1C|out[r+3]&0x83
+		}
+		return out
+	}
+	embd := func(vocab int) []byte {
+		return f32Bytes(dim*vocab, func(i int) float32 { return float32(i%17-8) / 64 })
+	}
+	return tinyLlama{dim: dim, heads: 2, file: "q4k.gguf", embdType: gguf.TypeF32, embd: embd, weightType: gguf.TypeQ4_K,
+		weight: q4k}.write(t)
+}
+
+// T1 GPU hızı A4 ve A5: q4_k modelde --quantized auto GPU'da (benzetici) yoklamayla bloğu açar ("quantized": true;
+// ana dalın ikilisinde yoklama H6724 alır, kapalı kalır), işlemcide doğrudan açar. --mode warm aynı önbelleği
+// boşaltarak --prompt token'ı --reps kez okur: cold_ms ilk okuma, warm_ms kalanların ortancası, reads_ms hepsi (S15).
+func TestBaselineWarmReadAndProbe(t *testing.T) {
+	t.Setenv("TR_GPU_SIM", "1")
+	model := q4kGGUF(t)
+	for _, device := range []string{"gpu", "cpu"} {
+		r := program(t, "baseline/language_model.tr", "--model", model, "--text", "ABCDABCD", "--mode", "warm",
+			"--prompt", "4", "--reps", "3", "--device", device)
+		reads, _ := r["reads_ms"].([]any)
+		cold, okC := r["cold_ms"].(float64)
+		warm, okW := r["warm_ms"].(float64)
+		if r["quantized"] != true || len(reads) != 3 || !okC || !okW || cold != reads[0] {
+			t.Errorf("%s: quantized %v, reads %v, cold %v, warm %v; want the block open, 3 reads, cold = the first",
+				device, r["quantized"], reads, cold, warm)
+		}
+		var rest []float64
+		for _, v := range reads[1:] {
+			rest = append(rest, v.(float64))
+		}
+		sort.Float64s(rest)
+		if mid := (rest[0] + rest[1]) / 2; warm != mid {
+			t.Errorf("%s: warm_ms %v, want the median of the later reads %v (%v)", device, warm, mid, rest)
+		}
 	}
 }

@@ -22,6 +22,8 @@ import (
 //
 // Desteklenen biçimler:
 //   mma.sync.aligned.m16n8k16.row.col.f32.{bf16,f16}.{bf16,f16}.f32 {d0..d3}, {a0..a3}, {b0,b1}, {c0..c3}
+//   mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32 {d0..d3}, {a0..a3}, {b0,b1}, {c0..c3}
+//   mma.sync.aligned.m16n8k16.row.col.s32.s8.s8.s32 {d0..d3}, {a0,a1}, {b0}, {c0..c3}
 //   shfl.sync.bfly.b32 d, a, şerit_maskesi, 31, -1
 //   cvt.rn.{bf16x2,f16x2}.f32 d, üst, alt
 
@@ -31,6 +33,9 @@ type simMmaArgs struct {
 	a, c [4]simTerm
 	b    [2]simTerm
 	f16  bool // girdiler f16 (değilse bf16)
+	// s8 tam sayı biçimidir (int8 girdi, int32 birikim); k8 onun K'sıdır (32 ya da 16).
+	s8 bool
+	k8 int
 }
 
 // parseWarp warp düzeyi komutları ve paketli dönüşümü çözer; komut bunlardan değilse ok
@@ -76,10 +81,15 @@ func splitTerms(args string) []string {
 
 func (a *simParser) parseMma(k *simInst, op, args string) error {
 	m := &simMmaArgs{}
+	nA, nB, cType := 4, 2, simF32
 	switch op {
 	case "mma.sync.aligned.m16n8k16.row.col.f32.bf16.bf16.f32":
 	case "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32":
 		m.f16 = true
+	case "mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32":
+		m.s8, m.k8, cType = true, 32, simS32
+	case "mma.sync.aligned.m16n8k16.row.col.s32.s8.s8.s32":
+		m.s8, m.k8, nA, nB, cType = true, 16, 2, 1, simS32
 	default:
 		return internalf("mma form %s unknown to the simulator", op)
 	}
@@ -92,8 +102,8 @@ func (a *simParser) parseMma(k *simInst, op, args string) error {
 		groups = append(groups, splitTerms(args[i+1:j]))
 		args = args[j+1:]
 	}
-	if len(groups[0]) != 4 || len(groups[1]) != 4 || len(groups[2]) != 2 || len(groups[3]) != 4 {
-		return internalf("mma operand counts must be 4, 4, 2, 4")
+	if len(groups[0]) != 4 || len(groups[1]) != nA || len(groups[2]) != nB || len(groups[3]) != 4 {
+		return internalf("mma operand counts must be 4, %d, %d, 4", nA, nB)
 	}
 	for i, s := range groups[0] {
 		y, ok := a.reg[s]
@@ -114,7 +124,7 @@ func (a *simParser) parseMma(k *simInst, op, args string) error {
 		}
 	}
 	for i, s := range groups[3] {
-		if m.c[i], err = a.term(s, simF32); err != nil {
+		if m.c[i], err = a.term(s, cType); err != nil {
 			return err
 		}
 	}
@@ -206,6 +216,10 @@ func (b *simBlock) warpStep(jobs []simJob) error {
 // c3 (g+8, 2t+1). 16 bitlik çiftte alt yarı küçük sütundur. Toplam float64'te tam yapılıp bir kez
 // yuvarlanır (donanım birikimi en az float32 hassasiyetindedir).
 func (b *simBlock) mmaStep(lanes []simJob, m *simMmaArgs) {
+	if m.s8 {
+		b.mmaStepS8(lanes, m)
+		return
+	}
 	var A [16][16]float64
 	var B [16][8]float64
 	var C [16][8]float64
@@ -249,4 +263,58 @@ func (b *simBlock) shflStep(lanes []simJob, k *simInst) {
 		src := l ^ int(b.read(&lanes[l], &k.o[1])&31)
 		lanes[l].y[k.d] = v[src] & math.MaxUint32
 	}
+}
+
+// mmaStepS8 tam sayı biçimidir: A satır öncelikli 16×K, B sütun öncelikli K×8 int8; C/D 16×8 int32
+// (32 bitte sarar). Şerit l için g = l/4, t = l%4; 32 bitlik yazmaçta alt bayt küçük sütundur.
+// K = 32: a0 (g, 4t..4t+3), a1 (g+8, 4t..), a2 (g, 16+4t..), a3 (g+8, 16+4t..); b0 (k = 4t..4t+3,
+// n = g), b1 (k = 16+4t.., n = g). K = 16: a0 (g, 4t..), a1 (g+8, 4t..); b0 (k = 4t.., n = g).
+// C/D f32 biçimindeki gibidir.
+func (b *simBlock) mmaStepS8(lanes []simJob, m *simMmaArgs) {
+	var A [16][32]int32
+	var B [32][8]int32
+	var C [16][8]int32
+	nA, nB := 4, 2
+	if m.k8 == 16 {
+		nA, nB = 2, 1
+	}
+	for l := range lanes {
+		t := &lanes[l]
+		g, q := l/4, l%4
+		for i := range nA {
+			v := b.read(t, &m.a[i])
+			for j := range 4 {
+				A[g+8*(i%2)][4*q+16*(i/2)+j] = int32(int8(v >> (8 * j)))
+			}
+		}
+		for i := range nB {
+			v := b.read(t, &m.b[i])
+			for j := range 4 {
+				B[4*q+16*i+j][g] = int32(int8(v >> (8 * j)))
+			}
+		}
+		for i := range 4 {
+			C[g+8*(i/2)][2*q+i%2] = int32(b.read(t, &m.c[i]))
+		}
+	}
+	for l := range lanes {
+		g, q := l/4, l%4
+		for i := range 4 {
+			r, c := g+8*(i/2), 2*q+i%2
+			s := C[r][c]
+			for kk := range m.k8 {
+				s += A[r][kk] * B[kk][c]
+			}
+			lanes[l].y[m.d[i]] = uint64(uint32(s))
+		}
+	}
+}
+
+// dp4a dp4a.s32.s32'dir: c + Σ a'nın ve b'nin aynı sıradaki işaretli baytlarının çarpımı (32 bitte sarar).
+func dp4a(a, b, c uint64) uint64 {
+	s := int32(c)
+	for i := range 4 {
+		s += int32(int8(a>>(8*i))) * int32(int8(b>>(8*i)))
+	}
+	return uint64(uint32(s))
 }

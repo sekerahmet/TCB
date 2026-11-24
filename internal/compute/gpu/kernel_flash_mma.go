@@ -37,13 +37,19 @@ func (a flashMma) key(ad string) string { return fmt.Sprintf("%s_%d_%d_%v", ad, 
 
 // mmaFits tensör çekirdekli yolun bu girdilerle kullanılıp kullanılamayacağı: aynı 16 bitlik
 // tür, bitişik ve çift ofsetli görünümler (32 bitlik çift erişimi), 16'nın katı ve en çok 128
-// bakış boyları, ek maske yok, sm_80+ (attnPath = "tensor" benzetimde sm denetimini atlar).
+// bakış boyları, ek maske yok, sm_80+ (attnPath = "tensor" benzetimde sm denetimini atlar; gerçek kartta sm_80
+// altında zorlanan yol PTX'in yükleme hatası yerine bunu söyleyen iç hatadır, T4'te TestNaNRowsMatchCPU, S-701).
 func (g *backend) mmaFits(q, k, v tensor.View, mask2 bool, p tensor.AttentionParams) (flashMma, bool) {
 	if g.attnPath == "carpim" || g.attnPath == "birlesik" || mask2 || p.H > 65535 || p.Batch > 65535 {
 		return flashMma{}, false
 	}
-	if cc, _ := g.sr.capability(); cc < 80 && g.attnPath != "tensor" {
-		return flashMma{}, false
+	if cc, _ := g.sr.capability(); cc < 80 {
+		if g.attnPath != "tensor" {
+			return flashMma{}, false
+		}
+		if _, sim := g.sr.(*simDriver); !sim {
+			panic(internalf("attnPath %q forces the tensor-core attention, which needs sm_80; this card is sm_%d", g.attnPath, cc))
+		}
 	}
 	if p.Dh == 0 || p.Dv == 0 || p.Dh%16 != 0 || p.Dv%16 != 0 || p.Dh > 128 || p.Dv > 128 {
 		return flashMma{}, false

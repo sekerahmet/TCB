@@ -34,6 +34,7 @@ Denetim: `TestPanicToError`, `TestWrappedBuiltinPanicIsCatchable`.
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_vendor_block_test.go`: yorumlayıcının `TR_vendor_matmul` bloğunu çekirdeğe bağladığı üç yerin (`@`, `TR_attention`'ın çarpımlı yolu, `TR_linear_cross_entropy`) benzeticide kitaplık girişine ulaşması, blok dışında ulaşmaması (15.53b; giriş sayacı `gpu.VendorCalls`)
+- `behavior_quant_activations_gpu_test.go`: `TR_quantized_activations` bloğunda nicemli ağırlıkla `@` kartta da tamsayı yolu, CPU'nun bitleriyle; `TR_vendor_matmul` onu değiştirmez, blok dışı float yolu kalır (15.53a, 15.53b).
 - `behavior_gpu_typed_test.go`: GPU'da cinsli yolların (argmax'in `TR_Int` sonucu, taşıma, tam sayı içinde dönüşüm, `TR_Bool` karşılaştırma ve maske, `TR_where`) CPU ile aynı olması; öbür cinsli işlemin hassasiyet hatası (2a adım 8)
 - `behavior_copy_writes_test.go`: yerinde yazmanın hedef zincirindeki kopya adımının denetimsiz koşuda da hata olması (H6740, H6741) ve iki iletinin önerilerinin kopyalanınca çalışması (15.6d; kural `interp/copy_writes.go`'da, zincir `ast.WriteChain`'de)
 - `behavior_device_rules_test.go`: indeksle atamada cihaz kuralları (15.40) ve `TR_recompute` kaydında sayı işleneninin cihazda doldurulması (15.45)

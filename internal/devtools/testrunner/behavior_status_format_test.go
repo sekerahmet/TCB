@@ -46,7 +46,6 @@ const statusDeletedIDsFile = "internal/devtools/testrunner/testdata/status_delet
 // oturumun açık işindeki madde o iş bitince yeni biçime girer; sorunu kalmayan girdi bayattır.
 // Kimlik ve tür kuralı istisnasızdır.
 var statusFormatExceptions = map[int]string{
-	396: "T1'in açık GPU hızı işi; iş bitince yeni biçime girer",
 	562: "T1'in açık GPU hızı işi; iş bitince yeni biçime girer",
 	563: "T1'in açık GPU hızı işi; iş bitince yeni biçime girer",
 }

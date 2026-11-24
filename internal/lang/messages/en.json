@@ -1405,7 +1405,6 @@
 "H6721": "the property or method {member|q} was not found on {what}",
 "H6722": "{method}() takes no arguments; to give the order of the axes use {permute}(...)",
 "H6723": "there is no product with a \"{dtype}\" weight inside a {fn} {{ ... }} block (15.53a): the input is quantized only with \"q4\", \"q4_k\" and \"q6_k\" weights; move the product out of the block",
-"H6724": "the {fn} {{ ... }} block is not on the GPU (15.53a, 15.41): the \"{dtype}\" weight is on the GPU; move the product out of the block or move the input and the weight to the CPU",
 "H6725": "{fn} {{ ... }} takes only a block, {given} {given, plural, one {parameter} other {parameters}} given",
 "H6726": "{fn} {{ ... }} expects a block, {given} given",
 "H6730": "Warning: {fn}: memory of released tensors ({waiting_bytes} bytes) was not returned within {seconds} s; loading continues, and peak memory may be that much higher.",

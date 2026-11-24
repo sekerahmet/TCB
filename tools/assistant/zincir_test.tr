@@ -203,14 +203,10 @@ TR_func _açık() -> NicemliSeçim { TR_return NicemliSeçim(değer: "açık", k
 TR_func _ayardan() -> NicemliSeçim { TR_return NicemliSeçim(değer: "açık", kaynak: "ayar", yol: "C:/Dost/ayar.json") }
 TR_func _otomatik() -> NicemliSeçim { TR_return NicemliSeçim() }
 
-TR_test "nicemli seçeneğin cihaz denetimi: işlemcide hata yok, kartta cihazı söyleyen metin; öneri kaynağa göre" {
+TR_test "nicemli seçeneğin cihaz denetimi: 15.53a her cihazda çalışır, işlemcide de kartta da hata yok" {
     TR_assert_equal(TR_none, nicemli_hatası("cpu", _açık()))
-    TR_var h = TR_String(nicemli_hatası("gpu:0", _açık()))
-    TR_assert(h.TR_contains("--nicemli_etkinleştirme"))
-    TR_assert(h.TR_contains("gpu:0"))
-    TR_assert(h.TR_ends_with("--nicemli_etkinleştirme kapalı verin"))
-    TR_var a = TR_String(nicemli_hatası("gpu:0", _ayardan()))
-    TR_assert(a.TR_ends_with("ayar dosyasında quantized_activations'ı \"off\" yapın (C:/Dost/ayar.json)"))
+    TR_assert_equal(TR_none, nicemli_hatası("gpu:0", _açık()))
+    TR_assert_equal(TR_none, nicemli_hatası("gpu:0", _ayardan()))
 }
 
 TR_test "nicemli seçimi: komut satırı ayardan önce, ayar öntanımlıdan önce; ayarın değerleri; yanlış değer doğrusunu önerir" {
@@ -239,7 +235,7 @@ TR_test "otomatik nicemli: işlemcide yalnız q4_k ve q6_k ağırlıklı modelde
     m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q4_k")
     m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q6_k")
     TR_assert_equal(TR_true, nicemli_çöz(_otomatik(), "cpu", m))
-    TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "gpu:0", m))
+    TR_assert_equal(TR_devices().TR_contains("gpu:0"), nicemli_çöz(_otomatik(), "gpu:0", m)) # yoklama: kart varsa açık
     TR_var q = q8_çıkışlı_zincir(TR_false).model
     TR_assert_equal(TR_false, nicemli_çöz(_otomatik(), "cpu", q)) # q8 çıkış katmanı blokta H6723 verirdi
     q.TR_blocks[0].TR_feed_forward.TR_down_proj.TR_weight = TR_zeros([16, 256], TR_dtype: "q4_k")

@@ -469,6 +469,8 @@ func computeInt(k *simInst, a, b, c uint64) (uint64, error) {
 		return a * b, nil
 	case simMad:
 		return a*b + c, nil
+	case simDp4a:
+		return dp4a(a, b, c), nil
 	case simMulWide, simMadWide:
 		var r uint64
 		if signed {

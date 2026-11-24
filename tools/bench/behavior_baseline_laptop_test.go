@@ -397,6 +397,8 @@ cases = {
     "whisper cpu": (["whisper-cli.exe", "-ng"], {"stdout": "", "stderr": "load_backend: loaded CPU backend from x\nwhisper_init: use gpu    = 0"}, {}),
     "whisper gpu asked cpu": (["whisper-cli", "-ng"], {"stdout": "", "stderr": "load_backend: loaded CUDA backend from x\nuse gpu    = 1"}, {}),
     "tr cpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "cpu"}),
+    "tr gpu": (["trlang", "x.tr", "--device", "gpu"], {}, {"device": "gpu", "actual_device": "gpu:0"}),
+    "tr gpu but cpu": (["trlang", "x.tr", "--device", "gpu"], {}, {"device": "gpu", "actual_device": "cpu"}),
     "tr echo but gpu": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": "gpu:0"}),
     "tr echo only": (["trlang.exe", "x.tr", "--device", "cpu"], {}, {"device": "cpu"}),
     "tr empty": (["trlang", "x.tr", "--device", "cpu"], {}, {"device": "cpu", "actual_device": ""}),
@@ -426,7 +428,8 @@ func TestBaselineDeviceCheck(t *testing.T) {
 	if err := json.Unmarshal(out, &got); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	for _, ok := range []string{"bench cpu", "bench cuda", "completion cpu", "whisper cpu", "tr cpu", "no device"} {
+	// "tr gpu": TR'nin --device gpu'su kart sayılır (T1 GPU hızı dur-sor 1; önce cpu sayılıyordu, L4'te durdu).
+	for _, ok := range []string{"bench cpu", "bench cuda", "completion cpu", "whisper cpu", "tr cpu", "tr gpu", "no device"} {
 		if got[ok] != "ok" {
 			t.Errorf("%s: %q, want the run to pass", ok, got[ok])
 		}
@@ -436,6 +439,9 @@ func TestBaselineDeviceCheck(t *testing.T) {
 		if !strings.Contains(got[stop], "device mismatch (aygıt uyuşmadı): ran on cuda") {
 			t.Errorf("%s: %q, want a device mismatch stop", stop, got[stop])
 		}
+	}
+	if !strings.Contains(got["tr gpu but cpu"], "device mismatch (aygıt uyuşmadı): ran on cpu") {
+		t.Errorf("tr gpu but cpu: %q, want a device mismatch stop", got["tr gpu but cpu"])
 	}
 	// "tr echo only", "tr empty": trlang'ın sonucunda actual_device zorunlu; device yalnız yankıdır (DENETİM 948 N1).
 	for _, silent := range []string{"completion silent", "ref silent", "tr echo only", "tr empty"} {

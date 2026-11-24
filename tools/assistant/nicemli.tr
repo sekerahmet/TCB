@@ -47,10 +47,9 @@ TR_func _öneri(s: NicemliSeçim) -> TR_String {
     TR_return "--nicemli_etkinleştirme kapalı verin"
 }
 
-# nicemli_hatası: açık seçimde kurulumun birinci denetimi, modeller yüklenmeden önce: yalnız işlemci (kartta iki blok
-# birlikteyken 15.53a'nın hatası geçer, H6724). nicemli_hatasını_at ısıtmanın H6723'ünü ve H6724'ünü çevirir.
+# nicemli_hatası: açık seçimde kurulumun birinci denetimi, modeller yüklenmeden önce. 15.53a her cihazda çalışır
+# (GPU'da TR'nin tamsayı çekirdeği): cihazdan gelen hata yok. nicemli_hatasını_at ısıtmanın H6723'ünü çevirir.
 TR_func nicemli_hatası(cihaz: TR_String, s: NicemliSeçim) -> TR_String? {
-    TR_if cihaz != "cpu" { TR_return "--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin cihazı \(cihaz): kartta nicemlenmiş ağırlıkla bu yol yok (15.53a). \(_öneri(s))" }
     TR_return TR_none
 }
 
@@ -58,7 +57,6 @@ TR_func nicemli_hatası(cihaz: TR_String, s: NicemliSeçim) -> TR_String? {
 TR_func nicemli_hatasını_at(e: TR_Error, s: NicemliSeçim) {
     TR_if e.TR_code == "H6723" TR_and s.değer == "otomatik" { TR_throw TR_Error("nicemli etkinleştirme otomatik seçimle açıldı ama bu modelde q4_k ve q6_k dışında nicemlenmiş bir çarpım ağırlığı var (15.53a): otomatik bu modelde yanlış seçti, bu Dost'un hatasıdır (nicemli.tr, nicemli_ağırlıklı). \(_öneri(s))", TR_cause: e) }
     TR_if e.TR_code == "H6723" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız q4_k ve q6_k ağırlıklı dil modelinde çalışır, bu modelde başka türde nicemlenmiş ağırlık var (15.53a). \(_öneri(s)) ya da q4_k ve q6_k ağırlıklı bir GGUF verin (örneğin Q4_K_M)", TR_cause: e) }
-    TR_if e.TR_code == "H6724" { TR_throw TR_Error("--nicemli_etkinleştirme yalnız işlemcide çalışır, dil modelinin nicemlenmiş ağırlıkları kartta: kartta bu yol yok (15.53a). \(_öneri(s))", TR_cause: e) }
 }
 
 # _çarpım_türleri: modelin çarpım ağırlıklarının türleri (blokların ve PLE'nin izdüşümleri, çıkış katmanı; paylaşımlı
@@ -102,11 +100,21 @@ TR_func nicemli_uygun(m: TR_GPT) -> TR_Bool {
     TR_return var_mı
 }
 
-# nicemli_çöz: seçimin bu cihazda ve bu modelde sonucu. Otomatik: işlemcide ve nicemli_uygun modelde açık, öbüründe
-# hatasız kapalı. Açık ve kapalı olduğu gibi (açığın denetimleri asistan_kur'da).
+# nicemli_çöz: seçimin bu cihazda ve bu modelde sonucu. Otomatik: nicemli_uygun modelde, işlemcide ya da blok bu
+# cihazda çalışıyorsa açık (nicemli_blok_çalışır), öbüründe hatasız kapalı. Açık ve kapalı olduğu gibi (açığın denetimleri
+# asistan_kur'da).
 TR_func nicemli_çöz(s: NicemliSeçim, cihaz: TR_String, m: TR_GPT) -> TR_Bool {
-    TR_if s.değer == "otomatik" { TR_return cihaz == "cpu" TR_and nicemli_uygun(m) }
+    TR_if s.değer == "otomatik" { TR_return nicemli_uygun(m) TR_and (cihaz == "cpu" TR_or nicemli_blok_çalışır(cihaz)) }
     TR_return s.değer == "açık"
+}
+
+# nicemli_blok_çalışır: 15.53a'nın çarpımı bu cihazda çalışıyor mu (A4'ün yoklaması): sıfır q4_k ağırlıkla tek satırlık çarpım
+# bloğun içinde. Ana dalın eski ikilisinde GPU'da H6724, makinede olmayan cihazda cihaz hatası verir: ikisinde de kapalı.
+TR_func nicemli_blok_çalışır(cihaz: TR_String) -> TR_Bool {
+    TR_return TR_error_code {
+        TR_var w = TR_zeros([1, 256], TR_dtype: "q4_k").TR_to_device(cihaz).TR_transpose()
+        TR_quantized_activations { TR_zeros([1, 256]).TR_to_device(cihaz) @ w }
+    } == TR_none
 }
 
 # nicemli_satırı: dil modeli yüklenince bir kez basılan makine satırı (OLCU_YUKLEME'nin yanında); okuyan betik `sonuc`'a
