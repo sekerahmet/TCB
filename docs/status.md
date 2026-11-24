@@ -29,7 +29,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 
 **Sahipli kollar:** (TCB 2026-11-23 11:57 ve 12:30; sahip başına bir satır, Ö1 listesinin parçası)
 - Motor (dil çekirdeği kolu): 3.3a.
-- T1, tensör kolu: 13.8a ve 15.23c (Tur 6A'dan sonraki dilim), 15.8 (1.2'den sonraki dilim), 15.24, 15.28, 15.52'nin q4z128 sıfırı, "Windows'ta Go çalışma zamanının bozulması".
+- T1, tensör kolu: 13.8a (Tur 6A'dan sonraki dilim), 15.8 (1.2'den sonraki dilim), 15.24, 15.28, 15.52'nin q4z128 sıfırı, "Windows'ta Go çalışma zamanının bozulması".
 - S1: 25.3'ün çok dillilik kuralı, "Yazıyı konuşmaya çevirme" (dil tanımı 27 yazılınca).
 - H1: 15.52'nin fp16 ölçeği (nicemleme uygulanırken).
 - D1: 17'nin yeniden kullanılan kod numarası (codegraph dilim 5'ten sonra).
@@ -763,7 +763,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.23c
 
-- **Yapılacaklar (A, Ö1; sahip T1, Tur 6A'dan sonraki dilim, 15.23a ile; Tur 6B, 2026-11-10):** `TR_conv1d`'de sapma 15.6c'yle birleşir: `x`, `w` bf16 ve `b` float32 iken sapma bugün bf16'ya iniyor, sonuç bf16 [ölçüldü: DENETİM 186]; kural sonra float32. Bu türü bekleyen test kuraldan önce aranır (`tests/conv1d_test.tr`). Belge: `TR_conv1d`'in katalog açıklaması sapmanın türünü söyler.
 - **Mevcut durum:** `TR_conv2d` yok. `TR_conv1d`'in gradyan ölçütü (TCB kararı, DENETİM 186): mutlak sınır en büyük gradyan öğesinin 1e-5 katı; öğe öğe göreli sınırı float64 doğrusu bile geçmiyor.
 - **Yapılacaklar (E, Ö3; sınıf uzak 14):** `TR_conv2d`; TR testi. Gösterim adları onaylı (Ahmet, 2026-10-29).
 - **Yapılacaklar (sınıfsız: hız, Ö2; sahip T1 (tensör ve GPU); DENETİM 920 Bakılanlar 3 ve Not 3; TCB 2026-11-19 00:25):** `TR_conv1d` sabit ağırlığı her çağrıda tek iş parçacığında paketliyor: `conv1dCPU` ağırlığı her çağrıda `packA` ile paketler; paket döngüsü iş dağıtımından önce ve tek iş parçacığındadır (internal/compute/tensor/conv1d_cpu.go:121-131, dağıtım :145) [kanıtlı: `dcc8d16c`]. Çağrıdan çağrıya değişmeyen ağırlık da her seferinde yeniden paketlenir; payı ölçülmedi. Sıradaki adım: Piper'da profil payı, sonra sabit ağırlığın bir kez paketlenmesinin tasarımı.

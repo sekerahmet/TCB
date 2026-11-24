@@ -1869,7 +1869,7 @@ tr: yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 
     evrişim_1b(Tensör, Tensör, Tensör | YokTipi, kayma: Tam = 1, dolgu: Tam = 0, genişleme: Tam = 1, grup_sayısı: Tam = 1) → Tensör
 
-Bir boyutlu evrişimdir: girdi [B, Cin, L], ağırlık [Cout, Cin / grup_sayısı, K], sapma [Cout] ya da yok. Hesap @ gibidir; türev girdiye, ağırlığa ve sapmaya gider. Şimdilik CPU'dadır.
+Bir boyutlu evrişimdir: girdi [B, Cin, L], ağırlık [Cout, Cin / grup_sayısı, K], sapma [Cout] ya da yok. Hesap @ gibidir; sapma sonuca hassasiyetler birleşerek eklenir: bf16 girdi ve ağırlıkla float32 sapma float32 sonuç verir. Türev girdiye, ağırlığa ve sapmaya gider.
 
 ```tr
 TR_print(TR_conv1d(TR_ones([1, 2, 5]), TR_ones([3, 2, 3]), TR_none, TR_padding: 1).TR_shape)

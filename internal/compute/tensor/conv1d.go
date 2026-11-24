@@ -40,7 +40,8 @@ type Conv1dFolder interface {
 }
 
 // Conv1d x'in [B, Cin, L] w'nin [Cout, Cin / g, K] ile evrişimidir; b nil olabilir. mm çarpımı yapar:
-// çağıran `@`'ın kuralını verir (15.4).
+// çağıran `@`'ın kuralını verir (15.4). Sapma sonuca Add ile eklenir: hassasiyetler 15.6c'deki gibi
+// birleşir (bf16 sonuca float32 sapma float32 verir, 15.23c), sapma sonucun türüne indirilmez.
 func Conv1d(x, w, b *Tensor, o Conv1dOptions, mm func(a, b *Tensor) *Tensor) *Tensor {
 	batch, g := x.shape[0], o.Groups
 	cout, inner := w.shape[0], w.shape[1]*w.shape[2]
@@ -50,9 +51,6 @@ func Conv1d(x, w, b *Tensor, o Conv1dOptions, mm func(a, b *Tensor) *Tensor) *Te
 	r := y.Reshape(g, batch, frames, cout/g).Permute(1, 0, 3, 2).Contiguous().Reshape(batch, cout, frames)
 	if b == nil {
 		return r
-	}
-	if b.dtyp != r.dtyp {
-		b = b.CastShared(r.dtyp)
 	}
 	return r.Add(b.Reshape(1, cout, 1))
 }

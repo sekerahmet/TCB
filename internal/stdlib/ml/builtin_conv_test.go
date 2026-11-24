@@ -62,6 +62,19 @@ TR_print(g[0], g[5], c[1] == g[1], c[2] == g[2], c[3] == g[3], c[4] == g[4])`)
 	if want := "gpu:0 gpu:0 true true true true" + "\n"; out != want {
 		t.Fatalf("kartta evrişim: %q, beklenen %q", out, want)
 	}
+	// 15.23c: 16 bitlik girdi ve ağırlıkla float32 sapma kartta da 15.6c'yle birleşir; sonuç float32
+	// ve işlemcininkiyle aynı (sapma bf16'ya inseydi 0.001 kaybolurdu).
+	if out := mustRun(t, `TR_func sapmalı(cihaz: TR_String) -> TR_List[TR_String] {
+    TR_var x = TR_ones([1, 2, 5]).TR_to_dtype("bf16").TR_to_device(cihaz)
+    TR_var w = TR_ones([3, 2, 3]).TR_to_dtype("bf16").TR_to_device(cihaz)
+    TR_var y = TR_conv1d(x, w, TR_Tensor([0.001, 0.002, 0.003]).TR_to_device(cihaz), TR_padding: 1)
+    TR_return [y.TR_dtype, y.TR_device, TR_String(y.TR_to_device("cpu").TR_tolist)]
+}
+TR_var c = sapmalı("cpu")
+TR_var g = sapmalı("gpu")
+TR_print(g[0], g[1], c[2] == g[2], c[2])`); out != "float32 gpu:0 true [[[4.001, 6.001, 6.001, 6.001, 4.001], [4.002, 6.002, 6.002, 6.002, 4.002], [4.003, 6.003, 6.003, 6.003, 4.003]]]"+"\n" {
+		t.Errorf("kartta sapmalı 16 bitlik evrişim: %q", out)
+	}
 	expectCodes(t, []codeCase{
 		{`TR_conv1d(TR_ones([1, 1, 4]).TR_to_device("gpu"), TR_ones([1, 1, 2]), TR_none)`, messages.H6102},
 		{`TR_conv1d(TR_ones([1, 1, 4]), TR_ones([1, 1, 2]).TR_to_device("gpu"), TR_none)`, messages.H6102},

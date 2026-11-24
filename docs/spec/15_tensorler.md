@@ -340,8 +340,8 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 **15.23c** Evrişim: `TR_conv1d(x, w, b)` ve `TR_conv2d(x, w, b)`.
 - Şekiller kanal önde: `x` `[B, Cin, L]` ya da `[B, Cin, H, W]`; `w` `[Cout, Cin / g, K]` ya da `[Cout, Cin / g, Kh, Kw]` (`g` grup sayısı); `b` `[Cout]` ya da `TR_none`. PyTorch'un ve ONNX'in düzenidir: hazır modellerin ağırlıkları dönüştürülmeden alınır (15.47, 20).
 - Adlı argümanlar: `TR_stride: 1`, `TR_padding: 0`, `TR_dilation: 1`, `TR_num_groups: 1`. 2 boyutta ilk üçü bir `TR_Int` ya da iki öğeli demet (`(sh, sw)`); dolgu sıfırdır. Grup sayısının adı iyileştiricinin parametre gruplarından (`.TR_groups`) ayrıdır: aynı ad iki anlam taşımaz (17.5).
-- **Hassasiyet:** `x`, `w` ve `b` birlikte 15.6c'deki gibi birleşir (15.24'teki `TR_bias` gibi): `x` ve `w` bf16, `b` float32 ise sonuç float32'dir, sapmasız evrişime `b`'yi eklemekle aynı tür; blokta 15.4.
-- Hesap `@` gibidir: float32 biriktirme, `TR_mixed_precision` bloğunda blok türü (15.4); türev girdiye, ağırlığa ve sapmaya gider.
+- **Hassasiyet:** `x`, `w` ve `b` birlikte 15.6c'deki gibi birleşir (15.24'teki `TR_bias` gibi): `x` ve `w` bf16, `b` float32 ise sonuç float32'dir, sapmasız evrişime `b`'yi eklemekle aynı tür ve değer. Blokta sapmasız evrişim blok türündedir (15.4); float32 `b` ile sonuç yine float32'dir, doğrusal katmanın `x @ W + b`'si gibi.
+- Hesap `@` gibidir: float32 biriktirme, `TR_mixed_precision` bloğunda çarpım blok türündedir (15.4) ve sapma ona 15.6c'yle eklenir; türev girdiye, ağırlığa ve sapmaya gider.
 - Şekil uymazsa (kanal sayısı, gruplar, çekirdek girdiden büyük) çalışma hatasıdır; ileti şekilleri söyler.
 - *Test:* TR testi (`TR_conv1d`); kartta Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`; `TR_conv2d` uygulanınca TR testi.
 
