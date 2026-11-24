@@ -25,7 +25,6 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 
 **Ö0, sırayla:**
 1. 15.23a, sınıf hedefinin şekli (A; T1, Tur 6A'dan sonraki dilim; Tur 6B, DENETİM 393 N2): devrik hedef sessizce yanlış kayıp veriyor.
-2. 15.19, float64'te ±0 sırası (A; T1; uzak 19, DENETİM 968 Soru 3): `TR_argmax`, `TR_max` ve `TR_min` −0.0 ile 0.0'ı ters sıralıyor, hatasız yanlış sonuç.
 
 **Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 8.3, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -713,7 +712,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **Mevcut durum:** `TR_argmin` yok.
 - **Yapılacaklar (E, Ö3; sınıf uzak 14):** `TR_argmin`, eksenli `TR_keepdim:`; TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş indirgemede hata.
-- **Yapılacaklar (A, Ö0, 2. sıra; sahip T1; uzak 19 raporu, Bulgular; DENETİM 968 Soru 3, 969 Soru 3; TCB 2026-11-24 01:58):** float64 tensörde ±0'ın sırası ters: `reduceFloat64`'ün en büyüğü ve en küçüğü (internal/compute/tensor/typed_reduce.go:174–177) ve `ArgMaxTyped` (:212) +0'ı −0'dan büyük saymıyor, float32'nin yolu sayıyor (internal/compute/tensor/cpu_reduce.go:141) [kanıtlı: `1bcb53e3`]. [-0.0, 0.0] float64 tensörde `TR_argmax` 0 veriyor (15.19'a göre 1 vermeli, 15_tensorler.md:279), `TR_max` −0.0 (15.18'e göre artı sıfır vermeli, :247); [0.0, -0.0]'da `TR_min` 0.0 (−0.0 olmalı); aynı program float32'de 1, 0.0 ve −0.0 veriyor [ölçüldü: `1bcb53e3`'ten derlenen trlang run, 2026-11-24 10:00:13 +0300]. Hata yok, sonuç sessizce ters. Sıradaki adım: float32'deki ±0 sırası float64'ün en büyük, en küçük ve argmax karşılaştırmasına; TR testi tests/tensor_sayisal_test.tr'ye ([-0.0, 0.0] ve [0.0, -0.0], float64).
 
 ### 15.20
 

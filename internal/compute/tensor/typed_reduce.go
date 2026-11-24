@@ -171,9 +171,9 @@ func reduceFloat64(vals []float64, kind ReduceKind, outer, n, inner int, outShap
 				switch {
 				case k == 0 && kind != ReduceSum && kind != ReduceCumSum:
 					acc = v
-				case kind == ReduceMax && (v > acc || math.IsNaN(v)) && !math.IsNaN(acc):
+				case kind == ReduceMax && !math.IsNaN(acc) && (math.IsNaN(v) || before64(acc, v)):
 					acc = v
-				case kind == ReduceMin && (v < acc || math.IsNaN(v)) && !math.IsNaN(acc):
+				case kind == ReduceMin && !math.IsNaN(acc) && (math.IsNaN(v) || before64(v, acc)):
 					acc = v
 				case kind == ReduceSum || kind == ReduceCumSum:
 					acc += v
@@ -188,6 +188,12 @@ func reduceFloat64(vals []float64, kind ReduceKind, outer, n, inner int, outShap
 		}
 	}
 	return Float64sOn(CPU, out, outShape...)
+}
+
+// before64 sayısal sırada a b'den önce mi gelir: −0.0 0.0'dan küçüktür (15.18, 15.19; float32'nin
+// argmaxBetter'ı gibi). NaN'ı çağıran ayrıca ele alır; eşitler önce gelmez, ilk öğe kalır.
+func before64(a, b float64) bool {
+	return a < b || (a == 0 && b == 0 && math.Signbit(a) && !math.Signbit(b))
 }
 
 // ArgMaxTyped cinsli tensörde axis boyunca en büyük öğenin indeksleri (ilk en büyük; float64'te
@@ -209,7 +215,7 @@ func ArgMaxTyped(t *Tensor, axis int) []int {
 			for k := 1; k < n; k++ {
 				p, q := (o*n+k)*inner+i, (o*n+best)*inner+i
 				if floats != nil {
-					if !math.IsNaN(floats[q]) && (floats[p] > floats[q] || math.IsNaN(floats[p])) {
+					if !math.IsNaN(floats[q]) && (math.IsNaN(floats[p]) || before64(floats[q], floats[p])) {
 						best = k
 					}
 				} else if ints[p] > ints[q] {

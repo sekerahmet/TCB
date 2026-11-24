@@ -27,3 +27,22 @@ TR_test "15.19 cinsli argmax: tam sayı ve float64 eksenli, eşitlerde ilk ve Na
     TR_var tnan = TR_Tensor([[1.0, TR_nan, 9.0, TR_nan], [TR_nan, 5.0, 8.0, 2.0]], TR_dtype: "float64")
     TR_assert_equal([1, 0], TR_argmax(tnan, TR_dim: 1).TR_tolist)
 }
+
+TR_test "15.18 ve 15.19 float64'te ±0 sırası: −0.0 0.0'dan küçük, eksensiz ve eksenli" {
+    TR_var a = TR_Tensor([-0.0, 0.0], TR_dtype: "float64")
+    TR_var b = TR_Tensor([0.0, -0.0], TR_dtype: "float64")
+    TR_assert_equal(1, TR_argmax(a).TR_item())
+    TR_assert_equal(0, TR_argmax(b).TR_item())
+    TR_assert_equal(TR_inf, (1.0 / TR_max(a)).TR_item())
+    TR_assert_equal(TR_inf, (1.0 / TR_max(b)).TR_item())
+    TR_assert_equal(-TR_inf, (1.0 / TR_min(a)).TR_item())
+    TR_assert_equal(-TR_inf, (1.0 / TR_min(b)).TR_item())
+
+    TR_var c = TR_Tensor([[-0.0, 0.0], [0.0, -0.0]], TR_dtype: "float64")
+    TR_assert_equal([1, 0], TR_argmax(c, TR_dim: 1).TR_tolist)
+    TR_assert_equal([1, 0], TR_argmax(c, TR_dim: 0).TR_tolist)
+    TR_assert_equal([TR_inf, TR_inf], (1.0 / TR_max(c, TR_dim: 1)).TR_tolist)
+    TR_assert_equal([TR_inf, TR_inf], (1.0 / TR_max(c, TR_dim: 0)).TR_tolist)
+    TR_assert_equal([-TR_inf, -TR_inf], (1.0 / TR_min(c, TR_dim: 1)).TR_tolist)
+    TR_assert_equal([-TR_inf, -TR_inf], (1.0 / TR_min(c, TR_dim: 0)).TR_tolist)
+}
