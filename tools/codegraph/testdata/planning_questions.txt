@@ -69,7 +69,7 @@ codegraph tests-for lib/training.tr --list | contains: TestExamplesCoverLibraryN
 codegraph tests-for lib/README.md --list | contains: TestDocTRCodeBlocks | src: madde 7 / 2, 2026-10-23
 
 # Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, TR_fn_where) (2026-10-23)
-codegraph query koşullu | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => optimizers.TR_type_RowRMS.TR_mem_step | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
+codegraph query koşullu --all | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => optimizers.TR_type_RowRMS.TR_mem_step | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23; T1 where-cihaz 2026-11-25: --all; uses_name adayları sınırı aştı, soru basamağı sınar, listenin boyunu değil
 codegraph callees ml.typedWhere | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
 codegraph callees tensor.Where | contains: tensor.gateWhere | contains: tensor.gateWhereGrad | src: deneme 6, 2026-10-23; S-kilit (2026-11-03) arka uç çağrılarını kapıya aldı
 codegraph callees tensor.gateWhere | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | src: S-kilit, 2026-11-03 (deneme 6'nın zinciri)

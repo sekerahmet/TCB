@@ -77,7 +77,7 @@ func TestTrackedFloat64OnGPUKeepsPrecisionError(t *testing.T) {
 	w := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
 	w.SetRequiresGrad(true)
 	d := tensor.Float64sOn(gpuDevice, []float64{0.5, 0.25}, 2)
-	pick := tensor.CompareTyped(w, tensor.NewOn(gpuDevice, []float32{1.5}, 1), tensor.CmpGt)
+	pick := tensor.Int64sOn(gpuDevice, tensor.Bool, []int64{0, 1}, 2) // çekirdeksiz: PTX özetine çekirdek eklemez
 	for name, op := range map[string]func(){
 		"aritmetik":   func() { tensor.Arith(w, d, tensor.ArithMul, tensor.Float64) },
 		"Convert":     func() { tensor.Convert(w, tensor.Float64) },
