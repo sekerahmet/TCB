@@ -317,6 +317,7 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		// Status'un biçim taraması (2026-11-24): ters tırnak dışında Markdown'ın etiket sandığı iki metin.
 		"<builtin item>":               "status: Go'nun iç yazımı, kod değil",
 		"trlang format <dosya|klasör>": "status: iletinin yer tutuculu metni, kopyalanınca çalışmayan örnek",
+		"l.index(2)":                   "status: Python yazımının bilerek yanlış örneği, ipucu almadığı söylenir (S-527)",
 	}
 	spans := regexp.MustCompile("`([^`\n]+)`")
 	words := regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
@@ -397,9 +398,9 @@ var identityExceptions = map[string]string{
 	"TR_same_object": "onaylı yeni ad (7.6; aynı_nesne; dil tanımı turu 8)", "TR_merge_stderr": "onaylı yeni ad (21.4; dil tanımı turu 7)",
 	"TR_while":   "bilerek yanlış: kalkan sözcük (2.9)",
 	"TR_default": "bilerek yanlış: kalkan sözcük (2.9)",
-	"TR_elif":    "bilerek yanlış: başka dilin yazımı (5.5)", "TR_it": "kalkan sözcük (6.7): status anlatımı, ana oturum güncelleyince kalkar", "TR_acc": "aynı (6.7)",
-	"TR_prnt":  "bilerek yanlış: önerinin örneği (2.3a)",
-	"TR_Flaot": "bilerek yanlış: önerinin örneği (2.3a)",
+	"TR_elif":    "bilerek yanlış: başka dilin yazımı (5.5)",
+	"TR_prnt":    "bilerek yanlış: önerinin örneği (2.3a)",
+	"TR_Flaot":   "bilerek yanlış: önerinin örneği (2.3a)",
 }
 
 // Test satırının üç biçimi tanınır, eksik ya da çelişkili satır yakalanır.

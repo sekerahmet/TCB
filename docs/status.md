@@ -2,18 +2,18 @@
 
 Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. **Mevcut durum** yalnız kuraldan farkı yazar: eksik, yanlış, sınır ve ölçülmemiş olan. Kurala uyan davranış ve kapanan parça yazılmaz; kapanan parça kapandığı commit'te silinir. Kaynak olarak açık iddianın etiketi kalır, geçmişi git tutar. Kural bir yerde "denetim hatası" diyorsa hatanın çalışma anında gelmesi de farktır. İşlerin sırası [yol haritasındadır](roadmap.md). Bu belgede kimlikler dil tanımının yazımıyla anılır (`TR_if`, 2.3a).
 
-**Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlikle başlar (S-412) ve mesajda, devirde ve denetimde bu kimlikle anılır, satır numarasıyla anılmaz. Biçim: kimlik, tür (Yapılacaklar ya da Mevcut durum), ayraç içinde sınıf, öncelik ve sahip; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı. Madde alt satırlarıyla en çok 500 harftir. Ölçü sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, karar saati ve tarihi yazılmaz, commit mesajında durur. Silinen maddenin kimliği yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar [test: `TestStatusItemsFollowTheFormat`].
+**Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlik ve türle başlar: kimlik (S-412), tür (Yapılacaklar ya da Mevcut durum). Madde mesajda, devirde ve denetimde kimlikle anılır, satır numarasıyla anılmaz. Silinen maddenin kimliği `internal/devtools/testrunner/testdata/status_deleted_ids.txt`'ye yazılır ve yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar. Madde alt satırlarıyla en çok 500 harftir. Kimlikli ölçünün sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, saat, tarih ve kanıt etiketinin dışında DENETİM numarası yazılmaz, karar commit mesajında durur [test: `TestStatusItemsFollowTheFormat`]. Türden sonra ayraçta sınıf, öncelik, varsa dilim ve sahip gelir; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı.
 
-**Sıradaki kimlik:** S-697.
+**Sıradaki kimlik:** S-700.
 
 ## Önem ve öncelik
 
-Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61, 2026-11-03; 6–9. bölümler istek 68). Etiket her maddenin "Yapılacaklar"ında: sınıf, öncelik, kol ya da dilim ve ölçüm tabanı, ör. **Yapılacaklar (A, Ö1, 4a4; ölçüldü 30b44b01)**. Etiketsiz madde D, F1, E ya da F sınıfındadır ve Ö3'tür. Etiket ölçüm tabanını taşır: taban eskidikçe iddia yeniden ölçülür.
+Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da dilim ve sahip, ör. **S-412 Yapılacaklar (A, Ö1, 4a4; sahip T1)**. Etiketsiz madde D, F1, E ya da F sınıfındadır ve Ö3'tür.
 
-**Sınıf karar anında yazılır** (DENETİM istek 76): her karar ve bulgu yazılırken (yol haritası, status ya da `pending.md`) sınıfı da yazılır. A, B ya da C ise aynı gün buraya etiketli bir "Yapılacaklar" satırı açılır; dil tanımında bölümü olmayan iş "Bölümü olmayan işler"e girer. D, E ve F yol haritasında kalabilir. Ö0 ve Ö1 listelerindeki her madde kendi bölümünde aynı öncelikle açık bir "Yapılacaklar" taşır, bölümdeki her açık Ö0 ve Ö1 satırı da listede durur; iş kapanınca madde listeden de çıkar; bölümü olmayan iş listede kendi ### başlığının adıyla, bölüm başındaki iş bölüm numarasıyla anılır [test: `TestPriorityListsNameOpenItems`]. Önem taramaları status'un yanında `pending.md`'yi ve TCB'nin takip tablosunu da okur; yol haritasını TCB ya da DENETİM okur.
+**Sınıf karar anında yazılır:** her karar ve bulgu yazılırken (yol haritası, status ya da `pending.md`) sınıfı da yazılır. A, B ya da C ise aynı gün buraya etiketli bir "Yapılacaklar" satırı açılır; dil tanımında bölümü olmayan iş "Bölümü olmayan işler"e girer. D, E ve F yol haritasında kalabilir. Ö0 ve Ö1 listelerindeki her madde kendi bölümünde aynı öncelikle açık bir "Yapılacaklar" taşır, bölümdeki her açık Ö0 ve Ö1 satırı da listede durur; iş kapanınca madde listeden de çıkar; bölümü olmayan iş listede kendi ### başlığının adıyla, bölüm başındaki iş bölüm numarasıyla anılır [test: `TestPriorityListsNameOpenItems`]. Önem taramaları status'un yanında `pending.md`'yi ve TCB'nin takip tablosunu da okur; yol haritasını TCB ya da DENETİM okur.
 
 **Sınıflar** (sıra tasarım ölçütlerinin sırası: doğruluk, güvenlik, ajan için hatasız):
-- **A, sessiz yanlış:** program hata vermeden yanlış sonuç, yanlış veri ya da yanlış gradyan veriyor; diskteki veriyi sessizce kaybediyor ya da bozuyor; ya da bir test bu yanlışı doğru diye sabitliyor; ya da dilin kendi aracı (ikiliyle gelen komut, eklenti) ya da belgesinin veya iletisinin verdiği komut hata vermeden yanlış sonuç gösteriyor: program çalışmadan geçmiş görünüyor (DENETİM istek 76).
+- **A, sessiz yanlış:** program hata vermeden yanlış sonuç, yanlış veri ya da yanlış gradyan veriyor; diskteki veriyi sessizce kaybediyor ya da bozuyor; ya da bir test bu yanlışı doğru diye sabitliyor; ya da dilin kendi aracı (ikiliyle gelen komut, eklenti) ya da belgesinin veya iletisinin verdiği komut hata vermeden yanlış sonuç gösteriyor: program çalışmadan geçmiş görünüyor.
 - **B, güvenlik:** dış girdi (kullanıcı metni, dosya, yol) programın davranışını değiştirebiliyor ya da gizli bir değer insanın göreceği çıktıya sızıyor (19.4).
 - **C, güvenilirlik:** aynı program aynı veriyle farklı sonuç veriyor (makineye, iş parçacığı sayısına, test sırasına göre); kesilen iş aynı sürmüyor; program asılı kalıyor.
 - **D, geç hata:** yanlış program denetimden geçiyor; çalışırken açık hata veriyor ya da hatasız çalışıp doğru sonuç veriyor (A için çıktı dil tanımına göre yanlış olmalı).
@@ -31,9 +31,9 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 1. 15.15, `TR_where`'in sayı dalının hassasiyeti (A, sahip T1).
 2. 15.37, cihaz adının tek yazımı (A, sahip T1).
 
-**Ö1, dilimlerin kesin listeleri:** (3.5'in 4a5 etiketli `TR_wait_all(görevler)` satırı bu listede değildi; DIL UZMANI iş 7'de kapandı, `TestWaitAllOfTasksWithoutAValue`, TCB 17:35.) 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
+**Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
-**Sahipli kollar:** (TCB 2026-11-23 11:57 ve 12:30; sahip başına bir satır, Ö1 listesinin parçası)
+**Sahipli kollar:** (sahip başına bir satır, Ö1 listesinin parçası)
 - Motor (dil çekirdeği kolu): 3.3a.
 - T1, tensör kolu: 13.8a (Tur 6A'dan sonraki dilim), 15.8 (1.2'den sonraki dilim), 15.24, 15.28, 15.52'nin q4z128 sıfırı, "Windows'ta Go çalışma zamanının bozulması".
 - S1: 25.3'ün çok dillilik kuralı, "Yazıyı konuşmaya çevirme" (dil tanımı 27 yazılınca).
@@ -41,7 +41,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 - D1: 17'nin yeniden kullanılan kod numarası (codegraph dilim 5'ten sonra).
 - TCB: "v0.2.0 ikilisinin kaynağı".
 
-**Önem taramasının sınırı** (Gemini'nin bağımsız taraması, DENETİM istek 63–67, 81; taban `30b44b01`): tarama "Yapılacaklar"ın hepsini, "Mevcut durum"dan risk sözcüğü geçen cümleleri okudu; sözcüksüz anlatılan bir sessiz yanlış kaçmış olabilir. 16.6 ve 18.9'un (kesilen yazma) sessiz olup olmadığı ölçülmedi.
+**Önem taramasının sınırı** (Gemini'nin bağımsız taraması, taban `30b44b01`): tarama "Yapılacaklar"ın hepsini, "Mevcut durum"dan risk sözcüğü geçen cümleleri okudu; sözcüksüz anlatılan bir sessiz yanlış kaçmış olabilir. 16.6 ve 18.9'un (kesilen yazma) sessiz olup olmadığı ölçülmedi.
 
 ## Dil tanımının bekleyen bulguları
 
@@ -105,7 +105,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md).
 
 ## 3. Tipler ve değerler
 
-Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/tipler_test.tr`'nin 3.6 testi (`tests/tipler_test.tr:116-117`) eski kuralı (karışık tipli liste) sınıyor; kural uygulanırken yeniden yazılır. Eski 3.15'in (katalog iletisinin tipi) `tests/` altındaki testi hata bölümüne taşınacaktı.
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md).
 
 ### 3.3
 
@@ -129,7 +129,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). TR bugün dinamik tipli
 
 ### 3.6
 
-- **S-34 Mevcut durum:** karışık tipli liste denetlenmiyor: `[1, "a"]` öğe tipsiz `TR_List`, `l[0] = "x"` geçiyor [ölçüldü: `ae1e8dcc`]; dilim denetlenmiyor, çalışma anı öğe tipini taşımıyor [test: `TestElementAssignType`].
+- **S-34 Mevcut durum:** karışık tipli liste denetlenmiyor: `[1, "a"]` öğe tipsiz `TR_List`, `l[0] = "x"` geçiyor [ölçüldü: `ae1e8dcc`]; `tests/tipler_test.tr:133`'ün 3.6 testi karışık tipli listeyi geçerli sayıyor, kural uygulanınca yeniden yazılır; dilim denetlenmiyor, çalışma anı öğe tipini taşımıyor [test: `TestElementAssignType`].
 - **S-35 Yapılacaklar (A, Ö1, 4a5):** karışık değişmez denetim hatası olur (önce CSV 13.8 ve `TR_forward:` 15.28'in göçü); boş liste tipini yazar (`TR_var k = []`, 3.13); `TR_List[T]` bir `TR_List[T?]` yerine verilmez; üçü de bugün denetimden geçiyor [ölçüldü: `ae1e8dcc`].
 
 ### 3.6a
@@ -195,8 +195,6 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md).
 
 Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
-`TR_elif` bilerek kimliği olmayan addır; kimlik kapısı düzelince bilerek yanlış örnekler listesine girer (2. bölümün girişi). Yeni denetim hataları (5.1'in uyarısı, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır.
-
 ### 5.1
 
 - **S-64 Mevcut durum:** fonksiyonun içinde hiç yeniden atanmayan yerel `TR_var` uyarı vermiyor [ölçüldü: `ae1e8dcc`].
@@ -248,7 +246,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md).
 
 Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md).
 
-Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yalnız olumsuz fikstürde kalıyor. Eski kurala dayanan testler: eksik, fazla, iki kez verilen argümanı ve varsayılandaki ileri başvuruyu çalışırken yakalayan 6.4 ve 6.5 testleri (`tests/fonksiyonlar_test.tr`; denetim hatası olunca `tests/negative/` fikstürlerine taşınır).
+- **S-697 Mevcut durum:** 6.4'ün eksik ve fazla argüman testi hatayı çalışırken yakalıyor (`tests/fonksiyonlar_test.tr:70-71`, H2414, H2412); denetim hatası olunca `tests/negative/` fikstürüne taşınır.
 
 ### 6.1
 
@@ -301,11 +299,11 @@ Eski yazımlar (`TR_it`, `TR_acc`, adsız `TR_func`, parantezsiz ok) depoda yaln
 
 ## 7. Yapılar
 
-Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). `tests/yapilar_test.tr`'nin verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md).
 
-Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
+- **S-698 Yapılacaklar:** yapının tipi `TR_Type` (3.11), genel tipler kalkar; `tests/yapilar_test.tr:165` `TR_StructType`'ı sınıyor, örnekler `TR_StructType`, `TR_Function`, `TR_BuiltinFunction` ve `TR_Object`'i kullanıyor [kanıtlı: `examples/tr/12_tip_adlari.tr:21`, `examples/tr/14_yapilar_ve_metotlar.tr:56`].
 
-Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır.
+- **S-699 Yapılacaklar:** alan daraltılmadığı için (3.5) `lib/`'deki üç `TR_self.alan != TR_none` sınaması yerel kopyaya ya da `?.`'ya çevrilir [kanıtlı: `lib/layers.tr:603`, `lib/optimizers.tr:403`, `:416`].
 
 ### 7.1
 
@@ -314,7 +312,7 @@ Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sın
 
 ### 7.2
 
-- **S-114 Mevcut durum:** varsayılansız alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda hata ancak çalışırken (H2750, H2419, H2418, H2420) [ölçüldü: ae1e8dcc].
+- **S-114 Mevcut durum:** varsayılansız alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda hata ancak çalışırken (H2750, H2419, H2418, H2420) [ölçüldü: ae1e8dcc]; `tests/yapilar_test.tr`'nin 7.2, 7.4 ve 7.5 testleri bu hataları çalışırken yakalıyor (ör. `tests/yapilar_test.tr:66-68`), denetim hatası olunca `tests/negative/`'e taşınır.
 - **S-115 Yapılacaklar (A, Ö1, 4a5):** zorunlu alanın verilmemesi ve 6.5'in argüman hataları denetim hatası (S-114); kurucusu olan yapıda kurucunun parametre tipleri (7.4); denetleyicinin testi.
 
 ### 7.3
@@ -402,7 +400,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md).
 
 ### 10.2
 
-- **S-155 Yapılacaklar (C, Ö2, Kol B, K'nin kalanı):** GPU'daki `@` ve bileşik yerleşikler (`TR_backward`) yorumlayıcı kilidini tutuyor, uzun işte başka görev bekliyor [kanıtlı: `internal/stdlib/ml/unlocked.go:53-54`, `:104`]. Sıradaki: GPU'da iznin kuyruğun bitişine bağlanması.
+- **S-155 Yapılacaklar (C, Ö2, Kol B, K'nin kalanı):** GPU'daki `@` ve bileşik yerleşikler (`TR_backward`) yorumlayıcı kilidini tutuyor, uzun işte başka görev bekliyor [kanıtlı: `internal/stdlib/ml/unlocked.go:53-54`, `:104`]. Kalan: yerinde yazan sık yollar (`+=`, indeksle atama, `.TR_step()`), veri yerleşikleri ve geri çağıran yerleşikler (`TR_fuse`, `TR_grad_check`) da kilidi bırakıp izin beklemeli. Sıradaki: GPU'da izin kuyruğun bitişine bağlanır; dilim önce ve sonra ölçer.
 - **S-157 Yapılacaklar (F, Ö3; sahip H1):** çakışmada hazırlık yeniden yapılınca önceki çekirdeğin çıktısı ve bitişik kopyaları havuza dönmüyor, çöp toplayıcıya kalıyor; yalnız başka görev aynı depoyu tutarken [kanıtlı: `internal/stdlib/ml/unlocked.go:23-41`, `internal/compute/tensor/access.go:150-155`].
 - **S-158 Yapılacaklar (test, Ö3; sahip T1):** çekirdeğin ortasında kesilmemenin (durdurma, `TR_exit`, iptal) testi yok; kesilmeye yalnız kilidin geri alınışında bakılıyor [kanıtlı: `internal/lang/interp/interrupt.go:285-290`].
 
@@ -478,7 +476,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md).
 
 ## 13. Yerleşikler
 
-Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turun kararlarından üçü son ölçümde eski davranıştaydı: yazma yolunun programın klasörüne düşmesi, `TR_clamp(5)`'in iletisindeki eski kimlik, fonksiyon yerine verilen tipin iletisi [ölçüldü: DENETİM, 2026-10-29'un tabanı].
+Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md).
 
 ### 13.1
 
@@ -547,7 +545,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 
 ## 15. Tensörler ve otomatik türev
 
-Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugünkü motorun kurallardan ayrıldığı yerler ve göç.
+Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.1
 
@@ -722,7 +720,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 - **S-300 Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_attention`'ın `TR_bias:` argümanı (S-303 buna bağlı).
 - **S-302 Mevcut durum (sınır):** dikkat ölçeği bakış boyutundan farklı Gemma 3 27B (`query_pre_attn_scalar` 168) yüklenmez, H7177; GGUF'ta yalnız `block_count` 18, 26, 34, 48 ve bakış boyutu 256 yüklenir [test: `TestGemma3GGUFGates`].
 - **S-303 Yapılacaklar:** tamamen −∞ sapmalı satır 0 verir, CPU'da ve GPU'da (15.24; `TR_bias:` gelince, S-300). CPU'da tamamen maskeli `TR_Bool` satırı 0 veriyor [ölçüldü: trlang run, `ae1e8dcc`]; GPU ölçülmedi.
-- **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): maskeli anahtarın V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. CPU dikkatinin karo çarpımları bakılmayan satırları sıfırlamadan çarpıyor [hipotez]; GPU çekirdeği de denetlenmeli.
+- **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): maskeli anahtarın V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. CPU dikkatinin karo çarpımları bakılmayan satırları sıfırlamadan çarpıyor [hipotez]; GPU çekirdeği de denetlenmeli. Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
 
 ### 15.27
 
@@ -970,7 +968,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md).
 
 ## 18. Dosya ve yol
 
-Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.16'nın göreli yol kuralı (aşağıda).
+Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md).
 
 ### 18.1
 
@@ -1034,6 +1032,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 - **S-471 Mevcut durum (ölçülmemiş):** `TR_machine()` macOS'ta sınanmadı, orada kullanılabilir bellek ve sınır H7735 verir; CI yalnız Windows ve Linux [kanıtlı: `.github/workflows/ci.yml:37`, internal/stdlib/machine/limit_other.go:5].
 - **S-472 Mevcut durum (ölçülmemiş):** Dost'un toplayıcı payı ölçülmedi; H8894'ün eşiği tek makinede seçildi, tavana yakın bekleyen süreçte uyarı çıkabilir; `TR_cmd_watch` ve `TR_cmd_profile`'da uyarının satırı tablonun dışına düşebilir [hipotez].
+- **S-473 Yapılacaklar (C, Ö2; sahip H1):** bellek tavanının (19.12a) eğitimdeki hız bedeli ölçülmedi: `examples/tr/36_karakter_modeli.tr` tavansız ve tavanla; Dost'un toplama payı S-498'de. Sıradaki: işi yapan dilim kendi ölçüsünü alır.
 - **S-474 Yapılacaklar (C, Ö2; sahip Motor, bellek tavanı 19.12a):** tensör paketinin host blok ve bekleme testleri `-count=2 -shuffle=on`'da düşüyor (`TestHostSettleWithConcurrentCleanups`, `TestGateKeepsTheBlockDuringTheCall`, `TestHostBlockCountsTowardTheMemoryLimit` ve altısı), tohum 1795440944122239986 [ölçüldü: zorlama işi 45185143141]. Sıradaki: tohumla yerelde yeniden üretmek.
 - **S-475 Yapılacaklar (C, Ö2; sahip H1, tools/bench taban testleri):** GOGC=1 adımında alt süreçteki trlang H8893'ü çıktıya yazıyor (`cmd/trlang/memory_limit.go:64`), `TestBaselineEmpty` ve `TestBaselinePureComputeTakesTheSize` boş ya da yalnız değer bekliyor (`tools/bench/behavior_baseline_programs_test.go:282-283`) [kanıtlı]. Sıradaki: test alt sürecin ortamını kendisi kursun.
 
@@ -1064,6 +1063,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-556 Yapılacaklar (D, Ö3; sahip Dost Interface, P'den önceki dilim):** katalogun ölçü alanlarında nicemli durum yok, gereken bellek hesabı ayarın nicemli seçimini almıyor [kanıtlı: `tools/assistant/katalog.tr:276`, `:517`]; nicemli kapalıyken bellek ölçünün üstüne çıkabilir [hipotez]. Sıradaki: kapalı durumun belleğini ölçmek ya da ölçüye nicemli durumu eklemek.
 - **S-557 Yapılacaklar (sınıfsız: bellek, Ö3; sahip Dost Interface, sonraki dilim):** gereken bellek en büyük bağlamlı ölçüden doğru çiziyor, en küçüğü taban alıyor, ölçülü noktalar arasında ara değer yok [kanıtlı: `tools/assistant/katalog.tr:517-530`]; ölçüler en çok 7981 token [kanıtlı: `tools/assistant/katalog.json`]. Sıradaki: ara değer ve 32768 token'da üçüncü nokta.
 - **S-569 Mevcut durum (önbellek bloğu):** sabit önbelleğin işlemcideki tamponları bütün katmanlar için tek öbek dışı blokta (`TR_cache_buffer`, 11.7a, 15.43), önbelleğin kendi payında; pay dolunca önbellek öbekte, bitler aynı [kanıtlı: `lib/layers.tr:502`; test: `TestKVCacheLogitsSameInBlockAndHeap`, `TestKVCacheBuffersUseHostBlocks`, `TestCacheShareLeavesWeightShare`].
+- **S-570 Yapılacaklar (C, Ö2; bellek; sahip H1):** yalnız dil modeli düzeninde (bağlam 8 192) TR'nin tepe özel belleği llama.cpp'nin ağırlığı belleğe okuyan kipinden (-lm none) büyük; önbellek öbek dışında (S-569), kalan fark Go'nun payı [ölçüldü: TG-2026-11-09-LAPTOP-H1-1; hesap: H1]. Bitti: aynı makinede ve istemle tepe, önbelleği öbek dışı düzenin hesabının altında [hesap: DENETİM 335]. Sıradaki: 16 bit önbellek (S-572), sonra Go'nun payının dökümü.
 - **S-572 Yapılacaklar (C, Ö3; sahip H1):** 16 bit önbellek (fp16, bf16) commit'siz denemede karmaşıklık şartını geçmedi [ölçüldü: TG-2026-11-16-HIGHRAM-H1-7]. Sıradaki: kullanılmamış üç metinle ve önceden yazılmış şartla yeniden ölçü; geçerse öntanımlı sorusu Ahmet'e.
 - **S-573 Yapılacaklar (C, Ö3; sahip R1'in uygulayıcısı):** yeni konuşmada önbellek yeniden kuruluyor, eskisinin bloğu toplayıcıyı ve temizleyiciyi beklerken iki önbellek birlikte duruyor [kanıtlı: `tools/assistant/zincir.tr:84-86`, `internal/compute/tensor/host_block.go:115-119`]. Sıradaki: R1'de önbellek `TR_truncate(0)` ile yeniden kullanılır.
 - **S-574 Yapılacaklar (D, Ö3; geliştirici belgesi; sahip H1, sonraki dilim):** `bufTotalMax`'ın yorumu yığını paylaşan yolların birbirini etkilediğini söylemiyor [kanıtlı: `internal/compute/tensor/cpu_matmul.go:81-83`]; `quantPanelMaxM`'in `bufMax` hesabı yalnız 4B'ye göre, daha geniş modelde paketli A havuzlanmaz [kanıtlı: `internal/compute/tensor/cpu_quant.go:85-87`, `:94`]. Sıradaki: yoruma paylaşımın sonucu; büyük modelde sınır gözden geçirilir.
@@ -1102,7 +1102,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-551 Mevcut durum (model ekranı):** ayarlarda Yükle yok; Modeller penceresi her türü kendi grubunda, her modeli kendi indirme satırıyla gösteriyor [test: `TestSettingsHaveNoLoadButton`, `TestModelsDialogNamesEveryKind`, `TestDownloadRowShowsOnlyItsOwnJob`, `TestDownloadRowShowsSpeedAndSlow`, `TestModelsRowSaysInUseOnlyWithATeam`, `TestTeamBoxNamesTheTeam`].
 - **S-552 Yapılacaklar (D, Ö3; sahip Dost Interface):** `TestIconButtonsHaveAName` ve `TestReducedMotionStopsAnimations` gevşek: anahtarı ya da seçiciyi sınamıyor [kanıtlı: `tools/assistant/behavior_screen_look_test.go:60`, `:84-91`]; Esc önceliği ve panelin kendiliğinden kapanışı için sayfanın betiğini koşan test yok.
 - **S-553 Yapılacaklar (C, Ö2; sahip Dost Interface):** sayfanın eşleme davranışı (kodun adresten okunup silinmesi, önden işlenen sayfanın kodu tüketmemesi, belirtecin `sessionStorage`'da kalması) yalnız sayfanın metni okunarak sınanıyor [kanıtlı: `tools/assistant/behavior_screen_test.go:539-542`]. Sıradaki: sahte `location`, `history`, `sessionStorage` ve `fetch` ile sayfanın betiğini koşturan test düzeni.
-- **S-555 Yapılacaklar (F, Ö3; sahip Dost Interface, Ahmet'in önceliğiyle):** kataloğun sistem iletisi modelin güncel bilgisi olmadığını söylemiyor, Dost uydurulan güncel bilgiyi işaretsiz gösteriyor [kanıtlı: `tools/assistant/katalog.json:511`, `:518`]. Sıradaki: sistem iletisine güncel bilgi cümlesi ya da saat, tarih ve hava için araç.
+- **S-555 Yapılacaklar (F, Ö3; sahip Dost Interface):** kataloğun sistem iletisi modelin güncel bilgisi olmadığını söylemiyor, Dost uydurulan güncel bilgiyi işaretsiz gösteriyor [kanıtlı: `tools/assistant/katalog.json:511`, `:518`]. Sıradaki: sistem iletisine güncel bilgi cümlesi ya da saat, tarih ve hava için araç.
 - **S-559 Yapılacaklar (E, Ö3; sahip D1 (tasarım ve uygulama, örnekleme kitaplığı)):** zincirin açgözlü seçimi tekrar cezası taşımıyor, cevap aynı cümleyi yineleyebiliyor [kanıtlı: `tools/assistant/zincir.tr:169-174`]. Sıradaki: örnekleme kitaplığına tekrar cezası.
 - **S-560 Yapılacaklar (F, Ö3; sahip TCB):** deneme kaydının başlığında motorun commit'i yok, denemenin hangi motorla alındığı sonradan bilinmiyor [kanıtlı: `tools/assistant/asistan.tr:481-482`, `tools/assistant/deneme.tr:55-62`]. Sıradaki: başlığa motorun commit'i.
 - **S-577 Yapılacaklar (C, Ö2; sahip ekran dilimi):** her sekme kendi `/events` akışını açıyor (`tools/assistant/js/transport.js:27`); aynı köke altı akış varken `POST /command` asılı kalıyor, altıncı sekmede durdur çalışmaz [ölçüldü: DENETİM 295, Chromium, HTTP/1.1; hipotez: altıncı sekme]. Sıradaki: ekran diliminin tasarımı çareyi (akışı sekmeler arasında paylaşmak, HTTP/2) kaynaklı tartıyla seçer.
@@ -1146,7 +1146,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-499 Yapılacaklar (D, Ö3; sahip dil çekirdeği kolu):** `TR_func f(t: TR_Tensor) -> TR_Float { TR_return TR_Float(TR_sum(t)) }` çağrısı H2423 yerine "a released tensor was used" paniğiyle süreci düşürüyor: iletinin argüman özeti bırakılmış tensörü yazıyor [kanıtlı: internal/lang/interp/arg_errors.go:189; internal/compute/tensor/lifetime.go:110]. Beklenen: H2423, süreç düşmez.
 - **S-515 Yapılacaklar (F, Ö3; sahip dil çekirdeği):** Go'nun hata metnini kullanıcıya taşıyan iletiler: `tr.json`'da `{error}` yuvalı 123 ileti var (ör. H7001) [kanıtlı: internal/lang/messages/tr.json:1517]. Sıradaki: madde madde karar sonraki ileti turunda.
 - **S-526 Yapılacaklar (E, Ö3; sahip D1):** dil tanımının 36 onaylı yeni adı motorda yok, yazınca sözdizimi hatası geliyor [kanıtlı: `internal/devtools/testrunner/behavior_language_spec_test.go:388-399`]; ajan bunları var sanıyor [ölçüldü: `docs/agent_trials.md`]. Sıradaki: ajanın göreceği yerde henüz yok yazılsın, maddenin *Test:* satırı doğrulansın.
-- **S-527 Yapılacaklar (F1, Ö3; sahip D1):** listede `l.find(...)` çalışırken yanlış ipucu (`TR_index_of`) alıyor, l.index(2) ipucu almıyor [ölçüldü: trlang run, `02d9fb69`]. Sıradaki: öneri tablosu.
+- **S-527 Yapılacaklar (F1, Ö3; sahip D1):** listede `l.find(...)` çalışırken yanlış ipucu (`TR_index_of`) alıyor, `l.index(2)` ipucu almıyor [ölçüldü: trlang run, `02d9fb69`]. Sıradaki: öneri tablosu.
 - **S-528 Yapılacaklar (D, Ö3; sahip D1):** modüle özel ad (`_kur()`, `m._kur()`) trlang check'ten geçiyor, çalışırken hata veriyor (11.7) [ölçüldü: trlang check ve trlang run, `02d9fb69`]. Sıradaki: denetim hatası, 4a5'e bakılır.
 - **S-529 Yapılacaklar (F1, Ö3; sahip D1):** Türkçe adlar ipucu almıyor, biri yanlış alıyor: yok için ileti `TR_Path` öneriyor, doğrusu `TR_none` [ölçüldü: trlang check, `02d9fb69`]. Sıradaki: öneri her dilin görünüm adına bakar.
 - **S-531 Yapılacaklar (D, Ö3; sahip D1):** `T?` aritmetikte denetlenmiyor: `l.TR_index_of(9) + 1` denetimden geçiyor, çalışınca düşüyor [ölçüldü: trlang check ve trlang run, `02d9fb69`]. Sıradaki: 4a5'in kapsamına bakılır.
@@ -1216,8 +1216,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-615 Yapılacaklar (C, Ö3):** dizin önbelleği atlanan dosyanın nedenini ileti kodu ve parametreleriyle tutuyor; kodsuz hatanın metni (`internal/devtools/codeindex/skipped.go:53`) önbelleğe yazılmıyor, önbellekten boş nedenle döner [kanıtlı: `internal/devtools/codeindex/model.go:227`]. Sıradaki: kodsuz hatada metni de saklamak ya da kodsuz hatayı testle yasaklamak.
 
 ### Güvenilirlik (C): yol haritasından
-
-Yol haritasının açık işlerinden DENETİM'in C saydıkları (istek 76, 2. bakış; taban `f6c22ae8`).
 
 - **S-618 Yapılacaklar (C, Ö2, Kol B; ölçülmedi):** küçük işaretçili yığınla dönen döngüde çöp toplama turunun tik arasına alınması ölçülmedi; 100 Hz döngü Jarvis'in ön koşulu [hipotez; `docs/roadmap.md:109`].
 - **S-619 Yapılacaklar (C, Ö2):** `TestOtherTasksRunDuringLongTensorWork` (`internal/stdlib/ml/behavior_lock_release_test.go:185`) G4'te iki kez "gözcü yük sırasında hiç uyanmadı" ile düştü [ölçüldü: `99f1348f`, `9f06f747`]; GPU'da eşitleme kilidi bırakmıyor olabilir [hipotez: T1]. Sıradaki: bir daha düşerse iletideki uyanışlar okunur.
