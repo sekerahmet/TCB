@@ -70,3 +70,25 @@ func TestTypedArithOnGPUIsPrecisionError(t *testing.T) {
 		t.Fatalf("hassasiyet hatası bekleniyordu: %v", err)
 	}
 }
+
+// Kural (15.3, 15.48): float64'e yükselen türevli işlem GPU'da hassasiyet hatasıdır (H6969): cihaz
+// işlemi zaten yapamaz, çalışan yolu (CPU) o ileti söyler. CPU'ya taşınınca H6040'tır.
+func TestTrackedFloat64OnGPUKeepsPrecisionError(t *testing.T) {
+	w := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
+	w.SetRequiresGrad(true)
+	d := tensor.Float64sOn(gpuDevice, []float64{0.5, 0.25}, 2)
+	pick := tensor.Int64sOn(gpuDevice, tensor.Bool, []int64{0, 1}, 2) // çekirdeksiz: PTX özetine çekirdek eklemez
+	for name, op := range map[string]func(){
+		"aritmetik":   func() { tensor.Arith(w, d, tensor.ArithMul, tensor.Float64) },
+		"Convert":     func() { tensor.Convert(w, tensor.Float64) },
+		"birleştirme": func() { x, _ := tensor.Convert(w, tensor.Float64); tensor.WhereTyped(pick, x, d) },
+	} {
+		if err := testkit.PanicError(op); !messages.Has(err, messages.H6969) {
+			t.Errorf("%s: %v, beklenen H6969", name, err)
+		}
+	}
+	err := testkit.PanicError(func() { tensor.Arith(w.To(tensor.CPU), d.To(tensor.CPU), tensor.ArithMul, tensor.Float64) })
+	if !messages.Has(err, messages.H6040) {
+		t.Errorf("CPU'da: %v, beklenen H6040", err)
+	}
+}

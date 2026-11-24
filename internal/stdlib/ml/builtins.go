@@ -239,7 +239,7 @@ func float64GradError(vals ...interp.Value) error {
 	}
 	for _, v := range vals {
 		if t := trackedFloat64(v, 0); t != nil {
-			return messages.New(messages.H6040, tensor.ShapeText(t.Shape()))
+			return messages.New(messages.H6040, tensor.ShapeText(t.Shape()), t.DType().Name(), "operand")
 		}
 	}
 	return nil

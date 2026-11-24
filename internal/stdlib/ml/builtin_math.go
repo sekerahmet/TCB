@@ -288,7 +288,7 @@ func clampNumber(x, low, high interp.Value) interp.Value {
 }
 
 // atan2Builtin atan2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
-// türevli tensör (sayı tensörün türüne çevrilir).
+// türevli tensör (sayı daraltılmaz, sonuç tensörün hassasiyetine bir kez yuvarlanır: 15.6a).
 func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.NameRef(codes.FnAtan2)
 	if err := bind.CheckNamed(ad.Called(), named); err != nil {
@@ -317,7 +317,7 @@ func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if err := checkBroadcast(m, ad, ts[0], ts[1]); err != nil {
 		return nil, err
 	}
-	r, err := safe(func() *tensor.Tensor { return tensor.Atan2(ts[0], ts[1]) })
+	r, err := safe(func() *tensor.Tensor { return onePrecision(tensor.Atan2(ts[0], ts[1]), args) })
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +325,7 @@ func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 }
 
 // toTensors argümanlardan en az biri tensörken hepsini o tensörün cihazında tensöre
-// çevirir; sayılar o tensörün türünü alır (t * 2 gibi). Farklı cihazlardaki tensörler hatadır.
+// çevirir; sayı en az float32'de kurulur (floatOperand). Farklı cihazlardaki tensörler hatadır.
 func toTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
 	var first *tensor.Tensor
 	for _, a := range args {
@@ -343,12 +343,13 @@ func toTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
 			out[i] = d.t
 			continue
 		}
-		t, err := toTensorOn(ad, a, first)
+		cast := toTensorOn
+		if _, number := interp.ToFloat(a); number {
+			cast = floatOperand
+		}
+		t, err := cast(ad, a, first)
 		if err != nil {
 			return nil, err
-		}
-		if t.DType() != first.DType() {
-			t = t.Cast(first.DType())
 		}
 		out[i] = t
 	}

@@ -46,6 +46,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Tam sayıdan ondalığa her geçiş "float32"dir.** Soru doğruluktur: "int64" ya da "int32" tensörde 2²⁴'ten büyük değer float32'de yuvarlanır. Reddedilen yollar: (b) tam sayının bölümünü float64 yapmak: `TR_Int`'in varsayılanı "int64" olduğundan konum ve kimlik bölümlerinin hepsi float64 olur, 15.6c ile model hesabı sessizce float64'e kayar, float64'ü desteklemeyen cihazda program düşer; (c) `/`'yi kaldırıp dönüşümü açık yazdırmak: yuvarlamayı kaldırmaz (`TR_Tensor[TR_Float](i)` de float32'ye çevirir), yalnız her `/`'ye yazım ekler. Yuvarlama bozulma değildir: göreli hata ~6e-8, float32'nin olağanı; kimliğin tam sayı olarak bozulması öğe cinsiyle (15.1) çözüldü. Kesinlik isteyene açık yol: cins dönüşümü hedef hassasiyeti alır.
   - **Sürüm.** Geri yayılım saklanan tensörün sonradan değişmediğine güvenir; değiştiyse gradyan sessizce yanlış olurdu. Sürüm depodadır: görünümden yapılan yazma da yakalanır.
   - **Yaprak olmayan türevli tensöre yerinde yazma yoktur.** Sürüm sayacı bunu yakalamaz: `h = x @ w`'de `@` `h`'yi değil `x`'i ve `w`'yi saklar, ezilen öğelerden gradyan sessizce akar. Hata yazıldığı satırda verilir (8, 15.48). Reddedilen yol: her düğüm çıktısının sürümünü saklamak; hata geri yayılımda, başka satırda çıkardı.
+  - **Float64'e yükselen türevli işlem hatadır (TCB, 2026-11-25).** Sessiz yanlış türev yerine: float64'te türev yolu yok, sonuç çizgeye bağlanmıyordu ve gradyanın o terimi düşüyordu (`v * 2.0` ile `v * f64`'ün toplamında [2.0, 2.0], beklenen [2.5, 2.5]) [ölçüldü: b7777361]. Hata işlemin satırındadır (15.48); işlenen sessizce float32'ye indirilmez.
   - **Kopya reshape yazmaya kapalı.** Kopya olmak şekle ve adımlara bağlıdır; yazılan kopya asıl tensörü değiştirmez ve bu sessiz bir yanlıştır. Bedel: depoda bir işaret, yazma girişinde tek dal [kanıtlı: DENETİM]. İleti şekli ve adımları söyler, çünkü kopya olup olmadığı koddan görünmez.
   - **En kısa ondalık.** Aynı değer listede ve tensörde aynı metni verir ("Güvenilir").
   - **Eksi eksen her yerde.** Tek kural: ajan hangi işlemin eksi ekseni aldığını ezberlemez.
@@ -174,12 +175,13 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.14
 
 - *Emsal:* PyTorch `atan2`'nin türevi bir girdi sonsuzken NaN verir.
-- *Gerekçe:* matematiksel limit: sonsuzda türev 0'dır; (0, 0)'da tanımsız türev 0 alınır.
+- *Gerekçe:* matematiksel limit: sonsuzda türev 0'dır; (0, 0)'da tanımsız türev 0 alınır. Sayı argüman 15.6a'ya uyar (TCB, 2026-11-25): sayı fp16'ya indirilince `TR_atan2(fp16, 100000.0)`'ın sayısı sonsuz oluyordu, 20 000 öğenin 19 951'i float32'de hesaplanıp bir kez yuvarlanan sonuçtan ayrılıyordu [ölçüldü: 2026-11-24, b7777361].
 
 ### 15.15
 
 - *Emsal:* PyTorch 2.14'te `torch.where` ondalık koşulda hatadır [ölçüldü: DENETİM B1]. Seçilmeyen dalın sonsuz türevinin NaN vermesi PyTorch'ta da böyledir; çift `where` ile iç maskeleme `[0.0, 0.5]` verir [ölçüldü: DENETİM].
 - *Gerekçe:* koşul mantıktır, çünkü mantık ile sayı arasında dönüşüm yoktur (15.3): "sıfırdan farklı" koşulu NaN'ı da doğru sayıyordu [ölçüldü]. Hiçbiri tensör değilse işin adı `TR_if`'tir; sayı imzası ikinci bir yol olurdu. Türev kuralı açıkça yazılır, çünkü `TR_where(x > 0.0, TR_log(x), 0.0)` sessizce NaN gradyan verir; doğru yazım iç maskelemedir.
+- *Sayı dalın hassasiyeti (TCB, 2026-11-24):* sayı dal tensör dalın hassasiyetini alır, `x * maske` gibi: bf16 modelde `TR_where(maske, x, 0.0)` hesabın kalanını sessizce float32'ye çıkarmaz. *Emsal:* PyTorch `torch.where(koşul, t, 0.0)`'da hassasiyeti tensörden alır; `torch.where(koşul, h, -1e9)` fp16'da orada da −sonsuzdur [ölçüldü: 2026-11-25, `torch==2.14`]. Aralığın dışındaki sayı `t - 1e9`'daki gibi sonsuza iner. Yuvarlama seçimden öncedir; sonuç seçimden sonra yuvarlamayla bit bit aynıdır [test: `TestWhereNumberRoundingPlace`].
 
 ### 15.16
 
@@ -399,7 +401,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.37
 
 - *Emsal:* PyTorch'ta cihaz adı üreticiye bağlıdır (`"cuda"`, `"mps"`) [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* "Makinenin içinde çalıştırmak ... onun işlemcisinde": adlar NVIDIA'ya bağlı olmamalı, başka hızlandırıcılar aynı adlarla gelir. Bugün `" CPU "` kabul ediliyor [ölçüldü]; 17.9'un tek yazımı girdinin her yerindedir, harf ve boşluk serbestliği iki yazım demektir. `"gpu"` kısa adı kalır (tek GPU'lu programların olağan yazımı), ama `.TR_device` uzun adı verir: okunan ad tektir.
+- *Gerekçe:* "Makinenin içinde çalıştırmak ... onun işlemcisinde": adlar NVIDIA'ya bağlı olmamalı, başka hızlandırıcılar aynı adlarla gelir. `" CPU "` 2026-11-25'e kadar kabul ediliyordu [ölçüldü: b7777361]; 17.9'un tek yazımı girdinin her yerindedir, harf ve boşluk serbestliği iki yazım demektir. `"gpu"` kısa adı kalır (tek GPU'lu programların olağan yazımı), ama `.TR_device` uzun adı verir: okunan ad tektir.
 
 ### 15.37a
 

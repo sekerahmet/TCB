@@ -4154,7 +4154,7 @@ tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_
 
     koşullu(Tensör, Tensör | Tam | Ondalık | Mantık, Tensör | Tam | Ondalık | Mantık) → Tensör
 
-koşullu(koşul, a, b), koşulun doğru olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır; koşul bir mantık tensörüdür (ör. x > 0, sayı tensöründe t != 0), tek bir değere bağlı seçim eğer ile yazılır. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz.
+koşullu(koşul, a, b), koşulun doğru olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır; koşul bir mantık tensörüdür (ör. x > 0, sayı tensöründe t != 0), tek bir değere bağlı seçim eğer ile yazılır. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz; sayı olan dal tensör olan dalın hassasiyetini alır (bf16 tensörle sonuç bf16'dır), iki dal da sayıysa hassasiyet sayılardan çıkar.
 
 ```tr
 TR_var x = TR_Tensor([-1.0, 2.0, -3.0]); TR_print(TR_where(x > 0, x, 0).TR_tolist)
@@ -6692,7 +6692,7 @@ tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p
 
     Tensör.cihaz → Metin
 
-Tensörün bulunduğu cihazın adını verir: "cpu", "gpu" (ilk GPU) ya da "gpu:1" gibi.
+Tensörün bulunduğu cihazın uzun adını verir: "cpu", "gpu:0" ya da "gpu:1" gibi; kısa ad "gpu" okunmaz, ilk GPU "gpu:0"dır.
 
 ```tr
 TR_print(TR_Tensor([1, 2]).TR_device)
@@ -8595,7 +8595,7 @@ tr: yazdır(Tensör([1, 2]).cihaza("cpu").cihaz)
 
     Tensör.türe(Metin) → Tensör
 
-Tensörün "float32", "bf16" ya da "fp16" türüne çevrilmiş kopyasını verir; gradyan kaynak tensöre akar. Tür zaten aynıysa tensörün kendisi döner.
+Tensörün "float32", "bf16" ya da "fp16" türüne çevrilmiş kopyasını verir; gradyan kaynak tensöre akar. Tür zaten aynıysa tensörün kendisi döner. "float64"e de çevirir; türev izleyen tensörde türev kipinde bu hatadır, çünkü float64'te türev yolu yoktur: türev gerekmiyorsa çeviri türevsiz blokta yapılır.
 
 ```tr
 TR_print(TR_Tensor([1.0, 2.0]).TR_to_dtype("bf16").TR_dtype)

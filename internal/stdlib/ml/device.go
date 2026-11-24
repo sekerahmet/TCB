@@ -26,20 +26,19 @@ import (
 //     taşınınca kopya türevlenebilirdir: gradyan kaynağa geri akar.
 //   - Farklı cihazlardaki iki tensörle işlem açık hatadır.
 
-// parseDevice "cpu", "gpu", "gpu:1" gibi bir adı cihaza çevirir ("gpu:0" = "gpu").
+// parseDevice "cpu", "gpu", "gpu:1" gibi bir adı cihaza çevirir ("gpu:0" = "gpu"). Ad tek yazımlıdır
+// (15.37): harf ve boşluk değiştirilmez.
 func parseDevice(ad string) (tensor.Device, error) {
-	a := strings.ToLower(strings.TrimSpace(ad))
-	switch {
-	case a == "cpu":
+	switch ad {
+	case "cpu":
 		return tensor.CPU, nil
-	case a == "gpu":
+	case "gpu":
 		return tensor.GPU(0), nil
-	case strings.HasPrefix(a, "gpu:"):
-		// Yalnızca rakamlar: işaret, boşluk ve sayıdan sonraki çöp ("gpu:0abc") kabul edilmez.
-		if digits := a[4:]; digits != "" && strings.Trim(digits, "0123456789") == "" {
-			if i, err := strconv.Atoi(digits); err == nil {
-				return tensor.GPU(i), nil
-			}
+	}
+	// Sıranın tek yazımı vardır: işaret, boşluk, baştaki sıfır ve sayıdan sonraki çöp geri yazımda ayrılır.
+	if digits, ok := strings.CutPrefix(ad, "gpu:"); ok {
+		if i, err := strconv.Atoi(digits); err == nil && i >= 0 && strconv.Itoa(i) == digits {
+			return tensor.GPU(i), nil
 		}
 	}
 	return tensor.Device{}, messages.New(messages.H6800, ad)

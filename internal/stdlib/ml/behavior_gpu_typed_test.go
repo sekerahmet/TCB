@@ -118,3 +118,38 @@ TR_print(sıra("gpu"))`)
 		t.Fatalf("sıralamanın indeksi:\n%s", out)
 	}
 }
+
+// Kural (15.6a, 15.15, 15.41): TR_where'in sayı dalı GPU'da da tensör dalın hassasiyetindedir ve
+// işlemcinin bitlerini verir; TR_replay kaydı 16 bitlik doldurmayı alır.
+func TestWhereNumberBranchMatchesCPU(t *testing.T) {
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `TR_var ayrılan: TR_List[TR_String] = []
+TR_for dt TR_in ["bf16", "fp16", "float32", "float64"] {
+    TR_var t = TR_randn([4096], TR_seed: 3).TR_to_dtype(dt)
+    TR_var c = t > 0.25
+    TR_var tg = t.TR_to_device("gpu")
+    TR_var cg = c.TR_to_device("gpu")
+    TR_for s TR_in [0.1, -1e9, 100000.0, 1e-8, 0.3] {
+        TR_for çift TR_in [[TR_where(c, t, s), TR_where(cg, tg, s)], [TR_where(c, s, t), TR_where(cg, s, tg)]] {
+            TR_var g = çift[1]
+            TR_if g.TR_dtype != dt TR_or g.TR_device != "gpu:0" TR_or TR_not TR_equal(çift[0], g.TR_to_device("cpu")) {
+                ayrılan.TR_append(dt + " " + TR_String(s))
+            }
+        }
+    }
+}
+TR_print(ayrılan)
+TR_var x = TR_randn([64], TR_seed: 5).TR_to_dtype("bf16").TR_to_device("gpu")
+TR_func maskele(x: TR_Tensor) -> TR_Tensor { TR_return TR_where(x > 0.0, x, 0.1) }
+TR_var f = TR_replay(maskele)
+TR_no_grad {
+    TR_for adım TR_in 0..3 {
+        TR_var r = f(x * TR_Float(adım + 1))
+        TR_print(r.TR_dtype, TR_equal(r, maskele(x * TR_Float(adım + 1))))
+    }
+}`)
+	if want := "[]\nbf16 true\nbf16 true\nbf16 true\n"; out != want {
+		t.Fatalf("sayı dalın hassasiyeti:\n%s\nbeklenen:\n%s", out, want)
+	}
+}

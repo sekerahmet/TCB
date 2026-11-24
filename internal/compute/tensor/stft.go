@@ -125,6 +125,9 @@ func Stft(x, window *Tensor, o StftOptions, c FourierCall) (*Tensor, *Tensor) {
 	}
 	c.checkDevice(window)
 	if x.dtyp == Float64 {
+		if err := float64RiseError(window); err != nil {
+			panic(err)
+		}
 		return stft[float64](x, window, o, c.Trig)
 	}
 	return stft[float32](x, window, o, c.Trig)

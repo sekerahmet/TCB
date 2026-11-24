@@ -332,6 +332,13 @@ func typed(op TypedOp, dt DType, outShape []int, ins ...*Tensor) (*Tensor, *Elem
 		}
 		panic(PrecisionError(bad, be.Device()))
 	}
+	if dt == Float64 {
+		// Cihazın yapamadığı işlemin hatası yukarıdadır: GPU'da H6969 çalışan yolu (CPU) söyler.
+		if err := float64RiseError(ins...); err != nil {
+			out.Drop()
+			panic(err)
+		}
+	}
 	if fault != nil && fault.Kind == FaultRecorded {
 		return out, fault
 	}
@@ -341,6 +348,21 @@ func typed(op TypedOp, dt DType, outShape []int, ins ...*Tensor) (*Tensor, *Elem
 		return nil, fault
 	}
 	return out, nil
+}
+
+// float64RiseError türev kipinde girdilerden biri türev izliyorsa H6040'tır: float64 sonuç çizgeye
+// bağlanmaz (float64'te türev yolu yok, 15.46), girdinin türevi sessizce düşerdi (15.3). Float64
+// sonuç veren iki yol bunu sorar: cinsli işlem (typed) ve Stft'in float64 dalı.
+func float64RiseError(ins ...*Tensor) error {
+	if !GradEnabled() {
+		return nil
+	}
+	for _, x := range ins {
+		if x.RequiresGrad() {
+			return messages.New(messages.H6040, ShapeText(x.shape), x.dtyp.Name(), "raised")
+		}
+	}
+	return nil
 }
 
 // CompareTyped a op b öğe öğe karşılaştırmasıdır (yayınla); sonuç Bool, türev izlemez. a ve b aynı

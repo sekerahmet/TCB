@@ -8,7 +8,7 @@ import (
 )
 
 // TR_where'in cinsli yolu (15.15): koşul TR_Bool tensördür; a ve b aynı cinsten tensör ya da
-// 15.6a'ya uyan sayıdır. İki sayıda cins onlardan çıkar: iki TR_Int → "int64", TR_Int ile
+// 15.6a'ya uyan sayıdır: sayı dal tensör dalın hassasiyetini alır. İki sayıda cins onlardan çıkar: iki TR_Int → "int64", TR_Int ile
 // TR_Float → "float32", iki mantık değeri → TR_Bool. Hesap ondalığı dallar türevi taşır
 // (tensor.Where TR_Bool koşulu kabul eder); öbür cinsler türev izlemez.
 
@@ -58,18 +58,22 @@ func whereCond(ad any, v interp.Value) (*tensor.Tensor, error) {
 
 // whereBranches a ve b'yi aynı türden tensörlere çevirir (koşulun cihazında).
 func whereBranches(ad any, c *tensor.Tensor, av, bv interp.Value) (*tensor.Tensor, *tensor.Tensor, error) {
-	ref := c
+	var ref *tensor.Tensor // sayı dalın hassasiyetini veren tensör dal; nil ise iki dal da sayıdır
 	for _, v := range []interp.Value{av, bv} {
 		if t, ok := v.(*TensorValue); ok {
-			ref = t.t
-			break
+			if t.t.DType().IsQuantized() {
+				return nil, nil, messages.New(messages.H6687, t.t.DType().Name()) // 15.6a, 15.53
+			}
+			if ref == nil {
+				ref = t.t
+			}
 		}
 	}
 	branch := func(v interp.Value) (*tensor.Tensor, error) {
 		if t, ok := v.(*TensorValue); ok {
 			return t.t, nil
 		}
-		if ref == c { // iki dal da sayı: cins sayılardan (15.15)
+		if ref == nil { // iki dal da sayı: cins sayılardan (15.15)
 			return scalarBranch(ad, c.Device(), v, av, bv)
 		}
 		if ref.DType().IsFloat() {
@@ -77,7 +81,7 @@ func whereBranches(ad any, c *tensor.Tensor, av, bv interp.Value) (*tensor.Tenso
 			if !ok {
 				return nil, messages.New(messages.H6204, ad, typeName(v))
 			}
-			return safe(func() *tensor.Tensor { return tensor.FullOn(ref.Device(), float32(f)) })
+			return safe(func() *tensor.Tensor { return tensor.FullOf(ref.Device(), ref.DType(), float32(f)) })
 		}
 		return (&TensorValue{t: ref}).typedOperandFor(ad, "", v, false)
 	}

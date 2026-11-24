@@ -76,3 +76,43 @@ TR_test "15.44 TR_fuse içinde TR_relu'nun türevi NaN'da NaN" {
     TR_var f = TR_fuse((x) => TR_relu(x))
     TR_assert_equal(["nan", "1.0", "0.0", "0.0"], türev(girdi(), f))
 }
+
+TR_test "15.3 türevi izlenen ondalık float64'e yükselince H6040" {
+    TR_var d = TR_Tensor([0.5, 0.25], TR_dtype: "float64")
+    TR_var s = TR_Tensor(0.5, TR_dtype: "float64")
+    TR_var c = TR_Tensor([TR_true, TR_false])
+    TR_for dt TR_in ["float32", "bf16"] {
+        TR_var w = TR_Tensor([1.0, 2.0], TR_dtype: dt, TR_requires_grad: TR_true)
+        TR_var kodlar = [
+            TR_error_code { w + d }, TR_error_code { d + w }, TR_error_code { w - d }, TR_error_code { d * w },
+            TR_error_code { w / d }, TR_error_code { w // d }, TR_error_code { w % d }, TR_error_code { w ** d },
+            TR_error_code { TR_maximum(w, d) }, TR_error_code { TR_minimum(d, w) },
+            TR_error_code { TR_where(c, w, d) }, TR_error_code { TR_where(c, d, w) },
+            TR_error_code { w.TR_to_dtype("float64") }, TR_error_code { (w * 2.0).TR_to_dtype("float64") },
+            TR_error_code { s * w }, TR_error_code { w[0] * s }, TR_error_code { (w * 2.0) * d }, TR_error_code { (w * d) * d },
+            TR_error_code { TR_mixed_precision("bf16") { (w * 2.0) * d } },
+        ]
+        TR_assert_equal(["H6040"] * kodlar.TR_length, kodlar)
+        # İletinin iki yazımı koşar: türev float32'de akar; türevsiz blokta float64 hesaplanır.
+        TR_var y = w * d.TR_to_dtype("float32")
+        TR_assert(y.TR_requires_grad)
+        TR_backward(TR_sum(y))
+        TR_assert_equal([0.5, 0.25], w.TR_grad.TR_tolist)
+        TR_var z = TR_no_grad { w.TR_to_dtype("float64") }
+        TR_assert_equal(["float64", TR_false], [z.TR_dtype, z.TR_requires_grad])
+        # Türev kaybolmayan yerde hata yoktur.
+        TR_assert_equal([0.5, 0.5], TR_no_grad { w * d }.TR_tolist)
+        TR_assert_equal([TR_false, TR_false], (w < d).TR_tolist)
+        TR_assert_equal([dt, TR_true], [TR_where(d > 0.3, w, w * 0.0).TR_dtype, TR_where(d > 0.3, w, w * 0.0).TR_requires_grad])
+        TR_assert_equal([dt, TR_true], [(w * 0.1).TR_dtype, (w * 0.1).TR_requires_grad])
+        TR_assert_equal("float64", TR_Tensor[TR_Float](w, TR_dtype: "float64").TR_dtype)
+    }
+    TR_assert_equal([0.25, 0.0625], (d * d).TR_tolist)
+    TR_assert_equal([1.0, 0.5], (d * 2.0).TR_tolist)
+    TR_assert_equal("float64", (TR_Tensor([1.0, 2.0]) * d).TR_dtype)
+    # Günlük için float64 biriktirici: türevli toplam türevsiz blokta çevrilir ya da sayıya alınır.
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_assert_equal("H6040", TR_error_code { s + TR_sum(w) })
+    TR_assert_equal(3.5, (s + TR_no_grad { TR_sum(w).TR_to_dtype("float64") }).TR_item())
+    TR_assert_equal(3.5, 0.5 + TR_sum(w).TR_item())
+}
