@@ -73,6 +73,12 @@ Koşu `go run ./tools/record --name h1-baseline-<makine>-<bölüm> --out <Drive>
 bash tools/bench/baseline/machines/laptop/empty-program.sh
 ```
 
+L4'ün betiği `machines/l4/text-generation-base-qwen3-4b-q4km.sh` bu commit'i taban commit'e (`OLCU_TABAN`) karşı ölçer: S15, S3 ve S1 aynı kartta, aynı koşuda (`--base-trlang`). Go'yu (`go.mod`'un araç zinciri) ve modeli (`run.py --fetch`) kendisi kurar; kart L4 değilse ya da ağaçta değişik dosya varsa durur. Yollar `OLCU_IS` ve `OLCU_KAYIT`'tan.
+
+```bash
+OLCU_TABAN=<commit> bash tools/bench/baseline/machines/l4/text-generation-base-qwen3-4b-q4km.sh
+```
+
 ## `cpu_baseline.sh` ile ilişkisi
 
 [`../cpu_baseline.sh`](../cpu_baseline.sh) karakter modelini ve çekirdekleri 1, 2, 4, 8 iş parçacığıyla ölçer: iş parçacığına göre ölçeklenmeyi gösterir. Bu set makine başına tek sayıyla, emsaliyle aynı koşulda ölçer: TR'nin o makinedeki yerini gösterir.

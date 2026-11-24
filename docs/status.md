@@ -863,7 +863,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (E, Ö3; sahip T1):** 15.53a'nın tek satırlı çarpımı (üretim) L4'te float yolundan yavaş [ölçüldü: TG-2026-11-24-L4GPU-T1-1]. Mevcut durum: GPU CPU'nun bitlerini verir [test: `TestQuantActMatchesCPUForEveryShape`]; çok satırlı çarpım sm_80+'ta `mma.sync` s8 (q4 karo), altında dp4a; sonlu olmayan satırda ara sonuç taşarsa GPU (`dot32`) ile AVX2'li CPU (`sdot32`) ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: Dilim C, C0; profil kart ailesini kapsar.
+- **S-396 Yapılacaklar (E, Ö3; sahip T1):** 15.53a'nın tek satırlı çarpımı (üretim) L4'te float yolundan yavaş [ölçüldü: TG-2026-11-24-L4GPU-T1-1]. Mevcut durum: GPU CPU'nun bitlerini verir [test: `TestQuantActMatchesCPUForEveryShape`]; çok satırlı yol sm_80+'ta `mma.sync` s8 [ölçüldü: TG-2026-11-24-L4GPU-T1-6], altında (ve q4) dp4a; sonlu olmayan satırda ara sonuç taşarsa GPU (`dot32`) AVX2'li CPU'dan (`sdot32`) ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: Dilim C, C0 (G4 dahil).
 
 ### 15.54
 
