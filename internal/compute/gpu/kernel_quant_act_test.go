@@ -118,8 +118,8 @@ func TestQuantActGemvMatchesRows(t *testing.T) {
 }
 
 // TestQuantActEdges sıfır blok, K'nın son bloğu, ölçeği taşan küçük blok; sonlu olmayan satırda (NaN, +∞, −∞)
-// sonucun NaN olması ve sonsuzun işareti CPU'nunkiyle aynıdır (NaN'ın bitleri karşılaştırılmaz), komşu sonlu
-// satırlar bit bit aynıdır.
+// sonucun NaN olması ve sonsuzun işareti CPU'nunkiyle aynıdır (NaN'ın bitleri karşılaştırılmaz; ara sonucu taşan
+// satır söz dışıdır), komşu sonlu satırlar bit bit aynıdır.
 func TestQuantActEdges(t *testing.T) {
 	rng := rand.New(rand.NewSource(14))
 	withActPath(t, func(path string) {

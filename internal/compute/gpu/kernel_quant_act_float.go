@@ -9,9 +9,10 @@ import (
 // quantActNonFiniteKernel sonlu olmayan değer taşıyan satırların (fin[m] = 1) float yoludur: CPU'da quantGemmQ8 ve
 // quantGemvQ8 böyle satırı quantGemv'e verir; burada her çıktı AVX2'siz işlemcideki Go eşinin (dotQuantGo:
 // dequantBlocks + dot32) sırasıyla toplanır (defter 6): sekiz toplayıcı, öğe j toplayıcı j%8'e (çarpma ve toplama
-// ayrı yuvarlanır), sonda ((s0+s1)+(s2+s3))+((s4+s5)+(s6+s7)). Ağırlığın öğesi kesin açılır (quantElem). Söz NaN
-// olmayı ve sonsuzun işaretini kapsar, bitleri kapsamaz (15.53a). AVX2'li işlemci FMA'lı 32 şeritle toplar
-// (sdot32): taşan ara toplamlı satırda o işlemciyle ayrılabilir. Izgara (N/128, M); sonlu satırda blok hemen biter.
+// ayrı yuvarlanır), sonda ((s0+s1)+(s2+s3))+((s4+s5)+(s6+s7)). Ağırlığın öğesi kesin açılır (quantElem). Söz, ara
+// sonuç taşmıyorsa, NaN olmayı ve sonsuzun işaretini kapsar, bitleri kapsamaz (15.53a): AVX2'li işlemci FMA'lı 32
+// şeritle toplar (sdot32), taşan ara sonuçlu satırda biri sonsuz, öbürü NaN verebilir. Izgara (N/128, M); sonlu
+// satırda blok hemen biter.
 func quantActNonFiniteKernel(dt tensor.DType) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("nicem_etk_sonsuz_%s", dt.Name()))
