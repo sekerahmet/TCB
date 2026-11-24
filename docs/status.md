@@ -863,7 +863,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (sınıfsız: hız, Ö3; sahip T1 (tensör ve GPU); Ahmet'in sorusu; TCB 2026-11-18 19:44):** GPU'da nicemli etkinleştirme yok: 15.53a blokta GPU'daki nicemlenmiş ağırlıkla çarpımı çalışma hatası yapar, sessizce blok dışındaki yola düşmez (docs/spec/15_tensorler.md:701, :706) [kanıtlı: `d1b85834`]; Dost hesap cihazı GPU iken nicemli etkinleştirmeyi kapatır (tools/assistant/js/view.js:240). Status'ta ve yol haritasında bu işin satırı yoktu [ölçüldü: TCB, git grep, 2026-11-18 19:44]. Sıradaki adım: temel ölçü setinin S1'i GPU'da llama.cpp'yle ölçüldükten sonra; en büyük kalem çarpımsa kartta nicemli çekirdeğin tasarımı.
+- **S-396 Yapılacaklar (E, Ö3; sahip T1 (tensör ve GPU); TCB 2026-11-24 16:14, 17:10):** sm_80+ kartın tensör çekirdekli int8 yolu (`mma.sync` s8) kartta denenmedi: GPU'da 15.53a bugün her kartta TR'nin dp4a çekirdeğiyle çalışır, CPU'nun bitleriyle (T1 GPU hızı Dilim A; T4'te ısınmış okuma eski float yolundan 1,44 kat hızlı, deneme 2 `t1-gpu-hiz-deneme-a2`) [test: `TestQuantActMatchesCPUForEveryShape`]. mma yolu kontrol/t1-gpu-hiz-mma dalında (`2fbbbac7`) bekler. Sıradaki: sm_80+ bir kartta (örneğin L4) bit eşitliği ve hız (aynı deneme hücresi), sonra ayrı commit'le main'e.
 
 ### 15.54
 
@@ -1139,7 +1139,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-592 Yapılacaklar (F, Ö3; sahipler dosyaların kolu, sonraki dokunuşta):** `cmd/trlang/e2e/testdata/doc_blocks_known.txt` yalnız belge ve satır tutuyor, bloktaki yeni hata sessiz kalır; `TestOptimizerStateResume`'un beklenen değeri kendi kesintisiz koşusu [kanıtlı: `cmd/trlang/e2e/testdata/doc_blocks_known.txt:3-4`, `internal/compute/tensor/optimizer_test.go:40`]. Sıradaki: doc_blocks_known.txt'ye beklenen kod (biçim kararı).
 - **S-593 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** deneme kipinde (`OLCU_DENEME=1`) en-hizli-ayar.sh tek grupla da bu makinenin komut sınırına sığmıyor: koşturucu her koşudan önce yükün inmesini bekliyor (tools/bench/baseline/run.py:255), uyuşma ve deneme tek komutta (`tools/bench/baseline/machines/laptop/lib.sh:100`) [ölçüldü: H1, `06615910`]. Sıradaki: betik denemede koşuyu ayrı komut olarak basar.
 - **S-594 Yapılacaklar (E, Ö3; sahip H1, ölçü betikleri):** koşturucunun seçimi ölçüyü daraltıyor: `--base-trlang` emsalli kalemin anahtarının son parçasını atıyor, S1'in altı modeli S1/base olup `--key` ile süzülüyor (tools/bench/baseline/run.py:1056); `--trial` uyuşması olan kalemi koşmuyor (`:1025-1026`); High-RAM uyuşması her istekte İngilizce piper denetimini koşuyor (`:1008-1015`) [kanıtlı: `02d9fb69`]. Sıradaki: taban anahtarı kalemin anahtarı ve /base.
-- **S-701 Yapılacaklar (D, Ö3, S-221 ile; sahip T1):** sm_80 altındaki kartta (T4) `TestNaNRowsMatchCPU` düşüyor: test dikkat yolunu "tensor"a zorluyor, `mmaFits` sm_80 altında zorlanınca açık, çekirdeğin hedefi 80: açık hata yerine panic [ölçüldü: T4 tam denetimi, `e11380c6`; kanıtlı: `internal/compute/gpu/behavior_nn_test.go:387`, `internal/compute/gpu/kernel_flash_mma.go:45`, `:187`]. Sıradaki: Dilim A'nın commit'inde test sm_80 altında "tensor"u atlar, zorlanan yol sm_80 altında ileti verir.
 
 ### Denetleyici ve iletiler
 
