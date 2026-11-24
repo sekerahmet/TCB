@@ -362,7 +362,6 @@ a.TR_device	ok	0	name:TR_mem_device
 a.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 a.TR_dtype	ok	0	name:TR_mem_dtype
 a.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
-a.TR_ends_with	ok	0	name:TR_mem_ends_with
 a.TR_final_norm	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_final_norm
 a.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 a.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
@@ -1044,7 +1043,6 @@ h.TR_code	ok	0	name:TR_mem_code
 h.TR_contains	ok	0	name:TR_mem_contains
 h.TR_done	ok	0	name:TR_mem_done
 h.TR_dtype	ok	0	name:TR_mem_dtype
-h.TR_ends_with	ok	0	name:TR_mem_ends_with
 h.TR_get	ok	0	name:TR_mem_get
 h.TR_is_alpha	ok	0	name:TR_mem_is_alpha
 h.TR_join	ok	0	name:TR_mem_join
@@ -1761,6 +1759,7 @@ read.TR_length	ok	0	name:TR_mem_length
 recv.TR_first	ok	0	name:TR_mem_first
 recv.TR_get	ok	0	name:TR_mem_get
 recv.TR_last	ok	0	name:TR_mem_last
+rest.TR_length	ok	0	name:TR_mem_length
 restored.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 return_mismatches.TR_append	ok	0	name:TR_mem_append
 rng.TR_length	ok	0	name:TR_mem_length
