@@ -27,9 +27,7 @@ Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da
 - **Ö2:** C; 2. kilometre taşının ve Jarvis'in ön koşulları.
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
-**Ö0, sırayla:**
-1. 15.23c, evrişimin çok büyük adımı ve dolgusu (A; sahip T1).
-2. 15.23c, evrişimin 2⁶⁰ ve üstü dolgusunun kırpılması (A; sahip T1).
+**Ö0, sırayla:** yok.
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -706,8 +704,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-292 Yapılacaklar (E, Ö3):** `TR_conv2d` (15.23c); TR testi.
 - **S-293 Yapılacaklar (sınıfsız: hız, Ö2; sahip T1):** `TR_conv1d` sabit ağırlığı her çağrıda tek iş parçacığında paketliyor: `packA` döngüsü iş dağıtımından önce (`internal/compute/tensor/conv1d_cpu.go:125-131`, dağıtım `:145`); payı ölçülmedi. Sıradaki: Piper'da profil payı, sonra sabit ağırlığın bir kez paketlenmesi.
 - **S-294 Yapılacaklar (sınıfsız: hız, Ö3; sahip T1):** evrişim yolu dönen işçileri tutmuyor: `holdWorkers` yalnız nicemli çarpımda (`internal/compute/tensor/cpu_quant.go:153`, `:160`, `cpu_quant_q8.go:243`, `:263`); işçi uyursa sonraki işin uyandırmayı beklediği `internal/compute/tensor/parallel.go:79-81`'de, payı ölçülmedi [hipotez]. Sıradaki: Piper'da ölçü.
-- **S-717 Yapılacaklar (A, Ö0; sahip T1):** GPU'da `TR_conv1d`'nin büyük `TR_stride` ve `TR_padding`'i 32 bitte sarıyor. 2³²'nin hemen altındaki adımda girdinin gradyanı, adım ve dolgu 2³² − 1 iken ileri sonuç sessizce yanlış; katlama bellek dışını okuyabiliyor; 2³² ve üstü iç panik (çekirdek 1'de `TR_dilation` da); CPU doğru (dolgu < 2⁶⁰; S-718) [ölçüldü: benzetici, `50a7715c`; kanıtlı: internal/compute/gpu/kernel_conv.go:55, :97], kartta [hipotez]. Sıradaki: Dilim E tasarımı (D'den sonra).
-- **S-718 Yapılacaklar (A, Ö0; sahip T1):** `TR_conv1d` 2⁶⁰ ve üstü `TR_padding`'i sessizce 2⁶⁰ − 1'e kırpıyor. Adım da büyükse çıkış kısadır, bellek denetimi görmez: CPU'da sonuç ve girdinin gradyanı sessizce yanlış (adım = dolgu = 2⁶⁰ + 2, çekirdek 2: 3 yerine 2 kare) [ölçüldü: trlang run, `c9b3ba69`; kanıtlı: internal/stdlib/ml/builtin_conv.go:62, :176]; GPU'da bugün iç panik (S-717) [ölçüldü: benzetici]. Sıradaki: Dilim E'de kırpma kalkar; L + 2 · dolgu int64'e sığmıyorsa çalışma hatası.
 
 ### 15.23d
 

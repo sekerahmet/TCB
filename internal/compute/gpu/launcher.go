@@ -182,6 +182,16 @@ func (p *paramWriter) u32(v int) *paramWriter {
 	return p.add(b[:])
 }
 
+// u64 eksi olmayan 64 bitlik tam sayı yazar (u64p'nin eşi).
+func (p *paramWriter) u64(v int) *paramWriter {
+	if v < 0 {
+		panic(internalf("parameter %d is negative", v))
+	}
+	var b [8]byte
+	binary.LittleEndian.PutUint64(b[:], uint64(v))
+	return p.add(b[:])
+}
+
 func (p *paramWriter) f32(v float32) *paramWriter {
 	var b [4]byte
 	binary.LittleEndian.PutUint32(b[:], math.Float32bits(v))
