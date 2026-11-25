@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -84,6 +85,62 @@ TR_print(g[0], g[1], c[2] == g[2], c[2])`); out != "float32 gpu:0 true [[[4.001,
 	if out := mustRun(t, `TR_var x = TR_ones([1, 1, 4]).TR_to_device("gpu")
 TR_print(TR_conv1d(x, TR_ones([1, 1, 2]).TR_to_device(x.TR_device), TR_none).TR_to_device("cpu").TR_tolist)`); out != "[[[2.0, 2.0, 2.0]]]"+"\n" {
 		t.Errorf("H6102'nin önerisi: %q", out)
+	}
+}
+
+// Kural (15.23c, 15.42; S-718): L + 2·dolgu int64'e sığmazsa H7043 verilir ve ileti bu girdide geçen en
+// büyük dolguyu söyler; o dolgu denetimden geçer. Sıra denetimi (H7083) ondan öncedir. Sığan dolguda
+// tek sınır bellektir.
+func TestConv1dPaddingLimit(t *testing.T) {
+	expectCodes(t, []codeCase{
+		{`TR_conv1d(TR_ones([1, 1, 0]), TR_ones([1, 1, 1]), TR_none, TR_padding: 4611686018427387904)`, messages.H7043},
+		{`TR_conv1d(TR_ones([1, 1, 4]), TR_ones([1, 1, 1]), TR_none, TR_padding: 4611686018427387902)`, messages.H7043},
+		{`TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 1]), TR_none, TR_padding: 4611686018427387902)`, messages.H7043},
+		{`TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 1]), TR_none, TR_padding: 9223372036854775807)`, messages.H7043},
+		{`TR_conv1d(TR_ones([1, 5]), TR_ones([1, 1, 1]), TR_none, TR_padding: 9223372036854775807)`, messages.H7083},
+		{`TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 1]), TR_none, TR_padding: 4611686018427387901)`, messages.H3084},
+	})
+	_, err := run(t, `TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 1]), TR_none, TR_padding: 4611686018427387902)`)
+	if err == nil || !strings.Contains(err.Error(), "(5 + 2 × 4611686018427387902)") || !strings.Contains(err.Error(), "4611686018427387901") {
+		t.Errorf("H7043 sınırı söylemiyor: %v", err)
+	}
+	// İletinin sınırı geçer.
+	if out := mustRun(t, `TR_print(TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 1]), TR_none, TR_padding: 4611686018427387901, TR_stride: 9223372036854775807).TR_tolist)`); out != "[[[0.0]]]\n" {
+		t.Errorf("sınırdaki dolgu: %q", out)
+	}
+}
+
+// Kural (15.23c, 15.42; S-718): kanalsız girdide açılmış satırlar boştur, dolguyu çıkışın bellek denetimi
+// sınırlar; boş çıkışta (Cout 0) da açma kareleri dolaşmaz, ileri ve geri; toplu · kare int64'e sığmazsa iki
+// yolda da H3086 (sarma yok). Denetim olmasaydı çağrı 9·10¹⁸ kareyi gezerdi.
+func TestConv1dPaddingWithoutChannels(t *testing.T) {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		expectCodes(t, []codeCase{
+			{`TR_conv1d(TR_ones([3, 0, 5]), TR_Tensor(TR_ones([1, 0, 1]), TR_requires_grad: TR_true), TR_none, TR_padding: 4611686018427387901)`, messages.H3086},
+			{`TR_conv1d(TR_ones([2, 0, 5]), TR_Tensor(TR_ones([1, 0, 1]), TR_requires_grad: TR_true), TR_none, TR_padding: 4611686018427387901)`, messages.H3086},
+			{`TR_conv1d(TR_ones([1, 0, 5]), TR_Tensor(TR_ones([1, 0, 1]), TR_requires_grad: TR_true), TR_none, TR_padding: 1000000000000000000)`, messages.H3084},
+		})
+		for _, batch := range []string{"2", "3", "4"} {
+			for _, grad := range []string{"TR_true", "TR_false"} {
+				expectCodes(t, []codeCase{{`TR_conv1d(TR_ones([` + batch + `, 0, 5]), TR_Tensor(TR_ones([0, 0, 1]), TR_requires_grad: ` + grad +
+					`), TR_none, TR_padding: 4611686018427387901)`, messages.H3086}})
+			}
+		}
+		src := `TR_var x = TR_Tensor(TR_ones([1, 0, 5]), TR_requires_grad: TR_true)
+TR_var w = TR_Tensor(TR_ones([0, 0, 1]), TR_requires_grad: TR_true)
+TR_var y = TR_conv1d(x, w, TR_none, TR_padding: 4611686018427387901)
+TR_backward(TR_sum(y))
+TR_print(y.TR_shape, x.TR_grad.TR_shape, w.TR_grad.TR_shape)`
+		if out, err := run(t, src); err != nil || out != "[1, 0, 9223372036854775807] [1, 0, 5] [0, 0, 1]\n" {
+			t.Errorf("%s: %q, %v", src, out, err)
+		}
+	}()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("kanalsız evrişim 30 saniyede bitmedi")
 	}
 }
 

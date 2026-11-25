@@ -68,9 +68,16 @@ func (f foldShape) cg() int { return f.cin / f.o.Groups }
 // inside p konumu dolgunun dışında, girdinin içindeyse doğrudur.
 func (f foldShape) inside(p int) bool { return p >= 0 && p < f.l }
 
-// layout arka uca verilen düzendir.
+// layout arka uca verilen düzendir. Adım dolgulu uzunluğa, çekirdek 1'de kullanılmayan genişleme 1'e
+// iner: adım ≥ dolgulu uzunlukta tek kare vardır, kareler ve konumlar değişmez. Böylece arka uca giden
+// adım ve genişleme dolgulu uzunluğu aşmaz.
 func (f foldShape) layout() Conv1dLayout {
-	return Conv1dLayout{Batch: f.batch, Channels: f.cin, Length: f.l, Kernel: f.k, Frames: f.frames, Conv1dOptions: f.o}
+	o := f.o
+	o.Stride = min(o.Stride, max(f.l+2*o.Padding, 1))
+	if f.k == 1 {
+		o.Dilation = 1
+	}
+	return Conv1dLayout{Batch: f.batch, Channels: f.cin, Length: f.l, Kernel: f.k, Frames: f.frames, Conv1dOptions: o}
 }
 
 // unfold1d x'in pencerelerini [g, B · çıkış, Cin / g · K] satırlarına açar.
@@ -143,6 +150,9 @@ func openRows(src []float32, f foldShape) []float32 {
 	cg, width := f.cg(), f.cg()*f.k
 	rows := f.o.Groups * f.batch * f.frames
 	cols := make([]float32, rows*width)
+	if width == 0 { // kanalsız girdi: satır sayısını bellek sınırlamaz, yazılacak öğe yoktur
+		return cols
+	}
 	reach := (f.k - 1) * f.o.Dilation // çekirdeğin ilk ve son öğesi arası
 	parallelFor(rows, width*convCost, func(lo, hi int) {
 		for u := lo; u < hi; u++ {

@@ -124,14 +124,15 @@ func TestAttentionLongContextLimit(t *testing.T) {
 	if err := testkit.PanicError(func() { checkAttnSize(tooLarge, true) }); !messages.Has(err, messages.H4016) {
 		t.Fatalf("q dizin sınırı denetlenmedi: %v", err)
 	}
-	// Pencere kalınca anahtar konumu + pencere 32 bitte taşmamalı; pencere yokken sınır dizinlerinkidir.
-	for _, n := range [][2]int{{1, 1 << 30}, {1 << 30, 1}} {
+	// Pencere kalınca anahtar konumu + pencere + döşeme 32 bitte taşmamalı; pencere yokken sınır dizinlerinkidir.
+	const limit = 1<<30 - flashMaxTile/2 // 2·limit + flashMaxTile = 2³¹
+	for _, n := range [][2]int{{1, limit}, {limit, 1}} {
 		for _, w := range []int{0, 1, 1 << 29} {
 			p := tensor.AttentionParams{Batch: 1, H: 1, Hkv: 1, Tq: n[0], Tk: n[1], Dh: 1, Dv: 1, Window: w}
 			if err := testkit.PanicError(func() { checkAttnSize(p, true) }); (err != nil) != (w > 0) || w > 0 && !messages.Has(err, messages.H4016) {
 				t.Errorf("Tq %d Tk %d pencere %d: %v", n[0], n[1], w, err)
 			}
-			p.Tq, p.Tk = min(p.Tq, 1<<30-1), min(p.Tk, 1<<30-1)
+			p.Tq, p.Tk = min(p.Tq, limit-1), min(p.Tk, limit-1)
 			if err := testkit.PanicError(func() { checkAttnSize(p, true) }); err != nil {
 				t.Errorf("Tq %d Tk %d pencere %d: %v", p.Tq, p.Tk, w, err)
 			}

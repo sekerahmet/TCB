@@ -343,8 +343,9 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Adlı argümanlar: `TR_stride: 1`, `TR_padding: 0`, `TR_dilation: 1`, `TR_num_groups: 1`. 2 boyutta ilk üçü bir `TR_Int` ya da iki öğeli demet (`(sh, sw)`); dolgu sıfırdır. Grup sayısının adı iyileştiricinin parametre gruplarından (`.TR_groups`) ayrıdır: aynı ad iki anlam taşımaz (17.5).
 - **Hassasiyet:** `x`, `w` ve `b` birlikte 15.6c'deki gibi birleşir (15.24'teki `TR_bias` gibi): `x` ve `w` bf16, `b` float32 ise sonuç float32'dir, sapmasız evrişime `b`'yi eklemekle aynı tür ve değer. Blokta sapmasız evrişim blok türündedir (15.4); float32 `b` ile sonuç yine float32'dir, doğrusal katmanın `x @ W + b`'si gibi.
 - Hesap `@` gibidir: float32 biriktirme, `TR_mixed_precision` bloğunda çarpım blok türündedir (15.4) ve sapma ona 15.6c'yle eklenir; türev girdiye, ağırlığa ve sapmaya gider.
-- Şekil uymazsa (kanal sayısı, gruplar, çekirdek girdiden büyük) çalışma hatasıdır; ileti şekilleri söyler.
-- *Test:* TR testi (`TR_conv1d`); kartta Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`; `TR_conv2d` uygulanınca TR testi.
+- Şekil uymazsa (kanal sayısı, gruplar, genişlemiş çekirdek dolgulu girdiden büyük) çalışma hatasıdır; ileti şekilleri söyler.
+- Bir uzay ekseninin dolgulu uzunluğu (eksenin uzunluğu + 2 · o eksenin dolgusu) `TR_Int`'e sığmazsa çalışma hatasıdır; ileti o girdide verilebilecek en büyük dolguyu söyler. Sığıyorsa dolgu, adım ve genişleme olduğu gibi uygulanır, kırpılmaz; tek sınır 15.42'nin bellek denetimidir.
+- *Test:* TR testi (`TR_conv1d`); Go: `TestConv1dPaddingLimit`; kartta Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`, `TestConv1dHugeSettings`, `TestConv1dHugePadding`; `TR_conv2d` uygulanınca TR testi.
 
 **15.23d** `TR_dropout(x, oran)` her öğeyi `oran` olasılıkla sıfırlar, kalanları `1 / (1 − oran)` ile ölçekler; türev aynı maskeden geçer.
 - `oran` 0 ile 1 arasındadır (1 hariç); 0'da sonuç `x`'in kendisidir (kopyasız).
