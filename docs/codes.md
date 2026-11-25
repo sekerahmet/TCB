@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 805 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 190 fonksiyon, 13 sabit, 95 metot, 148 özellik, 201 adlı argüman.
+Toplam 806 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 190 fonksiyon, 13 sabit, 96 metot, 148 özellik, 201 adlı argüman.
 
 ## İçindekiler
 
@@ -1257,7 +1257,7 @@ en: var ad: String = "şeker"; print(Type(ad), ad[-1], String(12) + "a", String(
 tr: değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", Metin([1, 2]))
 ```
 
-Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_is_alpha(...)`, `.TR_is_digit(...)`, `.TR_is_space(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
+Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_is_alpha(...)`, `.TR_is_digit(...)`, `.TR_is_space(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_unicode_normalize(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
 
 #### `TR_StructType` (`TR_type_StructType`, `YapıTanımı`)
 
@@ -8760,6 +8760,25 @@ tr: yazdır(Tensör([[1, 2], [3, 4]]).devrik().listeye)
 #### `.TR_truncate(...)` (`TR_mem_truncate`, `kısalt`)
 
 
+
+#### `.TR_unicode_normalize(...)` (`TR_mem_unicode_normalize`, `unicode_normalleştir`)
+
+    Metin.unicode_normalleştir(Metin) → Metin
+
+Metnin bir Unicode biçimini (UAX #15) verir: "NFC", "NFD", "NFKC" ya da "NFKD"; başka biçim hatadır. Aynı karakterin eşdeğer yazımları (é; e ve birleşen işaret) aynı metne döner; K'lı biçimler uyumluluk karakterlerini de açar (ﬁ → fi), geri alınmaz. Yeni bir metin verir.
+
+```tr
+TR_print("e\u{301}".TR_unicode_normalize("NFC") == "é", "ﬁ²".TR_unicode_normalize("NFKC"))
+```
+
+Görünümü:
+
+```text
+en: print("e\u{301}".unicode_normalize("NFC") == "é", "ﬁ²".unicode_normalize("NFKC"))
+tr: yazdır("e\u{301}".unicode_normalleştir("NFC") == "é", "ﬁ²".unicode_normalleştir("NFKC"))
+```
+
+İlişkili: `.TR_lower(...)`, `.TR_strip(...)`
 
 #### `.TR_unique(...)` (`TR_mem_unique`, `benzersiz`)
 

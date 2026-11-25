@@ -34,27 +34,30 @@ func TestCaseConversionIsTheSameInEveryLanguage(t *testing.T) {
 // (longTextBytes) kilidi bırakır, küçük metinde bırakmaz (bırakmanın bedeli işten büyük olurdu).
 // Kilidin kaç kez alındığı görev kancasıyla sayılır. Eskiden hep tutuyordu.
 func TestLongTextMethodsReleaseTheLock(t *testing.T) {
-	takes := func(code string) int {
-		machine := New()
-		machine.Out = io.Discard
-		n := 0
-		machine.AddTaskHook(func(*VM) { n++ })
-		if _, err := machine.Run(mustParseProgram(t, code)); err != nil {
-			t.Fatalf("%v\n%s", err, code)
-		}
-		return n
-	}
 	big := fmt.Sprintf("TR_var s = \"\"\nTR_for i TR_in 0..%d {\n    s += \"aa \"\n}\n", longTextBytes/3+1)
 	small := "TR_var s = \"aa aa\"\n"
-	base := takes(big)
-	for _, call := range []string{"s.TR_upper()", "s.TR_lower()", "s.TR_split()", `s.TR_replace("a", "b")`, `s.TR_contains("b")`, "s.TR_get(-1)", "s.TR_reverse()"} {
-		if got := takes(big+"TR_var r = "+call+"\n") - base; got != 1 {
+	base := lockTakes(t, big)
+	for _, call := range []string{"s.TR_upper()", "s.TR_lower()", "s.TR_split()", `s.TR_replace("a", "b")`, `s.TR_contains("b")`, "s.TR_get(-1)", "s.TR_reverse()", `s.TR_unicode_normalize("NFKC")`} {
+		if got := lockTakes(t, big+"TR_var r = "+call+"\n") - base; got != 1 {
 			t.Errorf("büyük metinde %s kilidi %d kez bıraktı, 1 beklenirdi", call, got)
 		}
-		if got := takes(small+"TR_var r = "+call+"\n") - takes(small); got != 0 {
+		if got := lockTakes(t, small+"TR_var r = "+call+"\n") - lockTakes(t, small); got != 0 {
 			t.Errorf("küçük metinde %s kilidi %d kez bıraktı, 0 beklenirdi", call, got)
 		}
 	}
+}
+
+// lockTakes programın kilidi kaç kez aldığıdır (görev kancasıyla sayılır).
+func lockTakes(t *testing.T, code string) int {
+	t.Helper()
+	machine := New()
+	machine.Out = io.Discard
+	n := 0
+	machine.AddTaskHook(func(*VM) { n++ })
+	if _, err := machine.Run(mustParseProgram(t, code)); err != nil {
+		t.Fatalf("%v\n%s", err, code)
+	}
+	return n
 }
 
 // Kural (13.10): .TR_append değer döndürmez; listeyi yerinde değiştirir. Tipi bilinen yazımda dönüşün

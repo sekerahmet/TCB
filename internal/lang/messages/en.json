@@ -510,6 +510,7 @@
 "H2668": "{type}() does not make a number from a truth value; write `{#if} b {{ 1 }} {#else} {{ 0 }}`",
 "H2669": "{type} cannot be a dict key: keys are {@Int}, {@String}, {@Bool} or {@Bytes}",
 "H2670": "a {@JSON} value cannot be a dict key; open it first: `{#String}(j)` or `{#Int}(j)`",
+"H2671": "{fn}: the form must be \"NFC\", \"NFD\", \"NFKC\", or \"NFKD\", {given|q} given{form, select, empty {} other {; write `.{#unicode_normalize}(\"{form}\")`}}",
 "H2700": "the list is unpacked into {names} names but has {count} items: the counts must match; when only the first items are needed, take them by index: a, b = l[0], l[1]",
 "H2701": "{names} names are given {count} values: each name gets one value (a, b = 1, 2); write _ for a value that is not needed",
 "H2702": "{value} matched no arm of the {@match}: a match covers every case; write '_ => ...' as the last arm for the other cases (_ matches anything)",

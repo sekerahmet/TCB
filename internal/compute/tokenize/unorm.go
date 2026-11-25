@@ -12,7 +12,7 @@ import (
 // Unicode normalleştirme (NFD, NFC, NFKD, NFKC)
 // ============================================================================
 //
-// Tablolar normtablo.go'dadır (üretilmiş). Algoritma Unicode Standart Ek #15:
+// Tablolar norm_table.go'dadır (üretilmiş). Algoritma Unicode Standart Ek #15:
 // tam (özyinelemeli) ayrıştırma, kanonik sıralama (sıfır olmayan birleşim
 // sınıflı karakter dizilerinin sınıfa göre kararlı sıralanması) ve gerekirse
 // kanonik birleştirme. Hangıl heceleri algoritmik olarak işlenir.
