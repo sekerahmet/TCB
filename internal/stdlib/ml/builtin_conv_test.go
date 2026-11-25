@@ -111,7 +111,8 @@ func TestConv1dPaddingLimit(t *testing.T) {
 }
 
 // Kural (15.23c, 15.42; S-718): kanalsız girdide açılmış satırlar boştur, dolguyu çıkışın bellek denetimi
-// sınırlar; boş çıkışta (Cout 0) da açma kareleri dolaşmaz. Denetim olmasaydı çağrı 9·10¹⁸ kareyi gezerdi.
+// sınırlar; boş çıkışta (Cout 0) da açma kareleri dolaşmaz, ileri ve geri; toplu · kare int64'e sığmazsa iki
+// yolda da H3086 (sarma yok). Denetim olmasaydı çağrı 9·10¹⁸ kareyi gezerdi.
 func TestConv1dPaddingWithoutChannels(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
@@ -121,8 +122,18 @@ func TestConv1dPaddingWithoutChannels(t *testing.T) {
 			{`TR_conv1d(TR_ones([2, 0, 5]), TR_Tensor(TR_ones([1, 0, 1]), TR_requires_grad: TR_true), TR_none, TR_padding: 4611686018427387901)`, messages.H3086},
 			{`TR_conv1d(TR_ones([1, 0, 5]), TR_Tensor(TR_ones([1, 0, 1]), TR_requires_grad: TR_true), TR_none, TR_padding: 1000000000000000000)`, messages.H3084},
 		})
-		src := `TR_print(TR_conv1d(TR_ones([1, 0, 5]), TR_Tensor(TR_ones([0, 0, 1]), TR_requires_grad: TR_true), TR_none, TR_padding: 4611686018427387901).TR_shape)`
-		if out, err := run(t, src); err != nil || out != "[1, 0, 9223372036854775807]\n" {
+		for _, batch := range []string{"2", "3", "4"} {
+			for _, grad := range []string{"TR_true", "TR_false"} {
+				expectCodes(t, []codeCase{{`TR_conv1d(TR_ones([` + batch + `, 0, 5]), TR_Tensor(TR_ones([0, 0, 1]), TR_requires_grad: ` + grad +
+					`), TR_none, TR_padding: 4611686018427387901)`, messages.H3086}})
+			}
+		}
+		src := `TR_var x = TR_Tensor(TR_ones([1, 0, 5]), TR_requires_grad: TR_true)
+TR_var w = TR_Tensor(TR_ones([0, 0, 1]), TR_requires_grad: TR_true)
+TR_var y = TR_conv1d(x, w, TR_none, TR_padding: 4611686018427387901)
+TR_backward(TR_sum(y))
+TR_print(y.TR_shape, x.TR_grad.TR_shape, w.TR_grad.TR_shape)`
+		if out, err := run(t, src); err != nil || out != "[1, 0, 9223372036854775807] [1, 0, 5] [0, 0, 1]\n" {
 			t.Errorf("%s: %q, %v", src, out, err)
 		}
 	}()

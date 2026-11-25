@@ -195,11 +195,15 @@ func conv1dBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 }
 
 // convCheckSize ayırmadan önce belleği denetler (15.42): açılmış satırlar, kanalsız girdide (satırlar
-// boştur, dolguyu sınırlamaz) çıkış.
+// boştur, dolguyu sınırlamaz) çıkış. Çıkış da boşsa (Cout 0) bellek istenmez, ama toplu · kare int64'e
+// sığmalıdır: sığmazsa CheckSize o şeklin taşmasını (H3086) söyler.
 func convCheckSize(xs, ws []int, o tensor.Conv1dOptions) {
 	frames := o.Length(xs[2], ws[2])
 	if xs[1] == 0 {
 		tensor.CheckSize([]int{xs[0], ws[0], frames}, tensor.Float32)
+		if xs[0] > math.MaxInt/max(frames, 1) {
+			tensor.CheckSize([]int{xs[0], frames}, tensor.Float32)
+		}
 		return
 	}
 	tensor.CheckSize([]int{xs[0], frames, xs[1] * ws[2]}, tensor.Float32)

@@ -344,7 +344,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Hesap `@` gibidir: float32 biriktirme, `TR_mixed_precision` bloğunda çarpım blok türündedir (15.4) ve sapma ona 15.6c'yle eklenir; türev girdiye, ağırlığa ve sapmaya gider.
 - Şekil uymazsa (kanal sayısı, gruplar, genişlemiş çekirdek dolgulu girdiden büyük) çalışma hatasıdır; ileti şekilleri söyler.
 - Bir uzay ekseninin dolgulu uzunluğu (eksenin uzunluğu + 2 · o eksenin dolgusu) `TR_Int`'e sığmazsa çalışma hatasıdır; ileti o girdide verilebilecek en büyük dolguyu söyler. Sığıyorsa dolgu, adım ve genişleme olduğu gibi uygulanır, kırpılmaz; tek sınır 15.42'nin bellek denetimidir.
-- *Test:* TR testi (`TR_conv1d`); kartta Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`, `TestConv1dHugeSettings`, `TestConv1dHugePadding`; `TR_conv2d` uygulanınca TR testi.
+- *Test:* TR testi (`TR_conv1d`); Go: `TestConv1dPaddingLimit`; kartta Go: `TestConv1dUnfoldAndFoldMatchCPUBits`, `TestConv1dMatchesCPUWithinMatmulStep`, `TestConv1dRunsOnTheCard`, `TestConv1dHugeSettings`, `TestConv1dHugePadding`; `TR_conv2d` uygulanınca TR testi.
 
 **15.23d** `TR_dropout(x, oran)` her öğeyi `oran` olasılıkla sıfırlar, kalanları `1 / (1 − oran)` ile ölçekler; türev aynı maskeden geçer.
 - `oran` 0 ile 1 arasındadır (1 hariç); 0'da sonuç `x`'in kendisidir (kopyasız).
