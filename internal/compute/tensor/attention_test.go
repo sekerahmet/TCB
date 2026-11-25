@@ -563,8 +563,8 @@ func TestAttentionMaskSavedForBackward(t *testing.T) {
 	}
 }
 
-// TestAttentionWindowClamp: max(Tq, Tk)'yı aşan pencere penceresizle aynıdır (15.24): ileri ve geri bitleri W = max(Tq, Tk)'nınki;
-// W int64'ün en büyüğü olsa da sınır hesabı taşmaz. Kırpma Tk'ya değildir: Tq > Tk'da Tk boylu pencere dardır.
+// TestAttentionWindowClamp: W ≥ max(Tq, Tk) penceresizdir (15.24): tanımda 0 olur, ileri ve geri bitleri W = 0'ınki; W int64'ün en
+// büyüğü olsa da sınır hesabı taşmaz. Daha dar pencere olduğu gibi kalır: Tq > Tk'da Tk boylu pencere de dardır.
 func TestAttentionWindowClamp(t *testing.T) {
 	for _, n := range [][2]int{{6, 3}, {3, 3}, {2, 5}, {1, 1}} {
 		tq, tk := n[0], n[1]
@@ -582,11 +582,11 @@ func TestAttentionWindowClamp(t *testing.T) {
 				}
 				return bits
 			}
-			m := max(tq, tk)
-			want := run(m)
-			for _, w := range []int{0, m + 1, 1<<31 - 1, 1 << 31, 1<<32 - 1, 1 << 32, math.MaxInt} {
-				if !slices.Equal(run(w), want) {
-					t.Errorf("Tq %d Tk %d nedensel %v pencere %d: pencere %d'inkiyle aynı değil", tq, tk, causal, w, m)
+			m, want := max(tq, tk), run(0)
+			for _, w := range []int{1, m - 1, m, m + 1, 1<<31 - 1, 1 << 31, 1<<32 - 1, 1 << 32, math.MaxInt} {
+				p := attentionParams(seqLayout(q0), seqLayout(k0), seqLayout(v0), AttentionOptions{Causal: causal, Window: w})
+				if w < m && p.Window != w || w >= m && (p.Window != 0 || !slices.Equal(run(w), want)) {
+					t.Errorf("Tq %d Tk %d nedensel %v pencere %d: tanımda %d, penceresizle aynı değil ya da değişti", tq, tk, causal, w, p.Window)
 				}
 			}
 		}

@@ -28,8 +28,12 @@ func (g *backend) flashFits(p tensor.AttentionParams, mask2, backward bool) (fla
 
 // checkAttnSize çekirdeklerin 32 bitlik dizinlerinin sınırlarını denetler. Birleşik yolda
 // puan matrisi oluşmaz: q/çıktı (B·H·Tq·D) ve k/v (B·Hkv·Tk·D) dizinleri sınırlıdır. Matris
-// yolunda puan matrisi (B·H·Tq·Tk) de tek depolamadır.
+// yolunda puan matrisi (B·H·Tq·Tk) de tek depolamadır. Pencerenin sınırı (attnLimits) anahtar konumuna
+// pencereyi ekler: kalan pencere max(Tq, Tk)'dan dardır, toplam 2·max(Tq, Tk)'nın altında kalır.
 func checkAttnSize(p tensor.AttentionParams, fused bool) {
+	if p.Window > 0 {
+		checkSize(2 * max(p.Tq, p.Tk))
+	}
 	D := max(p.Dh, p.Dv)
 	checkSize(p.Batch * p.H * p.Tq * D)
 	checkSize(p.Batch * p.Hkv * p.Tk * D)

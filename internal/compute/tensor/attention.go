@@ -278,9 +278,11 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	if p.Window < 0 {
 		panic(messages.New(messages.H3009, p.Window))
 	}
-	// |Tk−Tq+i−j| en çok max(Tq, Tk) − 1'dir: daha büyük pencere penceresizle aynıdır. Kırpma Limits'in ve kartın
-	// 32 bitlik sınır hesabının taşmasını önler (15.24); 1, boş eksende pencerenin 0'a (pencere yok) düşmesini.
-	p.Window = min(p.Window, max(p.Tq, p.Tk, 1))
+	// |Tk−Tq+i−j| en çok max(Tq, Tk) − 1'dir: o boydaki ya da daha büyük pencere penceresizdir (15.24). Pencere
+	// kalkınca ne Limits'in ne kartın 32 bitlik sınır hesabı taşar (kalan pencere: checkAttnSize).
+	if p.Window >= max(p.Tq, p.Tk) {
+		p.Window = 0
+	}
 	if p.Scale == 0 {
 		p.Scale = float32(1 / math.Sqrt(float64(max(p.Dh, 1))))
 	}
