@@ -485,7 +485,9 @@ def reference_cmd(name, threads, binary=None, argv=()):
     if name == "llama-bench":
         return [binary, *argv, "-r", "1", "--no-warmup", *t, "-o", "json"]
     if name == "llama-completion":
-        return [binary, *argv, "--temp", "0", *t]
+        # -lv 4: b12124 prints the library's INFO lines ("offloaded N/N layers to GPU") only from verbosity 4
+        # (common/log.cpp:551; the default is 3) and actual_device reads that line; they go to stderr, the answer is stdout.
+        return [binary, *argv, "--temp", "0", "-lv", "4", *t]
     if name == "whisper-cli":
         return [binary, *argv, "-bs", "1", "-bo", "1", "-nf", *t]
     return [sys.executable, "-I", REFERENCES, name, *t, *argv]
