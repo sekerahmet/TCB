@@ -74,7 +74,8 @@ type backend struct {
 	ltSetupHook           func()
 	// attnPath dikkatin yolunu zorlar (yalnız sınama ve ölçüm; ortamdan okunmaz): boş
 	// (varsayılan: 16 bitlik girdilerde sm_80+ tensör çekirdekli, öbürlerinde SIMT birleşik
-	// yol), "birlesik" (SIMT birleşik yol), "carpim" (matris çarpımı yolu) ya da "tensor"
+	// ya da bölünmüş yol; seçim şekilden), "birlesik" (SIMT birleşik yol), "bolme" (bölünmüş
+	// yol: seçim kuralını geçer, boy koşulu kalır), "carpim" (matris çarpımı yolu) ya da "tensor"
 	// (tensör çekirdekli yolu sm denetimi olmadan zorlar; benzetimde sınama için).
 	attnPath string
 	// gcThreshold son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır

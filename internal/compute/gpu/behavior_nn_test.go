@@ -362,7 +362,7 @@ func TestAttention(t *testing.T) {
 }
 
 // TestNaNRowsMatchCPU tamamı NaN olan satırların softmax, log_softmax ve dikkatte (bütün dikkat
-// yollarında: birleşik, matris çarpımı, tensör çekirdekli bf16) CPU'daki gibi NaN verdiğini,
+// yollarında: birleşik, bölünmüş, matris çarpımı, tensör çekirdekli bf16) CPU'daki gibi NaN verdiğini,
 // tamamen maskeli satırların ise 0 / -sonsuz kaldığını denetler; geri yön de karşılaştırılır.
 func TestNaNRowsMatchCPU(t *testing.T) {
 	nan, inf := float32(math.NaN()), float32(math.Inf(-1))
@@ -384,7 +384,7 @@ func TestNaNRowsMatchCPU(t *testing.T) {
 		path string
 		dt   tensor.DType
 		Dh   int
-	}{{"birlesik", tensor.Float32, 8}, {"carpim", tensor.Float32, 8}, {"tensor", tensor.BFloat16, 16}} {
+	}{{"birlesik", tensor.Float32, 8}, {"bolme", tensor.Float32, 32}, {"carpim", tensor.Float32, 8}, {"tensor", tensor.BFloat16, 16}} {
 		if cc, _ := g.sr.capability(); d.path == "tensor" && !inSim() && cc < 80 {
 			continue // tensör çekirdeği sm_80 ister (T4'te zorlanan yol iç hatadır, S-701)
 		}

@@ -111,7 +111,8 @@ func TestQuantActIsDeterministic(t *testing.T) {
 	})
 }
 
-// TestQuantActGemvMatchesRows tek satırlı çarpım (A2) çok satırlının aynı satırıyla bit bit aynıdır.
+// TestQuantActGemvMatchesRows tek satırlı çarpım (A2) çok satırlının aynı satırıyla bit bit aynıdır; hizasız etkinleştirme
+// görünümünde ve dilimlenmiş ağırlıkta (kaydırma) da.
 func TestQuantActGemvMatchesRows(t *testing.T) {
 	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(13))
@@ -126,6 +127,15 @@ func TestQuantActGemvMatchesRows(t *testing.T) {
 				one = tensor.MatMulActQuant(tensor.NewOn(gpuDevice, x[4*K:5*K], 1, K), card.T(), tensor.Float32).Data()
 			})
 			sameFloatBits(t, fmt.Sprintf("%q %s satır 4", path, dt.Name()), one, all[4*N:5*N])
+			shiftedX := append([]float32{0}, x[4*K:5*K]...)
+			onCard(t, func() {
+				row := tensor.NewOn(gpuDevice, shiftedX, K+1).Slice(0, 1, K+1).Reshape(1, K) // 4 bayt kayık etkinleştirme
+				sameFloatBits(t, fmt.Sprintf("%q %s satır 4, hizasız", path, dt.Name()),
+					tensor.MatMulActQuant(row, card.T(), tensor.Float32).Data(), all[4*N:5*N])
+				plain := tensor.NewOn(gpuDevice, x[4*K:5*K], 1, K)
+				sameFloatBits(t, fmt.Sprintf("%q %s satır 4, dilimlenmiş ağırlık", path, dt.Name()),
+					tensor.MatMulActQuant(plain, card.Slice(0, 3, 20).T(), tensor.Float32).Data(), all[4*N+3:4*N+20])
+			})
 		}
 	})
 }
@@ -157,6 +167,15 @@ func TestQuantActEdges(t *testing.T) {
 				sameActRow(t, fmt.Sprintf("%s satır %d", name, m), got[m*N:(m+1)*N], want[m*N:(m+1)*N], m >= 3 && m <= 5)
 				one, oneWant := actProduct(t, x[m*K:(m+1)*K], 1, host, card)
 				sameActRow(t, fmt.Sprintf("%s tek satır %d", name, m), one, oneWant, m >= 3 && m <= 5)
+			}
+			// Tek başlatmada K = 2 560: sonlu olmayan işaret turlar arasında birikir (M = 1, ilk blokta).
+			K = 2560
+			host, card = quantWeights(t, rng, dt, 9, K)
+			for i, bad := range []float32{float32(math.Inf(-1)), float32(math.Inf(1)), float32(math.NaN())} {
+				y := random(rng, K, 1)
+				y[7] = bad
+				one, oneWant := actProduct(t, y, 1, host, card)
+				sameActRow(t, fmt.Sprintf("%s K = 2560, ilk blokta %v (%d)", name, bad, i), one, oneWant, true)
 			}
 		}
 	})

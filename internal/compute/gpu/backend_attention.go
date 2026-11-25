@@ -8,9 +8,10 @@ import (
 )
 
 // Arka uç: dikkat. 16 bitlik girdilerde (sm_80+) tensör çekirdekli birleşik yol
-// (kernel_flash_mma.go); öbür durumlarda bakış boyları birleşik çekirdeğin paylaşımlı belleğine
-// sığıyorsa (Dh, Dv ≤ 128 civarı; bkz. pickFlash) SIMT birleşik yol, değilse matris çarpımı
-// yolu (attention.go).
+// (kernel_flash_mma.go); öbür durumlarda az sorgulu ya da az bloklu uzun anahtarlı şekilde
+// bölünmüş yol (backend_attention_split.go); bakış boyları birleşik çekirdeğin paylaşımlı
+// belleğine sığıyorsa (Dh, Dv ≤ 128 civarı; bkz. pickFlash) SIMT birleşik yol, değilse matris
+// çarpımı yolu (attention.go).
 
 // flashFits birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı (yol
 // attnPath ile zorlanmışsa ona göre; yalnız sınama ve ölçüm).
@@ -66,6 +67,10 @@ func (g *backend) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor
 		pr := g.param().readV(q).readV(k).readV(v).write(od, 0).write(lse, 0)
 		g.attnShared(pr, md, mo, p)
 		g.launch(c, [3]uint32{blocks(p.Tq, mmaBr), uint32(p.H), uint32(p.Batch)}, [3]uint32{flashJob, 1, 1}, pr)
+		return lse
+	}
+	if sc, ok := g.splitFits(md != nil, p); ok {
+		g.attnSplit(gt, sc, od, lse, gt.read(q), gt.read(k), gt.read(v), md, mo, p)
 		return lse
 	}
 	a, ok := g.flashFits(p, md != nil, false)

@@ -74,6 +74,13 @@ func bitFamilies(t *testing.T) []bitFamily {
 	w, wt := random(rng, K*N, 1), random(rng, N*K, 1)
 	q, kv := random(rng, 2*6*8, 1), random(rng, 2*7*8, 1)
 	row := random(rng, 3*130, 3)
+	split := func(Tq, Tk, D int) bitFamily {
+		sq, skv := random(rng, Tq*4*D, 1), random(rng, Tk*2*D, 1)
+		return bitFamily{name: fmt.Sprintf("TR_attention (bölünmüş yol, D = %d, Tk = %d)", D, Tk), heavy: true, run: func(dev tensor.Device, off int) *tensor.Tensor {
+			return tensor.Attention(shiftedOn(dev, sq, tensor.Float32, off, Tq, 4, D), shiftedOn(dev, skv, tensor.Float32, off, Tk, 2, D),
+				shiftedOn(dev, skv, tensor.Float32, off, Tk, 2, D), tensor.AttentionOptions{Causal: true})
+		}}
+	}
 	mm := func(name string, a []float32, rows int, b []float32, trans bool, dt tensor.DType) bitFamily {
 		return bitFamily{name: name, run: func(dev tensor.Device, off int) *tensor.Tensor {
 			x := shiftedOn(dev, a, dt, off, rows, K)
@@ -95,6 +102,7 @@ func bitFamilies(t *testing.T) []bitFamily {
 				shiftedOn(dev, kv, tensor.Float32, off, 7, 2, 8), shiftedOn(dev, kv, tensor.Float32, off, 7, 2, 8),
 				tensor.AttentionOptions{Causal: true})
 		}},
+		split(1, 40, 64), split(4, 300, 128),
 		{name: "TR_sum (eksen)", run: func(dev tensor.Device, off int) *tensor.Tensor {
 			return shiftedOn(dev, row, tensor.Float32, off, 3, 130).Sum(1, false)
 		}},
@@ -166,7 +174,7 @@ func TestMisalignedViewsMatchBits(t *testing.T) {
 
 // TestSmCountDoesNotChangeBits: kendi çekirdeklerin ayarı yalnız boydan seçilir; SM 1 ve 128'lik
 // benzeticide tek satırlık çarpım (düz ve devrik B), norm geri yönü (LayerNorm ve RMSNorm, γ'nın
-// türevi) ve döşemeli çarpım bit bit aynıdır (15.22a).
+// türevi), döşemeli çarpım ve bölünmüş dikkat (tek ve çok parça) bit bit aynıdır (15.22a).
 func TestSmCountDoesNotChangeBits(t *testing.T) {
 	g := gpuBackend()
 	sd, ok := g.sr.(*simDriver)
@@ -178,6 +186,7 @@ func TestSmCountDoesNotChangeBits(t *testing.T) {
 	x1, w, wt := random(rng, K, 1), random(rng, K*N, 1), random(rng, N*K, 1)
 	xm := random(rng, 70*K, 1)
 	xs, gm := random(rng, R*D, 1), random(rng, D, 1)
+	aq, ak := random(rng, 4*4*64, 1), random(rng, 300*2*64, 1)
 	run := func() [][]uint32 {
 		var out [][]uint32
 		x := tensor.NewOn(gpuDevice, x1, 1, K)
@@ -196,6 +205,9 @@ func TestSmCountDoesNotChangeBits(t *testing.T) {
 			tensor.Mul(y, y).SumAll().Backward()
 			out = append(out, bitsOf(gv.Grad()), bitsOf(xv.Grad()))
 		}
+		q := tensor.NewOn(gpuDevice, aq, 4, 4, 64)
+		out = append(out, bitsOf(tensor.Attention(q, tensor.NewOn(gpuDevice, ak[:40*2*64], 40, 2, 64), tensor.NewOn(gpuDevice, ak[:40*2*64], 40, 2, 64), tensor.AttentionOptions{Causal: true})))
+		out = append(out, bitsOf(tensor.Attention(q, tensor.NewOn(gpuDevice, ak, 300, 2, 64), tensor.NewOn(gpuDevice, ak, 300, 2, 64), tensor.AttentionOptions{Causal: true})))
 		return out
 	}
 	old := sd.smCount
@@ -204,7 +216,7 @@ func TestSmCountDoesNotChangeBits(t *testing.T) {
 	one := run()
 	sd.smCount = 128
 	many := run()
-	names := []string{"gemv", "gemv devrik", "döşemeli çarpım", "LayerNorm γ'", "LayerNorm x'", "RMSNorm γ'", "RMSNorm x'"}
+	names := []string{"gemv", "gemv devrik", "döşemeli çarpım", "LayerNorm γ'", "LayerNorm x'", "RMSNorm γ'", "RMSNorm x'", "dikkat (bölünmüş, tek parça)", "dikkat (bölünmüş, çok parça)"}
 	for i := range one {
 		sameBitsAt(t, names[i]+": SM 128 ile SM 1", many[i], one[i])
 	}

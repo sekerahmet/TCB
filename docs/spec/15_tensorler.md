@@ -314,7 +314,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - **Cihaz türleri arasında** bit eşitliği söz verilmez: ondalık toplamın biriktirme yolu CPU'da ve GPU'da ayrıdır (15.50'nin sınır cümlesi) ve son bitlerde ayrılabilir. Farklı GPU modelleri arasında bit eşitliği söz verilmez: kartın mimarisine göre seçilen yollar ayrılabilir (ör. dikkatin tensör çekirdekli yolu). Bu iki cümlenin istisnası 15.53a'nın tamsayı çarpımıdır: CPU'da ve her GPU modelinde aynı bitleri verir (sonlu olmayan satır 15.53a'da).
 - Tam sayı ve mantık indirgemeleri, `TR_max`/`TR_min`/`TR_argmax`/`TR_argmin`, `TR_topk` ve `TR_argsort` cihazdan bağımsız aynı sonucu verir.
 - Cihaz türleri arasındaki farkın sınırı 15.41'dedir.
-- *Test:* TR testi (`tests/tensor_kayik_gorunum_test.tr`); Go: `TestSumParallelPaths`, `TestSumAllParallel`, `TestParallelKernelsMatchSerial`, `TestDeterministic`, `TestMisalignedViewsMatchBits`, `TestSmCountDoesNotChangeBits`, `TestGemmPaddingKeepsNegativeZero`, `TestGemvConfigIsFixed`.
+- *Test:* TR testi (`tests/tensor_kayik_gorunum_test.tr`); Go: `TestSumParallelPaths`, `TestSumAllParallel`, `TestParallelKernelsMatchSerial`, `TestDeterministic`, `TestMisalignedViewsMatchBits`, `TestSmCountDoesNotChangeBits`, `TestGemmPaddingKeepsNegativeZero`, `TestGemvConfigIsFixed`, `TestAttentionSplitConfigIsFixed`, `TestAttentionSplitSelection`.
 
 **15.22b** Sıralama sırası. Tanımı 13.10'dadır ("sıralanabilir" kısıtının yanında: −0.0 < 0.0, NaN her sayıdan büyük; işleçler, 4.4 ve 4.5, ise IEEE 754 karşılaştırmasıdır). Tensörde bu sırayı **bütünüyle** kullananlar: `TR_topk` ve `TR_argsort`. `TR_max`, `TR_min`, `TR_argmax`, `TR_argmin`, `TR_maximum` ve `TR_minimum` (15.16a) onu NaN dışındaki sayılarda kullanır (−0.0 < 0.0); NaN'ı ise yayar ya da ilk NaN'ı seçer (15.18, 15.19).
 - *Test:* TR testi; Go: `TestMaxNegativeZeroOrder`, `TestArgSortAndTopK`, `TestSpecialValuesTable`, GPU'da `TestMax` ve `TestSort`; `TR_argmin`, `TR_maximum` ve `TR_minimum` uygulanınca TR testi.
@@ -361,7 +361,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Hiçbir anahtara bakamayan satırın çıktısı 0'dır. Puanları NaN olan satırın çıktısı ve gradyanı NaN'dır; maskeli satırın 0'ıyla karışmaz. Maskelenen anahtardaki NaN satıra sızmaz.
 - Hesap tek bir türev düğümüdür; `Tq × Tk` matris tutulmaz (bellek uzunlukla doğrusaldır), pencere ve nedensellik dışındaki bloklar hesaplanmaz, geri yayılım puanları yeniden hesaplar. Bir cihaz bu düzeni doğrudan hesaplayamıyorsa girdiler içeride görünümle çevrilir; sonuç aynıdır. `TR_mixed_precision` bloğunda `@` gibidir (15.4).
 - Bilinmeyen adlı argüman (`TR_scale:`) hatadır; şekil hatalarının iletisi şekilleri söyler.
-- *Test:* TR testi ("15.24 dikkatin maskesi yalnız TR_Bool: ondalık, tam sayı ve −∞ maske hatadır").
+- *Test:* TR testi ("15.24 dikkatin maskesi yalnız TR_Bool: ondalık, tam sayı ve −∞ maske hatadır"); Go: `TestAttentionSplitHiddenNaN`.
 
 **15.25** `TR_linear_cross_entropy(x, w, hedef)` `TR_cross_entropy(x @ w, hedef)` ile aynı kaybı ve gradyanları verir (float32 yuvarlama farkıyla), ama logit matrisini bütün olarak hiç tutmaz: büyük sözlüklü dil modelinin çıkış katmanı içindir.
 - `x` `[..., D]`, `w` `[D, sınıf]` (`x @ W` düzeni); paylaşımlı gömmede `tablo.TR_transpose()` (görünüm) verilir. Şekiller uymazsa ileti iki şekli söyler.

@@ -717,7 +717,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-300 Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_attention`'ın `TR_bias:` argümanı (S-303 buna bağlı).
 - **S-302 Mevcut durum (sınır):** dikkat ölçeği bakış boyutundan farklı Gemma 3 27B (`query_pre_attn_scalar` 168) yüklenmez, H7177; GGUF'ta yalnız `block_count` 18, 26, 34, 48 ve bakış boyutu 256 yüklenir [test: `TestGemma3GGUFGates`].
 - **S-303 Yapılacaklar:** tamamen −∞ sapmalı satır 0 verir, CPU'da ve GPU'da (15.24; `TR_bias:` gelince, S-300). CPU'da tamamen maskeli `TR_Bool` satırı 0 veriyor [ölçüldü: trlang run, `ae1e8dcc`]; GPU ölçülmedi.
-- **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): maskeli anahtarın V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. CPU dikkatinin karo çarpımları bakılmayan satırları sıfırlamadan çarpıyor [hipotez]; GPU çekirdeği de denetlenmeli. Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
+- **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. Bölünmüş GPU yolunda kapandı (`TestAttentionSplitHiddenNaN`); kalan: iki GPU ileri yolu, GPU'nun geri yönü (dS·K), CPU (karo çarpımları bakılmayan satırı sıfırlamıyor [hipotez]). Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
 
 ### 15.27
 
@@ -857,7 +857,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (E, Ö3; sahip T1):** üretim (tek satır) T4'te `188762800`'den yavaş, sınırda [ölçüldü: TG-2026-11-25-T4GPU-T1-1], neden [hipotez: her blok satırı yeniden nicemler]; A100'de float yolundan ayrılmadı [ölçüldü: TG-2026-11-25-A100GPU-T1-2]. L4 ve G4'te okuma ve üretim, q4 model hiçbir kartta ölçülmedi. GPU'nun sonlu olmayan satırı ara taşmada AVX2'li CPU'dan ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: T4'te profil; L4 ve G4'ün ilk makinesinde S1; q4 üretimi.
+- **S-396 Yapılacaklar (E, Ö3; sahip T1):** üretim T4'te `188762800`'den yavaş, sınırda [ölçüldü: TG-2026-11-25-T4GPU-T1-1], neden [hipotez: her blok satırı yeniden nicemler]; A100'de float'tan ayrılmadı [ölçüldü: TG-2026-11-25-A100GPU-T1-2]. Bu kodla L4 ve G4, q4 modelle hiçbir kart ölçülmedi. Bölünmüş dikkatin kuralı L4, G4, T4'te ölçülmedi. Sonlu olmayan satır ara taşmada AVX2'li CPU'dan ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: T4 profili; L4, G4'te S1 ve dikkat hızı; q4.
 
 ### 15.54
 

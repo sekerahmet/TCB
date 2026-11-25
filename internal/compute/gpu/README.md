@@ -23,6 +23,10 @@ verir (`kernel_elementwise.go` `keepsZero`); gerçek toplamlar sonda +0 ekler, k
 indirgemeler −0'ı korur (`reduceConfig.plusZero`). Denetim: `TestSpecialValuesSameOnBothDevices`,
 `TestSpecialValuesTable`.
 
+**Bakılmayan anahtar satıra katılmaz.** Bölünmüş dikkat (`kernel_flash_split.go`) görünmeyen (satır, anahtar)
+çiftini toplama hiç sokmaz: anahtarın K ya da V'sindeki NaN bakmayan satıra sızmaz (dil tanımı 15.24). Birleşik
+ileri yol ve geri yön henüz böyle değildir (S-304). Denetim: `TestAttentionSplitHiddenNaN`.
+
 **GPU yoksa zarif.** Sürücü ya da kart yoksa program çökmez; GPU görünmez olur ve nedeni
 sorulabilir. Denetim: `TestNoDriverGraceful`.
 
