@@ -102,6 +102,7 @@ Emsallerin ve ortamın makine başına geçerli sürümü. Yeni sürümle ölçe
 | llama.cpp | LAPTOP | b12124 |
 | llama.cpp | L4CPU | b12124 |
 | llama.cpp | L4GPU | b12124 |
+| llama.cpp | A100GPU | b12124 |
 | llama.cpp | G4CPU | b12124 |
 | llama.cpp | HIGHRAM | b12124 |
 | sürücü | L4GPU | 580.82.07 |
