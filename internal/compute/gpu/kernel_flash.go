@@ -53,6 +53,9 @@ func (a flashConfig) smBytes(backward bool) int {
 	return 4 * (a.Bc*(dh+dv) + a.Br*(dh+dv) + a.Br*(a.Bc+1))
 }
 
+// flashMaxTile pickFlash'ın en büyük döşemesidir (sorgu ve anahtar satırı).
+const flashMaxTile = 64
+
 // pickFlash boylara uyan en büyük döşemeyi seçer; uyan yoksa tamam yanlış (dikkat matris
 // çarpımı yoluyla yapılır). İleri yön statik paylaşımlı belleğe (48 KB) sığar; geri yön
 // kartın blok başına açtığı paylaşımlı belleği (sinir, ör. 99 KB) kullanabilir: 64×64
@@ -62,7 +65,7 @@ func pickFlash(Dh, Dv int, mask2, backward bool, limit int) (flashConfig, bool) 
 	if !backward {
 		limit = staticSharedMemLimit
 	}
-	for _, d := range [][2]int{{64, 64}, {64, 32}, {32, 32}, {32, 16}, {16, 16}} {
+	for _, d := range [][2]int{{flashMaxTile, flashMaxTile}, {64, 32}, {32, 32}, {32, 16}, {16, 16}} {
 		a := flashConfig{Br: d[0], Bc: d[1], Dh: Dh, Dv: Dv, mask2: mask2}
 		if backward && a.Br != a.Bc {
 			continue
