@@ -28,9 +28,8 @@ Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
 **Ö0, sırayla:**
-1. 15.24, çok büyük `TR_window` (A; sahip T1).
-2. 15.23c, evrişimin çok büyük adımı ve dolgusu (A; sahip T1).
-3. 15.23c, evrişimin 2⁶⁰ ve üstü dolgusunun kırpılması (A; sahip T1).
+1. 15.23c, evrişimin çok büyük adımı ve dolgusu (A; sahip T1).
+2. 15.23c, evrişimin 2⁶⁰ ve üstü dolgusunun kırpılması (A; sahip T1).
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -721,7 +720,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-298 Yapılacaklar (D, Ö3; sahip T1):** 15.24'ün "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (S-222) uygulanır.
 - **S-299 Mevcut durum:** `TR_attention`'da `TR_bias:` yok (15.24): çağrı H7901 veriyor, geçerli adlar `TR_causal`, `TR_window`, `TR_mask` [ölçüldü: trlang run, `ae1e8dcc`].
 - **S-300 Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_attention`'ın `TR_bias:` argümanı (S-303 buna bağlı).
-- **S-714 Yapılacaklar (A, Ö0; sahip T1, Dilim D):** büyük `TR_window` (15.24) sessizce yanlış. GPU'da 2³¹ − 1: iki yönlüde birleşik ve bölünmüş yol 0, çarpım yolu yanlış; nedenselde Tq > Tk iken ilk ikisi 0; 2³²'de iç panik [ölçüldü: benzetici, `50a7715c`; kanıtlı: internal/compute/gpu/attention.go:49], kartta [hipotez]. CPU'da 2⁶³ − 1: iki yönlüde ve o nedenselde 0 [ölçüldü: trlang run, `b83cdd5f`; kanıtlı: internal/compute/tensor/attention.go:74, :76]. Sıradaki: max(Tq, Tk, 1)'e kırpmak.
 - **S-302 Mevcut durum (sınır):** dikkat ölçeği bakış boyutundan farklı Gemma 3 27B (`query_pre_attn_scalar` 168) yüklenmez, H7177; GGUF'ta yalnız `block_count` 18, 26, 34, 48 ve bakış boyutu 256 yüklenir [test: `TestGemma3GGUFGates`].
 - **S-303 Yapılacaklar:** tamamen −∞ sapmalı satır 0 verir, CPU'da ve GPU'da (15.24; `TR_bias:` gelince, S-300). CPU'da tamamen maskeli `TR_Bool` satırı 0 veriyor [ölçüldü: trlang run, `ae1e8dcc`]; GPU ölçülmedi.
 - **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. Bölünmüş GPU yolunda (ek maske girmez) kapandı (`TestAttentionSplitHiddenNaN`); kalan: iki GPU ileri yolu, GPU'nun geri yönü (dS·K), CPU (karo çarpımları bakılmayan satırı sıfırlamıyor [hipotez]). Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.

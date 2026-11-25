@@ -285,8 +285,12 @@ func TestAttentionSplitEdges(t *testing.T) {
 		}
 	}
 	// Puanı −∞ olan satır (bütün anahtarları, ya da tek anahtar): K'nin 0. öğesi artı, q'nunki −∞; K'nin bir satırı −∞.
-	for _, row := range []bool{true, false} {
-		d := splitCase{1, 4, 2, 3, 50, 64, tensor.AttentionOptions{Causal: true}}
+	// Tek parça (Tk 50) ve çok parça (Tk 270: 6 satır R = 8'dir, parça 256 anahtar).
+	for _, c := range []struct {
+		row bool
+		tk  int
+	}{{true, 50}, {false, 50}, {true, 270}, {false, 270}} {
+		d, row := splitCase{1, 4, 2, 3, c.tk, 64, tensor.AttentionOptions{Causal: true}}, c.row
 		qv, kv, vv := splitInputs(rng, d, 1, 1)
 		for i := 0; i < len(kv); i += d.D {
 			kv[i] = 1 + kv[i]*kv[i]
@@ -300,11 +304,11 @@ func TestAttentionSplitEdges(t *testing.T) {
 			kv[7*d.Hkv*d.D] = float32(math.Inf(-1)) // 7. anahtar, 0. anahtar bakışı
 		}
 		compare(t, fmt.Sprintf("%v −∞ satır %v", d, row), 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			q, k, v := splitTensors(qv, kv, vv, false, d, c)
+			q, k, v := splitTensors(qv, kv, vv, true, d, c)
 			if c == 0 {
-				return tensor.Attention(q, k, v, d.opt), nil
+				return tensor.Attention(q, k, v, d.opt), []*tensor.Tensor{q, k, v}
 			}
-			return splitAttention(t, "bolme", q, k, v, d.opt), nil
+			return splitAttention(t, "bolme", q, k, v, d.opt), []*tensor.Tensor{q, k, v}
 		})
 	}
 	// Bakan anahtarı olmayan satır: O = 0.

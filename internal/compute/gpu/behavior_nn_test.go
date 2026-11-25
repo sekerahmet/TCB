@@ -436,3 +436,45 @@ func TestLinearCrossEntropy(t *testing.T) {
 		})
 	}
 }
+
+// TestAttentionHugeWindow: max(Tq, Tk)'yı aşan pencere kartta da penceresizle aynıdır (15.24), öntanımlı seçimde ve zorlanan üç
+// yolda: ileri ve geri penceresiz CPU ile 1e-5 içinde, W = max(Tq, Tk)'nınkiyle bit bit. Sınırlar kartta s32'dedir (attnLimits).
+func TestAttentionHugeWindow(t *testing.T) {
+	skipUnderRace(t)
+	rng := rand.New(rand.NewSource(25))
+	windows := []int{1<<31 - 1, math.MaxInt}
+	if !inSim() { // benzetici yavaş; öbür değerler CPU testinde (TestAttentionWindowClamp) ve kartta
+		windows = []int{1<<31 - 2, 1<<31 - 1, 1 << 31, 1<<32 - 1, 1 << 32, math.MaxInt}
+	}
+	for _, d := range []splitCase{{1, 1, 1, 6, 3, 32, tensor.AttentionOptions{}}, {1, 1, 1, 3, 3, 32, tensor.AttentionOptions{}}, {1, 1, 1, 2, 5, 32, tensor.AttentionOptions{}}} {
+		qv, kv, vv := splitInputs(rng, d, 1, 1)
+		weight := random(rng, len(qv), 1)
+		for _, causal := range []bool{false, true} {
+			run := func(c, w int) (*tensor.Tensor, []*tensor.Tensor) {
+				q, k, v := splitTensors(qv, kv, vv, true, d, c)
+				return tensor.Attention(q, k, v, tensor.AttentionOptions{Causal: causal, Window: w}), []*tensor.Tensor{q, k, v}
+			}
+			bits := func(w int) (all []uint32) {
+				y, leaves := run(1, w)
+				tensor.Mul(y, tensor.NewOn(gpuDevice, weight, y.Shape()...)).SumAll().Backward()
+				all = bitsOf(y)
+				for _, x := range leaves {
+					all = append(all, bitsOf(x.Grad())...)
+				}
+				return all
+			}
+			for _, path := range []string{"", "birlesik", "bolme", "carpim"} {
+				withAttnPath(path, func() {
+					name := fmt.Sprintf("%v nedensel %v yol %q", d, causal, path)
+					for _, w := range []int{0, 1<<31 - 1} {
+						compare(t, fmt.Sprintf("%s pencere %d", name, w), 1e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) { return run(c, c*w) })
+					}
+					want := bits(max(d.Tq, d.Tk))
+					for _, w := range windows {
+						sameBitsAt(t, fmt.Sprintf("%s pencere %d ile max(Tq, Tk)", name, w), bits(w), want)
+					}
+				})
+			}
+		}
+	}
+}

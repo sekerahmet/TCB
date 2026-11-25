@@ -85,14 +85,20 @@ func TestAttentionSplitSelection(t *testing.T) {
 		{splitCase{B: 4, H: 32, Hkv: 8, Tq: 4, Tk: 255, D: 128}, false},
 		{splitCase{B: 1, H: 8, Hkv: 8, Tq: 9, Tk: 1024, D: 32}, true},
 		{splitCase{B: 1, H: 8, Hkv: 8, Tq: 9, Tk: 1023, D: 32}, false},
-		// Pencere: satırın gördüğü anahtara bakılır (nedenselde Window, değilse 2·Window − 1), en az 256; Tk'yı kapsayan
-		// pencere pencere değildir.
+		// Pencere: satırın gördüğü anahtara bakılır (nedenselde Window, değilse Window + min(Window, Tq) − 1), en az 256;
+		// Tk'yı kapsayan pencere pencere değildir.
 		{splitCase{1, 32, 8, 1, 1500, 128, tensor.AttentionOptions{Causal: true, Window: 256}}, true},
 		{splitCase{1, 32, 8, 1, 1500, 128, tensor.AttentionOptions{Causal: true, Window: 255}}, false},
 		{splitCase{1, 8, 8, 8, 1500, 96, tensor.AttentionOptions{Causal: true, Window: 256}}, true},
 		{splitCase{1, 8, 8, 8, 1500, 96, tensor.AttentionOptions{Causal: true, Window: 255}}, false},
-		{splitCase{1, 8, 8, 1, 1500, 64, tensor.AttentionOptions{Window: 129}}, true},
-		{splitCase{1, 8, 8, 1, 1500, 64, tensor.AttentionOptions{Window: 128}}, false},
+		{splitCase{1, 8, 8, 1, 1500, 64, tensor.AttentionOptions{Window: 256}}, true},
+		{splitCase{1, 8, 8, 1, 1500, 64, tensor.AttentionOptions{Window: 255}}, false},
+		{splitCase{1, 8, 8, 8, 1500, 64, tensor.AttentionOptions{Window: 249}}, true},
+		{splitCase{1, 8, 8, 8, 1500, 64, tensor.AttentionOptions{Window: 248}}, false},
+		{splitCase{1, 8, 8, 9, 1500, 32, tensor.AttentionOptions{Window: 1016}}, true},
+		{splitCase{1, 8, 8, 9, 1500, 32, tensor.AttentionOptions{Window: 1015}}, false},
+		{splitCase{1, 4, 4, 200, 1500, 128, tensor.AttentionOptions{Window: 129}}, true}, // Window < Tq: 2·Window − 1
+		{splitCase{1, 4, 4, 200, 1500, 128, tensor.AttentionOptions{Window: 128}}, false},
 		{splitCase{1, 8, 8, 9, 1500, 32, tensor.AttentionOptions{Causal: true, Window: 1024}}, true},
 		{splitCase{1, 8, 8, 9, 1500, 32, tensor.AttentionOptions{Causal: true, Window: 1023}}, false},
 		{splitCase{1, 32, 8, 64, 1500, 128, tensor.AttentionOptions{Causal: true, Window: 256}}, true},
@@ -132,7 +138,9 @@ func TestAttentionSplitSelection(t *testing.T) {
 		{splitCase{B: 1, H: 8, Hkv: 8, Tq: 1, Tk: 100, D: 48}, false},
 	} {
 		if _, got := g.splitFits(false, splitParams(c.d)); got != c.want {
-			t.Errorf("%v: bölünmüş yol %v, beklenen %v", c.d, got, c.want)
+			d := c.d
+			d.opt.Causal = splitParams(c.d).Causal
+			t.Errorf("%v: bölünmüş yol %v, beklenen %v", d, got, c.want)
 		}
 	}
 	one := splitParams(splitCase{B: 1, H: 8, Hkv: 8, Tq: 1, Tk: 100, D: 64})
@@ -162,8 +170,8 @@ func TestAttentionSplitSelection(t *testing.T) {
 }
 
 // splitSpeedCases TestAttentionSplitSpeed'in ızgarası (tasarım, B4): G = 4 ve D 128'in derinlikleri; D 32–128'de G = 1 (D 128'de 2 de)
-// kuralın sınırında ve üstünde; az sorgunun (R = 4, 8, 16) kısa ve uzun anahtarı, toplular, pencereler; G 7, 16 ve 2; çapraz
-// dikkat, toplu üretim.
+// kuralın sınırında ve üstünde; az sorgunun (R = 4, 8, 16) kısa ve uzun anahtarı, toplular, pencereler (nedensel ve iki yönlü);
+// G 7, 16 ve 2; çapraz dikkat, toplu üretim.
 func splitSpeedCases() []splitCase {
 	causal, cross := tensor.AttentionOptions{Causal: true}, tensor.AttentionOptions{}
 	var cs []splitCase
@@ -207,6 +215,15 @@ func splitSpeedCases() []splitCase {
 		add(1, 24, 12, 8, tk, 96, causal)
 		add(8, 24, 12, 8, tk, 96, causal)
 	}
+	for _, tq := range []int{8, 16} {
+		for _, w := range []int{129, 200, 249} {
+			add(1, 12, 12, tq, 1500, 64, tensor.AttentionOptions{Window: w})
+		}
+	}
+	for _, tq := range []int{9, 16} {
+		add(1, 12, 12, tq, 1500, 32, tensor.AttentionOptions{Window: 1016})
+	}
+	add(1, 24, 12, 8, 1500, 96, tensor.AttentionOptions{Causal: true, Window: 256})
 	add(1, 12, 12, 16, 320, 64, causal)
 	for _, c := range [][3]int{{1, 4140, 512}, {40, 4140, 512}, {1, 1500, 0}, {1, 1500, 256}, {8, 1500, 256}, {40, 1500, 256}} {
 		add(1, 32, 8, c[0], c[1], 128, tensor.AttentionOptions{Causal: true, Window: c[2]})

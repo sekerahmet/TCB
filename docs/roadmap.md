@@ -309,7 +309,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     - Küçük bir modelin profili (DENETİM, 2026-11-02) yükün çoğunu tensör yerleşiklerinde, azını yorumlayıcıda gösterdi; sayılar klasörde satır değil, commit'i yazılmamış (`docs/measurements.md@e23b0113:293`, git geçmişi), gerçek modelin profili yok. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
     - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
       - bölümü olmayanlar: canlı ses (ilk sürüm dış programla), gömme; ses üretimi için fonemleştirme. Dış programlar ve bayttan sayı 21 ve 22'de, sohbet biçimi 24'te;
-      - 15'in sonraya bıraktıkları: ses üretimi için ters evrişim, ONNX okuma ve ters Fourier dönüşümleri (`irfft`, `istft`; emsali 23'ün gerekçesinde). STFT ve Mel artık 23'te;
+      - 15'in sonraya bıraktıkları: ses üretimi için ters evrişim ve ONNX okuma. STFT, Mel ve ters Fourier dönüşümleri artık 23'te;
     - Jarvis'in istediği bölümler (21–25) yazıldı; denetim durumları status'un bölüm başlarında. Yeni bölüm yazımı, sıradaki dil işi uygulama olana dek durur (Ahmet, 2026-11-02: "mevcutlar bitsin"); önce status'un önem taramasındaki öncelikli işler (status "Önem ve öncelik").
     - Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar; ses üretiminin üç işi de bu karara girer (Ahmet, 2026-11-02). Uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
