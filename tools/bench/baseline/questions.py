@@ -921,8 +921,8 @@ SOUND_RATE = 16000  # Whisper's rate (lib/audio.tr _WHISPER_HIZI); Piper speaks 
 def make_sounds(ctx):
     """Makes O-7's sounds with TR's voices (Piper noise 0, MMS the model's noise with the fixed seed) and their sha256.
 
-    Every sound is 16 kHz mono 16-bit: ffmpeg resamples the voice's WAV (TR has no resampler; lib/audio.tr's message
-    gives the same ffmpeg command). Dost's fake microphone reads any rate through ffmpeg; S5's programs need 16 kHz."""
+    Every sound is 16 kHz mono 16-bit: ffmpeg resamples the voice's WAV (TR_resample does it too; the sounds stay
+    ffmpeg's). Dost's fake microphone reads any rate through ffmpeg; S5's programs need 16 kHz."""
     os.makedirs(ctx.sound(""), exist_ok=True)
     r = ctx.rp.run_once(["ffmpeg", "-version"])
     ctx.log({"sounds_ffmpeg": r["stdout"].splitlines()[0] if r["rc"] == 0 and r["stdout"] else r["stderr"][-200:]})
