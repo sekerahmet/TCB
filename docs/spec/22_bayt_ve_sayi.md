@@ -54,7 +54,10 @@ TR_print(başlık.TR_read_int(24, TR_dtype: "uint32", TR_byte_order: "little")) 
 - `TR_write_wav(yol, ses)` 16 bit tam sayı PCM yazar. Ondalık değer 32767 ile çarpılır ve en yakın tam sayıya yuvarlanır; yarım çifte gider (13.1, 15.16a). Boş ses hatadır: `TR_read_wav` onu geri okuyamaz.
   - [-1, 1] dışındaki ve NaN örnek hatadır: taşan bir ses sessizce kırpılmaz (15.49). İleti ilk böyle örneğin indeksini ve değerini söyler. Aralık dışında kırpmanın açık yazımını önerir: `TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`; NaN ve sonsuzda önermez, çünkü `TR_clamp` NaN'ı değiştirmez, sonsuzu sessizce sınıra indirir (15.13); yukarıdaki bir hesabın bozulduğunu söyler.
   - Okuma 32768'e böler, yazma 32767 ile çarpar: okunup yeniden yazılan dosyanın bazı örnekleri bir birim değişir, kopya kayıpsız değildir.
-- Yeniden örnekleme kitaplıkta yoktur; `ffmpeg` ile yapılır (21.1'in örneğindeki `-ar 16000`).
+- `TR_resample(ses, TR_sample_rate: r)` sesi `r` hızına yeniden örnekler ve yeni bir `TR_Sound` verir; örneklerin şekli `[kanal, ⌈örnek · r / r₀⌉]`'dır, `r₀` sesin hızıdır. Kanallar ayrı süzülür; gecikme yoktur, sesin iki ucunun dışı sıfır sayılır.
+  - Süzgeç Kaiser pencereli sinc'tir: iki hızın küçüğünün yarısının 0,9 katına kadar kazanç 1'dir (±0,01 dB), yarısından yukarısı en az 100 dB kısılır. Hesap ve sonuç float32'dedir (başka hassasiyetteki örnekler önce float32'ye çevrilir), sesin cihazında kalır ve türev izler. `r = r₀` ise örnekler süzülmez.
+  - Denetim sırası: şekil ve hız (`TR_Sound`'un kendi denetimi); örneği olmayan ses; NaN ya da sonsuz örnek, ileti ilk böyle örneğin kanalını ve indeksini söyler; hız oranı. Süzgeç tablosu 16 777 216 katsayıyı aşan oran (ortak böleni küçük iki hız: 44 100 → 44 099) çalışma hatasıdır. Sınır bu uygulamanındır, kaynak sınırı değildir (15.42); 8 000, 11 025, 16 000, 22 050, 24 000, 32 000, 44 100, 48 000, 96 000 ve 192 000'in bütün çiftleri sınırın altındadır.
+  - Sonuç [-1, 1]'i biraz aşabilir; `TR_write_wav` aşan örnekte hata verir.
 
 ```tr
 # TR 4
@@ -62,9 +65,10 @@ TR_import "tr/audio"
 TR_var ses = TR_read_wav("soru.wav")
 TR_print(ses.TR_sample_rate, ses.TR_samples.TR_shape)
 TR_var tek_kanal = ses.TR_samples[0] # şekli [örnek]
+TR_var on_altı = TR_resample(ses, TR_sample_rate: 16000)
 ```
 
-- *Test:* Go: `TestWavMessagesGiveTheFix`, `FuzzReadWav`; kitaplık testi `lib/audio_test.tr`.
+- *Test:* Go: `TestWavMessagesGiveTheFix`, `FuzzReadWav`; kitaplık testi `lib/audio_test.tr` (`TR_resample`'ın bant tepkisi, soxr HQ'ya yakınlığı, kapıları ve boyu).
 
 **22.5** `TR_sha256(b)` baytların (`TR_Bytes`, 3.3a), `TR_sha256_file(yol)` bir dosyanın baytlarının sha256 karmasını verir. İkisinin sonucu da 64 küçük onaltılık karakterli bir `TR_String`'dir: 20.5'in `digest.json`'u ve Hugging Face'in `lfs.oid`'iyle aynı biçim; karşılaştırma `==` ile yapılır.
 - `TR_sha256_file` diskteki baytı karmalar: `.gz` dosyayı açmaz (`TR_read_bytes` gibi, 18.12). Dosyayı akışla okur, bellek dosyanın boyutundan bağımsızdır; okurken kilidi bırakır (10.3). Yol 18.16'nın okuma kuralıyla çözülür; olmayan dosya ve klasör hatadır.

@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 803 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 188 fonksiyon, 13 sabit, 95 metot, 148 özellik, 201 adlı argüman.
+Toplam 804 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 189 fonksiyon, 13 sabit, 95 metot, 148 özellik, 201 adlı argüman.
 
 ## İçindekiler
 
@@ -3525,6 +3525,12 @@ tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.
 ```
 
 İlişkili: `TR_fuse(...)`
+
+#### `TR_resample(...)` (`TR_fn_resample`, `yeniden_örnekle`)
+
+    yeniden_örnekle()
+
+
 
 #### `TR_rfft(...)` (`TR_fn_rfft`, `gerçek_fourier`)
 
