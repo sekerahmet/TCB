@@ -675,6 +675,7 @@
   "TR_mem_transcribe": { "name": "transcribe" },
   "TR_mem_transpose": { "name": "transpose" },
   "TR_mem_truncate": { "name": "truncate" },
+  "TR_mem_unicode_normalize": { "name": "unicode_normalize" },
   "TR_mem_unique": { "name": "unique" },
   "TR_mem_up_proj": { "name": "up_proj" },
   "TR_mem_update": { "name": "update" },

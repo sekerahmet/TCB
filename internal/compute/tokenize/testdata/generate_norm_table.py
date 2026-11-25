@@ -6,7 +6,7 @@ Go standart kütüphanesinde Unicode normalleştirme verisi yoktur. Ayrıştırm
 bilgisi Python'un `unicodedata` modülünden alınır; ancak başvuru uygulaması
 (`tokenizers`) daha eski bir Unicode sürümünün tablolarını kullandığından,
 her kod noktası kütüphanede yoklanır ve yalnızca kütüphanenin de bildiği
-ayrıştırmalar / birleşim sınıfları tabloya girer. Sonuç ../normtablo.go'dur.
+ayrıştırmalar / birleşim sınıfları tabloya girer. Sonuç ../norm_table.go'dur.
 
 Kullanım (depo kökünden):
     python -X utf8 internal/compute/tokenize/testdata/generate_norm_table.py
@@ -20,7 +20,7 @@ from tokenizers import normalizers as nz
 import tokenizers
 
 BURASI = os.path.dirname(os.path.abspath(__file__))
-HEDEF = os.path.join(os.path.dirname(BURASI), "normtablo.go")
+HEDEF = os.path.join(os.path.dirname(BURASI), "norm_table.go")
 
 
 def main():

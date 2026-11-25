@@ -1,0 +1,45 @@
+# TR 4
+# Metnin Unicode biçimi (13.2).
+
+TR_test "13.2 TR_unicode_normalize dört biçimi verir" {
+    TR_assert_equal("\u{E9}", "e\u{301}".TR_unicode_normalize("NFC"))
+    TR_assert_equal("e\u{301}", "\u{E9}".TR_unicode_normalize("NFD"))
+    TR_assert_equal("\u{FB01}\u{B2}", "\u{FB01}\u{B2}".TR_unicode_normalize("NFC"))
+    TR_assert_equal("fi2", "\u{FB01}\u{B2}".TR_unicode_normalize("NFKC"))
+    TR_assert_equal("fie\u{301}", "\u{FB01}\u{E9}".TR_unicode_normalize("NFKD"))
+    TR_assert_equal("\u{4EE4}\u{548C}", "\u{32FF}".TR_unicode_normalize("NFKC"))
+    # Kanonik eşdeğer iki metin her biçimde, uyumluluk eşdeğeri iki metin K'lı biçimlerde aynıdır.
+    TR_for biçim TR_in ["NFC", "NFD", "NFKC", "NFKD"] {
+        TR_assert_equal("\u{E9}".TR_unicode_normalize(biçim), "e\u{301}".TR_unicode_normalize(biçim))
+        TR_assert_equal("a\u{323}\u{301}".TR_unicode_normalize(biçim), "a\u{301}\u{323}".TR_unicode_normalize(biçim))
+        TR_assert_equal("\u{FB01}".TR_unicode_normalize(biçim) == "fi", biçim.TR_contains("K"))
+        TR_assert_equal("", "".TR_unicode_normalize(biçim))
+        TR_assert_equal("Türkçe ğ", "Türkçe ğ".TR_unicode_normalize("NFD").TR_unicode_normalize("NFC"))
+    }
+    # NFC de ayırabilir; metin kendiliğinden çevrilmez.
+    TR_assert_equal(2, "\u{958}".TR_unicode_normalize("NFC").TR_length)
+    TR_assert_equal(TR_false, "e\u{301}" == "\u{E9}")
+    TR_assert_equal("\u{AC01}", "\u{1100}\u{1161}\u{11A8}".TR_unicode_normalize("NFC"))
+}
+
+TR_test "13.2 TR_unicode_normalize standardın vermediği karakteri eklemez, başka alfabenin harfini vermez" {
+    TR_var işaretler = "q"
+    TR_for _ TR_in 0..100 { işaretler += "\u{301}" }
+    TR_for biçim TR_in ["NFC", "NFD", "NFKC", "NFKD"] {
+        TR_assert_equal(işaretler, işaretler.TR_unicode_normalize(biçim))
+        TR_assert_equal("\u{20041}\u{300}", "\u{20041}\u{300}".TR_unicode_normalize(biçim))
+        TR_assert_equal("\u{5D2}\u{307}", "\u{5D2}\u{307}".TR_unicode_normalize(biçim))
+        TR_assert_equal("\u{5DA}\u{307}", "\u{5DA}\u{307}".TR_unicode_normalize(biçim))
+    }
+    TR_assert_equal("\u{105C9}", "\u{105D2}\u{307}".TR_unicode_normalize("NFC"))
+    TR_assert_equal("\u{AC00}\u{16121}", "\u{1100}\u{1161}\u{1611E}\u{1611E}".TR_unicode_normalize("NFC"))
+    TR_assert_equal("\u{16D6A}", "\u{16D63}\u{16D67}\u{16D67}".TR_unicode_normalize("NFC"))
+}
+
+TR_test "13.2 TR_unicode_normalize bilinmeyen biçimde hatadır" {
+    TR_for biçim TR_in ["nfc", "Nfkd", "", "NF", "NFC ", "utf8", "\u{FF2E}FC"] {
+        TR_assert_equal("H2671", TR_error_code { "a".TR_unicode_normalize(biçim) })
+    }
+    # Metinle biçimin yeri değişmişse de.
+    TR_assert_equal("H2671", TR_error_code { "NFC".TR_unicode_normalize("e\u{301}") })
+}

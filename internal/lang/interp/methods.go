@@ -203,6 +203,7 @@ func findMethod(obj Value, cm *coreMethod) *builtinMethod {
 func init() {
 	setupStringMethods()
 	setupCharClassMethods()
+	setupUnicodeFormMethod()
 	setupSearchMethods()
 	setupListMethods()
 	setupDictMethods()

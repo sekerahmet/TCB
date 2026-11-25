@@ -731,6 +731,7 @@
   "TR_mem_transcribe": { "name": "yazıya_çevir", "family": "kitaplık: tr/whisper", "description": "" },
   "TR_mem_transpose": { "name": "devrik", "family": "Tensör", "description": "Tensörün son iki eksenini yer değiştirir. Argüman almaz ve en az 2 boyutlu tensör ister." },
   "TR_mem_truncate": { "name": "kısalt", "family": "kitaplık: tr/layers", "description": "" },
+  "TR_mem_unicode_normalize": { "name": "unicode_normalleştir", "family": "Metin", "description": "Metnin bir Unicode biçimini (UAX #15) verir: \"NFC\", \"NFD\", \"NFKC\" ya da \"NFKD\"; başka biçim hatadır. Aynı karakterin eşdeğer yazımları (é; e ve birleşen işaret) aynı metne döner; K'lı biçimler uyumluluk karakterlerini de açar (ﬁ → fi), geri alınmaz. Yeni bir metin verir." },
   "TR_mem_unique": { "name": "benzersiz", "family": "Liste", "description": "Tekrar eden elemanları atar, her değerin ilk geçtiği sırayı korur. Yeni bir liste verir." },
   "TR_mem_up_proj": { "name": "yukarı", "family": "kitaplık: tr/layers", "description": "" },
   "TR_mem_update": { "name": "güncelle", "family": "İlerleme, KontrolNoktası", "description": "Her çağrı eğitimin bir adım sınırıdır. İlerleme'de çubuğu bir adım ilerletir, verilen ölçüleri (kayıp, öğrenme oranı ...) gösterir, adım: ile tamamlanan adım sayısını o değere getirir ve toplama ulaşınca çubuğu bitirir. KontrolNoktası'nda güncelle(adım) tamamlanan adım sayısını bildirir; her_dakika süresi dolduysa ya da durdurma istendiyse (Ctrl+C) burada kaydeder, kaydettiyse doğru verir." },

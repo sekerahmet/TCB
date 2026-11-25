@@ -510,6 +510,7 @@
 "H2668": "{type}() mantık değerinden sayı kurmaz; `{#if} b {{ 1 }} {#else} {{ 0 }}` yazın",
 "H2669": "{type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur",
 "H2670": "{@JSON} değeri sözlük anahtarı olamaz; önce açın: `{#String}(j)` ya da `{#Int}(j)`",
+"H2671": "{fn}: biçim \"NFC\", \"NFD\", \"NFKC\" ya da \"NFKD\" olmalıdır, {given|q} verildi{form, select, empty {} other {; `.{#unicode_normalize}(\"{form}\")` yazın}}",
 "H2700": "liste {names} ada açılıyor ama {count} öğesi var: öğe sayısı ad sayısıyla aynı olmalı; yalnız baştaki öğeler gerekiyorsa onları indeksle alın: a, b = l[0], l[1]",
 "H2701": "{names} ada {count} değer verildi: her ada bir değer yazılır (a, b = 1, 2); gerekmeyen değerin yerine _ yazılır",
 "H2702": "{value}, {@match|gen} hiçbir koluyla eşleşmedi: eşleşme her durumu kapsar; öbür durumlar için son kol olarak '_ => ...' yazın (_ her şeyle eşleşir)",

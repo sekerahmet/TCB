@@ -731,6 +731,7 @@
   "TR_mem_transcribe": { "kind": "method", "module": "tr/whisper" },
   "TR_mem_transpose": { "kind": "method", "types": ["TR_Tensor"], "returns": "TR_Tensor", "related": ["TR_mem_permute"], "familiar": ["T"], "example": "TR_print(TR_Tensor([[1, 2], [3, 4]]).TR_transpose().TR_tolist)" },
   "TR_mem_truncate": { "kind": "method", "module": "tr/layers" },
+  "TR_mem_unicode_normalize": { "kind": "method", "pure": true, "types": ["TR_String"], "params": ["TR_String"], "returns": "TR_String", "related": ["TR_mem_lower", "TR_mem_strip"], "familiar": ["normalize", "unicode_normalize", "unicodedata"], "example": "TR_print(\"e\\u{301}\".TR_unicode_normalize(\"NFC\") == \"é\", \"ﬁ²\".TR_unicode_normalize(\"NFKC\"))" },
   "TR_mem_unique": { "kind": "method", "pure": true, "types": ["TR_List"], "returns": "TR_List[T]", "example": "TR_print([1, 2, 2, 3, 1].TR_unique())" },
   "TR_mem_up_proj": { "kind": "property", "module": "tr/layers" },
   "TR_mem_update": { "kind": "method", "signatures": { "TR_Progress": { "params": ["TR_Dict?"], "named": [["TR_arg_step", "TR_Int", null]], "returns": "TR_NoneType" }, "TR_Checkpoint": { "params": ["TR_Int"], "returns": "TR_Bool" } }, "related": ["TR_mem_stop", "TR_mem_save"], "familiar": ["update"], "example": "TR_var ç = TR_Progress(10); ç.TR_update({\"kayıp\": 0.5}, TR_step: 5); TR_print(ç)" },
