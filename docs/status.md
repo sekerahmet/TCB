@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlik ve türle başlar: kimlik (S-412), tür (Yapılacaklar ya da Mevcut durum). Madde mesajda, devirde ve denetimde kimlikle anılır, satır numarasıyla anılmaz. Silinen maddenin kimliği `internal/devtools/testrunner/testdata/status_deleted_ids.txt`'ye yazılır ve yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar. Madde alt satırlarıyla en çok 500 harftir. Kimlikli ölçünün sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, saat, tarih ve kanıt etiketinin dışında DENETİM numarası yazılmaz, karar commit mesajında durur [test: `TestStatusItemsFollowTheFormat`]. Türden sonra ayraçta sınıf, öncelik, varsa dilim ve sahip gelir; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı.
 
-**Sıradaki kimlik:** S-713.
+**Sıradaki kimlik:** S-715.
 
 ## Önem ve öncelik
 
@@ -27,7 +27,8 @@ Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da
 - **Ö2:** C; 2. kilometre taşının ve Jarvis'in ön koşulları.
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
-**Ö0, sırayla:** yok.
+**Ö0, sırayla:**
+1. 15.26, ardışık tohumların çekilişi (A; sahip D1).
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -627,7 +628,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 ### 15.16a
 
 - **S-257 Mevcut durum:** `TR_maximum` ve `TR_minimum` `TR_fuse` içinde H3107; tensörde `TR_round` (imzası sayı, `internal/lang/codes/definitions.json:247`) ve `TR_is_nan` yok [ölçüldü: trlang run, `ae1e8dcc`]. Kartta mantık tensörünün `TR_sum`'ı H6969: kart yalnız "int64" topluyor (`internal/compute/gpu/typed_reduce.go:20`).
-- **S-258 Yapılacaklar (E, Ö3):** tensörde `TR_round` ve `TR_is_nan`; TR testi.
+- **S-258 Yapılacaklar (E, Ö3; sahip Motor, sıradaki dokunuş):** tensörde `TR_round` ve `TR_is_nan`; TR testi.
 - **S-259 Yapılacaklar (sınıfsız: hız, Ö3; sahip T1):** `TR_maximum`'un ondalık yolu dört karşılaştırma, iki ters alma ve üç mantık işlemiyle maske kurup `TR_where`'e veriyor (`internal/compute/tensor/extreme.go:29-34`, `:70-81`, `:116-123`). Sıradaki: −0 ve NaN kuralıyla tek geçişli öğe öğe çekirdek, `TR_fuse`'un öğe döngüleriyle aynı işte.
 
 ### 15.17
@@ -715,9 +716,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-298 Yapılacaklar (D, Ö3; sahip T1):** 15.24'ün "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (S-222) uygulanır.
 - **S-299 Mevcut durum:** `TR_attention`'da `TR_bias:` yok (15.24): çağrı H7901 veriyor, geçerli adlar `TR_causal`, `TR_window`, `TR_mask` [ölçüldü: trlang run, `ae1e8dcc`].
 - **S-300 Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_attention`'ın `TR_bias:` argümanı (S-303 buna bağlı).
+- **S-714 Yapılacaklar (A, Ö1, sonraki kod commit'i; sahip T1):** çok büyük `TR_window` (15.24) int64'te taşıyor, `TR_window: 9223372036854775807`'de CPU sessizce sıfır veriyor: iki yönlü kipte `c + Window`, nedensel kipte Tq > Tk iken `c - Window + 1` [ölçüldü: trlang run, `b83cdd5f`; kanıtlı: internal/compute/tensor/attention.go:74, :76]; 2³² ve üstünde GPU iç panik veriyor [kanıtlı: `internal/compute/gpu/launcher.go:176-179`]. Sıradaki: pencereyi max(Tq, Tk)'ya kırpmak.
 - **S-302 Mevcut durum (sınır):** dikkat ölçeği bakış boyutundan farklı Gemma 3 27B (`query_pre_attn_scalar` 168) yüklenmez, H7177; GGUF'ta yalnız `block_count` 18, 26, 34, 48 ve bakış boyutu 256 yüklenir [test: `TestGemma3GGUFGates`].
 - **S-303 Yapılacaklar:** tamamen −∞ sapmalı satır 0 verir, CPU'da ve GPU'da (15.24; `TR_bias:` gelince, S-300). CPU'da tamamen maskeli `TR_Bool` satırı 0 veriyor [ölçüldü: trlang run, `ae1e8dcc`]; GPU ölçülmedi.
 - **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): maskeli anahtarın V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. CPU dikkatinin karo çarpımları bakılmayan satırları sıfırlamadan çarpıyor [hipotez]; GPU çekirdeği de denetlenmeli. Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
+
+### 15.26
+
+- **S-713 Yapılacaklar (A, Ö0; sahip D1):** ardışık tohumların çekilişi sessizce bağımlı: `TR_sample` 10 eşit sınıfta art arda aynı sınıfı 4999'da 0 kez veriyor (tohumsuz 526), `TR_randn`'ın ilk öğesinde ilişki −0,418, `TR_generate`'te tohum 3'ün token'ları 4'ünkinin bir kaymışı, 199/199 (`lib/layers.tr:758`) [ölçüldü: trlang run, `b83cdd5f`]. Kaynak `rand.NewSource` (`internal/stdlib/ml/model_tools.go:335`). Sıradaki: tohumun özetlenmesi, `TR_generate`'te tek üreteç; tohumlu bitler değişir.
 
 ### 15.27
 

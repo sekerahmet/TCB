@@ -11,6 +11,7 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
+- **15.2 ve 15.26, ardışık tohumların bağımsızlığı (2026-11-25, S1'in Chatterbox incelemesi; TCB 17:58; kritik: sessiz yanlış):** 15.26 "Aynı tohum aynı sonucu verir" diyor [kanıtlı: `docs/spec/15_tensorler.md:377`], ayrı tohumlar için susuyor; motorda ardışık tohumların çekilişleri birbirine bağlı (status S-713). Metin: 15.26'ya ve 15.2'nin `TR_randn`'ına "Ayrı tohumların çekilişleri birbirinden bağımsızdır, ardışık tohumların da." D1'in dilimiyle yazılır.
 - **15.55, `TR_config`'in anahtarları Türkçe sözcükler (2026-11-11, DENETİM 457 B1; main'in kalıbı):** hazır modelin `model.TR_config`'i `"bağlam"`, `"dağarcık"`, `"katman"`, `"rope_tabanı"` anahtarlarını taşıyor (`lib/layers.tr:544`) ve örnek 46 kullanıcıya `model.TR_config["bağlam"]`'ı öğretiyor; İngilizce okuyan ajan da Türkçe sözcük yazmak zorunda. CLAUDE.md'nin "hiçbir dilin ayrıcalığı yoktur" ilkesine aykırı. 20.12 ve 20.13'ün durum sözlükleri dilden bağımsız anahtar seçmiş. Karar (TCB 2026-11-11 23:14): anahtarlar dilden bağımsız olur ya da ayarlar yapının kendi alanlarına (kimliklere) geçer; seçim ve göç D1'in Teslim B'sinden sonra ayrı dilim, metni o dilimde. Seçime kadar `TR_config`'e yeni anahtar eklenmez; D1 Teslim A'nın eklediği altı anahtar A2'de `_aile`'ye taşınıyor (DENETİM 463 N5).
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
