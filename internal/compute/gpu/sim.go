@@ -302,7 +302,11 @@ func (b *simDriver) launch(fn uintptr, grid, block [3]uint32, sharedMem uint32, 
 		return 400
 	}
 	is := b.fns[fn-1]
-	if (sharedMem > 0) != is.dynamic || is.sharedBytes+int(sharedMem) > max(b.allow[fn]+is.sharedBytes, staticSharedMemLimit) {
+	limit := staticSharedMemLimit
+	if a, ok := b.allow[fn]; ok { // işlevin izni varsa sınır odur (CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES)
+		limit = is.sharedBytes + a
+	}
+	if (sharedMem > 0) != is.dynamic || is.sharedBytes+int(sharedMem) > limit {
 		b.detail2 = messages.New(messages.H4126, is.ad, sharedMem, b.allow[fn], is.dynamic)
 		return errInvalidValue
 	}

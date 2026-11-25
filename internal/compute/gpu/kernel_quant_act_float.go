@@ -37,31 +37,7 @@ func quantActNonFiniteKernel(dt tensor.DType) func() *emitter {
 		k.e("add.s64", wrow, wrow, pw)
 		xr := k.r()
 		k.e("mul.lo.s32", xr, row, K)
-		x0 := k.address(pa, xr, 4)
-		var s [8]reg
-		for j := range s {
-			s[j] = k.constant(0)
-		}
-		e := k.whole(0)
-		k.whileLess("u32", e, K, func() {
-			xa := k.address(x0, e, 4)
-			for j := range s {
-				x, ej, v := k.f(), k.r(), k.f()
-				k.e("ld.global.f32", x, mem(xa, 4*j))
-				k.e("add.s32", ej, e, j)
-				k.e("mul.rn.f32", v, x, k.quantElem(dt, wrow, ej))
-				k.e("add.rn.f32", s[j], s[j], v)
-			}
-			k.e("add.s32", e, e, 8)
-		})
-		a, b, c, d := k.f(), k.f(), k.f(), k.f()
-		k.e("add.rn.f32", a, s[0], s[1])
-		k.e("add.rn.f32", b, s[2], s[3])
-		k.e("add.rn.f32", c, s[4], s[5])
-		k.e("add.rn.f32", d, s[6], s[7])
-		k.e("add.rn.f32", a, a, b)
-		k.e("add.rn.f32", c, c, d)
-		k.e("add.rn.f32", a, a, c)
+		a := k.actFloatRow(dt, wrow, k.address(pa, xr, 4), K)
 		idx := k.r()
 		k.e("mad.lo.s32", idx, row, N, n)
 		ad := k.address(pc, idx, 4)
@@ -72,4 +48,33 @@ func quantActNonFiniteKernel(dt tensor.DType) func() *emitter {
 		k.put(end)
 		return k
 	}
+}
+
+// actFloatRow bir çıktının float yoludur (quantActNonFiniteKernel'in sırası): x0 satırın ilk öğesi, wrow ağırlığın satırı.
+func (k *emitter) actFloatRow(dt tensor.DType, wrow, x0, K reg) reg {
+	var s [8]reg
+	for j := range s {
+		s[j] = k.constant(0)
+	}
+	e := k.whole(0)
+	k.whileLess("u32", e, K, func() {
+		xa := k.address(x0, e, 4)
+		for j := range s {
+			x, ej, v := k.f(), k.r(), k.f()
+			k.e("ld.global.f32", x, mem(xa, 4*j))
+			k.e("add.s32", ej, e, j)
+			k.e("mul.rn.f32", v, x, k.quantElem(dt, wrow, ej))
+			k.e("add.rn.f32", s[j], s[j], v)
+		}
+		k.e("add.s32", e, e, 8)
+	})
+	a, b, c, d := k.f(), k.f(), k.f(), k.f()
+	k.e("add.rn.f32", a, s[0], s[1])
+	k.e("add.rn.f32", b, s[2], s[3])
+	k.e("add.rn.f32", c, s[4], s[5])
+	k.e("add.rn.f32", d, s[6], s[7])
+	k.e("add.rn.f32", a, a, b)
+	k.e("add.rn.f32", c, c, d)
+	k.e("add.rn.f32", a, a, c)
+	return a
 }

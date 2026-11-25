@@ -55,7 +55,7 @@ func MatMulVendor(a, b *Tensor, outType DType) *Tensor {
 }
 
 // ActQuantGemmer etkinleştirmesi nicemlenen çarpımı yapan arka uçtur (15.53a'nın TR_quantized_activations bloğu):
-// c += nicem(a) · aç(bv); bv nicemlenmiş ağırlığın devrik görünümüdür. Yalnız CPU'da vardır.
+// c = nicem(a) · aç(bv), c ezilir (0 + çarpım; K = 0'da 0); bv nicemlenmiş ağırlığın devrik görünümüdür.
 type ActQuantGemmer interface {
 	GemmActQuant(M, N, K int, a View, bv View, c Storage)
 }
@@ -120,7 +120,7 @@ func matMulKernel(a, b *Tensor, outType DType, actQuant, vendor bool) (*Tensor, 
 	ra, rb := copyRelease(a, av), copyRelease(b, bv)
 	release := func() { ra(); rb() }
 	gs, writer := be.(GemmSetter)
-	writer = writer && !actQuant // nicemli yol c'ye ekler: çıktı sıfırla başlar
+	writer = writer || actQuant // ActQuantGemmer de c'yi ezer
 	vg, _ := be.(VendorGemmer)
 	if !vendor {
 		vg = nil

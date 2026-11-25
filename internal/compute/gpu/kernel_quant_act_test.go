@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,10 +27,11 @@ func actPaths() []string {
 	return []string{""}
 }
 
-// actShapes türün şekilleridir (M, N, K): tek satır, karonun içi ve kenarı, birden çok blok; q4'te K 256'nın
-// katı olmayabilir. TR_QUANT_ACT_SHAPES=model Qwen3-4B'nin boylarını ekler (yalnız kartta).
+// actShapes türün şekilleridir (M, N, K): tek satır (K = 2 560 gerçek model boyudur: satır çekirdeğinin döngülerinin
+// ikinci turu), karonun içi ve kenarı, birden çok blok; q4'te K 256'nın katı olmayabilir. TR_QUANT_ACT_SHAPES=model
+// Qwen3-4B'nin boylarını ekler (yalnız kartta).
 func actShapes(dt tensor.DType) [][3]int {
-	s := [][3]int{{1, 8, 256}, {1, 13, 768}, {2, 8, 256}, {5, 70, 512}, {17, 64, 256}, {40, 33, 768}, {65, 65, 256}}
+	s := [][3]int{{1, 8, 256}, {1, 13, 768}, {2, 8, 256}, {5, 70, 512}, {17, 64, 256}, {40, 33, 768}, {65, 65, 256}, {1, 9, 2560}}
 	if dt == tensor.Q4 {
 		s = append(s, [3]int{1, 9, 32}, [3]int{3, 17, 96}, [3]int{66, 70, 288})
 	}
@@ -89,19 +91,21 @@ func TestQuantActIsDeterministic(t *testing.T) {
 	rng := rand.New(rand.NewSource(12))
 	withActPath(t, func(path string) {
 		for _, dt := range actQuantTypes {
-			M, N, K := 65, 65, 256
-			host, card := quantWeights(t, rng, dt, N, K)
-			x := random(rng, M*K, 1)
-			old := sd.smCount
-			var runs [][]float32
-			for _, sm := range []int{1, 7} {
-				sd.smCount = sm
-				got, _ := actProduct(t, x, M, host, card)
-				runs = append(runs, got)
-			}
-			sd.smCount = old
-			for _, r := range runs[1:] {
-				sameFloatBits(t, fmt.Sprintf("%q %s SM", path, dt.Name()), r, runs[0])
+			for _, c := range [][3]int{{65, 65, 256}, {1, 13, 2560}} {
+				M, N, K := c[0], c[1], c[2]
+				host, card := quantWeights(t, rng, dt, N, K)
+				x := random(rng, M*K, 1)
+				old := sd.smCount
+				var runs [][]float32
+				for _, sm := range []int{1, 7} {
+					sd.smCount = sm
+					got, _ := actProduct(t, x, M, host, card)
+					runs = append(runs, got)
+				}
+				sd.smCount = old
+				for _, r := range runs[1:] {
+					sameFloatBits(t, fmt.Sprintf("%q %s M=%d SM", path, dt.Name(), M), r, runs[0])
+				}
 			}
 		}
 	})
@@ -128,13 +132,13 @@ func TestQuantActGemvMatchesRows(t *testing.T) {
 
 // TestQuantActEdges sıfır blok, K'nın son bloğu, ölçeği taşan küçük blok; sonlu olmayan satırda (NaN, +∞, −∞)
 // sonucun NaN olması ve sonsuzun işareti CPU'nunkiyle aynıdır (NaN'ın bitleri karşılaştırılmaz; ara sonucu taşan
-// satır söz dışıdır), komşu sonlu satırlar bit bit aynıdır.
+// satır söz dışıdır), komşu sonlu satırlar bit bit aynıdır. Satırlar birlikte (M = 7) ve tek tek (M = 1) koşar.
 func TestQuantActEdges(t *testing.T) {
 	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(14))
 	withActPath(t, func(path string) {
 		for _, dt := range actQuantTypes {
-			M, N, K := 7, 40, 768
+			M, N, K := 8, 40, 768
 			host, card := quantWeights(t, rng, dt, N, K)
 			x := random(rng, M*K, 1)
 			clear(x[0:256]) // satır 0: sıfır bloklar
@@ -146,54 +150,178 @@ func TestQuantActEdges(t *testing.T) {
 			x[4*K+300] = float32(math.Inf(1))
 			x[5*K+17] = float32(math.Inf(-1))
 			x[5*K+600] = float32(math.Inf(-1))
+			clear(x[7*K : 8*K]) // satır 7: bütünü sıfır
 			got, want := actProduct(t, x, M, host, card)
 			name := fmt.Sprintf("%q %s", path, dt.Name())
 			for m := range M {
-				g, w := got[m*N:(m+1)*N], want[m*N:(m+1)*N]
-				if m < 3 || m == 6 {
-					sameFloatBits(t, fmt.Sprintf("%s satır %d", name, m), g, w)
-					continue
-				}
-				for n := range g {
-					gn, wn := math.IsNaN(float64(g[n])), math.IsNaN(float64(w[n]))
-					if gn != wn || (!gn && g[n] != w[n]) {
-						t.Fatalf("%s satır %d sütun %d: %v, CPU %v", name, m, n, g[n], w[n])
-					}
-				}
+				sameActRow(t, fmt.Sprintf("%s satır %d", name, m), got[m*N:(m+1)*N], want[m*N:(m+1)*N], m >= 3 && m <= 5)
+				one, oneWant := actProduct(t, x[m*K:(m+1)*K], 1, host, card)
+				sameActRow(t, fmt.Sprintf("%s tek satır %d", name, m), one, oneWant, m >= 3 && m <= 5)
 			}
 		}
 	})
 }
 
-// TestQuantActSpeed model boyunda yolların süresini yazar (gerçek kartta; benzeticide atlanır). Ölçü değildir.
+// sameActRow çarpımın bir satırını CPU'nunkiyle karşılaştırır: bit bit, sonlu olmayan satırda NaN olma ve değer.
+func sameActRow(t *testing.T, name string, got, want []float32, nonFinite bool) {
+	t.Helper()
+	if !nonFinite {
+		sameFloatBits(t, name, got, want)
+		return
+	}
+	for n := range got {
+		gn, wn := math.IsNaN(float64(got[n])), math.IsNaN(float64(want[n]))
+		if gn != wn || (!gn && got[n] != want[n]) {
+			t.Fatalf("%s sütun %d: %v, CPU %v", name, n, got[n], want[n])
+		}
+	}
+}
+
+// TestQuantActOverwritesOutput çarpım çıktıyı ezer (tensor.ActQuantGemmer): kirli tamponla tek ve çok satırda, boş
+// toplamda (K = 0) da. Çıktının 16 bitlik biçimi de sınanır.
+func TestQuantActOverwritesOutput(t *testing.T) {
+	be := gpuBackend()
+	rng := rand.New(rand.NewSource(16))
+	for _, dt := range actQuantTypes {
+		for _, c := range [][3]int{{1, 5, 256}, {2, 5, 256}, {1, 3, 0}, {2, 3, 0}} {
+			M, N, K := c[0], c[1], c[2]
+			elems, _ := dt.QuantBlock()
+			w := be.FromRaw(quantBlockBytes(rng, dt, N*K/elems), dt)
+			a := be.FromHost(random(rng, M*K, 1), tensor.Float32)
+			av := tensor.View{S: a, Shape: []int{M, K}, Strides: []int{K, 1}}
+			bv := tensor.View{S: w, Shape: []int{K, N}, Strides: []int{1, K}}
+			for _, ct := range []tensor.DType{tensor.Float32, tensor.BFloat16} {
+				var runs [][]float32
+				for _, dirt := range []float32{0, 7, float32(math.NaN())} {
+					out := be.Alloc(M*N, ct)
+					be.Fill(out, dirt)
+					be.GemmActQuant(M, N, K, av, bv, out)
+					runs = append(runs, be.ToHost(tensor.View{S: out, Shape: []int{M * N}, Strides: []int{1}}))
+				}
+				name := fmt.Sprintf("%s %s %dx%dx%d", dt.Name(), ct.Name(), M, N, K)
+				sameFloatBits(t, name+" kirli 7", runs[1], runs[0])
+				sameFloatBits(t, name+" kirli NaN", runs[2], runs[0])
+				if K == 0 {
+					sameFloatBits(t, name+" boş toplam", runs[0], make([]float32, M*N))
+				}
+			}
+		}
+	}
+}
+
+// TestQuantActGemvOneLaunch tek satırlı çarpım kartta tek iştir: nicemleme, bayrak ve sıfırlama için ayrı iş yoktur
+// (bu işler konağın payıydı; kart profili, 2026-11-25).
+func TestQuantActGemvOneLaunch(t *testing.T) {
+	rng := rand.New(rand.NewSource(18))
+	g := gpuBackend()
+	EnableProfile(true)
+	defer EnableProfile(false)
+	count := func(f func()) int64 {
+		g.enter()
+		g.equalize()
+		before := g.profiler.callN
+		g.exit()
+		f()
+		g.enter()
+		defer g.exit()
+		g.equalize()
+		return g.profiler.callN - before
+	}
+	for _, dt := range actQuantTypes {
+		_, card := quantWeights(t, rng, dt, 9, 256)
+		x := twin(random(rng, 256, 1), false, 1, 256)[1]
+		onCard(t, func() {
+			var out *tensor.Tensor
+			if n := count(func() { out = tensor.MatMulActQuant(x, card.T(), tensor.Float32) }); n != 1 {
+				t.Errorf("%s: tek satırlı çarpım %d iş, beklenen 1", dt.Name(), n)
+			}
+			out.Drop()
+		})
+	}
+}
+
+// TestQuantActGemvLargeK tek başlatmalı çekirdeğin sınırı: paylaşımlı belleğe sığan en büyük K tek başlatmayla, bir
+// blok büyüğü karolu çekirdekle koşar; ikisi de CPU'nun bitleridir. Benzeticide karo, sınırı küçülterek küçük K'da
+// sınanır (karonun 43 bin öğesi orada dakikalar sürer), büyük K yalnız sınırın hesabıyla.
+func TestQuantActGemvLargeK(t *testing.T) {
+	skipUnderRace(t)
+	defer func(old int) { quantActGemvLimit, quantActPath = old, "" }(quantActGemvLimit)
+	rng := rand.New(rand.NewSource(17))
+	quantActPath = "mma" // dp4a'lı eş (benzeticide ucuz); M = 1'de mma.sync seçilmez
+	g := gpuBackend()
+	for _, dt := range actQuantTypes {
+		elems, _ := dt.QuantBlock()
+		fits := 43008
+		if dt == tensor.Q4 {
+			fits = 43520
+		}
+		if quantActGemvShared(dt, fits) > staticSharedMemLimit || quantActGemvShared(dt, fits+elems) <= staticSharedMemLimit {
+			t.Fatalf("%s: sığan en büyük K %d değil", dt.Name(), fits)
+		}
+		check := func(K int, want string) {
+			host, card := quantWeights(t, rng, dt, 1, K)
+			x := twin(random(rng, K, 1), false, 1, K)
+			cpu := tensor.MatMulActQuant(x[0], host.T(), tensor.Float32).Data()
+			tile := fmt.Sprintf("nicem_etk_karo:%s:true", dt)
+			delete(g.kernels, tile)
+			var got *tensor.Tensor
+			onCard(t, func() { got = tensor.MatMulActQuant(x[1], card.T(), tensor.Float32) })
+			if _, ok := g.kernels[tile]; !strings.HasPrefix(g.lastKernel, want) || ok != (want == "nicem_etk_sonsuz_") {
+				t.Errorf("%s K=%d: son çekirdek %s, beklenen %s…; karo %v", dt.Name(), K, g.lastKernel, want, ok)
+			}
+			sameFloatBits(t, fmt.Sprintf("%s K=%d", dt.Name(), K), got.Data(), cpu)
+		}
+		check(fits, "nicem_etk_gemv_")
+		if !inSim() {
+			check(fits+elems, "nicem_etk_sonsuz_")
+			continue
+		}
+		quantActGemvLimit = quantActGemvShared(dt, 768)
+		check(768, "nicem_etk_gemv_")
+		check(768+elems, "nicem_etk_sonsuz_")
+		quantActGemvLimit = staticSharedMemLimit
+	}
+}
+
+// TestQuantActSpeed model boyunda yolların süresini yazar (gerçek kartta; benzeticide atlanır). Ölçü değildir. Süre
+// yalnız çarpımındır: sonuç ana belleğe kopyalanmaz, çarpımlar art arda koşar, sonda eşitlenir; konak payı sıraya
+// koymanın süresidir.
 func TestQuantActSpeed(t *testing.T) {
 	if inSim() {
 		t.Skip("benzetici")
 	}
 	rng := rand.New(rand.NewSource(15))
-	for _, dt := range []tensor.DType{tensor.Q4K, tensor.Q6K} {
-		for _, c := range [][3]int{{512, 9728, 2560}, {512, 2560, 9728}, {40, 9728, 2560}, {1, 9728, 2560}} {
+	g := gpuBackend()
+	for _, dt := range actQuantTypes {
+		for _, c := range [][3]int{{512, 9728, 2560}, {512, 2560, 9728}, {40, 9728, 2560}, {1, 9728, 2560}, {1, 2560, 9728}, {1, 1024, 2560}} {
 			M, N, K := c[0], c[1], c[2]
+			reps := 200 / min(M, 20)
 			_, card := quantWeights(t, rng, dt, N, K)
 			x := twin(random(rng, M*K, 1), false, M, K)[1]
-			run := func(f func() *tensor.Tensor) time.Duration {
-				f().Data()
+			run := func(f func() *tensor.Tensor) (total, host time.Duration) {
+				f().Drop()
+				g.equalize()
 				t0 := time.Now()
-				for range 10 {
-					f().Data()
+				for range reps {
+					f().Drop()
 				}
-				return time.Since(t0) / 10
+				host = time.Since(t0) / time.Duration(reps)
+				g.equalize()
+				return time.Since(t0) / time.Duration(reps), host
 			}
 			ops := 2 * float64(M) * float64(N) * float64(K)
-			var tf time.Duration
-			onCard(t, func() { tf = run(func() *tensor.Tensor { return tensor.MatMul(x, card.T()) }) })
-			t.Logf("%s M=%d N=%d K=%d: float %v (%.1f TFLOPS)", dt.Name(), M, N, K, tf, ops/tf.Seconds()/1e12)
+			show := func(name string, total, host time.Duration) {
+				t.Logf("%s M=%d N=%d K=%d %s: %v (konak %v, %.1f T işlem/sn)", dt.Name(), M, N, K, name, total, host, ops/total.Seconds()/1e12)
+			}
+			onCard(t, func() {
+				total, host := run(func() *tensor.Tensor { return tensor.MatMul(x, card.T()) })
+				show("float", total, host)
+			})
 			withActPath(t, func(path string) {
-				var tq time.Duration
 				onCard(t, func() {
-					tq = run(func() *tensor.Tensor { return tensor.MatMulActQuant(x, card.T(), tensor.Float32) })
+					total, host := run(func() *tensor.Tensor { return tensor.MatMulActQuant(x, card.T(), tensor.Float32) })
+					show(fmt.Sprintf("int8 %q", path), total, host)
 				})
-				t.Logf("  int8 %q %v (%.1f TOPS)", path, tq, ops/tq.Seconds()/1e12)
 			})
 		}
 	}

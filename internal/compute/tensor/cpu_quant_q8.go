@@ -153,7 +153,7 @@ func QuantActSupported(dt DType) bool { return dt == Q4 || dt == Q4K || dt == Q6
 // quantGemmAct quantGemm'in etkinleştirmesi nicemlenen eşidir: c[m, n] += Σ_k nicem(a)[m, k]·aç(w)[n, k].
 func quantGemmAct(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	if K == 0 {
-		return // boş toplam: c olduğu gibi kalır
+		return // boş toplam: c olduğu gibi kalır (GemmActQuant sıfırlamıştır)
 	}
 	if M == 1 {
 		quantGemvQ8(N, K, a, w, dt, c)
