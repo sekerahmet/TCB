@@ -274,9 +274,9 @@ func TestUnsupported(t *testing.T) {
 
 // TestNoDriverGraceful NVIDIA sürücüsü olmayan makinede (Linux'ta dlopen, Windows'ta
 // DLL yükleme hatası) paketin paniklemeden "GPU yok" dediğini ve tensörlerin CPU'da
-// kaldığını denetler. Gerçek GPU'lu makinede ve benzetim istenince (TR_GPU_SIM=1: benzetim
-// tek GPU sayılır, sürücüsüz durum değildir; GPU'lu makinede PTX özetinin koşusu bunu ister)
-// atlanır.
+// kaldığını denetler. Gerçek GPU'lu makinede atlanır; benzetim istenince de (TR_GPU_SIM=1) atlanır:
+// kart görünmüyorsa benzetim tek GPU sayılır, sürücüsüz durum değildir. GPU'lu makinede PTX özetinin
+// koşusu kartı gizler (CUDA_VISIBLE_DEVICES=), benzetim istemez; kart görünürken istek etkisizdir.
 func TestNoDriverGraceful(t *testing.T) {
 	if !inSim() {
 		t.Skip("gerçek GPU var")

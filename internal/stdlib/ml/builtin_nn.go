@@ -279,11 +279,12 @@ func probabilityCrossEntropy(z, p *tensor.Tensor) *tensor.Tensor {
 	if z.DType() != tensor.Float64 {
 		z = z.CastShared(tensor.Float32)
 	}
+	last := len(z.Shape()) - 1
+	logp := z.LogSoftmax(last) // hedeften önce: float64 logit burada H6960 verir
 	if p.DType() != z.DType() {
 		p = p.CastShared(z.DType())
 	}
-	last := len(z.Shape()) - 1
-	return z.LogSoftmax(last).Mul(p).Sum(last, false).MeanAll().Neg()
+	return logp.Mul(p).Sum(last, false).MeanAll().Neg()
 }
 
 // linearCrossEntropy doğrusal_çapraz_entropi(x, ağırlık, hedef): çapraz_entropi(x @ ağırlık,

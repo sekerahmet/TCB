@@ -199,6 +199,10 @@
   "commit": "gemini-kucuk-isler-3",
   "reason": "ayrıştırıcıya taşındı: H0298"
  },
+ "H3036": {
+  "commit": "t1-gpu-c0",
+  "reason": "deleted: tensor: the callers check Cast's target; TR_cross_entropy(float64, float32) is H6960 (S-711, T1 GPU speed, slice C)"
+ },
  "H3054": {
   "commit": "claude/kolB-o0-3",
   "reason": "deleted: tensor: an optimizer accepts a leaf that does not track gradients (frozen, integer) and skips it in the step (15.34)"

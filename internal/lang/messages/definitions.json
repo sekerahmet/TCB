@@ -615,7 +615,6 @@
 "H3033": { "param": ["dev"] },
 "H3034": { "param": ["dtype"] },
 "H3035": { "param": ["n", "shape"] },
-"H3036": { "param": ["dtype"] },
 "H3037": { "param": ["dtype"] },
 "H3038": { "param": ["dtype"] },
 "H3039": { "param": ["a", "b"] },

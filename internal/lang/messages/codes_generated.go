@@ -620,7 +620,6 @@ const (
 	H3033 Code = 3033 // {dev} cihazı için arka uç kayıtlı değil
 	H3034 Code = 3034 // gradyan türü kayan noktalı olmalı, {dtype} verildi
 	H3035 Code = 3035 // {n} eleman {shape} şekline uymuyor
-	H3036 Code = 3036 // Cast yalnızca kayan noktalı türlere yapılabilir, {dtype} verildi
 	H3037 Code = 3037 // Bits16 yalnızca bfloat16/float16 içindir, {dtype} verildi
 	H3038 Code = 3038 // FromBits16 yalnızca bfloat16/float16 içindir, {dtype} verildi
 	H3039 Code = 3039 // {a} ve {b} şekilleri yayınlanamaz

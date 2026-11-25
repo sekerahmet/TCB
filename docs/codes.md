@@ -5185,7 +5185,7 @@ Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_weight_decay:`, `
 
 #### `TR_mask:` (`TR_arg_mask`, `maske`)
 
-[..., H, Tq, Tk] şekline yayınlanabilen 0/1 tensörüdür; sıfırdan farklı yerlere bakılır. Türev izlemez; varsayılan yok'tur.
+[..., H, Tq, Tk] şekline yayınlanabilen TR_Tensor[TR_Bool]'dur; doğru olan yerlere bakılır. Türev izlemez; varsayılan yok'tur.
 
 ```tr
 TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]]) != 0).TR_shape)

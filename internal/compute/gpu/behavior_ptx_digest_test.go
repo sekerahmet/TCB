@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -16,14 +18,17 @@ import (
 // Kural: benzeticide sınamalar sırasında derlenen her çekirdeğin PTX'inin SHA-256 özeti
 // testdata/ptx_ozet.txt'dedir ("özet anahtar", anahtara göre sıralı). Bilinen bir çekirdeğin
 // PTX'i değişirse ya da kısa kipte (CI ve tam denetimin kipi) özette olmayan bir çekirdek
-// derlenirse paketin testi kalır. Bilinçli bir değişiklikte özet yenilenir:
+// derlenirse paketin testi kalır. Bilinçli bir değişiklikte özet yenilenir (kart gizlenir):
 //
-//	TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu
+//	CUDA_VISIBLE_DEVICES= TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu
+//
+// -run ile seçilen alt kümede yalnız derlenenler karşılaştırılır, yenilemede yalnız onlar eklenir ya da
+// değişir (silinmez): yeni çekirdeği olan iş bütün paketi koşmadan özetini yeniler; artık derlenmeyen
+// anahtarı bütün paketin yenilemesi siler.
 //
 // Neden: "değişmeyen çekirdeklerin PTX'i aynı" iddiası her GPU işinde elle (geçici dökümle)
 // gösteriliyordu; şimdi her koşuda denetlenir ve bilinçli değişiklik diff'te özetin satırı olarak
-// görünür. Gerçek GPU'da atlanır (karta göre başka yollar derlenir); -run ile seçilen alt kümede
-// yalnızca derlenenler karşılaştırılır.
+// görünür. Gerçek GPU'da atlanır (karta göre başka yollar derlenir).
 
 // ptxDigestPath özet dosyasıdır.
 var ptxDigestPath = filepath.Join("testdata", "ptx_ozet.txt")
@@ -96,41 +101,69 @@ func TestValidPTXName(t *testing.T) {
 	}
 }
 
+// ptxUpdateRefusal TR_GPU_PTX_UPDATE=1'in reddedilme nedenidir ("": yenilenir). Kartlı koşu özeti yenileyemez: karta
+// göre başka yollar derlenir.
+func ptxUpdateRefusal(sim, short bool) string {
+	switch {
+	case !sim:
+		return "PTX özeti kartlı koşuda yenilenmez; kartı gizleyin: CUDA_VISIBLE_DEVICES="
+	case !short:
+		return "PTX özeti yalnız -short koşusuyla yenilenir"
+	}
+	return ""
+}
+
+// mergePTXDigest yazılacak özettir: bütün paketin koşusunda görülenler; alt kümede (-run) bilinenlerin üstüne görülenler.
+func mergePTXDigest(known, seen map[string]string, subset bool) map[string]string {
+	if !subset {
+		return seen
+	}
+	out := maps.Clone(known)
+	maps.Copy(out, seen)
+	return out
+}
+
+// comparePTXDigest PTX'i değişen ve (kısa kipte) özette olmayan anahtarlardır, sıralı.
+func comparePTXDigest(known, seen map[string]string, short bool) (changed, added []string) {
+	for key, sum := range seen {
+		switch want, ok := known[key]; {
+		case ok && want != sum:
+			changed = append(changed, key)
+		case !ok && short:
+			added = append(added, key)
+		}
+	}
+	sort.Strings(changed)
+	sort.Strings(added)
+	return changed, added
+}
+
 // checkPTXDigest m.Run'dan sonra çağrılır; özetle uyuşmazlık varsa yazar ve 1 döner.
 func checkPTXDigest() int {
-	if !inSim() {
+	update := os.Getenv("TR_GPU_PTX_UPDATE") == "1"
+	if !inSim() && !update {
 		return 0
 	}
 	ptxSeen.Lock()
 	seen := ptxSeen.m
 	ptxSeen.Unlock()
-	subset := flag.Lookup("test.run") != nil && flag.Lookup("test.run").Value.String() != ""
-	if os.Getenv("TR_GPU_PTX_UPDATE") == "1" {
-		if subset || !testing.Short() {
-			fmt.Println("PTX özeti yalnızca bütün paketin -short koşusuyla yenilenir (-run yok)")
-			return 1
-		}
-		return writePTXDigest(seen)
-	}
 	known, err := readPTXDigest()
 	if err != nil {
 		fmt.Println("PTX özeti okunamadı:", err)
 		return 1
 	}
-	var changed, added []string
-	for key, sum := range seen {
-		switch want, ok := known[key]; {
-		case ok && want != sum:
-			changed = append(changed, key)
-		case !ok && testing.Short() && !subset:
-			added = append(added, key)
+	if update {
+		if why := ptxUpdateRefusal(inSim(), testing.Short()); why != "" {
+			fmt.Println(why)
+			return 1
 		}
+		subset := flag.Lookup("test.run") != nil && flag.Lookup("test.run").Value.String() != ""
+		return writePTXDigest(mergePTXDigest(known, seen, subset))
 	}
+	changed, added := comparePTXDigest(known, seen, testing.Short())
 	if len(changed)+len(added) == 0 {
 		return 0
 	}
-	sort.Strings(changed)
-	sort.Strings(added)
 	fmt.Printf("PTX özeti (%s) tutmuyor: %d çekirdeğin PTX'i değişti, %d yeni çekirdek.\n", ptxDigestPath, len(changed), len(added))
 	for _, k := range changed {
 		fmt.Println("  değişti:", k)
@@ -138,8 +171,36 @@ func checkPTXDigest() int {
 	for _, k := range added {
 		fmt.Println("  yeni:   ", k)
 	}
-	fmt.Println("Değişiklik bilinçliyse: TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu")
+	fmt.Println("Değişiklik bilinçliyse: CUDA_VISIBLE_DEVICES= TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu")
 	return 1
+}
+
+// TestPTXDigestMerge özetin kararları: kartlı ya da uzun koşu yenilemez; alt küme yalnız gördüğünü ekler ya da yeniler,
+// bütün paket görülmeyeni siler; yeni anahtar kısa kipte alt kümede de hatadır.
+func TestPTXDigestMerge(t *testing.T) {
+	if ptxUpdateRefusal(true, true) != "" || ptxUpdateRefusal(false, true) == "" || ptxUpdateRefusal(true, false) == "" {
+		t.Error("yenileme kapısı: yalnız benzeticide ve -short'ta açıktır")
+	}
+	known := map[string]string{"a": "1", "b": "2"}
+	seen := map[string]string{"b": "3", "c": "4"}
+	if got, want := mergePTXDigest(known, seen, true), map[string]string{"a": "1", "b": "3", "c": "4"}; !maps.Equal(got, want) {
+		t.Errorf("alt küme: %v, beklenen %v", got, want)
+	}
+	if got := mergePTXDigest(known, seen, false); !maps.Equal(got, seen) {
+		t.Errorf("bütün paket: %v, beklenen %v", got, seen)
+	}
+	if !maps.Equal(known, map[string]string{"a": "1", "b": "2"}) {
+		t.Errorf("birleştirme bilinenleri değiştirdi: %v", known)
+	}
+	for _, c := range []struct {
+		short bool
+		added []string
+	}{{true, []string{"c"}}, {false, nil}} {
+		changed, added := comparePTXDigest(known, seen, c.short)
+		if !slices.Equal(changed, []string{"b"}) || !slices.Equal(added, c.added) {
+			t.Errorf("short=%v: değişen %v, yeni %v", c.short, changed, added)
+		}
+	}
 }
 
 func readPTXDigest() (map[string]string, error) {
