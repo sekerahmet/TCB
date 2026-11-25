@@ -857,7 +857,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (E, Ö3; sahip T1):** üretim T4'te `188762800`'den yavaş, sınırda [ölçüldü: TG-2026-11-25-T4GPU-T1-1], neden [hipotez: her blok satırı yeniden nicemler]; A100'de float'tan ayrılmadı [ölçüldü: TG-2026-11-25-A100GPU-T1-2]. Bu kodla L4 ve G4, q4 modelle hiçbir kart ölçülmedi. Bölünmüş dikkatin kuralı L4, G4, T4'te ölçülmedi. Sonlu olmayan satır ara taşmada AVX2'li CPU'dan ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: T4 profili; L4, G4'te S1 ve dikkat hızı; q4.
+- **S-396 Yapılacaklar (E, Ö3; sahip T1):** üretim T4'te `188762800`'den yavaş, sınırda [ölçüldü: TG-2026-11-25-T4GPU-T1-1], neden [hipotez: her blok satırı yeniden nicemler]; ısınmış okuma A100'de `0ae5d3150`'den yavaş, sınırda, kabul edildi [ölçüldü: TG-2026-11-25-A100GPU-T1-5]. L4, G4 ve q4 ölçülmedi; bölünmüş dikkatin kuralı T4'te de ölçülmedi. Sonlu olmayan satır ara taşmada AVX2'li CPU'dan ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: T4 profili; L4, G4'te S1 ve dikkat; q4.
 
 ### 15.54
 
