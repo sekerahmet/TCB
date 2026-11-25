@@ -88,7 +88,6 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 - **Veriyi toplamak ve temizlemek:** yinelenen veriyi ayıklamak, süzmek, metni dosyadan ve ağdan toplamak. Bunun için gerekenler:
   - **hash:** sha256 ve xxhash gibi hızlı hash'ler; yineleneni ayıklamak, veri kümesini doğrulamak, önbellek anahtarı;
   - **düzenli ifade:** metin temizleme ve parçalayıcının ön ayırması;
-  - **Unicode:** NFC ve NFKC normalleştirme, kod noktası ile karakter arasında dönüşüm.
 - **Dosya biçimleri:**
   - zstd ve zip (`.jsonl.zst`; 18.12'nin `.gz` saydamlığı gibi);
   - Parquet;
