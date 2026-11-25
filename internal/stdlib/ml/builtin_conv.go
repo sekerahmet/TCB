@@ -59,12 +59,13 @@ func convOptions(fn any, named map[string]interp.Value) (o tensor.Conv1dOptions,
 		if !ok || n.Val < 0 {
 			return o, messages.New(messages.H7085, fn, namePadding, interp.Shown(v))
 		}
-		o.Padding = int(min(n.Val, math.MaxInt/8)) // sınırı aşan dolgu bellek denetimine takılır
+		o.Padding = int(n.Val)
 	}
 	return o, nil
 }
 
-// convShapes şekilleri denetler: uymayan her şeyi ileti söyler (15.23c).
+// convShapes şekilleri ve dolgulu uzunluğun int64'e sığdığını denetler: uymayan her şeyi ileti söyler
+// (15.23c).
 func convShapes(fn any, x, w *tensor.Tensor, o tensor.Conv1dOptions) error {
 	xs, ws := x.Shape(), w.Shape()
 	fail := func(c, fix string) error {
@@ -72,6 +73,9 @@ func convShapes(fn any, x, w *tensor.Tensor, o tensor.Conv1dOptions) error {
 	}
 	if len(xs) != 3 || len(ws) != 3 || ws[2] == 0 {
 		return fail("rank", rankFix(xs))
+	}
+	if limit := (math.MaxInt - xs[2]) / 2; o.Padding > limit {
+		return messages.New(messages.H7043, fn, namePadding, o.Padding, xs[2], limit)
 	}
 	cin, cout, cg, k := xs[1], ws[0], ws[1], ws[2]
 	if cin%o.Groups != 0 || cout%o.Groups != 0 {
@@ -173,7 +177,7 @@ func conv1dBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	mixed := mixedDType(m)
 	direct := conv1dDirect(mixed, x, w, b, o)
 	r, err := safe(func() *tensor.Tensor {
-		tensor.CheckSize([]int{x.Shape()[0], o.Length(x.Shape()[2], w.Shape()[2]), x.Shape()[1] * w.Shape()[2]}, tensor.Float32)
+		convCheckSize(x.Shape(), w.Shape(), o)
 		if direct {
 			return conv1dOn(m, x.Contiguous(), w.Contiguous(), contiguousOrNil(b), o)
 		}
@@ -188,6 +192,17 @@ func conv1dBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, err
 	}
 	return New(r), nil
+}
+
+// convCheckSize ayırmadan önce belleği denetler (15.42): açılmış satırlar, kanalsız girdide (satırlar
+// boştur, dolguyu sınırlamaz) çıkış.
+func convCheckSize(xs, ws []int, o tensor.Conv1dOptions) {
+	frames := o.Length(xs[2], ws[2])
+	if xs[1] == 0 {
+		tensor.CheckSize([]int{xs[0], ws[0], frames}, tensor.Float32)
+		return
+	}
+	tensor.CheckSize([]int{xs[0], frames, xs[1] * ws[2]}, tensor.Float32)
 }
 
 // conv1dDirect evrişimin işlemcinin türevsiz çekirdeğinden (tensor.Conv1dKernel) yapılacağıdır:

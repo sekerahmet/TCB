@@ -1536,6 +1536,7 @@ const (
 	H7040 Code = 7040 // {@pretrained_gguf}: {weight|q} tensörünün türü {dtype}: frekans bölenleri float32, fp16 ya da bf16 olmalı
 	H7041 Code = 7041 // {@pretrained_gguf}: {weight|q} tensörünün {index} konumundaki böleni {value}: bölen sonlu ve sıfırdan büyük olmalı, her konumun açısı float32 sınırında kalmalı
 	H7042 Code = 7042 // tensörle indekse yazma henüz yok: `t[idx]` bir kopyadır, `t[idx] {op}= d` kopyaya yazardı ve `t` değişmezdi. `idx` yinelenmiyorsa, `d` ve `idx` `t`'yle örtüşmüyorsa öğeleri döngüyle yazın: `{#for} {form, select, whole {i} other {k, i}} {#in} idx.{#reshape}([-1]) {{ t[i] {op}= {form, select, whole {d} each {d.{#reshape}([-1] + t[0].{#shape})[k]} other {{#Tensor}(d).{#reshape}([-1] + t[0].{#shape})[k]}} }}`
+	H7043 Code = 7043 // {fn}: {name} çok büyük ({given}): dolgulu uzunluk ({length} + 2 × {given}) {@Int} aralığına sığmıyor; bu girdide en çok {limit} verilebilir (15.23c)
 	H7050 Code = 7050 // {fn}: yalnız ondalık tensör alır, {given} verildi (15.18a); tam sayı ve mantık tensöründe `{#equal}(a, b)` yazılır
 	H7051 Code = 7051 // {fn}: öğe cinsi zorunludur (22.1): `{call}[{#Float}](b, {#dtype}: "float32", {#byte_order}: "little")` gibi yazın
 	H7052 Code = 7052 // {fn}: `{name}:` zorunludur ({rule})

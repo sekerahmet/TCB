@@ -222,6 +222,14 @@ func (k *emitter) u32p(ad string) reg {
 	return r
 }
 
+// u64p 64 bitlik tam sayı parametresi bildirir ve yükler.
+func (k *emitter) u64p(ad string) reg {
+	k.addParam(".u64", ad, 8)
+	r := k.rd()
+	k.e("ld.param.u64", r, "["+ad+"]")
+	return r
+}
+
 // f32p float32 parametresi bildirir ve yükler.
 func (k *emitter) f32p(ad string) reg {
 	k.addParam(".f32", ad, 4)
