@@ -48,12 +48,12 @@ def main():
     def mixed(length):
         return "".join(random.choice(bases if random.random() < 0.4 else marks) for _ in range(length))
 
-    lines = ["", "é", "é", "ﬁ²", "㋿", "ạ࢘", "ạ࢘", "가",
-             "각", "각", "각ᆨ", "क़", "יִ", "Å", "ẛ̣",
-             "ﷺ", "̈́", "\U0001D15E", "\U00011099\U000110BA", "\U00020041̀", "q̣̇",
-             "á́", "a͏́"]
+    lines = ["", "e\u0301", "\u00E9", "\uFB01²", "\u32FF", "a\u0898\u0323", "a\u0323\u0898", "\u1100\u1161",
+             "\u1100\u1161\u11A8", "\uAC00\u11A8", "\uAC01\u11A8", "\u0958", "\uFB1D", "\u212B", "\u1E9B\u0323",
+             "\uFDFA", "\u0344", "\U0001D15E", "\U00011099\U000110BA", "\U00020041\u0300", "q\u0307\u0323",
+             "a\u0301\u0301", "a\u034F\u0301"]
     for n in (30, 31, 32, 60, 61, 90):
-        lines += ["e" + "́" * n, "e" + "́" * (n - 1) + "̣", "e" + "́" * 30 + "͏" + "́" * n]
+        lines += ["e" + "\u0301" * n, "e" + "\u0301" * (n - 1) + "\u0323", "e" + "\u0301" * 30 + "\u034F" + "\u0301" * n]
     lines += random.sample(decomposing, 400)
     lines += [a + b for a, b in random.sample(truncated, 300)]
     lines += [a + random.choice(marks) + b for a, b in random.sample(truncated, 60)]

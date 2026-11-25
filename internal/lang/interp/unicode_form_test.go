@@ -14,7 +14,7 @@ import (
 // metin kısalır, gizli değer kesilmeden önce maskelenir.
 func TestUnicodeNormalizeMessages(t *testing.T) {
 	for given, want := range map[string]string{
-		"nfc": "é 1\n", "nfd": "é 2\n", "nfkC": "é 1\n", "NfKd": "é 2\n",
+		"nfc": "\u00E9 1\n", "nfd": "e\u0301 2\n", "nfkC": "\u00E9 1\n", "NfKd": "e\u0301 2\n",
 		"utf8": "", "": "", "NFC ": "", strings.Repeat("uzun metin ", 8): "",
 	} {
 		_, _, err := runTROut(t, "TR_print(\"e\\u{301}\".TR_unicode_normalize(\""+given+"\"))\n")

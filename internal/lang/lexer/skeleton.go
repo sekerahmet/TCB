@@ -14,9 +14,10 @@ import (
 // son harfi Kiril і olan yetkі) Unicode'un benzerlik iskeletiyle (UTS #39) bulunur: iskelet aynıysa
 // okuyan birini öbürü sanar. Benzerlik çizelgesi confusables_generated.go'dadır (Unicode 17.0.0).
 
-// nfc adın NFC biçimidir (zaten NFC ise kendisi; ASCII adlar için kopya yoktur).
+// nfc adın NFC biçimidir (zaten NFC ise kendisi; ASCII adlar için kopya yoktur). x/text'in "zaten NFC"
+// demesi composesAbove16Bits doğruysa yetmez (Normalize'ın koşulu, faithful).
 func nfc(name string) string {
-	if norm.NFC.IsNormalString(name) {
+	if norm.NFC.IsNormalString(name) && !composesAbove16Bits(name) {
 		return name
 	}
 	return Normalize(FormNFC, name)
