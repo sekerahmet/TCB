@@ -266,8 +266,9 @@ Dosyadan ses, Whisper'ın girdisine kadar (dil tanımı [22.4](../docs/spec/22_b
 | `TR_type_Sound` | `TR_mem_samples` (`[kanal, örnek]` ondalık tensör) ve `TR_mem_sample_rate` | `TR_type_Sound(TR_arg_samples: t, TR_arg_sample_rate: r)` |
 | `TR_fn_read_wav` | 16 bit tam sayı, 32 bit ondalık ve `WAVE_FORMAT_EXTENSIBLE` biçimlerini okur | `TR_fn_read_wav(yol)` |
 | `TR_fn_write_wav` | 16 bit tam sayı PCM yazar; `[-1, 1]` dışı ve NaN örnek hatadır | `TR_fn_write_wav(yol, ses)` |
+| `TR_fn_resample` | Sesi başka bir hıza yeniden örnekler, kanallar ayrı | `TR_fn_resample(ses, TR_arg_sample_rate: 16000)` |
 | `TR_fn_whisper_log_mel` | Bir kaydın tamamı için log-Mel: `[m, örnek // 160 + 3000]` | `TR_fn_whisper_log_mel(ses, TR_arg_n_mels: 80)` |
 
 **Dış girdi.** Dosya boyu güvenilmez: her parçanın boyu dosyada kalanla açıkça karşılaştırılır, çünkü bayt dilimi sessizce kırpar (3.3). Bozuk dosyanın her sebebi kendi iletisidir (H7061–H7071). Biçim önce denetlenir: desteklenmeyen biçim `ffmpeg` iletisini verir. Bulanıklaştırma hedefi `FuzzReadWav`'dır (`cmd/trlang`).
 
-**Yeniden örnekleme kitaplıkta yoktur.** `ffmpeg -nostdin -i girdi -ar 16000 -c:a pcm_s16le çıktı.wav`.
+**Yeniden örnekleme:** `TR_fn_resample(ses, TR_arg_sample_rate: r)` (22.4); Kaiser pencereli sinc, doğruluğu `tests/data/resample/KAYNAK.md`.

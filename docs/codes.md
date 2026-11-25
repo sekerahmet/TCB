@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 801 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 187 fonksiyon, 13 sabit, 95 metot, 148 özellik, 200 adlı argüman.
+Toplam 805 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 190 fonksiyon, 13 sabit, 95 metot, 148 özellik, 201 adlı argüman.
 
 ## İçindekiler
 
@@ -2514,6 +2514,25 @@ tr: yazdır(tam_sayı_baytları(258, tür: "uint16", bayt_sırası: "big"))
 
 İlişkili: `.TR_read_int(...)`, `TR_float_to_bytes(...)`
 
+#### `TR_irfft(...)` (`TR_fn_irfft`, `gerçek_ters_fourier`)
+
+    gerçek_ters_fourier(Tensör, Tensör, n: Tam = yok) → Tensör
+
+gerçek_fourier'nin tersidir: (gerçek, sanal) gösterimden son eksen boyunca n uzunluklu gerçek sinyali 1 / n ölçeğiyle kurar. n zorunludur; son eksen n // 2 + 1 olmalıdır. Sonuç türev izler.
+
+```tr
+TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0])); TR_print(TR_irfft(g, s, TR_n: 4).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(irfft(g, s, n: 4).tolist)
+tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(gerçek_ters_fourier(g, s, n: 4).listeye)
+```
+
+İlişkili: `TR_rfft(...)`, `TR_istft(...)`
+
 #### `TR_is_finite(...)` (`TR_fn_is_finite`, `sonlu_mu`)
 
     sonlu_mu(Tam | Ondalık | Tensör) → Mantık | Tensör
@@ -2532,6 +2551,25 @@ tr: yazdır(sonlu_mu(1.5), sonlu_mu(Ondalık("nan")), sonlu_mu(Tensör([1.0, Ond
 ```
 
 İlişkili: `TR_sign(...)`, `TR_clip_grad(...)`
+
+#### `TR_istft(...)` (`TR_fn_istft`, `kısa_ters_fourier`)
+
+    kısa_ters_fourier(Tensör, Tensör, Tam, adım_boyu: Tam = yok, pencere: Tensör = yok, ortala: Mantık = doğru, uzunluk: Tam = yok) → Tensör
+
+kısa_fourier'nin tersidir: [..., n // 2 + 1, çerçeve] şekilli (gerçek, sanal) izgeden sinyali kurar; çerçeveler pencereyle çarpılıp üst üste eklenir, pencere karelerinin toplamına bölünür. Sinyalin asıl boyu uzunluk: ile verilir.
+
+```tr
+TR_var w = TR_hann_window(8, TR_periodic: TR_true); TR_var g, s = TR_stft(TR_ones([16]), 8, TR_hop_length: 4, TR_window: w, TR_pad_mode: "reflect"); TR_print(TR_istft(g, s, 8, TR_hop_length: 4, TR_window: w, TR_length: 16).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var w = hann_window(8, periodic: true); var g, s = stft(ones([16]), 8, hop_length: 4, window: w, pad_mode: "reflect"); print(istft(g, s, 8, hop_length: 4, window: w, length: 16).shape)
+tr: değişken w = hann_penceresi(8, periyodik: doğru); değişken g, s = kısa_fourier(birler([16]), 8, adım_boyu: 4, pencere: w, dolgu_kipi: "reflect"); yazdır(kısa_ters_fourier(g, s, 8, adım_boyu: 4, pencere: w, uzunluk: 16).şekil)
+```
+
+İlişkili: `TR_stft(...)`, `TR_irfft(...)`, `TR_hann_window(...)`
 
 #### `TR_json_parse(...)` (`TR_fn_json_parse`, `json_çöz`)
 
@@ -3507,6 +3545,12 @@ tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.
 
 İlişkili: `TR_fuse(...)`
 
+#### `TR_resample(...)` (`TR_fn_resample`, `yeniden_örnekle`)
+
+    yeniden_örnekle()
+
+
+
 #### `TR_rfft(...)` (`TR_fn_rfft`, `gerçek_fourier`)
 
     gerçek_fourier(Tensör, n: Tam = yok) → Herhangi
@@ -3524,7 +3568,7 @@ en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(g.tolist, s.tolist)
 tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(g.listeye, s.listeye)
 ```
 
-İlişkili: `TR_stft(...)`
+İlişkili: `TR_stft(...)`, `TR_irfft(...)`
 
 #### `TR_rms_norm(...)` (`TR_fn_rms_norm`, `rms_normu`)
 
@@ -3928,7 +3972,7 @@ en: var g, s = stft(zeros([16]), 8, hop_length: 4, window: hann_window(8, period
 tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 4, pencere: hann_penceresi(8, periyodik: doğru), ortala: doğru, dolgu_kipi: "reflect"); yazdır(g.şekil)
 ```
 
-İlişkili: `TR_rfft(...)`, `TR_hann_window(...)`
+İlişkili: `TR_rfft(...)`, `TR_hann_window(...)`, `TR_istft(...)`
 
 #### `TR_stop_requested(...)` (`TR_fn_stop_requested`, `durdurma_istendi`)
 
@@ -4643,7 +4687,7 @@ en: var g, s = stft(zeros([16]), 8, hop_length: 4, window: ones([8]), center: fa
 tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 4, pencere: birler([8]), ortala: yanlış); yazdır(g.şekil)
 ```
 
-Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_pad_mode:`
+Kullananlar: `TR_istft(...)`, `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_pad_mode:`
 
 #### `TR_config:` (`TR_arg_config`, `ayar`)
 
@@ -5041,7 +5085,7 @@ en: var g, s = stft(zeros([16]), 8, hop_length: 2, window: ones([8]), center: fa
 tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 2, pencere: birler([8]), ortala: yanlış); yazdır(g.şekil)
 ```
 
-Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`
+Kullananlar: `TR_istft(...)`, `TR_stft(...)` · İlişkili: `TR_stft(...)`
 
 #### `TR_host:` (`TR_arg_host`, `adres`)
 
@@ -5163,6 +5207,23 @@ Kullananlar: `TR_logsumexp(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, 
 #### `TR_layout:` (`TR_arg_layout`, `düzen`)
 
 
+
+#### `TR_length:` (`TR_arg_length`, `uzunluk`)
+
+kısa_ters_fourier'de kurulacak sinyalin boyudur; kısa_fourier'nin aynı ayarla tam bu çerçeve sayısını vereceği bir boy olmalıdır. Verilmezse çerçevelerden çıkan boydur.
+
+```tr
+TR_var w = TR_ones([4]); TR_var g, s = TR_stft(TR_ones([11]), 4, TR_hop_length: 2, TR_window: w, TR_pad_mode: "reflect"); TR_print(TR_istft(g, s, 4, TR_hop_length: 2, TR_window: w, TR_length: 11).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var w = ones([4]); var g, s = stft(ones([11]), 4, hop_length: 2, window: w, pad_mode: "reflect"); print(istft(g, s, 4, hop_length: 2, window: w, length: 11).shape)
+tr: değişken w = birler([4]); değişken g, s = kısa_fourier(birler([11]), 4, adım_boyu: 2, pencere: w, dolgu_kipi: "reflect"); yazdır(kısa_ters_fourier(g, s, 4, adım_boyu: 2, pencere: w, uzunluk: 11).şekil)
+```
+
+Kullananlar: `TR_istft(...)` · İlişkili: `TR_istft(...)`
 
 #### `TR_log:` (`TR_arg_log`, `günlük`)
 
@@ -5416,7 +5477,7 @@ Kullananlar: `TR_SGD(...)`
 
 
 
-Kullananlar: `TR_rfft(...)`
+Kullananlar: `TR_irfft(...)`, `TR_rfft(...)`
 
 #### `TR_n_fft:` (`TR_arg_n_fft`, `fft_boyu`)
 
@@ -6290,7 +6351,7 @@ en: var q = randn([6, 4], seed: 2); print(attention(q, q, q, window: 2).shape)
 tr: değişken q = rastgele_normal([6, 4], tohum: 2); yazdır(dikkat(q, q, q, pencere: 2).şekil)
 ```
 
-Kullananlar: `TR_attention(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
+Kullananlar: `TR_attention(...)`, `TR_istft(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
 
 #### `TR_windows:` (`TR_arg_windows`, `pencereler`)
 

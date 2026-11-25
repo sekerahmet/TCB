@@ -1,5 +1,5 @@
 # TR 4
-# tr/audio — ses dosyası ve Whisper'ın girdisi (dil tanımı 22.4, 23.6).
+# tr/audio — ses dosyası, yeniden örnekleme ve Whisper'ın girdisi (dil tanımı 22.4, 23.6).
 #
 # Kullanım:   aktar "tr/audio"
 #             değişken ses = wav_oku("soru.wav")
@@ -21,6 +21,12 @@ TR_const _WHISPER_HIZI = 16000
 TR_const _WHISPER_FFT = 400
 TR_const _WHISPER_ADIMI = 160
 TR_const _WHISPER_DOLGUSU = 480000
+TR_const _SÜZGEÇ_GEÇİŞİ = 90
+TR_const _SÜZGEÇ_KESİMİ = 9565
+TR_const _KESİM_PAYDASI = 10000
+TR_const _KAISER_BETA = 12.27
+TR_const _SÜZGEÇ_SINIRI = 16777216.0
+TR_const _PENCERE_BLOĞU = 4194304
 
 # Ses: örnekler [kanal, örnek] şekilli ondalık tensör, örnekleme hızı saniyedeki örnek sayısıdır.
 TR_struct TR_Sound {
@@ -280,12 +286,122 @@ TR_func TR_write_wav(yol: TR_String, ses: TR_Sound) {
     TR_write_file(yol, başlık + TR_Bytes("data") + _yaz32(veri.TR_length) + veri)
 }
 
+# _sonlu_denetle yeniden örneklenecek örneklerin hepsini sonlu ister: süzgeç bir NaN'ı komşularına yayardı.
+TR_func _sonlu_denetle(örnekler: TR_Tensor[TR_Float]) {
+    TR_var sonlu = TR_is_finite(örnekler)
+    TR_if TR_all(sonlu) { TR_return }
+    TR_var ilk = TR_argmax(TR_where(sonlu, 0.0, 1.0).TR_reshape([-1])).TR_item()
+    TR_var boy = örnekler.TR_shape[1]
+    TR_throw TR_Message("H7922", "TR_resample", "nonfinite", ilk % boy, ilk // boy)
+}
+
+# _ortak_bölen iki pozitif sayının en büyük ortak bölenidir.
+TR_func _ortak_bölen(a: TR_Int, b: TR_Int) -> TR_Int {
+    TR_var x = a
+    TR_var y = b
+    TR_for y != 0 {
+        TR_var kalan = x % y
+        x = y
+        y = kalan
+    }
+    TR_return x
+}
+
+# _ondalık tam sayıların payda'ya bölümüdür: bölme float64'te, sonuç float32.
+TR_func _ondalık(pay: TR_Tensor[TR_Int], payda: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_return (TR_Tensor[TR_Float](pay, TR_dtype: "float64") / payda).TR_to_dtype("float32")
+}
+
+# _sinüs sin(π · pay / payda)'dır: açı tam sayıyla [-1/2, 1/2]'ye iner, yuvarlama yalnız sondadır.
+TR_func _sinüs(pay: TR_Tensor[TR_Int], payda: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var kalan = pay % (2 * payda)
+    TR_var yarım = (2 * kalan + payda) // (2 * payda) # kalan / payda'ya en yakın tam sayı: 0, 1 ya da 2
+    TR_return TR_sin(_ondalık(kalan - yarım * payda, payda) * TR_pi) * _ondalık(1 - 2 * (yarım % 2), 1)
+}
+
+# _bessel Kaiser penceresinin I₀(β·√u)'sudur: Σ (β²·u / 4)^k / (k!)²; terimlerin hepsi artıdır.
+TR_func _bessel(u: TR_Tensor[TR_Float]) -> TR_Tensor[TR_Float] {
+    TR_var z = u * (_KAISER_BETA * _KAISER_BETA / 4.0)
+    TR_var toplam = z * 0.0 + 1.0
+    TR_for k TR_in 1..27 { toplam = 1.0 + toplam * z / ((27 - k) * (27 - k)) }
+    TR_return toplam
+}
+
+# _süzgeç çok fazlı Kaiser pencereli sinc'in katsayılarıdır: [yeni, 1, 2 · yarı + eski]. p. fazın m. katsayısı
+# sinc'in t = ((m − yarı) · yeni − p · eski) · taban · kesim / (eski · yeni) noktasıdır (taban: küçük hız); pay
+# tam sayıdır. Hesap işlemcidedir (kartta float64 yok).
+TR_func _süzgeç(eski: TR_Int, yeni: TR_Int, yarı: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var taban = TR_if eski < yeni { eski } TR_else { yeni }
+    TR_var boy = 2 * yarı + eski
+    TR_var m = TR_Tensor[TR_Int](TR_List(0..boy)).TR_to_device("cpu").TR_reshape([1, boy]) - yarı
+    TR_var p = TR_Tensor[TR_Int](TR_List(0..yeni)).TR_to_device("cpu").TR_reshape([yeni, 1])
+    TR_var pay = (m * yeni - p * eski) * (taban * _SÜZGEÇ_KESİMİ)
+    TR_var payda = eski * yeni * _KESİM_PAYDASI
+    TR_var içeride = (pay < _SÜZGEÇ_GEÇİŞİ * payda) & (pay > -(_SÜZGEÇ_GEÇİŞİ * payda))
+    TR_var t = _ondalık(pay, payda)
+    TR_var sinc = TR_where(pay == 0, 1.0, _sinüs(pay, payda) / (TR_where(pay == 0, 1.0, t) * TR_pi))
+    TR_var pencere = _bessel(TR_where(içeride, 1.0 - t * t / (_SÜZGEÇ_GEÇİŞİ * _SÜZGEÇ_GEÇİŞİ), 0.0)) / _bessel(TR_Tensor([1.0]).TR_to_device("cpu"))
+    TR_var katsayı = TR_where(içeride, sinc * pencere, 0.0) * (taban * _SÜZGEÇ_KESİMİ / (eski * _KESİM_PAYDASI))
+    TR_return katsayı.TR_reshape([yeni, 1, boy])
+}
+
+# _süz x'i [kanal, örnek] süzgeçle süzer: [kanal, uzunluk]. Çıkış çerçeveleri bloklarla hesaplanır, açılmış
+# pencereler (çerçeve · katsayı) uzun seste belleği doldurmaz.
+TR_func _süz(x: TR_Tensor[TR_Float], w: TR_Tensor[TR_Float], eski: TR_Int, yarı: TR_Int, uzunluk: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var kanal = x.TR_shape[0]
+    TR_var boy = w.TR_shape[2]
+    TR_var dolgu = TR_zeros([kanal, yarı + eski]).TR_to_device(x.TR_device)
+    TR_var dolu = TR_concat([dolgu.TR_slice(1, 0, yarı), x, dolgu], TR_dim: 1)
+    TR_var çerçeve = x.TR_shape[1] // eski + 1
+    TR_var adım = TR_if boy < _PENCERE_BLOĞU { _PENCERE_BLOĞU // boy } TR_else { 1 }
+    TR_var parçalar: TR_List[TR_Tensor[TR_Float]] = []
+    TR_var ilk = 0
+    TR_for ilk < çerçeve {
+        TR_var son = TR_if ilk + adım < çerçeve { ilk + adım } TR_else { çerçeve }
+        TR_var parça = dolu.TR_slice(1, ilk * eski, (son - 1) * eski + boy)
+        parçalar.TR_append(TR_conv1d(parça.TR_reshape([kanal, 1, parça.TR_shape[1]]), w, TR_none, TR_stride: eski))
+        ilk = son
+    }
+    TR_var y = TR_concat(parçalar, TR_dim: 2).TR_permute([0, 2, 1])
+    TR_return y.TR_reshape([kanal, çerçeve * w.TR_shape[0]]).TR_slice(1, 0, uzunluk)
+}
+
+# yeniden_örnekle sesi r hızına çevirir: çok fazlı Kaiser pencereli sinc, kanallar ayrı (22.4).
+TR_func TR_resample(ses: TR_Sound, TR_sample_rate: TR_Int) -> TR_Sound {
+    _ses_şekli(ses.TR_samples)
+    _ses_hızı(ses.TR_sample_rate)
+    _ses_hızı(TR_sample_rate)
+    TR_var ad = "TR_resample"
+    TR_var n = ses.TR_samples.TR_shape[1]
+    TR_if n == 0 { TR_throw TR_Message("H7922", ad, "empty", ses.TR_samples.TR_shape, TR_sample_rate) }
+    TR_var x = ses.TR_samples.TR_to_dtype("float32")
+    _sonlu_denetle(x)
+    TR_var bölen = _ortak_bölen(ses.TR_sample_rate, TR_sample_rate)
+    TR_var eski = ses.TR_sample_rate // bölen
+    TR_var yeni = TR_sample_rate // bölen
+    TR_if eski == yeni { TR_return TR_Sound(TR_samples: x * 1.0, TR_sample_rate: TR_sample_rate) }
+    # Sayım ondalıktadır: dev hızda TR_Int taşmaz.
+    TR_var oran = TR_if eski < yeni { 1.0 } TR_else { 1.0 * eski / yeni }
+    TR_var geçiş = TR_ceil(_SÜZGEÇ_GEÇİŞİ * oran * _KESİM_PAYDASI / _SÜZGEÇ_KESİMİ)
+    TR_var sayı = 1.0 * yeni * (2.0 * geçiş + eski)
+    TR_if sayı > _SÜZGEÇ_SINIRI {
+        TR_var katsayı = TR_if sayı < 1e15 { "\(TR_Int(sayı))" } TR_else { "\(sayı)" }
+        TR_throw TR_Message("H7922", ad, "ratio", "\(ses.TR_sample_rate) → \(TR_sample_rate)", katsayı)
+    }
+    TR_var yarı = TR_Int(geçiş)
+    TR_var w = _süzgeç(eski, yeni, yarı).TR_to_device(x.TR_device)
+    TR_var uzunluk = (n * yeni + eski - 1) // eski
+    # Karışık hassasiyet bloğunda da float32 (22.4).
+    TR_var y = TR_mixed_precision("float32") { _süz(x, w, eski, yarı, uzunluk) }
+    TR_return TR_Sound(TR_samples: y, TR_sample_rate: TR_sample_rate)
+}
+
 # _whisper_sesi Whisper'ın tek kanallı örneklerini verir: denetim sırası 23.6'da yazılıdır.
 TR_func _whisper_sesi(ses: TR_Sound) -> TR_Tensor[TR_Float] {
     _ses_şekli(ses.TR_samples)
     TR_var ad = "TR_whisper_log_mel"
-    # Yeniden örneklemenin yazımı (23.6, 21.1): kopyalanınca çalışan TR_run_process çağrısı.
-    TR_var yeniden = "`TR_run_process(\"ffmpeg\", [\"-nostdin\", \"-y\", \"-i\", \"girdi.wav\", \"-ar\", \"16000\", \"-c:a\", \"pcm_s16le\", \"çıktı.wav\"])`"
+    # Yeniden örneklemenin yazımı (23.6, 22.4): kopyalanınca çalışan TR_resample çağrısı.
+    TR_var yeniden = "`TR_resample(ses, TR_sample_rate: 16000)`"
     TR_if ses.TR_sample_rate != _WHISPER_HIZI { TR_throw TR_Message("H7079", ad, "rate", ses.TR_sample_rate, yeniden, "") }
     TR_var şekil = ses.TR_samples.TR_shape
     TR_if şekil[0] > 1 {

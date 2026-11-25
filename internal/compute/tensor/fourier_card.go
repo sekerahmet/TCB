@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kartta Fourier dönüşümü (23.1, 23.3, 23.5): taban matrisli DFT. Dönüşüm var olan türevli tensör
+// Kartta Fourier dönüşümü (23.1, 23.3, 23.5, 23.7, 23.8): taban matrisli DFT. Dönüşüm var olan türevli tensör
 // işlemlerinden kurulur: çerçeveler satır seçmedir (TakeRows; yansıtma ve sıfır dolgu konum
 // tablosunda), sonra pencereyle çarpım ve [satır, n] @ B[n, 2F]. Çarpım MatMul'dandır, bloğu
 // izleyen MatMulVendor'dan değil: ileri ve geri yönde TR'nin kendi çekirdeği (23.5, 15.53b).
@@ -25,44 +25,89 @@ type basisKey struct {
 	dev Device
 }
 
-// fourierBases kurulmuş tabanlardır; order eklenme sırasıdır (en eskisi önde).
-var fourierBases = struct {
+// basisCache kurulmuş tabanlardır; order eklenme sırasıdır (en eskisi önde).
+type basisCache struct {
 	sync.Mutex
 	m     map[basisKey]*Tensor
 	order []basisKey
 	bytes int
-}{m: map[basisKey]*Tensor{}}
+}
+
+// get anahtarın tabanıdır; yoksa fill'in doldurduğu [rows, cols] veriyle kurulur.
+func (c *basisCache) get(key basisKey, rows, cols int, fill func(data []float32)) *Tensor {
+	c.Lock()
+	defer c.Unlock()
+	if b, ok := c.m[key]; ok {
+		return b
+	}
+	data := make([]float32, rows*cols)
+	fill(data)
+	size := 4 * len(data)
+	for c.bytes+size > fourierCacheBytes && len(c.order) > 0 {
+		old := c.order[0]
+		c.order = c.order[1:]
+		c.bytes -= 4 * c.m[old].Numel()
+		delete(c.m, old)
+	}
+	b := NewOn(key.dev, data, rows, cols)
+	c.m[key] = b
+	c.order = append(c.order, key)
+	c.bytes += size
+	return b
+}
+
+// İleri ve ters taban ayrı önbellektedir: 4096'lık ikisi tek sınıra sığmaz, birbirini düşürürdü.
+var (
+	fourierBases        = basisCache{m: map[basisKey]*Tensor{}}
+	inverseFourierBases = basisCache{m: map[basisKey]*Tensor{}}
+)
 
 // fourierBasis n uzunluğun dev'deki tabanıdır: B[k, j] = cos, B[k, F+j] = e^(−2πi·jk/n)'nin sanal
 // kısmı (j < F = n/2+1). Konakta float64'te unitRoot ile kurulur, float32'ye bir kez yuvarlanır.
 func fourierBasis(n int, dev Device, tr Trig) *Tensor {
-	key := basisKey{n, dev}
-	fourierBases.Lock()
-	defer fourierBases.Unlock()
-	if b, ok := fourierBases.m[key]; ok {
-		return b
-	}
 	F := n/2 + 1
-	data := make([]float32, n*2*F)
-	for k := range n {
-		row := data[k*2*F : (k+1)*2*F]
-		for j := range F {
-			c, s := unitRoot(tr, j*k%n, n)
-			row[j], row[F+j] = float32(c), float32(s)
+	return fourierBases.get(basisKey{n, dev}, n, 2*F, func(data []float32) {
+		for k := range n {
+			row := data[k*2*F : (k+1)*2*F]
+			for j := range F {
+				c, s := unitRoot(tr, j*k%n, n)
+				row[j], row[F+j] = float32(c), float32(s)
+			}
 		}
-	}
-	size := 4 * len(data)
-	for fourierBases.bytes+size > fourierCacheBytes && len(fourierBases.order) > 0 {
-		old := fourierBases.order[0]
-		fourierBases.order = fourierBases.order[1:]
-		fourierBases.bytes -= 4 * fourierBases.m[old].Numel()
-		delete(fourierBases.m, old)
-	}
-	b := NewOn(dev, data, n, 2*F)
-	fourierBases.m[key] = b
-	fourierBases.order = append(fourierBases.order, key)
-	fourierBases.bytes += size
-	return b
+	})
+}
+
+// innerBins sanal kısmı sonuca giren kutulardır: 1, …, (n−1)/2. Sıfırıncı ve çift n'de son kutununki girmez
+// (23.7).
+func innerBins(n int) int { return (n - 1) / 2 }
+
+// inverseFourierBasis ters dönüşümün tabanıdır: ilk F = n/2+1 satır gerçek kutuların, sonraki innerBins satır
+// iç kutuların sanal kısmının n örneğe katkısı; sıfırıncı ve çift n'de son kutu 1/n, öbürleri 2/n ölçeklidir.
+func inverseFourierBasis(n int, dev Device, tr Trig) *Tensor {
+	F, inner := n/2+1, innerBins(n)
+	return inverseFourierBases.get(basisKey{n, dev}, F+inner, n, func(data []float32) {
+		for j := range F {
+			edge := j == 0 || 2*j == n
+			scale := 2 / float64(n)
+			if edge {
+				scale = 1 / float64(n)
+			}
+			for k := range n {
+				c, s := unitRoot(tr, j*k%n, n)
+				data[j*n+k] = float32(scale * c)
+				if !edge {
+					data[(F+j-1)*n+k] = float32(scale * s)
+				}
+			}
+		}
+	})
+}
+
+// inverseFourierOnCard [satır, F] kutularından [satır, n] sinyali kurar. Sonuca girmeyen sanal kutular
+// çarpımdan önce dilimle atılır: tabandaki 0 onların NaN'ını ve sonsuzunu silmezdi (0 · NaN = NaN). Türevleri
+// dilimin türevinden 0'dır.
+func inverseFourierOnCard(re, im *Tensor, n int, tr Trig) *Tensor {
+	return MatMul(Concat([]*Tensor{re, im.Slice(1, 1, 1+innerBins(n))}, 1), inverseFourierBasis(n, re.Device(), tr))
 }
 
 // onCard girdinin kartta dönüşeceğini söyler: CPU'da yanlış; kartta float64 yoktur (H7076, CPU'ya
@@ -107,6 +152,14 @@ func rfftOnCard(t *Tensor, n int, tr Trig) (*Tensor, *Tensor) {
 	return re.Reshape(shape...), im.Reshape(shape...)
 }
 
+// irfftOnCard Irfft'in kart yoludur.
+func irfftOnCard(re, im *Tensor, n int, tr Trig) *Tensor {
+	F, rows := re.shape[len(re.shape)-1], rowsOf(re)
+	flat := func(t *Tensor) *Tensor { return t.Cast(Float32).Contiguous().Reshape(rows, F) }
+	y := inverseFourierOnCard(flat(re), flat(im), n, tr)
+	return y.Reshape(append(copyInts(re.shape[:len(re.shape)-1]), n)...)
+}
+
 // frameIndex çerçevelerin dolgulu sinyaldeki konum tablosudur: [çerçeve·n]; sıfır dolgu sinyalin
 // sonundaki sıfır satırını (last) gösterir.
 func frameIndex(last, frames int, o StftOptions) []int {
@@ -140,4 +193,51 @@ func stftOnCard(x, window *Tensor, o StftOptions, tr Trig) (*Tensor, *Tensor) {
 	shape := append(copyInts(x.shape[:len(x.shape)-1]), F, frames)
 	bt := func(t *Tensor) *Tensor { return t.Permute(0, 2, 1).Contiguous().Reshape(shape...) }
 	return bt(re), bt(im)
+}
+
+// overlapIndex kurulan her örneğe değen (çerçeve·n + konum) satırlarının tablosudur: [boy·slots]; boş
+// yuva son satırı (çerçeve·n, sıfır satırı) gösterir. slots bir örneğe değen çerçevelerin en çoğudur.
+func overlapIndex(frames int, o IstftOptions) (idx []int, slots int) {
+	slots = min(frames, 1+(o.N-1)/o.Hop)
+	idx = make([]int, o.Length*slots)
+	for i := range idx {
+		idx[i] = frames * o.N
+	}
+	used := make([]int, o.Length)
+	for f := range frames {
+		at, lo, hi := o.overlap(f)
+		for i := lo; i < hi; i++ {
+			p := at + i
+			idx[p*slots+used[p]] = f*o.N + i
+			used[p]++
+		}
+	}
+	return idx, slots
+}
+
+// overlapAdd [satır, çerçeve, n] parçaları üst üste ekler: [satır, boy].
+func overlapAdd(parts *Tensor, idx []int, slots int, o IstftOptions) *Tensor {
+	rows, frames := parts.shape[0], parts.shape[1]
+	flat := parts.Contiguous().Reshape(rows, frames*o.N).Permute(1, 0)
+	flat = Concat([]*Tensor{flat, ZerosOn(parts.Device(), 1, rows)}, 0) // [çerçeve·n + 1, satır]
+	return TakeRows(flat, idx, []int{o.Length, slots}).Sum(1, false).Permute(1, 0)
+}
+
+// istftOnCard Istft'in kart yoludur; pencere karelerinin toplamı da kartta hesaplanır, türevi izlenir.
+// Toplamın sıfır denetimi pencereyi konakta okur.
+func istftOnCard(re, im, window *Tensor, o IstftOptions, c FourierCall) *Tensor {
+	rows, F, frames, shape := istftShape(re, o)
+	dev, w := re.Device(), window.Cast(Float32)
+	if rows == 0 {
+		return ZerosOn(dev, shape...)
+	}
+	istftEnvelope(w.Detach().To(CPU).Data(), frames, o, c.Fn)
+	flat := func(t *Tensor) *Tensor {
+		return t.Cast(Float32).Contiguous().Reshape(rows, F, frames).Permute(0, 2, 1).Contiguous().Reshape(rows*frames, F)
+	}
+	y := inverseFourierOnCard(flat(re), flat(im), o.N, c.Trig).Reshape(rows, frames, o.N)
+	idx, slots := overlapIndex(frames, o)
+	sum := overlapAdd(Mul(y, w), idx, slots, o)
+	squares := Add(ZerosOn(dev, 1, frames, o.N), Mul(w, w))
+	return Div(sum, overlapAdd(squares, idx, slots, o)).Contiguous().Reshape(shape...)
 }

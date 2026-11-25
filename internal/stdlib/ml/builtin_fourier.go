@@ -2,6 +2,7 @@ package ml
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/detmath"
@@ -11,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// Fourier dönüşümü, pencere ve STFT (23.1–23.3). Hesap tensör çekirdeğindedir; burada argümanlar
+// Fourier dönüşümü, pencere, STFT ve ters dönüşümler (23.1–23.3, 23.7, 23.8). Hesap tensör çekirdeğindedir; burada argümanlar
 // denetlenir. Karmaşık sonuç (gerçek, sanal) demetidir.
 
 var (
@@ -20,13 +21,16 @@ var (
 	nameHop      = bind.NamedArg(codes.ArgHopLength)
 	nameCenter   = bind.NamedArg(codes.ArgCenter)
 	namePadMode  = bind.NamedArg(codes.ArgPadMode)
+	nameLength   = bind.NamedArg(codes.ArgLength)
 )
 
 // registerFourier yerleşikleri bağlar.
 func registerFourier(v *interp.VM) {
 	wrap(v, codes.FnRfft, newBuiltin(rfftBuiltin))
+	wrap(v, codes.FnIrfft, newBuiltin(irfftBuiltin))
 	wrap(v, codes.FnHannWindow, newBuiltin(hannBuiltin))
 	wrap(v, codes.FnStft, newBuiltin(stftBuiltin))
+	wrap(v, codes.FnIstft, newBuiltin(istftBuiltin))
 }
 
 // fourierTrig köklerin platformdan bağımsız sinüs ve kosinüsüdür.
@@ -99,6 +103,63 @@ func rfftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	})
 }
 
+// spectrumArgs ters dönüşümün (gerçek, sanal) çiftini denetler: ikisi de ondalık tensördür.
+func spectrumArgs(fn any, args []interp.Value) (re, im *tensor.Tensor, err error) {
+	if re, err = signalArg(fn, args[0]); err != nil {
+		return nil, nil, err
+	}
+	if im, err = signalArg(fn, args[1]); err != nil {
+		return nil, nil, err
+	}
+	return re, im, nil
+}
+
+// spectrumShape iki parçanın şeklinin aynı, axis'inci (sondan) eksenin n/2+1 kutu olmasını ister (23.7).
+func spectrumShape(fn any, re, im *tensor.Tensor, axis, n int) error {
+	if !slices.Equal(re.Shape(), im.Shape()) {
+		return messages.New(messages.H7920, fn, "shape", tensor.ShapeText(re.Shape()), tensor.ShapeText(im.Shape()))
+	}
+	want := n/2 + 1
+	if re.Dim() < axis {
+		return messages.New(messages.H7920, fn, "rank", tensor.ShapeText(re.Shape()), want)
+	}
+	if bins := re.Shape()[re.Dim()-axis]; bins != want {
+		return messages.New(messages.H7920, fn, "bins", bins, want)
+	}
+	return nil
+}
+
+// irfftBuiltin TR_irfft(gerçek, sanal, TR_n: n).
+func irfftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	kd := codes.FnIrfft
+	fn := codes.NameRef(kd)
+	if err := bind.CheckNamed(fn.Called(), named, nameN); err != nil {
+		return nil, err
+	}
+	if len(args) != 2 {
+		return nil, interp.ArgCountError(kd, 2, len(args))
+	}
+	re, im, err := spectrumArgs(fn, args)
+	if err != nil {
+		return nil, err
+	}
+	v, given := bind.GetNamed(named, nameN)
+	if !given {
+		return nil, messages.New(messages.H7052, fn, nameN, "23.7")
+	}
+	n, err := positiveInt(fn, nameN, v)
+	if err != nil {
+		return nil, err
+	}
+	if err := spectrumShape(fn, re, im, 1, n); err != nil {
+		return nil, err
+	}
+	if err := checkDevice(fn, re, im); err != nil {
+		return nil, err
+	}
+	return safe(func() interp.Value { return New(tensor.Irfft(re, im, n, fourierCall(fn))) })
+}
+
 // hannBuiltin TR_hann_window(n, TR_periodic: b).
 func hannBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	kd := codes.FnHannWindow
@@ -124,26 +185,33 @@ func hannBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	return safe(func() interp.Value { return New(tensor.HannWindow(n, periodic, fourierTrig)) })
 }
 
-// stftOptions adlı argümanları denetler.
-func stftOptions(fn any, n int, named map[string]interp.Value) (tensor.StftOptions, *tensor.Tensor, error) {
-	o := tensor.StftOptions{N: n}
-	hop, given := bind.GetNamed(named, nameHop)
+// frameOptions TR_stft ile TR_istft'nin ortak adlı argümanlarını denetler: adım, pencere, ortalama.
+func frameOptions(fn any, n int, named map[string]interp.Value, rule string) (hop int, w *tensor.Tensor, center bool, err error) {
+	hv, given := bind.GetNamed(named, nameHop)
 	if !given {
-		return o, nil, messages.New(messages.H7052, fn, nameHop, "23.3")
+		return 0, nil, false, messages.New(messages.H7052, fn, nameHop, rule)
 	}
-	var err error
-	if o.Hop, err = positiveInt(fn, nameHop, hop); err != nil {
-		return o, nil, err
+	if hop, err = positiveInt(fn, nameHop, hv); err != nil {
+		return 0, nil, false, err
 	}
 	wv, given := bind.GetNamed(named, nameWindow)
 	if !given {
-		return o, nil, messages.New(messages.H7052, fn, nameWindow, "23.3")
+		return 0, nil, false, messages.New(messages.H7052, fn, nameWindow, rule)
 	}
-	w, ok := wv.(*TensorValue)
-	if !ok || w.t.Elem() != tensor.ElemFloat || w.t.DType().IsQuantized() || w.t.Dim() != 1 || w.t.Shape()[0] != n {
-		return o, nil, messages.New(messages.H7076, fn, windowText(wv), "window", hannFix(n))
+	t, ok := wv.(*TensorValue)
+	if !ok || t.t.Elem() != tensor.ElemFloat || t.t.DType().IsQuantized() || t.t.Dim() != 1 || t.t.Shape()[0] != n {
+		return 0, nil, false, messages.New(messages.H7076, fn, windowText(wv), "window", hannFix(n))
 	}
-	if o.Center, err = bind.OptionalBool(fn, named, nameCenter, true); err != nil {
+	center, err = bind.OptionalBool(fn, named, nameCenter, true)
+	return hop, t.t, center, err
+}
+
+// stftOptions adlı argümanları denetler.
+func stftOptions(fn any, n int, named map[string]interp.Value) (tensor.StftOptions, *tensor.Tensor, error) {
+	o := tensor.StftOptions{N: n}
+	var w *tensor.Tensor
+	var err error
+	if o.Hop, w, o.Center, err = frameOptions(fn, n, named, "23.3"); err != nil {
 		return o, nil, err
 	}
 	mode, given := bind.GetNamed(named, namePadMode)
@@ -159,7 +227,7 @@ func stftOptions(fn any, n int, named map[string]interp.Value) (tensor.StftOptio
 		}
 		o.Reflect = s.Val == "reflect"
 	}
-	return o, w.t, nil
+	return o, w, nil
 }
 
 // floatFix tensörü ondalığa çevirmenin yazımıdır.
@@ -216,4 +284,76 @@ func stftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 		re, im := tensor.Stft(x, w, o, fourierCall(fn))
 		return complexResult(re, im)
 	})
+}
+
+// istftLength çerçeve sayısını, adımı ve boyu bu sırayla denetler (23.8): o.Length verilen TR_length:'tir,
+// 0 ise verilmemiştir; kurulacak boyu döndürür.
+func istftLength(fn any, re *tensor.Tensor, o tensor.IstftOptions) (int, error) {
+	frames := re.Shape()[re.Dim()-1]
+	tooFew := func(want int) error {
+		return messages.New(messages.H7920, fn, "frames", tensor.ShapeText(re.Shape()), want)
+	}
+	first := 1 // tek çerçevenin kurduğu boy: 0 olabilir
+	if natural, lo, hi := tensor.IstftLengths(1, o); o.Length == 0 && natural == 0 || o.Length > 0 && hi < lo {
+		first = 2
+	}
+	if frames < first {
+		return 0, tooFew(first)
+	}
+	if index, gap := tensor.IstftGap(frames, o); gap {
+		return 0, messages.New(messages.H7921, fn, index, o.Hop, "centered")
+	}
+	natural, lo, hi := tensor.IstftLengths(frames, o)
+	if o.Length == 0 {
+		return natural, nil
+	}
+	if o.Length < lo || o.Length > hi {
+		valid := fmt.Sprintf("%d..=%d", lo, hi)
+		if lo == hi {
+			valid = fmt.Sprint(lo)
+		}
+		return 0, messages.New(messages.H7077, fn, nameLength, valid, o.Length, "23.8")
+	}
+	return o.Length, nil
+}
+
+// istftBuiltin TR_istft(gerçek, sanal, n, TR_hop_length: h, TR_window: w, TR_center: b, TR_length: u).
+func istftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	kd := codes.FnIstft
+	fn := codes.NameRef(kd)
+	if err := bind.CheckNamed(fn.Called(), named, nameHop, nameWindow, nameCenter, nameLength); err != nil {
+		return nil, err
+	}
+	if len(args) != 3 {
+		return nil, interp.ArgCountError(kd, 3, len(args))
+	}
+	re, im, err := spectrumArgs(fn, args)
+	if err != nil {
+		return nil, err
+	}
+	o := tensor.IstftOptions{}
+	if o.N, err = positiveInt(fn, "n", args[2]); err != nil {
+		return nil, err
+	}
+	var w *tensor.Tensor
+	if o.Hop, w, o.Center, err = frameOptions(fn, o.N, named, "23.8"); err != nil {
+		return nil, err
+	}
+	if v, given := bind.GetNamed(named, nameLength); given {
+		if o.Length, err = positiveInt(fn, nameLength, v); err != nil {
+			return nil, err
+		}
+	}
+	if err := spectrumShape(fn, re, im, 2, o.N); err != nil {
+		return nil, err
+	}
+	if o.Length, err = istftLength(fn, re, o); err != nil {
+		return nil, err
+	}
+	for _, other := range []*tensor.Tensor{im, w} {
+		if err := checkDevice(fn, re, other); err != nil {
+			return nil, err
+		}
+	}
+	return safe(func() interp.Value { return New(tensor.Istft(re, im, w, o, fourierCall(fn))) })
 }

@@ -1,5 +1,5 @@
 # TR 4
-# tr/audio testleri: WAV okuma ve yazma (22.4). Bozuk dosyaların her biri bellekte kurulur, kendi
+# tr/audio testleri: WAV okuma ve yazma, yeniden örnekleme (22.4), Whisper'ın girdisi (23.6). Bozuk dosyaların her biri bellekte kurulur, kendi
 # iletisiyle hata verir. Koşturma: trlang test lib
 TR_import "tr/audio"
 
@@ -344,10 +344,12 @@ TR_test "23.6 şekil: [m, örnek // 160 + 3000]; alt sınır 8 birimi aşmaz" {
 TR_test "23.6 denetim sırası: şekil, hız, kanal, boş ses" {
     TR_var yanlış = TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 8000)
     TR_assert_equal("H7079", TR_error_code { TR_whisper_log_mel(yanlış, TR_n_mels: 80) })
-    # İleti yeniden örneklemeyi kabuk komutuyla değil TR_run_process yazımıyla önerir (23.6, 21.1).
+    # İleti yeniden örneklemenin yazımını önerir (23.6, 22.4); kopyalanınca çalışır.
     TR_var ileti = ""
     TR_try { TR_whisper_log_mel(yanlış, TR_n_mels: 80) } TR_catch h { ileti = TR_String(h) }
-    TR_assert(ileti.TR_contains("`TR_run_process(") TR_and ileti.TR_contains("16000") TR_and TR_not ileti.TR_contains("`ffmpeg "), ileti)
+    TR_assert(ileti.TR_contains("`TR_resample(ses, TR_sample_rate: 16000)`") TR_and TR_not ileti.TR_contains("ffmpeg"), ileti)
+    TR_var ses = yanlış
+    TR_assert_equal([80, 3000], TR_whisper_log_mel(TR_resample(ses, TR_sample_rate: 16000), TR_n_mels: 80).TR_shape)
     TR_var iki = TR_Sound(TR_samples: TR_zeros([2, 16]), TR_sample_rate: 16000)
     TR_assert_equal("H7079", TR_error_code { TR_whisper_log_mel(iki, TR_n_mels: 80) })
     TR_var boş = TR_Sound(TR_samples: TR_zeros([1, 0]), TR_sample_rate: 16000)
@@ -371,4 +373,115 @@ TR_test "23.6 iletinin iki yazımı kopyalanınca çalışır" {
     TR_var ortalama = TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: ses.TR_sample_rate)
     TR_assert_equal([80, 3000], TR_whisper_log_mel(ilk, TR_n_mels: 80).TR_shape)
     TR_assert_equal([80, 3000], TR_whisper_log_mel(ortalama, TR_n_mels: 80).TR_shape)
+}
+
+# yeniden x'i (bir kanal) r₀ hızından r hızına örnekler.
+TR_func yeniden(x: TR_Tensor[TR_Float], r0: TR_Int, r: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var y = TR_resample(TR_Sound(TR_samples: x.TR_reshape([1, -1]), TR_sample_rate: r0), TR_sample_rate: r)
+    TR_assert_equal(r, y.TR_sample_rate)
+    TR_return y.TR_samples[0]
+}
+
+# sinüs f Hz'lik sinüstür (faz çeyrek: kosinüs); açı tam sayıyla indirgenir.
+TR_func sinüs(f: TR_Int, hız: TR_Int, n: TR_Int, çeyrek: TR_Int = 0) -> TR_Tensor[TR_Float] {
+    TR_return TR_Tensor(TR_List(0..n).TR_map((i) => TR_sin(2.0 * TR_pi * ((i * f) % hız) / hız + çeyrek * TR_pi / 2.0)))
+}
+
+TR_test "22.4 TR_resample'ın bant tepkisi" {
+    TR_for çift TR_in [[24000, 16000], [24000, 32000], [44100, 24000], [16000, 24000]] {
+        TR_var r0 = çift[0]
+        TR_var r = çift[1]
+        TR_var yarım = TR_if r0 < r { r0 // 2 } TR_else { r // 2 } # küçük hızın yarısı
+        TR_var kes = r // 10
+        TR_var pencere = r // 10 # saniyenin onda biri: 10 Hz'in katında tam periyot
+        TR_for k TR_in [5, 50, 80, 90] {
+            TR_var f = yarım * k // 100
+            TR_var y = yeniden(sinüs(f, r0, r0 * 3 // 10), r0, r).TR_slice(0, kes, kes + pencere)
+            TR_var s = TR_sum(y * sinüs(f, r, kes + pencere).TR_slice(0, kes, kes + pencere)).TR_item() * 2.0 / pencere
+            TR_var c = TR_sum(y * sinüs(f, r, kes + pencere, 1).TR_slice(0, kes, kes + pencere)).TR_item() * 2.0 / pencere
+            TR_var kazanç = 20.0 * TR_log10(TR_sqrt(s * s + c * c))
+            TR_assert(TR_abs(kazanç) <= 0.01, "\(çift) %\(k): \(kazanç) dB")
+            TR_assert(TR_abs(TR_atan2(c, s)) <= 1e-4, "\(çift) %\(k): faz \(TR_atan2(c, s))")
+        }
+        TR_for çeyrek TR_in [0, 1] { # tam yarıda: sinüs ve kosinüs
+            TR_var y = yeniden(sinüs(yarım, r0, r0 * 3 // 10, çeyrek), r0, r).TR_slice(0, kes, kes + pencere)
+            TR_assert(TR_max(TR_abs(y)).TR_item() <= 1e-5, "\(çift) yarıda, çeyrek \(çeyrek): \(TR_max(TR_abs(y)))")
+        }
+    }
+}
+
+TR_test "22.4 TR_resample soxr HQ'ya yakındır" {
+    TR_var f = TR_load_tensors("../tests/data/resample/resample.safetensors") # üretimi: KAYNAK.md
+    TR_for çift TR_in [[24000, 16000], [24000, 32000], [44100, 24000], [16000, 24000]] {
+        TR_for tür TR_in [["noise", "0.001"], ["band", "0.0001"]] {
+            TR_var ad = "\(tür[0])_\(çift[0])_\(çift[1])"
+            TR_var y = yeniden(TR_Tensor[TR_Float](f[ad]) / 32768.0, çift[0], çift[1])
+            TR_var beklenen = f["soxr_\(ad)"]
+            TR_assert_equal(beklenen.TR_shape, y.TR_shape)
+            TR_var kes = çift[1] // 20 # uçların 0,05 saniyesi: kitaplıkların uç varsayımı ayrı olabilir
+            TR_var fark = TR_max(TR_abs(y - beklenen).TR_slice(0, kes, beklenen.TR_shape[0] - kes)).TR_item()
+            TR_assert(fark <= TR_Float(tür[1]), "\(ad): \(fark)")
+        }
+    }
+}
+
+TR_test "22.4 TR_resample'ın kapıları ve boyu" {
+    TR_var ses = TR_Sound(TR_samples: TR_randn([2, 101], TR_seed: 4), TR_sample_rate: 24000)
+    # boy: ⌈örnek · r / r₀⌉; kanallar ayrı
+    TR_for çift TR_in [[16000, 68], [32000, 135], [24000, 101], [48000, 202], [7, 1]] {
+        TR_assert_equal([2, çift[1]], TR_resample(ses, TR_sample_rate: çift[0]).TR_samples.TR_shape)
+    }
+    TR_var iki = TR_resample(ses, TR_sample_rate: 16000).TR_samples
+    TR_for k TR_in [0, 1] { TR_assert_close(iki[k], yeniden(ses.TR_samples[k], 24000, 16000), TR_atol: 1e-6) }
+    TR_assert_equal([1, 1], TR_resample(TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 24000), TR_sample_rate: 16000).TR_samples.TR_shape)
+    # uzun ses bloklarla süzülür: girdi 3 örnek ötelenince sonuç 2 örnek ötelenir, blok sınırı sonuca girmez
+    TR_var uzun = TR_randn([60000], TR_seed: 12)
+    TR_var ötelenmiş = yeniden(TR_concat([TR_zeros([3]), uzun]), 24000, 16000)
+    TR_assert_equal([40002], ötelenmiş.TR_shape)
+    TR_assert_close(yeniden(uzun, 24000, 16000), ötelenmiş.TR_slice(0, 2, 40002), TR_atol: 1e-6)
+    # aynı hız: aynı örnekler, yeni yapı ve yeni tensör
+    TR_var aynı = TR_resample(ses, TR_sample_rate: 24000)
+    TR_assert_equal(ses.TR_samples.TR_tolist, aynı.TR_samples.TR_tolist)
+    aynı.TR_sample_rate = 8000
+    TR_assert_equal(24000, ses.TR_sample_rate)
+    TR_var ilk = ses.TR_samples[0][0].TR_item()
+    aynı.TR_samples[0][0] = 9.0
+    TR_assert_equal(ilk, ses.TR_samples[0][0].TR_item())
+    # hassasiyet: sonuç float32; karışık hassasiyet bloğunda da
+    TR_assert_equal("float32", TR_resample(TR_Sound(TR_samples: ses.TR_samples.TR_to_dtype("bf16"), TR_sample_rate: 24000), TR_sample_rate: 16000).TR_samples.TR_dtype)
+    TR_assert_equal("float32", TR_resample(TR_Sound(TR_samples: ses.TR_samples.TR_to_dtype("float64"), TR_sample_rate: 24000), TR_sample_rate: 24000).TR_samples.TR_dtype)
+    TR_assert_equal(iki.TR_tolist, TR_mixed_precision("bf16") { TR_resample(ses, TR_sample_rate: 16000) }.TR_samples.TR_tolist)
+    # türev
+    TR_var x = TR_Tensor(ses.TR_samples, TR_requires_grad: TR_true)
+    TR_var ağırlık = TR_randn([2, 68], TR_seed: 6)
+    TR_backward(TR_sum(TR_resample(TR_Sound(TR_samples: x, TR_sample_rate: 24000), TR_sample_rate: 16000).TR_samples * ağırlık))
+    TR_var yön = TR_randn([2, 101], TR_seed: 8) # süzgeç doğrusaldır: yönlü türev farkla aynıdır
+    TR_var ileri = TR_resample(TR_Sound(TR_samples: ses.TR_samples + yön, TR_sample_rate: 24000), TR_sample_rate: 16000).TR_samples
+    TR_assert_close(TR_sum(x.TR_grad * yön).TR_item(), TR_sum((ileri - iki) * ağırlık).TR_item(), TR_atol: 1e-4)
+    # kapılar, sırayla: şekil ve hız, boş, sonlu değil, oran
+    TR_var atanmış = TR_Sound(TR_samples: TR_zeros([1, 4]), TR_sample_rate: 8000)
+    atanmış.TR_samples = TR_zeros([4])
+    TR_assert_equal("H7072", TR_error_code { TR_resample(atanmış, TR_sample_rate: 16000) })
+    TR_for r TR_in [0, -16000] { TR_assert_equal("H7072", TR_error_code { TR_resample(ses, TR_sample_rate: r) }) }
+    TR_var boş = TR_Sound(TR_samples: TR_zeros([1, 0]), TR_sample_rate: 8000)
+    TR_for r TR_in [8000, 16000] { TR_assert_equal("H7922", TR_error_code { TR_resample(boş, TR_sample_rate: r) }) }
+    TR_for değer TR_in ["nan", "inf", "-inf"] {
+        TR_var bozuk = TR_Sound(TR_samples: TR_Tensor([[0.0, 0.5, 0.0], [0.0, 0.0, TR_Float(değer)]]), TR_sample_rate: 24000)
+        TR_for r TR_in [16000, 24000] {
+            TR_assert_equal("H7922", TR_error_code { TR_resample(bozuk, TR_sample_rate: r) })
+        }
+        TR_try { TR_print(TR_resample(bozuk, TR_sample_rate: 16000)) } TR_catch h {
+            TR_assert(TR_String(h).TR_contains("2, 1)"), TR_String(h)) # 1. kanalın 2. örneği
+        }
+    }
+    # oran: sınır bu uygulamanındır; dev hızda sayı taşmaz
+    TR_var kısa = TR_Sound(TR_samples: TR_Tensor([[0.5, 0.25]]), TR_sample_rate: 1)
+    TR_for çift TR_in [[44100, 44099], [3997, 4007], [9223372036854775807, 1], [1, 9223372036854775807], [9223372036854775807, 9223372036854775806]] {
+        kısa.TR_sample_rate = çift[0]
+        TR_assert_equal("H7922", TR_error_code { TR_resample(kısa, TR_sample_rate: çift[1]) })
+    }
+    kısa.TR_sample_rate = 11025 # yaygın hızların en büyük süzgeci
+    TR_assert_equal([1, 35], TR_resample(kısa, TR_sample_rate: 192000).TR_samples.TR_shape)
+    kısa.TR_sample_rate = 9223372036854775807 # aynı dev hız
+    TR_assert_equal([[0.5, 0.25]], TR_resample(kısa, TR_sample_rate: 9223372036854775807).TR_samples.TR_tolist)
 }

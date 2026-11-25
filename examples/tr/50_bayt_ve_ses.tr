@@ -23,6 +23,9 @@ TR_write_wav(TR_String(yol), TR_Sound(TR_samples: TR_Tensor([[0.0, 0.5, -0.5]]),
 TR_var ses = TR_read_wav(TR_String(yol))
 TR_print(ses.TR_sample_rate, ses.TR_samples.TR_shape)
 
+# Ses başka bir hıza yeniden örneklenir: konuşma modelleri sesi kendi hızlarında ister.
+TR_print(TR_resample(ses, TR_sample_rate: 48000).TR_samples.TR_shape)
+
 # Fourier dönüşümü sesi frekanslara ayırır; sonuç (gerçek, sanal) demetidir. STFT aynı işi kısa
 # pencerelerle yapar: konuşma modelleri sesi böyle görür.
 TR_var dalga = TR_Tensor([1.0, 0.0, -1.0, 0.0])

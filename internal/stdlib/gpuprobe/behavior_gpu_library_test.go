@@ -72,3 +72,36 @@ func TestGPULibraryGPT(t *testing.T) {
 		}
 	}
 }
+
+// Kural (22.4): TR_resample sesin cihazında kalır ve işlemciyle aynı sonucu verir; varsayılan cihaz hangisi olursa
+// olsun (süzgecin katsayıları float64'te işlemcide kurulur, kartta float64 yoktur). Türev de kartta akar.
+func TestGPUResampleMatchesCPU(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	interp.SetLibrary(lib.Files)
+	defer interp.SetLibrary(nil)
+	out := trrun.MustExec(t, `
+TR_import "tr/audio"
+TR_func çevir(cihaz: TR_String, varsayılan: TR_String, r0: TR_Int, r: TR_Int) -> (TR_Tensor, TR_Tensor) {
+    TR_var x = TR_Tensor(TR_randn([2, 96], TR_seed: 5).TR_to_device(cihaz), TR_requires_grad: TR_true)
+    TR_default_device(varsayılan)
+    TR_var y = TR_resample(TR_Sound(TR_samples: x, TR_sample_rate: r0), TR_sample_rate: r).TR_samples
+    TR_default_device("cpu")
+    TR_backward(TR_sum(y ** 2))
+    TR_return y, x.TR_grad
+}
+TR_for çift TR_in [[24000, 16000], [16000, 24000], [24000, 24000]] {
+    TR_var c, cg = çevir("cpu", "cpu", çift[0], çift[1])
+    TR_for varsayılan TR_in ["cpu", "gpu"] {
+        TR_var d, _ = çevir("cpu", varsayılan, çift[0], çift[1])
+        TR_var g, gg = çevir("gpu", varsayılan, çift[0], çift[1])
+        TR_print(d.TR_device, g.TR_device, TR_equal(c, d), TR_all_close(c, g.TR_to_device("cpu"), TR_atol: 1e-5), TR_all_close(cg, gg.TR_to_device("cpu"), TR_atol: 1e-4))
+    }
+}
+TR_var bozuk = TR_Sound(TR_samples: TR_Tensor([[0.0, TR_Float("nan")]]).TR_to_device("gpu"), TR_sample_rate: 24000)
+TR_print(TR_error_code { TR_resample(bozuk, TR_sample_rate: 16000) })
+`).Out
+	if want := strings.Repeat("cpu gpu:0 true true true\n", 6) + "H7922\n"; out != want {
+		t.Fatalf("kartta yeniden örnekleme: %q, beklenen %q", out, want)
+	}
+}

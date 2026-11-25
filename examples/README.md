@@ -64,7 +64,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 47 | [`47_kendi_uretim_dongusu.tr`](tr/47_kendi_uretim_dongusu.tr) | Kendi üretim döngün: `TR_mem_build_cache`, önbellekli `TR_mem_forward`, `TR_mem_truncate`; elle yazılan döngü `TR_mem_generate` ile aynı diziyi verir; `TR_mem_hidden_states` + `TR_mem_single_step` + `TR_fn_replay` |
 | 48 | [`48_egitim_kosusu.tr`](tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`TR_type_Run`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce prova (`TR_arg_dry_run`) |
 | 49 | [`49_programin_sonu.tr`](tr/49_programin_sonu.tr) | Programın sonu: `TR_exit` ile kendi çıkış kodu, `TR_handle_stop` ve `TR_stop_requested` ile Ctrl+C'yi programın kendisinin karşılaması |
-| 50 | [`50_bayt_ve_ses.tr`](tr/50_bayt_ve_ses.tr) | Bayt ve ses: baytlardan sayı okumak, ses dosyası |
+| 50 | [`50_bayt_ve_ses.tr`](tr/50_bayt_ve_ses.tr) | Bayt ve ses: baytlardan sayı okumak, ses dosyası, yeniden örnekleme |
 | 51 | [`51_evrisim.tr`](tr/51_evrisim.tr) | Evrişim: `TR_conv1d`, `TR_logsumexp` |
 | 52 | [`52_turkce_sozcuk.tr`](tr/52_turkce_sozcuk.tr) | Türkçe sözcük: sözlük biçimi, ekler, kendi sözlüğün (`tr/turkish`) |
 | 53 | [`53_sohbet_bicimi.tr`](tr/53_sohbet_bicimi.tr) | Sohbet biçimi: iletileri Qwen3'ün parça dizisine çevirmek (`TR_fn_qwen3_format`) ve cevabı iletiye ayırmak (`TR_fn_qwen3_reply`; `tr/chat`) |
@@ -75,6 +75,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 58 | [`58_llama3_sohbet.tr`](tr/58_llama3_sohbet.tr) | Llama 3 sohbet biçimi: iletileri Llama 3.1 ve 3.2'nin parça dizisine çevirmek (`TR_fn_llama3_format`, `TR_arg_date`) ve cevabı iletiye ayırmak; araç çağrısının etiketi yok (`TR_fn_llama3_reply`; `tr/chat`) |
 | 59 | [`59_gemma3_sohbet.tr`](tr/59_gemma3_sohbet.tr) | Gemma 3 sohbet biçimi: iletileri Gemma 3'ün parça dizisine çevirmek (`TR_fn_gemma3_format`) ve cevabı iletiye ayırmak (`TR_fn_gemma3_reply`); sistem iletisi ilk kullanıcı turunun başında, araç desteği yok (`tr/chat_gemma3`) |
 | 60 | [`60_fonemler.tr`](tr/60_fonemler.tr) | Fonemler: Türkçe metni bir sesin IPA fonemlerine çevirmek; cümleler, vurgu, sayılar (`TR_fn_phonemize`; `tr/phonemes`) |
+| 61 | [`61_ters_spektrum.tr`](tr/61_ters_spektrum.tr) | Ters spektrum: frekans gösteriminden sesi geri kurmak (`TR_fn_irfft`, `TR_fn_istft`, `TR_arg_length`) |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 
