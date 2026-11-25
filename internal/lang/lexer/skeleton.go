@@ -19,21 +19,21 @@ func nfc(name string) string {
 	if norm.NFC.IsNormalString(name) {
 		return name
 	}
-	return norm.NFC.String(name)
+	return Normalize(FormNFC, name)
 }
 
 // Skeleton returns the UTS #39 skeleton of s: s in NFD, every code point replaced by its prototype
 // from the confusables table, NFD again. Two names that look alike have the same skeleton.
 func Skeleton(s string) string {
 	var b strings.Builder
-	for _, r := range norm.NFD.String(s) {
+	for _, r := range Normalize(FormNFD, s) {
 		if p, ok := confusables[r]; ok {
 			b.WriteString(p)
 		} else {
 			b.WriteRune(r)
 		}
 	}
-	return norm.NFD.String(b.String())
+	return Normalize(FormNFD, b.String())
 }
 
 // identityLookalike adın kimliğe benzediğidir: TR_ ile başlamadığı hâlde iskeleti TR_'nin

@@ -20,7 +20,7 @@ Kurallar: [`02_sozcuk_yapisi.md`](../02_sozcuk_yapisi.md). Bu dosya her kuralın
 
 ### 2.3
 
-- *Emsal:* Rust adı XID_Start ya da `_` ile başlatır ve NFC'ye göre karşılaştırır; Python NFKC'ye çevirir. *Almadık:* Go'nun yalnız harf ve rakama izin vermesi (birleşen işaretle yazılan yazı sistemlerinde ad yazılamaz) ve adı hiç normalleştirmemesi (aynı görünen iki ad farklı olur); Python'un NFKC'si (uyumluluk biçimlerini de birleştirir, üst simge `²` ile `2` aynı ad olur). ([Rust 1.99 Reference](https://doc.rust-lang.org/reference/identifiers.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#identifiers), [Go 1.27](https://go.dev/ref/spec#Identifiers))
+- *Emsal:* Rust adı XID_Start ya da `_` ile başlatır ve NFC'ye göre karşılaştırır; Python NFKC'ye çevirir. *Almadık:* Go'nun yalnız harf ve rakama izin vermesi (birleşen işaretle yazılan yazı sistemlerinde ad yazılamaz) ve adı hiç normalleştirmemesi (aynı görünen iki ad farklı olur); Python'un NFKC'si (uyumluluk biçimlerini de birleştirir, üst simge `²` ile `2` aynı ad olur). ([Rust 1.99 Reference](https://doc.rust-lang.org/reference/identifiers.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#identifiers), [Go 1.27](https://go.dev/ref/spec#Identifiers)) NFC standardınkidir: x/text v0.39.0 tek başına ayrı adları bir sayıyordu (U+20041 U+0300 ile `À`; 31 işaretli ad ile aynı yere U+034F yazılmışı), bu durumlarda biçim `lexer.Normalize`'da karakter karakter kurulur.
 - *Gerekçe:* aynı harf farklı klavyelerden ya da kopyalanan metinden birleşik ya da ayrık gelebilir; aynı görünen ad aynı ad olmalı.
 
 ### 2.3a
