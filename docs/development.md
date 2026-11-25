@@ -71,7 +71,7 @@ Ana dal herkese açıktır; ona yalnızca bütün kapılardan geçmiş iş gider
 - **Neden yan dal:** Colab kodu GitHub'dan çeker. Doğrudan ana dala gönderilen bir GPU değişikliği, gerçek kartta sınanmadan herkese açık olur. Yan dal, GPU sınamasını ana daldan önceye alır.
 - **Tam denetim ana dala her gönderimden önce bir kez koşar** (~5 dakika sürer; go-eşleri turu yalnızca assembly paketlerinde). Yan dal herkesin kullandığı dal değildir; ona değişen yerin testleriyle gönderilir, tam denetim Colab'daki kart sınamasından ve ana daldan önce koşar; kalırsa kart sınaması koşmaz. Birden çok dal birleşecekse hepsi birleştikten sonra tek bir denetim yeterlidir. Denetim sürerken depoda dosya düzenlenmez.
 - **GPU sınaması tam denetimin yerini tutmaz, ona eklenir.** Tam denetim gerçek GPU'yu sınamaz. GPU sınaması da CPU yollarını, ARM derlemesini ve Go eşlerini sınamaz.
-- GPU çalışma zamanında CPU işi (tam denetim, CPU ölçümü) yapılmaz; GPU işi bitince çalışma zamanı CPU'ya çevrilir ya da kapatılır (`runtime.unassign()`).
+- GPU çalışma zamanında CPU ölçümü yapılmaz; GPU işi bitince çalışma zamanı CPU'ya çevrilir ya da kapatılır (`runtime.unassign()`).
 
 ## Kod grafiği
 

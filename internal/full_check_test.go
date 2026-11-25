@@ -307,8 +307,12 @@ func raceStepsShareOneLimit(t *testing.T, script string) {
 
 // gpu_race'in uyarısı sınırın yarısı geçilince çıkar ve sınırın kendisini yazar; ikisi de
 // race_minutes'tan gelir. Sahte go iki saniye sürer: sınır 0 iken yarısı geçilmiştir, 20 iken geçilmemiştir.
+// Aradaki oranı bu iki sınır göstermez, o metninden sınanır: dakika × 30 saniye, yarısı (DENETİM 1001 N1).
 func gpuRaceWarnsFromTheSharedLimit(t *testing.T, script string) {
 	fn := firstMatch(t, script, `(?ms)^(gpu_race\(\) \{\n.*?^\})$`)
+	if half := "-gt $((race_minutes * 30)) ]"; !strings.Contains(fn, half) {
+		t.Errorf("uyarı sınırın yarısında çıkmalı, gpu_race'te %q beklenirdi", half)
+	}
 	for minutes, warns := range map[string]bool{"0": true, "20": false} {
 		out := runBash(t, "GITHUB_ACTIONS=\nset -o pipefail\nrace_minutes="+minutes+`
 step() { :; }
