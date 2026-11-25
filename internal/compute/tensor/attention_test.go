@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"runtime"
+	"slices"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -558,6 +559,36 @@ func TestAttentionMaskSavedForBackward(t *testing.T) {
 	for i := range want {
 		if math.Abs(float64(got[i]-want[i])) > 1e-5 {
 			t.Fatalf("bırakılan maskenin belleği geri yönden önce ezildi: %v, beklenen %v", got[i], want[i])
+		}
+	}
+}
+
+// TestAttentionWindowClamp: max(Tq, Tk)'yı aşan pencere penceresizle aynıdır (15.24): ileri ve geri bitleri W = max(Tq, Tk)'nınki;
+// W int64'ün en büyüğü olsa da sınır hesabı taşmaz. Kırpma Tk'ya değildir: Tq > Tk'da Tk boylu pencere dardır.
+func TestAttentionWindowClamp(t *testing.T) {
+	for _, n := range [][2]int{{6, 3}, {3, 3}, {2, 5}, {1, 1}} {
+		tq, tk := n[0], n[1]
+		for _, causal := range []bool{false, true} {
+			rng := rand.New(rand.NewSource(11))
+			q0, k0, v0 := random(rng, -1, 1, 0, 1, 2, tq, 4), random(rng, -1, 1, 0, 1, 2, tk, 4), random(rng, -1, 1, 0, 1, 2, tk, 4)
+			run := func(w int) (bits []uint32) {
+				q, k, v := q0.Clone().SetRequiresGrad(true), k0.Clone().SetRequiresGrad(true), v0.Clone().SetRequiresGrad(true)
+				y := attentionHM(q, k, v, AttentionOptions{Causal: causal, Window: w})
+				Mul(y, y).SumAll().Backward()
+				for _, x := range []*Tensor{y, q.Grad(), k.Grad(), v.Grad()} {
+					for _, f := range x.Data() {
+						bits = append(bits, math.Float32bits(f))
+					}
+				}
+				return bits
+			}
+			m := max(tq, tk)
+			want := run(m)
+			for _, w := range []int{0, m + 1, 1<<31 - 1, 1 << 31, 1<<32 - 1, 1 << 32, math.MaxInt} {
+				if !slices.Equal(run(w), want) {
+					t.Errorf("Tq %d Tk %d nedensel %v pencere %d: pencere %d'inkiyle aynı değil", tq, tk, causal, w, m)
+				}
+			}
 		}
 	}
 }

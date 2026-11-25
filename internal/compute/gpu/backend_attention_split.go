@@ -55,8 +55,8 @@ func (g *backend) splitPreferred(a flashSplit, p tensor.AttentionParams) bool {
 }
 
 // splitVisibleKeys bir satırın gördüğü en çok anahtar ve şeklin pencereli olup olmadığı: pencerede Tk değil
-// penceredir (iki çekirdek de yalnız görünen aralığı gezer, tensor.AttentionParams.Limits). Tk'yı kapsayan
-// pencere pencere değildir.
+// penceredir (iki çekirdek de yalnız görünen aralığı gezer, tensor.AttentionParams.Limits). İki yönlü pencerede
+// satırın sağında en çok Tq − 1 anahtar vardır. Tk'yı kapsayan pencere pencere değildir.
 func splitVisibleKeys(p tensor.AttentionParams) (keys int, window bool) {
 	switch {
 	case p.Window <= 0 || p.Window >= p.Tk:
@@ -64,11 +64,12 @@ func splitVisibleKeys(p tensor.AttentionParams) (keys int, window bool) {
 	case p.Causal:
 		return p.Window, true
 	}
-	return min(p.Tk, 2*p.Window-1), true
+	return min(p.Tk, p.Window+min(p.Window, p.Tq)-1), true
 }
 
 // splitMinKeys (a) kolunun en az görünen anahtarı: warp KC anahtarı sırayla gezer, R büyüdükçe warp azalır ve
-// kısa anahtarda boş kalır. Pencereli şekil çok parçalıdır (Tk'dan), birleştirme başlatmasını kısa pencere ödemez.
+// kısa anahtarda boş kalır. Tk parçayı aşınca pencereli şekil de çok parçalıdır: birleştirme başlatmasını kısa
+// pencere ödemez.
 func splitMinKeys(a flashSplit, window bool) int {
 	n := splitLongKeys
 	switch {

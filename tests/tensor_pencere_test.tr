@@ -1,0 +1,29 @@
+# TR 4
+# docs/spec/15_tensorler.md 15.24 — pencere |Tk − Tq + i − j| < w'dir: max(Tq, Tk)'yı aşan her w penceresizle aynıdır,
+# TR_Int'in en büyüğü de. Kartın yolları Go testindedir (internal/compute/gpu/behavior_nn_test.go, TestAttentionHugeWindow).
+
+TR_func girdi(n: TR_Int, tohum: TR_Int) -> TR_Tensor {
+    TR_return TR_Tensor(TR_randn([1, n, 2, 4], TR_seed: tohum), TR_requires_grad: TR_true)
+}
+
+TR_test "15.24 dikkat: çok büyük pencere penceresizdir" {
+    TR_for boy TR_in [(6, 3), (3, 3), (2, 5)] {
+        TR_var tq, tk = boy
+        TR_for nedensel TR_in [TR_false, TR_true] {
+            TR_func sonuç(w: TR_Int) -> TR_List[TR_Tensor] {
+                TR_var q, k, v = (girdi(tq, 1), girdi(tk, 2), girdi(tk, 3))
+                TR_var y = TR_if w == 0 { TR_attention(q, k, v, TR_causal: nedensel) } TR_else { TR_attention(q, k, v, TR_causal: nedensel, TR_window: w) }
+                TR_backward(TR_sum(y * y))
+                TR_return [TR_Tensor(y), TR_Tensor(q.TR_grad), TR_Tensor(k.TR_grad), TR_Tensor(v.TR_grad)]
+            }
+            TR_var beklenen = sonuç(0)
+            TR_for w TR_in [TR_max(tq, tk), 2147483647, 4294967296, 9223372036854775807] {
+                TR_var bulunan = sonuç(w)
+                TR_for i TR_in 0..4 { TR_assert(TR_equal(bulunan[i], beklenen[i]), "Tq \(tq) Tk \(tk) nedensel \(nedensel) pencere \(w)") }
+            }
+        }
+    }
+    # Sınır Tk değildir: Tq > Tk'da Tk boylu pencere dardır.
+    TR_var q, k, v = (girdi(6, 1), girdi(3, 2), girdi(3, 3))
+    TR_assert(TR_not TR_equal(TR_attention(q, k, v, TR_causal: TR_false, TR_window: 3), TR_attention(q, k, v, TR_causal: TR_false)))
+}
