@@ -332,7 +332,7 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		if !integer {
 			return nil, messages.New(messages.H6342, fn, typeName(tv))
 		}
-		rng = rand.New(rand.NewSource(t.Val))
+		rng = seededRandom(t.Val, sampleLabel)
 	}
 	data := d.t.Data()
 	line := len(data) / C

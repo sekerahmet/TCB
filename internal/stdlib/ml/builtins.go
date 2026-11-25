@@ -33,6 +33,7 @@ func Register(v *interp.VM) {
 	wrap(v, codes.FnAttention, newBuiltin(attentionBuiltin)) // model_araclari.go
 	wrap(v, codes.FnParameters, newBuiltin(paramsBuiltin))
 	wrap(v, codes.FnSample, newBuiltin(sampleBuiltin))
+	wrap(v, codes.FnFoldIn, newBuiltin(foldIn))
 
 	// --- Türev ---
 	wrap(v, codes.FnBackward, newBuiltin(backpropagation))

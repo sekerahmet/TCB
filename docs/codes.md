@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 800 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 186 fonksiyon, 13 sabit, 95 metot, 148 özellik, 200 adlı argüman.
+Toplam 801 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 187 fonksiyon, 13 sabit, 95 metot, 148 özellik, 200 adlı argüman.
 
 ## İçindekiler
 
@@ -2283,6 +2283,25 @@ tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).listeye)
 
 İlişkili: `TR_ceil(...)`, `TR_round(...)`
 
+#### `TR_fold_in(...)` (`TR_fn_fold_in`, `tohum_türet`)
+
+    tohum_türet(Tam, Tam) → Tam
+
+Bir tohumdan ve bir tam sayıdan yeni bir tohum (Tam) türetir: aynı çift aynı tohumu verir, türetilen tohumların çekilişleri bağımsızdır, sıra önemlidir. Döngüde ve görevde tohum + i yerine yazılır: s + i ve (s + 1) + i aynı tohumları paylaşır, iki döngü aynı çekilişleri bir adım kayık kullanırdı.
+
+```tr
+TR_print([TR_sample(TR_zeros([4]), TR_seed: TR_fold_in(7, i)).TR_tolist TR_for i TR_in 0..3])
+```
+
+Görünümü:
+
+```text
+en: print([sample(zeros([4]), seed: fold_in(7, i)).tolist for i in 0..3])
+tr: yazdır([örnekle(sıfırlar([4]), tohum: tohum_türet(7, i)).listeye döngü i içinde 0..3])
+```
+
+İlişkili: `TR_randn(...)`, `TR_sample(...)`, `TR_seed:`
+
 #### `TR_folder_chat_family(...)` (`TR_fn_folder_chat_family`, `klasör_sohbet_ailesi`)
 
     klasör_sohbet_ailesi()
@@ -3332,7 +3351,7 @@ tr: yazdır(nicemli_etkinleştirme_açık_mı(), nicemli_etkinleştirme { niceml
 
 #### `TR_randn(...)` (`TR_fn_randn`, `rastgele_normal`)
 
-    rastgele_normal(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam) → Tensör
+    rastgele_normal(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam | YokTipi = yok) → Tensör
 
 Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla dolu bir tensör oluşturur. Aynı tam sayı tohum her çalıştırmada aynı değerleri verir; şekil liste olarak verilir.
 
@@ -3347,7 +3366,7 @@ en: print(randn([2, 3], seed: 42).shape)
 tr: yazdır(rastgele_normal([2, 3], tohum: 42).şekil)
 ```
 
-İlişkili: `TR_zeros(...)`
+İlişkili: `TR_zeros(...)`, `TR_fold_in(...)`
 
 #### `TR_read_bytes(...)` (`TR_fn_read_bytes`, `dosya_baytları`)
 
@@ -3593,7 +3612,7 @@ en: print(sample(Tensor([1.0, 3.0, 0.5]), temperature: 0.8, top_k: 2, seed: 7).t
 tr: yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).listeye)
 ```
 
-İlişkili: `TR_argmax(...)`, `TR_softmax(...)`
+İlişkili: `TR_argmax(...)`, `TR_softmax(...)`, `TR_fold_in(...)`
 
 #### `TR_save_tensors(...)` (`TR_fn_save_tensors`, `tensör_kaydet`)
 
@@ -5873,7 +5892,7 @@ Kullananlar: `TR_mel_filterbank(...)`
 
 #### `TR_seed:` (`TR_arg_seed`, `tohum`)
 
-Rastgele sayı üretecinin başlangıç değeridir (tam sayı); aynı tohum her çalıştırmada aynı sonucu verir. Verilmezse paylaşılan bir üreteç kullanılır.
+Rastgele sayı üretecinin başlangıç değeridir (tam sayı): aynı tohum aynı sonucu, ayrı tohumlar (ardışık olanlar da) bağımsız sonuç verir. Döngüde ve görevde tohum + i yerine tohum_türet(tohum, i) yazılır. Verilmezse ya da yok ise rastgele_normal, örnekle ve üret paylaşılan üreteçten çeker; verilmezse örnekleyicide 0, kitaplığın katmanlarında ve GPT'de 1'dir.
 
 ```tr
 TR_print(TR_randn([3], TR_seed: 7).TR_tolist)
@@ -5886,7 +5905,7 @@ en: print(randn([3], seed: 7).tolist)
 tr: yazdır(rastgele_normal([3], tohum: 7).listeye)
 ```
 
-Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
+Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)` · İlişkili: `TR_fold_in(...)`
 
 #### `TR_separated:` (`TR_arg_separated`, `ayrılan`)
 

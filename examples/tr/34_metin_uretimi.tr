@@ -1,7 +1,7 @@
 # TR 4
 # 34 — Metin üretimi: modelin çıktısından örnek seçmek.
 # Ne öğretir: örnekle ile logit dağılımından bir indeks seçmek, sıcaklık: ve en_iyi_k: ile rastgeleliği ayarlamak,
-# tohum: ile sonucu tekrar üretilebilir yapmak.
+# tohum: ile sonucu tekrar üretilebilir yapmak, tohum_türet ile her çekilişe bağımsız bir tohum vermek.
 # Önceki örnekten: softmax (23), seçme ve sıralama (25), döngüler (07).
 # Çalıştırma (proje kökünden): trlang examples/tr/34_metin_uretimi.tr
 
@@ -20,10 +20,11 @@ TR_print(TR_sample(logit, TR_seed: 7).TR_tolist, TR_sample(logit, TR_seed: 7).TR
 TR_print("en_iyi_k 1 ->", TR_sample(logit, TR_top_k: 1).TR_tolist)
 TR_print(TR_sample(logit, TR_temperature: 0.8, TR_top_k: 2, TR_seed: 7).TR_tolist)
 
-# Bir toplu üretim: tohumu değiştirerek 8 örnek alıp hangi sınıfın kaç kez geldiğini sayalım.
+# Bir toplu üretim: 7 tohumundan her çekilişe bir tohum türetip 8 örnekte hangi sınıfın kaç kez geldiğini sayalım.
+# tohum: 7 + i yazılmaz: 8 ile başlayan başka bir döngü aynı çekilişleri bir adım kayık alırdı.
 TR_var sayım = [0, 0, 0]
-TR_for tohum TR_in 1..=8 { # yüksek sıcaklıkta dağılım yayılır
-    TR_var seçilen = TR_sample(logit, TR_temperature: 3.0, TR_seed: tohum).TR_tolist
+TR_for i TR_in 0..8 { # yüksek sıcaklıkta dağılım yayılır
+    TR_var seçilen = TR_sample(logit, TR_temperature: 3.0, TR_seed: TR_fold_in(7, i)).TR_tolist
     sayım[seçilen] += 1
 }
 TR_print("8 örnekte (sıcaklık 3) sınıf sayıları:", sayım)

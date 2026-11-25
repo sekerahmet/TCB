@@ -315,7 +315,7 @@ func (o *Reader) Text(lang *codes.Language) string {
 		}
 		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", lang.Name(codes.TypeSequentialReader), batch, o.b, context, o.t, state)
 	}
-	return messages.TextIn(lang.Code, messages.H5521, lang.Name(codes.TypeSampler), batch, o.b, context, o.t, lang.Name(nameSeed.Code), o.seed, o.epoch, o.counter)
+	return messages.TextIn(lang.Code, messages.H5521, lang.Name(codes.TypeSampler), batch, o.b, context, o.t, lang.Name(nameSeed.Code), int64(o.seed), o.epoch, o.counter)
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
@@ -409,8 +409,8 @@ func readerArgs(fn codes.Ref, args []interp.Value, named map[string]interp.Value
 	}
 	if seeded && values[2] != nil {
 		n, ok := bind.Int(values[2])
-		if !ok || n < 0 {
-			err = messages.New(messages.H5532, fn, nameSeed, interp.Shown(values[2]))
+		if !ok {
+			err = messages.New(messages.H6031, fn, nameSeed, interp.Shown(values[2]))
 			return
 		}
 		seed = uint64(n)

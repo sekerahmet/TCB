@@ -1011,7 +1011,6 @@ const (
 	H5529 Code = 5529 // {fn}: {name}: verilmedi; ör. {example}
 	H5530 Code = 5530 // {fn}: {name} pozitif bir tam sayı olmalıdır, {given} verildi
 	H5531 Code = 5531 // {fn}: {batch} × {context} ({b} × {t}) çok büyük; en fazla {max} parça
-	H5532 Code = 5532 // {fn}: {name} negatif olmayan bir tam sayı olmalıdır, {given} verildi
 	H5533 Code = 5533 // {fn}: {name}: {t} için her pencere {window} parça ister, ama en uzun veri dosyası {longest} parça; {name} değerini küçültün
 	H5535 Code = 5535 // örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .{next}() kullanın (ya da .{sequential}(...) ile sonlu bir okuyucu açın)
 	H5536 Code = 5536 // parça kimliği {id} tensörde tam olarak gösterilemez (kimlikler 0 ile {max} arasında olmalı)
@@ -1099,7 +1098,7 @@ const (
 	H6028 Code = 6028 // {fn}: {shape} şekli çok büyük (en fazla {limit} eleman; sıfır uzunluklu eksenler 1 sayılır)
 	H6029 Code = 6029 // {fn}() en az 1 parametre bekler
 	H6030 Code = 6030 // {fn}() bir tensör bekler, {given} verildi
-	H6031 Code = 6031 // {randnFn}: {seedArg} tam sayı olmalıdır, {given} verildi
+	H6031 Code = 6031 // {fn}: {name} tam sayı olmalıdır, {given} verildi
 	H6032 Code = 6032 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor)
 	H6033 Code = 6033 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor); metodu çağırmak için parantez ekleyin: {method}()
 	H6040 Code = 6040 // türev izleyen {dtype} tensör ({shape}) {kind, select, raised {float64'e yükselemez: float64'te türev yolu henüz yok (15.3)} other {türev çizgesine giremez: float64'te türev yolu henüz yok (15.46)}}, türev sessizce düşerdi. {kind, select, raised {float64 işlenen varsa float32'ye çevirin: `d.{#to_dtype}("float32")`; türev gerekmiyorsa işlemi türevsiz bloğa alın} other {float32 kopyasını eğitin}}: `{kind, select, raised {} other {{#Tensor}(}}{#no_grad} {{ t.{#to_dtype}("{kind, select, raised {float64} other {float32}}") }}{kind, select, raised {} other {, {#requires_grad}: {#true})}}`

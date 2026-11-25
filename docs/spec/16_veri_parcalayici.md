@@ -84,7 +84,7 @@ TR_print(akış.TR_finish())
 
 **16.7** `küme.TR_sampler(TR_batch_size: b, TR_context: c, TR_seed: s)` rastgele pencereler veren bir `TR_Sampler` kurar.
 - `.TR_next()` bir demet verir (3.6a): `TR_var girdi, hedef = ö.TR_next()`. İkisi de `[b, c]` şekilli `TR_Tensor[TR_Int]` "int64"tür, parçanın diskteki türü ne olursa olsun (16.5): çapraz entropinin yok sayılan hedefi `-100` (15.23a) işaretsiz türde tutulamaz. `hedef`, `girdi`nin bir kaydırılmışıdır: bir pencere `TR_context + 1` kimlik ister. Daha kısa parçalar atlanır; hiçbir parça yetmiyorsa 16.9'un "bağlam veri parçasından uzun" hatası. Toplu işler varsayılan cihazda kurulur (15.38). Pencere bir parçanın sınırını aşmaz.
-- **Belirlenimci:** aynı küme, aynı argümanlar ve aynı tohum aynı toplu işleri verir. Örnekleyici sonsuzdur.
+- **Belirlenimci:** `TR_seed:` her `TR_Int`'tir, varsayılanı 0'dır. Aynı küme, aynı argümanlar ve aynı tohum aynı toplu işleri verir. Örnekleyici sonsuzdur.
 - **Kaldığı yerden:** örnekleyici kontrol noktasına kaydedilir (20); geri yüklenince kaldığı yerden aynı toplu işleri verir.
 - Sonsuz olduğu için döngüyle gezilmez: `.TR_next()`'i isteğe bağlı değer vermez, 5.7'ye göre dolaşılamaz; `TR_for x TR_in ö` denetim hatasıdır, ileti adım sayısıyla döngüyü önerir.
 - Sonraki toplu işler arka planda hazırlanır; `.TR_next()` beklerken öbür görevler çalışır (10.3).

@@ -138,6 +138,7 @@
   "TR_fn_file_response": { "name": "file_response" },
   "TR_fn_float_to_bytes": { "name": "float_to_bytes" },
   "TR_fn_floor": { "name": "floor" },
+  "TR_fn_fold_in": { "name": "fold_in" },
   "TR_fn_folder_chat_family": { "name": "folder_chat_family" },
   "TR_fn_from_bytes": { "name": "from_bytes" },
   "TR_fn_fuse": { "name": "fuse" },
