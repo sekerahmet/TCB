@@ -92,7 +92,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md).
 
 - **S-18 Mevcut durum:** kimlik kapısı (`TestReviewedSectionsWriteIdentities`) `TR_` sözcüğünün herhangi bir yerde geçerli olmasını yeterli sayıyor; yanlış yerde yazılan `TR_append(x)` geçiyor [kanıtlı: `internal/devtools/testrunner/behavior_language_spec_test.go:338`].
 - **S-19 Yapılacaklar (E, Ö3):** tam ifade olan parça (`(`, `.` ya da `:` içeren) sözcük çözümleyiciyle okunup yeri denetlenir.
-- **S-726 Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu):** üye yerinde `TR_` ile yazılan tanıdık ad öneri almıyor: bir metnin üyesi diye `TR_` ve `splitlines` yazılınca yalnız H0001, aynı sözcük düz yerde yazılınca `.TR_lines` önerisi geliyor [ölçüldü: trlang check, `b302edc9`]; tanıdık ad yalnız `PlaceOther`'da aranıyor [kanıtlı: internal/lang/lexer/identity.go:363-364, :378]. Sıradaki: üye yerinde de aranır.
+- **S-726 Yapılacaklar (F, Ö3; sahip dil çekirdeği kolu):** yanlış yazılan üye adı öneri almıyor: üye yerinde `TR_` ve `splitlines` yazılınca yalnız H0001 (düz yerde `.TR_lines` önerilir), tanıdık ad yalnız `PlaceOther`'da aranıyor [kanıtlı: internal/lang/lexer/identity.go:363-364, :378]; `.TR_is_alpha` alıcısız ve `TR_`'siz yazılınca H1106, `SuggestIdentity` üyenin kendi adına bakmıyor [kanıtlı: internal/lang/codes/spelling.go:109-127; ölçüldü: trlang check, `b302edc9`]. Sıradaki: üye önerilir.
 
 ### 2.13
 
