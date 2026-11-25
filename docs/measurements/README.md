@@ -65,6 +65,7 @@ TR'nin ölçüsü motorun kümesini (`engine`) ve en az bir `.tr` programını s
 | G4CPU | Colab G4, işlemci | işlemci |
 | G4GPU | Colab G4, GPU | GPU |
 | T4GPU | Colab T4, GPU | GPU |
+| A100GPU | Colab A100, GPU | GPU |
 | HIGHRAM | Colab CPU High-RAM | işlemci |
 | CPU | Colab CPU | işlemci |
 | GHAWIN | GitHub Actions, Windows | işlemci |
@@ -105,6 +106,7 @@ Emsallerin ve ortamın makine başına geçerli sürümü. Yeni sürümle ölçe
 | llama.cpp | HIGHRAM | b12124 |
 | sürücü | L4GPU | 580.82.07 |
 | sürücü | T4GPU | 580.82.07 |
+| sürücü | A100GPU | 580.82.07 |
 | güç | LAPTOP | Dengeli |
 | Vantage | LAPTOP | Performance |
 | onnxruntime | LAPTOP | 1.31.1 |
