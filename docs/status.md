@@ -857,7 +857,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 
 ### 15.53a
 
-- **S-396 Yapılacaklar (E, Ö3; sahip T1):** 15.53a'yla üretim (tek satır, tek başlatma: `kernel_quant_act_gemv.go`) L4 ve G4'te, q4 modelde hiçbir kartta ölçülmedi; tek başlatmadan önce L4'te float yolundan yavaştı [ölçüldü: TG-2026-11-24-L4GPU-T1-1]. Mevcut durum: GPU CPU'nun bitlerini verir [test: `TestQuantActMatchesCPUForEveryShape`]; sonlu olmayan satırda ara sonuç taşarsa AVX2'li CPU'dan ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: ilk L4 ya da G4'te S1; q4 modelin üretimi.
+- **S-396 Yapılacaklar (E, Ö3; sahip T1):** üretim (tek satır) T4'te `188762800`'den yavaş, sınırda [ölçüldü: TG-2026-11-25-T4GPU-T1-1], neden [hipotez: her blok satırı yeniden nicemler]; float yolundan hızlı [ölçüldü: TG-2026-11-25-T4GPU-T1-2]. Ölçülmedi: sm_80 (Ampere; denemede float'a sınırda), L4 ve G4'te okuma ve üretim; hiçbir kartta q4 model. Sonlu olmayan satır ara taşmada AVX2'li CPU'dan ayrılabilir [kanıtlı: `cpu_gemv_amd64.go:25`]. Sıradaki: T4'te profil; bu üçünün ilk makinesinde S1.
 
 ### 15.54
 
