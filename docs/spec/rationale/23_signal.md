@@ -15,8 +15,7 @@ Karşılaştırma:
 | Mel ölçeği, normu | torchaudio `"htk"`, `norm=None` | `htk=False` (Slaney), `norm="slaney"` | `mel_filter_bank` `"htk"`, `None`; Whisper'da açık `"slaney"` | dosyadan okunur | ikisi de zorunlu (23.4) |
 | GPU'da FFT | cuFFT | yok | PyTorch'unki | yok | kendi çekirdeği (23.5) |
 
-**Ters dönüşümler yok.** `irfft` ve `istft` yalnız ses üretiminde gerekir; Whisper'ın yolu kullanmaz [DENETİM açtı: whisper `audio.py`, v20250625, yalnız `torch.stft`]. Bugün kullanan bir yer olmadığı için ad olarak eklenmedi; yol haritasında ses üretiminin notudur (DENETİM istek 43, Ş4). Emsalleri ve tuzakları o adım için burada kalır:
-- NumPy ve PyTorch'ta `irfft`'in `n`'si verilmezse `2(m − 1)`'dir; tek uzunluklu sinyal geri çevrilince bir örnek kısalır. TR'de uzunluk zorunlu olmalı [rapordan].
+**Ters STFT yok.** `istft` yalnız ses üretiminde gerekir; Whisper'ın yolu kullanmaz [DENETİM açtı: whisper `audio.py`, v20250625, yalnız `torch.stft`]. Emsalleri ve tuzakları o adım için burada kalır:
 - `torch.istft` üst üste ekler ve pencere karelerinin toplamına böler; toplam sıfıra yakınsa (NOLA koşulu) hata verir [rapordan].
 - StyleTTS2 ve Kokoro (ISTFTNet) sesi `torch.istft` ile genlik ve fazdan kurar; Kokoro'nun ONNX yolu `conv_transpose1d` ile yazılmış ve sıfır ile en yüksek frekansın tekilliğini atlıyor [rapordan: `istftnet.py`, `custom_stft.py`]. Demetle girdi `(genlik · TR_cos(faz), genlik · TR_sin(faz))` olur.
 
@@ -55,3 +54,8 @@ Karşılaştırma:
 - `TR_n_mels:` zorunludur, çünkü yanlış varsayılan (80) large-v3'te şekil hatasına, başka bir modelde sessiz yanlışa dönüşür.
 - Eşitlik ölçütü iki ayrı sözdür. Özgün uygulamayla karşılaştırmada `1e-4` transformers'ın sınavıdır; dış bir uygulamayla eşitliğin ölçüsüdür. 15.41 ise TR'nin kendi cihazları arasındaki farkı söyler; ikisi karıştırılmaz (DENETİM istek 43, K7). Açgözlü parçaların birebir eşitliği yalnız aynı cihaz türünde bir doğruluk testidir; cihazlar arasında logitler eşite yakınken seçilen parça değişebilir (DENETİM istek 42, öneri 5).
 - *Tur 6C (2026-11-10):* iletinin `TR_run_process` yazımı ve `-y`: gerekçesi 22.4'te.
+
+### 23.7
+
+- *Emsal:* NumPy ve PyTorch'ta `irfft`'in `n`'si verilmezse `2(m − 1)`'dir; tek uzunluklu sinyal geri çevrilince bir örnek kısalır [rapordan]. Geri yön varsayılan ölçekte `1 / n`'lidir [rapordan]. PyTorch 2.6.0 sıfırıncı ve çift `n`'de son kutunun sanal kısmını okumuyor, tek `n`'de son kutununkini okuyor; `n` büyükse izgeyi sıfırla uzatıyor, küçükse kesiyor [ölçüldü: `torch.fft.irfft`, 2026-11-25].
+- *Gerekçe:* ses üreten modeller (HiFT, ISTFTNet, filigran) son adımda kullanır. `TR_n:` zorunludur, çünkü `m` kutu hem `2(m − 1)` hem `2m − 1` uzunluktan gelir; varsayılan tek uzunlukta bir örneği sessizce düşürürdü (15.49). Kutu sayısı bu yüzden `n`'den denetlenir, sessizce kesilmez ya da sıfırla uzatılmaz. Sıfırıncı ve çift `n`'de son kutunun sanal kısmı gerçek sinyalde sıfırdır; girmediği yazılır ki türevi de belli olsun.

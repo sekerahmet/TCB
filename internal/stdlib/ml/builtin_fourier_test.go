@@ -63,6 +63,36 @@ TR_print(g.TR_device, g.TR_shape)`); out != "cpu [2049]\n" {
 	})
 }
 
+// Kural (23.7, 15.46, 15.48, 15.49): ters dönüşüm 16 biti float32'ye açar; iki parçadan biri float64 ise
+// float64'te hesaplar ve float64 verir. float64 hesapta türev izleyen girdi H6040'tır, sessizce düşmez;
+// tam sayı tensörü H7076. Toplu ekseni 0 olan girdi boş sonuç verir. Cihazlar ayrıysa H6102.
+func TestInverseFourierDtypes(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `TR_var w = TR_Tensor([1.0, 0.5, 0.25], TR_dtype: "float64")
+TR_var f = TR_Tensor([1.0, 0.5, 0.25])
+TR_var h = TR_Tensor([1.0, 0.5, 0.25], TR_dtype: "bf16")
+TR_print(TR_irfft(w, w, TR_n: 4).TR_dtype, TR_irfft(w, f, TR_n: 4).TR_dtype, TR_irfft(f, w, TR_n: 4).TR_dtype, TR_irfft(h, h, TR_n: 4).TR_dtype, TR_irfft(h, f, TR_n: 4).TR_dtype)
+TR_print(TR_irfft(h, h, TR_n: 4).TR_tolist == TR_irfft(f, f, TR_n: 4).TR_tolist)
+TR_print(TR_irfft(TR_zeros([0, 3]), TR_zeros([0, 3]), TR_n: 5).TR_shape)
+TR_var i = TR_Tensor([1.0, 0.5, 0.25], TR_requires_grad: TR_true)
+TR_print(TR_no_grad { TR_irfft(i, w, TR_n: 4) }.TR_dtype)
+TR_var g16 = TR_Tensor([1.0, 0.5, 0.25], TR_dtype: "bf16", TR_requires_grad: TR_true)
+TR_backward(TR_sum(TR_irfft(g16, f, TR_n: 4)))
+TR_print(g16.TR_grad.TR_shape)`)
+	if want := "float64 float64 float64 float32 float32\ntrue\n[0, 5]\nfloat64\n[3]\n"; out != want {
+		t.Fatalf("ters Fourier'in türleri: %q, beklenen %q", out, want)
+	}
+	expectCodes(t, []codeCase{
+		{`TR_irfft(TR_Tensor([1.0, 0.5], TR_requires_grad: TR_true), TR_Tensor([1.0, 0.5], TR_dtype: "float64"), TR_n: 2)`, messages.H6040},
+		{`TR_irfft(TR_Tensor([1.0, 0.5], TR_dtype: "float64"), TR_Tensor([1.0, 0.5], TR_requires_grad: TR_true), TR_n: 2)`, messages.H6040},
+		{`TR_irfft(TR_Tensor([1, 2]), TR_Tensor([1, 2]), TR_n: 2)`, messages.H7076},
+		{`TR_irfft(TR_ones([3]).TR_to_device("gpu"), TR_ones([3]), TR_n: 4)`, messages.H6102},
+		{`TR_irfft(TR_Tensor([1.0, 2.0], TR_dtype: "float64").TR_to_device("gpu"), TR_Tensor([1.0, 2.0], TR_dtype: "float64").TR_to_device("gpu"), TR_n: 2)`, messages.H7076},
+		{`TR_irfft(TR_ones([2049]).TR_to_device("gpu"), TR_ones([2049]).TR_to_device("gpu"), TR_n: 4097)`, messages.H4134},
+	})
+}
+
 // Kural (15.45, `15_tensorler.md:559`, `:564`): `TR_replay`'in ilk çağrısı `f`'yi doğrudan
 // çalıştırır, ikincisi kaydeder; kayıtta konaktan yeni veri kodlu hatadır, sessiz yükleme yoktur.
 // (i) Kartta `TR_rfft`: tabanı ısınma çağrısı kurar (önbellek boşken, kayıt dışında), kayıt

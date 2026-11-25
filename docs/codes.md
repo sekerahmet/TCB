@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 800 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 186 fonksiyon, 13 sabit, 95 metot, 148 özellik, 200 adlı argüman.
+Toplam 801 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 70 tip, 187 fonksiyon, 13 sabit, 95 metot, 148 özellik, 200 adlı argüman.
 
 ## İçindekiler
 
@@ -2495,6 +2495,25 @@ tr: yazdır(tam_sayı_baytları(258, tür: "uint16", bayt_sırası: "big"))
 
 İlişkili: `.TR_read_int(...)`, `TR_float_to_bytes(...)`
 
+#### `TR_irfft(...)` (`TR_fn_irfft`, `gerçek_ters_fourier`)
+
+    gerçek_ters_fourier(Tensör, Tensör, n: Tam = yok) → Tensör
+
+gerçek_fourier'nin tersidir: (gerçek, sanal) gösterimden son eksen boyunca n uzunluklu gerçek sinyali 1 / n ölçeğiyle kurar. n zorunludur; son eksen n // 2 + 1 olmalıdır. Sonuç türev izler.
+
+```tr
+TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0])); TR_print(TR_irfft(g, s, TR_n: 4).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(irfft(g, s, n: 4).tolist)
+tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(gerçek_ters_fourier(g, s, n: 4).listeye)
+```
+
+İlişkili: `TR_rfft(...)`
+
 #### `TR_is_finite(...)` (`TR_fn_is_finite`, `sonlu_mu`)
 
     sonlu_mu(Tam | Ondalık | Tensör) → Mantık | Tensör
@@ -3505,7 +3524,7 @@ en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(g.tolist, s.tolist)
 tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(g.listeye, s.listeye)
 ```
 
-İlişkili: `TR_stft(...)`
+İlişkili: `TR_stft(...)`, `TR_irfft(...)`
 
 #### `TR_rms_norm(...)` (`TR_fn_rms_norm`, `rms_normu`)
 
@@ -5397,7 +5416,7 @@ Kullananlar: `TR_SGD(...)`
 
 
 
-Kullananlar: `TR_rfft(...)`
+Kullananlar: `TR_irfft(...)`, `TR_rfft(...)`
 
 #### `TR_n_fft:` (`TR_arg_n_fft`, `fft_boyu`)
 

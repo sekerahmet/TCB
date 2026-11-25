@@ -76,6 +76,29 @@ func TestFourierCardPathMatchesCPU(t *testing.T) {
 	}
 }
 
+// Kural (23.5, 23.7): kartın ters yolu (ters taban matrisi) CPU'nun hızlı ters dönüşümüyle aynıdır, türevi
+// de. Sınır girdileri: n = 1, n = 2, tek ve çift n, toplu girdi.
+func TestInverseFourierCardPathMatchesCPU(t *testing.T) {
+	for _, c := range []struct {
+		shape []int
+		n     int
+	}{{[]int{1}, 1}, {[]int{2}, 2}, {[]int{5}, 8}, {[]int{2, 3, 7}, 13}, {[]int{2, 7}, 12}, {[]int{2, 201}, 400}} {
+		rd, id := noise(numel(c.shape)), noise(numel(c.shape) + 3)[3:]
+		ad := fmt.Sprintf("irfft %v n %d", c.shape, c.n)
+		r1, i1 := New(rd, c.shape...).SetRequiresGrad(true), New(id, c.shape...).SetRequiresGrad(true)
+		r2, i2 := New(rd, c.shape...).SetRequiresGrad(true), New(id, c.shape...).SetRequiresGrad(true)
+		y1, y2 := Irfft(r1, i1, c.n, testCall), irfftOnCard(r2, i2, c.n, testTrig)
+		if !slices.Equal(y1.Shape(), y2.Shape()) {
+			t.Fatalf("%s: şekil %v, beklenen %v", ad, y2.Shape(), y1.Shape())
+		}
+		scaledClose(t, ad, y2.Data(), y1.Data(), 1e-5)
+		Mul(y1, y1).SumAll().Backward()
+		Mul(y2, y2).SumAll().Backward()
+		scaledClose(t, ad+" gerçek türevi", r2.Grad().Data(), r1.Grad().Data(), 1e-5)
+		scaledClose(t, ad+" sanal türevi", i2.Grad().Data(), i1.Grad().Data(), 1e-5)
+	}
+}
+
 // numel şeklin öğe sayısıdır.
 func numel(shape []int) int {
 	n := 1

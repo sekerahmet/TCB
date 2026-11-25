@@ -2,6 +2,7 @@ package ml
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/detmath"
@@ -11,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// Fourier dönüşümü, pencere ve STFT (23.1–23.3). Hesap tensör çekirdeğindedir; burada argümanlar
+// Fourier dönüşümü, pencere, STFT ve ters dönüşüm (23.1–23.3, 23.7). Hesap tensör çekirdeğindedir; burada argümanlar
 // denetlenir. Karmaşık sonuç (gerçek, sanal) demetidir.
 
 var (
@@ -25,6 +26,7 @@ var (
 // registerFourier yerleşikleri bağlar.
 func registerFourier(v *interp.VM) {
 	wrap(v, codes.FnRfft, newBuiltin(rfftBuiltin))
+	wrap(v, codes.FnIrfft, newBuiltin(irfftBuiltin))
 	wrap(v, codes.FnHannWindow, newBuiltin(hannBuiltin))
 	wrap(v, codes.FnStft, newBuiltin(stftBuiltin))
 }
@@ -97,6 +99,63 @@ func rfftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 		re, im := tensor.Rfft(x, n, fourierCall(fn))
 		return complexResult(re, im)
 	})
+}
+
+// spectrumArgs ters dönüşümün (gerçek, sanal) çiftini denetler: ikisi de ondalık tensördür.
+func spectrumArgs(fn any, args []interp.Value) (re, im *tensor.Tensor, err error) {
+	if re, err = signalArg(fn, args[0]); err != nil {
+		return nil, nil, err
+	}
+	if im, err = signalArg(fn, args[1]); err != nil {
+		return nil, nil, err
+	}
+	return re, im, nil
+}
+
+// spectrumShape iki parçanın şeklinin aynı, axis'inci (sondan) eksenin n/2+1 kutu olmasını ister (23.7).
+func spectrumShape(fn any, re, im *tensor.Tensor, axis, n int) error {
+	if !slices.Equal(re.Shape(), im.Shape()) {
+		return messages.New(messages.H7920, fn, "shape", tensor.ShapeText(re.Shape()), tensor.ShapeText(im.Shape()))
+	}
+	want := n/2 + 1
+	if re.Dim() < axis {
+		return messages.New(messages.H7920, fn, "rank", tensor.ShapeText(re.Shape()), want)
+	}
+	if bins := re.Shape()[re.Dim()-axis]; bins != want {
+		return messages.New(messages.H7920, fn, "bins", bins, want)
+	}
+	return nil
+}
+
+// irfftBuiltin TR_irfft(gerçek, sanal, TR_n: n).
+func irfftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	kd := codes.FnIrfft
+	fn := codes.NameRef(kd)
+	if err := bind.CheckNamed(fn.Called(), named, nameN); err != nil {
+		return nil, err
+	}
+	if len(args) != 2 {
+		return nil, interp.ArgCountError(kd, 2, len(args))
+	}
+	re, im, err := spectrumArgs(fn, args)
+	if err != nil {
+		return nil, err
+	}
+	v, given := bind.GetNamed(named, nameN)
+	if !given {
+		return nil, messages.New(messages.H7052, fn, nameN, "23.7")
+	}
+	n, err := positiveInt(fn, nameN, v)
+	if err != nil {
+		return nil, err
+	}
+	if err := spectrumShape(fn, re, im, 1, n); err != nil {
+		return nil, err
+	}
+	if err := checkDevice(fn, re, im); err != nil {
+		return nil, err
+	}
+	return safe(func() interp.Value { return New(tensor.Irfft(re, im, n, fourierCall(fn))) })
 }
 
 // hannBuiltin TR_hann_window(n, TR_periodic: b).

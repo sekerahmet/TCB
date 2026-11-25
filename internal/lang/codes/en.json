@@ -155,6 +155,7 @@
   "TR_fn_init_weight": { "name": "init_weight" },
   "TR_fn_input": { "name": "input" },
   "TR_fn_int_to_bytes": { "name": "int_to_bytes" },
+  "TR_fn_irfft": { "name": "irfft" },
   "TR_fn_is_finite": { "name": "is_finite" },
   "TR_fn_json_parse": { "name": "json_parse" },
   "TR_fn_json_string": { "name": "json_string" },

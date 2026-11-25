@@ -1,5 +1,5 @@
 # TR 4
-# Fourier dönüşümü, pencere ve STFT (23.1–23.3).
+# Fourier dönüşümü, pencere, STFT, Mel süzgeçleri ve ters dönüşümler (23.1–23.4, 23.7).
 
 # yakın iki listenin öğe öğe farkını sınar.
 TR_func yakın(a: TR_Tensor, b: TR_Tensor, pay: TR_Float = 0.00001) -> TR_Bool {
@@ -267,4 +267,60 @@ TR_test "23.4 boş süzgeç hatadır; ileti boyutu önerir, öneri çalışır" 
     TR_assert_equal([128, 1025], büyük.TR_shape)
     TR_var küçük = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 16, TR_n_mels: 4, TR_norm: "slaney", TR_mel_scale: "slaney")
     TR_assert_equal([4, 9], küçük.TR_shape)
+}
+
+TR_test "23.7 örnek: ters dönüşüm sinyali geri verir, baştaki eksenler toplu eksendir" {
+    TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0]))
+    TR_assert_equal([1.0, 0.0, -1.0, 0.0], TR_irfft(g, s, TR_n: 4).TR_tolist)
+    TR_for n TR_in [1, 2, 3, 4, 5, 8, 15, 16, 67, 100] {
+        TR_var x: TR_List[TR_Float] = []
+        TR_for i TR_in 0.. (2 * n) { x.TR_append(TR_sin(i * 1.3) - 0.4 * TR_cos(i * 0.7)) }
+        TR_var t = TR_Tensor(x).TR_reshape([2, 1, n])
+        TR_var a, b = TR_rfft(t)
+        TR_var y = TR_irfft(a, b, TR_n: n)
+        TR_assert_equal([2, 1, n], y.TR_shape)
+        TR_assert(yakın(y, t), "n=\(n)")
+    }
+}
+
+TR_test "23.7 TR_n: zorunludur; kutu sayısı tutmayınca hatadır" {
+    TR_var g = TR_ones([3])
+    TR_assert_equal("H7052", TR_error_code { TR_irfft(g, g) })
+    TR_assert_equal([4], TR_irfft(g, g, TR_n: 4).TR_shape) # üç kutu hem 4'ten hem 5'ten gelir
+    TR_assert_equal([5], TR_irfft(g, g, TR_n: 5).TR_shape)
+    TR_for n TR_in [1, 2, 3, 6, 7, 1000000000000000000] {
+        TR_assert_equal("H7920", TR_error_code { TR_irfft(g, g, TR_n: n) })
+    }
+    TR_for n TR_in [0, -4] {
+        TR_assert_equal("H5530", TR_error_code { TR_irfft(g, g, TR_n: n) })
+    }
+    TR_assert_equal("H7920", TR_error_code { TR_irfft(g, TR_ones([4]), TR_n: 4) })
+    TR_assert_equal("H7920", TR_error_code { TR_irfft(g, TR_ones([1, 3]), TR_n: 4) })
+    TR_assert_equal("H7920", TR_error_code { TR_irfft(TR_zeros([0]), TR_zeros([0]), TR_n: 1) })
+    TR_assert_equal("H7076", TR_error_code { TR_irfft(TR_Tensor([1, 2, 3]), g, TR_n: 4) })
+    TR_assert_equal("H7076", TR_error_code { TR_irfft(g, TR_Tensor([1, 2, 3]), TR_n: 4) })
+    TR_assert_equal("H7076", TR_error_code { TR_irfft(TR_Tensor(1.0), TR_Tensor(1.0), TR_n: 1) })
+}
+
+TR_test "23.7 sıfırıncı ve çift n'de son kutunun sanal kısmı sonuca girmez, türevi 0'dır" {
+    TR_var g = TR_Tensor([1.0, -0.5, 0.25])
+    TR_var temiz = TR_Tensor([0.0, 0.75, 0.0])
+    TR_var kirli = TR_Tensor([3.0, 0.75, -2.0], TR_requires_grad: TR_true)
+    TR_assert(TR_equal(TR_irfft(g, temiz, TR_n: 4), TR_irfft(g, kirli, TR_n: 4)))
+    TR_backward(TR_sum(TR_irfft(g, kirli, TR_n: 4) * TR_Tensor([1.0, 2.0, 4.0, 8.0])))
+    TR_assert_equal(0.0, kirli.TR_grad[0].TR_item())
+    TR_assert_equal(0.0, kirli.TR_grad[2].TR_item())
+    TR_assert(kirli.TR_grad[1].TR_item() != 0.0)
+    TR_assert_equal(TR_false, TR_equal(TR_irfft(g, temiz, TR_n: 5), TR_irfft(g, kirli, TR_n: 5))) # tek n'de son kutu girer
+}
+
+TR_test "23.7 gerçek ve sanal türev izler" {
+    TR_for n TR_in [4, 5] {
+        TR_var ağırlık = TR_Tensor([[0.5, -1.0, 2.0, 0.25, 1.5]]).TR_slice(1, 0, n)
+        TR_var g = TR_Tensor([[1.0, -0.5, 0.25], [0.2, 0.9, -0.7]], TR_requires_grad: TR_true)
+        TR_var s = TR_Tensor([[0.3, 0.8, -0.2], [-0.6, 0.1, 0.4]], TR_requires_grad: TR_true)
+        TR_grad_check((a, b) => TR_sum(TR_irfft(a, b, TR_n: n) ** 2 * ağırlık), [g, s], TR_fd_step: 0.005, TR_tol: 0.02)
+        TR_grad_check((a) => TR_sum(TR_irfft(a, s, TR_n: n) ** 2 * ağırlık), [g], TR_fd_step: 0.005, TR_tol: 0.02)
+        TR_grad_check((b) => TR_sum(TR_irfft(g, b, TR_n: n) ** 2 * ağırlık), [s], TR_fd_step: 0.005, TR_tol: 0.02)
+    }
 }

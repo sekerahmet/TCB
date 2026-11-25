@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// Kural (23.1, 23.3, 23.5, 15.41): TR_rfft ve TR_stft kartta da çalışır; sonuç ve türev kartta
+// Kural (23.1, 23.3, 23.5, 23.7, 15.41): TR_rfft, TR_stft ve TR_irfft kartta da çalışır; sonuç ve türev kartta
 // kalır, işlemcininkiyle 15.41'in 3. basamağında aynıdır. Kartta çarpım kitaplık girişine hiç
 // uğramaz (TR'nin kendi çekirdeği, ileri ve geri). Kartta uzunluk en çok 4096'dır: 4096 geçer,
 // 4097 H4134 verir ve taşımanın yazımını söyler. Sınır girdileri: n = 1, tek çerçeve, yansıtmada
@@ -79,6 +79,29 @@ func TestStftOnTheCardMatchesCPU(t *testing.T) {
 	}
 }
 
+func TestInverseFourierOnTheCardMatchesCPU(t *testing.T) {
+	rng := rand.New(rand.NewSource(14))
+	type irfftCase struct {
+		shape []int
+		n     int
+	}
+	cases := []irfftCase{{[]int{1}, 1}, {[]int{2}, 2}, {[]int{2, 3, 7}, 13}, {[]int{2, 9}, 16}}
+	if !raceEnabled { // PerTh'in n'si; ağır boylar yarış dedektöründe koşmaz (skipUnderRace'in gerekçesi)
+		cases = append(cases, irfftCase{[]int{2, 1025}, 2048})
+	}
+	for _, c := range cases {
+		n := 1
+		for _, d := range c.shape {
+			n *= d
+		}
+		rd, id := random(rng, n, 1), random(rng, n, 1)
+		compare(t, fmt.Sprintf("irfft %v n %d", c.shape, c.n), 1e-4, func(dev int) (*tensor.Tensor, []*tensor.Tensor) {
+			re, im := twin(rd, true, c.shape...)[dev], twin(id, true, c.shape...)[dev]
+			return tensor.Irfft(re, im, c.n, fourierCall), []*tensor.Tensor{re, im}
+		})
+	}
+}
+
 func TestFourierNeverCallsTheLibrary(t *testing.T) {
 	if !inSim() {
 		t.Skip("giriş sayacı benzeticide sınanır; gerçek kartta bitler ml'nin bloklu testinde")
@@ -91,7 +114,8 @@ func TestFourierNeverCallsTheLibrary(t *testing.T) {
 	x := tensor.NewOn(gpuDevice, random(rng, 3*sig, 1), 3, sig).SetRequiresGrad(true)
 	w := tensor.NewOn(gpuDevice, random(rng, n, 1), n).SetRequiresGrad(true)
 	if d := vendorDelta(func() {
-		re, _ := tensor.Rfft(x, sig, fourierCall)
+		re, im := tensor.Rfft(x, sig, fourierCall)
+		re = tensor.Irfft(re, im, sig, fourierCall)
 		sr, si := tensor.Stft(x, w, tensor.StftOptions{N: n, Hop: n / 4, Center: true, Reflect: true}, fourierCall)
 		tensor.Add(tensor.Add(re.SumAll(), sr.SumAll()), si.SumAll()).Backward()
 	}); d != 0 {
@@ -113,6 +137,10 @@ func TestFourierLengthLimitOnTheCard(t *testing.T) {
 	err := testkit.PanicError(func() { tensor.Rfft(x, tensor.FourierCardLimit+1, fourierCall) })
 	if !messages.Has(err, messages.H4134) || !strings.Contains(err.Error(), fmt.Sprint(tensor.FourierCardLimit+1)) {
 		t.Fatalf("n = %d: %v, beklenen H4134", tensor.FourierCardLimit+1, err)
+	}
+	part := tensor.NewOn(gpuDevice, make([]float32, 2049), 2049)
+	if err := testkit.PanicError(func() { tensor.Irfft(part, part, 4097, fourierCall) }); !messages.Has(err, messages.H4134) {
+		t.Fatalf("irfft n = 4097: %v, beklenen H4134", err)
 	}
 	w := tensor.NewOn(gpuDevice, make([]float32, 4097), 4097)
 	sig := tensor.NewOn(gpuDevice, make([]float32, 5000), 1, 5000)

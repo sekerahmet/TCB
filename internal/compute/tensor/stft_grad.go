@@ -114,3 +114,67 @@ func stftFrameGrad(d, row, drow, dw, win []float32, start int, reflect bool) {
 		dw[i] += float32(g * row[j])
 	}
 }
+
+// Ters dönüşümün türevi (23.7): y[k] = Σ_j a_j·(re[j]·cos θ_jk − im[j]·sin θ_jk) için (a_0 ve çift n'de
+// a_{n/2} 1/n, öbürleri 2/n) ∂L/∂re[j] ve ∂L/∂im[j] gradyanın ileri dönüşümünün a_j katıdır: gerçek ve
+// sanal kısmı. Sıfırıncı ve çift n'de son kutunun sanal kısmı sonuca girmez, türevi 0'dır.
+
+// irfftFrameGrad w.xr'deki n gradyanı kutuların gradyanına çevirir (base'den step adımla); nil olan
+// yazılmaz.
+func irfftFrameGrad(p *fftPlan[float32], w *realWork[float32], dre, dim []float32, base, step int) {
+	clear(w.xi)
+	p.real(w)
+	n := float32(p.n)
+	for j := 0; 2*j <= p.n; j++ {
+		edge := j == 0 || 2*j == p.n
+		scale := float32(2)
+		if edge {
+			scale = 1
+		}
+		if dre != nil {
+			dre[base+j*step] = scale * w.yr[j] / n
+		}
+		if dim != nil && !edge {
+			dim[base+j*step] = scale * w.yi[j] / n
+		}
+	}
+}
+
+// gradBuffer istenen gradyanın tamponudur; istenmezse nil.
+func gradBuffer(want bool, n int) []float32 {
+	if !want {
+		return nil
+	}
+	return make([]float32, n)
+}
+
+// gradTensor tampondan CPU tensörü kurar; tampon nil'se nil.
+func gradTensor(d []float32, shape ...int) *Tensor {
+	if d == nil {
+		return nil
+	}
+	return NewOn(CPU, d, shape...)
+}
+
+// trackIrfft sonucu türev çizgesine bağlar.
+func trackIrfft(re, im, y *Tensor, n int, tr Trig) *Tensor {
+	wantRe, wantIm := re.RequiresGrad(), im.RequiresGrad()
+	if y.dtyp == Float64 || !GradEnabled() || !wantRe && !wantIm {
+		return y
+	}
+	shape, rows := copyInts(re.shape), rowsOf(re)
+	return CustomOp("irfft", []*Tensor{re, im}, []*Tensor{y}, nil, func(_ any, g []*Tensor) []*Tensor {
+		bins := n/2 + 1
+		gy := g[0].Data()
+		dre, dim := gradBuffer(wantRe, rows*bins), gradBuffer(wantIm, rows*bins)
+		plan := newPlan[float32](tr, n)
+		parallelFor(rows, n*fourierCost, func(lo, hi int) {
+			w := plan.newRealWork()
+			for r := lo; r < hi; r++ {
+				copy(w.xr, gy[r*n:(r+1)*n])
+				irfftFrameGrad(plan, w, dre, dim, r*bins, 1)
+			}
+		})
+		return []*Tensor{gradTensor(dre, shape...), gradTensor(dim, shape...)}
+	})[0]
+}

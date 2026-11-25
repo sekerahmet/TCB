@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kartta Fourier dönüşümü (23.1, 23.3, 23.5): taban matrisli DFT. Dönüşüm var olan türevli tensör
+// Kartta Fourier dönüşümü (23.1, 23.3, 23.5, 23.7): taban matrisli DFT. Dönüşüm var olan türevli tensör
 // işlemlerinden kurulur: çerçeveler satır seçmedir (TakeRows; yansıtma ve sıfır dolgu konum
 // tablosunda), sonra pencereyle çarpım ve [satır, n] @ B[n, 2F]. Çarpım MatMul'dandır, bloğu
 // izleyen MatMulVendor'dan değil: ileri ve geri yönde TR'nin kendi çekirdeği (23.5, 15.53b).
@@ -25,44 +25,74 @@ type basisKey struct {
 	dev Device
 }
 
-// fourierBases kurulmuş tabanlardır; order eklenme sırasıdır (en eskisi önde).
-var fourierBases = struct {
+// basisCache kurulmuş tabanlardır; order eklenme sırasıdır (en eskisi önde).
+type basisCache struct {
 	sync.Mutex
 	m     map[basisKey]*Tensor
 	order []basisKey
 	bytes int
-}{m: map[basisKey]*Tensor{}}
+}
+
+// get anahtarın tabanıdır; yoksa fill'in doldurduğu [rows, cols] veriyle kurulur.
+func (c *basisCache) get(key basisKey, rows, cols int, fill func(data []float32)) *Tensor {
+	c.Lock()
+	defer c.Unlock()
+	if b, ok := c.m[key]; ok {
+		return b
+	}
+	data := make([]float32, rows*cols)
+	fill(data)
+	size := 4 * len(data)
+	for c.bytes+size > fourierCacheBytes && len(c.order) > 0 {
+		old := c.order[0]
+		c.order = c.order[1:]
+		c.bytes -= 4 * c.m[old].Numel()
+		delete(c.m, old)
+	}
+	b := NewOn(key.dev, data, rows, cols)
+	c.m[key] = b
+	c.order = append(c.order, key)
+	c.bytes += size
+	return b
+}
+
+// İleri ve ters taban ayrı önbellektedir: 4096'lık ikisi tek sınıra sığmaz, birbirini düşürürdü.
+var (
+	fourierBases        = basisCache{m: map[basisKey]*Tensor{}}
+	inverseFourierBases = basisCache{m: map[basisKey]*Tensor{}}
+)
 
 // fourierBasis n uzunluğun dev'deki tabanıdır: B[k, j] = cos, B[k, F+j] = e^(−2πi·jk/n)'nin sanal
 // kısmı (j < F = n/2+1). Konakta float64'te unitRoot ile kurulur, float32'ye bir kez yuvarlanır.
 func fourierBasis(n int, dev Device, tr Trig) *Tensor {
-	key := basisKey{n, dev}
-	fourierBases.Lock()
-	defer fourierBases.Unlock()
-	if b, ok := fourierBases.m[key]; ok {
-		return b
-	}
 	F := n/2 + 1
-	data := make([]float32, n*2*F)
-	for k := range n {
-		row := data[k*2*F : (k+1)*2*F]
-		for j := range F {
-			c, s := unitRoot(tr, j*k%n, n)
-			row[j], row[F+j] = float32(c), float32(s)
+	return fourierBases.get(basisKey{n, dev}, n, 2*F, func(data []float32) {
+		for k := range n {
+			row := data[k*2*F : (k+1)*2*F]
+			for j := range F {
+				c, s := unitRoot(tr, j*k%n, n)
+				row[j], row[F+j] = float32(c), float32(s)
+			}
 		}
-	}
-	size := 4 * len(data)
-	for fourierBases.bytes+size > fourierCacheBytes && len(fourierBases.order) > 0 {
-		old := fourierBases.order[0]
-		fourierBases.order = fourierBases.order[1:]
-		fourierBases.bytes -= 4 * fourierBases.m[old].Numel()
-		delete(fourierBases.m, old)
-	}
-	b := NewOn(dev, data, n, 2*F)
-	fourierBases.m[key] = b
-	fourierBases.order = append(fourierBases.order, key)
-	fourierBases.bytes += size
-	return b
+	})
+}
+
+// inverseFourierBasis ters dönüşümün tabanıdır: satır j gerçek kutunun, F+j sanal kutunun n örneğe
+// katkısı; sıfırıncı ve çift n'de son kutuda 1/n (sanalı 0), öbürlerinde 2/n ölçeklidir.
+func inverseFourierBasis(n int, dev Device, tr Trig) *Tensor {
+	F := n/2 + 1
+	return inverseFourierBases.get(basisKey{n, dev}, 2*F, n, func(data []float32) {
+		for j := range F {
+			re, im := 2/float64(n), 2/float64(n)
+			if j == 0 || 2*j == n {
+				re, im = 1/float64(n), 0
+			}
+			for k := range n {
+				c, s := unitRoot(tr, j*k%n, n)
+				data[j*n+k], data[(F+j)*n+k] = float32(re*c), float32(im*s)
+			}
+		}
+	})
 }
 
 // onCard girdinin kartta dönüşeceğini söyler: CPU'da yanlış; kartta float64 yoktur (H7076, CPU'ya
@@ -105,6 +135,14 @@ func rfftOnCard(t *Tensor, n int, tr Trig) (*Tensor, *Tensor) {
 	re, im := halves(MatMul(x, fourierBasis(n, t.Device(), tr)), F)
 	shape := append(copyInts(t.shape[:len(t.shape)-1]), F)
 	return re.Reshape(shape...), im.Reshape(shape...)
+}
+
+// irfftOnCard Irfft'in kart yoludur: [satır, 2F] @ ters taban.
+func irfftOnCard(re, im *Tensor, n int, tr Trig) *Tensor {
+	F, rows := re.shape[len(re.shape)-1], rowsOf(re)
+	flat := func(t *Tensor) *Tensor { return t.Cast(Float32).Contiguous().Reshape(rows, F) }
+	y := MatMul(Concat([]*Tensor{flat(re), flat(im)}, 1), inverseFourierBasis(n, re.Device(), tr))
+	return y.Reshape(append(copyInts(re.shape[:len(re.shape)-1]), n)...)
 }
 
 // frameIndex çerçevelerin dolgulu sinyaldeki konum tablosudur: [çerçeve·n]; sıfır dolgu sinyalin

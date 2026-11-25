@@ -4,7 +4,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Her kuralın emsali ve gerekçesi: [`rationale/23_signal.md`](rationale/23_signal.md).
 
-Konuşmayı yazıya çeviren modeller sesi önce frekans gösterimine çevirir. Bu bölüm Fourier dönüşümünü, kısa süreli Fourier dönüşümünü (STFT), pencereyi, Mel süzgeçlerini ve Whisper'ın girdisini söyler. Karmaşık sayı cinsi yoktur (15.1): karmaşık bir sonuç `(gerçek, sanal)` demetidir (3.6a), aynı şekilli iki `TR_Tensor[TR_Float]`. Ters dönüşümler (sesi frekans gösteriminden geri kurmak) ses üretimiyle gelir.
+Konuşmayı yazıya çeviren modeller sesi önce frekans gösterimine çevirir; ses üreten modeller sesi frekans gösteriminden geri kurar. Bu bölüm Fourier dönüşümünü, kısa süreli Fourier dönüşümünü (STFT), pencereyi, Mel süzgeçlerini, Whisper'ın girdisini ve ters dönüşümleri söyler. Karmaşık sayı cinsi yoktur (15.1): karmaşık bir sonuç `(gerçek, sanal)` demetidir (3.6a), aynı şekilli iki `TR_Tensor[TR_Float]`.
 
 ## Fourier dönüşümü
 
@@ -70,9 +70,9 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 ## Belirlenimcilik
 
 **23.5** Bu bölümün işlemleri 15.22a'ya uyar: aynı cihaz türünde aynı girdi ve şekil aynı bitleri verir. Cihaz türleri arasında 15.41'in üçüncü basamağındadır (ondalık indirgeme).
-- GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez, `TR_vendor_matmul` bloğu da dönüşümün çarpımını kitaplığa vermez (15.53b). Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. GPU'da dönüşümün uzunluğu (23.1'in ve 23.3'ün `n`'i) en çok 4096'dır; üstü çalışma hatasıdır, ileti sınırı söyler ve tensörü CPU'ya taşımayı önerir (15.41'in istisnası). Sınır bu uygulamanındır, kaynak sınırı değildir (15.42); TR'nin kendi FFT çekirdeği gelince kalkar.
+- GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez, `TR_vendor_matmul` bloğu da dönüşümün çarpımını kitaplığa vermez (15.53b). Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. GPU'da dönüşümün uzunluğu (23.1, 23.3 ve 23.7'nin `n`'i) en çok 4096'dır; üstü çalışma hatasıdır, ileti sınırı söyler ve tensörü CPU'ya taşımayı önerir (15.41'in istisnası). Sınır bu uygulamanındır, kaynak sınırı değildir (15.42); TR'nin kendi FFT çekirdeği gelince kalkar.
 - Toplu verilen seslerin sonucu tek tek hesaplananla aynı bitleri vermeyebilir: şekil değişir (15.22a "aynı şekil").
-- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`; GPU'da `TestRfftOnTheCardMatchesCPU`, `TestStftOnTheCardMatchesCPU`, `TestFourierNeverCallsTheLibrary`, `TestFourierLengthLimitOnTheCard`, `TestFourierRunsOnTheCard` (blokta aynı bitler, H4134 ve önerisi).
+- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`; GPU'da `TestRfftOnTheCardMatchesCPU`, `TestStftOnTheCardMatchesCPU`, `TestFourierNeverCallsTheLibrary`, `TestFourierLengthLimitOnTheCard`, `TestFourierRunsOnTheCard` (blokta aynı bitler, H4134 ve önerisi); GPU'da `TestInverseFourierOnTheCardMatchesCPU`.
 
 ## Whisper'ın girdisi
 
@@ -101,3 +101,19 @@ TR_print(mel.TR_shape) # [80, örnek // 160 + 3000]
 ```
 
 - *Test:* TR testi (`tests/whisper_girdi_test.tr`): sentetik sınav sesinde özgünle `TR_rtol: 1e-4`, `TR_atol: 1e-4` ile aynı.
+
+## Ters dönüşümler
+
+**23.7** `TR_irfft(gerçek, sanal, TR_n: n)` 23.1'in tersidir: frekans gösteriminden son eksen boyunca `n` uzunluklu gerçek sinyali `1 / n` ölçeğiyle kurar.
+- `gerçek` ve `sanal` aynı şekilli, aynı cihazda iki `TR_Tensor[TR_Float]`'dur; baştaki eksenler toplu eksendir. `TR_Int` tensör 23.1'deki gibi hatadır.
+- `TR_n:` zorunludur ve pozitiftir: aynı kutu sayısı `n`'nin tek ve çift değerinden gelebilir, varsayılan birini sessizce seçerdi. Son eksen `n // 2 + 1` değilse hatadır.
+- Sıfırıncı kutunun ve çift `n`'de son kutunun sanal kısmı sonuca girmez, türevi 0'dır: gerçek sinyalde sıfırdır.
+- Hesap ve sonuç float32'dedir; ikisinden biri float64 ise float64'te hesaplanır, 16 bitlik girdi float32'ye açılır. Sonuç türev izler.
+
+```tr
+# TR 4
+TR_var gerçek, sanal = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0]))
+TR_print(TR_irfft(gerçek, sanal, TR_n: 4).TR_tolist()) # [1.0, 0.0, -1.0, 0.0]
+```
+
+- *Test:* TR testi; Go: `TestIrfftRoundTripAllLengths`, `TestInverseFourierDtypes`; GPU'da `TestInverseFourierOnTheCardMatchesCPU`.
