@@ -411,6 +411,9 @@ watched_ok() {
 TR="$PWD/bin/trlang${ext}"
 p_flag=()
 if [ -n "${TAM_DENETIM_P:-}" ]; then p_flag=(-p "$TAM_DENETIM_P"); fi
+# race_minutes yarış dedektörüyle koşan adımların (--kip=yaris, gpu_race) paket başına sınırıdır (dakika); ci.yml'in
+# yarış işi bundan uzun sürebilmelidir (TestFullCheckGoSteps).
+race_minutes=20
 
 # Kip başına ortam: GOAMD64 (derleyicinin kod üretimi) ve TR_CPU_AVX2 (çalışma anındaki
 # assembly çekirdekleri). Kullanıcıya giden ikili düz `go build`'dir: GOAMD64=v1, AVX2 açık.
@@ -1087,8 +1090,8 @@ go_tests() {
 }
 
 # slowest_packages go test çıktısındaki "ok paket süre" satırlarından en yavaş beş paketi yazar
-# (önbellekten gelenler sayılmaz): yarış kipinin ve otomatik sınamanın paket başına zaman sınırına
-# (10 dk) yaklaşan paket erken görünsün.
+# (önbellekten gelenler sayılmaz): paket başına zaman sınırına (yarış kipinde race_minutes,
+# öbür kiplerde go test'in 10 dk'sı) yaklaşan paket erken görünsün.
 slowest_packages() {
 	local list
 	list=$(awk '$1 == "ok" && $3 ~ /^[0-9.]+s$/ { sub(/s$/, "", $3); printf "%8.1f sn  %s\n", $3, $2 }' "$1" | sort -rn | head -5)
@@ -1182,7 +1185,7 @@ selected_tests() {
 
 # gpu_race GPU paketi değiştiyse ve bir C derleyicisi varsa (yarış dedektörü cgo ister) GPU
 # paketini yerelde de yarış dedektörüyle koşar: otomatik sınamanın yarış işi PTX benzeticisini
-# 10 dk sınırla koşar, yeni bir sınama bu sınırı yalnızca orada aşmasın. Süre sınırın yarısını
+# race_minutes sınırıyla koşar, yeni bir sınama bu sınırı yalnızca orada aşmasın. Süre sınırın yarısını
 # geçerse uyarır. Derleyici yoksa adım atlanır ve bu yazılır.
 gpu_race() {
 	# Otomatik sınamada yarış işi ayrıca koşar.
@@ -1195,10 +1198,10 @@ gpu_race() {
 		return 0
 	fi
 	local start=$SECONDS
-	CGO_ENABLED=1 go test -race -short -timeout 10m ./internal/compute/gpu 2>&1 | grep -v '^ok\|no test files'
+	CGO_ENABLED=1 go test -race -short -timeout "${race_minutes}m" ./internal/compute/gpu 2>&1 | grep -v '^ok\|no test files'
 	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test -race ./internal/compute/gpu"
-	if [ $((SECONDS - start)) -gt 300 ]; then
-		echo "uyarı: GPU paketi yarış dedektörüyle $((SECONDS - start)) sn sürdü; otomatik sınamanın sınırı 10 dk (büyük boyları yarış dedektöründe atlayın: raceEnabled ya da skipUnderRace; -short arkasına almayın, kartın sınaması -short koşar)"
+	if [ $((SECONDS - start)) -gt $((race_minutes * 30)) ]; then
+		echo "uyarı: GPU paketi yarış dedektörüyle $((SECONDS - start)) sn sürdü; otomatik sınamanın sınırı $race_minutes dk (büyük boyları yarış dedektöründe atlayın: raceEnabled ya da skipUnderRace; -short arkasına almayın, kartın sınaması -short koşar)"
 	fi
 }
 
@@ -1371,10 +1374,13 @@ for mode in $modes; do
 		# (işçi havuzu, atomik sayaçlar), parçalayıcı (paralel toplu kodlama), GPU (eşzamansız
 		# benzetici).
 		step "Yarış dedektörü (go test -race -short)"
-		CGO_ENABLED=1 go test "${p_flag[@]}" -race -short ./internal/lang/interp ./internal/stdlib/... \
+		go_okfile=$(mktemp)
+		CGO_ENABLED=1 go test "${p_flag[@]}" -race -short -timeout "${race_minutes}m" ./internal/lang/interp ./internal/stdlib/... \
 			./internal/compute/dataload ./internal/compute/tensor ./internal/compute/tokenize \
-			./internal/compute/gpu 2>&1 | grep -v '^ok\|no test files'
+			./internal/compute/gpu 2>&1 | tee "$go_okfile" | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test -race"
+		slowest_packages "$go_okfile"
+		rm -f "$go_okfile"
 		;;
 	uzun)
 		go_tests uzun

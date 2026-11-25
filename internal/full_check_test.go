@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -141,17 +142,27 @@ func sharedCommitPrefix(t *testing.T, root string) string {
 	return ""
 }
 
-// Kural (tools/full_check.sh, --kip=on ve --kip=commit): ön denetimin ve commit öncesi denetimin bütün Go
-// adımları önbelleksiz koşar. Depo testleri
-// dosyaları `git ls-files` ile bulur; çalışma ağacında Go'nun önbelleği yeni izlenen dosyayı görmez ve eski
-// sonucu verir (DENETİM istek 106, 110).
-func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
+// Kural (tools/full_check.sh): betiğin go test adımlarının kuralları; her alt test birini sınar, betiği bu test okur.
+func TestFullCheckGoSteps(t *testing.T) {
 	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
-	goTest := regexp.MustCompile(`^\s*(?:\w+=\S*\s+)*go test `)
+	t.Run("the pre-check skips the cache", func(t *testing.T) { preCheckSkipsTheCache(t, script) })
+	t.Run("the race steps share one limit", func(t *testing.T) { raceStepsShareOneLimit(t, script) })
+	t.Run("the GPU race warns from the shared limit", func(t *testing.T) { gpuRaceWarnsFromTheSharedLimit(t, script) })
+	t.Run("the race mode names its slowest packages", func(t *testing.T) { raceModeNamesItsSlowestPackages(t, script) })
+}
+
+// goTestCommand betikte satır başında go test olan komutun desenidir: başlıklar ve kalan iletileri de "go test" der.
+const goTestCommand = `^\s*(?:\w+=\S*\s+)*go test `
+
+// Ön denetimin ve commit öncesi denetimin (--kip=on, --kip=commit) bütün Go adımları önbelleksiz koşar. Depo testleri
+// dosyaları `git ls-files` ile bulur; çalışma ağacında Go'nun önbelleği yeni izlenen dosyayı görmez ve eski
+// sonucu verir (DENETİM istek 106, 110).
+func preCheckSkipsTheCache(t *testing.T, script string) {
+	goTest := regexp.MustCompile(goTestCommand)
 	// Commit kipinin düzen adımı arka planda, commit_layout_start'ta koşar (kip-yakın K2). Kipin kolunda
 	// doğrudan go test yok; oraya yazılacak satır da -count=1 taşımalı (DENETİM 845 N2).
 	commitBranch := "\tcommit)\n"
@@ -266,4 +277,95 @@ func TestCommitModeTakesNoOtherModeAndSharesGofmt(t *testing.T) {
 			t.Errorf("%v: çıkış 2 ve kip iletisi beklenirdi, gelen %v: %s", args, err, out)
 		}
 	}
+}
+
+// Yarış dedektörüyle koşan bütün adımların paket başına sınırı tek sayıdır (race_minutes) ve otomatik sınamanın yarış işi
+// ondan uzun sürebilir. --kip=yaris sınır vermiyordu (go test'in 10 dk'sı), gpu_race kendi sayısını taşıyordu; GPU paketi
+// benzetimde sınıra dayandı. Komut en az iki tane aranır (DENETİM 999 N4): yoksa desen hiçbirini görmeden geçerdi.
+func raceStepsShareOneLimit(t *testing.T, script string) {
+	minutes := firstMatch(t, script, `(?m)^race_minutes=(\d+)$`)
+	commands := regexp.MustCompile(`(?m)`+goTestCommand+`[^\n]*-race\b.*$`).FindAllString(script, -1)
+	if len(commands) < 2 {
+		t.Fatalf("tools/full_check.sh: go test -race komutu en az iki beklenirdi, bulunan %q", commands)
+	}
+	for _, c := range commands {
+		if !strings.Contains(c, `-timeout "${race_minutes}m"`) {
+			t.Errorf("sınırı race_minutes olmayan yarış komutu: %s", c)
+		}
+	}
+	ci, err := os.ReadFile(reporoot.Path(".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := firstMatch(t, strings.ReplaceAll(string(ci), "\r\n", "\n"), `(?ms)^  yaris:\n.*?^    timeout-minutes: (\d+)$`)
+	limit, err1 := strconv.Atoi(minutes)
+	total, err2 := strconv.Atoi(job)
+	if err1 != nil || err2 != nil || total <= limit {
+		t.Errorf("ci.yml'in yarış işi (%s dk) race_minutes'tan (%s dk) uzun olmalı", job, minutes)
+	}
+}
+
+// gpu_race'in uyarısı sınırın yarısı geçilince çıkar ve sınırın kendisini yazar; ikisi de
+// race_minutes'tan gelir. Sahte go iki saniye sürer: sınır 0 iken yarısı geçilmiştir, 20 iken geçilmemiştir.
+func gpuRaceWarnsFromTheSharedLimit(t *testing.T, script string) {
+	fn := firstMatch(t, script, `(?ms)^(gpu_race\(\) \{\n.*?^\})$`)
+	for minutes, warns := range map[string]bool{"0": true, "20": false} {
+		out := runBash(t, "GITHUB_ACTIONS=\nset -o pipefail\nrace_minutes="+minutes+`
+step() { :; }
+fail() { echo "KALDI: $1"; }
+changed_packages() { echo ./internal/compute/gpu; }
+go() { if [ "$1" = env ]; then echo bash; else sleep 2; echo "komut: $*" >&2; fi; }
+`+fn+"\ngpu_race\n")
+		if want := "-timeout " + minutes + "m ./internal/compute/gpu"; !strings.Contains(out, want) || strings.Contains(out, "KALDI") {
+			t.Errorf("sınır %s: %q beklenirdi, gelen %s", minutes, want, out)
+		}
+		if got := strings.Contains(out, "otomatik sınamanın sınırı "+minutes+" dk"); got != warns {
+			t.Errorf("sınır %s: uyarı %v beklenirdi, gelen %s", minutes, warns, out)
+		}
+	}
+}
+
+// Yarış kipi (--kip=yaris) en yavaş paketleri yazar, kalan koşuda da; yoksa sınıra yaklaşan
+// paket otomatik sınamada ancak aşınca görünür (DENETİM 999 N5). Test kipin kendi kolunu sahte go ile koşar.
+func raceModeNamesItsSlowestPackages(t *testing.T, script string) {
+	arm := firstMatch(t, script, `(?ms)^\tyaris\)\n(.*?)^\t\t;;$`)
+	slowest := firstMatch(t, script, `(?ms)^(slowest_packages\(\) \{\n.*?^\})$`)
+	for exit, failed := range map[string]bool{"0": false, "1": true} {
+		out := runBash(t, `p_flag=(); race_minutes=20
+step() { :; }
+fail() { echo "KALDI: $1"; }
+go() { printf 'ok  \tx/tensor\t3.1s\nok  \tx/gpu\t612.4s\nok  \tx/interp\t(cached)\n--- FAIL: TestX\n'; return `+exit+`; }
+`+slowest+"\n"+arm)
+		list := "En yavaş paketler:\n   612.4 sn  x/gpu\n     3.1 sn  x/tensor\n"
+		if !strings.Contains(out, list) || !strings.Contains(out, "--- FAIL: TestX") || strings.Contains(out, "ok  ") {
+			t.Errorf("çıkış %s: %q beklenirdi, gelen %s", exit, list, out)
+		}
+		if got := strings.Contains(out, "KALDI: go test -race"); got != failed {
+			t.Errorf("çıkış %s: kalan %v beklenirdi, gelen %s", exit, failed, out)
+		}
+	}
+}
+
+// firstMatch desenin ilk eşleşmesinin ilk yakalamasını verir; yoksa test durur.
+func firstMatch(t *testing.T, text, pattern string) string {
+	t.Helper()
+	m := regexp.MustCompile(pattern).FindStringSubmatch(text)
+	if m == nil {
+		t.Fatalf("%s bulunamadı", pattern)
+	}
+	return m[1]
+}
+
+// runBash kaynağı bash'te koşar ve birleşik çıktıyı LF satır sonlarıyla verir; bash yoksa test atlanır.
+func runBash(t *testing.T, src string) string {
+	t.Helper()
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash yok")
+	}
+	out, err := exec.Command(bash, "-c", src).CombinedOutput()
+	if err != nil {
+		t.Fatalf("bash: %v\n%s", err, out)
+	}
+	return strings.ReplaceAll(string(out), "\r\n", "\n")
 }
