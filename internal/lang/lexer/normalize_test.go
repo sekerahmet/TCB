@@ -32,6 +32,9 @@ func TestNormalizeMatchesUnicodeData(t *testing.T) {
 			t.Fatalf("satır %d: %q", i+2, line)
 		}
 		src := fromHex(t, columns[0])
+		if got := nfc(src); got != Normalize(FormNFC, src) {
+			t.Errorf("satır %d, adın NFC'si %s, metnin NFC'si %s", i+2, toHex(got), toHex(Normalize(FormNFC, src)))
+		}
 		for k, f := range Forms {
 			want := fromHex(t, columns[k+1])
 			if got := Normalize(f, src); got != want {
@@ -53,13 +56,14 @@ func TestNormalizeMatchesUnicodeData(t *testing.T) {
 // sondaki kaf, üst noktayla Todhri harfine birleşmez (16 bitlik anahtarları aynıdır).
 func TestNormalizeComposesNewerScripts(t *testing.T) {
 	for _, c := range []struct{ src, composed string }{
-		{"\U000105D2̇", "\U000105C9"}, {"\U000105DȦ", "\U000105E4"},
-		{"ג̇", "ג̇"}, {"ך̇", "ך̇"}, {"ג̣̇", "ג̣̇"},
-		{"가\U0001611E\U0001611E", "가\U00016121"},
+		{"\u1100\u1161\U00016121", "\uAC00\U00016121"},
+		{"\U000105D2\u0307", "\U000105C9"}, {"\U000105DA\u0307", "\U000105E4"},
+		{"\u05D2\u0307", "\u05D2\u0307"}, {"\u05DA\u0307", "\u05DA\u0307"}, {"\u05D2\u0323\u0307", "\u05D2\u0323\u0307"},
+		{"\u1100\u1161\U0001611E\U0001611E", "\uAC00\U00016121"},
 		{"\U00016D63\U00016D67\U00016D67", "\U00016D6A"},
 	} {
 		for _, f := range Forms {
-			want := c.src
+			want := strings.ReplaceAll(c.src, "\U00016121", "\U0001611E\U0001611E")
 			if f == FormNFC || f == FormNFKC {
 				want = c.composed
 			}
@@ -74,7 +78,7 @@ func TestNormalizeComposesNewerScripts(t *testing.T) {
 // başına 31. işaretin önüne U+034F koyar); biçimi bozuk baytta da metin yitmez.
 func TestNormalizeAddsNoCharacter(t *testing.T) {
 	for _, n := range []int{30, 31, 90, 5000} {
-		src := "q" + strings.Repeat("́", n)
+		src := "q" + strings.Repeat("\u0301", n)
 		for _, f := range Forms {
 			if got := Normalize(f, src); got != src {
 				t.Errorf("%s, %d işaret: %d bayt, beklenen %d", f, n, len(got), len(src))
@@ -84,7 +88,7 @@ func TestNormalizeAddsNoCharacter(t *testing.T) {
 			t.Errorf("x/text %d işarete karakter eklemiyor; tam yolun bu koşulu artık gerekmiyor olabilir", n)
 		}
 	}
-	src := "\U00020041̀\xff" + strings.Repeat("́", 40)
+	src := "\U00020041\u0300\xff" + strings.Repeat("\u0301", 40)
 	for _, f := range Forms {
 		if got := Normalize(f, src); !strings.Contains(got, "\xff") {
 			t.Errorf("%s bozuk baytı yitirdi: %q", f, got)
@@ -94,7 +98,7 @@ func TestNormalizeAddsNoCharacter(t *testing.T) {
 
 // Kural (13.2): biçim kararlıdır: sonucun aynı biçimi kendisidir.
 func TestNormalizeIsStable(t *testing.T) {
-	for _, src := range []string{"", "a", "\U00020041̀", "ג̇", "e" + strings.Repeat("́", 40), "ﷺ̈́क़"} {
+	for _, src := range []string{"", "a", "\U00020041\u0300", "\u05D2\u0307", "e" + strings.Repeat("\u0301", 40), "\uFDFA\u0344\u0958"} {
 		for _, f := range Forms {
 			once := Normalize(f, src)
 			if twice := Normalize(f, once); twice != once {
@@ -106,19 +110,22 @@ func TestNormalizeIsStable(t *testing.T) {
 
 // Kural (2.3): adlar NFC'lerine göre karşılaştırılır, NFC'si ayrı iki ad ayrıdır. x/text tek başına
 // U+20041 U+0300'ü À'ya, İbranice gimel ve sondaki kaf ile üst noktayı Todhri harfine birleştiriyor, 31
-// işaretli ada U+034F ekliyordu: iki ad sessizce bir oluyordu.
+// işaretli ada U+034F ekliyordu: iki ad sessizce bir oluyordu. Hangıldan sonra gelen Gurung Khema'yı
+// birleştirmediğinden U+AC00 U+1611E U+1611E'ye de "zaten NFC" diyor; o ad kısa yoldan geçemez.
 func TestNamesAboveFFFFCompareInNFC(t *testing.T) {
-	marks := strings.Repeat("́", 30)
+	marks := strings.Repeat("\u0301", 30)
 	for _, c := range []struct {
 		a, b string
 		same bool
 	}{
-		{"é", "é", true},
-		{"\U000105D2̇", "\U000105C9", true},
-		{"\U00020041̀", "À", false},
-		{"ג̇", "\U000105C9", false},
-		{"ך̇", "\U000105E4", false},
-		{"q" + marks + "́", "q" + marks + "͏́", false},
+		{"e\u0301", "\u00E9", true},
+		{"\U000105D2\u0307", "\U000105C9", true},
+		{"\uAC00\U0001611E\U0001611E", "\uAC00\U00016121", true},
+		{"\uAC00\U0001611E\U0001611E", "\u1100\u1161\U0001611E\U0001611E", true},
+		{"\U00020041\u0300", "\u00C0", false},
+		{"\u05D2\u0307", "\U000105C9", false},
+		{"\u05DA\u0307", "\U000105E4", false},
+		{"q" + marks + "\u0301", "q" + marks + "\u034F\u0301", false},
 	} {
 		l := NewBody(c.a+" "+c.b, true)
 		toks := allOf(l)

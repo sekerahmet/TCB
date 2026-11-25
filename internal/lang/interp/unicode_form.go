@@ -10,8 +10,8 @@ import (
 )
 
 // unicodeFormBytes, .TR_unicode_normalize'ın ASCII olmayan metinde yorumlayıcı kilidini bıraktığı
-// girdi boyudur (longTextBytes'tan küçük): karakter karakter kurulan biçim 60 KB'ta 24–133 ms
-// sürüyor (DENETİM 1027 N2'nin ölçüsü, 2026-11-25), ~1 ms bu boydadır.
+// girdi boyudur (longTextBytes'tan küçük): karakter karakter kurulan biçim ve eşitlik denetimi
+// (lexer.Normalize) bu boyda ~1 ms'lik iştir.
 const unicodeFormBytes = 512
 
 // setupUnicodeFormMethod metnin .TR_unicode_normalize metodunu kaydeder (13.2). Biçim, adıyla dört
