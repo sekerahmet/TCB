@@ -42,11 +42,12 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - **Hazır kurucular:**
   - `TR_zeros(şekil)`, `TR_ones(şekil)` ve `TR_randn(şekil, TR_seed: n)` şekli liste olarak alır (`[2, 3]`); `TR_zeros(2, 3)` hatadır, ileti `TR_zeros([2, 3])`'ü önerir.
   - `TR_zeros[TR_Int]([3])` gibi öğe cinsi yazılabilir; `TR_randn` yalnız `TR_Float`'tır. `TR_zeros[TR_Bool]` `TR_false`, `TR_ones[TR_Bool]` `TR_true`, `TR_eye[TR_Bool]` köşegende `TR_true` kurar. `TR_zeros(şekil, TR_dtype: "q8")` (ve "q4", "q4z128", "fp8", "q4_k", "q6_k") float bellek ayırmadan sıfır nicemlenmiş tensör kurar (ölçekler 0, kodlar sıfırın kodu): yükleme hedefi içindir; `TR_ones` ve `TR_randn` nicemlenmiş hassasiyette hatadır.
+  - `TR_randn`'ın aynı tohumu aynı sayıları verir (20.17'nin koşuluyla); ayrı tohumların sayıları birbirinden istatistikçe bağımsızdır, ardışık tohumların da. `TR_randn` ile `TR_sample`'ın çekilişleri aynı tohumda da birbirinden bağımsızdır. `TR_seed:` verilmezse ya da `TR_none`'sa sayılar paylaşılan üreteçten gelir (20.17). Döngüde tohum `TR_fold_in` ile türetilir (15.26a).
   - Ayrı bir `TR_arange` yoktur: PyTorch'un `arange`'ini yazan ajana ileti `TR_Tensor(0..n)`'yi önerir.
   - `TR_eye(n)` n×n birim matrisi kurar (`TR_Float`, `TR_eye[TR_Int](n)` de yazılabilir).
 - **Dosyadan:** dosyadan okunan tensör `TR_AnyTensor`'dür (15.1, 15.46): cinsi dosyadan gelir, tipte yazılı değildir; hesap için `.TR_narrow[E]()` ile daraltılır. Hassasiyet dosyadakidir ("bf16" "bf16" kalır). Dosyadaki tür TR'de yoksa çalışma hatasıdır; ileti anahtarı ve dosyadaki türü söyler.
 - **Türev:** `TR_requires_grad: TR_true` yalnız `TR_Float` tensörde geçerlidir (varsayılan `TR_false`).
-- *Test:* TR testi ("15.2 cins veriden çıkar", "15.2 tip argümanı öğe cinsini seçer"); Go: `TestTensorKindFromData`.
+- *Test:* TR testi ("15.2 cins veriden çıkar", "15.2 tip argümanı öğe cinsini seçer"); Go: `TestTensorKindFromData`, `TestSeededStreamsAreIndependent`, `TestSeedUsesAllBits`.
 
 **15.3** Özellikler ve dönüşümler:
 - **Özellikler:** `.TR_shape` (`TR_List[TR_Int]`), `.TR_dtype` (`TR_String`), `.TR_device` (15.37), `.TR_grad` (`TR_Float` yaprakta `TR_Tensor?`; yaprak olmayan türevli tensörde okumak hatadır, 15.6d), `.TR_requires_grad` (`TR_Bool`; yaprakta atanabilir, 15.34: dondurma).
@@ -374,9 +375,18 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - `TR_top_k: k > 0` en olası `k` sınıf arasından seçer (eşitlikte küçük indeks önce, 15.21); `0` hepsi.
 - `TR_temperature: 0` en olasıyı verir (`TR_argmax(z, TR_dim: -1)` ile aynı; eksensiz argmax düzleştirirdi, 15.19). Eksi sıcaklık ve eksi `k` hatadır.
 - Dağılım kurulamayan satır (NaN, `+∞`, hepsi `−∞`) hatadır; sessizce bir indeks seçilmez.
-- Aynı tohum aynı sonucu verir; tohumsuz çağrı paylaşılan üreteçten çeker (20.17). Söz 15.22a'nın "aynı cihaz türü" sınırıyla geçerlidir: aynı GPU modeli ya da aynı CPU özellik kümesi. FMA'lı ve FMA'sız x86 işlemci (çekirdek çalışırken seçilir) ya da `GOAMD64=v3` ile `v1` derlenmiş iki `tr` ayrı türdür: son basamaktaki fark örneklenen indeksi değiştirebilir.
+- Aynı tohum aynı sonucu verir, ayrı tohumların çekilişleri birbirinden istatistikçe bağımsızdır, ardışık tohumların da; tohumsuz çağrı paylaşılan üreteçten çeker (20.17). Aynı sonuç sözü 15.22a'nın "aynı cihaz türü" sınırıyla ve aynı TR ikilisiyle (20.17) geçerlidir: aynı GPU modeli ya da aynı CPU özellik kümesi. FMA'lı ve FMA'sız x86 işlemci (çekirdek çalışırken seçilir) ya da `GOAMD64=v3` ile `v1` derlenmiş iki `tr` ayrı türdür: son basamaktaki fark örneklenen indeksi değiştirebilir.
+- **Üretim döngüsü:** `model.TR_generate(..., TR_seed: s)`'in `i`. adımı (0'dan) `TR_fold_in(s, i)` tohumuyla çeker (15.26a). Kendi döngüsünü yazan da öyle yazar: `TR_sample(z, TR_seed: TR_fold_in(s, i))`. `TR_seed: s + i` yazılmaz: `s` ve `s + 1` ile başlayan iki döngü aynı çekilişleri bir adım kayık kullanır.
 - Top-p `TR_gather` ile yazılır (15.21a).
-- *Test:* TR testi.
+- *Test:* TR testi (`tests/tensor_test.tr`, `tests/tohum_test.tr`); Go: `TestSeededStreamsAreIndependent`, `TestSampleAndRandnStreamsDiffer`.
+
+**15.26a** `TR_fold_in(tohum, i)` bir tohumdan ve bir tam sayıdan yeni bir tohum (`TR_Int`) türetir: aynı çift aynı tohumu verir, türetilen tohumların çekilişleri birbirinden ve `tohum`un kendi çekilişlerinden istatistikçe bağımsızdır. Döngüde, görevde ve katmanda `tohum + i` yerine yazılır.
+- İki argüman da her `TR_Int`'i alır (eksi sayı da); taşma yoktur. `TR_none` hatadır: tohumsuz çekilişte tohum türetilmez. Sıra önemlidir: `TR_fold_in(a, b)` ile `TR_fold_in(b, a)` ayrıdır.
+- Bir tohum ya doğrudan verilir ya da türetilir; her parça kendi türetilmişini alır (`TR_fold_in(s, 0)`, `TR_fold_in(s, 1)`).
+- Sonuç sıradan bir `TR_Int`'tir, eksi de olabilir: `TR_seed:` alan her yere verilir (`TR_sampler`'a da, 16.7) ve iç içe yazılır: `TR_fold_in(TR_fold_in(s, görev), adım)`.
+- Türetilen sayının kendisi TR'nin sürümleri arasında söz değildir (20.17'nin koşulu).
+- Gizli değildir: tohumu bilen türetileni bulur. Belirteç için `TR_secret_token()` yazılır (28.2a).
+- *Test:* TR testi (`tests/tohum_test.tr`); Go: `TestFoldInValues`.
 
 ## Türev
 

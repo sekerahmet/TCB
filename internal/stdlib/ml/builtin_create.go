@@ -186,15 +186,15 @@ func cacheBuffer(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	return New(t), nil
 }
 
-// randomNormal tohumlu çağrıda kendi üretecini, tohumsuzda programın paylaşılan üretecini
-// (shared_random.go, 20.17) kullanır.
+// randomNormal tohumlu çağrıda tohumun akışını (seeded_random.go), tohumsuzda ya da TR_none'da
+// programın paylaşılan üretecini (shared_random.go, 20.17) kullanır.
 func randomNormal(m *interp.VM, sh []int, named map[string]interp.Value) (*tensor.Tensor, error) {
-	if s, ok := bind.GetNamed(named, nameSeed); ok {
+	if s, ok := bind.GetNamed(named, nameSeed); ok && s != interp.Null {
 		seed, ok := s.(*interp.IntVal)
 		if !ok {
 			return nil, messages.New(messages.H6031, codes.NameRef(codes.FnRandn), nameSeed, typeName(s))
 		}
-		return tensor.Randn(rand.New(rand.NewSource(seed.Val)), sh...), nil
+		return tensor.Randn(seededRandom(seed.Val, randnLabel), sh...), nil
 	}
 	var t *tensor.Tensor
 	sharedRandomOf(m).draw(func(stream *rand.Rand) { t = tensor.Randn(stream, sh...) })

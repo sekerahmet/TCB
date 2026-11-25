@@ -3,6 +3,8 @@ package dataset_test
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Sürdürme kesintisizle aynıdır: okuyucu durumu (ö.durum) düz değerli bir sözlüktür ve
@@ -78,6 +80,47 @@ TR_print(s.TR_skip(10), s.TR_next())
 `+code)
 		if err == nil {
 			t.Errorf("%s hata vermeliydi", code)
+		}
+	}
+}
+
+// Kural (16.7, 20.13): tohum her TR_Int'tir; eksi tohumlu örnekleyicinin durumu yüklenir, okuma
+// kaldığı yerden sürer (dosyadan: tests/tohum_test.tr). Tam sayı olmayan tohum H5542, başka tohum
+// H5544, tohum dışındaki alanda eksi sayı H5543'tür.
+func TestNegativeSeedStateLoads(t *testing.T) {
+	d := buildDataset(t)
+	k := `TR_var k = TR_Dataset("` + trPath(d) + `")
+TR_func yap(s: TR_Int) -> TR_Sampler { TR_return k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: s) }
+`
+	out, _ := mustRun(t, k+`
+TR_for s TR_in [-3, -9223372036854775807 - 1, TR_fold_in(7, 0), 3] {
+    TR_var a = yap(s)
+    a.TR_next()
+    TR_var durum = a.TR_state
+    TR_var b = yap(s)
+    b.TR_load_state(durum)
+    TR_print(durum["seed"] == s, a.TR_next()[0].TR_tolist == b.TR_next()[0].TR_tolist)
+}`)
+	if want := strings.Repeat("true true\n", 4); out != want {
+		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+	for _, c := range []struct {
+		field, value string
+		want         messages.Code
+	}{
+		{"seed", "1.5", messages.H5542},
+		{"seed", "-4", messages.H5544},
+		{"counter", "-1", messages.H5543},
+		{"position", "-1", messages.H5543},
+		{"batch", "-1", messages.H5543},
+		{"batch", "0", messages.H5547},
+	} {
+		_, _, err := run(t, k+`
+TR_var durum = yap(-3).TR_state
+durum["`+c.field+`"] = `+c.value+`
+yap(-3).TR_load_state(durum)`)
+		if !messages.Has(err, c.want) {
+			t.Errorf("%s = %s: %v, beklenen %s", c.field, c.value, err, c.want)
 		}
 	}
 }

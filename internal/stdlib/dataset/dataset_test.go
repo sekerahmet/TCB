@@ -135,6 +135,23 @@ TR_var ikinci = ö.TR_next()
 	}
 }
 
+// Kural (16.7): tohum her TR_Int'tir, eksi de olur; aynı tohum aynı toplu işleri verir, metni
+// verilen sayıdır. Durumu: TestNegativeSeedStateLoads.
+func TestSamplerTakesNegativeSeed(t *testing.T) {
+	out, _ := mustRun(t, `TR_var k = TR_Dataset("`+trPath(buildDataset(t))+`")
+TR_func yap(s: TR_Int) -> TR_Sampler { TR_return k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: s) }
+TR_for s TR_in [-3, -9223372036854775807 - 1] {
+    TR_var ilk = yap(s).TR_next()[0].TR_tolist
+    TR_print(ilk == yap(s).TR_next()[0].TR_tolist, ilk != yap(3).TR_next()[0].TR_tolist, yap(s))
+}`)
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	for i, seed := range []string{": -3, ", ": -9223372036854775808, "} {
+		if len(lines) != 2 || !strings.HasPrefix(lines[i], "true true ") || !strings.Contains(lines[i], seed) {
+			t.Fatalf("%s", out)
+		}
+	}
+}
+
 // Sıralı okuyucu tüm pencereleri sırayla verir, son toplu iş eksik satırlı olabilir,
 // bitince yok döner ve kaynaklarını hemen kapatır.
 func TestSequentialEndsWithNoneAndCloses(t *testing.T) {
@@ -314,7 +331,7 @@ func TestErrorMessages(t *testing.T) {
 		{`TR_Dataset("` + trPath(d) + `", onbelek: "x")`, messages.H7900},
 		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2)`, messages.H5529},
 		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 0, TR_context: 4)`, messages.H5530},
-		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: -1)`, messages.H5532},
+		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: 1.5)`, messages.H6031},
 		{`TR_Dataset("` + trPath(d) + `").TR_sequential(TR_batch_size: 2, TR_context: 4, TR_seed: 1)`, messages.H7901},
 		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 600)`, messages.H5533},
 		{`TR_Dataset("` + trPath(d) + `").karıştır()`, messages.H7904},

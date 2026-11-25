@@ -1,0 +1,163 @@
+# TR 4
+# Tohumlu rastgelelik: ayrı tohumların çekilişleri birbirinden bağımsızdır, ardışık tohumların da;
+# döngüde ve katmanda tohum TR_fold_in ile türetilir (15.2, 15.26, 15.26a).
+
+TR_import "tr/layers"
+
+# Art arda gelen aynı değerlerin sayısı; bağımsız ve on eşit olasılıklı değerde beklenen onda birdir.
+TR_func art_arda_aynı(s: TR_List[TR_Int]) -> TR_Int {
+    TR_var n = 0
+    TR_for i TR_in 1..s.TR_length { TR_if s[i] == s[i - 1] { n += 1 } }
+    TR_return n
+}
+
+# n denemede gelen sayı, olasılığı 0.1 olan olayın beklenenine beş standart sapmadan yakın mı?
+TR_func onda_bir_mi(gelen: TR_Int, n: TR_Int) -> TR_Bool {
+    TR_return TR_abs(gelen - n * 0.1) < 5 * TR_sqrt(n * 0.09)
+}
+
+# Normal dağılımın on eşit olasılıklı parçasından hangisi.
+TR_func onda(z: TR_Float) -> TR_Int {
+    TR_var k = 0
+    TR_for b TR_in [-1.2815516, -0.8416212, -0.5244005, -0.2533471, 0.0, 0.2533471, 0.5244005, 0.8416212, 1.2815516] { TR_if z > b { k += 1 } }
+    TR_return k
+}
+
+# Her sınıfı eşit olasılıklı model: token'ları yalnız çekilişler belirler.
+TR_func düz_model() -> TR_GPT {
+    TR_return TR_GPT(10, TR_context: 16, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_init_std: 0.0)
+}
+
+TR_test "15.26 TR_sample: ardışık ve türetilmiş tohumların çekilişleri bağımsız" {
+    TR_var düz = TR_zeros([10])
+    TR_for seri TR_in [
+        [TR_sample(düz, TR_seed: i).TR_tolist TR_for i TR_in 0..5000],
+        [TR_sample(düz, TR_seed: 1000 * i).TR_tolist TR_for i TR_in 0..5000],
+        [TR_sample(düz, TR_seed: TR_fold_in(42, i)).TR_tolist TR_for i TR_in 0..5000],
+        [TR_sample(düz, TR_seed: TR_fold_in(i, 42)).TR_tolist TR_for i TR_in 0..5000],
+    ] {
+        TR_assert(onda_bir_mi(art_arda_aynı(seri), 4999), "\(art_arda_aynı(seri))")
+    }
+}
+
+TR_test "15.2 TR_randn: ardışık tohumların sayıları her konumda bağımsız" {
+    TR_var akış = [TR_randn([4], TR_seed: i).TR_tolist TR_for i TR_in 0..5000]
+    TR_for j TR_in 0..4 {
+        TR_var n = art_arda_aynı([onda(a[j]) TR_for a TR_in akış])
+        TR_assert(onda_bir_mi(n, 4999), "konum \(j): \(n)")
+    }
+}
+
+TR_test "15.2 TR_randn TR_seed: TR_none paylaşılan üreteçten" {
+    TR_var a = TR_randn([3], TR_seed: TR_none)
+    TR_assert(a.TR_tolist != TR_randn([3], TR_seed: TR_none).TR_tolist)
+    TR_assert_equal(TR_randn([3], TR_seed: 0).TR_tolist, TR_randn([3], TR_seed: 0).TR_tolist)
+    TR_assert_equal("H6031", TR_error_code { TR_randn([2], TR_seed: 1.5) })
+}
+
+TR_test "15.26a TR_fold_in: sıra, eksi, sınır ve hatalar" {
+    TR_var en_büyük = 9223372036854775807
+    TR_var en_küçük = -9223372036854775807 - 1
+    TR_assert_equal(TR_fold_in(1, 2), TR_fold_in(1, 2))
+    TR_assert(TR_fold_in(1, 2) != TR_fold_in(2, 1))
+    TR_var tohumlar: TR_List[TR_Int] = []
+    TR_for a TR_in [0, 1, -1, en_büyük, en_küçük] {
+        TR_for b TR_in [0, 1, -1, en_büyük, en_küçük] { tohumlar.TR_append(TR_fold_in(a, b)) }
+    }
+    TR_for i, t TR_in tohumlar {
+        TR_assert(TR_not tohumlar[0..i].TR_contains(t), "\(i). türetilen tohum yineleniyor")
+        TR_assert_equal(TR_Int, TR_Type(t))
+        TR_assert_equal(TR_randn([2], TR_seed: t).TR_tolist, TR_randn([2], TR_seed: t).TR_tolist)
+        TR_sample(TR_zeros([4]), TR_seed: t).TR_tolist
+    }
+    TR_assert_equal("H2423", TR_error_code { TR_fold_in([TR_none, 1][0], 1) })
+    TR_assert_equal("H2423", TR_error_code { TR_fold_in(1, [1.0, 1][0]) })
+    TR_assert_equal("H2011", TR_error_code { TR_fold_in(1) })
+    TR_assert_equal("H7902", TR_error_code { TR_fold_in(1, 2, TR_seed: 3) })
+}
+
+TR_test "15.26 üretim adımları bağımsız" {
+    TR_var a = düz_model().TR_generate([1], 2000, TR_seed: 42, TR_cache_kind: TR_none)
+    TR_assert(onda_bir_mi(art_arda_aynı(a[1..a.TR_length]), 1999), "\(art_arda_aynı(a))")
+}
+
+TR_test "15.26 ardışık tohumların üretimleri kayık değil" {
+    TR_var m = düz_model()
+    TR_var a = m.TR_generate([1], 2000, TR_seed: 42, TR_cache_kind: TR_none)
+    TR_var b = m.TR_generate([1], 2000, TR_seed: 43, TR_cache_kind: TR_none)
+    TR_var kayık = 0
+    TR_for i TR_in 1..2000 { TR_if b[i] == a[i + 1] { kayık += 1 } }
+    TR_assert(onda_bir_mi(kayık, 1999), "\(kayık)")
+}
+
+TR_test "15.26 kendi döngüsü TR_generate'le aynı" {
+    TR_var m = TR_GPT(12, TR_context: 16, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)
+    TR_for s TR_in [0, -3, 9223372036854775807] {
+        TR_var kimlikler = [1, 2]
+        TR_for i TR_in 0..8 {
+            TR_var x = TR_no_grad(m.TR_forward([kimlikler]))
+            TR_var z = x.TR_slice(1, kimlikler.TR_length - 1, kimlikler.TR_length)[0][0]
+            kimlikler.TR_append(TR_sample(z, TR_seed: TR_fold_in(s, i)).TR_tolist)
+        }
+        TR_assert_equal(m.TR_generate([1, 2], 8, TR_seed: s, TR_cache_kind: TR_none), kimlikler)
+    }
+}
+
+# Kurulan modelin ağırlıkları (iki boyutlu parametreler).
+TR_func ağırlıklar(s: TR_Int) -> TR_List[TR_Tensor] {
+    TR_var m = TR_GPT(16, TR_context: 8, TR_embed_dim: 16, TR_num_layers: 3, TR_num_heads: 2, TR_intermediate_dim: 16, TR_seed: s, TR_ple_dim: 16)
+    TR_return [p TR_for p TR_in TR_parameters(m) TR_if p.TR_shape.TR_length == 2]
+}
+
+TR_func ortak(a: TR_List[TR_Tensor], b: TR_List[TR_Tensor]) -> TR_Int {
+    TR_var n = 0
+    TR_for x TR_in a { TR_for y TR_in b { TR_if x.TR_shape == y.TR_shape TR_and TR_equal(x, y) { n += 1 } } }
+    TR_return n
+}
+
+TR_test "komşu tohumlu modeller ortak ağırlık taşımaz" {
+    TR_var a = ağırlıklar(1)
+    TR_assert_equal(a.TR_length, ortak(a, ağırlıklar(1)))
+    TR_for s TR_in [2, 101, 11, 21] { TR_assert_equal(0, ortak(a, ağırlıklar(s)), "tohum 1 ile \(s)") }
+}
+
+TR_test "kullanıcının türettiği katman kitaplığın parçasıyla aynı başlamaz" {
+    TR_var a = ağırlıklar(7)
+    TR_var dikkat = TR_CausalAttention(16, 2, TR_seed: 7)
+    TR_var kendi = [TR_Linear(16, 16, TR_seed: TR_fold_in(7, k)).TR_weight TR_for k TR_in 0..32]
+    TR_assert_equal(0, ortak(a, kendi))
+    TR_assert_equal(0, ortak([p TR_for p TR_in TR_parameters(dikkat)], kendi))
+    # Ölçü eşitliği görüyor: dikkatin sorgusu kitaplığın -1 numarasıdır.
+    TR_assert(TR_equal(dikkat.TR_q_proj.TR_weight, TR_Linear(16, 16, TR_seed: TR_fold_in(7, -1)).TR_weight))
+}
+
+TR_test "16.7 TR_sampler her TR_Int tohumu alır" {
+    TR_var küme = TR_Dataset("data/numbers")
+    TR_func ilk(s: TR_Int) -> TR_List[TR_List[TR_Int]] {
+        TR_return küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: s).TR_next()[0].TR_tolist
+    }
+    TR_for s TR_in [-3, TR_fold_in(7, 0), -9223372036854775807] {
+        TR_assert_equal(ilk(s), ilk(s))
+        TR_assert(ilk(s) != ilk(0))
+    }
+    TR_assert(TR_fold_in(7, 0) < 0, "türetilen tohum eksi olmalı: sınama bunu sınıyor")
+    TR_assert("\(küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: -3))".TR_contains("-3"))
+    TR_assert_equal("H6031", TR_error_code { küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: 1.5) })
+}
+
+TR_test "20.13 eksi ve büyük tohumlu örnekleyici kontrol noktasından sürer" {
+    TR_for i, s TR_in [-3, -9223372036854775807 - 1, TR_fold_in(7, 0), TR_fold_in(7, 1)] {
+        TR_var k = TR_Path(TR_temp_dir(), "tohum_\(i)")
+        TR_func yap() -> TR_Sampler { TR_return TR_Dataset("data/text").TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: s) }
+        TR_var ö = yap()
+        TR_var kn = TR_Checkpoint(k, {"ö": ö, "sayaç": {"adım": 0}})
+        ö.TR_next()
+        kn.TR_update(1)
+        kn.TR_save()
+        TR_var sıradaki = ö.TR_next()[0].TR_tolist
+        TR_var yeni = yap()
+        TR_var kn2 = TR_Checkpoint(k, {"ö": yeni, "sayaç": {"adım": 0}})
+        TR_assert_equal(1, kn2.TR_resume_step)
+        TR_assert_equal(sıradaki, yeni.TR_next()[0].TR_tolist, "tohum \(s)")
+    }
+}

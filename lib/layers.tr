@@ -11,8 +11,8 @@
 # Başlatma: bütün ağırlık matrisleri N(0, 0.02) ile başlar (`std`); artık yola yazan çıkış
 # katmanları (dikkatin `çıkış_katmanı`, ileri beslemenin `aşağı`sı) 0.02 / √(2 · katman sayısı) ile
 # küçültülür, böylece derin modelde artık yolun varyansı katman sayısıyla büyümez. Norm
-# ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın kendi sabit tohumu vardır: aynı `tohum`
-# aynı modeli verir.
+# ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın tohumu modelin tohumundan türetilir
+# (tohum_türet): aynı `tohum` aynı modeli verir.
 
 # ağırlık_başlat şekli verilen, N(0, std) ile başlayan, türev izleyen bir ağırlık kurar; tür
 # verilirse ağırlık o türde tutulur (ör. "bf16": hazır modellerin saklandığı tür).
@@ -149,19 +149,19 @@ TR_struct TR_CausalAttention {
         TR_self.TR_head_dim = TR_head_dim
         TR_self.TR_window = TR_window
         TR_var kv_boyut = TR_num_kv_heads * TR_head_dim
-        TR_self.TR_q_proj = TR_Linear(TR_embed_dim, TR_num_heads * TR_head_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
+        TR_self.TR_q_proj = TR_Linear(TR_embed_dim, TR_num_heads * TR_head_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -1), TR_dtype: TR_weight_dtype)
         TR_if TR_merged_kv {
             TR_self.TR_k_proj = TR_none
             TR_self.TR_v_proj = TR_none
-            TR_self.TR_kv_proj = TR_Linear(TR_embed_dim, 2 * kv_boyut, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype)
+            TR_self.TR_kv_proj = TR_Linear(TR_embed_dim, 2 * kv_boyut, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -2), TR_dtype: TR_weight_dtype)
         } TR_else {
-            TR_self.TR_k_proj = TR_Linear(TR_embed_dim, kv_boyut, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype)
-            TR_self.TR_v_proj = TR_Linear(TR_embed_dim, kv_boyut, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed + 2, TR_dtype: TR_weight_dtype)
+            TR_self.TR_k_proj = TR_Linear(TR_embed_dim, kv_boyut, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -2), TR_dtype: TR_weight_dtype)
+            TR_self.TR_v_proj = TR_Linear(TR_embed_dim, kv_boyut, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -3), TR_dtype: TR_weight_dtype)
             TR_self.TR_kv_proj = TR_none
         }
         TR_self.TR_q_norm = TR_if TR_qk_norm { TR_RMSNorm(TR_self.TR_head_dim, TR_eps: TR_eps) } TR_else { TR_none }
         TR_self.TR_k_norm = TR_if TR_qk_norm { TR_RMSNorm(TR_self.TR_head_dim, TR_eps: TR_eps) } TR_else { TR_none }
-        TR_self.TR_o_proj = TR_Linear(TR_num_heads * TR_head_dim, TR_embed_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_output_init_std, TR_seed: TR_seed + 3, TR_dtype: TR_weight_dtype)
+        TR_self.TR_o_proj = TR_Linear(TR_num_heads * TR_head_dim, TR_embed_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_output_init_std, TR_seed: TR_fold_in(TR_seed, -4), TR_dtype: TR_weight_dtype)
     }
     # x [B, T, D]; cos_tablosu/sin_tablosu döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
     # satırlar). önbellek verilirse (KVÖnbellek) yeni anahtar ve değerler katman no'ya eklenir ve
@@ -251,13 +251,13 @@ TR_struct TR_SwiGLU {
         TR_if TR_merged {
             TR_self.TR_gate_proj = TR_none
             TR_self.TR_up_proj = TR_none
-            TR_self.TR_gate_up_proj = TR_Linear(TR_embed_dim, 2 * TR_intermediate_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
+            TR_self.TR_gate_up_proj = TR_Linear(TR_embed_dim, 2 * TR_intermediate_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -1), TR_dtype: TR_weight_dtype)
         } TR_else {
-            TR_self.TR_gate_proj = TR_Linear(TR_embed_dim, TR_intermediate_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
-            TR_self.TR_up_proj = TR_Linear(TR_embed_dim, TR_intermediate_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype)
+            TR_self.TR_gate_proj = TR_Linear(TR_embed_dim, TR_intermediate_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -1), TR_dtype: TR_weight_dtype)
+            TR_self.TR_up_proj = TR_Linear(TR_embed_dim, TR_intermediate_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -2), TR_dtype: TR_weight_dtype)
             TR_self.TR_gate_up_proj = TR_none
         }
-        TR_self.TR_down_proj = TR_Linear(TR_intermediate_dim, TR_embed_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_output_init_std, TR_seed: TR_seed + 2, TR_dtype: TR_weight_dtype)
+        TR_self.TR_down_proj = TR_Linear(TR_intermediate_dim, TR_embed_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_output_init_std, TR_seed: TR_fold_in(TR_seed, -3), TR_dtype: TR_weight_dtype)
     }
     TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {
         TR_var gup = TR_self.TR_gate_up_proj
@@ -301,7 +301,7 @@ TR_struct TR_PLEContext {
         TR_self.TR_embed_dim = TR_embed_dim
         TR_self.TR_num_layers = TR_num_layers
         TR_self.TR_ple_dim = TR_ple_dim
-        TR_self.TR_context_proj = TR_Linear(TR_embed_dim, TR_num_layers * TR_ple_dim, TR_init_std: TR_init_std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
+        TR_self.TR_context_proj = TR_Linear(TR_embed_dim, TR_num_layers * TR_ple_dim, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -1), TR_dtype: TR_weight_dtype)
         TR_self.TR_norm = TR_RMSNorm(TR_ple_dim, TR_eps: TR_eps)
     }
     TR_func TR_forward(TR_x: TR_Tensor) -> TR_List[TR_Tensor] {
@@ -324,9 +324,9 @@ TR_struct TR_PLEBlock {
     TR_norm: TR_RMSNorm
     TR_func TR_init(TR_embed_dim: TR_Int, TR_vocab_size: TR_Int, TR_ple_dim: TR_Int, TR_eps: TR_Float = 0.00001, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_ple_dim = TR_ple_dim
-        TR_self.TR_table = TR_init_weight([TR_vocab_size, TR_ple_dim], TR_init_std, TR_seed, TR_weight_dtype)
-        TR_self.TR_gate_proj = TR_Linear(TR_embed_dim, TR_ple_dim, TR_init_std: TR_init_std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype)
-        TR_self.TR_proj = TR_Linear(TR_ple_dim, TR_embed_dim, TR_init_std: TR_output_init_std, TR_seed: TR_seed + 2, TR_dtype: TR_weight_dtype)
+        TR_self.TR_table = TR_init_weight([TR_vocab_size, TR_ple_dim], TR_init_std, TR_fold_in(TR_seed, -1), TR_weight_dtype)
+        TR_self.TR_gate_proj = TR_Linear(TR_embed_dim, TR_ple_dim, TR_init_std: TR_init_std, TR_seed: TR_fold_in(TR_seed, -2), TR_dtype: TR_weight_dtype)
+        TR_self.TR_proj = TR_Linear(TR_ple_dim, TR_embed_dim, TR_init_std: TR_output_init_std, TR_seed: TR_fold_in(TR_seed, -3), TR_dtype: TR_weight_dtype)
         TR_self.TR_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
     }
     # h [B, T, D]; kimlikler [B, T]; bağlam bu katmanın PLEBağlamı çıktısı [B, T, P].
@@ -359,12 +359,12 @@ TR_struct TR_TransformerBlock {
     TR_feed_forward_output_norm: TR_RMSNorm? = TR_none
     TR_func TR_init(TR_embed_dim: TR_Int, TR_num_heads: TR_Int, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_eps: TR_Float = 0.00001, TR_window: TR_Int = 0, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_use_bias: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ple_dim: TR_Int? = TR_none, TR_vocab_size: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_input_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
-        TR_self.TR_attention = TR_CausalAttention(TR_embed_dim, TR_num_heads, TR_num_kv_heads: TR_num_kv_heads, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed, TR_window: TR_window, TR_qk_norm: TR_qk_norm, TR_merged_kv: TR_merged_kv, TR_eps: TR_eps, TR_head_dim: TR_head_dim, TR_weight_dtype: TR_weight_dtype)
+        TR_self.TR_attention = TR_CausalAttention(TR_embed_dim, TR_num_heads, TR_num_kv_heads: TR_num_kv_heads, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_fold_in(TR_seed, -1), TR_window: TR_window, TR_qk_norm: TR_qk_norm, TR_merged_kv: TR_merged_kv, TR_eps: TR_eps, TR_head_dim: TR_head_dim, TR_weight_dtype: TR_weight_dtype)
         TR_self.TR_post_attention_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
-        TR_self.TR_feed_forward = TR_SwiGLU(TR_embed_dim, TR_intermediate_dim: TR_intermediate_dim, TR_use_bias: TR_ff_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed + 10, TR_merged: TR_merged_gate, TR_weight_dtype: TR_weight_dtype)
+        TR_self.TR_feed_forward = TR_SwiGLU(TR_embed_dim, TR_intermediate_dim: TR_intermediate_dim, TR_use_bias: TR_ff_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_fold_in(TR_seed, -2), TR_merged: TR_merged_gate, TR_weight_dtype: TR_weight_dtype)
         TR_if TR_ple_dim != TR_none {
             TR_assert(TR_vocab_size != TR_none, TR_Message("H6904"))
-            TR_self.TR_ple = TR_PLEBlock(TR_embed_dim, TR_vocab_size, TR_ple_dim, TR_eps: TR_eps, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed + 20, TR_weight_dtype: TR_weight_dtype)
+            TR_self.TR_ple = TR_PLEBlock(TR_embed_dim, TR_vocab_size, TR_ple_dim, TR_eps: TR_eps, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_fold_in(TR_seed, -3), TR_weight_dtype: TR_weight_dtype)
         } TR_else {
             TR_self.TR_ple = TR_none
         }
@@ -581,18 +581,18 @@ TR_struct TR_GPT {
         }
         TR_var std = TR_init_std
         TR_var çıkış_std = std / TR_sqrt(2 * TR_num_layers)
-        TR_self.TR_embedding = TR_Embedding(TR_vocab_size, TR_embed_dim, TR_init_std: std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
+        TR_self.TR_embedding = TR_Embedding(TR_vocab_size, TR_embed_dim, TR_init_std: std, TR_seed: TR_fold_in(TR_seed, -1), TR_dtype: TR_weight_dtype)
         TR_self.TR_blocks = []
         TR_for i TR_in 0..TR_num_layers {
             TR_self.TR_blocks.TR_append(TR_TransformerBlock(TR_embed_dim, TR_num_heads, TR_num_kv_heads: TR_num_kv_heads, TR_intermediate_dim: TR_intermediate_dim,
-                TR_init_std: std, TR_output_init_std: çıkış_std, TR_seed: TR_seed + 100 * (i + 1), TR_eps: TR_eps,
+                TR_init_std: std, TR_output_init_std: çıkış_std, TR_seed: TR_fold_in(TR_fold_in(TR_seed, -4), i), TR_eps: TR_eps,
                 TR_window: TR_if TR_windows == TR_none { 0 } TR_else { TR_windows[i] }, TR_qk_norm: TR_qk_norm,
                 TR_merged_kv: TR_merged_kv, TR_merged_gate: TR_merged_gate, TR_ff_use_bias: TR_ff_use_bias,
                 TR_ple_dim: TR_ple_dim, TR_vocab_size: TR_vocab_size, TR_head_dim: TR_head_dim, TR_weight_dtype: TR_weight_dtype))
         }
         TR_self.TR_final_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
-        TR_self.TR_logit_layer = TR_if TR_tied { TR_none } TR_else { TR_Linear(TR_embed_dim, TR_vocab_size, TR_init_std: std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype) }
-        TR_self.TR_ple_context = TR_if TR_ple_dim == TR_none { TR_none } TR_else { TR_PLEContext(TR_embed_dim, TR_num_layers, TR_ple_dim, TR_eps: TR_eps, TR_init_std: std, TR_seed: TR_seed + 2, TR_weight_dtype: TR_weight_dtype) }
+        TR_self.TR_logit_layer = TR_if TR_tied { TR_none } TR_else { TR_Linear(TR_embed_dim, TR_vocab_size, TR_init_std: std, TR_seed: TR_fold_in(TR_seed, -2), TR_dtype: TR_weight_dtype) }
+        TR_self.TR_ple_context = TR_if TR_ple_dim == TR_none { TR_none } TR_else { TR_PLEContext(TR_embed_dim, TR_num_layers, TR_ple_dim, TR_eps: TR_eps, TR_init_std: std, TR_seed: TR_fold_in(TR_seed, -3), TR_weight_dtype: TR_weight_dtype) }
         TR_var tablolar = TR_rotary_table(TR_context, TR_if TR_head_dim == TR_none { TR_embed_dim // TR_num_heads } TR_else { TR_head_dim }, TR_rope_theta: TR_rope_theta)
         TR_self.TR_cos_table = tablolar[0]
         TR_self.TR_sin_table = tablolar[1]
@@ -694,8 +694,8 @@ TR_struct TR_GPT {
         TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
-    # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos durma kimliklerinin
-    # listesidir (varsayılan boş: durmaz): örneklenen parça listedeyse eklenir ve üretim durur
+    # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır, ayrı tohumların üretimleri
+    # bağımsızdır. eos durma kimliklerinin listesidir (varsayılan boş: durmaz): örneklenen parça listedeyse eklenir ve üretim durur
     # (adetten önce); birden çok kimlik dönüş sonu parçalarıdır (Llama 3'te üç). Model
     # bağlamdan uzun diziyi görmez: son `bağlam` parça kullanılır. önbellek_çeşidi: "sabit"
     # (varsayılan) ya da "büyüyen" KV önbelleği; ilk adım başlangıcı bir kez işler, sonraki
@@ -755,7 +755,7 @@ TR_struct TR_GPT {
                     son = TR_self.TR_logits(x.TR_slice(1, T - 1, T))[0][0]
                 }
                 TR_if TR_vocab_size != TR_none TR_and TR_vocab_size < çıkış { son = son.TR_slice(0, 0, TR_vocab_size) }
-                TR_var t = TR_if TR_seed == TR_none { TR_none } TR_else { TR_seed + i }
+                TR_var t = TR_if TR_seed == TR_none { TR_none } TR_else { TR_fold_in(TR_seed, i) }
                 TR_var yeni = TR_sample(son, TR_temperature: TR_temperature, TR_top_k: TR_top_k, TR_seed: t).TR_tolist
                 kimlikler.TR_append(yeni)
                 TR_if TR_eos.TR_contains(yeni) { TR_break }

@@ -3,6 +3,7 @@ package ml
 import (
 	"math/rand"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -62,14 +63,12 @@ func TestSharedRandomStateRoundTrip(t *testing.T) {
 	}
 }
 
-// Kural (20.17): tohumlu rastgelelik değişmez; TR_seed: verilen TR_randn Go'nun math/rand
-// kaynağıyla önceki sayıları verir ve paylaşılan üreteci ilerletmez.
+// Kural (20.17): tohumlu rastgelelik aynı ikilide aynıdır; TR_seed: verilen TR_randn, TR_sample ve
+// TR_fold_in yazılı sayıları verir, tohumlu TR_randn paylaşılan üreteci ilerletmez.
 func TestSeededRandomUnchanged(t *testing.T) {
-	want := tensor.Randn(rand.New(rand.NewSource(7)), 3)
-	got, _ := tensorData(t, value(t, `TR_var a = TR_randn([3], TR_seed: 7)
-TR_var cikti = TR_randn([3], TR_seed: 7)`))
-	if !slices.Equal(got, want.Data()) {
-		t.Fatalf("tohumlu sayılar değişti: %v, beklenen %v", got, want.Data())
+	got := mustRun(t, `TR_print(TR_randn([3], TR_seed: 7).TR_tolist, TR_sample(TR_zeros([8, 1000]), TR_seed: 7).TR_tolist, TR_fold_in(7, 0))`)
+	if want := "[-0.0047658235, -0.09164564, 0.6254434] [340, 413, 305, 479, 488, 53, 383, 163] -7041280630209002300"; strings.TrimSpace(got) != want {
+		t.Fatalf("tohumlu sayılar değişti: %q, beklenen %q", got, want)
 	}
 	unseeded, _ := tensorData(t, value(t, `TR_var a = TR_randn([3], TR_seed: 7)
 TR_var cikti = TR_randn([3])`))

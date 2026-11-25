@@ -325,8 +325,19 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 ### 15.26
 
-- *Emsal:* yok: taslakta karşılaştırma yapılmadı.
+- *Emsal:* 15.26a'da.
 - *Gerekçe:* "Hazır modelleri çalıştırmak ... metin üretmek" ve Güvenilir: aynı tohum aynı sonucu verir, tohumsuz çağrı paylaşılan üreteçten çeker (20.17), kesilen iş aynı sonuçla sürer. Sözün sınırı (aynı cihaz türü, FMA) açıkça yazılır; son basamaktaki fark örneklenen indeksi değiştirebilir. Dağılım kurulamayan satırda sessizce bir indeks seçmek yanlışı gizlerdi ("Hata riski az"). Sıcaklık 0 eksenli argmax'tir; eksensiz argmax düzleştirir (15.19). Top-p için ayrı argüman yerine `TR_gather` (15.21a).
+- *Gerekçe (ayrı tohumlar bağımsızdır):* tohumu döngüde artıran (`TR_seed: s + i`) ajan ve insan her çekilişin ayrı olduğunu sanır; Go'nun `math/rand` kaynağında komşu tohumların akışları sabit farklıydı: 5000 ardışık tohumda on eşit sınıftan art arda aynısı 0 kez geldi, beklenen 500 [ölçüldü: D1, 2026-11-25]. Hata vermeyen bir bağımlılık "Güvenilir"e aykırıdır. Tohum bu yüzden bütün bitleriyle karıştırılıp PCG'ye verilir. Yalnız karıştırmak `TR_generate`'i düzeltmez: `s + i` ile çeken iki üretim (`s`, `s + 1`) aynı tohumları bir adım kayık kullanır; adım tohumu türetilir (15.26a).
+
+### 15.26a
+
+- *Emsal:* [kanıtlı: sayfalar 2026-11-25 18:37'de açıldı]
+  - NumPy 2.5 (numpy.org, "Parallel random number generation") `worker_seed = root_seed + worker_id` yazımını "# UNSAFE! Do not do this!" diye gösterir; listeyle tohumlamayı önerir: "Combining the worker ID and the root seed as a list of integers eliminates this risk."
+  - JAX `jax.random.fold_in(key, data)`: "Folds in data to a PRNG key to form a new PRNG key."
+  - TensorFlow 2.21 `tf.random.fold_in(seed, data, alg='auto_select')`: "Folds in data to an RNG seed to form a new RNG seed."
+  - Go 1.27.4 `math/rand`: "Seed values that have the same remainder when divided by 2³¹-1 generate the same pseudo-random sequence."
+- *Gerekçe:* ad JAX ve TensorFlow'un sözcüğüdür, ajan onu bilir. Sonuç sıradan bir `TR_Int`'tir: yeni bir anahtar tipi, demet tohum ya da üreteç nesnesi `TR_seed:`'i alan her imzayı değiştirirdi. Sabit tohumda `i`'ye göre bire birdir: bir döngünün adımları çakışmaz. Yöntem tek: `TR_generate`, kitaplığın katmanları ve kullanıcının kendi döngüsü aynı fonksiyonu yazar.
+- *Gerekçe (kitaplık eksi numara alır):* kullanıcı da aynı `s`'den türetir. Kitaplık da 0'dan başlasaydı kullanıcının `TR_fold_in(s, 2)` tohumlu katmanı, `s` tohumlu hazır dikkatin değer katmanıyla bit bit aynı başlardı (DENETİM 1016 Ş1).
 
 ### 15.27
 

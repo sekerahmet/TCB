@@ -70,5 +70,5 @@ TR_no_grad {
 TR_print("tek_adım:", sabit_çıktı, "| aynı mı:", sabit_çıktı == hazır)
 
 # --- Kendin dene ---
-# 1. Açgözlü seçimi örnekle(logit, sıcaklık: 0.8, en_iyi_k: 5, tohum: i) ile değiştir ve sonuçları karşılaştır.
+# 1. Açgözlü seçimi örnekle(logit, sıcaklık: 0.8, en_iyi_k: 5, tohum: tohum_türet(3, i)) ile değiştir ve sonuçları karşılaştır.
 # 2. eos kuralını ekle: seçilen parça 80 ise döngüyü çık ile bitir.
