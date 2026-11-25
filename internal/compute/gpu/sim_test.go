@@ -141,6 +141,48 @@ func TestSimRejectsInvalidEntryName(t *testing.T) {
 	}
 }
 
+// TestSimSharedMemOptInLimit devingen paylaşımlı belleğin sınırı işlevin iznidir (sürücünün
+// CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES'ı gibi; 48 KB'ın altında da): iznin kendisi koşar, bir bayt üstü
+// reddedilir; launchShared izni aşan isteği sürücüye vermeden iç hatayla durdurur.
+func TestSimSharedMemOptInLimit(t *testing.T) {
+	g := newSimBackend(1 << 20)
+	g.enter()
+	defer g.exit()
+	t.Cleanup(func() { // sınamanın çekirdeği PTX özetine girmez
+		ptxSeen.Lock()
+		delete(ptxSeen.m, "izin_sinama")
+		ptxSeen.Unlock()
+	})
+	c := g.takeKernel("izin_sinama", func() *emitter {
+		k := newEmitter("izin_sinama")
+		k.dynamic = true
+		x := k.written("x")
+		sm := k.shared("sm", 64)
+		k.e("st.shared.u32", mem(sm, 0), k.whole(7))
+		v := k.r()
+		k.e("ld.shared.u32", v, mem(sm, 0))
+		k.e("st.global.u32", mem(x, 0), v)
+		return k
+	})
+	d := g.allocate(4, tensor.Float32, true)
+	launch := func(bytes uint32) result {
+		return g.sr.launch(c.fn, [3]uint32{1, 1, 1}, [3]uint32{1, 1, 1}, bytes, g.param().write(d, 0).parts())
+	}
+	for bytes, want := range map[uint32]result{16: succeeded, 64: succeeded, 65: errInvalidValue, staticSharedMemLimit: errInvalidValue} {
+		got := launch(bytes)
+		g.prm.open = false
+		if got != want {
+			t.Errorf("%d bayt: %v, beklenen %v (izin %d)", bytes, got, want, c.sharedMem)
+		}
+	}
+	err := testkit.PanicError(func() {
+		g.launchShared(c, [3]uint32{1, 1, 1}, [3]uint32{1, 1, 1}, 65, g.param().write(d, 0))
+	})
+	if err == nil || !strings.Contains(err.Error(), "its permit is 64") {
+		t.Errorf("izni aşan başlatma: %v", err)
+	}
+}
+
 // TestParamDeclChecked yazan çekirdeğe "oku" ile verilen depolamanın iç hata
 // olduğunu denetler (gölge silinmesinin unutulamaması bunun üzerine kuruludur).
 func TestParamDeclChecked(t *testing.T) {
@@ -232,9 +274,9 @@ func TestUnsupported(t *testing.T) {
 
 // TestNoDriverGraceful NVIDIA sürücüsü olmayan makinede (Linux'ta dlopen, Windows'ta
 // DLL yükleme hatası) paketin paniklemeden "GPU yok" dediğini ve tensörlerin CPU'da
-// kaldığını denetler. Gerçek GPU'lu makinede ve benzetim istenince (TR_GPU_SIM=1: benzetim
-// tek GPU sayılır, sürücüsüz durum değildir; GPU'lu makinede PTX özetinin koşusu bunu ister)
-// atlanır.
+// kaldığını denetler. Gerçek GPU'lu makinede atlanır; benzetim istenince de (TR_GPU_SIM=1) atlanır:
+// kart görünmüyorsa benzetim tek GPU sayılır, sürücüsüz durum değildir. GPU'lu makinede PTX özetinin
+// koşusu kartı gizler (CUDA_VISIBLE_DEVICES=), benzetim istemez; kart görünürken istek etkisizdir.
 func TestNoDriverGraceful(t *testing.T) {
 	if !inSim() {
 		t.Skip("gerçek GPU var")

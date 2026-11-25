@@ -274,6 +274,42 @@ func TestQuantMatMulEmptySum(t *testing.T) {
 	}
 }
 
+// TestQuantActOverwritesOutput nicemli etkinleştirmenin çarpımı çıktıyı ezer (ActQuantGemmer): kirli tamponla tek ve
+// çok satırda, boş toplamda (K = 0) da; 16 bitlik çıktıda da.
+func TestQuantActOverwritesOutput(t *testing.T) {
+	rng := rand.New(rand.NewSource(16))
+	var be cpuBackend
+	for _, dt := range []DType{Q4, Q4K, Q6K} {
+		for _, c := range [][3]int{{1, 5, 256}, {2, 5, 256}, {1, 3, 0}, {2, 3, 0}} {
+			M, N, K := c[0], c[1], c[2]
+			elems, _ := dt.QuantBlock()
+			w := quantStorage(be, dt, randomQuant(dt, 7, N*K/elems), N*K)
+			x := make([]float32, M*K)
+			for i := range x {
+				x[i] = float32(rng.NormFloat64())
+			}
+			av := View{S: be.FromHost(x, Float32), Shape: []int{M, K}, Strides: []int{K, 1}}
+			bv := View{S: w, Shape: []int{K, N}, Strides: []int{1, K}}
+			for _, ct := range []DType{Float32, BFloat16} {
+				var runs [][]float32
+				for _, dirt := range []float32{0, 7, float32(math.NaN())} {
+					out := be.Alloc(M*N, ct)
+					be.Fill(out, dirt)
+					be.GemmActQuant(M, N, K, av, bv, out)
+					runs = append(runs, be.ToHost(View{S: out, Shape: []int{M * N}, Strides: []int{1}}))
+				}
+				for i, r := range runs {
+					for n := range r {
+						if K == 0 && math.Float32bits(r[n]) != 0 || math.Float32bits(r[n]) != math.Float32bits(runs[0][n]) {
+							t.Errorf("%s %s %dx%dx%d kirli %d, öğe %d: %v, temiz %v", dt.Name(), ct.Name(), M, N, K, i, n, r[n], runs[0][n])
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestQuantMatMulRefuses(t *testing.T) {
 	w := func() *Tensor { return ZerosOf(Q8, 2, 64) }
 	x := func() *Tensor { return New(make([]float32, 64), 1, 64) }

@@ -24,6 +24,9 @@ dur() { olcu "$AD: $*, ölçü yok"; exit 2; }
 [ -n "${OLCU_TABAN:-}" ] || dur "OLCU_TABAN verilmedi"
 mkdir -p "$IS/bin" "$KAYIT"
 cd "$REPO" || dur "depo yok"
+# Kart Go'dan önce denetlenir: yanlış makinede hiçbir şey kurulmaz ve silinmez.
+KART=$(nvidia-smi --query-gpu=name,driver_version,memory.total,power.limit --format=csv,noheader | head -1)
+case $KART in *L4*) ;; *) dur "kart L4 değil ($KART)";; esac
 export GOCACHE=${GOCACHE:-/root/.cache/go-build} GOPATH=${GOPATH:-/root/go} PYTHONIOENCODING=utf-8
 
 GO=$(sed -n 's/^toolchain //p' go.mod | tr -d '\r')
@@ -32,8 +35,6 @@ go version 2>/dev/null | grep -q "$GO " || {
   rm -rf /usr/local/go
   wget -q "https://go.dev/dl/$GO.linux-amd64.tar.gz" -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz || dur "Go kurulmadı"
 }
-KART=$(nvidia-smi --query-gpu=name,driver_version,memory.total,power.limit --format=csv,noheader | head -1)
-case $KART in *L4*) ;; *) dur "kart L4 değil ($KART)";; esac
 DEGISIK=$(git status --porcelain --untracked-files=no | grep -c .)
 [ "$DEGISIK" = 0 ] || { [ "${OLCU_DENEME:-}" = 1 ] && olcu "UYARI: ağaçta $DEGISIK değişik dosya (deneme)"; } ||
   dur "ağaçta $DEGISIK değişik dosya: satırın Commit'i ölçülen kodu göstermez"

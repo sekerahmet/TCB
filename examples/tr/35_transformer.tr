@@ -104,7 +104,7 @@ TR_print("girdi  : \(deneme[0])")
 TR_print("tahmin : \(tahminler)")
 
 # dikkat'in iki ek ayarı: pencere: her sorguyu son w konumla sınırlar (yerel dikkat);
-# maske: 0/1 tensörüyle hangi konumlara bakılacağını siz seçersiniz (nedensel: yanlış ile birlikte).
+# maske: TR_Tensor[TR_Bool] ile hangi konumlara bakılacağını siz seçersiniz (nedensel: yanlış ile birlikte).
 TR_var sorgu = TR_randn([6, 4], TR_seed: 2)
 TR_print("pencere:", TR_attention(sorgu, sorgu, sorgu, TR_window: 2).TR_shape)
 TR_var sorgu2 = TR_randn([3, 4], TR_seed: 1)

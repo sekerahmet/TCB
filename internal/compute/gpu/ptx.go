@@ -55,7 +55,7 @@ type emitter struct {
 	row       []string
 	counter   [regClassCount]int
 	labelNo   int
-	// target PTX hedef mimarisi (52: taban sm_52; 80: cp.async kullanan çekirdekler).
+	// target PTX hedef mimarisi (52: taban sm_52; 61: dp4a, 80: cp.async ve mma.sync kullanan çekirdekler).
 	target int
 	// dynamic doğruysa paylaşımlı diziler tek bir devingen dizinin (.extern .shared dsm)
 	// parçalarıdır (48 KB üstü; başlatmada paylasimBayt kadar açılır). paylasimBayt bütün

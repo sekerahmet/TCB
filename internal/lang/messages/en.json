@@ -615,7 +615,6 @@
 "H3033": "no backend is registered for the device {dev}",
 "H3034": "the gradient dtype must be floating point, {dtype} given",
 "H3035": "{n} {n, plural, one {element does} other {elements do}} not fit shape {shape}",
-"H3036": "Cast can only be to floating-point dtypes, {dtype} given",
 "H3037": "Bits16 is only for bfloat16/float16, {dtype} given",
 "H3038": "FromBits16 is only for bfloat16/float16, {dtype} given",
 "H3039": "shapes {a} and {b} cannot be broadcast",

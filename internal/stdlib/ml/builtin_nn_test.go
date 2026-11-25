@@ -60,3 +60,22 @@ TR_embedding_lookup(TR_ones([4, 2]), TR_Tensor([0.0, 2.5, 1.0, 9.0]))`)
 		}
 	}
 }
+
+// TestCrossEntropyFloat64Logits float64 logit olasılık hedefinin hassasiyetinden bağımsız H6960'tır (15.48); hedef float64
+// ise de öyledir: hiçbir yol iç adlı hata vermez (S-711).
+func TestCrossEntropyFloat64Logits(t *testing.T) {
+	const head = `TR_var d = TR_Tensor([[1.0, 2.0]], TR_dtype: "float64")
+TR_var f = TR_Tensor([[1.0, 2.0]])
+TR_var b = TR_Tensor([[1.0, 2.0]], TR_dtype: "bf16")
+`
+	for _, call := range []string{"d, f", "d, b", "d, d", "f, d", "b, d", "d, TR_Tensor([1])"} {
+		if _, err := run(t, head+"TR_cross_entropy("+call+")"); !messages.Has(err, messages.H6960) {
+			t.Errorf("TR_cross_entropy(%s): %v, beklenen H6960", call, err)
+		}
+	}
+	for _, call := range []string{"f, b", "b, f", "b, b"} {
+		if _, err := run(t, head+"TR_cross_entropy("+call+")"); err != nil {
+			t.Errorf("TR_cross_entropy(%s): %v", call, err)
+		}
+	}
+}

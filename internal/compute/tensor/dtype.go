@@ -87,7 +87,8 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 		return t
 	}
 	if !dt.IsFloat() {
-		panic(messages.New(messages.H3036, dt))
+		// İç hata: hedef hesap ondalığıdır, öbür hassasiyeti çağıran denetler (H6960; Convert).
+		panic(messages.Internal("cast target " + dt.Name() + " is not a compute float dtype"))
 	}
 	if t.dtyp.IsQuantized() {
 		panic(typedComputeError(t.dtyp)) // sessizce açılmaz (15.53): tek yol Open'dır

@@ -10,8 +10,9 @@ import "fmt"
 // int8'e nicemlenir (quantizeQ8Go'nun formülü), nokta çarpımı tamsayıdadır (mma.sync s8, dp4a ya da dört tamsayı
 // çarpma-toplama: tamsayıda kesin, sırası önemsiz), blok başına float32 formülü CPU'daki sırayla tek iş
 // parçacığında döner (çarpma ve toplama ayrı yuvarlanır, .rn). Her çıktı öğesinin blokları sırayla toplanır;
-// K bölünmez. Yol yalnız kartın yeteneğinden ve M'den seçilir, bitleri değiştirmez (backend_quant_act.go).
-// Sonlu olmayan değer taşıyan satır CPU'daki gibi float yoluyla çarpılır (kernel_quant_act_float.go).
+// K bölünmez. Yol yalnız kartın yeteneğinden, M'den ve K'dan seçilir, bitleri değiştirmez (backend_quant_act.go).
+// Tek satırın çekirdeği satırı kendi nicemler (kernel_quant_act_gemv.go). Sonlu olmayan değer taşıyan satır CPU'daki
+// gibi float yoluyla çarpılır (kernel_quant_act_float.go).
 
 const (
 	actBlk     = 256 // etkinleştirmenin bloğu (Q4_K, Q6_K)
@@ -20,7 +21,7 @@ const (
 	actWarpsMV = 8   // tek satırlı çarpımda blok başına çıktı
 )
 
-// quantActQuantizeKernel a'nın satırlarını blk'lık (32: q4, 256: q4_k, q6_k) bloklarla nicemler: q int8 kodlar
+// quantActQuantizeKernel (M > 1) a'nın satırlarını blk'lık (32: q4, 256: q4_k, q6_k) bloklarla nicemler: q int8 kodlar
 // [M, K], d ölçekler [M, K/blk], bs 16'lık alt blokların kod toplamları (int32) [M, K/16]; fin[m] satırda sonlu
 // olmayan değer varsa 1 olur (önceden sıfır; çarpım o satırı float yoluyla yapar, quantGemmQ8 gibi). Izgara
 // (⌈K/256⌉, M), blok bir warp; şerit 8 öğe alır, blk/8 şeritlik öbek bir bloktur.

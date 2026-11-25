@@ -18,7 +18,7 @@ type kernel struct {
 	ad        string
 	fn        uintptr
 	signature []paramType
-	// sharedMem devingen paylaşımlı bellek (bayt; 0: statik diziler).
+	// sharedMem devingen paylaşımlı belleğin izni ve öntanımlı boyu (bayt; 0: statik diziler).
 	sharedMem uint32
 }
 
@@ -228,7 +228,16 @@ func (g *backend) param() *paramWriter {
 // launch çekirdeği verilen ızgara ve blokla sıraya ekler. Parametreler imzayla
 // denetlenir (sayı ve bayt boyu).
 func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
+	g.launchShared(c, grid, block, c.sharedMem, p)
+}
+
+// launchShared launch'ın, devingen paylaşımlı belleği başlatmada seçilen biçimidir: sharedMem çekirdeğin iznini
+// (c.sharedMem) aşamaz.
+func (g *backend) launchShared(c *kernel, grid, block [3]uint32, sharedMem uint32, p *paramWriter) {
 	p.open = false
+	if sharedMem > c.sharedMem {
+		panic(internalf("kernel %s asked for %d bytes of shared memory, its permit is %d", c.ad, sharedMem, c.sharedMem))
+	}
 	part := p.parts()
 	if len(part) != len(c.signature) {
 		panic(internalf("kernel %s given %d parameters, expected %d", c.ad, len(part), len(c.signature)))
@@ -252,7 +261,7 @@ func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
 	}
 	g.lastKernel = c.ad
 	ev := g.measureStart()
-	if s := g.sr.launch(c.fn, grid, block, c.sharedMem, part); s != succeeded {
+	if s := g.sr.launch(c.fn, grid, block, sharedMem, part); s != succeeded {
 		g.try_("cuLaunchKernel("+c.ad+")", s) // metin yalnızca hatada kurulur
 	}
 	g.measureEnd(c.ad, ev)

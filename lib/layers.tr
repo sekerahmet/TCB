@@ -417,7 +417,7 @@ TR_func TR_layer_windows(TR_layout: TR_String, TR_windows: TR_List[TR_Int]) -> T
 # kırp(n) son parçaları geri alır (ör. reddedilen taslak); sabitte yazılı veri kalır ama okunmaz.
 # Cihaz adımı (yalnızca sabit; GPT.tek_adım, tekrar_oynat ile kaydedilen üretim adımı):
 # cihaz_adımı(konum) ile konum cihazdaki bir tensör olur ([1]); ekle yeni anahtarları o konuma
-# yazar (yerine_yaz) ve bütün tamponu verir, maske(pencere) bakılacak konumları seçer (0/1:
+# yazar (yerine_yaz) ve bütün tamponu verir, maske(pencere) bakılacak konumları seçer (TR_Bool:
 # konum ve öncesi, pencere varsa son pencere kadarı). Kaydedilen adım konakta durum
 # değiştirmez: konum sayacını çağıran ilerletir. Sabit boylu tampon ve cihazdaki konum
 # transformers'ın sabit önbelleğiyle (cache_position) aynı yoldur.
