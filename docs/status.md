@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlik ve türle başlar: kimlik (S-412), tür (Yapılacaklar ya da Mevcut durum). Madde mesajda, devirde ve denetimde kimlikle anılır, satır numarasıyla anılmaz. Silinen maddenin kimliği `internal/devtools/testrunner/testdata/status_deleted_ids.txt`'ye yazılır ve yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar. Madde alt satırlarıyla en çok 500 harftir. Kimlikli ölçünün sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, saat, tarih ve kanıt etiketinin dışında DENETİM numarası yazılmaz, karar commit mesajında durur [test: `TestStatusItemsFollowTheFormat`]. Türden sonra ayraçta sınıf, öncelik, varsa dilim ve sahip gelir; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı.
 
-**Sıradaki kimlik:** S-712.
+**Sıradaki kimlik:** S-713.
 
 ## Önem ve öncelik
 
@@ -1202,7 +1202,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ### Ayrıştırıcının uzun zinciri
 
-- **S-607 Yapılacaklar (C, Ö3; sahip dil çekirdeği):** ayrıştırıcı uzun üye ya da indeks zincirinde karesel: `parseInfixChain` her adımda zincirin başından o ana kadarki metni `spanToken` ile yeniden kopyalıyor [kanıtlı: `internal/lang/parser/expressions.go:307`, `:312`; `internal/lang/lexer/interpolation.go:119`]. Sıradaki: `spanToken` konumu tutsun; büyüme testi `testkit.ScalesLinearly` ile.
+- **S-607 Yapılacaklar (C, Ö3; sahip dil çekirdeği):** ayrıştırıcı uzun üye ya da indeks zincirinde karesel: `parseInfixChain` her adımda zincirin metnini `spanToken` ile baştan kopyalıyor [kanıtlı: `internal/lang/parser/expressions.go:307`, `:312`; `internal/lang/lexer/interpolation.go:119`]. `TestNestingDepthLimit`'in süresi burada [ölçüldü: CPU profili, `18876280`]. Sıradaki: `spanToken` konumu tutsun; büyüme testi `testkit.ScalesLinearly` ile; o testin `[` girdisi sınırın üstüne insin.
 
 ### Komut adı: `trlang`
 
@@ -1227,6 +1227,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 - **S-689 Yapılacaklar (C, Ö2; sahip CODEGRAPH UZMANI, kipin sahibi):** `TestCommitModeStopsTheLayoutWhenCut`'in `yakın koşarken` alt testi yükte "arka plandaki sahte go durdurulmalıydı" ile düşüyor [ölçüldü: `dd775178`, `9f9d0617`]; CI'da süre alt sınırın altında (`c1e39b3e`), dizüstünde sınır içindeyken de sağ kaldı (`07fb7fc1`). Sabit bekleme (`internal/full_check_commit_layout_test.go:121`) ikinciyi açıklamaz [hipotez]. Sıradaki: süre yükten bağımsızlaşsın, `stop_tree` Windows'ta sınansın.
 - **S-690 Yapılacaklar (C, Ö2; sahip veri kolu):** `TestSparseIDMemory` zorlama işinde bir kez düştü (`internal/compute/tokenize/id_table_test.go:29`), tohum 1794830453034927885 [ölçüldü: zorlama işi 43862343352, `be1aea19`]; sonraki hafta düşmedi. Sıradaki: tohumla yerelde yeniden üretmek.
 - **S-691 Yapılacaklar (C, Ö2; sahip T1, tensör ve GPU kolu):** `TestPeakLiveBySite` zorlama işinde GPU'suz Linux'ta iki turda da düştü (`internal/compute/gpu/profile_test.go:155`), tohum 1794225754371765857 [ölçüldü: zorlama işi 42613624406, `3a58a94d`]; sonraki iki hafta düşmedi. Sıradaki: tohumla yerelde yeniden üretmek.
+- **S-712 Yapılacaklar (C, Ö2; sahip Motor):** `TestDownloadRedirectChainCap` tam denetimde bir kez düştü: konak ikinci sunucunun değil ilkinin; yüksüz ve yükte yinelemede geçti [ölçüldü: `18876280`]. Tavan ilk istekte doldu; S-675'ten ayrı [hesap]. Benzeri: `TestDownloadTimeoutNamesTheFailingHost`, `TestDownloadCapSparesTheBody`, `TestClientConnectTimeIsShared` [kanıtlı: internal/stdlib/download/fetch_test.go:280, :321, client_test.go:296]. Sıradaki: dört test süre payı yerine olayla sınansın.
 - **S-620 Yapılacaklar (E, Ö3):** hata ayıklayıcıda (F5) `TR_input()` çalışmıyor, H8102 veriyor [kanıtlı: internal/devtools/debugger/dap.go:287].
 - **S-621 Yapılacaklar (C, Ö2; ölçülmedi):** eğitimde adım süresi artıyor, sızıntı olabilir; sızıntıysa uzun eğitim kesilir [hipotez; `docs/roadmap.md:243`]. Sıradaki: önce ölçülür, eğitim hızı adaylarıyla birlikte.
 
