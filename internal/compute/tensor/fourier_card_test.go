@@ -137,6 +137,62 @@ func TestInverseFourierCardPathMatchesCPU(t *testing.T) {
 	}
 }
 
+// Kural (23.7, 23.8): sıfırıncı ve çift n'de son kutunun sanal kısmı kartın yolunda da sonuca girmez: NaN ve
+// sonsuz olsa da sonuç temiz izgenin bitleridir, o kutuların türevi 0'dır (gelen gradyan NaN olsa da).
+func TestInverseFourierCardPathDropsUnusedBins(t *testing.T) {
+	nan, inf := float32(math.NaN()), float32(math.Inf(1))
+	for _, n := range []int{1, 2, 3, 5, 8, 13, 16} {
+		F, frames := n/2+1, 3
+		o := IstftOptions{N: n, Hop: 1, Center: true, Length: 2 + n%2}
+		rd, clean := noise(F*frames), noise(F*frames + 7)[7:]
+		dirty := slices.Clone(clean)
+		for f := range frames {
+			dirty[f] = []float32{nan, inf, -inf}[f]
+			if n%2 == 0 {
+				dirty[(F-1)*frames+f] = []float32{-inf, nan, inf}[f]
+			}
+		}
+		for _, back := range []float32{1, nan} {
+			run := func(id []float32) (*Tensor, []*Tensor) {
+				re, im := New(rd, F, frames).SetRequiresGrad(true), New(id, F, frames).SetRequiresGrad(true)
+				w := New(slices.Repeat([]float32{1}, n), n)
+				y := istftOnCard(re, im, w, o, testCall)
+				r2, i2 := New(transposed(rd, F, frames), frames, F).SetRequiresGrad(true), New(transposed(id, F, frames), frames, F).SetRequiresGrad(true)
+				y2 := irfftOnCard(r2, i2, n, testTrig)
+				Add(y.MulScalar(back).SumAll(), y2.MulScalar(back).SumAll()).Backward()
+				return Concat([]*Tensor{y.Detach().Reshape(o.Length), y2.Detach().Reshape(frames * n)}, 0), []*Tensor{im, i2}
+			}
+			want, _ := run(clean)
+			got, ims := run(dirty)
+			if !slices.Equal(floatBits(got), floatBits(want)) {
+				t.Fatalf("n=%d: NaN ve sonsuz sanal kutular sonuca girdi: %v, beklenen %v", n, got.Data(), want.Data())
+			}
+			gi, g2 := ims[0].Grad().Data(), ims[1].Grad().Data()
+			for f := range frames {
+				for _, v := range []float32{gi[f], gi[(F-1)*frames+f], g2[f*F], g2[f*F+F-1]} {
+					if v != 0 && n%2 == 0 {
+						t.Fatalf("n=%d: kullanılmayan kutunun türevi %v, beklenen 0", n, v)
+					}
+				}
+				if gi[f] != 0 || g2[f*F] != 0 {
+					t.Fatalf("n=%d: sıfırıncı kutunun türevi %v, %v, beklenen 0", n, gi[f], g2[f*F])
+				}
+			}
+		}
+	}
+}
+
+// transposed [a, b] verinin [b, a] devriğidir.
+func transposed(d []float32, a, b int) []float32 {
+	out := make([]float32, len(d))
+	for i := range a {
+		for j := range b {
+			out[j*a+i] = d[i*b+j]
+		}
+	}
+	return out
+}
+
 // numel şeklin öğe sayısıdır.
 func numel(shape []int) int {
 	n := 1

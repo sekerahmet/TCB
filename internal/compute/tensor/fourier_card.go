@@ -77,22 +77,37 @@ func fourierBasis(n int, dev Device, tr Trig) *Tensor {
 	})
 }
 
-// inverseFourierBasis ters dönüşümün tabanıdır: satır j gerçek kutunun, F+j sanal kutunun n örneğe
-// katkısı; sıfırıncı ve çift n'de son kutuda 1/n (sanalı 0), öbürlerinde 2/n ölçeklidir.
+// innerBins sanal kısmı sonuca giren kutulardır: 1, …, (n−1)/2. Sıfırıncı ve çift n'de son kutununki girmez
+// (23.7).
+func innerBins(n int) int { return (n - 1) / 2 }
+
+// inverseFourierBasis ters dönüşümün tabanıdır: ilk F = n/2+1 satır gerçek kutuların, sonraki innerBins satır
+// iç kutuların sanal kısmının n örneğe katkısı; sıfırıncı ve çift n'de son kutu 1/n, öbürleri 2/n ölçeklidir.
 func inverseFourierBasis(n int, dev Device, tr Trig) *Tensor {
-	F := n/2 + 1
-	return inverseFourierBases.get(basisKey{n, dev}, 2*F, n, func(data []float32) {
+	F, inner := n/2+1, innerBins(n)
+	return inverseFourierBases.get(basisKey{n, dev}, F+inner, n, func(data []float32) {
 		for j := range F {
-			re, im := 2/float64(n), 2/float64(n)
-			if j == 0 || 2*j == n {
-				re, im = 1/float64(n), 0
+			edge := j == 0 || 2*j == n
+			scale := 2 / float64(n)
+			if edge {
+				scale = 1 / float64(n)
 			}
 			for k := range n {
 				c, s := unitRoot(tr, j*k%n, n)
-				data[j*n+k], data[(F+j)*n+k] = float32(re*c), float32(im*s)
+				data[j*n+k] = float32(scale * c)
+				if !edge {
+					data[(F+j-1)*n+k] = float32(scale * s)
+				}
 			}
 		}
 	})
+}
+
+// inverseFourierOnCard [satır, F] kutularından [satır, n] sinyali kurar. Sonuca girmeyen sanal kutular
+// çarpımdan önce dilimle atılır: tabandaki 0 onların NaN'ını ve sonsuzunu silmezdi (0 · NaN = NaN). Türevleri
+// dilimin türevinden 0'dır.
+func inverseFourierOnCard(re, im *Tensor, n int, tr Trig) *Tensor {
+	return MatMul(Concat([]*Tensor{re, im.Slice(1, 1, 1+innerBins(n))}, 1), inverseFourierBasis(n, re.Device(), tr))
 }
 
 // onCard girdinin kartta dönüşeceğini söyler: CPU'da yanlış; kartta float64 yoktur (H7076, CPU'ya
@@ -137,11 +152,11 @@ func rfftOnCard(t *Tensor, n int, tr Trig) (*Tensor, *Tensor) {
 	return re.Reshape(shape...), im.Reshape(shape...)
 }
 
-// irfftOnCard Irfft'in kart yoludur: [satır, 2F] @ ters taban.
+// irfftOnCard Irfft'in kart yoludur.
 func irfftOnCard(re, im *Tensor, n int, tr Trig) *Tensor {
 	F, rows := re.shape[len(re.shape)-1], rowsOf(re)
 	flat := func(t *Tensor) *Tensor { return t.Cast(Float32).Contiguous().Reshape(rows, F) }
-	y := MatMul(Concat([]*Tensor{flat(re), flat(im)}, 1), inverseFourierBasis(n, re.Device(), tr))
+	y := inverseFourierOnCard(flat(re), flat(im), n, tr)
 	return y.Reshape(append(copyInts(re.shape[:len(re.shape)-1]), n)...)
 }
 
@@ -220,7 +235,7 @@ func istftOnCard(re, im, window *Tensor, o IstftOptions, c FourierCall) *Tensor 
 	flat := func(t *Tensor) *Tensor {
 		return t.Cast(Float32).Contiguous().Reshape(rows, F, frames).Permute(0, 2, 1).Contiguous().Reshape(rows*frames, F)
 	}
-	y := MatMul(Concat([]*Tensor{flat(re), flat(im)}, 1), inverseFourierBasis(o.N, dev, c.Trig)).Reshape(rows, frames, o.N)
+	y := inverseFourierOnCard(flat(re), flat(im), o.N, c.Trig).Reshape(rows, frames, o.N)
 	idx, slots := overlapIndex(frames, o)
 	sum := overlapAdd(Mul(y, w), idx, slots, o)
 	squares := Add(ZerosOn(dev, 1, frames, o.N), Mul(w, w))

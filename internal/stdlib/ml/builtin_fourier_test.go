@@ -149,10 +149,18 @@ func TestIstftRunsOnTheCard(t *testing.T) {
 TR_var c = geri("cpu")
 TR_var k = geri("gpu")
 TR_print(k[0].TR_device, k[1].TR_device, TR_all_close(c[2], k[0].TR_to_device("cpu"), TR_atol: 1e-4), TR_all_close(c[1], k[1].TR_to_device("cpu"), TR_atol: 1e-3))
-TR_print(TR_istft(TR_zeros([0, 5, 2]).TR_to_device("gpu"), TR_zeros([0, 5, 2]).TR_to_device("gpu"), 8, TR_hop_length: 2, TR_window: TR_ones([8]).TR_to_device("gpu")).TR_shape)`)
-	if want := "gpu:0 gpu:0 true true\n[0, 2]\n"; out != want {
+TR_print(TR_istft(TR_zeros([0, 5, 2]).TR_to_device("gpu"), TR_zeros([0, 5, 2]).TR_to_device("gpu"), 8, TR_hop_length: 2, TR_window: TR_ones([8]).TR_to_device("gpu")).TR_shape)
+TR_print(TR_irfft(TR_zeros([0, 3]).TR_to_device("gpu"), TR_zeros([0, 3]).TR_to_device("gpu"), TR_n: 5).TR_shape)
+TR_var gerçek = TR_Tensor([1.0, -0.5, 0.25]).TR_to_device("gpu")
+TR_var temiz = TR_irfft(gerçek, TR_Tensor([0.0, 0.75, 0.0]).TR_to_device("gpu"), TR_n: 4)
+TR_var kirli = TR_irfft(gerçek, TR_Tensor([TR_Float("nan"), 0.75, TR_Float("inf")]).TR_to_device("gpu"), TR_n: 4)
+TR_print(TR_equal(temiz, kirli))`)
+	if want := "gpu:0 gpu:0 true true\n[0, 2]\n[0, 5]\ntrue\n"; out != want {
 		t.Fatalf("kartta ters STFT: %q, beklenen %q", out, want)
 	}
+	expectCodes(t, []codeCase{
+		{`TR_istft(TR_ones([5, 4]).TR_to_device("gpu"), TR_ones([5, 4]).TR_to_device("gpu"), 8, TR_hop_length: 4, TR_window: TR_hann_window(8, TR_periodic: TR_true).TR_to_device("gpu"), TR_center: TR_false)`, messages.H7921},
+	})
 }
 
 // Kural (15.45, `15_tensorler.md:559`, `:564`): `TR_replay`'in ilk çağrısı `f`'yi doğrudan

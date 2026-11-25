@@ -123,6 +123,96 @@ func TestInverseFourierOnTheCardMatchesCPU(t *testing.T) {
 			return tensor.Istft(re, im, win, c.o, fourierCall), []*tensor.Tensor{re, im, win}
 		})
 	}
+	// Kural (23.7): sonuca girmeyen sanal kutu NaN ve sonsuzken de girmez, türevi 0'dır.
+	for _, n := range []int{1, 2, 5, 8} {
+		checkUnusedBins(t, rng, n)
+	}
+}
+
+// checkUnusedBins kartta sıfırıncı ve çift n'de son kutunun sanal kısmı NaN ve sonsuzken irfft ve istft'in
+// temiz izgenin bitlerini, o kutuların türevinin 0 verdiğini sınar.
+func checkUnusedBins(t *testing.T, rng *rand.Rand, n int) {
+	t.Helper()
+	F := n/2 + 1
+	rd, clean := random(rng, F*F, 1), random(rng, F*F, 1) // irfft'te [F, kutu], istft'te [kutu, F çerçeve]
+	run := func(dirtyRows, dirtyCols []float32) (out [2][]float32, grads [2][]float32) {
+		_, _, length := tensor.IstftLengths(F, tensor.IstftOptions{N: n, Hop: 1, Center: true})
+		w := make([]float32, n)
+		for i := range w {
+			w[i] = 1
+		}
+		for k, id := range [2][]float32{dirtyRows, dirtyCols} {
+			re := tensor.NewOn(gpuDevice, rd, F, F)
+			im := tensor.NewOn(gpuDevice, id, F, F).SetRequiresGrad(true)
+			var y *tensor.Tensor
+			if k == 0 {
+				y = tensor.Irfft(re, im, n, fourierCall)
+			} else {
+				y = tensor.Istft(re, im, tensor.NewOn(gpuDevice, w, n), tensor.IstftOptions{N: n, Hop: 1, Center: true, Length: max(length, 1)}, fourierCall)
+			}
+			y.SumAll().Backward()
+			out[k], grads[k] = y.Data(), im.Grad().Data()
+		}
+		return out, grads
+	}
+	rows, cols := append([]float32(nil), clean...), append([]float32(nil), clean...)
+	bad := []float32{float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))}
+	unused := []int{0}
+	if n%2 == 0 {
+		unused = append(unused, F-1)
+	}
+	for k := range F {
+		for u, b := range unused {
+			rows[k*F+b], cols[b*F+k] = bad[(k+u)%3], bad[(k+u)%3]
+		}
+	}
+	want, _ := run(clean, clean)
+	got, grads := run(rows, cols)
+	for k, name := range []string{"irfft", "istft"} {
+		for i, v := range got[k] {
+			if math.Float32bits(v) != math.Float32bits(want[k][i]) {
+				t.Fatalf("%s n %d: NaN ve sonsuz sanal kutular sonuca girdi: %v, beklenen %v", name, n, got[k], want[k])
+			}
+		}
+		for j := range F {
+			for _, b := range unused {
+				if g := grads[k][[2]int{j*F + b, b*F + j}[k]]; g != 0 {
+					t.Fatalf("%s n %d: kullanılmayan kutunun türevi %v, beklenen 0", name, n, g)
+				}
+			}
+		}
+	}
+}
+
+// Kural (23.8): zarf denetimi kartta da vardır: pencere karelerinin toplamı sıfır olan örnek H7921'dir, sıfıra
+// bölme sonuca NaN ya da sonsuz yazmaz; toplu ekseni 0 olan girdi denetlenmez, boş sonuç verir (23.7, 23.8).
+func TestIstftRejectsZeroEnvelopeOnTheCard(t *testing.T) {
+	spec := func(shape ...int) *tensor.Tensor { return tensor.ZerosOn(gpuDevice, shape...) }
+	for _, c := range []struct {
+		window []float32
+		o      tensor.IstftOptions
+		ok     bool
+	}{
+		{[]float32{0, 1, 1, 0}, tensor.IstftOptions{N: 4, Hop: 4, Length: 8}, false},
+		{[]float32{1, 1, 1, 0}, tensor.IstftOptions{N: 4, Hop: 4, Length: 8}, false},
+		{[]float32{0, 1, 1, 0}, tensor.IstftOptions{N: 4, Hop: 2, Center: true, Length: 2}, true},
+	} {
+		w := tensor.NewOn(gpuDevice, c.window, 4)
+		err := testkit.PanicError(func() { tensor.Istft(spec(3, 2), spec(3, 2), w, c.o, fourierCall).Data() })
+		if c.ok != (err == nil) || !c.ok && !messages.Has(err, messages.H7921) {
+			t.Errorf("%v %+v: %v, beklenen H7921: %v", c.window, c.o, err, !c.ok)
+		}
+	}
+	for _, n := range []int{1, 2, 5} {
+		y := tensor.Irfft(spec(0, n/2+1), spec(0, n/2+1), n, fourierCall)
+		if s := y.Shape(); len(s) != 2 || s[0] != 0 || s[1] != n || y.Device() != gpuDevice {
+			t.Errorf("0 toplu irfft n %d: şekil %v, cihaz %v", n, s, y.Device())
+		}
+	}
+	w := tensor.NewOn(gpuDevice, []float32{0, 0, 0, 0}, 4)
+	if s := tensor.Istft(spec(0, 3, 2), spec(0, 3, 2), w, tensor.IstftOptions{N: 4, Hop: 2, Center: true, Length: 2}, fourierCall).Shape(); len(s) != 2 || s[0] != 0 || s[1] != 2 {
+		t.Errorf("0 toplu istft: şekil %v", s)
+	}
 }
 
 func TestFourierNeverCallsTheLibrary(t *testing.T) {

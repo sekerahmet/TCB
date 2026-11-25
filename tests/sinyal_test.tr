@@ -312,6 +312,11 @@ TR_test "23.7 sıfırıncı ve çift n'de son kutunun sanal kısmı sonuca girme
     TR_assert_equal(0.0, kirli.TR_grad[2].TR_item())
     TR_assert(kirli.TR_grad[1].TR_item() != 0.0)
     TR_assert_equal(TR_false, TR_equal(TR_irfft(g, temiz, TR_n: 5), TR_irfft(g, kirli, TR_n: 5))) # tek n'de son kutu girer
+    TR_var bozuk = TR_Tensor([TR_Float("nan"), 0.75, TR_Float("inf")])
+    TR_assert(TR_equal(TR_irfft(g, temiz, TR_n: 4), TR_irfft(g, bozuk, TR_n: 4)))
+    TR_var çerçeve = (t: TR_Tensor) => t.TR_reshape([3, 1])
+    TR_func kur(s: TR_Tensor) -> TR_Tensor { TR_return TR_istft(çerçeve(g), çerçeve(s), 4, TR_hop_length: 2, TR_window: TR_ones([4]), TR_center: TR_false) }
+    TR_assert(TR_equal(kur(temiz), kur(bozuk)))
 }
 
 TR_test "23.7 gerçek ve sanal türev izler" {
