@@ -717,7 +717,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-300 Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_attention`'ın `TR_bias:` argümanı (S-303 buna bağlı).
 - **S-302 Mevcut durum (sınır):** dikkat ölçeği bakış boyutundan farklı Gemma 3 27B (`query_pre_attn_scalar` 168) yüklenmez, H7177; GGUF'ta yalnız `block_count` 18, 26, 34, 48 ve bakış boyutu 256 yüklenir [test: `TestGemma3GGUFGates`].
 - **S-303 Yapılacaklar:** tamamen −∞ sapmalı satır 0 verir, CPU'da ve GPU'da (15.24; `TR_bias:` gelince, S-300). CPU'da tamamen maskeli `TR_Bool` satırı 0 veriyor [ölçüldü: trlang run, `ae1e8dcc`]; GPU ölçülmedi.
-- **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. Bölünmüş GPU yolunda kapandı (`TestAttentionSplitHiddenNaN`); kalan: iki GPU ileri yolu, GPU'nun geri yönü (dS·K), CPU (karo çarpımları bakılmayan satırı sıfırlamıyor [hipotez]). Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
+- **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. Bölünmüş GPU yolunda (ek maske girmez) kapandı (`TestAttentionSplitHiddenNaN`); kalan: iki GPU ileri yolu, GPU'nun geri yönü (dS·K), CPU (karo çarpımları bakılmayan satırı sıfırlamıyor [hipotez]). Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
 
 ### 15.27
 

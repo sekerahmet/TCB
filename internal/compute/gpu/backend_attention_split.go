@@ -11,9 +11,12 @@ import (
 const (
 	splitMaxD       = 128      // bakış boyu 32'nin katı ve en çok bu
 	splitMaxRows    = 256      // G·Tq: satır sınırı
-	splitMinKeys    = 16       // (a) az sorguda en az anahtar
-	splitLongKeys   = 256      // (b) uzun anahtarda en az anahtar
-	splitLongD      = 64       // (b) en küçük bakış boyu
+	splitFewKeys    = 16       // (a) R = 4'te en az görünen anahtar
+	splitMidKeys    = 64       // (a) R = 8'de, bakış boyu ≥ splitMidD iken
+	splitMidD       = 96       // (a) R = 8'in kısa anahtarında en küçük bakış boyu
+	splitLongKeys   = 256      // (b)'de, (a)'nın öbür R = 8'inde, R = 16'sında ve pencerede en az görünen anahtar
+	splitSlowKeys   = 1024     // (a) R = 16'da, bakış boyu < splitLongD iken
+	splitLongD      = 64       // (b)'de ve (a)'nın R = 16'sının 256 anahtarında en küçük bakış boyu
 	splitTempMax    = 64 << 20 // kısmi sonuçların geçici belleğinin sınırı (bayt)
 	splitGridDimMax = 65535    // ızgaranın y ve z boyunun sınırı
 	splitFewRows    = 4        // (a) Tq ≤ Br / splitFewRows
@@ -29,23 +32,57 @@ func (g *backend) splitFits(mask2 bool, p tensor.AttentionParams) (flashSplit, b
 		return flashSplit{}, false
 	}
 	a := pickSplit(p)
-	if splitTemp(a, p) > splitTempMax || g.attnPath == "" && !g.splitPreferred(p) {
+	if splitTemp(a, p) > splitTempMax || g.attnPath == "" && !g.splitPreferred(a, p) {
 		return flashSplit{}, false
 	}
 	checkAttnSize(p, true)
 	return a, true
 }
 
-// splitPreferred seçim kuralı: (a) sorgu satırları birleşik yolun karosunu çok boş bırakıyor, ya da
-// (b) anahtar uzun ve birleşik yolun karoları karta az blok veriyor. Br birleşik yolun karo satırıdır.
-func (g *backend) splitPreferred(p tensor.AttentionParams) bool {
+// splitPreferred seçim kuralı: (a) sorgu satırları birleşik yolun karosunu çok boş bırakıyor ve satırın
+// gördüğü anahtar, bloğun warp'larını dolduracak kadar (splitMinKeys), ya da (b) anahtar uzun ve birleşik
+// yolun karoları karta az blok veriyor. Br birleşik yolun karo satırıdır. Sabitler sm_80 sınıfı bir kartın şekil
+// tablosundandır (TestAttentionSplitSpeed); kart sınıfı başına ayrı eşik yoktur.
+func (g *backend) splitPreferred(a flashSplit, p tensor.AttentionParams) bool {
 	fused, ok := pickFlash(p.Dh, p.Dv, false, false, g.sr.sharedMemLimit())
 	if !ok || p.Tq*(p.H/p.Hkv) > splitMaxRows {
 		return false
 	}
-	few := p.Tq <= fused.Br/splitFewRows && p.Tk >= splitMinKeys
-	long := p.Dh >= splitLongD && p.Tk >= splitLongKeys && int(blocks(p.Tq, fused.Br))*p.H*p.Batch <= p.Dh/2
+	keys, window := splitVisibleKeys(p)
+	few := p.Tq <= fused.Br/splitFewRows && keys >= splitMinKeys(a, window)
+	long := p.Dh >= splitLongD && keys >= splitLongKeys && int(blocks(p.Tq, fused.Br))*p.H*p.Batch <= p.Dh/2
 	return few || long
+}
+
+// splitVisibleKeys bir satırın gördüğü en çok anahtar ve şeklin pencereli olup olmadığı: pencerede Tk değil
+// penceredir (iki çekirdek de yalnız görünen aralığı gezer, tensor.AttentionParams.Limits). Tk'yı kapsayan
+// pencere pencere değildir.
+func splitVisibleKeys(p tensor.AttentionParams) (keys int, window bool) {
+	switch {
+	case p.Window <= 0 || p.Window >= p.Tk:
+		return p.Tk, false
+	case p.Causal:
+		return p.Window, true
+	}
+	return min(p.Tk, 2*p.Window-1), true
+}
+
+// splitMinKeys (a) kolunun en az görünen anahtarı: warp KC anahtarı sırayla gezer, R büyüdükçe warp azalır ve
+// kısa anahtarda boş kalır. Pencereli şekil çok parçalıdır (Tk'dan), birleştirme başlatmasını kısa pencere ödemez.
+func splitMinKeys(a flashSplit, window bool) int {
+	n := splitLongKeys
+	switch {
+	case a.R == 4:
+		n = splitFewKeys
+	case a.R == 8 && a.D >= splitMidD:
+		n = splitMidKeys
+	case a.R == 16 && a.D < splitLongD:
+		n = splitSlowKeys
+	}
+	if window {
+		n = max(n, splitLongKeys)
+	}
+	return n
 }
 
 // pickSplit ayarlar: R, G·Tq satıra göre 4, 8 ya da 16; warp sayısı R ile ters (paylaşımlı bellek

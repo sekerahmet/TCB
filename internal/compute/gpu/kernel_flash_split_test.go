@@ -58,6 +58,7 @@ func splitCases() []splitCase {
 		{1, 4, 1, 1, 40, 64, all}, {1, 8, 2, 1, 80, 32, causal}, {1, 4, 1, 1, 1100, 32, causal},
 		{1, 2, 1, 2, 70, 96, causal}, {1, 2, 1, 4, 40, 128, causal}, {2, 2, 1, 4, 270, 32, causal},
 		{1, 7, 1, 2, 40, 64, all}, {1, 7, 1, 1, 270, 32, all}, {1, 2, 2, 8, 40, 64, tensor.AttentionOptions{Causal: true, Window: 9}},
+		{1, 2, 1, 4, 270, 64, causal}, {1, 2, 1, 4, 270, 96, causal},
 		{1, 2, 1, 16, 270, 32, causal}, {1, 2, 1, 40, 45, 32, causal}, {1, 2, 2, 1, 1, 32, all}, {1, 2, 1, 6, 3, 32, causal},
 	}
 }
@@ -282,6 +283,29 @@ func TestAttentionSplitEdges(t *testing.T) {
 				return splitAttention(t, "bolme", q, k, v, d.opt), []*tensor.Tensor{q, k, v}
 			})
 		}
+	}
+	// Puanı −∞ olan satır (bütün anahtarları, ya da tek anahtar): K'nin 0. öğesi artı, q'nunki −∞; K'nin bir satırı −∞.
+	for _, row := range []bool{true, false} {
+		d := splitCase{1, 4, 2, 3, 50, 64, tensor.AttentionOptions{Causal: true}}
+		qv, kv, vv := splitInputs(rng, d, 1, 1)
+		for i := 0; i < len(kv); i += d.D {
+			kv[i] = 1 + kv[i]*kv[i]
+		}
+		for i := 0; i < len(qv); i += d.D {
+			qv[i] = 1 + qv[i]*qv[i]
+		}
+		if row {
+			qv[d.H*d.D] = float32(math.Inf(-1)) // 1. sorgu, 0. bakış
+		} else {
+			kv[7*d.Hkv*d.D] = float32(math.Inf(-1)) // 7. anahtar, 0. anahtar bakışı
+		}
+		compare(t, fmt.Sprintf("%v −∞ satır %v", d, row), 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			q, k, v := splitTensors(qv, kv, vv, false, d, c)
+			if c == 0 {
+				return tensor.Attention(q, k, v, d.opt), nil
+			}
+			return splitAttention(t, "bolme", q, k, v, d.opt), nil
+		})
 	}
 	// Bakan anahtarı olmayan satır: O = 0.
 	d := splitCase{1, 2, 1, 6, 3, 32, tensor.AttentionOptions{Causal: true}}
