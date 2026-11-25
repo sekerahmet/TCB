@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -330,7 +331,8 @@ func TestBaselineQuantizedAuto(t *testing.T) {
 	}
 }
 
-// nglCheck dört makinede S1 ve S3'ün llama.cpp komutlarındaki -ngl değerlerini basar (ölçü ve uyuşma komutları).
+// nglCheck dört makinede S1 ve S3'ün llama.cpp komutlarındaki -ngl değerlerini (ölçü ve uyuşma komutları) ve llama-completion
+// komutlarındaki -lv değerlerini (" lv" ekli anahtar) basar.
 const nglCheck = `
 import importlib.util, json, os, sys, tempfile
 spec = importlib.util.spec_from_file_location("run", "baseline/run.py")
@@ -344,19 +346,22 @@ json.dump({"trlang": "trlang", "whisper_cli": "whisper-cli", "llama_bench": "lla
 out = {}
 for machine in ("highram", "l4cpu", "l4gpu", "g4"):
     ctx = qs.Ctx(rp, machine, 4, work, lambda r: None, dry=True)
-    got = []
+    got, lv = [], []
     for q in ("S1", "S3"):
         for it in qs.items(ctx, q):
             for c in it["ref"]["cmds"] + it.get("ref_agree", []):
                 if c[0] in ("llama-bench", "llama-completion"):
                     got.append(str(c[c.index("-ngl") + 1]) if "-ngl" in c else "none")
-    out[machine] = got
+                if c[0] == "llama-completion":
+                    lv.append(str(c[c.index("-lv") + 1]) if "-lv" in c else "none")
+    out[machine], out[machine + " lv"] = got, lv
 print(json.dumps(out))
 `
 
 // llama.cpp'nin öntanımlısı bütün katmanları GPU'ya koyar (-ngl -1; b12124 llama.h); L4'ün llama.cpp'si CUDA'lıdır ve
 // l4cpu aynı makinededir: işlemci sorusunda emsal GPU'da koşuyordu (BC20, Ahmet'in sorusu). S1 ve S3'ün her llama-bench ve
-// llama-completion komutu işlemci makinesinde -ngl 0, GPU makinesinde -ngl 99 taşır.
+// llama-completion komutu işlemci makinesinde -ngl 0, GPU makinesinde -ngl 99 taşır. llama-completion'ın aygıtı günlüğündeki
+// "offloaded N/N layers to GPU" satırından okunur; b12124 onu ancak -lv 4'ten basar (sm_80 sınıfı kartta uyuşma geçişi bu yüzden durdu).
 func TestBaselineLlamaGPULayers(t *testing.T) {
 	out, err := exec.Command(python(t), "-I", "-c", nglCheck).Output()
 	if err != nil {
@@ -375,6 +380,9 @@ func TestBaselineLlamaGPULayers(t *testing.T) {
 				t.Errorf("%s: llama.cpp -ngl %s, want %s (%v)", machine, v, want, got[machine])
 				break
 			}
+		}
+		if lv := got[machine+" lv"]; len(lv) == 0 || slices.ContainsFunc(lv, func(v string) bool { return v != "4" }) {
+			t.Errorf("%s: llama-completion -lv %v, want 4 in every command", machine, lv)
 		}
 	}
 }
