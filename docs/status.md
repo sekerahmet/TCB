@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 **Madde biçimi:** bölümlerdeki her madde kalıcı bir kimlik ve türle başlar: kimlik (S-412), tür (Yapılacaklar ya da Mevcut durum). Madde mesajda, devirde ve denetimde kimlikle anılır, satır numarasıyla anılmaz. Silinen maddenin kimliği `internal/devtools/testrunner/testdata/status_deleted_ids.txt`'ye yazılır ve yeniden kullanılmaz; yeni madde sıradaki kimliği alır ve sayı bir artar. Madde alt satırlarıyla en çok 500 harftir. Kimlikli ölçünün sayısı kopyalanmaz, ölçünün kimliği yazılır; tazelik notu, saat, tarih ve kanıt etiketinin dışında DENETİM numarası yazılmaz, karar commit mesajında durur [test: `TestStatusItemsFollowTheFormat`]. Türden sonra ayraçta sınıf, öncelik, varsa dilim ve sahip gelir; sonra kuraldan fark, dayanağın etiketi ve varsa "Sıradaki:" adımı.
 
-**Sıradaki kimlik:** S-717.
+**Sıradaki kimlik:** S-718.
 
 ## Önem ve öncelik
 
@@ -29,6 +29,8 @@ Etiket her "Yapılacaklar"ın ayracındadır: sınıf, öncelik, varsa kol ya da
 
 **Ö0, sırayla:**
 1. 15.26, ardışık tohumların çekilişi (A; sahip D1).
+2. 15.24, çok büyük `TR_window` (A; sahip T1).
+3. 15.23c, evrişimin çok büyük adımı (A; sahip T1).
 
 **Ö1, dilimlerin kesin listeleri:** 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5, 15.5, 13.10'un varsayılanlı parametresi (tur 7); argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi: 6.1, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c); karışık değişmez: 3.6, 3.7; fonksiyon ifadesiyle başlatılan görevin tipi: 10.1; anahtar fonksiyonunun tipi: 13.3; parantezsiz yerleşik metot: 13.6; imzaların öğe ve fonksiyon tipi: 13.9. 4b: 3.5, 6.2, 5.12, 5.6, 7.4, 3.10'un koşulu, 11.1. 4c: 3.14, 15.1'in öğe cinsi, 13.1'in boş listesi. Kol B: 20.11, 15.27a, 15.33, 15.45. Parçalayıcı dilimi: 16.2. Asistan araçları (roadmap, yerel sesli asistan): 18.1'in `TR_Path` denetiminden geçmeyen yolları. Yerli ses girişi (roadmap, yerel sesli asistan 6. adım): 21.2'nin sınırı, kaynağın kendi kaybı, "Gerçek mikrofonda sözün başı". 15.22a'nın sınıfsız (hız) Ö1'i listeye girmez, testin adlı istisnası.
 
@@ -704,6 +706,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-292 Yapılacaklar (E, Ö3):** `TR_conv2d` (15.23c); TR testi.
 - **S-293 Yapılacaklar (sınıfsız: hız, Ö2; sahip T1):** `TR_conv1d` sabit ağırlığı her çağrıda tek iş parçacığında paketliyor: `packA` döngüsü iş dağıtımından önce (`internal/compute/tensor/conv1d_cpu.go:125-131`, dağıtım `:145`); payı ölçülmedi. Sıradaki: Piper'da profil payı, sonra sabit ağırlığın bir kez paketlenmesi.
 - **S-294 Yapılacaklar (sınıfsız: hız, Ö3; sahip T1):** evrişim yolu dönen işçileri tutmuyor: `holdWorkers` yalnız nicemli çarpımda (`internal/compute/tensor/cpu_quant.go:153`, `:160`, `cpu_quant_q8.go:243`, `:263`); işçi uyursa sonraki işin uyandırmayı beklediği `internal/compute/tensor/parallel.go:79-81`'de, payı ölçülmedi [hipotez]. Sıradaki: Piper'da ölçü.
+- **S-717 Yapılacaklar (A, Ö0; sahip T1):** GPU'da `TR_conv1d`'nin `TR_stride`'ı 2³²'nin hemen altındayken girdinin gradyanı sessizce yanlış: katlamada adımın toplamı u32'de sarıyor; ileri sonuç ve CPU doğru [ölçüldü: benzetici, `50a7715c`; kanıtlı: internal/compute/gpu/kernel_conv.go:97], kartta [hipotez]. 2³² ve üstünde (çekirdek 1'de `TR_dilation`'da da) iç panik [ölçüldü: benzetici]. Sıradaki: Dilim D'den sonraki kod commit'i, ikisini dolgulu uzunluğa kırpmak; kartta doğrulama A100'de.
 
 ### 15.23d
 
@@ -716,7 +719,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-298 Yapılacaklar (D, Ö3; sahip T1):** 15.24'ün "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (S-222) uygulanır.
 - **S-299 Mevcut durum:** `TR_attention`'da `TR_bias:` yok (15.24): çağrı H7901 veriyor, geçerli adlar `TR_causal`, `TR_window`, `TR_mask` [ölçüldü: trlang run, `ae1e8dcc`].
 - **S-300 Yapılacaklar (E, Ö3; sahip tensör/GPU kolu):** `TR_attention`'ın `TR_bias:` argümanı (S-303 buna bağlı).
-- **S-714 Yapılacaklar (A, Ö1, sonraki kod commit'i; sahip T1):** çok büyük `TR_window` (15.24) int64'te taşıyor, `TR_window: 9223372036854775807`'de CPU sessizce sıfır veriyor: iki yönlü kipte `c + Window`, nedensel kipte Tq > Tk iken `c - Window + 1` [ölçüldü: trlang run, `b83cdd5f`; kanıtlı: internal/compute/tensor/attention.go:74, :76]; 2³² ve üstünde GPU iç panik veriyor [kanıtlı: `internal/compute/gpu/launcher.go:176-179`]. Sıradaki: pencereyi max(Tq, Tk)'ya kırpmak.
+- **S-714 Yapılacaklar (A, Ö0; sahip T1, Dilim D):** büyük `TR_window` (15.24) sessizce yanlış. GPU'da 2³¹ − 1: iki yönlüde birleşik ve bölünmüş yol 0, çarpım yolu yanlış; nedenselde Tq > Tk iken ilk ikisi 0; 2³²'de iç panik [ölçüldü: benzetici, `50a7715c`; kanıtlı: internal/compute/gpu/attention.go:49], kartta [hipotez]. CPU'da 2⁶³ − 1: iki yönlüde ve o nedenselde 0 [ölçüldü: trlang run, `b83cdd5f`; kanıtlı: internal/compute/tensor/attention.go:74, :76]. Sıradaki: max(Tq, Tk, 1)'e kırpmak.
 - **S-302 Mevcut durum (sınır):** dikkat ölçeği bakış boyutundan farklı Gemma 3 27B (`query_pre_attn_scalar` 168) yüklenmez, H7177; GGUF'ta yalnız `block_count` 18, 26, 34, 48 ve bakış boyutu 256 yüklenir [test: `TestGemma3GGUFGates`].
 - **S-303 Yapılacaklar:** tamamen −∞ sapmalı satır 0 verir, CPU'da ve GPU'da (15.24; `TR_bias:` gelince, S-300). CPU'da tamamen maskeli `TR_Bool` satırı 0 veriyor [ölçüldü: trlang run, `ae1e8dcc`]; GPU ölçülmedi.
 - **S-304 Yapılacaklar (A, Ö1; sahip T1, tensör kolu):** maskelenen anahtardaki NaN satıra sızıyor (15.24): V satırındaki NaN çıktıya, K satırındaki NaN `q.TR_grad`'a geçiyor [ölçüldü: trlang run, `ae1e8dcc`]. Bölünmüş GPU yolunda (ek maske girmez) kapandı (`TestAttentionSplitHiddenNaN`); kalan: iki GPU ileri yolu, GPU'nun geri yönü (dS·K), CPU (karo çarpımları bakılmayan satırı sıfırlamıyor [hipotez]). Sabit kapasiteli KV önbelleğinin yazılmamış satırları bu yoldan geçer.
@@ -793,7 +796,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md).
 - **S-349 Yapılacaklar (F, Ö3; sahip T1):** tekli eksinin taşma iletisi H6961 çift eksi yazıyor (`--9223372036854775808`) [ölçüldü: `ae1e8dcc`'nin trlang run'ı, int64'ün en küçüğünde `-x`]. Sıradaki: ileti `-(-9223372036854775808)`'i ya da işlecin adını yazar.
 - **S-351 Yapılacaklar (sınıfsız: hız; sahip T1):** kartın int64 toplamında eksensiz toplam tek iş parçacığıyla sırayla toplanıyor (`internal/compute/gpu/typed_reduce.go:35`, `plain(m, sameBlock)`, m = 1). Sıradaki: büyük n, küçük m için ağaç yolu ya da sınır.
 - **S-352 Yapılacaklar (sınıfsız: bellek, Ö3; sahip T1):** `sumInt64OnDevice`'ın bitişik kopyası bırakılmıyor (`internal/compute/tensor/typed_reduce.go:82`, `Drop` yok); 15.43'ün belirlenimli bırakması bu kopyada işlemiyor. Emsal: `internal/compute/tensor/view.go:115-119`.
-- **S-353 Mevcut durum:** kartta tohumlu `TR_randn` konakta üretilip karta kopyalanıyor (`internal/stdlib/ml/builtin_create.go:200`), dil tanımı kararı `docs/spec/pending.md:70`'te.
+- **S-353 Mevcut durum:** kartta tohumlu `TR_randn` konakta üretilip karta kopyalanıyor (`internal/stdlib/ml/builtin_create.go:200`), dil tanımı kararı `docs/spec/pending.md`'de ("15.41 ve 20.17, tohumlu rastgele sayının cihazı").
 - **S-354 Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları, `internal/compute/gpu/ptx_math.go`) ulp sınırı ölçülmedi, gpu paketinde ulp testi yok; 15.11 GPU için birkaç ulp diyor.
 - **S-355 Yapılacaklar (C ve F, Ö2):** GPU sınırlarını ölçüp 15.10 ve 15.11'e yazmak; cihazlar arası sözün Go testi (15.41'in Test satırı onu bekliyor).
 
@@ -1346,5 +1349,5 @@ Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 
 - **S-674 Yapılacaklar (E, Ö3; sahip Dost Interface; indirmenin D dilimi):** "Güncelleme var" bildirimi yok: Dost'un `catalog` olayındaki girdi yalnız `installed` ve `downloaded` taşıyor, kurulu kaydın sürümünü taşımıyor [kanıtlı: tools/assistant/yuva.tr:318-319]. Sıradaki: F2'nin kurulum sayfası `catalog`'a kayıt durumunu ekler.
 - **S-675 Yapılacaklar (E, Ö3; sahip Motor):** tavan üstbilgiyle aynı anda dolarsa H7716 ilk isteğin konağını yazar, yönlendirilmiş zincirde asılan sonuncununkini değil (28.10) [kanıtlı: internal/stdlib/download/fetch.go:129-133, client.go:227-233]. Sıradaki: bu dalda konak resp.Request.URL.Host'tan.
-- **S-676 Yapılacaklar (E, Ö3; sahip Motor; dil tanımı 28.10, pending):** 28.10 çok adresli adda her denemenin en az süresini (`minAttempt`) ve bu yüzden denenmeyen adresleri söylemiyor [kanıtlı: internal/stdlib/download/client.go:31, :152]. Sıradaki: dil tanımı turunda `docs/spec/pending.md:63`; davranış değişmez.
+- **S-676 Yapılacaklar (E, Ö3; sahip Motor; dil tanımı 28.10, pending):** 28.10 çok adresli adda her denemenin en az süresini (`minAttempt`) ve bu yüzden denenmeyen adresleri söylemiyor [kanıtlı: internal/stdlib/download/client.go:31, :152]. Sıradaki: dil tanımı turunda `docs/spec/pending.md` ("28.10, çok adresli adda en küçük deneme süresi"); davranış değişmez.
 - **S-677 Yapılacaklar (C, Ö2; sahip Motor; dil tanımı 28.10):** `TR_download` yavaş gövdede adres ailesini değiştirmiyor: aile yalnız bağlanma düşünce değişir (`dialEach`), gövdede yalnız hareketsizlik sınırı var [kanıtlı: internal/stdlib/download/client.go:25, :145-163; fetch.go:226, :234]. Sıradaki: yavaş gövdede öbür aileye geçip `.part`'tan sürdürmek ya da iki aileyi yarıştırmak (dil kararı, Motor'la tasarım).
