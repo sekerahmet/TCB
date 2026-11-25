@@ -1,0 +1,32 @@
+# TR 4
+# 61 — Ters spektrum: frekans gösteriminden sesi geri kurmak (`TR_irfft`, `TR_istft`).
+#
+# Kendin dene: TR_length: olmadan boyun neden kısaldığına bak; pencere adımını değiştir.
+
+# TR_irfft TR_rfft'nin tersidir. Boy zorunludur: beş kutu hem 8 hem 9 uzunluktan gelir.
+TR_var sinyal = TR_Tensor([1.0, -0.5, 0.25, 0.75, -1.0, 0.5, 0.0, -0.25])
+TR_var g, s = TR_rfft(sinyal)
+TR_print(g.TR_shape, TR_all_close(sinyal, TR_irfft(g, s, TR_n: 8), TR_atol: 0.00001))
+
+# Bir saniyelik ses: 220 Hz'lik ton ve onun üstünde 3520 Hz'lik tiz. Hızı saniyede 8000 örnektir.
+TR_var hız = 8000
+TR_var zaman = TR_Tensor(TR_List(0..hız).TR_map((k) => k / hız))
+TR_var ses = TR_sin(zaman * 2.0 * TR_pi * 220.0) + 0.1 * TR_sin(zaman * 2.0 * TR_pi * 3520.0)
+
+# Tizin genliği: bir saniyelik sinyalde kutunun numarası frekanstır.
+TR_func tiz(x: TR_Tensor) -> TR_Float {
+    TR_var a, b = TR_rfft(x)
+    TR_return TR_round((a[3520] ** 2 + b[3520] ** 2).TR_item() ** 0.5 * 2.0 / hız, 3)
+}
+
+# Kısa süreli dönüşümde 2000 Hz'in üstündeki kutuları sil, sesi geri kur.
+TR_var n = 256
+TR_var pencere = TR_hann_window(n, TR_periodic: TR_true)
+TR_var a, b = TR_stft(ses, n, TR_hop_length: 60, TR_window: pencere, TR_pad_mode: "reflect")
+TR_var kalan = TR_concat([TR_ones([64, 1]), TR_zeros([65, 1])], TR_dim: 0)
+TR_var temiz = TR_istft(a * kalan, b * kalan, n, TR_hop_length: 60, TR_window: pencere, TR_length: hız)
+TR_print("tiz", tiz(ses), "->", tiz(temiz))
+
+# Boy verilmezse TR_stft'nin hiçbir çerçeveye sığmayan son örnekleri eksik kalır.
+TR_var boysuz = TR_istft(a, b, n, TR_hop_length: 60, TR_window: pencere)
+TR_print(a.TR_shape, temiz.TR_shape, boysuz.TR_shape)

@@ -115,7 +115,7 @@ func stftFrameGrad(d, row, drow, dw, win []float32, start int, reflect bool) {
 	}
 }
 
-// Ters dönüşümün türevi (23.7): y[k] = Σ_j a_j·(re[j]·cos θ_jk − im[j]·sin θ_jk) için (a_0 ve çift n'de
+// Ters dönüşümün türevi (23.7, 23.8): y[k] = Σ_j a_j·(re[j]·cos θ_jk − im[j]·sin θ_jk) için (a_0 ve çift n'de
 // a_{n/2} 1/n, öbürleri 2/n) ∂L/∂re[j] ve ∂L/∂im[j] gradyanın ileri dönüşümünün a_j katıdır: gerçek ve
 // sanal kısmı. Sıfırıncı ve çift n'de son kutunun sanal kısmı sonuca girmez, türevi 0'dır.
 
@@ -177,4 +177,81 @@ func trackIrfft(re, im, y *Tensor, n int, tr Trig) *Tensor {
 		})
 		return []*Tensor{gradTensor(dre, shape...), gradTensor(dim, shape...)}
 	})[0]
+}
+
+// trackIstft sonucu türev çizgesine bağlar: gerçek, sanal ve pencerenin gradyanı.
+func trackIstft(re, im, window, y *Tensor, o IstftOptions, c FourierCall) *Tensor {
+	want := [3]bool{re.RequiresGrad(), im.RequiresGrad(), window.RequiresGrad()}
+	if y.dtyp == Float64 || !GradEnabled() || want == [3]bool{} {
+		return y
+	}
+	saved := []*Tensor{re.Detach(), im.Detach(), window.Detach(), y.Detach()} // bu çağrıdan sonra bırakılır
+	return CustomOp("istft", []*Tensor{re, im, window}, []*Tensor{y}, saved, func(_ any, g []*Tensor) []*Tensor {
+		defer dropAll(saved...)
+		return istftGrad(saved[0], saved[1], saved[2], saved[3], g[0], o, c, want)
+	})[0]
+}
+
+// istftGrad gerçek, sanal ve pencerenin gradyanlarıdır. q = gy / zarf için çerçevenin gradyanı q · pencere,
+// pencereninki Σ q · (çerçeve − 2 · y · pencere)'dir (bölümün türevi dahil).
+func istftGrad(re, im, window, y, gy *Tensor, o IstftOptions, c FourierCall, want [3]bool) []*Tensor {
+	rows, bins, frames, _ := istftShape(re, o)
+	n, size := o.N, rows*bins*frames
+	dre, dim := gradBuffer(want[0], size), gradBuffer(want[1], size)
+	dwRows := gradBuffer(want[2], rows*n)
+	if rows > 0 {
+		g := istftBack{o: o, frames: frames, bins: bins, win: signalOf[float32](window), y: y.Data(), gy: gy.Data(), dre: dre, dim: dim, dwRows: dwRows}
+		g.env = istftEnvelope(g.win, frames, o, c.Fn)
+		if want[2] {
+			g.xr, g.xi = signalOf[float32](re), signalOf[float32](im)
+		}
+		plan := newPlan[float32](c.Trig, n)
+		parallelFor(rows, frames*n*fourierCost, func(from, to int) {
+			w, q := plan.newRealWork(), make([]float32, o.Length)
+			for r := from; r < to; r++ {
+				g.row(plan, w, q, r)
+			}
+		})
+	}
+	dw := gradBuffer(want[2], n)
+	for i := range dwRows { // satır sırası sabittir
+		dw[i%n] += dwRows[i]
+	}
+	return []*Tensor{gradTensor(dre, re.shape...), gradTensor(dim, re.shape...), gradTensor(dw, n)}
+}
+
+// istftBack ters STFT'nin geri hesabının paylaşılan verisidir; nil olan gradyan yazılmaz.
+type istftBack struct {
+	o                IstftOptions
+	frames, bins     int
+	xr, xi, win, env []float32
+	y, gy            []float32
+	dre, dim, dwRows []float32
+}
+
+// row r'inci satırın gradyanlarını yazar; q işçinin alanıdır.
+func (g *istftBack) row(p *fftPlan[float32], w *realWork[float32], q []float32, r int) {
+	o, n := g.o, g.o.N
+	for i := range q {
+		q[i] = g.gy[r*o.Length+i] / g.env[i]
+	}
+	for f := range g.frames {
+		at, lo, hi := o.overlap(f)
+		base := r*g.bins*g.frames + f
+		if g.dwRows != nil {
+			hermitianFrame(p, w, g.xr, g.xi, base, g.frames)
+			dw := g.dwRows[r*n : (r+1)*n]
+			for i := lo; i < hi; i++ {
+				rest := float32(w.yr[i]/float32(n)) - float32(2*float32(g.y[r*o.Length+at+i]*g.win[i]))
+				dw[i] += float32(q[at+i] * rest)
+			}
+		}
+		if g.dre != nil || g.dim != nil {
+			clear(w.xr)
+			for i := lo; i < hi; i++ {
+				w.xr[i] = q[at+i] * g.win[i]
+			}
+			irfftFrameGrad(p, w, g.dre, g.dim, base, g.frames)
+		}
+	}
 }

@@ -75,6 +75,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 58 | [`58_llama3_sohbet.tr`](tr/58_llama3_sohbet.tr) | Llama 3 sohbet biçimi: iletileri Llama 3.1 ve 3.2'nin parça dizisine çevirmek (`TR_fn_llama3_format`, `TR_arg_date`) ve cevabı iletiye ayırmak; araç çağrısının etiketi yok (`TR_fn_llama3_reply`; `tr/chat`) |
 | 59 | [`59_gemma3_sohbet.tr`](tr/59_gemma3_sohbet.tr) | Gemma 3 sohbet biçimi: iletileri Gemma 3'ün parça dizisine çevirmek (`TR_fn_gemma3_format`) ve cevabı iletiye ayırmak (`TR_fn_gemma3_reply`); sistem iletisi ilk kullanıcı turunun başında, araç desteği yok (`tr/chat_gemma3`) |
 | 60 | [`60_fonemler.tr`](tr/60_fonemler.tr) | Fonemler: Türkçe metni bir sesin IPA fonemlerine çevirmek; cümleler, vurgu, sayılar (`TR_fn_phonemize`; `tr/phonemes`) |
+| 61 | [`61_ters_spektrum.tr`](tr/61_ters_spektrum.tr) | Ters spektrum: frekans gösteriminden sesi geri kurmak (`TR_fn_irfft`, `TR_fn_istft`, `TR_arg_length`) |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

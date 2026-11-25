@@ -1980,6 +1980,7 @@ const (
 	H7912 Code = 7912 // {@pretrained_model}: modelin {name|q} parametresine klasörün ağırlıklarında karşılık yok ({file|q}); config.json ile ağırlıklar aynı yayımdan olmalı: klasörü yeniden indirin
 	H7913 Code = 7913 // {@pretrained_model}: {name|q} parametresinin şekli config.json'a göre {modelShape}, {weight|q} ağırlığından gelen tensörünki {sourceShape}; config.json ile ağırlıklar aynı yayımdan olmalı: klasörü yeniden indirin
 	H7920 Code = 7920 // {fn}: {case, select, shape {gerçek ({given}) ile sanal ({expected}) tensörün şekli aynı olmalıdır (23.7)} rank {izge en az 2 boyutlu olmalıdır ([..., {expected}, çerçeve]), {given} verildi (23.8)} bins {frekans ekseni `n // 2 + 1` = {expected} kutu olmalıdır, {given} verildi (23.7)} other {izgeden örnek kurulmaz, şekli {given} (23.8): bu ayarla en az {expected} çerçeve gerekir}}
+	H7921 Code = 7921 // {fn}: kurulan sinyalin {index}. örneğinde pencere karelerinin toplamı en çok 1e-11 (adım {hop}); pencere ve adım sıfırsız örtüşmelidir (23.8){case, select, centered {} other {; `{#center}: {#false}` iken ilk öğesi 0 olan pencere (Hann) ilk örneği kuramaz}}
 	H8000 Code = 8000 // F5:{continue} | F10:{next} | F11:{step} | Shift+F11:{out} | {set} | {jump} | {table} | {watch}
 	H8001 Code = 8001 // [TR Hata Ayıklayıcı] ({keys}) >
 	H8010 Code = 8010 // TR HATA AYIKLAYICI KOMUT REHBERİ:

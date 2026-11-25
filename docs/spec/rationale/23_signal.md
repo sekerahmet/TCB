@@ -15,10 +15,6 @@ Karşılaştırma:
 | Mel ölçeği, normu | torchaudio `"htk"`, `norm=None` | `htk=False` (Slaney), `norm="slaney"` | `mel_filter_bank` `"htk"`, `None`; Whisper'da açık `"slaney"` | dosyadan okunur | ikisi de zorunlu (23.4) |
 | GPU'da FFT | cuFFT | yok | PyTorch'unki | yok | kendi çekirdeği (23.5) |
 
-**Ters STFT yok.** `istft` yalnız ses üretiminde gerekir; Whisper'ın yolu kullanmaz [DENETİM açtı: whisper `audio.py`, v20250625, yalnız `torch.stft`]. Emsalleri ve tuzakları o adım için burada kalır:
-- `torch.istft` üst üste ekler ve pencere karelerinin toplamına böler; toplam sıfıra yakınsa (NOLA koşulu) hata verir [rapordan].
-- StyleTTS2 ve Kokoro (ISTFTNet) sesi `torch.istft` ile genlik ve fazdan kurar; Kokoro'nun ONNX yolu `conv_transpose1d` ile yazılmış ve sıfır ile en yüksek frekansın tekilliğini atlıyor [rapordan: `istftnet.py`, `custom_stft.py`]. Demetle girdi `(genlik · TR_cos(faz), genlik · TR_sin(faz))` olur.
-
 ### 23.1
 
 - *Emsal:* PyTorch `torch.fft.rfft` ve NumPy `np.fft.rfft` tek yanlı spektrum verir; varsayılan ölçekte ileri yön ölçeksizdir [rapordan]. NumPy'de uzun girdi `n`'ye sessizce kesilir [rapordan]. PyTorch karmaşık cins kullanır; eski `[..., 2]` gerçek görünümü kullanımdan kalktı, çünkü son eksendeki 2 öbür eksenlerle karışıyordu [rapordan: pytorch v2.6.0, `functional.py`].
@@ -59,3 +55,10 @@ Karşılaştırma:
 
 - *Emsal:* NumPy ve PyTorch'ta `irfft`'in `n`'si verilmezse `2(m − 1)`'dir; tek uzunluklu sinyal geri çevrilince bir örnek kısalır [rapordan]. Geri yön varsayılan ölçekte `1 / n`'lidir [rapordan]. PyTorch 2.6.0 sıfırıncı ve çift `n`'de son kutunun sanal kısmını okumuyor, tek `n`'de son kutununkini okuyor; `n` büyükse izgeyi sıfırla uzatıyor, küçükse kesiyor [ölçüldü: `torch.fft.irfft`, 2026-11-25].
 - *Gerekçe:* ses üreten modeller (HiFT, ISTFTNet, filigran) son adımda kullanır. `TR_n:` zorunludur, çünkü `m` kutu hem `2(m − 1)` hem `2m − 1` uzunluktan gelir; varsayılan tek uzunlukta bir örneği sessizce düşürürdü (15.49). Kutu sayısı bu yüzden `n`'den denetlenir, sessizce kesilmez ya da sıfırla uzatılmaz. Sıfırıncı ve çift `n`'de son kutunun sanal kısmı gerçek sinyalde sıfırdır; girmediği yazılır ki türevi de belli olsun.
+
+### 23.8
+
+- *Emsal:* `torch.istft` üst üste ekler ve pencere karelerinin toplamına böler; toplam 1e-11'in altındaysa hata verir; `length` hiçbir çerçevenin değmediği boyda sıfırla uzatır (yalnız uyarır), kısa boyda sessizce keser [ölçüldü: torch 2.6.0, `torch.istft`, 2026-11-25]. StyleTTS2 ve Kokoro (ISTFTNet) sesi `torch.istft` ile genlik ve fazdan kurar; Kokoro'nun ONNX yolu `conv_transpose1d` ile yazılmış ve sıfır ile en yüksek frekansın tekilliğini atlıyor [rapordan: `istftnet.py`, `custom_stft.py`]. Demetle girdi `(genlik · TR_cos(faz), genlik · TR_sin(faz))` olur. Chatterbox'ın HiFT'i (`n` 16, adım 4) ve PerTh filigranı (`n` 2048, adım 320) bu işlemi kullanır [ölçüldü: 2026-11-25].
+- *Gerekçe:* `TR_length:` yalnız aynı ayarın `TR_stft`'inin tam bu çerçeve sayısını vereceği boyları kabul eder: daha uzunu sıfırla uzatmak, daha kısası ise kullanılan çerçeveleri sessizce atmak olurdu (15.49). Koşul iki parçadır; yalnız çerçeve sayısına bakmak adım `n // 2`'den büyükken hiçbir çerçevenin değmediği örnekleri kabul ederdi [ölçüldü: kaba arama, 3648 durum, `TestIstftLengthsMatchStft`]. Doğal boy `TR_stft`'nin asıl boyundan kısa olabilir (son örnekler hiçbir çerçeveye girmez, 23.3); bu yüzden asıl boy bilinince yazılır. 1e-11 eşiği mutlaktır ve PyTorch'unkiyle aynıdır; NaN pencere onunla elenmez, yayılır.
+- Denetim sırası bellek ve ileti içindir: birden çok çerçevede `h > n` olan çağrının hiçbir geçerli boyu yoktur ve dev adımda çerçevelerin toplam boyu sayıyı taşırır; boşluk sinyal ayrılmadan söylenir.
+- `TR_hop_length:` ve `TR_window:` 23.3'teki gibi zorunludur: `torch.istft`'in varsayılanları (`n // 4`, dikdörtgen pencere) `TR_stft`'ye verilenle tutmazsa sonuç sessizce bozulurdu.

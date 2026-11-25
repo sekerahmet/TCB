@@ -70,9 +70,9 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 ## Belirlenimcilik
 
 **23.5** Bu bölümün işlemleri 15.22a'ya uyar: aynı cihaz türünde aynı girdi ve şekil aynı bitleri verir. Cihaz türleri arasında 15.41'in üçüncü basamağındadır (ondalık indirgeme).
-- GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez, `TR_vendor_matmul` bloğu da dönüşümün çarpımını kitaplığa vermez (15.53b). Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. GPU'da dönüşümün uzunluğu (23.1, 23.3 ve 23.7'nin `n`'i) en çok 4096'dır; üstü çalışma hatasıdır, ileti sınırı söyler ve tensörü CPU'ya taşımayı önerir (15.41'in istisnası). Sınır bu uygulamanındır, kaynak sınırı değildir (15.42); TR'nin kendi FFT çekirdeği gelince kalkar.
+- GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez, `TR_vendor_matmul` bloğu da dönüşümün çarpımını kitaplığa vermez (15.53b). Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. GPU'da dönüşümün uzunluğu (23.1, 23.3, 23.7 ve 23.8'in `n`'i) en çok 4096'dır; üstü çalışma hatasıdır, ileti sınırı söyler ve tensörü CPU'ya taşımayı önerir (15.41'in istisnası). Sınır bu uygulamanındır, kaynak sınırı değildir (15.42); TR'nin kendi FFT çekirdeği gelince kalkar.
 - Toplu verilen seslerin sonucu tek tek hesaplananla aynı bitleri vermeyebilir: şekil değişir (15.22a "aynı şekil").
-- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`; GPU'da `TestRfftOnTheCardMatchesCPU`, `TestStftOnTheCardMatchesCPU`, `TestFourierNeverCallsTheLibrary`, `TestFourierLengthLimitOnTheCard`, `TestFourierRunsOnTheCard` (blokta aynı bitler, H4134 ve önerisi); GPU'da `TestInverseFourierOnTheCardMatchesCPU`.
+- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`, `TestIstftSameBitsForAnyWorkerCount`; GPU'da `TestRfftOnTheCardMatchesCPU`, `TestStftOnTheCardMatchesCPU`, `TestFourierNeverCallsTheLibrary`, `TestFourierLengthLimitOnTheCard`, `TestFourierRunsOnTheCard` (blokta aynı bitler, H4134 ve önerisi); GPU'da `TestInverseFourierOnTheCardMatchesCPU`.
 
 ## Whisper'ın girdisi
 
@@ -117,3 +117,22 @@ TR_print(TR_irfft(gerçek, sanal, TR_n: 4).TR_tolist()) # [1.0, 0.0, -1.0, 0.0]
 ```
 
 - *Test:* TR testi; Go: `TestIrfftRoundTripAllLengths`, `TestInverseFourierDtypes`; GPU'da `TestInverseFourierOnTheCardMatchesCPU`.
+
+**23.8** `TR_istft(gerçek, sanal, n, TR_hop_length: h, TR_window: w, TR_center: b, TR_length: u)` 23.3'ün tersidir: `[..., n // 2 + 1, çerçeve]` şekilli izgeden `[..., boy]` şekilli sinyali kurar. Her çerçeve 23.7 ile kurulur, `w` ile çarpılır, `h` adımla üst üste eklenir; toplam `w ** 2`'nin aynı adımla toplamına bölünür.
+- `gerçek` ve `sanal` 23.7'deki gibidir; izge en az 2 boyutludur ve en az bir çerçevesi vardır. `TR_hop_length:` ve `TR_window:` zorunludur, 23.3'teki gibidir. `TR_center:` varsayılanı `TR_true`'dur: baştaki `n // 2` örnek kesilir.
+- `TR_length:` verilmezse boy ortalıda `(çerçeve − 1) · h + n % 2`, ortalısızda `n + (çerçeve − 1) · h`'dir; ortalıda bu 0 ise hatadır. `TR_stft`'nin hiçbir çerçeveye sığmayan son örnekleri bu yüzden eksik kalabilir: asıl boy biliniyorsa `TR_length:` verilir.
+- `TR_length: u` sinyalin boyudur: `u` uzunluklu sinyal `TR_stft`'de aynı `n`, `h` ve `TR_center:` ile tam bu çerçeve sayısını vermeli ve her örneğine bir çerçeve değmelidir; dolgu kipi sayıyı değiştirmez. Başka `u` hatadır; ileti geçerli aralığı söyler. Sonuç sessizce kesilmez, sıfırla uzatılmaz (15.49). Doğal boyun ötesindeki örneklere pencerenin küçük uçları düşer, yuvarlama büyür: Hann'da `h = n // 4` bunu `h = n // 2`'den çok daha az yapar.
+- Kurulan bir örnekte `w ** 2`'lerin toplamı en çok 1e-11 ise hatadır: pencere ve adım sıfırsız örtüşmelidir. Ortalısız kipte ilk öğesi 0 olan pencere (Hann) ilk örneği kuramaz. Penceredeki NaN sonuca yayılır (15.50).
+- Denetim sırası (argümanlardan sonra): şekiller ve kutu sayısı; çerçeve sayısı; birden çok çerçevede `h > n` (okunan aralıkta boşluk kaçınılmazdır, sinyal ayrılmadan hata); `TR_length:`; pencere karelerinin toplamı.
+- Hassasiyet ve türev 23.7'ninkidir; pencere izgenin hassasiyetinde kullanılır, float32 izgede float64 pencere hatadır (15.48). Pencere de türev izler.
+
+```tr
+# TR 4
+TR_var x = TR_Tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
+TR_var w = TR_hann_window(4, TR_periodic: TR_true)
+TR_var gerçek, sanal = TR_stft(x, 4, TR_hop_length: 2, TR_window: w, TR_pad_mode: "reflect")
+TR_print(TR_istft(gerçek, sanal, 4, TR_hop_length: 2, TR_window: w).TR_shape) # [10]
+TR_print(TR_istft(gerçek, sanal, 4, TR_hop_length: 2, TR_window: w, TR_length: 11).TR_shape) # [11]
+```
+
+- *Test:* TR testi; Go: `TestIstftRoundTrip`, `TestIstftRejectsZeroEnvelope`, `TestIstftHopBeyondWindowFailsBeforeAllocating`.

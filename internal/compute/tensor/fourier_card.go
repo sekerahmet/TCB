@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kartta Fourier dönüşümü (23.1, 23.3, 23.5, 23.7): taban matrisli DFT. Dönüşüm var olan türevli tensör
+// Kartta Fourier dönüşümü (23.1, 23.3, 23.5, 23.7, 23.8): taban matrisli DFT. Dönüşüm var olan türevli tensör
 // işlemlerinden kurulur: çerçeveler satır seçmedir (TakeRows; yansıtma ve sıfır dolgu konum
 // tablosunda), sonra pencereyle çarpım ve [satır, n] @ B[n, 2F]. Çarpım MatMul'dandır, bloğu
 // izleyen MatMulVendor'dan değil: ileri ve geri yönde TR'nin kendi çekirdeği (23.5, 15.53b).
@@ -178,4 +178,51 @@ func stftOnCard(x, window *Tensor, o StftOptions, tr Trig) (*Tensor, *Tensor) {
 	shape := append(copyInts(x.shape[:len(x.shape)-1]), F, frames)
 	bt := func(t *Tensor) *Tensor { return t.Permute(0, 2, 1).Contiguous().Reshape(shape...) }
 	return bt(re), bt(im)
+}
+
+// overlapIndex kurulan her örneğe değen (çerçeve·n + konum) satırlarının tablosudur: [boy·slots]; boş
+// yuva son satırı (çerçeve·n, sıfır satırı) gösterir. slots bir örneğe değen çerçevelerin en çoğudur.
+func overlapIndex(frames int, o IstftOptions) (idx []int, slots int) {
+	slots = min(frames, 1+(o.N-1)/o.Hop)
+	idx = make([]int, o.Length*slots)
+	for i := range idx {
+		idx[i] = frames * o.N
+	}
+	used := make([]int, o.Length)
+	for f := range frames {
+		at, lo, hi := o.overlap(f)
+		for i := lo; i < hi; i++ {
+			p := at + i
+			idx[p*slots+used[p]] = f*o.N + i
+			used[p]++
+		}
+	}
+	return idx, slots
+}
+
+// overlapAdd [satır, çerçeve, n] parçaları üst üste ekler: [satır, boy].
+func overlapAdd(parts *Tensor, idx []int, slots int, o IstftOptions) *Tensor {
+	rows, frames := parts.shape[0], parts.shape[1]
+	flat := parts.Contiguous().Reshape(rows, frames*o.N).Permute(1, 0)
+	flat = Concat([]*Tensor{flat, ZerosOn(parts.Device(), 1, rows)}, 0) // [çerçeve·n + 1, satır]
+	return TakeRows(flat, idx, []int{o.Length, slots}).Sum(1, false).Permute(1, 0)
+}
+
+// istftOnCard Istft'in kart yoludur; pencere karelerinin toplamı da kartta hesaplanır, türevi izlenir.
+// Toplamın sıfır denetimi pencereyi konakta okur.
+func istftOnCard(re, im, window *Tensor, o IstftOptions, c FourierCall) *Tensor {
+	rows, F, frames, shape := istftShape(re, o)
+	dev, w := re.Device(), window.Cast(Float32)
+	if rows == 0 {
+		return ZerosOn(dev, shape...)
+	}
+	istftEnvelope(w.Detach().To(CPU).Data(), frames, o, c.Fn)
+	flat := func(t *Tensor) *Tensor {
+		return t.Cast(Float32).Contiguous().Reshape(rows, F, frames).Permute(0, 2, 1).Contiguous().Reshape(rows*frames, F)
+	}
+	y := MatMul(Concat([]*Tensor{flat(re), flat(im)}, 1), inverseFourierBasis(o.N, dev, c.Trig)).Reshape(rows, frames, o.N)
+	idx, slots := overlapIndex(frames, o)
+	sum := overlapAdd(Mul(y, w), idx, slots, o)
+	squares := Add(ZerosOn(dev, 1, frames, o.N), Mul(w, w))
+	return Div(sum, overlapAdd(squares, idx, slots, o)).Contiguous().Reshape(shape...)
 }
